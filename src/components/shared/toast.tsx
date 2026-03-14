@@ -27,7 +27,7 @@ const icons = {
 };
 
 const colors = {
-  info: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+  info: "border-primary/30 bg-primary/10 text-primary",
   warning: "border-amber-500/30 bg-amber-500/10 text-amber-400",
   error: "border-red-500/30 bg-red-500/10 text-red-400",
   success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
@@ -73,7 +73,7 @@ export function ToastContainer() {
                 onClick={() =>
                   setToasts((prev) => prev.filter((t) => t.id !== toast.id))
                 }
-                className="ml-2 shrink-0 opacity-60 hover:opacity-100"
+                className="ml-2 shrink-0 text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

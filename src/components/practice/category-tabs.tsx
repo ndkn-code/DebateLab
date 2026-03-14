@@ -50,14 +50,14 @@ export function CategoryTabs({
               className={cn(
                 "relative flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 isActive
-                  ? "text-white"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                  ? "text-on-surface"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-600/20 border border-blue-500/30"
+                  className="absolute inset-0 rounded-lg bg-primary/10 border border-primary/30"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                 />
               )}

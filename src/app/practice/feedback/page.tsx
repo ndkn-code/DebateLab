@@ -191,19 +191,19 @@ export default function FeedbackPage() {
   if (!selectedTopic) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4 sm:px-6">
           <Link
             href="/practice"
-            className="flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
           >
             <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-blue-500" />
-            <span className="font-semibold text-white">DebateLab</span>
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-on-surface">DebateLab</span>
           </Link>
-          <span className="ml-auto hidden truncate text-xs text-zinc-500 sm:block">
+          <span className="ml-auto hidden truncate text-xs text-on-surface-variant sm:block">
             {selectedTopic.title}
           </span>
         </div>
@@ -222,7 +222,7 @@ export default function FeedbackPage() {
             <div className="flex gap-3">
               <Button
                 onClick={handleRetry}
-                className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+                className="gap-2 bg-primary text-white"
               >
                 <RotateCcw className="h-4 w-4" />
                 Try Again
@@ -230,7 +230,7 @@ export default function FeedbackPage() {
               <Button
                 onClick={handleNewTopic}
                 variant="outline"
-                className="border-zinc-700 bg-transparent text-zinc-300"
+                className="border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
               >
                 Back to Topics
               </Button>
@@ -251,7 +251,7 @@ export default function FeedbackPage() {
 
             {/* Category Cards */}
             <div>
-              <h2 className="mb-4 text-lg font-semibold text-white">
+              <h2 className="mb-4 text-lg font-semibold text-on-surface">
                 Category Breakdown
               </h2>
               <CategoryCards feedback={feedback} />
@@ -262,16 +262,16 @@ export default function FeedbackPage() {
 
             {/* Model indicator */}
             {modelUsed && (
-              <p className="text-center text-xs text-zinc-600">
+              <p className="text-center text-xs text-outline-variant">
                 Analyzed with {modelUsed}
               </p>
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col gap-3 border-t border-zinc-800 pt-8 sm:flex-row sm:justify-center">
+            <div className="flex flex-col gap-3 border-t border-outline-variant/10 pt-8 sm:flex-row sm:justify-center">
               <Button
                 onClick={handleRetrySameTopic}
-                className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+                className="gap-2 bg-primary text-white hover:bg-primary-dim"
               >
                 <RotateCcw className="h-4 w-4" />
                 Try Same Topic
@@ -279,7 +279,7 @@ export default function FeedbackPage() {
               <Button
                 onClick={handleNewTopic}
                 variant="outline"
-                className="gap-2 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
               >
                 <Plus className="h-4 w-4" />
                 New Topic
@@ -287,7 +287,7 @@ export default function FeedbackPage() {
               <Link href="/history">
                 <Button
                   variant="outline"
-                  className="w-full gap-2 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white sm:w-auto"
+                  className="w-full gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface sm:w-auto"
                 >
                   <History className="h-4 w-4" />
                   View History

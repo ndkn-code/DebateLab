@@ -52,22 +52,22 @@ export function LoadingState() {
           opacity: [0.7, 1, 0.7],
         }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20"
+        className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary-container/40"
       >
-        <Brain className="h-12 w-12 text-blue-400" />
+        <Brain className="h-12 w-12 text-primary" />
       </motion.div>
 
-      <h2 className="mb-2 text-xl font-bold text-white">
+      <h2 className="mb-2 text-xl font-bold text-on-surface">
         Analyzing your debate performance...
       </h2>
-      <p className="mb-8 text-sm text-zinc-400">
+      <p className="mb-8 text-sm text-on-surface-variant">
         Our AI is reviewing your arguments, structure, and language
       </p>
 
       {/* Progress bar */}
-      <div className="mb-8 h-1.5 w-64 overflow-hidden rounded-full bg-zinc-800">
+      <div className="mb-8 h-1.5 w-64 overflow-hidden rounded-full bg-surface-container-high">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+          className="h-full rounded-full bg-primary"
           initial={{ width: "0%" }}
           animate={{ width: `${Math.min(progress, 95)}%` }}
           transition={{ duration: 0.3 }}
@@ -82,10 +82,10 @@ export function LoadingState() {
         exit={{ opacity: 0, y: -10 }}
         className="max-w-md text-center"
       >
-        <p className="text-xs font-medium uppercase tracking-wider text-blue-400/60">
+        <p className="text-xs font-medium uppercase tracking-wider text-primary/60">
           Debate Tip
         </p>
-        <p className="mt-2 text-sm text-zinc-400">{TIPS[tipIndex]}</p>
+        <p className="mt-2 text-sm text-on-surface-variant">{TIPS[tipIndex]}</p>
       </motion.div>
     </div>
   );

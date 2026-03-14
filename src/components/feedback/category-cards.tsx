@@ -33,8 +33,8 @@ const categories: CategoryConfig[] = [
     label: "Content & Argumentation",
     icon: MessageSquareText,
     maxScore: 40,
-    gradient: "from-blue-500/20 to-blue-600/5",
-    barColor: "bg-blue-500",
+    gradient: "from-primary-container/50 to-primary-container/20",
+    barColor: "bg-primary",
     feedbackKey: "contentFeedback",
     subScores: [
       { key: "claimClarity", label: "Claim Clarity", max: 10 },
@@ -48,8 +48,8 @@ const categories: CategoryConfig[] = [
     label: "Structure & Organization",
     icon: LayoutList,
     maxScore: 25,
-    gradient: "from-purple-500/20 to-purple-600/5",
-    barColor: "bg-purple-500",
+    gradient: "from-tertiary-container/50 to-tertiary-container/20",
+    barColor: "bg-tertiary",
     feedbackKey: "structureFeedback",
     subScores: [
       { key: "introduction", label: "Introduction", max: 8 },
@@ -62,8 +62,8 @@ const categories: CategoryConfig[] = [
     label: "Language & Delivery",
     icon: Languages,
     maxScore: 25,
-    gradient: "from-emerald-500/20 to-emerald-600/5",
-    barColor: "bg-emerald-500",
+    gradient: "from-secondary-container/50 to-secondary-container/20",
+    barColor: "bg-secondary",
     feedbackKey: "languageFeedback",
     subScores: [
       { key: "vocabulary", label: "Vocabulary", max: 8 },
@@ -76,8 +76,8 @@ const categories: CategoryConfig[] = [
     label: "Persuasiveness",
     icon: Megaphone,
     maxScore: 10,
-    gradient: "from-amber-500/20 to-amber-600/5",
-    barColor: "bg-amber-500",
+    gradient: "from-[#fff9e5] to-[#fff9e5]/50",
+    barColor: "bg-[#b28b00]",
     feedbackKey: "persuasionFeedback",
     subScores: [
       { key: "audienceAwareness", label: "Audience Awareness", max: 5 },
@@ -107,28 +107,28 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              "rounded-xl border border-zinc-800 bg-gradient-to-br p-5 transition-colors hover:border-zinc-700",
+              "rounded-xl border border-outline-variant/10 bg-gradient-to-br p-5 transition-colors hover:border-outline-variant/30",
               cat.gradient
             )}
           >
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <cat.icon className="h-5 w-5 text-zinc-400" />
-                <span className="text-sm font-medium text-zinc-300">
+                <cat.icon className="h-5 w-5 text-on-surface-variant" />
+                <span className="text-sm font-medium text-on-surface">
                   {cat.label}
                 </span>
               </div>
-              <span className="text-lg font-bold text-white">
+              <span className="text-lg font-bold text-on-surface">
                 {categoryData.score}
-                <span className="text-sm font-normal text-zinc-500">
+                <span className="text-sm font-normal text-on-surface-variant">
                   /{cat.maxScore}
                 </span>
               </span>
             </div>
 
             {/* Main progress bar */}
-            <div className="mb-4 h-2 overflow-hidden rounded-full bg-zinc-800">
+            <div className="mb-4 h-2 overflow-hidden rounded-full bg-outline-variant/20">
               <motion.div
                 className={cn("h-full rounded-full", cat.barColor)}
                 initial={{ width: 0 }}
@@ -146,10 +146,10 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
 
                 return (
                   <div key={sub.key} className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 text-xs text-zinc-500">
+                    <span className="w-32 shrink-0 text-xs text-on-surface-variant">
                       {sub.label}
                     </span>
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-outline-variant/20">
                       <motion.div
                         className={cn("h-full rounded-full", cat.barColor)}
                         style={{ opacity: 0.7 }}
@@ -162,7 +162,7 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
                         }}
                       />
                     </div>
-                    <span className="w-8 text-right text-xs tabular-nums text-zinc-400">
+                    <span className="w-8 text-right text-xs tabular-nums text-on-surface-variant">
                       {value}/{sub.max}
                     </span>
                   </div>
@@ -175,7 +175,7 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
               onClick={() => setExpandedIndex(isExpanded ? null : i)}
               aria-expanded={isExpanded}
               aria-label={`${isExpanded ? "Hide" : "Show"} detailed feedback for ${cat.label}`}
-              className="mt-4 flex w-full items-center justify-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+              className="mt-4 flex w-full items-center justify-center gap-1 text-xs text-on-surface-variant transition-colors hover:text-on-surface"
             >
               {isExpanded ? "Hide" : "Show"} detailed feedback
               <ChevronDown
@@ -195,7 +195,7 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  <p className="mt-3 border-t border-zinc-800 pt-3 text-xs leading-relaxed text-zinc-400">
+                  <p className="mt-3 border-t border-outline-variant/10 pt-3 text-xs leading-relaxed text-on-surface-variant">
                     {feedback.detailedFeedback[cat.feedbackKey]}
                   </p>
                 </motion.div>

@@ -20,14 +20,14 @@ function getTimerColor(progress: number, timeLeft: number) {
   if (timeLeft <= 10) return "text-red-400";
   if (progress > 0.75) return "text-red-400";
   if (progress > 0.5) return "text-amber-400";
-  return "text-blue-400";
+  return "text-primary";
 }
 
 function getStrokeColor(progress: number, timeLeft: number) {
   if (timeLeft <= 10) return "#f87171";
   if (progress > 0.75) return "#f87171";
   if (progress > 0.5) return "#fbbf24";
-  return "#60a5fa";
+  return "#2f4fdd";
 }
 
 export function CountdownTimer({
@@ -62,7 +62,7 @@ export function CountdownTimer({
           fill="none"
           stroke="currentColor"
           strokeWidth="6"
-          className="text-zinc-800"
+          className="text-outline-variant/20"
         />
         {/* Progress ring */}
         <motion.circle
@@ -104,7 +104,7 @@ export function CountdownTimer({
       </motion.div>
 
       {/* Phase label */}
-      <div className="absolute bottom-12 text-xs font-medium uppercase tracking-widest text-zinc-500 sm:bottom-14">
+      <div className="absolute bottom-12 text-xs font-medium uppercase tracking-widest text-on-surface-variant sm:bottom-14">
         {timeLeft === 0
           ? "Time's up"
           : `${Math.ceil((timeLeft / totalTime) * 100)}% remaining`}

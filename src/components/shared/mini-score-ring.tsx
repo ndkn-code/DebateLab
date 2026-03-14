@@ -44,7 +44,7 @@ export function MiniScoreRing({
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-zinc-800"
+          className="text-outline-variant/20"
         />
         <circle
           cx={size / 2}

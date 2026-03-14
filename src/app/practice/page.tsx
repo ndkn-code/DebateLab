@@ -40,17 +40,17 @@ export default function PracticePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
           >
             <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-blue-500" />
-            <span className="font-semibold text-white">DebateLab</span>
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-on-surface">DebateLab</span>
           </Link>
         </div>
       </header>
@@ -63,10 +63,10 @@ export default function PracticePage() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-white sm:text-4xl">
+          <h1 className="text-3xl font-bold text-on-surface sm:text-4xl">
             Choose Your Battle
           </h1>
-          <p className="mt-2 text-zinc-400">
+          <p className="mt-2 text-on-surface-variant">
             Select a debate topic, configure your session, and start practicing
           </p>
         </motion.div>
@@ -86,7 +86,7 @@ export default function PracticePage() {
           <Button
             onClick={handleSurprise}
             variant="outline"
-            className="shrink-0 gap-2 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            className="shrink-0 gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
           >
             <Shuffle className="h-4 w-4" />
             Surprise Me
@@ -125,7 +125,7 @@ export default function PracticePage() {
             </AnimatePresence>
 
             {filteredTopics.length === 0 && (
-              <div className="flex h-64 items-center justify-center text-zinc-500">
+              <div className="flex h-64 items-center justify-center text-on-surface-variant">
                 No topics found in this category
               </div>
             )}

@@ -277,7 +277,7 @@ export default function SessionPage() {
       : (side as "proposition" | "opposition");
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Mic permission denied instructions */}
       {mic.error === "not-allowed" && (
         <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-3" role="alert">
@@ -288,7 +288,7 @@ export default function SessionPage() {
                 Microphone Access Required
               </span>
             </div>
-            <ol className="text-xs leading-relaxed text-zinc-400">
+            <ol className="text-xs leading-relaxed text-on-surface-variant">
               <li>1. Click the lock/site settings icon in your browser address bar</li>
               <li>2. Find &quot;Microphone&quot; and set it to &quot;Allow&quot;</li>
               <li>3. Reload this page</li>
@@ -317,7 +317,7 @@ export default function SessionPage() {
 
       {/* English only note */}
       {currentPhase === "speaking" && (
-        <div className="flex items-center justify-center gap-1.5 bg-zinc-900/50 px-4 py-1 text-[11px] text-zinc-500">
+        <div className="flex items-center justify-center gap-1.5 bg-surface-container-low px-4 py-1 text-[11px] text-on-surface-variant">
           <Globe className="h-3 w-3" aria-hidden="true" />
           English only — Transcription powered by Deepgram Nova-3
         </div>

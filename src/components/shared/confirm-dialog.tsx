@@ -27,7 +27,7 @@ export function ConfirmDialog({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-on-surface/30 backdrop-blur-sm"
           onClick={onCancel}
         >
           <motion.div
@@ -35,15 +35,15 @@ export function ConfirmDialog({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="mx-4 w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-6"
+            className="mx-4 w-full max-w-sm rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-6"
           >
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
-            <p className="mt-2 text-sm text-zinc-400">{description}</p>
+            <h3 className="text-lg font-semibold text-on-surface">{title}</h3>
+            <p className="mt-2 text-sm text-on-surface-variant">{description}</p>
             <div className="mt-6 flex justify-end gap-3">
               <Button
                 onClick={onCancel}
                 variant="outline"
-                className="border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800"
+                className="border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
               >
                 Cancel
               </Button>

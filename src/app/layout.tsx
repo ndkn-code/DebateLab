@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/shared/toast-provider";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-sans",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
@@ -58,9 +58,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
+    <html lang="en" className="scroll-smooth">
       <body
-        className={`${inter.variable} ${geistMono.variable} bg-zinc-950 font-sans antialiased`}
+        className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
         {children}
         <ToastProvider />

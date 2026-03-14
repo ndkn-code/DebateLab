@@ -49,7 +49,7 @@ export function PrepPhase({
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <span className="rounded-full bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-400">
+        <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
           Preparation Phase
         </span>
       </motion.div>
@@ -65,10 +65,10 @@ export function PrepPhase({
       {/* Notepad */}
       <div className="w-full">
         <div className="mb-2 flex items-center justify-between">
-          <label htmlFor="prep-notes" className="text-sm font-medium text-zinc-400">
+          <label htmlFor="prep-notes" className="text-sm font-medium text-on-surface-variant">
             Quick Notes
           </label>
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs text-outline">
             {prepNotes.length}/{MAX_NOTES_LENGTH}
           </span>
         </div>
@@ -83,7 +83,7 @@ export function PrepPhase({
           placeholder="Jot down your key arguments..."
           rows={4}
           aria-label="Preparation notes"
-          className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition-colors focus:border-zinc-700 focus:ring-1 focus:ring-blue-500/30"
+          className="w-full resize-none rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface placeholder-outline-variant outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
         />
       </div>
 
@@ -92,7 +92,7 @@ export function PrepPhase({
         <div className="w-full">
           <button
             onClick={() => setShowHints(!showHints)}
-            className="flex w-full items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+            className="flex w-full items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant transition-colors hover:border-outline-variant/30 hover:text-on-surface-variant"
           >
             <Lightbulb className="h-4 w-4 text-amber-400" />
             <span className="flex-1 text-left font-medium">
@@ -123,7 +123,7 @@ export function PrepPhase({
                       <span className="shrink-0 text-amber-400/60">
                         {i + 1}.
                       </span>
-                      <span className="text-zinc-300">{hint}</span>
+                      <span className="text-on-surface-variant">{hint}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -137,7 +137,7 @@ export function PrepPhase({
       <Button
         onClick={onSkip}
         variant="ghost"
-        className="gap-2 text-zinc-400 hover:text-white"
+        className="gap-2 text-on-surface-variant hover:text-on-surface"
       >
         Skip to Speaking
         <SkipForward className="h-4 w-4" />

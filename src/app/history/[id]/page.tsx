@@ -85,20 +85,20 @@ export default function SessionDetailPage({
   };
 
   if (!mounted) {
-    return <div className="min-h-screen bg-zinc-950" />;
+    return <div className="min-h-screen bg-background" />;
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
-        <h1 className="text-2xl font-bold text-white">Session Not Found</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <h1 className="text-2xl font-bold text-on-surface">Session Not Found</h1>
+        <p className="mt-2 text-sm text-on-surface-variant">
           This session may have been deleted or doesn&apos;t exist.
         </p>
         <Link href="/history" className="mt-6">
           <Button
             variant="outline"
-            className="gap-2 border-zinc-700 bg-transparent text-zinc-300"
+            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to History
@@ -111,19 +111,19 @@ export default function SessionDetailPage({
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4 sm:px-6">
           <Link
             href="/history"
-            className="flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
           >
             <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-blue-500" />
-            <span className="font-semibold text-white">DebateLab</span>
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-on-surface">DebateLab</span>
           </Link>
-          <span className="ml-auto text-xs text-zinc-500">Session Review</span>
+          <span className="ml-auto text-xs text-on-surface-variant">Session Review</span>
         </div>
       </header>
 
@@ -134,7 +134,7 @@ export default function SessionDetailPage({
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-xl font-bold text-white sm:text-2xl">
+          <h1 className="text-xl font-bold text-on-surface sm:text-2xl">
             {session.topic.title}
           </h1>
 
@@ -149,15 +149,15 @@ export default function SessionDetailPage({
             >
               {session.side === "proposition" ? "FOR" : "AGAINST"}
             </span>
-            <span className="rounded-md bg-zinc-800 px-2.5 py-1 text-xs text-zinc-400">
+            <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
               {session.mode === "full" ? "Full Round" : "Quick Practice"}
             </span>
-            <span className="rounded-md bg-zinc-800 px-2.5 py-1 text-xs text-zinc-400">
+            <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
               {session.topic.category}
             </span>
           </div>
 
-          <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500">
+          <div className="mt-3 flex items-center gap-4 text-xs text-on-surface-variant">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {formatDate(session.date)} at {formatTime(session.date)}
@@ -182,7 +182,7 @@ export default function SessionDetailPage({
             <ScoreHero feedback={session.feedback} />
 
             <div>
-              <h2 className="mb-4 text-lg font-semibold text-white">
+              <h2 className="mb-4 text-lg font-semibold text-on-surface">
                 Category Breakdown
               </h2>
               <CategoryCards feedback={session.feedback} />
@@ -194,19 +194,19 @@ export default function SessionDetailPage({
             />
           </motion.div>
         ) : (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
-            <p className="text-sm text-zinc-400">
+          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-8 text-center">
+            <p className="text-sm text-on-surface-variant">
               No feedback available for this session.
             </p>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="mt-8 flex flex-col gap-3 border-t border-zinc-800 pt-8 sm:flex-row">
+        <div className="mt-8 flex flex-col gap-3 border-t border-outline-variant/10 pt-8 sm:flex-row">
           <Link href="/history">
             <Button
               variant="outline"
-              className="w-full gap-2 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white sm:w-auto"
+              className="w-full gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface sm:w-auto"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to History
@@ -214,7 +214,7 @@ export default function SessionDetailPage({
           </Link>
           <Button
             onClick={handleRetry}
-            className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+            className="gap-2 bg-primary text-white hover:bg-primary-dim"
           >
             <RotateCcw className="h-4 w-4" />
             Retry This Topic

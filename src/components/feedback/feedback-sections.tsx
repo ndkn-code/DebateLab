@@ -30,18 +30,18 @@ function FeedbackList({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
+    <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3 p-4"
       >
         <Icon className={cn("h-5 w-5", accentColor)} />
-        <span className="flex-1 text-left text-sm font-semibold text-zinc-200">
+        <span className="flex-1 text-left text-sm font-semibold text-on-surface">
           {title}
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-zinc-500 transition-transform",
+            "h-4 w-4 text-on-surface-variant transition-transform",
             open && "rotate-180"
           )}
         />
@@ -67,7 +67,7 @@ function FeedbackList({
                   <span className={cn("mt-0.5 shrink-0", accentColor)}>
                     {i + 1}.
                   </span>
-                  <span className="text-zinc-300">{item}</span>
+                  <span className="text-on-surface-variant">{item}</span>
                 </motion.li>
               ))}
             </ul>
@@ -114,18 +114,18 @@ export function FeedbackSections({
       />
 
       {/* Full Transcript */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
+      <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest">
         <button
           onClick={() => setShowTranscript(!showTranscript)}
           className="flex w-full items-center gap-3 p-4"
         >
-          <FileText className="h-5 w-5 text-zinc-400" />
-          <span className="flex-1 text-left text-sm font-semibold text-zinc-200">
+          <FileText className="h-5 w-5 text-on-surface-variant" />
+          <span className="flex-1 text-left text-sm font-semibold text-on-surface">
             Full Transcript
           </span>
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-zinc-500 transition-transform",
+              "h-4 w-4 text-on-surface-variant transition-transform",
               showTranscript && "rotate-180"
             )}
           />
@@ -140,7 +140,7 @@ export function FeedbackSections({
               className="overflow-hidden"
             >
               <div className="px-4 pb-4">
-                <p className="whitespace-pre-wrap rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 font-serif text-sm leading-relaxed text-zinc-300">
+                <p className="whitespace-pre-wrap rounded-lg border border-outline-variant/10 bg-surface-container-low p-4 font-serif text-sm leading-relaxed text-on-surface">
                   {transcript || "No transcript recorded."}
                 </p>
               </div>

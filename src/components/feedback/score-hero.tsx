@@ -7,7 +7,7 @@ import type { DebateScore } from "@/types/feedback";
 
 const bandColors: Record<string, string> = {
   Expert: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
-  Proficient: "text-blue-400 bg-blue-500/10 border-blue-500/30",
+  Proficient: "text-primary bg-primary/10 border-primary/30",
   Competent: "text-amber-400 bg-amber-500/10 border-amber-500/30",
   Developing: "text-orange-400 bg-orange-500/10 border-orange-500/30",
   Novice: "text-red-400 bg-red-500/10 border-red-500/30",
@@ -69,7 +69,7 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
             fill="none"
             stroke="currentColor"
             strokeWidth="8"
-            className="text-zinc-800"
+            className="text-outline-variant/20"
           />
           <motion.circle
             cx="90"
@@ -86,8 +86,8 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
           />
         </svg>
         <div className="absolute flex flex-col items-center">
-          <span className="text-5xl font-bold text-white">{displayScore}</span>
-          <span className="text-sm text-zinc-500">/100</span>
+          <span className="text-5xl font-bold text-primary">{displayScore}</span>
+          <span className="text-sm text-on-surface-variant">/100</span>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
       </span>
 
       {/* Summary */}
-      <p className="max-w-lg text-center text-sm leading-relaxed text-zinc-400">
+      <p className="max-w-lg text-center text-sm leading-relaxed text-on-surface-variant">
         {feedback.summary}
       </p>
     </div>

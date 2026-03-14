@@ -39,8 +39,8 @@ function OptionButton({
       className={cn(
         "min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium transition-all",
         active
-          ? "border-blue-500/50 bg-blue-500/10 text-blue-300"
-          : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+          ? "border-primary/50 bg-primary/10 text-primary"
+          : "border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:border-outline-variant hover:text-on-surface"
       )}
     >
       {children}
@@ -78,23 +78,23 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800 bg-zinc-900/95 backdrop-blur-xl lg:absolute lg:inset-auto lg:right-0 lg:top-0 lg:h-full lg:w-[400px] lg:rounded-l-2xl lg:rounded-t-none lg:border-l lg:border-t-0"
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-outline-variant/10 bg-surface-container-lowest/95 backdrop-blur-xl lg:absolute lg:inset-auto lg:right-0 lg:top-0 lg:h-full lg:w-[400px] lg:rounded-l-2xl lg:rounded-t-none lg:border-l lg:border-t-0"
       >
         <div className="p-6">
           {/* Header */}
           <div className="mb-6 flex items-start justify-between">
             <div className="flex-1 pr-4">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-on-surface">
                 Session Configuration
               </h3>
-              <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
+              <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
                 {topic.title}
               </p>
             </div>
             <button
               onClick={onClose}
               aria-label="Close session configuration"
-              className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+              className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
             >
               <X className="h-5 w-5" />
             </button>
@@ -102,8 +102,8 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
 
           {/* Mode */}
           <div className="mb-6">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-              <Layers className="h-4 w-4 text-blue-400" />
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+              <Layers className="h-4 w-4 text-primary" />
               Mode
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -122,7 +122,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
                 Full Round
               </OptionButton>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <p className="mt-1.5 text-xs text-on-surface-variant">
               {mode === "quick"
                 ? "One round of prep + speech"
                 : "Opening + Closing statements"}
@@ -131,8 +131,8 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
 
           {/* Side */}
           <div className="mb-6">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-              <Shuffle className="h-4 w-4 text-blue-400" />
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+              <Shuffle className="h-4 w-4 text-primary" />
               Your Side
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -162,8 +162,8 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
 
           {/* Prep Time */}
           <div className="mb-6">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-              <Clock className="h-4 w-4 text-blue-400" />
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+              <Clock className="h-4 w-4 text-primary" />
               Prep Time
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -181,8 +181,8 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
 
           {/* Speech Time */}
           <div className="mb-6">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-              <Mic2 className="h-4 w-4 text-blue-400" />
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+              <Mic2 className="h-4 w-4 text-primary" />
               Speech Time
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -201,8 +201,8 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           {/* AI Hints */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-                <Lightbulb className="h-4 w-4 text-blue-400" />
+              <label className="flex items-center gap-2 text-sm font-medium text-on-surface">
+                <Lightbulb className="h-4 w-4 text-primary" />
                 AI Hints during prep
               </label>
               <button
@@ -212,7 +212,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
                 onClick={() => setAiHints(!aiHints)}
                 className={cn(
                   "relative h-6 w-11 rounded-full transition-colors",
-                  aiHints ? "bg-blue-500" : "bg-zinc-700"
+                  aiHints ? "bg-primary" : "bg-outline-variant"
                 )}
               >
                 <span
@@ -223,7 +223,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
                 />
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <p className="mt-1.5 text-xs text-on-surface-variant">
               Shows brainstorm hints during preparation time
             </p>
           </div>
@@ -231,7 +231,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           {/* Begin Button */}
           <Button
             onClick={handleBegin}
-            className="w-full gap-2 bg-gradient-to-r from-blue-500 to-purple-600 py-6 text-base font-semibold text-white hover:from-blue-600 hover:to-purple-700"
+            className="w-full gap-2 bg-primary py-6 text-base font-semibold text-on-primary hover:bg-primary/90"
           >
             Begin Session
             <ArrowRight className="h-5 w-5" />

@@ -62,7 +62,7 @@ export function AudioVisualizer({ stream, isRecording }: AudioVisualizerProps) {
       {levels.map((level, i) => (
         <div
           key={i}
-          className="w-1.5 rounded-full bg-gradient-to-t from-blue-500 to-purple-500 transition-all duration-75"
+          className="w-1.5 rounded-full bg-primary transition-all duration-75"
           style={{
             height: `${Math.max(4, level * 64)}px`,
             opacity: isRecording ? 0.4 + level * 0.6 : 0.15,

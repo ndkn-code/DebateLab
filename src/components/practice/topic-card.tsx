@@ -29,12 +29,12 @@ export function TopicCard({ topic, isSelected, onSelect, index }: TopicCardProps
       className={cn(
         "group w-full rounded-xl border p-5 text-left transition-all duration-200",
         isSelected
-          ? "border-blue-500/50 bg-blue-500/5 shadow-lg shadow-blue-500/5"
-          : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
+          ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/5"
+          : "border-outline-variant/10 bg-surface-container-lowest hover:border-outline-variant/30 hover:bg-surface-container-lowest"
       )}
     >
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+        <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-xs text-on-surface-variant">
           {topic.category}
         </span>
         <span className={cn("rounded-md border px-2 py-0.5 text-xs", diff.color)}>
@@ -45,14 +45,14 @@ export function TopicCard({ topic, isSelected, onSelect, index }: TopicCardProps
       <h3
         className={cn(
           "text-[15px] font-semibold leading-snug transition-colors",
-          isSelected ? "text-blue-100" : "text-zinc-100 group-hover:text-white"
+          isSelected ? "text-primary" : "text-on-surface group-hover:text-on-surface"
         )}
       >
         {topic.title}
       </h3>
 
       {topic.context && (
-        <p className="mt-2 text-xs leading-relaxed text-zinc-500 line-clamp-2">
+        <p className="mt-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">
           {topic.context}
         </p>
       )}

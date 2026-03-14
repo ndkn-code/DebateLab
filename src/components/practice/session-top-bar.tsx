@@ -17,10 +17,10 @@ export function SessionTopBar({
   phase,
 }: SessionTopBarProps) {
   return (
-    <header className="border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+    <header className="border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3 min-w-0">
-          <h1 className="truncate text-sm font-medium text-zinc-200">
+          <h1 className="truncate text-sm font-medium text-on-surface">
             {topicTitle}
           </h1>
         </div>
@@ -35,11 +35,11 @@ export function SessionTopBar({
           >
             {side === "proposition" ? "FOR" : "AGAINST"}
           </span>
-          <span className="rounded-md bg-zinc-800 px-2.5 py-1 text-xs text-zinc-400">
+          <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
             {mode === "full" ? "Full Round" : "Quick"}
           </span>
           {phase === "speaking" && (
-            <span className="rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400">
+            <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
               Opening Statement
             </span>
           )}

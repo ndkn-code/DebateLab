@@ -138,7 +138,7 @@ export function SpeakingPhase({
               ? "bg-red-500/20"
               : isPaused
                 ? "bg-amber-500/20"
-                : "bg-zinc-800"
+                : "bg-surface-container-high"
           )}
           animate={
             isRecording
@@ -161,11 +161,11 @@ export function SpeakingPhase({
                 ? "text-red-400"
                 : isPaused
                   ? "text-amber-400"
-                  : "text-zinc-400"
+                  : "text-outline-variant"
             )}
           />
         </motion.div>
-        <span className="text-xs font-medium text-zinc-500">
+        <span className="text-xs font-medium text-on-surface-variant">
           {isRecording
             ? hasReceivedSpeech
               ? "Listening..."
@@ -196,9 +196,9 @@ export function SpeakingPhase({
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 rounded-lg bg-zinc-800/50 px-4 py-2 text-sm text-zinc-400"
+          className="flex items-center gap-2 rounded-lg bg-surface-container-high/50 px-4 py-2 text-sm text-on-surface-variant"
         >
-          <AlertTriangle className="h-4 w-4 shrink-0 text-zinc-500" />
+          <AlertTriangle className="h-4 w-4 shrink-0 text-outline-variant" />
           No speech detected. Make sure you&apos;re speaking in English.
         </motion.div>
       )}
@@ -206,21 +206,21 @@ export function SpeakingPhase({
       {/* Transcript */}
       <div className="relative flex-1">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-zinc-500">
+          <span className="text-xs font-medium text-on-surface-variant">
             Live Transcript
           </span>
-          <span className="text-xs text-zinc-600">{wordCount} words</span>
+          <span className="text-xs text-outline">{wordCount} words</span>
         </div>
-        <div role="log" aria-label="Live speech transcript" aria-live="polite" className="h-48 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 sm:h-56">
+        <div role="log" aria-label="Live speech transcript" aria-live="polite" className="h-48 overflow-y-auto rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-4 sm:h-56">
           {!transcript && !interimTranscript ? (
-            <p className="text-sm italic text-zinc-600">
+            <p className="text-sm italic text-outline-variant">
               Start speaking to see your transcript here...
             </p>
           ) : (
             <p className="font-serif text-[15px] leading-relaxed">
-              <span className="text-zinc-200">{transcript}</span>
+              <span className="text-on-surface">{transcript}</span>
               {interimTranscript && (
-                <span className="italic text-zinc-500">
+                <span className="italic text-on-surface-variant">
                   {interimTranscript}
                 </span>
               )}
@@ -235,7 +235,7 @@ export function SpeakingPhase({
         <div>
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className="flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            className="flex items-center gap-1.5 text-xs text-on-surface-variant transition-colors hover:text-on-surface-variant"
           >
             <ChevronDown
               className={cn(
@@ -253,7 +253,7 @@ export function SpeakingPhase({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-xs text-zinc-400">
+                <div className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-outline-variant/20 bg-surface-container-lowest p-3 text-xs text-on-surface-variant">
                   {prepNotes}
                 </div>
               </motion.div>
@@ -263,12 +263,12 @@ export function SpeakingPhase({
       )}
 
       {/* Controls */}
-      <div className="sticky bottom-4 flex items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/95 p-3 backdrop-blur-xl">
+      <div className="sticky bottom-4 flex items-center justify-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest/95 p-3 backdrop-blur-xl">
         <Button
           onClick={isPaused ? onResume : onPause}
           aria-label={isPaused ? "Resume recording" : "Pause recording"}
           variant="outline"
-          className="gap-2 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800"
+          className="gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant hover:bg-surface-container-high"
         >
           {isPaused ? (
             <>
@@ -299,17 +299,17 @@ export function SpeakingPhase({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 flex items-center justify-center rounded-xl bg-zinc-900/95 backdrop-blur-xl"
+              className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface-container-lowest/95 backdrop-blur-xl"
             >
               <div className="text-center">
-                <p className="mb-3 text-sm text-zinc-300">
+                <p className="mb-3 text-sm text-on-surface-variant">
                   End your speech early?
                 </p>
                 <div className="flex gap-2">
                   <Button
                     onClick={() => setShowEndConfirm(false)}
                     variant="outline"
-                    className="border-zinc-700 bg-transparent text-zinc-400"
+                    className="border-outline-variant/30 bg-transparent text-on-surface-variant"
                   >
                     Cancel
                   </Button>

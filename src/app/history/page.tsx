@@ -151,25 +151,25 @@ export default function HistoryPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-zinc-950">
-        <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
           <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4 sm:px-6">
-            <div className="h-5 w-32 animate-pulse rounded bg-zinc-800" />
+            <div className="h-5 w-32 animate-pulse rounded bg-surface-container-high" />
           </div>
         </header>
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
           <div className="mb-8 space-y-2">
-            <div className="h-8 w-48 animate-pulse rounded bg-zinc-800" />
-            <div className="h-4 w-72 animate-pulse rounded bg-zinc-800/60" />
+            <div className="h-8 w-48 animate-pulse rounded bg-surface-container-high" />
+            <div className="h-4 w-72 animate-pulse rounded bg-surface-container-high/60" />
           </div>
           <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900/50" />
+              <div key={i} className="h-24 animate-pulse rounded-xl border border-outline-variant/10 bg-surface-container-low" />
             ))}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900/50" />
+              <div key={i} className="h-24 animate-pulse rounded-xl border border-outline-variant/10 bg-surface-container-low" />
             ))}
           </div>
         </div>
@@ -178,17 +178,17 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4 sm:px-6">
           <Link
             href="/"
-            className="flex items-center gap-2 text-zinc-400 transition-colors hover:text-white"
+            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
           >
             <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-blue-500" />
-            <span className="font-semibold text-white">DebateLab</span>
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-on-surface">DebateLab</span>
           </Link>
         </div>
       </header>
@@ -200,8 +200,8 @@ export default function HistoryPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-white">Practice History</h1>
-          <p className="mt-2 text-zinc-400">
+          <h1 className="text-3xl font-bold text-on-surface">Practice History</h1>
+          <p className="mt-2 text-on-surface-variant">
             Review your past debate sessions and track improvement
           </p>
         </motion.div>
@@ -213,27 +213,27 @@ export default function HistoryPage() {
           transition={{ delay: 0.1 }}
           className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
-          <div className="rounded-xl border border-zinc-800 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-4">
-            <Target className="mb-2 h-5 w-5 text-blue-400" />
-            <p className="text-2xl font-bold text-white">{stats.total}</p>
-            <p className="text-xs text-zinc-500">Total Sessions</p>
+          <div className="rounded-xl border border-outline-variant/10 bg-primary-container/30 p-4">
+            <Target className="mb-2 h-5 w-5 text-primary" />
+            <p className="text-2xl font-bold text-on-surface">{stats.total}</p>
+            <p className="text-xs text-on-surface-variant">Total Sessions</p>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-4">
-            <BarChart3 className="mb-2 h-5 w-5 text-purple-400" />
-            <p className="text-2xl font-bold text-white">{stats.avg}</p>
-            <p className="text-xs text-zinc-500">Average Score</p>
+          <div className="rounded-xl border border-outline-variant/10 bg-tertiary-container/30 p-4">
+            <BarChart3 className="mb-2 h-5 w-5 text-tertiary" />
+            <p className="text-2xl font-bold text-on-surface">{stats.avg}</p>
+            <p className="text-xs text-on-surface-variant">Average Score</p>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-4">
-            <Trophy className="mb-2 h-5 w-5 text-emerald-400" />
-            <p className="text-2xl font-bold text-white">{stats.best}</p>
-            <p className="text-xs text-zinc-500">Best Score</p>
+          <div className="rounded-xl border border-outline-variant/10 bg-secondary-container/30 p-4">
+            <Trophy className="mb-2 h-5 w-5 text-secondary" />
+            <p className="text-2xl font-bold text-on-surface">{stats.best}</p>
+            <p className="text-xs text-on-surface-variant">Best Score</p>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-gradient-to-br from-amber-500/10 to-amber-600/5 p-4">
-            <FolderOpen className="mb-2 h-5 w-5 text-amber-400" />
-            <p className="truncate text-lg font-bold text-white">
+          <div className="rounded-xl border border-outline-variant/10 bg-[#fff9e5] p-4">
+            <FolderOpen className="mb-2 h-5 w-5 text-[#b28b00]" />
+            <p className="truncate text-lg font-bold text-on-surface">
               {stats.topCategory}
             </p>
-            <p className="text-xs text-zinc-500">Most Practiced</p>
+            <p className="text-xs text-on-surface-variant">Most Practiced</p>
           </div>
         </motion.div>
 
@@ -247,21 +247,21 @@ export default function HistoryPage() {
           {/* Search + Sort */}
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <input
                 type="text"
                 placeholder="Search topics..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/50 py-2 pl-9 pr-4 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition-colors focus:border-zinc-700"
+                className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-4 text-sm text-on-surface placeholder-outline-variant outline-none transition-colors focus:border-primary/50"
               />
             </div>
             <div className="relative">
-              <ArrowUpDown className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <ArrowUpDown className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortOption)}
-                className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900/50 py-2 pl-9 pr-8 text-sm text-zinc-200 outline-none transition-colors focus:border-zinc-700 sm:w-44"
+                className="w-full appearance-none rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-8 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 sm:w-44"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -280,8 +280,8 @@ export default function HistoryPage() {
                 className={cn(
                   "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                   categoryFilter === cat
-                    ? "bg-blue-500/15 text-blue-400"
-                    : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                    ? "bg-primary/15 text-primary"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
                 )}
               >
                 {CATEGORY_SHORT[cat]}
@@ -297,20 +297,20 @@ export default function HistoryPage() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-20"
           >
-            <Mic2 className="mb-4 h-12 w-12 text-zinc-700" />
-            <h3 className="text-lg font-semibold text-zinc-400">
+            <Mic2 className="mb-4 h-12 w-12 text-outline-variant" />
+            <h3 className="text-lg font-semibold text-on-surface-variant">
               {sessions.length === 0
                 ? "No practice sessions yet"
                 : "No sessions match your filters"}
             </h3>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-on-surface-variant">
               {sessions.length === 0
                 ? "Start your first debate and your history will appear here!"
                 : "Try adjusting your search or filters"}
             </p>
             {sessions.length === 0 && (
               <Link href="/practice" className="mt-6">
-                <Button className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <Button className="gap-2 bg-primary text-white">
                   Start Practicing
                 </Button>
               </Link>
@@ -328,7 +328,7 @@ export default function HistoryPage() {
               >
                 <button
                   onClick={() => router.push(`/history/${session.id}`)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-left transition-all hover:border-zinc-700 hover:bg-zinc-900"
+                  className="w-full rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4 text-left transition-all hover:border-outline-variant/30 soft-shadow"
                 >
                   <div className="flex items-start gap-3">
                     {/* Score ring */}
@@ -336,7 +336,7 @@ export default function HistoryPage() {
                       {session.feedback ? (
                         <MiniScoreRing score={session.feedback.totalScore} />
                       ) : (
-                        <div className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-700 text-xs text-zinc-600">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant text-xs text-on-surface-variant">
                           N/A
                         </div>
                       )}
@@ -344,7 +344,7 @@ export default function HistoryPage() {
 
                     {/* Content */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-medium text-zinc-200">
+                      <h3 className="truncate text-sm font-medium text-on-surface">
                         {session.topic.title}
                       </h3>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -358,7 +358,7 @@ export default function HistoryPage() {
                         >
                           {session.side === "proposition" ? "FOR" : "AGAINST"}
                         </span>
-                        <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400">
+                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
                           {session.mode === "full" ? "Full" : "Quick"}
                         </span>
                         {session.feedback && (
@@ -376,7 +376,7 @@ export default function HistoryPage() {
                           </span>
                         )}
                       </div>
-                      <div className="mt-1.5 flex items-center gap-3 text-[11px] text-zinc-600">
+                      <div className="mt-1.5 flex items-center gap-3 text-[11px] text-on-surface-variant">
                         <span>{formatDate(session.date)}</span>
                         <span>{formatTime(session.date)}</span>
                       </div>
@@ -391,7 +391,7 @@ export default function HistoryPage() {
                     setDeleteId(session.id);
                   }}
                   aria-label={`Delete session: ${session.topic.title}`}
-                  className="absolute right-3 top-3 rounded-lg p-2 text-zinc-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                  className="absolute right-3 top-3 rounded-lg p-2 text-on-surface-variant opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
