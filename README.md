@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DebateLab
+
+A solo debate practice web app for Vietnamese high school students. Pick a topic, prepare your arguments, speak into your microphone in English, and receive AI-powered feedback scored across 4 categories.
+
+## Features
+
+- **33 debate topics** across 6 categories (Education, Technology, Society, Environment, Ethics, Vietnam-Specific)
+- **Timed practice sessions** with configurable prep time (1-3 min) and speech time (2-4 min)
+- **Real-time speech recognition** using the Web Speech API with live transcript display
+- **AI-powered feedback** via Google Gemini 2.5 Flash with detailed scoring rubric (Content, Structure, Language, Persuasion)
+- **Session history** with stats, filters, search, and session review
+- **Audio recording** and visualization during speaking
+- **Dark theme** with smooth animations
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router) with TypeScript
+- **Styling:** Tailwind CSS v4 + shadcn/ui
+- **State:** Zustand
+- **Animations:** Framer Motion
+- **AI:** Google Gemini 2.5 Flash (structured JSON output)
+- **APIs:** Web Speech API, MediaRecorder API, Web Audio API
+- **Storage:** localStorage (up to 50 sessions)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A Google AI Studio API key ([get one here](https://aistudio.google.com/apikey))
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy environment file and add your Gemini API key
+cp .env.example .env.local
+# Edit .env.local and set GEMINI_API_KEY=your_key_here
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in **Google Chrome** (required for speech recognition).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/                    # Next.js App Router pages
+    api/analyze/          # Gemini API endpoint
+    history/              # History & session review pages
+    practice/             # Topic selection, session, feedback pages
+  components/
+    feedback/             # Score hero, category cards, feedback sections
+    landing/              # Navbar, hero, features, footer
+    practice/             # Timer, phases, visualizer, config
+    shared/               # Toast, confirm dialog, score ring
+    ui/                   # shadcn/ui primitives
+  hooks/                  # useCountdown, useSpeechRecognition, useAudioRecorder
+  lib/                    # Topics data, Gemini client, prompts, storage, utils
+  store/                  # Zustand stores
+  types/                  # TypeScript type definitions
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Browser Support
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Speech recognition requires **Google Chrome** or Chromium-based browsers. Other browsers will show a compatibility warning.
 
-## Deploy on Vercel
+## Scoring Rubric
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Category | Max Score | Sub-categories |
+|----------|-----------|----------------|
+| Content & Argumentation | 40 | Claim Clarity, Evidence, Logic, Counter-Arguments |
+| Structure & Organization | 25 | Introduction, Body, Conclusion |
+| Language & Delivery | 25 | Vocabulary, Grammar, Fluency |
+| Persuasiveness | 10 | Audience Awareness, Impactfulness |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Band descriptors: Expert (85-100), Proficient (70-84), Competent (50-69), Developing (30-49), Novice (0-29)
