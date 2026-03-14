@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Using Gemini model:", process.env.GEMINI_MODEL || "gemini-2.5-flash");
+
     const body = (await req.json()) as AnalyzeRequest;
     const { transcript, topic, side, speechType, timeLimit, actualDuration } =
       body;
@@ -66,7 +68,8 @@ export async function POST(req: NextRequest) {
         timeoutPromise,
       ]);
 
-      return NextResponse.json(feedback);
+      const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+      return NextResponse.json({ ...feedback, _model: modelUsed });
     } catch (err) {
       console.error("Gemini API error:", err);
 

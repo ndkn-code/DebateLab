@@ -36,6 +36,7 @@ export default function FeedbackPage() {
   const [feedback, setLocalFeedback] = useState<DebateScore | null>(
     storeFeedback
   );
+  const [modelUsed, setModelUsed] = useState<string | null>(null);
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -86,12 +87,17 @@ export default function FeedbackPage() {
       const responseText = await res.text();
       console.log("API response:", responseText.substring(0, 200));
 
-      let data: DebateScore;
+      let data: DebateScore & { _model?: string };
       try {
-        data = JSON.parse(responseText) as DebateScore;
+        data = JSON.parse(responseText) as DebateScore & { _model?: string };
       } catch {
         console.error("Failed to parse response as JSON:", responseText.substring(0, 500));
         throw new Error("Received invalid response from server. Please try again.");
+      }
+
+      if (data._model) {
+        setModelUsed(data._model);
+        delete data._model;
       }
 
       setLocalFeedback(data);
@@ -253,6 +259,13 @@ export default function FeedbackPage() {
 
             {/* Feedback Sections */}
             <FeedbackSections feedback={feedback} transcript={transcript} />
+
+            {/* Model indicator */}
+            {modelUsed && (
+              <p className="text-center text-xs text-zinc-600">
+                Analyzed with {modelUsed}
+              </p>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 border-t border-zinc-800 pt-8 sm:flex-row sm:justify-center">

@@ -13,7 +13,7 @@ export async function analyzeDebate(params: {
   actualDuration: number;
 }): Promise<DebateScore> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.3,
