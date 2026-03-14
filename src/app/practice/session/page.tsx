@@ -110,10 +110,20 @@ export default function SessionPage() {
 
   // Toast for speech errors
   useEffect(() => {
-    if (speech.error === "reconnecting") {
-      showToast("Reconnecting microphone...", "warning");
-    } else if (speech.error === "not-allowed") {
-      showToast("Microphone access denied. Check browser settings.", "error");
+    if (!speech.error) return;
+    switch (speech.error) {
+      case "reconnecting":
+        showToast("Reconnecting microphone...", "warning");
+        break;
+      case "not-allowed":
+        showToast("Microphone access denied. Check browser settings.", "error");
+        break;
+      case "audio-capture":
+        showToast("Microphone not found. Please connect a microphone.", "error");
+        break;
+      case "network":
+        showToast("Speech recognition requires an internet connection.", "error");
+        break;
     }
   }, [speech.error]);
 
@@ -140,8 +150,13 @@ export default function SessionPage() {
       setPhase("speaking");
       setShowTransition(false);
       speechTimer.start();
+      // Start speech recognition FIRST, then audio recorder
+      // This avoids mic access conflicts — SpeechRecognition uses its own mic access
       speech.startListening();
-      audio.startRecording();
+      // Small delay before starting MediaRecorder to avoid concurrent getUserMedia conflicts
+      setTimeout(() => {
+        audio.startRecording();
+      }, 200);
     }, 1500);
   }, [setPhase, speechTimer, speech, audio]);
 
@@ -277,6 +292,24 @@ export default function SessionPage() {
         </div>
       )}
 
+      {/* Network error banner */}
+      {speech.error === "network" && (
+        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center" role="alert">
+          <span className="text-xs text-amber-400">
+            Speech recognition requires an internet connection. Please check your network and reload.
+          </span>
+        </div>
+      )}
+
+      {/* Audio capture error banner */}
+      {speech.error === "audio-capture" && (
+        <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-center" role="alert">
+          <span className="text-xs text-red-400">
+            No microphone detected. Please connect a microphone and reload.
+          </span>
+        </div>
+      )}
+
       {/* English only note */}
       {currentPhase === "speaking" && (
         <div className="flex items-center justify-center gap-1.5 bg-zinc-900/50 px-4 py-1 text-[11px] text-zinc-500">
@@ -323,6 +356,7 @@ export default function SessionPage() {
           onResume={handleResume}
           onEnd={handleEndSession}
           isPaused={isPaused}
+          hasReceivedSpeech={speech.hasReceivedSpeech}
         />
       )}
 

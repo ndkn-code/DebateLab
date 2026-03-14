@@ -51,10 +51,15 @@ export default function FeedbackPage() {
       ? Math.round((Date.now() - sessionStartTime) / 1000)
       : 0;
 
+    // Client-side timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           transcript,
           topic: selectedTopic.title,
@@ -65,12 +70,30 @@ export default function FeedbackPage() {
         }),
       });
 
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? `Server error (${res.status})`);
+        let errorMessage = `Server error (${res.status})`;
+        try {
+          const data = (await res.json()) as { error?: string };
+          if (data.error) errorMessage = data.error;
+        } catch {
+          // Response wasn't JSON
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = (await res.json()) as DebateScore;
+      const responseText = await res.text();
+      console.log("API response:", responseText.substring(0, 200));
+
+      let data: DebateScore;
+      try {
+        data = JSON.parse(responseText) as DebateScore;
+      } catch {
+        console.error("Failed to parse response as JSON:", responseText.substring(0, 500));
+        throw new Error("Received invalid response from server. Please try again.");
+      }
+
       setLocalFeedback(data);
       setFeedback(data);
       setPhase("feedback");
@@ -93,9 +116,15 @@ export default function FeedbackPage() {
         });
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to analyze speech"
-      );
+      clearTimeout(timeoutId);
+
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Analysis timed out after 30 seconds. Please try again.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Failed to analyze speech"
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -130,6 +159,14 @@ export default function FeedbackPage() {
       fetchFeedback();
     }
   }, [selectedTopic, storeFeedback, fetchFeedback, router]);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    hasCalledApi.current = false;
+    hasSaved.current = false;
+    fetchFeedback();
+  }, [fetchFeedback]);
 
   const handleRetrySameTopic = () => {
     const topic = selectedTopic;
@@ -168,7 +205,7 @@ export default function FeedbackPage() {
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Loading */}
-        {loading && <LoadingState />}
+        {loading && !error && <LoadingState />}
 
         {/* Error */}
         {error && (
@@ -178,16 +215,11 @@ export default function FeedbackPage() {
             </div>
             <div className="flex gap-3">
               <Button
-                onClick={() => {
-                  setError(null);
-                  setLoading(true);
-                  hasCalledApi.current = false;
-                  fetchFeedback();
-                }}
+                onClick={handleRetry}
                 className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white"
               >
                 <RotateCcw className="h-4 w-4" />
-                Retry Analysis
+                Try Again
               </Button>
               <Button
                 onClick={handleNewTopic}

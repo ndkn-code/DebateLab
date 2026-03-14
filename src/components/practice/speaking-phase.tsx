@@ -8,6 +8,7 @@ import {
   Square,
   ChevronDown,
   AlertTriangle,
+  WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CountdownTimer } from "./countdown-timer";
@@ -29,6 +30,7 @@ interface SpeakingPhaseProps {
   onResume: () => void;
   onEnd: () => void;
   isPaused: boolean;
+  hasReceivedSpeech?: boolean;
 }
 
 export function SpeakingPhase({
@@ -46,10 +48,13 @@ export function SpeakingPhase({
   onResume,
   onEnd,
   isPaused,
+  hasReceivedSpeech = false,
 }: SpeakingPhaseProps) {
   const [showNotes, setShowNotes] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const wordCount = transcript
     .split(/\s+/)
@@ -58,6 +63,46 @@ export function SpeakingPhase({
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript, interimTranscript]);
+
+  // Show "no speech detected" warning after 5 seconds if no transcript
+  useEffect(() => {
+    if (hasReceivedSpeech || !isRecording || isPaused) {
+      setShowNoSpeechWarning(false);
+      if (noSpeechTimerRef.current) {
+        clearTimeout(noSpeechTimerRef.current);
+        noSpeechTimerRef.current = null;
+      }
+      return;
+    }
+
+    noSpeechTimerRef.current = setTimeout(() => {
+      if (!hasReceivedSpeech && isRecording && !isPaused) {
+        setShowNoSpeechWarning(true);
+      }
+    }, 5000);
+
+    return () => {
+      if (noSpeechTimerRef.current) {
+        clearTimeout(noSpeechTimerRef.current);
+        noSpeechTimerRef.current = null;
+      }
+    };
+  }, [hasReceivedSpeech, isRecording, isPaused]);
+
+  function getErrorMessage(error: string): string {
+    switch (error) {
+      case "not-allowed":
+        return "Microphone access denied. Please enable it in your browser settings and reload.";
+      case "audio-capture":
+        return "No microphone detected. Please connect a microphone and reload.";
+      case "network":
+        return "Speech recognition requires an internet connection. Check your network.";
+      case "reconnecting":
+        return "Reconnecting speech recognition...";
+      default:
+        return "Speech recognition error. Attempting to recover...";
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
@@ -122,7 +167,9 @@ export function SpeakingPhase({
         </motion.div>
         <span className="text-xs font-medium text-zinc-500">
           {isRecording
-            ? "Recording..."
+            ? hasReceivedSpeech
+              ? "Listening..."
+              : "Waiting for speech..."
             : isPaused
               ? "Paused"
               : "Not recording"}
@@ -134,12 +181,26 @@ export function SpeakingPhase({
 
       {/* Speech error banner */}
       {speechError && (
-        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          {speechError === "not-allowed"
-            ? "Microphone access denied. Please enable it in your browser settings and reload."
-            : "Reconnecting speech recognition..."}
+        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400" role="alert">
+          {speechError === "network" ? (
+            <WifiOff className="h-4 w-4 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+          )}
+          {getErrorMessage(speechError)}
         </div>
+      )}
+
+      {/* No speech detected warning */}
+      {showNoSpeechWarning && !speechError && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-lg bg-zinc-800/50 px-4 py-2 text-sm text-zinc-400"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0 text-zinc-500" />
+          No speech detected. Make sure you&apos;re speaking in English.
+        </motion.div>
       )}
 
       {/* Transcript */}
