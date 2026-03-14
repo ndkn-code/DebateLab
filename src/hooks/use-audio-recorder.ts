@@ -2,22 +2,22 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
+/**
+ * Audio recorder hook that accepts an external MediaStream (shared with Deepgram).
+ * No longer calls getUserMedia itself — expects a stream to be passed in.
+ */
 export function useAudioRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback((stream: MediaStream) => {
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setAudioStream(stream);
-
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : "audio/webm";
@@ -36,23 +36,16 @@ export function useAudioRecorder() {
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-        setAudioStream(null);
+        // NOTE: We do NOT stop stream tracks here — the shared mic hook owns the stream lifecycle
       };
 
       mediaRecorderRef.current = recorder;
       recorder.start(1000); // Collect chunks every 1s
       setIsRecording(true);
+      console.log("[AudioRecorder] Recording started");
     } catch (err) {
-      if (err instanceof DOMException && err.name === "NotAllowedError") {
-        setError(
-          "Microphone access denied. Please allow microphone permission in your browser settings."
-        );
-      } else {
-        setError("Failed to start recording. Please check your microphone.");
-      }
+      console.error("[AudioRecorder] Failed to start:", err);
+      setError("Failed to start recording. Please check your microphone.");
     }
   }, []);
 
@@ -63,6 +56,7 @@ export function useAudioRecorder() {
     ) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      console.log("[AudioRecorder] Recording stopped");
     }
   }, []);
 
@@ -86,7 +80,6 @@ export function useAudioRecorder() {
     isRecording,
     audioBlob,
     audioUrl,
-    audioStream,
     startRecording,
     stopRecording,
     error,

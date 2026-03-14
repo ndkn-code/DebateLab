@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { AlertTriangle, Mic, Globe } from "lucide-react";
+import { Mic, Globe } from "lucide-react";
 import { useSessionStore } from "@/store/session-store";
 import { useCountdown } from "@/hooks/use-countdown";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
+import { useMicrophone } from "@/hooks/use-microphone";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
@@ -37,7 +38,6 @@ export default function SessionPage() {
   const [transitionMessage, setTransitionMessage] = useState("");
   const [transitionSub, setTransitionSub] = useState("");
   const [isPaused, setIsPaused] = useState(false);
-  const [browserWarning, setBrowserWarning] = useState<string | null>(null);
   const [showShortDialog, setShowShortDialog] = useState(false);
   const [shortWordCount, setShortWordCount] = useState(0);
   const hasStartedRef = useRef(false);
@@ -45,7 +45,8 @@ export default function SessionPage() {
 
   const prepTimer = useCountdown(prepTime);
   const speechTimer = useCountdown(speechTime);
-  const speech = useSpeechRecognition();
+  const mic = useMicrophone();
+  const speech = useDeepgramTranscription();
   const audio = useAudioRecorder();
 
   // Redirect if no topic
@@ -54,16 +55,6 @@ export default function SessionPage() {
       router.replace("/practice");
     }
   }, [selectedTopic, router]);
-
-  // Browser compatibility check
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!speech.isSupported) {
-      setBrowserWarning(
-        "Please use Google Chrome for the best experience. Speech recognition may not work in this browser."
-      );
-    }
-  }, [speech.isSupported]);
 
   // Beforeunload warning during active session
   useEffect(() => {
@@ -113,19 +104,34 @@ export default function SessionPage() {
     if (!speech.error) return;
     switch (speech.error) {
       case "reconnecting":
-        showToast("Reconnecting microphone...", "warning");
+        showToast("Reconnecting to transcription service...", "warning");
         break;
+      case "network":
+        showToast("Connection to transcription service lost.", "error");
+        break;
+      default:
+        if (speech.error.startsWith("Failed")) {
+          showToast(speech.error, "error");
+        }
+        break;
+    }
+  }, [speech.error]);
+
+  // Toast for mic errors
+  useEffect(() => {
+    if (!mic.error) return;
+    switch (mic.error) {
       case "not-allowed":
         showToast("Microphone access denied. Check browser settings.", "error");
         break;
       case "audio-capture":
         showToast("Microphone not found. Please connect a microphone.", "error");
         break;
-      case "network":
-        showToast("Speech recognition requires an internet connection.", "error");
+      default:
+        showToast(mic.error, "error");
         break;
     }
-  }, [speech.error]);
+  }, [mic.error]);
 
   // Toast for silence
   useEffect(() => {
@@ -134,31 +140,33 @@ export default function SessionPage() {
     }
   }, [speech.silenceWarning, currentPhase]);
 
-  // Toast for audio errors
+  // Toast for audio recorder errors
   useEffect(() => {
     if (audio.error) {
       showToast(audio.error, "error");
     }
   }, [audio.error]);
 
-  const transitionToSpeaking = useCallback(() => {
+  const transitionToSpeaking = useCallback(async () => {
     setTransitionMessage("Get Ready!");
     setTransitionSub("Speaking phase begins now...");
     setShowTransition(true);
+
+    // Start mic during transition so it's ready when speaking begins
+    const micStream = await mic.start();
 
     setTimeout(() => {
       setPhase("speaking");
       setShowTransition(false);
       speechTimer.start();
-      // Start speech recognition FIRST, then audio recorder
-      // This avoids mic access conflicts — SpeechRecognition uses its own mic access
-      speech.startListening();
-      // Small delay before starting MediaRecorder to avoid concurrent getUserMedia conflicts
-      setTimeout(() => {
-        audio.startRecording();
-      }, 200);
+
+      if (micStream) {
+        // Start Deepgram transcription and audio recording on the same stream
+        speech.startListening(micStream);
+        audio.startRecording(micStream);
+      }
     }, 1500);
-  }, [setPhase, speechTimer, speech, audio]);
+  }, [setPhase, speechTimer, speech, audio, mic]);
 
   const handleSkipPrep = useCallback(() => {
     prepTimer.pause();
@@ -168,14 +176,20 @@ export default function SessionPage() {
   const handlePause = useCallback(() => {
     speechTimer.pause();
     speech.stopListening();
+    audio.stopRecording();
     setIsPaused(true);
-  }, [speechTimer, speech]);
+  }, [speechTimer, speech, audio]);
 
-  const handleResume = useCallback(() => {
+  const handleResume = useCallback(async () => {
     speechTimer.resume();
-    speech.startListening();
+    // Re-acquire mic stream for resume
+    const micStream = await mic.start();
+    if (micStream) {
+      speech.startListening(micStream);
+      audio.startRecording(micStream);
+    }
     setIsPaused(false);
-  }, [speechTimer, speech]);
+  }, [speechTimer, speech, audio, mic]);
 
   const navigateToFeedback = useCallback(() => {
     setTimeout(() => {
@@ -197,6 +211,7 @@ export default function SessionPage() {
     speechTimer.pause();
     speech.stopListening();
     audio.stopRecording();
+    mic.stop();
 
     const finalTranscript = speech.transcript;
     setTranscript(finalTranscript);
@@ -212,11 +227,12 @@ export default function SessionPage() {
     }
 
     navigateToFeedback();
-  }, [speechTimer, speech, audio, setTranscript, navigateToFeedback]);
+  }, [speechTimer, speech, audio, mic, setTranscript, navigateToFeedback]);
 
   const handleTimerEnd = useCallback(() => {
     speech.stopListening();
     audio.stopRecording();
+    mic.stop();
 
     const finalTranscript = speech.transcript;
     setTranscript(finalTranscript);
@@ -241,7 +257,7 @@ export default function SessionPage() {
       if (audio.audioUrl) setAudioUrl(audio.audioUrl);
       router.push("/practice/feedback");
     }, 1500);
-  }, [speech, audio, setTranscript, setAudioBlob, setAudioUrl, setPhase, router]);
+  }, [speech, audio, mic, setTranscript, setAudioBlob, setAudioUrl, setPhase, router]);
 
   const handleShortSubmitAnyway = useCallback(() => {
     setShowShortDialog(false);
@@ -262,19 +278,8 @@ export default function SessionPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950">
-      {/* Browser warning */}
-      {browserWarning && (
-        <div
-          className="flex items-center justify-center gap-2 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-400"
-          role="alert"
-        >
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {browserWarning}
-        </div>
-      )}
-
       {/* Mic permission denied instructions */}
-      {speech.error === "not-allowed" && (
+      {mic.error === "not-allowed" && (
         <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-3" role="alert">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mb-2 flex items-center justify-center gap-2">
@@ -292,20 +297,20 @@ export default function SessionPage() {
         </div>
       )}
 
-      {/* Network error banner */}
-      {speech.error === "network" && (
-        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center" role="alert">
-          <span className="text-xs text-amber-400">
-            Speech recognition requires an internet connection. Please check your network and reload.
+      {/* No microphone banner */}
+      {mic.error === "audio-capture" && (
+        <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-center" role="alert">
+          <span className="text-xs text-red-400">
+            No microphone detected. Please connect a microphone and reload.
           </span>
         </div>
       )}
 
-      {/* Audio capture error banner */}
-      {speech.error === "audio-capture" && (
-        <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-center" role="alert">
-          <span className="text-xs text-red-400">
-            No microphone detected. Please connect a microphone and reload.
+      {/* Network error banner */}
+      {speech.error === "network" && (
+        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center" role="alert">
+          <span className="text-xs text-amber-400">
+            Lost connection to transcription service. Attempting to reconnect...
           </span>
         </div>
       )}
@@ -314,7 +319,7 @@ export default function SessionPage() {
       {currentPhase === "speaking" && (
         <div className="flex items-center justify-center gap-1.5 bg-zinc-900/50 px-4 py-1 text-[11px] text-zinc-500">
           <Globe className="h-3 w-3" aria-hidden="true" />
-          English only — Speech recognition is set to en-US
+          English only — Transcription powered by Deepgram Nova-3
         </div>
       )}
 
@@ -350,7 +355,7 @@ export default function SessionPage() {
           transcript={speech.transcript}
           interimTranscript={speech.interimTranscript}
           prepNotes={prepNotes}
-          audioStream={audio.audioStream}
+          audioStream={mic.stream}
           speechError={speech.error}
           onPause={handlePause}
           onResume={handleResume}
