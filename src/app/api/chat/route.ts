@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
@@ -35,6 +35,12 @@ interface ChatRequest {
   contextId?: string;
 }
 
+function getGroq() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY!,
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -68,15 +74,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const chatModel =
+      process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+
     // Create or load conversation
     if (!conversationId) {
-      // Create new conversation
       const { data: conv, error } = await supabase
         .from("chat_conversations")
         .insert({
           user_id: user.id,
           title: "New conversation",
-          model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          model: chatModel,
           system_prompt: systemPrompt,
           message_count: 0,
         })
@@ -102,26 +110,23 @@ export async function POST(req: NextRequest) {
       .order("created_at", { ascending: true })
       .limit(20);
 
-    // Build Gemini messages
-    const geminiHistory = (history ?? []).map((m) => ({
-      role: m.role === "user" ? ("user" as const) : ("model" as const),
-      parts: [{ text: m.content }],
-    }));
+    // Build messages array for Groq (OpenAI-compatible format)
+    const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+      { role: "system", content: systemPrompt },
+      ...(history ?? []).map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    ];
 
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-      systemInstruction: systemPrompt,
+    // Stream response from Groq
+    const chatCompletion = await getGroq().chat.completions.create({
+      messages,
+      model: chatModel,
+      temperature: 0.7,
+      max_tokens: 1024,
+      stream: true,
     });
-
-    // Start chat with history (exclude last user message since we pass it to sendMessageStream)
-    const chatHistory = geminiHistory.slice(0, -1);
-    const chat = model.startChat({ history: chatHistory });
-
-    // Stream response
-    const result = await chat.sendMessageStream(message.trim());
 
     let fullResponse = "";
 
@@ -129,12 +134,16 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         const encoder = new TextEncoder();
         try {
-          for await (const chunk of result.stream) {
-            const text = chunk.text();
-            fullResponse += text;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text, conversationId })}\n\n`)
-            );
+          for await (const chunk of chatCompletion) {
+            const text = chunk.choices[0]?.delta?.content || "";
+            if (text) {
+              fullResponse += text;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ text, conversationId })}\n\n`
+                )
+              );
+            }
           }
 
           // Save assistant message
@@ -164,7 +173,9 @@ export async function POST(req: NextRequest) {
           }
 
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ done: true, conversationId })}\n\n`)
+            encoder.encode(
+              `data: ${JSON.stringify({ done: true, conversationId })}\n\n`
+            )
           );
           controller.close();
         } catch (err) {
@@ -195,20 +206,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Fire-and-forget title generation
+// Fire-and-forget title generation using Groq
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function generateTitle(firstMessage: string, conversationId: string, supabase: any) {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      generationConfig: { temperature: 0.3, maxOutputTokens: 20 },
+    const result = await getGroq().chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: `Generate a short 3-5 word title for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`,
+        },
+      ],
+      model: process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 20,
     });
 
-    const result = await model.generateContent(
-      `Generate a short 3-5 word title for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`
-    );
-    const title = result.response.text().trim().slice(0, 100);
+    const title = (result.choices[0]?.message?.content ?? "")
+      .trim()
+      .slice(0, 100);
 
     if (title) {
       await supabase
