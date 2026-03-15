@@ -55,9 +55,8 @@ export default function OnboardingPage() {
 
   const handleDemoSkip = useCallback(() => {
     store.setDemoTranscript("");
-    // Skip both demo speak and feedback steps
-    store.nextStep();
-    setTimeout(() => store.nextStep(), 50);
+    // Skip both demo speak and feedback steps (jump directly to path reveal)
+    store.skipToStep(8);
   }, [store]);
 
   const renderStep = () => {

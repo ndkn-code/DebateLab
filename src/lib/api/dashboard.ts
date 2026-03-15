@@ -73,8 +73,12 @@ export async function getDashboardData(
   // Fetch all data in parallel
   const [profileRes, enrollmentsRes, sessionsRes, weeklyRes] =
     await Promise.all([
-      // Profile
-      supabase.from("profiles").select("*").eq("id", userId).single(),
+      // Profile — select only fields used by dashboard
+      supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences")
+        .eq("id", userId)
+        .single(),
 
       // Active enrollments with course data (limit 3)
       supabase
@@ -156,38 +160,7 @@ export async function getDashboardData(
   }
   const weeklyStats = weekDates.map((d) => weeklyMap.get(d)!);
 
-  // Update streak if needed
   const profile = profileRes.data as Profile | null;
-  if (profile) {
-    const today = new Date().toISOString().split("T")[0];
-    if (profile.streak_last_active_date !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-      let newStreak = profile.streak_current;
-      if (profile.streak_last_active_date === yesterdayStr) {
-        newStreak = profile.streak_current + 1;
-      } else if (profile.streak_last_active_date !== today) {
-        newStreak = 1;
-      }
-
-      const newLongest = Math.max(newStreak, profile.streak_longest);
-
-      await supabase
-        .from("profiles")
-        .update({
-          streak_current: newStreak,
-          streak_longest: newLongest,
-          streak_last_active_date: today,
-        })
-        .eq("id", userId);
-
-      profile.streak_current = newStreak;
-      profile.streak_longest = newLongest;
-      profile.streak_last_active_date = today;
-    }
-  }
 
   return {
     profile,

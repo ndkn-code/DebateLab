@@ -31,26 +31,42 @@ export interface LessonWithContext extends Lesson {
 export async function getCourses(userId?: string) {
   const supabase = await createClient();
 
-  const { data: courses, error } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("is_published", true)
-    .order("created_at");
+  if (!userId) {
+    const { data: courses, error } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at");
 
-  if (error) {
-    console.error("Failed to fetch courses:", error);
+    if (error) {
+      console.error("Failed to fetch courses:", error);
+      return { courses: [], enrollments: [] };
+    }
+    return { courses: courses ?? [], enrollments: [] };
+  }
+
+  // Fetch courses and enrollments in parallel
+  const [coursesRes, enrollmentsRes] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at"),
+    supabase
+      .from("enrollments")
+      .select("*")
+      .eq("user_id", userId),
+  ]);
+
+  if (coursesRes.error) {
+    console.error("Failed to fetch courses:", coursesRes.error);
     return { courses: [], enrollments: [] };
   }
 
-  if (!userId || !courses) return { courses: courses ?? [], enrollments: [] };
-
-  // Fetch user enrollments
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select("*")
-    .eq("user_id", userId);
-
-  return { courses, enrollments: enrollments ?? [] };
+  return {
+    courses: coursesRes.data ?? [],
+    enrollments: enrollmentsRes.data ?? [],
+  };
 }
 
 export async function getCourseBySlug(
@@ -69,15 +85,25 @@ export async function getCourseBySlug(
 
   if (error || !course) return null;
 
-  // Fetch modules with lessons
-  const { data: modules } = await supabase
-    .from("course_modules")
-    .select("*, lessons(*)")
-    .eq("course_id", course.id)
-    .order("order_index");
+  // Fetch modules and enrollment in parallel
+  const [modulesRes, enrollmentRes] = await Promise.all([
+    supabase
+      .from("course_modules")
+      .select("*, lessons(*)")
+      .eq("course_id", course.id)
+      .order("order_index"),
+    userId
+      ? supabase
+          .from("enrollments")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("course_id", course.id)
+          .single()
+      : Promise.resolve({ data: null }),
+  ]);
 
   // Sort lessons within each module
-  const sortedModules = (modules ?? []).map((m: CourseModule & { lessons: Lesson[] }) => ({
+  const sortedModules = (modulesRes.data ?? []).map((m: CourseModule & { lessons: Lesson[] }) => ({
     ...m,
     lessons: (m.lessons ?? []).sort(
       (a: Lesson, b: Lesson) => a.order_index - b.order_index
@@ -90,36 +116,23 @@ export async function getCourseBySlug(
     0
   );
 
-  // Fetch enrollment and progress if logged in
-  let enrollment: Enrollment | null = null;
+  const enrollment: Enrollment | null = enrollmentRes.data;
   let completedLessons = 0;
 
-  if (userId) {
-    const { data: enrollmentData } = await supabase
-      .from("enrollments")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("course_id", course.id)
-      .single();
+  if (enrollment) {
+    const allLessonIds = sortedModules.flatMap((m: { lessons: Lesson[] }) =>
+      m.lessons.map((l: Lesson) => l.id)
+    );
 
-    enrollment = enrollmentData;
+    if (allLessonIds.length > 0) {
+      const { count } = await supabase
+        .from("lesson_progress")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId!)
+        .eq("status", "completed")
+        .in("lesson_id", allLessonIds);
 
-    if (enrollment) {
-      // Count completed lessons
-      const allLessonIds = sortedModules.flatMap((m: { lessons: Lesson[] }) =>
-        m.lessons.map((l: Lesson) => l.id)
-      );
-
-      if (allLessonIds.length > 0) {
-        const { count } = await supabase
-          .from("lesson_progress")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .eq("status", "completed")
-          .in("lesson_id", allLessonIds);
-
-        completedLessons = count ?? 0;
-      }
+      completedLessons = count ?? 0;
     }
   }
 
@@ -338,7 +351,7 @@ export async function markLessonComplete(
       user_id: userId,
       date: today,
       sessions_completed: 0,
-      practice_minutes: 0,
+      minutes_studied: 0,
       xp_earned: xpEarned,
     });
   }

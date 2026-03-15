@@ -135,7 +135,7 @@ export interface DailyStats {
   user_id: string;
   date: string;
   sessions_completed: number;
-  practice_minutes: number;
+  minutes_studied: number;
   average_score: number | null;
   xp_earned: number;
   created_at: string;

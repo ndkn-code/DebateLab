@@ -120,17 +120,29 @@ const supabaseAdapter = {
       });
     }
 
-    // Update profile XP, level, and session count
+    // Update profile XP, level, session count, and streak
     const xpEarned = calculateXp(session);
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("xp, total_sessions_completed, total_practice_minutes")
+      .select("xp, total_sessions_completed, total_practice_minutes, streak_current, streak_longest, streak_last_active_date")
       .eq("id", userId)
       .single();
 
     if (profileData) {
       const newXp = (profileData.xp ?? 0) + xpEarned;
       const newLevel = Math.floor(newXp / 500) + 1;
+
+      // Update streak based on actual practice
+      let newStreak = profileData.streak_current ?? 0;
+      const lastActive = profileData.streak_last_active_date;
+      if (lastActive !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split("T")[0];
+        newStreak = lastActive === yesterdayStr ? newStreak + 1 : 1;
+      }
+      const newLongest = Math.max(newStreak, profileData.streak_longest ?? 0);
+
       await supabase
         .from("profiles")
         .update({
@@ -138,6 +150,9 @@ const supabaseAdapter = {
           level: newLevel,
           total_sessions_completed: (profileData.total_sessions_completed ?? 0) + 1,
           total_practice_minutes: (profileData.total_practice_minutes ?? 0) + durationMinutes,
+          streak_current: newStreak,
+          streak_longest: newLongest,
+          streak_last_active_date: today,
         })
         .eq("id", userId);
     }

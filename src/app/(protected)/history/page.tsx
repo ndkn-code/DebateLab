@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -19,6 +19,7 @@ import { MiniScoreRing } from "@/components/shared/mini-score-ring";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
+import { useSupabaseQuery } from "@/hooks/use-supabase-query";
 import { cn } from "@/lib/utils";
 import type { DebateSession } from "@/types";
 
@@ -61,29 +62,25 @@ function formatTime(iso: string) {
   });
 }
 
+async function fetchSessions(): Promise<DebateSession[]> {
+  const supabase = createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (authData.user) {
+    return supabaseStorage.getSessions(authData.user.id);
+  }
+  return storage.getSessions();
+}
+
 export default function HistoryPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<DebateSession[]>([]);
+  const { data: sessions = [], mutate, isLoading } = useSupabaseQuery(
+    "history-sessions",
+    fetchSessions
+  );
   const [sort, setSort] = useState<SortOption>("newest");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const loadSessions = async () => {
-      const supabase = createClient();
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData.user) {
-        const sessions = await supabaseStorage.getSessions(authData.user.id);
-        setSessions(sessions);
-      } else {
-        setSessions(storage.getSessions());
-      }
-      setMounted(true);
-    };
-    loadSessions();
-  }, []);
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
@@ -91,14 +88,12 @@ export default function HistoryPage() {
     const { data: authData } = await supabase.auth.getUser();
     if (authData.user) {
       await supabaseStorage.deleteSession(deleteId, authData.user.id);
-      const updated = await supabaseStorage.getSessions(authData.user.id);
-      setSessions(updated);
     } else {
       storage.deleteSession(deleteId);
-      setSessions(storage.getSessions());
     }
     setDeleteId(null);
-  }, [deleteId]);
+    mutate();
+  }, [deleteId, mutate]);
 
   // Compute stats
   const stats = useMemo(() => {
@@ -166,7 +161,7 @@ export default function HistoryPage() {
     return list;
   }, [sessions, categoryFilter, search, sort]);
 
-  if (!mounted) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">

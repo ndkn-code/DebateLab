@@ -12,9 +12,10 @@ export async function getConversations(
 
   const { data, error } = await supabase
     .from("chat_conversations")
-    .select("*")
+    .select("id, user_id, title, context_type, context_id, created_at, updated_at")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(30);
 
   if (error) {
     console.error("Failed to fetch conversations:", error);
@@ -29,24 +30,26 @@ export async function getConversation(
 ): Promise<{ conversation: ChatConversation; messages: ChatMessage[] } | null> {
   const supabase = await createClient();
 
-  const { data: conversation } = await supabase
-    .from("chat_conversations")
-    .select("*")
-    .eq("id", conversationId)
-    .eq("user_id", userId)
-    .single();
+  // Fetch conversation and messages in parallel
+  const [convRes, msgRes] = await Promise.all([
+    supabase
+      .from("chat_conversations")
+      .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+      .eq("id", conversationId)
+      .eq("user_id", userId)
+      .single(),
+    supabase
+      .from("chat_messages")
+      .select("id, conversation_id, role, content, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true }),
+  ]);
 
-  if (!conversation) return null;
-
-  const { data: messages } = await supabase
-    .from("chat_messages")
-    .select("*")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
+  if (!convRes.data) return null;
 
   return {
-    conversation: conversation as ChatConversation,
-    messages: (messages ?? []) as ChatMessage[],
+    conversation: convRes.data as ChatConversation,
+    messages: (msgRes.data ?? []) as ChatMessage[],
   };
 }
 

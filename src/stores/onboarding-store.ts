@@ -25,6 +25,7 @@ interface OnboardingState {
   setDemoFeedback: (feedback: OnboardingFeedback) => void;
   nextStep: () => void;
   prevStep: () => void;
+  skipToStep: (step: number) => void;
   reset: () => void;
 }
 
@@ -47,6 +48,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   nextStep: () => set((s) => ({ currentStep: s.currentStep + 1 })),
   prevStep: () =>
     set((s) => ({ currentStep: Math.max(0, s.currentStep - 1) })),
+  skipToStep: (step) => set({ currentStep: step }),
   reset: () =>
     set({
       currentStep: 0,
