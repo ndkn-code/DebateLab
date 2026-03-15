@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Rocket, BookOpen, Mic, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { completeOnboarding } from "@/app/onboarding/actions";
 
 interface PathRevealStepProps {
   goal: string | null;
@@ -67,52 +67,17 @@ export function PathRevealStep({
   const handleFinish = () => {
     setSaving(true);
     startTransition(async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const result = await completeOnboarding({
+        goal,
+        experience_level: experienceLevel,
+        english_confidence: englishConfidence,
+        daily_goal_minutes: dailyGoalMinutes,
+      });
 
-      if (user) {
-        // Save preferences and mark onboarding complete (upsert in case profile doesn't exist)
-        await supabase
-          .from("profiles")
-          .upsert({
-            id: user.id,
-            email: user.email ?? "",
-            display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "",
-            onboarding_completed: true,
-            preferences: {
-              goal,
-              experience_level: experienceLevel,
-              english_confidence: englishConfidence,
-              daily_goal_minutes: dailyGoalMinutes,
-              first_dashboard_visit: true,
-            },
-          }, { onConflict: "id" });
-
-        // Try to enroll in recommended course
-        const slug =
-          experienceLevel === "experienced"
-            ? "public-speaking-mastery"
-            : "foundations-of-competitive-debate";
-
-        const { data: course } = await supabase
-          .from("courses")
-          .select("id")
-          .eq("slug", slug)
-          .single();
-
-        if (course) {
-          await supabase.from("enrollments").upsert(
-            {
-              user_id: user.id,
-              course_id: course.id,
-              status: "active",
-              progress_percent: 0,
-            },
-            { onConflict: "user_id,course_id" }
-          );
-        }
+      if (result.error) {
+        console.error("Onboarding error:", result.error);
+        setSaving(false);
+        return;
       }
 
       router.push("/dashboard");
