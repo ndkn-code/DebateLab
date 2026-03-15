@@ -120,6 +120,28 @@ const supabaseAdapter = {
         xp_earned: calculateXp(session),
       });
     }
+
+    // Update profile XP, level, and session count
+    const xpEarned = calculateXp(session);
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("xp, total_sessions_completed, total_practice_minutes")
+      .eq("id", userId)
+      .single();
+
+    if (profileData) {
+      const newXp = (profileData.xp ?? 0) + xpEarned;
+      const newLevel = Math.floor(newXp / 500) + 1;
+      await supabase
+        .from("profiles")
+        .update({
+          xp: newXp,
+          level: newLevel,
+          total_sessions_completed: (profileData.total_sessions_completed ?? 0) + 1,
+          total_practice_minutes: (profileData.total_practice_minutes ?? 0) + durationMinutes,
+        })
+        .eq("id", userId);
+    }
   },
 
   async getSessions(userId: string): Promise<DebateSession[]> {
@@ -170,10 +192,7 @@ const supabaseAdapter = {
 };
 
 function calculateXp(session: DebateSession): number {
-  let xp = 10; // base XP for completing a session
-  if (session.feedback?.totalScore) {
-    xp += Math.round(session.feedback.totalScore / 5);
-  }
+  let xp = 25; // base XP for completing a debate session
   if (session.mode === "full") {
     xp += 10; // bonus for full round
   }

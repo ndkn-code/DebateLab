@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 
 export const metadata = {
   title: "Dashboard",
@@ -26,5 +27,12 @@ export default async function DashboardPage() {
     user.email?.split("@")[0] ||
     "Debater";
 
-  return <DashboardContent data={data} displayName={displayName} />;
+  const showOnboarding = data.profile?.onboarding_completed === false;
+
+  return (
+    <>
+      {showOnboarding && <OnboardingModal userId={user.id} />}
+      <DashboardContent data={data} displayName={displayName} />
+    </>
+  );
 }

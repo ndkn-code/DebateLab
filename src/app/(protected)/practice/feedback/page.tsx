@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, RotateCcw, Plus, History, MessageSquare } from "lucide-react";
+import { ArrowLeft, RotateCcw, Plus, History, MessageSquare, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useSessionStore } from "@/store/session-store";
@@ -334,6 +334,19 @@ export default function FeedbackPage() {
                 >
                   <History className="h-4 w-4" />
                   View History
+                </Button>
+              </Link>
+              <Link
+                href={`/chat?message=${encodeURIComponent(
+                  `I just finished a debate on "${selectedTopic.title}" (${resolvedSide} side, ${mode} mode). I scored ${feedback.totalScore}/100 (${feedback.overallBand}). Can you help me analyze what I could improve?`
+                )}`}
+              >
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 sm:w-auto"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Discuss with AI Coach
                 </Button>
               </Link>
             </div>

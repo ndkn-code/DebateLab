@@ -8,6 +8,8 @@ import {
   Quote,
   Star,
   Clock,
+  BookOpen,
+  MessageCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
@@ -291,42 +293,109 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Course Preview Section */}
+      <section className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-on-surface tracking-tight">
+              Structured Learning Paths
+            </h2>
+            <p className="text-on-surface-variant text-xl font-medium max-w-2xl mx-auto">
+              Go beyond practice — master debate with guided courses built for Vietnamese students.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow hover:border-primary/20 transition-colors">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-container/40 mb-5">
+                <BookOpen className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-extrabold text-on-surface mb-2">
+                Foundations of Competitive Debate
+              </h3>
+              <p className="text-sm text-on-surface-variant mb-4 leading-relaxed">
+                Master the fundamentals of argumentation, research, and delivery. Perfect for beginners and intermediate debaters.
+              </p>
+              <div className="flex items-center gap-3 text-xs text-on-surface-variant">
+                <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">4 Modules</span>
+                <span className="rounded-full bg-surface-container px-3 py-1">16 Lessons</span>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow hover:border-primary/20 transition-colors">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-tertiary-container/40 mb-5">
+                <MessageCircle className="h-6 w-6 text-tertiary" />
+              </div>
+              <h3 className="text-xl font-extrabold text-on-surface mb-2">
+                Public Speaking Mastery
+              </h3>
+              <p className="text-sm text-on-surface-variant mb-4 leading-relaxed">
+                Build confidence, refine delivery, and learn advanced persuasion techniques for competitions and beyond.
+              </p>
+              <div className="flex items-center gap-3 text-xs text-on-surface-variant">
+                <span className="rounded-full bg-tertiary/10 px-3 py-1 font-semibold text-tertiary">3 Modules</span>
+                <span className="rounded-full bg-surface-container px-3 py-1">11 Lessons</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-center mt-10">
+            <Link
+              href={user ? "/courses" : "/auth/signup"}
+              className="inline-flex items-center gap-2 text-primary font-bold hover:underline"
+            >
+              {user ? "Browse All Courses" : "Sign Up to Access Courses"} →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* How it Works Section */}
       <section id="how-it-works" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-16">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-on-surface tracking-tight">
+              How It Works
+            </h2>
+          </div>
+          <div className="grid lg:grid-cols-4 gap-12">
             <div className="space-y-6">
               <div className="w-16 h-16 rounded-3xl bg-primary flex items-center justify-center text-on-primary text-2xl font-extrabold soft-shadow">
                 1
               </div>
-              <h3 className="text-3xl font-extrabold text-on-surface">
-                Pick Topic
+              <h3 className="text-2xl font-extrabold text-on-surface">
+                Learn
               </h3>
               <p className="text-on-surface-variant leading-relaxed font-medium">
-                Select from our curated library of BP, WSDC, and Truong Teen
-                motions or input your own.
+                Take structured courses with articles, quizzes, and video lessons on debate fundamentals.
               </p>
             </div>
             <div className="space-y-6">
               <div className="w-16 h-16 rounded-3xl bg-surface-container-highest flex items-center justify-center text-primary text-2xl font-extrabold soft-shadow">
                 2
               </div>
-              <h3 className="text-3xl font-extrabold text-on-surface">Speak</h3>
+              <h3 className="text-2xl font-extrabold text-on-surface">Practice</h3>
               <p className="text-on-surface-variant leading-relaxed font-medium">
-                Perform your speech directly into the app. AI captures every word
-                and nuance of your delivery.
+                Choose a topic, speak into the app, and get real-time transcription of your speech.
               </p>
             </div>
             <div className="space-y-6">
               <div className="w-16 h-16 rounded-3xl bg-surface-container-highest flex items-center justify-center text-primary text-2xl font-extrabold soft-shadow">
                 3
               </div>
-              <h3 className="text-3xl font-extrabold text-on-surface">
-                Improve
+              <h3 className="text-2xl font-extrabold text-on-surface">
+                Get Feedback
               </h3>
               <p className="text-on-surface-variant leading-relaxed font-medium">
-                Review your AI-generated score sheet and specific
-                counter-arguments to strengthen your case.
+                Receive AI-powered scoring and detailed feedback on content, structure, and delivery.
+              </p>
+            </div>
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-3xl bg-surface-container-highest flex items-center justify-center text-primary text-2xl font-extrabold soft-shadow">
+                4
+              </div>
+              <h3 className="text-2xl font-extrabold text-on-surface">
+                Ask AI Coach
+              </h3>
+              <p className="text-on-surface-variant leading-relaxed font-medium">
+                Chat with your personal AI debate coach anytime for tips, explanations, and practice.
               </p>
             </div>
           </div>
@@ -412,6 +481,12 @@ export default async function Home() {
               <span className="text-xs font-extrabold text-on-surface uppercase tracking-widest">
                 Product
               </span>
+              <Link
+                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+                href="/courses"
+              >
+                Courses
+              </Link>
               <Link
                 className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
                 href="/practice"

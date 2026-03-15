@@ -16,7 +16,7 @@ export function AiCoachWidget() {
 
   const handleSubmit = (message: string) => {
     if (!message.trim()) return;
-    router.push(`/chat?q=${encodeURIComponent(message.trim())}`);
+    router.push(`/chat?message=${encodeURIComponent(message.trim())}`);
   };
 
   return (
