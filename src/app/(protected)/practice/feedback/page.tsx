@@ -12,7 +12,8 @@ import { ScoreHero } from "@/components/feedback/score-hero";
 import { CategoryCards } from "@/components/feedback/category-cards";
 import { FeedbackSections } from "@/components/feedback/feedback-sections";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
-import { storage } from "@/lib/storage";
+import { storage, supabaseStorage } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 import type { DebateScore } from "@/types/feedback";
 
 export default function FeedbackPage() {
@@ -115,10 +116,10 @@ export default function FeedbackPage() {
       setFeedback(data);
       setPhase("feedback");
 
-      // Save to localStorage
+      // Save session
       if (!hasSaved.current) {
         hasSaved.current = true;
-        storage.saveSession({
+        const sessionData = {
           id: crypto.randomUUID(),
           date: new Date().toISOString(),
           topic: selectedTopic,
@@ -132,7 +133,16 @@ export default function FeedbackPage() {
           prepNotes: useSessionStore.getState().prepNotes,
           aiDifficulty: isFullRound ? aiDifficulty : undefined,
           rounds: isFullRound ? rounds : undefined,
-        });
+        };
+
+        // Save to Supabase if authenticated, otherwise localStorage
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData.user) {
+          supabaseStorage.saveSession(sessionData, authData.user.id);
+        } else {
+          storage.saveSession(sessionData);
+        }
       }
     } catch (err) {
       clearTimeout(timeoutId);

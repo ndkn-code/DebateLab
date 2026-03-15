@@ -18,7 +18,8 @@ import { CategoryCards } from "@/components/feedback/category-cards";
 import { FeedbackSections } from "@/components/feedback/feedback-sections";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { storage } from "@/lib/storage";
+import { storage, supabaseStorage } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 import { useSessionStore } from "@/store/session-store";
 import { cn } from "@/lib/utils";
 import type { DebateSession } from "@/types";
@@ -61,13 +62,23 @@ export default function SessionDetailPage({
   const { setTopic, startSession: storeStartSession } = useSessionStore();
 
   useEffect(() => {
-    const s = storage.getSession(id);
-    if (s) {
-      setSession(s);
-    } else {
-      setNotFound(true);
-    }
-    setMounted(true);
+    const loadSession = async () => {
+      const supabase = createClient();
+      const { data: authData } = await supabase.auth.getUser();
+      let s: DebateSession | null = null;
+      if (authData.user) {
+        s = await supabaseStorage.getSession(id, authData.user.id);
+      } else {
+        s = storage.getSession(id);
+      }
+      if (s) {
+        setSession(s);
+      } else {
+        setNotFound(true);
+      }
+      setMounted(true);
+    };
+    loadSession();
   }, [id]);
 
   const handleRetry = () => {
@@ -79,9 +90,15 @@ export default function SessionDetailPage({
     router.push("/practice/session");
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!session) return;
-    storage.deleteSession(session.id);
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user) {
+      await supabaseStorage.deleteSession(session.id, authData.user.id);
+    } else {
+      storage.deleteSession(session.id);
+    }
     router.push("/history");
   };
 

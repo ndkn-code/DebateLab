@@ -19,7 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { MiniScoreRing } from "@/components/shared/mini-score-ring";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { storage } from "@/lib/storage";
+import { storage, supabaseStorage } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { DebateSession } from "@/types";
 
@@ -72,14 +73,32 @@ export default function HistoryPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setSessions(storage.getSessions());
-    setMounted(true);
+    const loadSessions = async () => {
+      const supabase = createClient();
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData.user) {
+        const sessions = await supabaseStorage.getSessions(authData.user.id);
+        setSessions(sessions);
+      } else {
+        setSessions(storage.getSessions());
+      }
+      setMounted(true);
+    };
+    loadSessions();
   }, []);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (!deleteId) return;
-    storage.deleteSession(deleteId);
-    setSessions(storage.getSessions());
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user) {
+      await supabaseStorage.deleteSession(deleteId, authData.user.id);
+      const updated = await supabaseStorage.getSessions(authData.user.id);
+      setSessions(updated);
+    } else {
+      storage.deleteSession(deleteId);
+      setSessions(storage.getSessions());
+    }
     setDeleteId(null);
   }, [deleteId]);
 

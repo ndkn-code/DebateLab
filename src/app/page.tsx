@@ -9,8 +9,14 @@ import {
   Star,
   Clock,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <main className="bg-background text-on-surface">
       {/* TopNavBar */}
@@ -41,13 +47,30 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/practice"
-              className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-            >
-              Start Practicing
-            </Link>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -72,10 +95,10 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap gap-4 pt-4">
               <Link
-                href="/practice"
+                href={user ? "/practice" : "/auth/signup"}
                 className="bg-primary text-on-primary px-10 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 hover:scale-105 transition-all"
               >
-                Start Practicing for Free
+                {user ? "Start Practicing" : "Start Practicing for Free"}
               </Link>
               <div className="flex items-center gap-3 px-6">
                 <div className="flex -space-x-3">
@@ -357,16 +380,16 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center relative z-10">
             <Link
-              href="/practice"
+              href={user ? "/dashboard" : "/auth/signup"}
               className="bg-on-primary text-primary px-12 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-2xl"
             >
-              Get Started Now
+              {user ? "Go to Dashboard" : "Get Started Now"}
             </Link>
             <Link
-              href="/history"
+              href={user ? "/history" : "/auth/login"}
               className="text-on-primary border-2 border-on-primary/30 px-12 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-colors"
             >
-              View History
+              {user ? "View History" : "Sign In"}
             </Link>
           </div>
         </div>
