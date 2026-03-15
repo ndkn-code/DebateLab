@@ -15,15 +15,20 @@ export async function completeOnboarding(preferences: {
     } = await supabase.auth.getUser();
 
     if (!user) {
+      console.error("completeOnboarding: No user found");
       return { error: "Not authenticated" };
     }
 
+    console.log("completeOnboarding: user id =", user.id);
+
     // First check if profile exists
-    const { data: existing } = await supabase
+    const { data: existing, error: selectError } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, onboarding_completed")
       .eq("id", user.id)
       .single();
+
+    console.log("completeOnboarding: existing profile =", existing, "selectError =", selectError);
 
     const profileData: Record<string, unknown> = {
       onboarding_completed: true,
@@ -42,6 +47,7 @@ export async function completeOnboarding(preferences: {
         .update(profileData)
         .eq("id", user.id);
       profileError = result.error;
+      console.log("completeOnboarding: update result error =", result.error, "status =", result.status);
     } else {
       // Insert new profile
       const result = await supabase.from("profiles").insert({
@@ -54,11 +60,25 @@ export async function completeOnboarding(preferences: {
         ...profileData,
       });
       profileError = result.error;
+      console.log("completeOnboarding: insert result error =", result.error, "status =", result.status);
     }
 
     if (profileError) {
-      console.error("Failed to complete onboarding:", profileError);
+      console.error("completeOnboarding: profile write failed:", profileError);
       return { error: profileError.message };
+    }
+
+    // Verify the update worked
+    const { data: verify } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .single();
+    console.log("completeOnboarding: verify after write =", verify);
+
+    if (!verify?.onboarding_completed) {
+      console.error("completeOnboarding: onboarding_completed still false after write!");
+      return { error: "Failed to save onboarding status - please try again" };
     }
 
     // Try to enroll in recommended course (non-critical)
@@ -91,7 +111,7 @@ export async function completeOnboarding(preferences: {
 
     return { success: true };
   } catch (err) {
-    console.error("Onboarding action error:", err);
+    console.error("completeOnboarding: uncaught error:", err);
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
