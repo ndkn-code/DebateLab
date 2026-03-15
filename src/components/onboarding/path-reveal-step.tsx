@@ -61,6 +61,7 @@ export function PathRevealStep({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const recommendations = getRecommendations(goal, experienceLevel);
 
@@ -76,6 +77,7 @@ export function PathRevealStep({
 
       if (result.error) {
         console.error("Onboarding error:", result.error);
+        setError(result.error);
         setSaving(false);
         return;
       }
@@ -143,6 +145,10 @@ export function PathRevealStep({
           );
         })}
       </div>
+
+      {error && (
+        <p className="mb-4 text-sm text-red-500">Error: {error}</p>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
