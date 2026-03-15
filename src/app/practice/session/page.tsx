@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { Mic, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
-import { useMicrophone } from "@/hooks/use-microphone";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
+import { MicCheck } from "@/components/practice/mic-check";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
 import { AiRebuttalPhase } from "@/components/practice/ai-rebuttal-phase";
@@ -53,9 +53,12 @@ export default function SessionPage() {
   const hasEndedRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
 
+  // Mic stream ref — obtained from mic check, reused throughout session
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
+
   const prepTimer = useCountdown(prepTime);
   const speechTimer = useCountdown(speechTime);
-  const mic = useMicrophone();
   const speech = useDeepgramTranscription();
   const audio = useAudioRecorder();
 
@@ -72,10 +75,25 @@ export default function SessionPage() {
     }
   }, [selectedTopic, router]);
 
+  // Cleanup mic stream on unmount
+  useEffect(() => {
+    return () => {
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+      }
+    };
+  }, []);
+
   // Beforeunload warning during active session
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
-      if (currentPhase === "prep" || currentPhase === "speaking" || currentPhase === "ai-rebuttal") {
+      if (
+        currentPhase === "mic-check" ||
+        currentPhase === "prep" ||
+        currentPhase === "speaking" ||
+        currentPhase === "ai-rebuttal"
+      ) {
         e.preventDefault();
       }
     };
@@ -83,7 +101,7 @@ export default function SessionPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [currentPhase]);
 
-  // Start prep timer
+  // Start prep timer when entering prep phase
   useEffect(() => {
     if (selectedTopic && currentPhase === "prep" && !hasStartedRef.current) {
       hasStartedRef.current = true;
@@ -133,22 +151,6 @@ export default function SessionPage() {
     }
   }, [speech.error]);
 
-  // Toast for mic errors
-  useEffect(() => {
-    if (!mic.error) return;
-    switch (mic.error) {
-      case "not-allowed":
-        showToast("Microphone access denied. Check browser settings.", "error");
-        break;
-      case "audio-capture":
-        showToast("Microphone not found. Please connect a microphone.", "error");
-        break;
-      default:
-        showToast(mic.error, "error");
-        break;
-    }
-  }, [mic.error]);
-
   // Toast for silence
   useEffect(() => {
     if (speech.silenceWarning && currentPhase === "speaking") {
@@ -163,17 +165,62 @@ export default function SessionPage() {
     }
   }, [audio.error]);
 
+  /** Called when mic check completes — stores stream and moves to prep */
+  const handleMicReady = useCallback(
+    (stream: MediaStream) => {
+      micStreamRef.current = stream;
+      setMicStream(stream);
+      setPhase("prep");
+    },
+    [setPhase]
+  );
+
+  /** Called when user presses Go Back during mic check */
+  const handleMicBack = useCallback(() => {
+    router.push("/practice");
+  }, [router]);
+
+  /** Re-acquire mic stream (for resume after pause, or new round) */
+  const acquireMicStream = useCallback(async (): Promise<MediaStream | null> => {
+    // Check if existing stream is still active
+    if (micStreamRef.current) {
+      const tracks = micStreamRef.current.getTracks();
+      if (tracks.length > 0 && tracks[0].readyState === "live") {
+        return micStreamRef.current;
+      }
+    }
+
+    // Need a new stream
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+      micStreamRef.current = stream;
+      setMicStream(stream);
+      return stream;
+    } catch {
+      showToast("Failed to access microphone.", "error");
+      return null;
+    }
+  }, []);
+
   const transitionToSpeaking = useCallback(async () => {
-    const roundLabel = isFullRound && currentRoundInfo
-      ? `Round ${currentRound}: ${currentRoundInfo.label}`
-      : "Get Ready!";
+    const roundLabel =
+      isFullRound && currentRoundInfo
+        ? `Round ${currentRound}: ${currentRoundInfo.label}`
+        : "Get Ready!";
 
     setTransitionMessage(roundLabel);
     setTransitionSub("Speaking phase begins now...");
     setShowTransition(true);
 
-    // Start mic during transition so it's ready when speaking begins
-    const micStream = await mic.start();
+    // Ensure mic stream is ready
+    const stream = await acquireMicStream();
 
     setTimeout(() => {
       setPhase("speaking");
@@ -181,12 +228,21 @@ export default function SessionPage() {
       speechTimer.start();
       roundSpeechStartRef.current = Date.now();
 
-      if (micStream) {
-        speech.startListening(micStream);
-        audio.startRecording(micStream);
+      if (stream) {
+        speech.startListening(stream);
+        audio.startRecording(stream);
       }
     }, 1500);
-  }, [setPhase, speechTimer, speech, audio, mic, isFullRound, currentRound, currentRoundInfo]);
+  }, [
+    setPhase,
+    speechTimer,
+    speech,
+    audio,
+    acquireMicStream,
+    isFullRound,
+    currentRound,
+    currentRoundInfo,
+  ]);
 
   const handleSkipPrep = useCallback(() => {
     prepTimer.pause();
@@ -202,19 +258,31 @@ export default function SessionPage() {
 
   const handleResume = useCallback(async () => {
     speechTimer.resume();
-    const micStream = await mic.start();
-    if (micStream) {
-      speech.startListening(micStream);
-      audio.startRecording(micStream);
+    const stream = await acquireMicStream();
+    if (stream) {
+      speech.startListening(stream);
+      audio.startRecording(stream);
     }
     setIsPaused(false);
-  }, [speechTimer, speech, audio, mic]);
+  }, [speechTimer, speech, audio, acquireMicStream]);
+
+  /** Stop mic stream tracks */
+  const stopMicStream = useCallback(() => {
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+      setMicStream(null);
+    }
+  }, []);
 
   /** Called when a speaking round ends (timer or manual) */
   const handleRoundSpeechEnd = useCallback(() => {
     speech.stopListening();
     audio.stopRecording();
-    mic.stop();
+    // Don't fully stop stream between rounds in full-round mode
+    if (!isFullRound || currentRound >= totalRounds) {
+      stopMicStream();
+    }
 
     const finalTranscript = speech.transcript;
     setTranscript(finalTranscript);
@@ -239,83 +307,114 @@ export default function SessionPage() {
     }
 
     proceedAfterSpeech(finalTranscript, duration);
-  }, [speech, audio, mic, setTranscript, isFullRound, currentRound, saveRoundTranscript]);
+  }, [
+    speech,
+    audio,
+    stopMicStream,
+    setTranscript,
+    isFullRound,
+    currentRound,
+    totalRounds,
+    saveRoundTranscript,
+  ]);
 
   /** After a valid speech round, decide what comes next */
-  const proceedAfterSpeech = useCallback((transcript: string, duration: number) => {
-    if (!isFullRound) {
-      // Quick Practice: go straight to feedback
-      navigateToFeedback();
-      return;
-    }
+  const proceedAfterSpeech = useCallback(
+    (transcript: string, duration: number) => {
+      if (!isFullRound) {
+        navigateToFeedback();
+        return;
+      }
 
-    // Full Round: check if there are more rounds
-    if (currentRound >= totalRounds) {
-      // All rounds done → go to feedback
-      // Set combined transcript
-      const allTranscripts = getAllTranscripts();
-      setTranscript(allTranscripts);
-      navigateToFeedback();
-      return;
-    }
+      if (currentRound >= totalRounds) {
+        const allTranscripts = getAllTranscripts();
+        setTranscript(allTranscripts);
+        navigateToFeedback();
+        return;
+      }
 
-    // Next round is AI rebuttal
-    const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
-    if (nextRound?.type === "ai-rebuttal") {
-      setTransitionMessage(`Round ${currentRound + 1}`);
-      setTransitionSub(`${nextRound.label}...`);
-      setShowTransition(true);
+      const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
+      if (nextRound?.type === "ai-rebuttal") {
+        setTransitionMessage(`Round ${currentRound + 1}`);
+        setTransitionSub(`${nextRound.label}...`);
+        setShowTransition(true);
 
-      setTimeout(() => {
-        advanceToNextRound();
-        setPhase("ai-rebuttal");
-        setShowTransition(false);
-        hasEndedRef.current = false;
-      }, 1500);
-    }
-  }, [isFullRound, currentRound, totalRounds, rounds, advanceToNextRound, setPhase, getAllTranscripts, setTranscript]);
+        setTimeout(() => {
+          advanceToNextRound();
+          setPhase("ai-rebuttal");
+          setShowTransition(false);
+          hasEndedRef.current = false;
+        }, 1500);
+      }
+    },
+    [
+      isFullRound,
+      currentRound,
+      totalRounds,
+      rounds,
+      advanceToNextRound,
+      setPhase,
+      getAllTranscripts,
+      setTranscript,
+    ]
+  );
 
   /** Called when AI rebuttal completes */
-  const handleAiRebuttalComplete = useCallback((rebuttalText: string) => {
-    saveAiRebuttal(currentRound, rebuttalText);
+  const handleAiRebuttalComplete = useCallback(
+    (rebuttalText: string) => {
+      saveAiRebuttal(currentRound, rebuttalText);
 
-    // Check if there are more rounds
-    if (currentRound >= totalRounds) {
-      // Done — go to feedback
-      const allTranscripts = getAllTranscripts();
-      setTranscript(allTranscripts);
-      navigateToFeedback();
-      return;
-    }
+      if (currentRound >= totalRounds) {
+        const allTranscripts = getAllTranscripts();
+        setTranscript(allTranscripts);
+        navigateToFeedback();
+        return;
+      }
 
-    // Next round is user speech
-    const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
-    if (nextRound?.type === "user-speech") {
-      setTransitionMessage(`Round ${currentRound + 1}`);
-      setTransitionSub(`Your turn: ${nextRound.label}`);
-      setShowTransition(true);
+      const nextRound = rounds.find(
+        (r) => r.roundNumber === currentRound + 1
+      );
+      if (nextRound?.type === "user-speech") {
+        setTransitionMessage(`Round ${currentRound + 1}`);
+        setTransitionSub(`Your turn: ${nextRound.label}`);
+        setShowTransition(true);
 
-      setTimeout(async () => {
-        advanceToNextRound();
-        setShowTransition(false);
-        hasEndedRef.current = false;
+        setTimeout(async () => {
+          advanceToNextRound();
+          setShowTransition(false);
+          hasEndedRef.current = false;
 
-        // Go directly into speaking (no additional prep between rounds)
-        setPhase("speaking");
-        speechTimer.reset();
-        speechTimer.start();
-        roundSpeechStartRef.current = Date.now();
+          setPhase("speaking");
+          speechTimer.reset();
+          speechTimer.start();
+          roundSpeechStartRef.current = Date.now();
 
-        const micStream = await mic.start();
-        if (micStream) {
-          speech.startListening(micStream);
-          audio.startRecording(micStream);
-        }
-      }, 1500);
-    }
-  }, [currentRound, totalRounds, rounds, saveAiRebuttal, advanceToNextRound, setPhase, speechTimer, speech, audio, mic, getAllTranscripts, setTranscript]);
+          const stream = await acquireMicStream();
+          if (stream) {
+            speech.startListening(stream);
+            audio.startRecording(stream);
+          }
+        }, 1500);
+      }
+    },
+    [
+      currentRound,
+      totalRounds,
+      rounds,
+      saveAiRebuttal,
+      advanceToNextRound,
+      setPhase,
+      speechTimer,
+      speech,
+      audio,
+      acquireMicStream,
+      getAllTranscripts,
+      setTranscript,
+    ]
+  );
 
   const navigateToFeedback = useCallback(() => {
+    stopMicStream();
     setTimeout(() => {
       if (audio.audioBlob) setAudioBlob(audio.audioBlob);
       if (audio.audioUrl) setAudioUrl(audio.audioUrl);
@@ -329,7 +428,7 @@ export default function SessionPage() {
         router.push("/practice/feedback");
       }, 1500);
     }, 300);
-  }, [audio, setAudioBlob, setAudioUrl, setPhase, router]);
+  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream]);
 
   /** Manual end button during speaking */
   const handleEndSession = useCallback(() => {
@@ -348,8 +447,9 @@ export default function SessionPage() {
 
   const handleShortGoBack = useCallback(() => {
     setShowShortDialog(false);
+    stopMicStream();
     router.push("/practice");
-  }, [router]);
+  }, [router, stopMicStream]);
 
   if (!selectedTopic) return null;
 
@@ -360,7 +460,9 @@ export default function SessionPage() {
 
   // Build previousRounds context for AI rebuttal
   const previousRoundsForAi = rounds
-    .filter((r) => r.roundNumber < currentRound && (r.transcript || r.aiResponse))
+    .filter(
+      (r) => r.roundNumber < currentRound && (r.transcript || r.aiResponse)
+    )
     .map((r) => ({
       label: r.label,
       speaker: r.type === "user-speech" ? "Student" : "AI",
@@ -369,8 +471,12 @@ export default function SessionPage() {
 
   // Get the user's latest speech for AI rebuttal context
   const latestUserTranscript = (() => {
-    const prevUserRounds = rounds
-      .filter((r) => r.roundNumber < currentRound && r.type === "user-speech" && r.transcript);
+    const prevUserRounds = rounds.filter(
+      (r) =>
+        r.roundNumber < currentRound &&
+        r.type === "user-speech" &&
+        r.transcript
+    );
     return prevUserRounds.length > 0
       ? prevUserRounds[prevUserRounds.length - 1].transcript || ""
       : "";
@@ -378,37 +484,12 @@ export default function SessionPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Mic permission denied instructions */}
-      {mic.error === "not-allowed" && (
-        <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-3" role="alert">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <Mic className="h-4 w-4 text-red-400" aria-hidden="true" />
-              <span className="text-sm font-medium text-red-400">
-                Microphone Access Required
-              </span>
-            </div>
-            <ol className="text-xs leading-relaxed text-on-surface-variant">
-              <li>1. Click the lock/site settings icon in your browser address bar</li>
-              <li>2. Find &quot;Microphone&quot; and set it to &quot;Allow&quot;</li>
-              <li>3. Reload this page</li>
-            </ol>
-          </div>
-        </div>
-      )}
-
-      {/* No microphone banner */}
-      {mic.error === "audio-capture" && (
-        <div className="border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-center" role="alert">
-          <span className="text-xs text-red-400">
-            No microphone detected. Please connect a microphone and reload.
-          </span>
-        </div>
-      )}
-
       {/* Network error banner */}
-      {speech.error === "network" && (
-        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center" role="alert">
+      {speech.error === "network" && currentPhase === "speaking" && (
+        <div
+          className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center"
+          role="alert"
+        >
           <span className="text-xs text-amber-400">
             Lost connection to transcription service. Attempting to reconnect...
           </span>
@@ -423,16 +504,27 @@ export default function SessionPage() {
         </div>
       )}
 
-      <SessionTopBar
-        topicTitle={selectedTopic.title}
-        side={resolvedSide}
-        mode={mode}
-        phase={currentPhase}
-      />
+      {/* Show top bar for all phases except mic-check */}
+      {currentPhase !== "mic-check" && (
+        <SessionTopBar
+          topicTitle={selectedTopic.title}
+          side={resolvedSide}
+          mode={mode}
+          phase={currentPhase}
+        />
+      )}
 
-      {/* Round Progress (Full Round only) */}
-      {isFullRound && rounds.length > 0 && currentPhase !== "prep" && (
-        <RoundProgress rounds={rounds} currentRound={currentRound} />
+      {/* Round Progress (Full Round only, after prep) */}
+      {isFullRound &&
+        rounds.length > 0 &&
+        currentPhase !== "prep" &&
+        currentPhase !== "mic-check" && (
+          <RoundProgress rounds={rounds} currentRound={currentRound} />
+        )}
+
+      {/* Mic Check Phase */}
+      {currentPhase === "mic-check" && (
+        <MicCheck onReady={handleMicReady} onBack={handleMicBack} />
       )}
 
       {currentPhase === "prep" && (
@@ -460,7 +552,7 @@ export default function SessionPage() {
           transcript={speech.transcript}
           interimTranscript={speech.interimTranscript}
           prepNotes={prepNotes}
-          audioStream={mic.stream}
+          audioStream={micStream}
           speechError={speech.error}
           onPause={handlePause}
           onResume={handleResume}

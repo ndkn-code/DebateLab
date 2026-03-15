@@ -6,6 +6,7 @@ export type Side = "proposition" | "opposition" | "random";
 export type Mode = "quick" | "full";
 export type Phase =
   | "idle"
+  | "mic-check"
   | "prep"
   | "speaking"
   | "ai-rebuttal"
@@ -121,7 +122,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           : [];
 
       return {
-        currentPhase: "prep",
+        currentPhase: "mic-check",
         sessionStartTime: Date.now(),
         transcript: "",
         prepNotes: "",
