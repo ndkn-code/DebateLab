@@ -19,18 +19,10 @@ export default async function DashboardPage() {
     redirect("/auth/login");
   }
 
-  // Redirect to onboarding if not completed
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed, preferences")
-    .eq("id", user.id)
-    .single();
-
-  if (profile && !profile.onboarding_completed) {
-    redirect("/onboarding");
-  }
-
   const data = await getDashboardData(user.id);
+
+  // Get preferences for welcome banner check
+  const profile = data.profile;
 
   const displayName =
     data.profile?.display_name ||

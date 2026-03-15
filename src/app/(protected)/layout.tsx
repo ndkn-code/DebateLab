@@ -24,6 +24,11 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single();
 
+  // Redirect to onboarding if not completed
+  if (profile && !profile.onboarding_completed) {
+    redirect("/onboarding");
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
