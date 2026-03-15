@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function completeOnboarding(preferences: {
   goal: string | null;
@@ -19,11 +19,8 @@ export async function completeOnboarding(preferences: {
       return { error: "Not authenticated" };
     }
 
-    // Use admin client to bypass RLS for profile writes
-    const admin = createAdminClient();
-
     // Check if profile exists
-    const { data: existing } = await admin
+    const { data: existing } = await supabase
       .from("profiles")
       .select("id")
       .eq("id", user.id)
@@ -37,7 +34,7 @@ export async function completeOnboarding(preferences: {
     let profileError;
 
     if (existing) {
-      const result = await admin
+      const result = await supabase
         .from("profiles")
         .update({
           onboarding_completed: true,
@@ -46,7 +43,7 @@ export async function completeOnboarding(preferences: {
         .eq("id", user.id);
       profileError = result.error;
     } else {
-      const result = await admin.from("profiles").insert({
+      const result = await supabase.from("profiles").insert({
         id: user.id,
         email: user.email ?? "",
         display_name:
@@ -71,14 +68,14 @@ export async function completeOnboarding(preferences: {
           ? "public-speaking-mastery"
           : "foundations-of-competitive-debate";
 
-      const { data: course } = await admin
+      const { data: course } = await supabase
         .from("courses")
         .select("id")
         .eq("slug", slug)
         .single();
 
       if (course) {
-        await admin.from("enrollments").upsert(
+        await supabase.from("enrollments").upsert(
           {
             user_id: user.id,
             course_id: course.id,
