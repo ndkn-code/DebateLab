@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
-  MessageSquare,
   Trophy,
   Target,
   BarChart3,
@@ -171,11 +169,6 @@ export default function HistoryPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-          <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4 sm:px-6">
-            <div className="h-5 w-32 animate-pulse rounded bg-surface-container-high" />
-          </div>
-        </header>
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
           <div className="mb-8 space-y-2">
             <div className="h-8 w-48 animate-pulse rounded bg-surface-container-high" />
@@ -198,20 +191,6 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4 sm:px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-on-surface">DebateLab</span>
-          </Link>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {/* Header */}
         <motion.div

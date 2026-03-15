@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, RotateCcw, Plus, History, MessageSquare, Sparkles } from "lucide-react";
+import { RotateCcw, Plus, History, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useSessionStore } from "@/store/session-store";
@@ -218,23 +218,6 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4 sm:px-6">
-          <Link
-            href="/practice"
-            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-on-surface">DebateLab</span>
-          </Link>
-          <span className="ml-auto hidden truncate text-xs text-on-surface-variant sm:block">
-            {selectedTopic.title}
-          </span>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Loading */}
         {loading && !error && <LoadingState />}

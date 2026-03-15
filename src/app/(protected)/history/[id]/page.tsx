@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  MessageSquare,
   RotateCcw,
   Trash2,
   Clock,
@@ -130,21 +129,6 @@ export default function SessionDetailPage({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4 sm:px-6">
-          <Link
-            href="/history"
-            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-on-surface">DebateLab</span>
-          </Link>
-          <span className="ml-auto text-xs text-on-surface-variant">Session Review</span>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Session Header */}
         <motion.div

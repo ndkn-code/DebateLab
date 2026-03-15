@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Shuffle, MessageSquare } from "lucide-react";
+import { Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryTabs } from "@/components/practice/category-tabs";
 import { TopicCard } from "@/components/practice/topic-card";
@@ -41,20 +40,6 @@ export default function PracticePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-on-surface">DebateLab</span>
-          </Link>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
