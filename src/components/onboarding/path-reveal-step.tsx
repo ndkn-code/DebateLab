@@ -73,10 +73,13 @@ export function PathRevealStep({
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Save preferences and mark onboarding complete
+        // Save preferences and mark onboarding complete (upsert in case profile doesn't exist)
         await supabase
           .from("profiles")
-          .update({
+          .upsert({
+            id: user.id,
+            email: user.email ?? "",
+            display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "",
             onboarding_completed: true,
             preferences: {
               goal,
@@ -85,8 +88,7 @@ export function PathRevealStep({
               daily_goal_minutes: dailyGoalMinutes,
               first_dashboard_visit: true,
             },
-          })
-          .eq("id", user.id);
+          }, { onConflict: "id" });
 
         // Try to enroll in recommended course
         const slug =

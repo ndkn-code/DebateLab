@@ -24,8 +24,8 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single();
 
-  // Redirect to onboarding if not completed
-  if (profile && !profile.onboarding_completed) {
+  // Redirect to onboarding if profile missing or not completed
+  if (!profile || !profile.onboarding_completed) {
     redirect("/onboarding");
   }
 
