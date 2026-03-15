@@ -1,157 +1,316 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
+  Flame,
+  Clock,
+  Trophy,
+  Star,
   Mic2,
   BookOpen,
-  History,
-  Settings,
-  LogOut,
-  Trophy,
-  Target,
-  Flame,
-  TrendingUp,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
-import type { Profile } from "@/types/database";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { WeeklyChart } from "./weekly-chart";
+import { AiCoachWidget } from "./ai-coach-widget";
+import { cn } from "@/lib/utils";
+import type { DashboardData } from "@/lib/api/dashboard";
 
-interface DashboardContentProps {
-  user: User;
-  profile: Profile | null;
+const GREETINGS = [
+  "Ready to sharpen your arguments?",
+  "Let's make today count!",
+  "Your debate skills are growing!",
+  "Time to level up your rhetoric!",
+  "Another day, another argument won!",
+];
+
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-export function DashboardContent({ user, profile }: DashboardContentProps) {
-  const router = useRouter();
+function getMotivation(): string {
+  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+}
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  };
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
 
-  const displayName =
-    profile?.display_name ||
-    user.user_metadata?.display_name ||
-    user.email?.split("@")[0] ||
-    "Debater";
+interface DashboardContentProps {
+  data: DashboardData;
+  displayName: string;
+}
 
-  const stats = {
-    streak: profile?.streak_current ?? 0,
-    sessions: profile?.total_sessions_completed ?? 0,
-    xp: profile?.xp ?? 0,
-    level: profile?.level ?? 1,
-  };
+export function DashboardContent({ data, displayName }: DashboardContentProps) {
+  const { profile, enrollments, recentSessions, weeklyStats } = data;
+
+  const streak = profile?.streak_current ?? 0;
+  const longestStreak = profile?.streak_longest ?? 0;
+  const totalMinutes = profile?.total_practice_minutes ?? 0;
+  const totalHours = (totalMinutes / 60).toFixed(1);
+  const totalSessions = profile?.total_sessions_completed ?? 0;
+  const xp = profile?.xp ?? 0;
+  const level = profile?.level ?? 1;
+  const xpInLevel = xp % 500;
+  const xpToNext = 500;
+
+  // Weekly stats aggregation
+  const weekMinutes = weeklyStats.reduce((s, d) => s + d.practice_minutes, 0);
+  const weekHours = (weekMinutes / 60).toFixed(1);
+  const weekSessions = weeklyStats.reduce(
+    (s, d) => s + d.sessions_completed,
+    0
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-outline-variant/10 glass-nav backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="text-xl font-extrabold text-primary tracking-tight"
-          >
-            DebateLab
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm font-medium text-on-surface-variant sm:block">
-              {displayName}
-            </span>
-            <button
-              onClick={handleSignOut}
-              className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
+      {/* Greeting */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-on-surface sm:text-3xl">
+          {getTimeGreeting()}, {displayName}!
+        </h1>
+        <p className="mt-1 text-on-surface-variant">{getMotivation()}</p>
+      </div>
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* Welcome */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-on-surface">
-            Welcome back, {displayName}!
-          </h1>
-          <p className="mt-1 text-on-surface-variant">
-            Ready to sharpen your debate skills today?
+      {/* Stats Row */}
+      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Streak */}
+        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
+            <Flame className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-2xl font-bold text-on-surface">
+            {streak} <span className="text-sm font-medium text-on-surface-variant">days</span>
+          </p>
+          <p className="text-xs text-on-surface-variant">
+            Longest: {longestStreak}
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-outline-variant/10 bg-primary-container/30 p-4">
-            <Flame className="mb-2 h-5 w-5 text-primary" />
-            <p className="text-2xl font-bold text-on-surface">{stats.streak}</p>
-            <p className="text-xs text-on-surface-variant">Day Streak</p>
+        {/* Study Hours */}
+        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-tertiary-container/40">
+            <Clock className="h-5 w-5 text-tertiary" />
           </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-tertiary-container/30 p-4">
-            <Target className="mb-2 h-5 w-5 text-tertiary" />
-            <p className="text-2xl font-bold text-on-surface">
-              {stats.sessions}
-            </p>
-            <p className="text-xs text-on-surface-variant">Sessions</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-secondary-container/30 p-4">
-            <Trophy className="mb-2 h-5 w-5 text-secondary" />
-            <p className="text-2xl font-bold text-on-surface">{stats.xp}</p>
-            <p className="text-xs text-on-surface-variant">Total XP</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-[#fff9e5] p-4">
-            <TrendingUp className="mb-2 h-5 w-5 text-[#b28b00]" />
-            <p className="text-2xl font-bold text-on-surface">
-              Lv. {stats.level}
-            </p>
-            <p className="text-xs text-on-surface-variant">Level</p>
-          </div>
+          <p className="text-2xl font-bold text-on-surface">
+            {totalHours}<span className="text-sm font-medium text-on-surface-variant">h</span>
+          </p>
+          <p className="text-xs text-on-surface-variant">
+            +{weekHours}h this week
+          </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Link href="/practice" className="group">
-            <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 transition-all hover:border-primary/30 hover:shadow-lg soft-shadow">
-              <Mic2 className="mb-3 h-8 w-8 text-primary" />
-              <h3 className="font-semibold text-on-surface">
-                Practice Debate
-              </h3>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Start a solo practice session
-              </p>
-            </div>
-          </Link>
-          <Link href="/history" className="group">
-            <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 transition-all hover:border-primary/30 hover:shadow-lg soft-shadow">
-              <History className="mb-3 h-8 w-8 text-tertiary" />
-              <h3 className="font-semibold text-on-surface">History</h3>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Review past sessions
-              </p>
-            </div>
-          </Link>
-          <div className="opacity-50">
-            <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-              <BookOpen className="mb-3 h-8 w-8 text-secondary" />
-              <h3 className="font-semibold text-on-surface">Courses</h3>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Coming soon
-              </p>
-            </div>
+        {/* Sessions */}
+        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-container/40">
+            <Trophy className="h-5 w-5 text-secondary" />
           </div>
-          <div className="opacity-50">
-            <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-              <Settings className="mb-3 h-8 w-8 text-on-surface-variant" />
-              <h3 className="font-semibold text-on-surface">Settings</h3>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Coming soon
-              </p>
+          <p className="text-2xl font-bold text-on-surface">{totalSessions}</p>
+          <p className="text-xs text-on-surface-variant">
+            +{weekSessions} this week
+          </p>
+        </div>
+
+        {/* Level & XP */}
+        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff9e5]">
+            <Star className="h-5 w-5 text-[#b28b00]" />
+          </div>
+          <p className="text-2xl font-bold text-on-surface">Level {level}</p>
+          <div className="mt-1.5">
+            <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
+              <span>{xpInLevel} XP</span>
+              <span>{xpToNext} XP</span>
             </div>
+            <Progress
+              value={(xpInLevel / xpToNext) * 100}
+              className="h-1.5 bg-[#fff9e5]"
+            />
           </div>
         </div>
+      </div>
+
+      {/* Weekly Activity Chart */}
+      <div className="mb-8">
+        <WeeklyChart stats={weeklyStats} />
+      </div>
+
+      {/* Two column grid */}
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        {/* Continue Learning */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-on-surface">
+              Continue Learning
+            </h2>
+            {enrollments.length > 0 && (
+              <Link
+                href="/courses"
+                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                See all <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+
+          {enrollments.length === 0 ? (
+            <Link href="/courses">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
+                <BookOpen className="mb-3 h-8 w-8 text-primary/40" />
+                <p className="font-medium text-on-surface">
+                  Start your first course!
+                </p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Explore structured debate lessons
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="space-y-3">
+              {enrollments.map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/courses/${e.course_id}`}
+                  className="flex items-center gap-4 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 transition-all hover:border-primary/20 soft-shadow"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/30">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-on-surface">
+                      {e.course_title}
+                    </p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <Progress
+                        value={e.progress_percent}
+                        className="h-1.5 flex-1"
+                      />
+                      <span className="text-xs font-medium text-on-surface-variant">
+                        {e.progress_percent}%
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 bg-primary text-on-primary"
+                  >
+                    Continue
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Practice */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-on-surface">
+              Recent Practice
+            </h2>
+            <Link
+              href="/history"
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          {recentSessions.length === 0 ? (
+            <Link href="/practice">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
+                <Mic2 className="mb-3 h-8 w-8 text-primary/40" />
+                <p className="font-medium text-on-surface">
+                  Complete your first debate!
+                </p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Practice and get AI-powered feedback
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="space-y-3">
+              {recentSessions.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/history/${s.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 transition-all hover:border-primary/20 soft-shadow"
+                >
+                  {/* Score */}
+                  <div
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                      s.total_score != null && s.total_score >= 75
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : s.total_score != null && s.total_score >= 40
+                          ? "bg-amber-500/10 text-amber-600"
+                          : s.total_score != null
+                            ? "bg-red-500/10 text-red-500"
+                            : "bg-surface-container-high text-on-surface-variant"
+                    )}
+                  >
+                    {s.total_score ?? "—"}
+                  </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-on-surface">
+                      {s.topic_title}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] px-1.5 py-0",
+                          s.side === "proposition"
+                            ? "border-emerald-500/30 text-emerald-600"
+                            : "border-rose-500/30 text-rose-500"
+                        )}
+                      >
+                        {s.side === "proposition" ? "FOR" : "AGAINST"}
+                      </Badge>
+                      {s.overall_band && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0"
+                        >
+                          {s.overall_band}
+                        </Badge>
+                      )}
+                      <span className="text-[10px] text-on-surface-variant">
+                        {formatDate(s.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+
+              <Link href="/practice">
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full gap-2 border-outline-variant/20 text-on-surface-variant hover:text-primary"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Start New Practice
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AI Coach Widget */}
+      <div className="mb-8">
+        <AiCoachWidget />
       </div>
     </div>
   );
