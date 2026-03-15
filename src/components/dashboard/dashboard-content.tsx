@@ -56,7 +56,6 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
   const streak = profile?.streak_current ?? 0;
   const longestStreak = profile?.streak_longest ?? 0;
   const totalMinutes = profile?.total_practice_minutes ?? 0;
-  const totalHours = (totalMinutes / 60).toFixed(1);
   const totalSessions = profile?.total_sessions_completed ?? 0;
   const xp = profile?.xp ?? 0;
   const level = profile?.level ?? 1;
@@ -65,7 +64,6 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
 
   // Weekly stats aggregation
   const weekMinutes = weeklyStats.reduce((s, d) => s + d.practice_minutes, 0);
-  const weekHours = (weekMinutes / 60).toFixed(1);
   const weekSessions = weeklyStats.reduce(
     (s, d) => s + d.sessions_completed,
     0
@@ -102,10 +100,10 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
             <Clock className="h-5 w-5 text-tertiary" />
           </div>
           <p className="text-2xl font-bold text-on-surface">
-            {totalHours}<span className="text-sm font-medium text-on-surface-variant">h</span>
+            {totalMinutes}<span className="text-sm font-medium text-on-surface-variant">min</span>
           </p>
           <p className="text-xs text-on-surface-variant">
-            +{weekHours}h this week
+            +{weekMinutes}min this week
           </p>
         </div>
 
