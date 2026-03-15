@@ -65,7 +65,7 @@ const supabaseAdapter = {
     }
 
     // Insert activity log
-    await supabase.from("activity_logs").insert({
+    await supabase.from("activity_log").insert({
       user_id: userId,
       activity_type: "debate_completed",
       reference_id: session.id,

@@ -17,7 +17,10 @@ export async function getConversations(
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Failed to fetch conversations:", error);
+    return [];
+  }
   return (data ?? []) as ConversationWithPreview[];
 }
 

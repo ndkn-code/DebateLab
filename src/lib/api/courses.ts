@@ -37,7 +37,10 @@ export async function getCourses(userId?: string) {
     .eq("is_published", true)
     .order("created_at");
 
-  if (error) throw error;
+  if (error) {
+    console.error("Failed to fetch courses:", error);
+    return { courses: [], enrollments: [] };
+  }
 
   if (!userId || !courses) return { courses: courses ?? [], enrollments: [] };
 
@@ -235,7 +238,7 @@ export async function enrollInCourse(userId: string, courseId: string) {
   if (error) throw error;
 
   // Log activity
-  await supabase.from("activity_logs").insert({
+  await supabase.from("activity_log").insert({
     user_id: userId,
     activity_type: "course_enrolled",
     reference_id: courseId,
@@ -279,7 +282,7 @@ export async function markLessonComplete(
   const xpEarned = score != null ? 25 + Math.round((score / 100) * 25) : 25;
 
   // Log activity
-  await supabase.from("activity_logs").insert({
+  await supabase.from("activity_log").insert({
     user_id: userId,
     activity_type: "lesson_completed",
     reference_id: lessonId,
@@ -305,7 +308,7 @@ export async function markLessonComplete(
       .eq("id", userId);
 
     if (newLevel > (profile.level ?? 1)) {
-      await supabase.from("activity_logs").insert({
+      await supabase.from("activity_log").insert({
         user_id: userId,
         activity_type: "level_up",
         xp_earned: 0,
@@ -388,7 +391,7 @@ async function recalculateCourseProgress(userId: string, courseId: string) {
 
   // Log course completion
   if (progress >= 100) {
-    await supabase.from("activity_logs").insert({
+    await supabase.from("activity_log").insert({
       user_id: userId,
       activity_type: "course_completed",
       reference_id: courseId,

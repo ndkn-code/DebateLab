@@ -72,7 +72,7 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
         });
 
         // Log activity
-        await supabase.from("activity_logs").insert({
+        await supabase.from("activity_log").insert({
           user_id: userId,
           activity_type: "course_enrolled",
           reference_id: course.id,
