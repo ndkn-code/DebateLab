@@ -96,11 +96,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Save user message
-    await supabase.from("chat_messages").insert({
+    const { error: msgError } = await supabase.from("chat_messages").insert({
       conversation_id: conversationId,
       role: "user",
       content: message.trim(),
     });
+    if (msgError) {
+      console.error("Failed to save user message:", msgError);
+      throw new Error(`DB error: ${msgError.message}`);
+    }
 
     // Load conversation history (last 20 messages)
     const { data: history } = await supabase
@@ -198,9 +202,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Chat API error:", errMsg, error);
     return new Response(
-      JSON.stringify({ error: "Failed to process chat message" }),
+      JSON.stringify({ error: `Chat failed: ${errMsg}` }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

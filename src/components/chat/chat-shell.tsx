@@ -120,7 +120,11 @@ export function ChatShell({
           }),
         });
 
-        if (!res.ok) throw new Error("Chat request failed");
+        if (!res.ok) {
+          const errBody = await res.text();
+          console.error("Chat API error:", res.status, errBody);
+          throw new Error(`Chat request failed (${res.status})`);
+        }
 
         const reader = res.body?.getReader();
         if (!reader) throw new Error("No stream");
