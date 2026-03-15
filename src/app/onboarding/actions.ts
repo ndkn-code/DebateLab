@@ -19,42 +19,19 @@ export async function completeOnboarding(preferences: {
       return { error: "Not authenticated" };
     }
 
-    // Check if profile exists
-    const { data: existing } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
     const profilePrefs = {
       ...preferences,
       first_dashboard_visit: true,
     };
 
-    let profileError;
-
-    if (existing) {
-      const result = await supabase
-        .from("profiles")
-        .update({
-          onboarding_completed: true,
-          preferences: profilePrefs,
-        })
-        .eq("id", user.id);
-      profileError = result.error;
-    } else {
-      const result = await supabase.from("profiles").insert({
-        id: user.id,
-        email: user.email ?? "",
-        display_name:
-          user.user_metadata?.display_name ||
-          user.email?.split("@")[0] ||
-          "",
+    // Use update since the trigger already creates the profile row on signup
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
         onboarding_completed: true,
         preferences: profilePrefs,
-      });
-      profileError = result.error;
-    }
+      })
+      .eq("id", user.id);
 
     if (profileError) {
       console.error("completeOnboarding: profile write failed:", profileError);
