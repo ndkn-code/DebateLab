@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Failed to create conversation:", error);
+        throw new Error(`DB error creating conversation: ${error.message}`);
+      }
       conversationId = conv.id;
     }
 
