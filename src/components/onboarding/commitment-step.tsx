@@ -1,0 +1,97 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Flame } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PillSelector } from "./pill-selector";
+
+const OPTIONS = [
+  { label: "5 min", value: 5 },
+  { label: "10 min", value: 10 },
+  { label: "15 min", value: 15 },
+  { label: "20+ min", value: 20 },
+];
+
+interface CommitmentStepProps {
+  selected: number | null;
+  onSelect: (minutes: number) => void;
+  onNext: () => void;
+}
+
+export function CommitmentStep({
+  selected,
+  onSelect,
+  onNext,
+}: CommitmentStepProps) {
+  return (
+    <div className="text-center">
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-2 text-2xl font-bold text-on-surface"
+      >
+        How much time can you practice each day?
+      </motion.h2>
+
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-8 text-gray-500"
+      >
+        Even 10 minutes a day builds real skill
+      </motion.p>
+
+      {/* Streak visualization */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.15 }}
+        className="mb-8 flex items-center justify-center gap-2"
+      >
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+          <div key={day} className="flex flex-col items-center gap-1">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                i < 5
+                  ? "bg-primary/15 text-primary"
+                  : "bg-gray-100 text-gray-300"
+              }`}
+            >
+              <Flame className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] text-gray-400">{day}</span>
+          </div>
+        ))}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8"
+      >
+        <PillSelector
+          options={OPTIONS}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: selected ? 1 : 0.4 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Button
+          onClick={onNext}
+          disabled={!selected}
+          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white disabled:opacity-40"
+          size="lg"
+        >
+          Continue
+        </Button>
+      </motion.div>
+    </div>
+  );
+}

@@ -1,0 +1,26 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+interface OnboardingProgressProps {
+  currentStep: number;
+  totalSteps: number;
+}
+
+export function OnboardingProgress({
+  currentStep,
+  totalSteps,
+}: OnboardingProgressProps) {
+  const percent = ((currentStep + 1) / totalSteps) * 100;
+
+  return (
+    <div className="h-1 w-full bg-gray-200">
+      <motion.div
+        className="h-full bg-primary"
+        initial={{ width: 0 }}
+        animate={{ width: `${percent}%` }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      />
+    </div>
+  );
+}

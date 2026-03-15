@@ -1,0 +1,38 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata = {
+  title: "Welcome to DebateLab",
+};
+
+export default async function OnboardingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  // Check if onboarding is already completed
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.onboarding_completed) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <div className="min-h-screen bg-[#fbf8ff]">
+      {children}
+    </div>
+  );
+}
