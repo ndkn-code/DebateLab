@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Mic, Globe } from "lucide-react";
-import { useSessionStore } from "@/store/session-store";
+import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
@@ -12,6 +12,8 @@ import { useMicrophone } from "@/hooks/use-microphone";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
+import { AiRebuttalPhase } from "@/components/practice/ai-rebuttal-phase";
+import { RoundProgress } from "@/components/practice/round-progress";
 import { TransitionOverlay } from "@/components/practice/transition-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { showToast } from "@/components/shared/toast";
@@ -25,13 +27,20 @@ export default function SessionPage() {
     prepTime,
     speechTime,
     aiHints,
+    aiDifficulty,
     currentPhase,
     prepNotes,
+    currentRound,
+    rounds,
     setPhase,
     setPrepNotes,
     setTranscript,
     setAudioBlob,
     setAudioUrl,
+    saveRoundTranscript,
+    saveAiRebuttal,
+    advanceToNextRound,
+    getAllTranscripts,
   } = useSessionStore();
 
   const [showTransition, setShowTransition] = useState(false);
@@ -42,12 +51,19 @@ export default function SessionPage() {
   const [shortWordCount, setShortWordCount] = useState(0);
   const hasStartedRef = useRef(false);
   const hasEndedRef = useRef(false);
+  const roundSpeechStartRef = useRef<number>(0);
 
   const prepTimer = useCountdown(prepTime);
   const speechTimer = useCountdown(speechTime);
   const mic = useMicrophone();
   const speech = useDeepgramTranscription();
   const audio = useAudioRecorder();
+
+  const isFullRound = mode === "full";
+  const totalRounds = isFullRound ? FULL_ROUND_STRUCTURE.length : 1;
+  const currentRoundInfo = isFullRound
+    ? rounds.find((r) => r.roundNumber === currentRound)
+    : undefined;
 
   // Redirect if no topic
   useEffect(() => {
@@ -59,7 +75,7 @@ export default function SessionPage() {
   // Beforeunload warning during active session
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
-      if (currentPhase === "prep" || currentPhase === "speaking") {
+      if (currentPhase === "prep" || currentPhase === "speaking" || currentPhase === "ai-rebuttal") {
         e.preventDefault();
       }
     };
@@ -83,11 +99,11 @@ export default function SessionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prepTimer.isFinished, currentPhase]);
 
-  // Speech timer finished → end
+  // Speech timer finished → end round
   useEffect(() => {
     if (speechTimer.isFinished && currentPhase === "speaking" && !hasEndedRef.current) {
       hasEndedRef.current = true;
-      handleTimerEnd();
+      handleRoundSpeechEnd();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speechTimer.isFinished, currentPhase]);
@@ -148,7 +164,11 @@ export default function SessionPage() {
   }, [audio.error]);
 
   const transitionToSpeaking = useCallback(async () => {
-    setTransitionMessage("Get Ready!");
+    const roundLabel = isFullRound && currentRoundInfo
+      ? `Round ${currentRound}: ${currentRoundInfo.label}`
+      : "Get Ready!";
+
+    setTransitionMessage(roundLabel);
     setTransitionSub("Speaking phase begins now...");
     setShowTransition(true);
 
@@ -159,14 +179,14 @@ export default function SessionPage() {
       setPhase("speaking");
       setShowTransition(false);
       speechTimer.start();
+      roundSpeechStartRef.current = Date.now();
 
       if (micStream) {
-        // Start Deepgram transcription and audio recording on the same stream
         speech.startListening(micStream);
         audio.startRecording(micStream);
       }
     }, 1500);
-  }, [setPhase, speechTimer, speech, audio, mic]);
+  }, [setPhase, speechTimer, speech, audio, mic, isFullRound, currentRound, currentRoundInfo]);
 
   const handleSkipPrep = useCallback(() => {
     prepTimer.pause();
@@ -182,7 +202,6 @@ export default function SessionPage() {
 
   const handleResume = useCallback(async () => {
     speechTimer.resume();
-    // Re-acquire mic stream for resume
     const micStream = await mic.start();
     if (micStream) {
       speech.startListening(micStream);
@@ -191,13 +210,118 @@ export default function SessionPage() {
     setIsPaused(false);
   }, [speechTimer, speech, audio, mic]);
 
+  /** Called when a speaking round ends (timer or manual) */
+  const handleRoundSpeechEnd = useCallback(() => {
+    speech.stopListening();
+    audio.stopRecording();
+    mic.stop();
+
+    const finalTranscript = speech.transcript;
+    setTranscript(finalTranscript);
+
+    const duration = roundSpeechStartRef.current
+      ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
+      : 0;
+
+    const wordCount = finalTranscript
+      .split(/\s+/)
+      .filter((w) => w.length > 0).length;
+
+    // Save transcript for current round (Full Round)
+    if (isFullRound) {
+      saveRoundTranscript(currentRound, finalTranscript, duration);
+    }
+
+    if (wordCount < 20) {
+      setShortWordCount(wordCount);
+      setShowShortDialog(true);
+      return;
+    }
+
+    proceedAfterSpeech(finalTranscript, duration);
+  }, [speech, audio, mic, setTranscript, isFullRound, currentRound, saveRoundTranscript]);
+
+  /** After a valid speech round, decide what comes next */
+  const proceedAfterSpeech = useCallback((transcript: string, duration: number) => {
+    if (!isFullRound) {
+      // Quick Practice: go straight to feedback
+      navigateToFeedback();
+      return;
+    }
+
+    // Full Round: check if there are more rounds
+    if (currentRound >= totalRounds) {
+      // All rounds done → go to feedback
+      // Set combined transcript
+      const allTranscripts = getAllTranscripts();
+      setTranscript(allTranscripts);
+      navigateToFeedback();
+      return;
+    }
+
+    // Next round is AI rebuttal
+    const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
+    if (nextRound?.type === "ai-rebuttal") {
+      setTransitionMessage(`Round ${currentRound + 1}`);
+      setTransitionSub(`${nextRound.label}...`);
+      setShowTransition(true);
+
+      setTimeout(() => {
+        advanceToNextRound();
+        setPhase("ai-rebuttal");
+        setShowTransition(false);
+        hasEndedRef.current = false;
+      }, 1500);
+    }
+  }, [isFullRound, currentRound, totalRounds, rounds, advanceToNextRound, setPhase, getAllTranscripts, setTranscript]);
+
+  /** Called when AI rebuttal completes */
+  const handleAiRebuttalComplete = useCallback((rebuttalText: string) => {
+    saveAiRebuttal(currentRound, rebuttalText);
+
+    // Check if there are more rounds
+    if (currentRound >= totalRounds) {
+      // Done — go to feedback
+      const allTranscripts = getAllTranscripts();
+      setTranscript(allTranscripts);
+      navigateToFeedback();
+      return;
+    }
+
+    // Next round is user speech
+    const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
+    if (nextRound?.type === "user-speech") {
+      setTransitionMessage(`Round ${currentRound + 1}`);
+      setTransitionSub(`Your turn: ${nextRound.label}`);
+      setShowTransition(true);
+
+      setTimeout(async () => {
+        advanceToNextRound();
+        setShowTransition(false);
+        hasEndedRef.current = false;
+
+        // Go directly into speaking (no additional prep between rounds)
+        setPhase("speaking");
+        speechTimer.reset();
+        speechTimer.start();
+        roundSpeechStartRef.current = Date.now();
+
+        const micStream = await mic.start();
+        if (micStream) {
+          speech.startListening(micStream);
+          audio.startRecording(micStream);
+        }
+      }, 1500);
+    }
+  }, [currentRound, totalRounds, rounds, saveAiRebuttal, advanceToNextRound, setPhase, speechTimer, speech, audio, mic, getAllTranscripts, setTranscript]);
+
   const navigateToFeedback = useCallback(() => {
     setTimeout(() => {
       if (audio.audioBlob) setAudioBlob(audio.audioBlob);
       if (audio.audioUrl) setAudioUrl(audio.audioUrl);
 
       setTransitionMessage("Analyzing...");
-      setTransitionSub("Processing your speech...");
+      setTransitionSub("Processing your debate performance...");
       setShowTransition(true);
       setPhase("analyzing");
 
@@ -207,62 +331,20 @@ export default function SessionPage() {
     }, 300);
   }, [audio, setAudioBlob, setAudioUrl, setPhase, router]);
 
+  /** Manual end button during speaking */
   const handleEndSession = useCallback(() => {
     speechTimer.pause();
-    speech.stopListening();
-    audio.stopRecording();
-    mic.stop();
-
-    const finalTranscript = speech.transcript;
-    setTranscript(finalTranscript);
-
-    const wordCount = finalTranscript
-      .split(/\s+/)
-      .filter((w) => w.length > 0).length;
-
-    if (wordCount < 20) {
-      setShortWordCount(wordCount);
-      setShowShortDialog(true);
-      return;
-    }
-
-    navigateToFeedback();
-  }, [speechTimer, speech, audio, mic, setTranscript, navigateToFeedback]);
-
-  const handleTimerEnd = useCallback(() => {
-    speech.stopListening();
-    audio.stopRecording();
-    mic.stop();
-
-    const finalTranscript = speech.transcript;
-    setTranscript(finalTranscript);
-
-    const wordCount = finalTranscript
-      .split(/\s+/)
-      .filter((w) => w.length > 0).length;
-
-    if (wordCount < 20) {
-      setShortWordCount(wordCount);
-      setShowShortDialog(true);
-      return;
-    }
-
-    setTransitionMessage("Time's Up!");
-    setTransitionSub("Analyzing your speech...");
-    setShowTransition(true);
-    setPhase("analyzing");
-
-    setTimeout(() => {
-      if (audio.audioBlob) setAudioBlob(audio.audioBlob);
-      if (audio.audioUrl) setAudioUrl(audio.audioUrl);
-      router.push("/practice/feedback");
-    }, 1500);
-  }, [speech, audio, mic, setTranscript, setAudioBlob, setAudioUrl, setPhase, router]);
+    handleRoundSpeechEnd();
+  }, [speechTimer, handleRoundSpeechEnd]);
 
   const handleShortSubmitAnyway = useCallback(() => {
     setShowShortDialog(false);
-    navigateToFeedback();
-  }, [navigateToFeedback]);
+    const finalTranscript = speech.transcript;
+    const duration = roundSpeechStartRef.current
+      ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
+      : 0;
+    proceedAfterSpeech(finalTranscript, duration);
+  }, [speech.transcript, proceedAfterSpeech]);
 
   const handleShortGoBack = useCallback(() => {
     setShowShortDialog(false);
@@ -275,6 +357,24 @@ export default function SessionPage() {
     side === "random"
       ? "proposition"
       : (side as "proposition" | "opposition");
+
+  // Build previousRounds context for AI rebuttal
+  const previousRoundsForAi = rounds
+    .filter((r) => r.roundNumber < currentRound && (r.transcript || r.aiResponse))
+    .map((r) => ({
+      label: r.label,
+      speaker: r.type === "user-speech" ? "Student" : "AI",
+      text: (r.type === "user-speech" ? r.transcript : r.aiResponse) || "",
+    }));
+
+  // Get the user's latest speech for AI rebuttal context
+  const latestUserTranscript = (() => {
+    const prevUserRounds = rounds
+      .filter((r) => r.roundNumber < currentRound && r.type === "user-speech" && r.transcript);
+    return prevUserRounds.length > 0
+      ? prevUserRounds[prevUserRounds.length - 1].transcript || ""
+      : "";
+  })();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -330,6 +430,11 @@ export default function SessionPage() {
         phase={currentPhase}
       />
 
+      {/* Round Progress (Full Round only) */}
+      {isFullRound && rounds.length > 0 && currentPhase !== "prep" && (
+        <RoundProgress rounds={rounds} currentRound={currentRound} />
+      )}
+
       {currentPhase === "prep" && (
         <PrepPhase
           topic={selectedTopic}
@@ -362,6 +467,18 @@ export default function SessionPage() {
           onEnd={handleEndSession}
           isPaused={isPaused}
           hasReceivedSpeech={speech.hasReceivedSpeech}
+        />
+      )}
+
+      {currentPhase === "ai-rebuttal" && isFullRound && currentRoundInfo && (
+        <AiRebuttalPhase
+          topic={selectedTopic.title}
+          side={resolvedSide}
+          userTranscript={latestUserTranscript}
+          roundLabel={currentRoundInfo.label}
+          difficulty={aiDifficulty}
+          previousRounds={previousRoundsForAi}
+          onComplete={handleAiRebuttalComplete}
         />
       )}
 

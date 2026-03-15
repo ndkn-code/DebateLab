@@ -11,6 +11,7 @@ import { LoadingState } from "@/components/feedback/loading-state";
 import { ScoreHero } from "@/components/feedback/score-hero";
 import { CategoryCards } from "@/components/feedback/category-cards";
 import { FeedbackSections } from "@/components/feedback/feedback-sections";
+import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import { storage } from "@/lib/storage";
 import type { DebateScore } from "@/types/feedback";
 
@@ -24,6 +25,8 @@ export default function FeedbackPage() {
     transcript,
     feedback: storeFeedback,
     sessionStartTime,
+    rounds,
+    aiDifficulty,
     setFeedback,
     setPhase,
     resetSession,
@@ -45,6 +48,8 @@ export default function FeedbackPage() {
       ? "proposition"
       : (side as "proposition" | "opposition");
 
+  const isFullRound = mode === "full" && rounds.length > 0;
+
   const fetchFeedback = useCallback(async () => {
     if (!selectedTopic || !transcript) return;
 
@@ -65,9 +70,15 @@ export default function FeedbackPage() {
           transcript,
           topic: selectedTopic.title,
           side: resolvedSide,
-          speechType: mode === "full" ? "Opening Statement" : "Quick Practice",
+          speechType: isFullRound
+            ? "Full Round Debate (5 rounds)"
+            : mode === "full"
+              ? "Opening Statement"
+              : "Quick Practice",
           timeLimit: speechTime / 60,
           actualDuration,
+          isFullRound,
+          rounds: isFullRound ? rounds : undefined,
         }),
       });
 
@@ -119,6 +130,8 @@ export default function FeedbackPage() {
           feedback: data,
           duration: actualDuration,
           prepNotes: useSessionStore.getState().prepNotes,
+          aiDifficulty: isFullRound ? aiDifficulty : undefined,
+          rounds: isFullRound ? rounds : undefined,
         });
       }
     } catch (err) {
@@ -143,6 +156,9 @@ export default function FeedbackPage() {
     sessionStartTime,
     setFeedback,
     setPhase,
+    isFullRound,
+    rounds,
+    aiDifficulty,
   ]);
 
   // Redirect if no session data
@@ -246,6 +262,18 @@ export default function FeedbackPage() {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
+            {/* Full Round badge */}
+            {isFullRound && (
+              <div className="flex items-center justify-center gap-2">
+                <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                  Full Round Debate
+                </span>
+                <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs capitalize text-on-surface-variant">
+                  {aiDifficulty} AI
+                </span>
+              </div>
+            )}
+
             {/* Score Hero */}
             <ScoreHero feedback={feedback} />
 
@@ -256,6 +284,11 @@ export default function FeedbackPage() {
               </h2>
               <CategoryCards feedback={feedback} />
             </div>
+
+            {/* Debate Timeline (Full Round only) */}
+            {isFullRound && rounds.length > 0 && (
+              <DebateTimeline rounds={rounds} />
+            )}
 
             {/* Feedback Sections */}
             <FeedbackSections feedback={feedback} transcript={transcript} />

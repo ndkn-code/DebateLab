@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ScoreHero } from "@/components/feedback/score-hero";
 import { CategoryCards } from "@/components/feedback/category-cards";
 import { FeedbackSections } from "@/components/feedback/feedback-sections";
+import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { storage } from "@/lib/storage";
 import { useSessionStore } from "@/store/session-store";
@@ -155,6 +156,11 @@ export default function SessionDetailPage({
             <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
               {session.topic.category}
             </span>
+            {session.aiDifficulty && (
+              <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs capitalize text-on-surface-variant">
+                {session.aiDifficulty} AI
+              </span>
+            )}
           </div>
 
           <div className="mt-3 flex items-center gap-4 text-xs text-on-surface-variant">
@@ -187,6 +193,11 @@ export default function SessionDetailPage({
               </h2>
               <CategoryCards feedback={session.feedback} />
             </div>
+
+            {/* Debate Timeline (Full Round only) */}
+            {session.mode === "full" && session.rounds && session.rounds.length > 0 && (
+              <DebateTimeline rounds={session.rounds} />
+            )}
 
             <FeedbackSections
               feedback={session.feedback}

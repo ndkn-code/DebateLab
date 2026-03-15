@@ -4,6 +4,8 @@ import { analyzeDebate } from "@/lib/gemini";
 // Allow up to 30s for Vercel serverless functions
 export const maxDuration = 30;
 
+import type { DebateRound } from "@/types";
+
 interface AnalyzeRequest {
   transcript: string;
   topic: string;
@@ -11,6 +13,8 @@ interface AnalyzeRequest {
   speechType: string;
   timeLimit: number;
   actualDuration: number;
+  isFullRound?: boolean;
+  rounds?: DebateRound[];
 }
 
 export async function POST(req: NextRequest) {
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
     console.log("Using Gemini model:", process.env.GEMINI_MODEL || "gemini-2.5-flash");
 
     const body = (await req.json()) as AnalyzeRequest;
-    const { transcript, topic, side, speechType, timeLimit, actualDuration } =
+    const { transcript, topic, side, speechType, timeLimit, actualDuration, isFullRound, rounds } =
       body;
 
     // Validate required fields
@@ -64,6 +68,8 @@ export async function POST(req: NextRequest) {
           speechType: speechType || "Opening Statement",
           timeLimit: timeLimit || 2,
           actualDuration: actualDuration || 0,
+          isFullRound,
+          rounds,
         }),
         timeoutPromise,
       ]);

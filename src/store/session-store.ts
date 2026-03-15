@@ -1,10 +1,25 @@
 import { create } from "zustand";
-import type { DebateTopic } from "@/types";
+import type { DebateTopic, DebateRound, AiDifficulty } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 
 export type Side = "proposition" | "opposition" | "random";
 export type Mode = "quick" | "full";
-export type Phase = "idle" | "prep" | "speaking" | "analyzing" | "feedback";
+export type Phase =
+  | "idle"
+  | "prep"
+  | "speaking"
+  | "ai-rebuttal"
+  | "analyzing"
+  | "feedback";
+
+/** Full Round has 5 rounds in Trường Teen style */
+export const FULL_ROUND_STRUCTURE: Omit<DebateRound, "transcript" | "aiResponse" | "duration">[] = [
+  { roundNumber: 1, type: "user-speech", label: "Opening Statement" },
+  { roundNumber: 2, type: "ai-rebuttal", label: "AI Rebuttal" },
+  { roundNumber: 3, type: "user-speech", label: "Counter-Rebuttal" },
+  { roundNumber: 4, type: "ai-rebuttal", label: "AI Closing" },
+  { roundNumber: 5, type: "user-speech", label: "Closing Statement" },
+];
 
 interface SessionState {
   // Config
@@ -14,6 +29,7 @@ interface SessionState {
   prepTime: number;
   speechTime: number;
   aiHints: boolean;
+  aiDifficulty: AiDifficulty;
 
   // Session data
   currentPhase: Phase;
@@ -24,6 +40,10 @@ interface SessionState {
   audioBlob: Blob | null;
   audioUrl: string | null;
 
+  // Full Round data
+  currentRound: number;
+  rounds: DebateRound[];
+
   // Actions
   setTopic: (topic: DebateTopic | null) => void;
   setSide: (side: Side) => void;
@@ -31,6 +51,7 @@ interface SessionState {
   setPrepTime: (time: number) => void;
   setSpeechTime: (time: number) => void;
   setAiHints: (on: boolean) => void;
+  setAiDifficulty: (difficulty: AiDifficulty) => void;
   setPhase: (phase: Phase) => void;
   setTranscript: (text: string) => void;
   appendTranscript: (text: string) => void;
@@ -40,15 +61,24 @@ interface SessionState {
   setAudioUrl: (url: string | null) => void;
   startSession: () => void;
   resetSession: () => void;
+
+  // Full Round actions
+  setCurrentRound: (round: number) => void;
+  saveRoundTranscript: (roundNumber: number, transcript: string, duration?: number) => void;
+  saveAiRebuttal: (roundNumber: number, aiResponse: string) => void;
+  advanceToNextRound: () => void;
+  getCurrentRoundInfo: () => DebateRound | undefined;
+  getAllTranscripts: () => string;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
   selectedTopic: null,
   side: "random",
   mode: "full",
   prepTime: 120,
   speechTime: 120,
   aiHints: true,
+  aiDifficulty: "medium",
 
   currentPhase: "idle",
   transcript: "",
@@ -58,12 +88,16 @@ export const useSessionStore = create<SessionState>((set) => ({
   audioBlob: null,
   audioUrl: null,
 
+  currentRound: 1,
+  rounds: [],
+
   setTopic: (topic) => set({ selectedTopic: topic }),
   setSide: (side) => set({ side }),
   setMode: (mode) => set({ mode }),
   setPrepTime: (time) => set({ prepTime: time }),
   setSpeechTime: (time) => set({ speechTime: time }),
   setAiHints: (on) => set({ aiHints: on }),
+  setAiDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
   setPhase: (phase) => set({ currentPhase: phase }),
   setTranscript: (text) => set({ transcript: text }),
   appendTranscript: (text) =>
@@ -73,21 +107,32 @@ export const useSessionStore = create<SessionState>((set) => ({
   setAudioBlob: (blob) => set({ audioBlob: blob }),
   setAudioUrl: (url) => set({ audioUrl: url }),
   startSession: () =>
-    set((state) => ({
-      currentPhase: "prep",
-      sessionStartTime: Date.now(),
-      transcript: "",
-      prepNotes: "",
-      feedback: null,
-      audioBlob: null,
-      audioUrl: null,
-      side:
+    set((state) => {
+      const resolvedSide =
         state.side === "random"
           ? Math.random() > 0.5
             ? "proposition"
             : "opposition"
-          : state.side,
-    })),
+          : state.side;
+
+      const rounds: DebateRound[] =
+        state.mode === "full"
+          ? FULL_ROUND_STRUCTURE.map((r) => ({ ...r }))
+          : [];
+
+      return {
+        currentPhase: "prep",
+        sessionStartTime: Date.now(),
+        transcript: "",
+        prepNotes: "",
+        feedback: null,
+        audioBlob: null,
+        audioUrl: null,
+        side: resolvedSide,
+        currentRound: 1,
+        rounds,
+      };
+    }),
   resetSession: () =>
     set({
       selectedTopic: null,
@@ -96,6 +141,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       prepTime: 120,
       speechTime: 120,
       aiHints: true,
+      aiDifficulty: "medium",
       currentPhase: "idle",
       transcript: "",
       prepNotes: "",
@@ -103,5 +149,50 @@ export const useSessionStore = create<SessionState>((set) => ({
       sessionStartTime: null,
       audioBlob: null,
       audioUrl: null,
+      currentRound: 1,
+      rounds: [],
     }),
+
+  setCurrentRound: (round) => set({ currentRound: round }),
+
+  saveRoundTranscript: (roundNumber, transcript, duration) =>
+    set((state) => ({
+      rounds: state.rounds.map((r) =>
+        r.roundNumber === roundNumber ? { ...r, transcript, duration } : r
+      ),
+    })),
+
+  saveAiRebuttal: (roundNumber, aiResponse) =>
+    set((state) => ({
+      rounds: state.rounds.map((r) =>
+        r.roundNumber === roundNumber ? { ...r, aiResponse } : r
+      ),
+    })),
+
+  advanceToNextRound: () =>
+    set((state) => ({
+      currentRound: state.currentRound + 1,
+      transcript: "",
+    })),
+
+  getCurrentRoundInfo: () => {
+    const state = get();
+    return state.rounds.find((r) => r.roundNumber === state.currentRound);
+  },
+
+  getAllTranscripts: () => {
+    const state = get();
+    return state.rounds
+      .map((r) => {
+        if (r.type === "user-speech" && r.transcript) {
+          return `[${r.label}]\n${r.transcript}`;
+        }
+        if (r.type === "ai-rebuttal" && r.aiResponse) {
+          return `[AI - ${r.label}]\n${r.aiResponse}`;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  },
 }));

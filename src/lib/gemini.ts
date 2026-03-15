@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DebateScore } from "@/types/feedback";
+import type { DebateRound } from "@/types";
 import { buildAnalysisPrompt } from "./prompts";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -11,6 +12,8 @@ export async function analyzeDebate(params: {
   speechType: string;
   timeLimit: number;
   actualDuration: number;
+  isFullRound?: boolean;
+  rounds?: DebateRound[];
 }): Promise<DebateScore> {
   const model = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",

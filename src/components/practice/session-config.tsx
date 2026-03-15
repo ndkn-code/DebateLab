@@ -13,6 +13,7 @@ import {
   Shuffle,
   ThumbsUp,
   ThumbsDown,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -56,11 +57,13 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
     prepTime,
     speechTime,
     aiHints,
+    aiDifficulty,
     setSide,
     setMode,
     setPrepTime,
     setSpeechTime,
     setAiHints,
+    setAiDifficulty,
     setTopic,
     startSession,
   } = useSessionStore();
@@ -125,9 +128,46 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             <p className="mt-1.5 text-xs text-on-surface-variant">
               {mode === "quick"
                 ? "One round of prep + speech"
-                : "Opening + Closing statements"}
+                : "5-round debate with AI opponent (Trường Teen style)"}
             </p>
           </div>
+
+          {/* AI Difficulty — only for Full Round */}
+          {mode === "full" && (
+            <div className="mb-6">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+                <Bot className="h-4 w-4 text-primary" />
+                AI Difficulty
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <OptionButton
+                  active={aiDifficulty === "easy"}
+                  onClick={() => setAiDifficulty("easy")}
+                >
+                  Easy
+                </OptionButton>
+                <OptionButton
+                  active={aiDifficulty === "medium"}
+                  onClick={() => setAiDifficulty("medium")}
+                >
+                  Medium
+                </OptionButton>
+                <OptionButton
+                  active={aiDifficulty === "hard"}
+                  onClick={() => setAiDifficulty("hard")}
+                >
+                  Hard
+                </OptionButton>
+              </div>
+              <p className="mt-1.5 text-xs text-on-surface-variant">
+                {aiDifficulty === "easy"
+                  ? "Beginner-friendly AI — simpler arguments"
+                  : aiDifficulty === "medium"
+                    ? "Balanced AI — solid counter-arguments"
+                    : "Expert AI — championship-level rebuttals"}
+              </p>
+            </div>
+          )}
 
           {/* Side */}
           <div className="mb-6">

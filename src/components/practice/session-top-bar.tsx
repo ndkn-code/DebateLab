@@ -38,9 +38,9 @@ export function SessionTopBar({
           <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
             {mode === "full" ? "Full Round" : "Quick"}
           </span>
-          {phase === "speaking" && (
+          {(phase === "speaking" || phase === "ai-rebuttal") && (
             <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              Opening Statement
+              {phase === "speaking" ? "Speaking" : "AI Turn"}
             </span>
           )}
         </div>

@@ -12,6 +12,17 @@ export interface DebateTopic {
   };
 }
 
+export type AiDifficulty = "easy" | "medium" | "hard";
+
+export interface DebateRound {
+  roundNumber: number;
+  type: "user-speech" | "ai-rebuttal";
+  label: string;
+  transcript?: string;
+  aiResponse?: string;
+  duration?: number;
+}
+
 export interface DebateSession {
   id: string;
   date: string;
@@ -24,6 +35,9 @@ export interface DebateSession {
   feedback: DebateScore | null;
   duration: number;
   prepNotes?: string;
+  // Full Round fields
+  aiDifficulty?: AiDifficulty;
+  rounds?: DebateRound[];
 }
 
 export type { DebateScore } from "./feedback";
