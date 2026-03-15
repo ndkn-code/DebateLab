@@ -145,9 +145,8 @@ export interface ChatConversation {
   id: string;
   user_id: string;
   title: string;
-  model?: string;
-  system_prompt?: string | null;
-  last_message_at?: string | null;
+  context_type?: string | null;
+  context_id?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -93,7 +93,7 @@ function SidebarContent({
                     {conv.title || "New conversation"}
                   </p>
                   <p className="text-[10px] text-on-surface-variant">
-                    {formatDate(conv.last_message_at || conv.created_at)}
+                    {formatDate(conv.updated_at || conv.created_at)}
                   </p>
                 </div>
                 <button

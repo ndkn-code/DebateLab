@@ -178,7 +178,7 @@ export function ChatShell({
                         c.id === newConversationId
                           ? {
                               ...c,
-                              last_message_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
                             }
                           : c
                       );
@@ -189,7 +189,6 @@ export function ChatShell({
                         id: newConversationId!,
                         user_id: "",
                         title: text.trim().slice(0, 40),
-                        last_message_at: new Date().toISOString(),
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
                       },

@@ -79,12 +79,16 @@ export async function POST(req: NextRequest) {
 
     // Create or load conversation
     if (!conversationId) {
+      const insertData: Record<string, string> = {
+        user_id: user.id,
+        title: "New conversation",
+      };
+      if (context) insertData.context_type = context;
+      if (contextId) insertData.context_id = contextId;
+
       const { data: conv, error } = await supabase
         .from("chat_conversations")
-        .insert({
-          user_id: user.id,
-          title: "New conversation",
-        })
+        .insert(insertData)
         .select("id")
         .single();
 
