@@ -179,7 +179,6 @@ export function ChatShell({
                           ? {
                               ...c,
                               last_message_at: new Date().toISOString(),
-                              message_count: c.message_count + 2,
                             }
                           : c
                       );
@@ -190,9 +189,6 @@ export function ChatShell({
                         id: newConversationId!,
                         user_id: "",
                         title: text.trim().slice(0, 40),
-                        model: "",
-                        system_prompt: null,
-                        message_count: 2,
                         last_message_at: new Date().toISOString(),
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),

@@ -86,7 +86,6 @@ export async function POST(req: NextRequest) {
           title: "New conversation",
           model: chatModel,
           system_prompt: systemPrompt,
-          message_count: 0,
         })
         .select("id")
         .single();
@@ -160,16 +159,10 @@ export async function POST(req: NextRequest) {
             content: fullResponse,
           });
 
-          // Update conversation metadata
-          const { count } = await supabase
-            .from("chat_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", conversationId);
-
+          // Update conversation last activity
           await supabase
             .from("chat_conversations")
             .update({
-              message_count: count ?? 0,
               last_message_at: new Date().toISOString(),
             })
             .eq("id", conversationId);
