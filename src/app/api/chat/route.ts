@@ -84,8 +84,6 @@ export async function POST(req: NextRequest) {
         .insert({
           user_id: user.id,
           title: "New conversation",
-          model: chatModel,
-          system_prompt: systemPrompt,
         })
         .select("id")
         .single();
@@ -158,14 +156,6 @@ export async function POST(req: NextRequest) {
             role: "assistant",
             content: fullResponse,
           });
-
-          // Update conversation last activity
-          await supabase
-            .from("chat_conversations")
-            .update({
-              last_message_at: new Date().toISOString(),
-            })
-            .eq("id", conversationId);
 
           // Auto-generate title from first user message
           if ((history ?? []).length <= 1) {

@@ -14,7 +14,6 @@ export async function getConversations(
     .from("chat_conversations")
     .select("*")
     .eq("user_id", userId)
-    .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (error) {
