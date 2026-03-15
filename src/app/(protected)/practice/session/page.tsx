@@ -52,6 +52,7 @@ export default function SessionPage() {
   const hasStartedRef = useRef(false);
   const hasEndedRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
+  const transitionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Mic stream ref — obtained from mic check, reused throughout session
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -75,13 +76,15 @@ export default function SessionPage() {
     }
   }, [selectedTopic, router]);
 
-  // Cleanup mic stream on unmount
+  // Cleanup mic stream and timers on unmount
   useEffect(() => {
     return () => {
       if (micStreamRef.current) {
         micStreamRef.current.getTracks().forEach((t) => t.stop());
         micStreamRef.current = null;
       }
+      transitionTimersRef.current.forEach(clearTimeout);
+      transitionTimersRef.current = [];
     };
   }, []);
 
@@ -222,7 +225,7 @@ export default function SessionPage() {
     // Ensure mic stream is ready
     const stream = await acquireMicStream();
 
-    setTimeout(() => {
+    const tid = setTimeout(() => {
       setPhase("speaking");
       setShowTransition(false);
       speechTimer.start();
@@ -233,6 +236,7 @@ export default function SessionPage() {
         audio.startRecording(stream);
       }
     }, 1500);
+    transitionTimersRef.current.push(tid);
   }, [
     setPhase,
     speechTimer,
@@ -339,12 +343,13 @@ export default function SessionPage() {
         setTransitionSub(`${nextRound.label}...`);
         setShowTransition(true);
 
-        setTimeout(() => {
+        const tid = setTimeout(() => {
           advanceToNextRound();
           setPhase("ai-rebuttal");
           setShowTransition(false);
           hasEndedRef.current = false;
         }, 1500);
+        transitionTimersRef.current.push(tid);
       }
     },
     [
@@ -379,7 +384,7 @@ export default function SessionPage() {
         setTransitionSub(`Your turn: ${nextRound.label}`);
         setShowTransition(true);
 
-        setTimeout(async () => {
+        const tid = setTimeout(async () => {
           advanceToNextRound();
           setShowTransition(false);
           hasEndedRef.current = false;
@@ -395,6 +400,7 @@ export default function SessionPage() {
             audio.startRecording(stream);
           }
         }, 1500);
+        transitionTimersRef.current.push(tid);
       }
     },
     [
@@ -415,7 +421,7 @@ export default function SessionPage() {
 
   const navigateToFeedback = useCallback(() => {
     stopMicStream();
-    setTimeout(() => {
+    const tid1 = setTimeout(() => {
       if (audio.audioBlob) setAudioBlob(audio.audioBlob);
       if (audio.audioUrl) setAudioUrl(audio.audioUrl);
 
@@ -424,10 +430,12 @@ export default function SessionPage() {
       setShowTransition(true);
       setPhase("analyzing");
 
-      setTimeout(() => {
+      const tid2 = setTimeout(() => {
         router.push("/practice/feedback");
       }, 1500);
+      transitionTimersRef.current.push(tid2);
     }, 300);
+    transitionTimersRef.current.push(tid1);
   }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream]);
 
   /** Manual end button during speaking */

@@ -41,6 +41,7 @@ export function useDeepgramTranscription() {
   const lastSpeechTimeRef = useRef<number>(0);
   const silenceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectCountRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const clearSilenceTimer = useCallback(() => {
@@ -212,7 +213,8 @@ export function useDeepgramTranscription() {
           }
           console.log("[Deepgram] Attempting reconnect...", reconnectCountRef.current);
           const delay = Math.min(reconnectCountRef.current * 500, 2000);
-          setTimeout(() => {
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
             if (shouldBeListeningRef.current && streamRef.current) {
               connectWebSocket(streamRef.current);
             }
@@ -246,6 +248,10 @@ export function useDeepgramTranscription() {
   const stopListening = useCallback(() => {
     console.log("[Deepgram] Stopping transcription...");
     shouldBeListeningRef.current = false;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     clearSilenceTimer();
     closeWebSocket();
     closeAudioProcessing();
@@ -266,6 +272,10 @@ export function useDeepgramTranscription() {
   useEffect(() => {
     return () => {
       shouldBeListeningRef.current = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       clearSilenceTimer();
       closeWebSocket();
       closeAudioProcessing();

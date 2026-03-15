@@ -39,7 +39,8 @@ export async function GET(
       conversation,
       messages: messages ?? [],
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to load conversation:", error);
     return NextResponse.json(
       { error: "Failed to load conversation" },
       { status: 500 }

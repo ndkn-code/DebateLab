@@ -248,7 +248,7 @@ export async function enrollInCourse(userId: string, courseId: string) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   // Log activity
   await supabase.from("activity_log").insert({
@@ -289,7 +289,7 @@ export async function markLessonComplete(
       { onConflict: "user_id,lesson_id" }
     );
 
-  if (progressError) throw progressError;
+  if (progressError) throw new Error(progressError.message);
 
   // Calculate XP (25 base + up to 25 bonus for score)
   const xpEarned = score != null ? 25 + Math.round((score / 100) * 25) : 25;
