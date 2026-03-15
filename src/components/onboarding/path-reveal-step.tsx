@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Rocket, BookOpen, Mic, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,7 +57,6 @@ export function PathRevealStep({
   englishConfidence,
   dailyGoalMinutes,
 }: PathRevealStepProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,8 +80,9 @@ export function PathRevealStep({
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      // Hard navigate to bust the server-side cache so the protected
+      // layout re-reads the updated onboarding_completed flag
+      window.location.href = "/dashboard";
     });
   };
 
