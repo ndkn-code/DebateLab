@@ -40,19 +40,18 @@ const supabaseAdapter = {
       id: session.id,
       user_id: userId,
       topic_title: session.topic.title,
-      topic_category: session.topic.category,
-      topic_difficulty: session.topic.difficulty,
+      category: session.topic.category,
       side: session.side,
       mode: session.mode,
-      prep_time: session.prepTime,
-      speech_time: session.speechTime,
+      prep_time_seconds: session.prepTime,
+      speech_time_seconds: session.speechTime,
       transcript: session.transcript,
       prep_notes: session.prepNotes ?? null,
       ai_difficulty: session.aiDifficulty ?? null,
       rounds: session.rounds ?? null,
       feedback: session.feedback as Record<string, unknown> | null,
-      total_score: session.feedback?.totalScore ?? null,
-      overall_band: session.feedback?.overallBand ?? null,
+      total_score: session.feedback?.totalScore ?? 0,
+      overall_band: session.feedback?.overallBand ?? "Unrated",
       duration_seconds: session.duration,
     };
 
@@ -91,22 +90,11 @@ const supabaseAdapter = {
       .single();
 
     if (existing) {
-      const newCount = existing.sessions_completed + 1;
-      const newMinutes = existing.practice_minutes + durationMinutes;
-      const prevTotal =
-        (existing.average_score ?? 0) * existing.sessions_completed;
-      const newAvg = session.feedback?.totalScore
-        ? Math.round(
-            (prevTotal + session.feedback.totalScore) / newCount
-          )
-        : existing.average_score;
-
       await supabase
         .from("daily_stats")
         .update({
-          sessions_completed: newCount,
-          practice_minutes: newMinutes,
-          average_score: newAvg,
+          sessions_completed: existing.sessions_completed + 1,
+          minutes_studied: existing.minutes_studied + durationMinutes,
           xp_earned: existing.xp_earned + calculateXp(session),
         })
         .eq("id", existing.id);
@@ -115,8 +103,9 @@ const supabaseAdapter = {
         user_id: userId,
         date: today,
         sessions_completed: 1,
-        practice_minutes: durationMinutes,
-        average_score: session.feedback?.totalScore ?? null,
+        minutes_studied: durationMinutes,
+        lessons_completed: 0,
+        quizzes_completed: 0,
         xp_earned: calculateXp(session),
       });
     }
@@ -207,13 +196,13 @@ function rowToSession(row: any): DebateSession {
     topic: {
       id: row.topic_id ?? row.id,
       title: row.topic_title,
-      category: row.topic_category,
-      difficulty: row.topic_difficulty,
+      category: row.category,
+      difficulty: "intermediate",
     },
     side: row.side,
     mode: row.mode,
-    prepTime: row.prep_time,
-    speechTime: row.speech_time,
+    prepTime: row.prep_time_seconds,
+    speechTime: row.speech_time_seconds,
     transcript: row.transcript,
     feedback: row.feedback,
     duration: row.duration_seconds,

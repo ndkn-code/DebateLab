@@ -90,7 +90,7 @@ export async function getDashboardData(
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, topic_category, side, mode, total_score, overall_band, duration_seconds, created_at"
+          "id, topic_title, category, side, mode, total_score, overall_band, duration_seconds, created_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -99,7 +99,7 @@ export async function getDashboardData(
       // Weekly daily stats
       supabase
         .from("daily_stats")
-        .select("date, sessions_completed, practice_minutes, xp_earned")
+        .select("date, sessions_completed, minutes_studied, xp_earned")
         .eq("user_id", userId)
         .gte("date", weekDates[0])
         .lte("date", weekDates[6])
@@ -126,7 +126,7 @@ export async function getDashboardData(
     (s: any) => ({
       id: s.id,
       topic_title: s.topic_title,
-      topic_category: s.topic_category,
+      topic_category: s.category,
       side: s.side,
       mode: s.mode,
       total_score: s.total_score,
@@ -147,7 +147,12 @@ export async function getDashboardData(
     });
   }
   for (const stat of weeklyRes.data ?? []) {
-    weeklyMap.set(stat.date, stat as DailyStatEntry);
+    weeklyMap.set(stat.date, {
+      date: stat.date,
+      sessions_completed: stat.sessions_completed,
+      practice_minutes: stat.minutes_studied,
+      xp_earned: stat.xp_earned,
+    });
   }
   const weeklyStats = weekDates.map((d) => weeklyMap.get(d)!);
 
