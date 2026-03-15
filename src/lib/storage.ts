@@ -41,6 +41,7 @@ const supabaseAdapter = {
       user_id: userId,
       topic_title: session.topic.title,
       category: session.topic.category,
+      topic_difficulty: session.topic.difficulty ?? "intermediate",
       side: session.side,
       mode: session.mode,
       prep_time_seconds: session.prepTime,
@@ -90,11 +91,19 @@ const supabaseAdapter = {
       .single();
 
     if (existing) {
+      const newCount = existing.sessions_completed + 1;
+      const prevTotal =
+        (existing.average_score ?? 0) * existing.sessions_completed;
+      const newAvg = session.feedback?.totalScore
+        ? Math.round((prevTotal + session.feedback.totalScore) / newCount)
+        : existing.average_score;
+
       await supabase
         .from("daily_stats")
         .update({
-          sessions_completed: existing.sessions_completed + 1,
+          sessions_completed: newCount,
           minutes_studied: existing.minutes_studied + durationMinutes,
+          average_score: newAvg,
           xp_earned: existing.xp_earned + calculateXp(session),
         })
         .eq("id", existing.id);
@@ -104,6 +113,7 @@ const supabaseAdapter = {
         date: today,
         sessions_completed: 1,
         minutes_studied: durationMinutes,
+        average_score: session.feedback?.totalScore ?? null,
         lessons_completed: 0,
         quizzes_completed: 0,
         xp_earned: calculateXp(session),
@@ -197,7 +207,7 @@ function rowToSession(row: any): DebateSession {
       id: row.topic_id ?? row.id,
       title: row.topic_title,
       category: row.category,
-      difficulty: "intermediate",
+      difficulty: row.topic_difficulty ?? "intermediate",
     },
     side: row.side,
     mode: row.mode,
