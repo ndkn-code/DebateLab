@@ -304,57 +304,16 @@ export async function markLessonComplete(
     metadata: { score, time_spent_seconds: timeSpentSeconds },
   });
 
-  // Award XP to profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("xp, level")
-    .eq("id", userId)
-    .single();
+  // Award XP atomically via RPC
+  await supabase.rpc("increment_xp", { user_id: userId, amount: xpEarned });
 
-  if (profile) {
-    const newXp = (profile.xp ?? 0) + xpEarned;
-    const newLevel = Math.floor(newXp / 500) + 1;
-
-    await supabase
-      .from("profiles")
-      .update({ xp: newXp, level: newLevel })
-      .eq("id", userId);
-
-    if (newLevel > (profile.level ?? 1)) {
-      await supabase.from("activity_log").insert({
-        user_id: userId,
-        activity_type: "level_up",
-        xp_earned: 0,
-        metadata: { new_level: newLevel },
-      });
-    }
-  }
-
-  // Update daily stats
-  const today = new Date().toISOString().split("T")[0];
-  const { data: existingStats } = await supabase
-    .from("daily_stats")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("date", today)
-    .single();
-
-  if (existingStats) {
-    await supabase
-      .from("daily_stats")
-      .update({
-        xp_earned: (existingStats.xp_earned ?? 0) + xpEarned,
-      })
-      .eq("id", existingStats.id);
-  } else {
-    await supabase.from("daily_stats").insert({
-      user_id: userId,
-      date: today,
-      sessions_completed: 0,
-      minutes_studied: 0,
-      xp_earned: xpEarned,
-    });
-  }
+  // Update daily stats atomically via RPC
+  await supabase.rpc("upsert_daily_stats", {
+    p_user_id: userId,
+    p_sessions: 0,
+    p_minutes: 0,
+    p_xp: xpEarned,
+  });
 
   // Recalculate course enrollment progress
   await recalculateCourseProgress(userId, courseId);
@@ -413,21 +372,8 @@ async function recalculateCourseProgress(userId: string, courseId: string) {
       metadata: {},
     });
 
-    // Award course completion XP
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("xp, level")
-      .eq("id", userId)
-      .single();
-
-    if (profile) {
-      const newXp = (profile.xp ?? 0) + 100;
-      const newLevel = Math.floor(newXp / 500) + 1;
-      await supabase
-        .from("profiles")
-        .update({ xp: newXp, level: newLevel })
-        .eq("id", userId);
-    }
+    // Award course completion XP atomically
+    await supabase.rpc("increment_xp", { user_id: userId, amount: 100 });
   }
 }
 
@@ -437,7 +383,7 @@ export async function getLessonProgress(userId: string, lessonIds: string[]) {
 
   const { data } = await supabase
     .from("lesson_progress")
-    .select("*")
+    .select("id, user_id, lesson_id, status, score, time_spent_seconds, completed_at")
     .eq("user_id", userId)
     .in("lesson_id", lessonIds);
 

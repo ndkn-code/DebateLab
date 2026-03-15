@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -50,6 +51,14 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    const { success } = rateLimit(`chat:${user.id}`, 20, 60 * 1000);
+    if (!success) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please wait a moment." }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } }
+      );
     }
 
     const body: ChatRequest = await req.json();

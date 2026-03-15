@@ -31,9 +31,10 @@ export async function GET(
     // Fetch messages
     const { data: messages } = await supabase
       .from("chat_messages")
-      .select("*")
+      .select("id, conversation_id, role, content, created_at")
       .eq("conversation_id", id)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(100);
 
     return NextResponse.json({
       conversation,

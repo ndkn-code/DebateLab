@@ -79,60 +79,30 @@ const supabaseAdapter = {
       },
     });
 
-    // Upsert daily stats
+    // Upsert daily stats atomically via RPC
     const today = new Date().toISOString().split("T")[0];
     const durationMinutes = Math.round(session.duration / 60);
-
-    const { data: existing } = await supabase
-      .from("daily_stats")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("date", today)
-      .single();
-
-    if (existing) {
-      const newCount = existing.sessions_completed + 1;
-      const prevTotal =
-        (existing.average_score ?? 0) * existing.sessions_completed;
-      const newAvg = session.feedback?.totalScore
-        ? Math.round((prevTotal + session.feedback.totalScore) / newCount)
-        : existing.average_score;
-
-      await supabase
-        .from("daily_stats")
-        .update({
-          sessions_completed: newCount,
-          minutes_studied: existing.minutes_studied + durationMinutes,
-          average_score: newAvg,
-          xp_earned: existing.xp_earned + calculateXp(session),
-        })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("daily_stats").insert({
-        user_id: userId,
-        date: today,
-        sessions_completed: 1,
-        minutes_studied: durationMinutes,
-        average_score: session.feedback?.totalScore ?? null,
-        lessons_completed: 0,
-        quizzes_completed: 0,
-        xp_earned: calculateXp(session),
-      });
-    }
-
-    // Update profile XP, level, session count, and streak
     const xpEarned = calculateXp(session);
+
+    await supabase.rpc("upsert_daily_stats", {
+      p_user_id: userId,
+      p_sessions: 1,
+      p_minutes: durationMinutes,
+      p_xp: xpEarned,
+      p_score: session.feedback?.totalScore ?? null,
+    });
+
+    // Award XP atomically via RPC
+    await supabase.rpc("increment_xp", { user_id: userId, amount: xpEarned });
+
+    // Update session count, practice minutes, and streak
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("xp, total_sessions_completed, total_practice_minutes, streak_current, streak_longest, streak_last_active_date")
+      .select("total_sessions_completed, total_practice_minutes, streak_current, streak_longest, streak_last_active_date")
       .eq("id", userId)
       .single();
 
     if (profileData) {
-      const newXp = (profileData.xp ?? 0) + xpEarned;
-      const newLevel = Math.floor(newXp / 500) + 1;
-
-      // Update streak based on actual practice
       let newStreak = profileData.streak_current ?? 0;
       const lastActive = profileData.streak_last_active_date;
       if (lastActive !== today) {
@@ -146,8 +116,6 @@ const supabaseAdapter = {
       await supabase
         .from("profiles")
         .update({
-          xp: newXp,
-          level: newLevel,
           total_sessions_completed: (profileData.total_sessions_completed ?? 0) + 1,
           total_practice_minutes: (profileData.total_practice_minutes ?? 0) + durationMinutes,
           streak_current: newStreak,
@@ -162,7 +130,7 @@ const supabaseAdapter = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("debate_sessions")
-      .select("*")
+      .select("id, created_at, topic_title, category, topic_difficulty, side, mode, prep_time_seconds, speech_time_seconds, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(MAX_SESSIONS);
@@ -182,7 +150,7 @@ const supabaseAdapter = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("debate_sessions")
-      .select("*")
+      .select("id, created_at, topic_title, category, topic_difficulty, side, mode, prep_time_seconds, speech_time_seconds, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
       .eq("id", id)
       .eq("user_id", userId)
       .single();

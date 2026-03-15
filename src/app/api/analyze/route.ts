@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Allow up to 30s for Vercel serverless functions
 export const maxDuration = 30;
@@ -19,6 +21,23 @@ interface AnalyzeRequest {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { success } = rateLimit(`analyze:${user.id}`, 5, 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY is not set in environment variables");
       return NextResponse.json(
