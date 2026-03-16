@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   BookOpen,
   Clock,
@@ -24,7 +23,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { enrollAction } from "@/app/(protected)/courses/actions";
+import { enrollAction } from "@/app/[locale]/(protected)/courses/actions";
 import type { CourseWithModules } from "@/lib/api/courses";
 
 const LESSON_ICONS = {

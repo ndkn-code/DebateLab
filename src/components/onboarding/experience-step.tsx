@@ -2,30 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
-import { REACTIVE_RESPONSES } from "./reactive-responses";
 
-const LEVELS = [
-  {
-    id: "beginner",
-    emoji: "\u{1F331}",
-    title: "Beginner",
-    description: "I've never debated formally",
-  },
-  {
-    id: "intermediate",
-    emoji: "\u{1F4D6}",
-    title: "Some experience",
-    description: "A few debates in class or clubs",
-  },
-  {
-    id: "experienced",
-    emoji: "\u{1F3C5}",
-    title: "Experienced",
-    description: "I compete in tournaments",
-  },
-];
+const LEVEL_IDS = ["beginner", "intermediate", "experienced"];
+const LEVEL_EMOJIS: Record<string, string> = {
+  beginner: "\u{1F331}",
+  intermediate: "\u{1F4D6}",
+  experienced: "\u{1F3C5}",
+};
 
 interface ExperienceStepProps {
   selected: string | null;
@@ -38,6 +24,8 @@ export function ExperienceStep({
   onSelect,
   onNext,
 }: ExperienceStepProps) {
+  const t = useTranslations("onboarding");
+  const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<string | null>(selected);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,7 +37,7 @@ export function ExperienceStep({
     onSelect(id);
 
     textTimeout.current = setTimeout(() => {
-      setReactiveText(REACTIVE_RESPONSES.experience[id] ?? null);
+      setReactiveText(tReactive("experience." + id));
     }, 300);
 
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
@@ -69,24 +57,24 @@ export function ExperienceStep({
         animate={{ opacity: 1, y: 0 }}
         className="mb-6 text-center text-2xl font-bold text-on-surface"
       >
-        How much debate experience do you have?
+        {t("experience.headline")}
       </motion.h2>
 
       <div className="space-y-3">
-        {LEVELS.map((level, i) => (
+        {LEVEL_IDS.map((id, i) => (
           <motion.div
-            key={level.id}
+            key={id}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
             <SelectionCard
-              emoji={level.emoji}
-              title={level.title}
-              description={level.description}
-              selected={localSelected === level.id}
+              emoji={LEVEL_EMOJIS[id]}
+              title={t("experience.options." + id + ".title")}
+              description={t("experience.options." + id + ".description")}
+              selected={localSelected === id}
               disabled={localSelected !== null}
-              onClick={() => handleSelect(level.id)}
+              onClick={() => handleSelect(id)}
             />
           </motion.div>
         ))}

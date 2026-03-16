@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Menu, X } from "lucide-react";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 
 interface LandingNavbarProps {
   isLoggedIn: boolean;
@@ -10,6 +12,7 @@ interface LandingNavbarProps {
 
 export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const t = useTranslations("landing.nav");
 
   return (
     <nav className="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/10">
@@ -23,30 +26,31 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
               href="#features"
             >
-              Features
+              {t("features")}
             </a>
             <a
               className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
               href="#how-it-works"
             >
-              How it Works
+              {t("howItWorks")}
             </a>
             <Link
               className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
               href="/history"
             >
-              History
+              {t("history")}
             </Link>
           </div>
         </div>
 
         <div className="hidden md:flex items-center gap-4">
+          <LanguageToggle />
           {isLoggedIn ? (
             <Link
               href="/dashboard"
               className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
             >
-              Go to Dashboard
+              {t("dashboard")}
             </Link>
           ) : (
             <>
@@ -54,13 +58,13 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
                 href="/auth/login"
                 className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
               >
-                Log In
+                {t("login")}
               </Link>
               <Link
                 href="/auth/signup"
                 className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
               >
-                Sign Up
+                {t("signup")}
               </Link>
             </>
           )}
@@ -84,22 +88,26 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               href="#features"
               onClick={() => setMobileOpen(false)}
             >
-              Features
+              {t("features")}
             </a>
             <a
               className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3"
               href="#how-it-works"
               onClick={() => setMobileOpen(false)}
             >
-              How it Works
+              {t("howItWorks")}
             </a>
             <Link
               className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3"
               href="/history"
               onClick={() => setMobileOpen(false)}
             >
-              History
+              {t("history")}
             </Link>
+
+            <div className="flex justify-center py-2">
+              <LanguageToggle />
+            </div>
 
             <div className="border-t border-outline-variant/10 mt-2 pt-4 flex flex-col gap-3">
               {isLoggedIn ? (
@@ -108,7 +116,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
                   className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                   onClick={() => setMobileOpen(false)}
                 >
-                  Go to Dashboard
+                  {t("dashboard")}
                 </Link>
               ) : (
                 <>
@@ -117,14 +125,14 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
                     className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3 text-center"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Log In
+                    {t("login")}
                   </Link>
                   <Link
                     href="/auth/signup"
                     className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Sign Up
+                    {t("signup")}
                   </Link>
                 </>
               )}

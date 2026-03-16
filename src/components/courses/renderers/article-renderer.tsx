@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import checkmarkAnimation from "../../../../public/lottie/checkmark.json";
-import { markLessonCompleteAction } from "@/app/(protected)/courses/actions";
+import { markLessonCompleteAction } from "@/app/[locale]/(protected)/courses/actions";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface ArticleRendererProps {

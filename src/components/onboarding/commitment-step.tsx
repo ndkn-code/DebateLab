@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Flame } from "lucide-react";
 import { PillSelector } from "./pill-selector";
 import { ReactiveResponse } from "./reactive-response";
-import { REACTIVE_RESPONSES } from "./reactive-responses";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 
@@ -27,6 +27,8 @@ export function CommitmentStep({
   onSelect,
   onNext,
 }: CommitmentStepProps) {
+  const t = useTranslations("onboarding");
+  const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<number | null>(selected);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,9 +40,7 @@ export function CommitmentStep({
     onSelect(value);
 
     textTimeout.current = setTimeout(() => {
-      setReactiveText(
-        REACTIVE_RESPONSES.dailyCommitment[String(value)] ?? null
-      );
+      setReactiveText(tReactive("dailyCommitment." + String(value)));
     }, 300);
 
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
@@ -60,7 +60,7 @@ export function CommitmentStep({
         animate={{ opacity: 1, y: 0 }}
         className="mb-2 text-2xl font-bold text-on-surface"
       >
-        How much time can you practice each day?
+        {t("commitment.headline")}
       </motion.h2>
 
       <motion.p
@@ -69,7 +69,7 @@ export function CommitmentStep({
         transition={{ delay: 0.1 }}
         className="mb-8 text-gray-500"
       >
-        Even 10 minutes a day builds real skill
+        {t("commitment.subheadline")}
       </motion.p>
 
       {/* Streak visualization */}

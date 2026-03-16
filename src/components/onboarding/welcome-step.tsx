@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import welcomeAnimation from "../../../public/lottie/welcome.json";
@@ -10,6 +11,8 @@ interface WelcomeStepProps {
 }
 
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
+  const t = useTranslations("onboarding");
+
   return (
     <div className="flex flex-col items-center justify-center text-center">
       <motion.div
@@ -30,7 +33,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         transition={{ delay: 1.5, duration: 0.6 }}
         className="text-4xl md:text-5xl font-bold text-gray-900 text-center"
       >
-        Welcome to DebateLab
+        {t("welcome.headline")}
       </motion.h1>
 
       <motion.p
@@ -39,7 +42,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         transition={{ delay: 2.0, duration: 0.5 }}
         className="text-lg text-gray-400 text-center mt-3"
       >
-        Master the art of debate
+        {t("welcome.subheadline")}
       </motion.p>
 
       <motion.div
@@ -52,7 +55,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           size="lg"
           className="mt-8 px-10 py-3 text-lg rounded-xl bg-primary text-white font-semibold"
         >
-          Get Started
+          {t("welcome.cta")}
         </Button>
       </motion.div>
     </div>

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { markLessonCompleteAction } from "@/app/(protected)/courses/actions";
+import { markLessonCompleteAction } from "@/app/[locale]/(protected)/courses/actions";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface VideoRendererProps {

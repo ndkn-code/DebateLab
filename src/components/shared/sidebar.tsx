@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   BookOpen,
@@ -35,13 +36,13 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/courses", label: "My Courses", icon: BookOpen },
-  { href: "/practice", label: "Practice", icon: Mic },
-  { href: "/chat", label: "AI Coach", icon: MessageCircle },
-  { href: "/history", label: "History", icon: Clock },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
+  { href: "/courses", key: "courses", icon: BookOpen },
+  { href: "/practice", key: "practice", icon: Mic },
+  { href: "/chat", key: "chat", icon: MessageCircle },
+  { href: "/history", key: "history", icon: Clock },
+  { href: "/profile", key: "profile", icon: User },
+  { href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
 interface SidebarProps {
@@ -63,6 +64,8 @@ function NavContent({
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
+  const t = useTranslations('dashboard.nav');
+  const tc = useTranslations('common');
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
   const initials = displayName
@@ -98,6 +101,7 @@ function NavContent({
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
+          const label = t(item.key);
 
           return (
             <Link
@@ -111,10 +115,10 @@ function NavContent({
                   ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
                   : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
               )}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span>{label}</span>}
             </Link>
           );
         })}
@@ -151,16 +155,16 @@ function NavContent({
           <DropdownMenuContent side="top" align="start" sideOffset={8}>
             <DropdownMenuItem>
               <User className="h-4 w-4" />
-              Profile
+              {t('profile')}
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="h-4 w-4" />
-              Settings
+              {t('settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onSignOut}>
               <LogOut className="h-4 w-4" />
-              Sign Out
+              {tc('sign_out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -172,6 +176,7 @@ function NavContent({
 export function Sidebar({ profile, userEmail }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
+  const tc = useTranslations('common');
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -217,7 +222,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0" showCloseButton={false}>
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{tc('navigation')}</SheetTitle>
             <NavContent
               collapsed={false}
               profile={profile}

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
-import { ToastProvider } from "@/components/shared/toast-provider";
-import { PostHogProvider, PostHogPageview } from "@/app/posthog-provider";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
-  subsets: ["latin"],
+  subsets: ["latin", "vietnamese"],
   display: "swap",
 });
 
@@ -36,7 +34,6 @@ export const metadata: Metadata = {
     description:
       "Practice solo, get AI-powered feedback, and sharpen your argumentation skills — all in English.",
     type: "website",
-    locale: "en_US",
     siteName: "DebateLab",
   },
   twitter: {
@@ -59,15 +56,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html className="scroll-smooth" suppressHydrationWarning>
       <body
         className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
-        <PostHogProvider>
-          <PostHogPageview />
-          {children}
-        </PostHogProvider>
-        <ToastProvider />
+        {children}
       </body>
     </html>
   );

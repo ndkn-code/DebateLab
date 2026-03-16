@@ -10,7 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { deleteConversationAction } from "@/app/(protected)/chat/actions";
+import { deleteConversationAction } from "@/app/[locale]/(protected)/chat/actions";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 
 interface ConversationSidebarProps {

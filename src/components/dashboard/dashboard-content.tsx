@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import {
   Flame,
   Clock,
@@ -21,23 +22,11 @@ import fireAnimation from "../../../public/lottie/fire.json";
 import emptyAnimation from "../../../public/lottie/empty-search.json";
 import type { DashboardData } from "@/lib/api/dashboard";
 
-const GREETINGS = [
-  "Ready to sharpen your arguments?",
-  "Let's make today count!",
-  "Your debate skills are growing!",
-  "Time to level up your rhetoric!",
-  "Another day, another argument won!",
-];
-
-function getTimeGreeting(): string {
+function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-function getMotivation(): string {
-  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+  if (hour < 12) return "greeting_morning";
+  if (hour < 17) return "greeting_afternoon";
+  return "greeting_evening";
 }
 
 function formatDate(iso: string) {
@@ -53,6 +42,7 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ data, displayName }: DashboardContentProps) {
+  const t = useTranslations('dashboard.home');
   const { profile, enrollments, recentSessions, weeklyStats } = data;
 
   const streak = profile?.streak_current ?? 0;
@@ -71,14 +61,18 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
     0
   );
 
+  // Random motivation from translations
+  const motivations = t.raw('motivations') as string[];
+  const motivation = motivations[Math.floor(Math.random() * motivations.length)];
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
       {/* Greeting */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-on-surface sm:text-3xl">
-          {getTimeGreeting()}, {displayName}!
+          {t(getTimeGreetingKey())}, {displayName}!
         </h1>
-        <p className="mt-1 text-on-surface-variant">{getMotivation()}</p>
+        <p className="mt-1 text-on-surface-variant">{motivation}</p>
       </div>
 
       {/* Stats Row */}
@@ -93,10 +87,10 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
             )}
           </div>
           <p className="text-2xl font-bold text-on-surface">
-            {streak} <span className="text-sm font-medium text-on-surface-variant">days</span>
+            {streak} <span className="text-sm font-medium text-on-surface-variant">{t('days')}</span>
           </p>
           <p className="text-xs text-on-surface-variant">
-            Longest: {longestStreak}
+            {t('longest', { count: longestStreak })}
           </p>
         </div>
 
@@ -106,10 +100,10 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
             <Clock className="h-5 w-5 text-tertiary" />
           </div>
           <p className="text-2xl font-bold text-on-surface">
-            {totalMinutes}<span className="text-sm font-medium text-on-surface-variant">min</span>
+            {totalMinutes}<span className="text-sm font-medium text-on-surface-variant">{t('min')}</span>
           </p>
           <p className="text-xs text-on-surface-variant">
-            +{weekMinutes}min this week
+            {t('this_week_min', { count: weekMinutes })}
           </p>
         </div>
 
@@ -120,7 +114,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           </div>
           <p className="text-2xl font-bold text-on-surface">{totalSessions}</p>
           <p className="text-xs text-on-surface-variant">
-            +{weekSessions} this week
+            {t('this_week_sessions', { count: weekSessions })}
           </p>
         </div>
 
@@ -129,7 +123,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff9e5]">
             <Star className="h-5 w-5 text-[#b28b00]" />
           </div>
-          <p className="text-2xl font-bold text-on-surface">Level {level}</p>
+          <p className="text-2xl font-bold text-on-surface">{t('level', { level })}</p>
           <div className="mt-1.5">
             <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
               <span>{xpInLevel} XP</span>
@@ -154,14 +148,14 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-on-surface">
-              Continue Learning
+              {t('continue_learning')}
             </h2>
             {enrollments.length > 0 && (
               <Link
                 href="/courses"
                 className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
-                See all <ArrowRight className="h-3 w-3" />
+                {t('see_all')} <ArrowRight className="h-3 w-3" />
               </Link>
             )}
           </div>
@@ -171,10 +165,10 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
                 <LottieAnimation animationData={emptyAnimation} className="w-24 h-24 mb-2" />
                 <p className="font-medium text-on-surface">
-                  Start your first course!
+                  {t('start_first_course')}
                 </p>
                 <p className="mt-1 text-xs text-on-surface-variant">
-                  Explore structured debate lessons
+                  {t('explore_courses')}
                 </p>
               </div>
             </Link>
@@ -207,7 +201,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
                     size="sm"
                     className="shrink-0 bg-primary text-on-primary"
                   >
-                    Continue
+                    {t('continue')}
                   </Button>
                 </Link>
               ))}
@@ -219,13 +213,13 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-on-surface">
-              Recent Practice
+              {t('recent_practice')}
             </h2>
             <Link
               href="/history"
               className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
-              View all <ArrowRight className="h-3 w-3" />
+              {t('view_all')} <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
@@ -234,10 +228,10 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
                 <LottieAnimation animationData={emptyAnimation} className="w-24 h-24 mb-2" />
                 <p className="font-medium text-on-surface">
-                  Complete your first debate!
+                  {t('first_debate')}
                 </p>
                 <p className="mt-1 text-xs text-on-surface-variant">
-                  Practice and get AI-powered feedback
+                  {t('practice_get_feedback')}
                 </p>
               </div>
             </Link>
@@ -280,7 +274,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
                             : "border-rose-500/30 text-rose-500"
                         )}
                       >
-                        {s.side === "proposition" ? "FOR" : "AGAINST"}
+                        {s.side === "proposition" ? t('for') : t('against')}
                       </Badge>
                       {s.overall_band && (
                         <Badge
@@ -304,7 +298,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
                   className="mt-2 w-full gap-2 border-outline-variant/20 text-on-surface-variant hover:text-primary"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Start New Practice
+                  {t('start_new_practice')}
                 </Button>
               </Link>
             </div>

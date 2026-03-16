@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import levelUpAnimation from "../../../public/lottie/levelup.json";
 import confettiAnimation from "../../../public/lottie/confetti.json";
@@ -12,6 +13,8 @@ interface LevelUpOverlayProps {
 }
 
 export function LevelUpOverlay({ newLevel, onDismiss }: LevelUpOverlayProps) {
+  const t = useTranslations('achievements');
+
   useEffect(() => {
     if (newLevel !== null) {
       const timer = setTimeout(onDismiss, 4000);
@@ -61,7 +64,7 @@ export function LevelUpOverlay({ newLevel, onDismiss }: LevelUpOverlayProps) {
               transition={{ delay: 0.5 }}
               className="text-3xl font-bold text-primary mt-2"
             >
-              Level {newLevel}!
+              {t('level_up', { level: newLevel })}
             </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
@@ -69,7 +72,7 @@ export function LevelUpOverlay({ newLevel, onDismiss }: LevelUpOverlayProps) {
               transition={{ delay: 0.8 }}
               className="text-gray-500 mt-1"
             >
-              Keep it up!
+              {t('level_up_subtitle')}
             </motion.p>
           </motion.div>
         </motion.div>

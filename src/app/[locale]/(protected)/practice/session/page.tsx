@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Globe } from "lucide-react";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";

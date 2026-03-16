@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import posthog from "posthog-js";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { BookOpen, Mic, Star } from "lucide-react";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import rocketAnimation from "../../../public/lottie/rocket.json";
 import { Button } from "@/components/ui/button";
-import { completeOnboarding } from "@/app/onboarding/actions";
+import { completeOnboarding } from "@/app/[locale]/onboarding/actions";
 
 interface PathRevealStepProps {
   goal: string | null;
@@ -60,6 +61,7 @@ export function PathRevealStep({
   englishConfidence,
   dailyGoalMinutes,
 }: PathRevealStepProps) {
+  const t = useTranslations("onboarding");
   const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export function PathRevealStep({
         transition={{ delay: 0.2 }}
         className="mb-2 text-2xl font-bold text-on-surface"
       >
-        Your learning path is ready!
+        {t("path_reveal.headline")}
       </motion.h2>
 
       <motion.p
@@ -127,7 +129,7 @@ export function PathRevealStep({
         transition={{ delay: 0.3 }}
         className="mb-8 text-gray-500"
       >
-        Here&apos;s what we recommend for you
+        {t("path_reveal.recommended")}
       </motion.p>
 
       {/* Recommendation cards */}
@@ -152,7 +154,7 @@ export function PathRevealStep({
                 <p className="text-xs text-gray-500">{rec.desc}</p>
               </div>
               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                Recommended
+                {t("path_reveal.recommended")}
               </span>
             </motion.div>
           );
@@ -174,7 +176,7 @@ export function PathRevealStep({
           className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
         >
-          {isPending || saving ? "Setting up..." : "Go to Dashboard"}
+          {isPending || saving ? "..." : t("path_reveal.cta")}
         </Button>
       </motion.div>
     </div>

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,

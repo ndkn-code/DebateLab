@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Mic, MicOff, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
@@ -25,6 +26,7 @@ export function DemoSpeakStep({
   const [hasStarted, setHasStarted] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const t = useTranslations("onboarding");
   const speech = useDeepgramTranscription();
 
   const stopRecording = useCallback(() => {
@@ -106,16 +108,16 @@ export function DemoSpeakStep({
           <MicOff className="h-8 w-8 text-red-500" />
         </div>
         <h2 className="mb-2 text-xl font-bold text-on-surface">
-          Microphone access needed
+          {t("demo_speak.mic_error")}
         </h2>
         <p className="mb-6 text-sm text-gray-500">
-          Please allow microphone access in your browser settings and try again.
+          {t("demo_speak.mic_error")}
         </p>
         <button
           onClick={onSkip}
           className="text-sm font-medium text-primary hover:underline"
         >
-          Skip demo &rarr;
+          {t("demo_speak.skip")}
         </button>
       </div>
     );
@@ -173,7 +175,7 @@ export function DemoSpeakStep({
           >
             {timeLeft}
           </span>
-          <span className="text-[10px] text-gray-400">seconds</span>
+          <span className="text-[10px] text-gray-400">{t("demo_speak.time_remaining", { seconds: timeLeft })}</span>
         </div>
       </div>
 
@@ -222,7 +224,7 @@ export function DemoSpeakStep({
           size="lg"
         >
           <Mic className="h-5 w-5" />
-          Start Speaking
+          {t("demo_speak.headline")}
         </Button>
       ) : (
         <Button
@@ -231,7 +233,7 @@ export function DemoSpeakStep({
           size="lg"
         >
           <Square className="h-4 w-4" />
-          Done
+          {t("demo_speak.done")}
         </Button>
       )}
 
@@ -240,7 +242,7 @@ export function DemoSpeakStep({
           onClick={onSkip}
           className="text-xs text-gray-400 hover:text-gray-600"
         >
-          Skip demo
+          {t("demo_speak.skip")}
         </button>
       </div>
     </div>

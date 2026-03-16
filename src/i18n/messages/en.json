@@ -1,0 +1,397 @@
+{
+  "landing": {
+    "nav": {
+      "home": "Home",
+      "features": "Features",
+      "howItWorks": "How it Works",
+      "pricing": "Pricing",
+      "login": "Log In",
+      "signup": "Get Started",
+      "dashboard": "Go to Dashboard",
+      "history": "History"
+    },
+    "hero": {
+      "badge": "AI-Powered Training",
+      "headline": "Master the Art of Debate with your Personal AI Coach.",
+      "subheadline": "Practice solo, get real-time feedback, and crush your next competition. Designed for the next generation of Vietnamese debaters.",
+      "cta": "Start Practicing for Free",
+      "cta_logged_in": "Start Practicing",
+      "social_proof": "Join 500+ Vietnamese debaters",
+      "session_timer": "Session Timer",
+      "live_analysis": "LIVE ANALYSIS"
+    },
+    "features": {
+      "headline": "Your AI Toolkit for Victory",
+      "subheadline": "Powerful features built for competitive performance.",
+      "solo_practice": {
+        "title": "Solo Practice",
+        "description": "Choose motions, set sides, and start the clock. Full WSDC & BP support."
+      },
+      "transcription": {
+        "title": "Live Transcription",
+        "description": "Ultra-accurate speech-to-text integration for post-speech flow review."
+      },
+      "ai_analysis": {
+        "title": "AI Analysis",
+        "description": "Instant scoring in Content, Structure, Language, and Persuasion categories.",
+        "content": "Content",
+        "style": "Style"
+      },
+      "growth": {
+        "title": "Smart Growth",
+        "description": "Actionable feedback and model arguments to improve your flow instantly.",
+        "progress": "Progress"
+      }
+    },
+    "courses": {
+      "headline": "Structured Learning Paths",
+      "subheadline": "Go beyond practice — master debate with guided courses built for Vietnamese students.",
+      "foundations": {
+        "title": "Foundations of Competitive Debate",
+        "description": "Master the fundamentals of argumentation, research, and delivery. Perfect for beginners and intermediate debaters.",
+        "modules": "4 Modules",
+        "lessons": "16 Lessons"
+      },
+      "speaking": {
+        "title": "Public Speaking Mastery",
+        "description": "Build confidence, refine delivery, and learn advanced persuasion techniques for competitions and beyond.",
+        "modules": "3 Modules",
+        "lessons": "11 Lessons"
+      },
+      "browse": "Browse All Courses",
+      "signup_to_access": "Sign Up to Access Courses"
+    },
+    "howItWorks": {
+      "headline": "How It Works",
+      "step1": {
+        "title": "Learn",
+        "description": "Take structured courses with articles, quizzes, and video lessons on debate fundamentals."
+      },
+      "step2": {
+        "title": "Practice",
+        "description": "Choose a topic, speak into the app, and get real-time transcription of your speech."
+      },
+      "step3": {
+        "title": "Get Feedback",
+        "description": "Receive AI-powered scoring and detailed feedback on content, structure, and delivery."
+      },
+      "step4": {
+        "title": "Ask AI Coach",
+        "description": "Chat with your personal AI debate coach anytime for tips, explanations, and practice."
+      }
+    },
+    "testimonial": {
+      "quote": "DebateLab finally gives us that Truong Teen vibe at home. The AI analysis on my structure helped me jump from regional rounds to national finals!",
+      "name": "Minh Anh Nguyen",
+      "title": "Top Speaker, National Schools Debating Championship"
+    },
+    "finalCta": {
+      "headline": "Ready to win your next debate?",
+      "subheadline": "Join the most advanced training platform for debaters in Vietnam. No more practicing to an empty room.",
+      "cta": "Get Started Now",
+      "cta_logged_in": "Go to Dashboard",
+      "secondary": "View History",
+      "secondary_logged_out": "Sign In"
+    },
+    "footer": {
+      "tagline": "Building the world's most intelligent debate training platform for future leaders.",
+      "product": "Product",
+      "courses": "Courses",
+      "practice": "Practice",
+      "history": "History",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "copyright": "© {year} DebateLab. All rights reserved."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "headline": "Welcome to DebateLab",
+      "subheadline": "Master the art of debate — one argument at a time",
+      "cta": "Get Started"
+    },
+    "goal": {
+      "headline": "What's your main goal?",
+      "options": {
+        "compete": {
+          "title": "Win debate competitions",
+          "description": "Prepare for Trường Teen and other contests"
+        },
+        "english": {
+          "title": "Improve my English speaking",
+          "description": "Build confidence speaking in English"
+        },
+        "critical": {
+          "title": "Think more critically",
+          "description": "Sharpen your reasoning and arguments"
+        },
+        "interview": {
+          "title": "Prepare for interviews",
+          "description": "University admissions and scholarships"
+        },
+        "explore": {
+          "title": "Just exploring",
+          "description": "Curious to see what debate is about"
+        }
+      }
+    },
+    "experience": {
+      "headline": "How much debate experience do you have?",
+      "options": {
+        "beginner": {
+          "title": "Beginner",
+          "description": "I've never debated formally"
+        },
+        "intermediate": {
+          "title": "Some experience",
+          "description": "A few debates in class or clubs"
+        },
+        "experienced": {
+          "title": "Experienced",
+          "description": "I compete in tournaments"
+        }
+      }
+    },
+    "english": {
+      "headline": "How confident are you debating in English?",
+      "options": {
+        "low": {
+          "title": "Not very confident",
+          "description": "I mostly speak Vietnamese"
+        },
+        "okay": {
+          "title": "Okay",
+          "description": "I can express basic ideas"
+        },
+        "good": {
+          "title": "Good",
+          "description": "I'm comfortable in English"
+        },
+        "high": {
+          "title": "Very confident",
+          "description": "English feels natural to me"
+        }
+      }
+    },
+    "commitment": {
+      "headline": "How much time can you practice each day?",
+      "subheadline": "Even 10 minutes a day builds real skill"
+    },
+    "reactive_responses": {
+      "goal": {
+        "compete": "A competitor! We love that energy 🔥",
+        "english": "Great choice — debate is the fastest way to level up your English",
+        "critical": "You're already thinking like a debater",
+        "interview": "Smart move — debate skills are interview superpowers",
+        "explore": "Perfect — let's show you what debate is all about"
+      },
+      "experience": {
+        "beginner": "Everyone starts somewhere — you're going to love this",
+        "intermediate": "Nice! Let's take your skills to the next level",
+        "experienced": "Impressive! We'll challenge you with advanced topics"
+      },
+      "englishConfidence": {
+        "low": "No worries — we'll help you build confidence step by step",
+        "okay": "That's a solid foundation to build on",
+        "good": "Awesome — you're ready to debate in English",
+        "high": "Let's put that confidence to work!"
+      },
+      "dailyCommitment": {
+        "5": "5 minutes a day is a great start — consistency beats intensity",
+        "10": "10 minutes daily can transform your skills in weeks",
+        "15": "That's serious dedication — you'll see results fast",
+        "20": "Wow, you're all in! Expect rapid progress 🚀"
+      }
+    },
+    "demo_intro": {
+      "headline": "Let's try a quick debate!",
+      "subheadline": "You'll get 30 seconds to argue your position. Don't worry — this is just practice!",
+      "cta": "I'm ready →"
+    },
+    "demo_speak": {
+      "headline": "Speak now!",
+      "done": "Done",
+      "time_remaining": "{seconds}s remaining",
+      "mic_error": "Can't access your microphone. Please check permissions!",
+      "skip": "Skip"
+    },
+    "demo_feedback": {
+      "headline": "Here's how you did!",
+      "analyzing": "Analyzing your argument...",
+      "strength": "Strength",
+      "improvement": "To improve",
+      "cta": "See my learning path →"
+    },
+    "path_reveal": {
+      "headline": "Your learning path is ready!",
+      "recommended": "Recommended for you",
+      "cta": "Go to Dashboard"
+    },
+    "back": "Back"
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "courses": "My Courses",
+      "practice": "Practice",
+      "chat": "AI Coach",
+      "history": "History",
+      "profile": "Profile",
+      "settings": "Settings"
+    },
+    "home": {
+      "greeting_morning": "Good morning",
+      "greeting_afternoon": "Good afternoon",
+      "greeting_evening": "Good evening",
+      "motivations": [
+        "Ready to sharpen your arguments?",
+        "Let's make today count!",
+        "Your debate skills are growing!",
+        "Time to level up your rhetoric!",
+        "Another day, another argument won!"
+      ],
+      "days": "days",
+      "longest": "Longest: {count}",
+      "min": "min",
+      "this_week_min": "+{count}min this week",
+      "this_week_sessions": "+{count} this week",
+      "level": "Level {level}",
+      "continue_learning": "Continue Learning",
+      "see_all": "See all",
+      "start_first_course": "Start your first course!",
+      "explore_courses": "Explore structured debate lessons",
+      "continue": "Continue",
+      "recent_practice": "Recent Practice",
+      "view_all": "View all",
+      "first_debate": "Complete your first debate!",
+      "practice_get_feedback": "Practice and get AI-powered feedback",
+      "for": "FOR",
+      "against": "AGAINST",
+      "start_new_practice": "Start New Practice"
+    }
+  },
+  "chat": {
+    "headline": "AI Debate Coach",
+    "placeholder": "Ask Coach anything...",
+    "thinking": "Coach is thinking..."
+  },
+  "profile": {
+    "headline": "Profile",
+    "edit": "Edit",
+    "achievements": "Achievements",
+    "title_label": "Title",
+    "change_title": "Change Title",
+    "stats": {
+      "total_sessions": "Total Sessions",
+      "total_time": "Total Time",
+      "best_score": "Best Score",
+      "avg_score": "Avg Score"
+    },
+    "skill_chart": "Skill Chart"
+  },
+  "settings": {
+    "headline": "Settings",
+    "profile": "Profile",
+    "display_name": "Display Name",
+    "your_name": "Your name",
+    "avatar": "Avatar",
+    "save_profile": "Save Profile",
+    "account": "Account",
+    "email": "Email",
+    "change_password": "Change Password",
+    "new_password": "New password",
+    "confirm_password": "Confirm new password",
+    "update_password": "Update Password",
+    "practice_defaults": "Practice Defaults",
+    "default_prep_time": "Default Prep Time",
+    "default_speech_time": "Default Speech Time",
+    "default_difficulty": "Default AI Difficulty",
+    "difficulty_easy": "Easy",
+    "difficulty_medium": "Medium",
+    "difficulty_hard": "Hard",
+    "save_preferences": "Save Preferences",
+    "language": "Language",
+    "language_description": "Choose display language",
+    "sign_out": "Sign Out",
+    "toast": {
+      "profile_updated": "Profile updated!",
+      "profile_error": "Failed to update profile",
+      "preferences_saved": "Preferences saved!",
+      "preferences_error": "Failed to save preferences",
+      "password_short": "Password must be at least 6 characters",
+      "password_mismatch": "Passwords do not match",
+      "password_updated": "Password updated!",
+      "password_error": "Failed to change password"
+    }
+  },
+  "achievements": {
+    "unlocked": "Achievement Unlocked!",
+    "level_up": "Level {level}!",
+    "level_up_subtitle": "Amazing! Keep it up!",
+    "streak_fire": "{count}-day streak 🔥",
+    "titles": {
+      "The Unstoppable": "The Unstoppable",
+      "The Unkillable": "The Unkillable",
+      "The Untouchable": "The Untouchable",
+      "Rising Star": "Rising Star",
+      "Debate Master": "Debate Master",
+      "Word Smith": "Word Smith",
+      "Quick Thinker": "Quick Thinker",
+      "Iron Will": "Iron Will"
+    }
+  },
+  "auth": {
+    "login": {
+      "headline": "Log In",
+      "subtitle": "Sign in to your account",
+      "email": "Email",
+      "email_placeholder": "you@example.com",
+      "password": "Password",
+      "password_placeholder": "Your password",
+      "submit": "Sign In",
+      "submitting": "Signing in...",
+      "google": "Continue with Google",
+      "or": "or",
+      "no_account": "Don't have an account?",
+      "signup_link": "Sign up"
+    },
+    "signup": {
+      "headline": "Create Account",
+      "subtitle": "Create your account",
+      "name": "Display Name",
+      "name_placeholder": "Your name",
+      "email": "Email",
+      "email_placeholder": "you@example.com",
+      "password": "Password",
+      "password_placeholder": "At least 6 characters",
+      "submit": "Create Account",
+      "submitting": "Creating account...",
+      "google": "Continue with Google",
+      "or": "or",
+      "has_account": "Already have an account?",
+      "login_link": "Sign in"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Oops! Something went wrong.",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "back": "Back",
+    "skip": "Skip",
+    "done": "Done",
+    "or": "or",
+    "minutes": "min",
+    "hours": "hours",
+    "days": "days",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "see_more": "See more",
+    "close": "Close",
+    "navigation": "Navigation",
+    "sign_out": "Sign Out"
+  }
+}

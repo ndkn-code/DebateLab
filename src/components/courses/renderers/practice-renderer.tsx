@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Mic2, CheckCircle2, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { markLessonCompleteAction } from "@/app/(protected)/courses/actions";
+import { markLessonCompleteAction } from "@/app/[locale]/(protected)/courses/actions";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface PracticeRendererProps {

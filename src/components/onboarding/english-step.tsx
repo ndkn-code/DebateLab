@@ -2,36 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
-import { REACTIVE_RESPONSES } from "./reactive-responses";
 
-const LEVELS = [
-  {
-    id: "low",
-    emoji: "\u{1F605}",
-    title: "Not very confident",
-    description: "I mostly speak Vietnamese",
-  },
-  {
-    id: "okay",
-    emoji: "\u{1F642}",
-    title: "Okay",
-    description: "I can express basic ideas",
-  },
-  {
-    id: "good",
-    emoji: "\u{1F60A}",
-    title: "Good",
-    description: "I'm comfortable in English",
-  },
-  {
-    id: "high",
-    emoji: "\u{1F525}",
-    title: "Very confident",
-    description: "English feels natural to me",
-  },
-];
+const LEVEL_IDS = ["low", "okay", "good", "high"];
+const LEVEL_EMOJIS: Record<string, string> = {
+  low: "\u{1F605}",
+  okay: "\u{1F642}",
+  good: "\u{1F60A}",
+  high: "\u{1F525}",
+};
 
 interface EnglishStepProps {
   selected: string | null;
@@ -44,6 +25,8 @@ export function EnglishStep({
   onSelect,
   onNext,
 }: EnglishStepProps) {
+  const t = useTranslations("onboarding");
+  const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<string | null>(selected);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,7 +38,7 @@ export function EnglishStep({
     onSelect(id);
 
     textTimeout.current = setTimeout(() => {
-      setReactiveText(REACTIVE_RESPONSES.englishConfidence[id] ?? null);
+      setReactiveText(tReactive("englishConfidence." + id));
     }, 300);
 
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
@@ -75,24 +58,24 @@ export function EnglishStep({
         animate={{ opacity: 1, y: 0 }}
         className="mb-6 text-center text-2xl font-bold text-on-surface"
       >
-        How confident are you debating in English?
+        {t("english.headline")}
       </motion.h2>
 
       <div className="space-y-3">
-        {LEVELS.map((level, i) => (
+        {LEVEL_IDS.map((id, i) => (
           <motion.div
-            key={level.id}
+            key={id}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
             <SelectionCard
-              emoji={level.emoji}
-              title={level.title}
-              description={level.description}
-              selected={localSelected === level.id}
+              emoji={LEVEL_EMOJIS[id]}
+              title={t("english.options." + id + ".title")}
+              description={t("english.options." + id + ".description")}
+              selected={localSelected === id}
               disabled={localSelected !== null}
-              onClick={() => handleSelect(level.id)}
+              onClick={() => handleSelect(id)}
             />
           </motion.div>
         ))}

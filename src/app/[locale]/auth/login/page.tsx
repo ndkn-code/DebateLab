@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,28 +10,23 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 
-export default function SignupPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState("");
+  const t = useTranslations('auth.login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleEmailSignup = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        data: {
-          display_name: displayName,
-        },
-      },
     });
 
     if (authError) {
@@ -44,7 +39,7 @@ export default function SignupPage() {
     router.refresh();
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleLogin = async () => {
     setError(null);
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithOAuth({
@@ -68,7 +63,7 @@ export default function SignupPage() {
             DebateLab
           </Link>
           <p className="mt-2 text-sm text-on-surface-variant">
-            Create your account
+            {t('subtitle')}
           </p>
         </div>
 
@@ -77,7 +72,7 @@ export default function SignupPage() {
           type="button"
           variant="outline"
           className="w-full gap-3 border-outline-variant/30 bg-surface-container-lowest py-5 text-on-surface hover:bg-surface-container-low"
-          onClick={handleGoogleSignup}
+          onClick={handleGoogleLogin}
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -97,40 +92,26 @@ export default function SignupPage() {
               fill="#EA4335"
             />
           </svg>
-          Continue with Google
+          {t('google')}
         </Button>
 
         <div className="relative">
           <Separator className="bg-outline-variant/20" />
           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-on-surface-variant">
-            or
+            {t('or')}
           </span>
         </div>
 
-        {/* Signup Form */}
-        <form onSubmit={handleEmailSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="displayName" className="text-on-surface">
-              Display Name
-            </Label>
-            <Input
-              id="displayName"
-              type="text"
-              placeholder="Your name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              className="border-outline-variant/30 bg-surface-container-lowest"
-            />
-          </div>
+        {/* Email/Password Form */}
+        <form onSubmit={handleEmailLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-on-surface">
-              Email
+              {t('email')}
             </Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t('email_placeholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -139,12 +120,12 @@ export default function SignupPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-on-surface">
-              Password
+              {t('password')}
             </Label>
             <Input
               id="password"
               type="password"
-              placeholder="At least 6 characters"
+              placeholder={t('password_placeholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -167,21 +148,21 @@ export default function SignupPage() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
+                {t('submitting')}
               </>
             ) : (
-              "Create Account"
+              t('submit')
             )}
           </Button>
         </form>
 
         <p className="text-center text-sm text-on-surface-variant">
-          Already have an account?{" "}
+          {t('no_account')}{" "}
           <Link
-            href="/auth/login"
+            href="/auth/signup"
             className="font-semibold text-primary hover:underline"
           >
-            Sign in
+            {t('signup_link')}
           </Link>
         </p>
       </div>

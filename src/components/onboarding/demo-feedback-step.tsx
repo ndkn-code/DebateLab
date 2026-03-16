@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { ArrowRight, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,7 @@ export function DemoFeedbackStep({
   onFeedbackLoaded,
   onNext,
 }: DemoFeedbackStepProps) {
+  const t = useTranslations("onboarding");
   const [loading, setLoading] = useState(!existingFeedback);
   const [feedback, setFeedback] = useState<DemoFeedback | null>(
     existingFeedback
@@ -75,9 +77,9 @@ export function DemoFeedbackStep({
           <Sparkles className="h-10 w-10 text-primary" />
         </motion.div>
         <p className="text-lg font-semibold text-on-surface">
-          Analyzing your argument...
+          {t("demo_feedback.analyzing")}
         </p>
-        <p className="mt-1 text-sm text-gray-500">This will just take a moment</p>
+        <p className="mt-1 text-sm text-gray-500">{t("demo_feedback.analyzing")}</p>
       </div>
     );
   }
@@ -148,7 +150,7 @@ export function DemoFeedbackStep({
         >
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
           <div>
-            <p className="text-xs font-semibold text-emerald-600">Strength</p>
+            <p className="text-xs font-semibold text-emerald-600">{t("demo_feedback.strength")}</p>
             <p className="text-sm text-gray-600">{feedback.strength}</p>
           </div>
         </motion.div>
@@ -161,7 +163,7 @@ export function DemoFeedbackStep({
         >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
-            <p className="text-xs font-semibold text-amber-600">To improve</p>
+            <p className="text-xs font-semibold text-amber-600">{t("demo_feedback.improvement")}</p>
             <p className="text-sm text-gray-600">{feedback.improvement}</p>
           </div>
         </motion.div>
@@ -186,7 +188,7 @@ export function DemoFeedbackStep({
           className="gap-2 rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
         >
-          See my learning path
+          {t("demo_feedback.cta")}
           <ArrowRight className="h-5 w-5" />
         </Button>
       </motion.div>

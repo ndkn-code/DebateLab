@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import trophyAnimation from "../../../public/lottie/trophy.json";
 
@@ -21,6 +22,8 @@ export function AchievementToast({
   achievement,
   onDismiss,
 }: AchievementToastProps) {
+  const t = useTranslations('achievements');
+
   useEffect(() => {
     if (achievement) {
       const timer = setTimeout(onDismiss, 5000);
@@ -48,7 +51,7 @@ export function AchievementToast({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
-                Achievement Unlocked!
+                {t('unlocked')}
               </p>
               <p className="font-bold text-gray-900 truncate">
                 {achievement.icon} {achievement.title}

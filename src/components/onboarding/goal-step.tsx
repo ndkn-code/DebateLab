@@ -2,42 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
-import { REACTIVE_RESPONSES } from "./reactive-responses";
 
-const GOALS = [
-  {
-    id: "compete",
-    emoji: "\u{1F3C6}",
-    title: "Win debate competitions",
-    description: 'Prepare for Tr\u01B0\u1EDDng Teen and other contests',
-  },
-  {
-    id: "english",
-    emoji: "\u{1F4DA}",
-    title: "Improve my English speaking",
-    description: "Build confidence speaking in English",
-  },
-  {
-    id: "critical",
-    emoji: "\u{1F9E0}",
-    title: "Think more critically",
-    description: "Sharpen your reasoning and arguments",
-  },
-  {
-    id: "interview",
-    emoji: "\u{1F393}",
-    title: "Prepare for interviews",
-    description: "University admissions and scholarships",
-  },
-  {
-    id: "explore",
-    emoji: "\u{1F3AF}",
-    title: "Just exploring",
-    description: "Curious to see what debate is about",
-  },
-];
+const GOAL_IDS = ["compete", "english", "critical", "interview", "explore"];
+const GOAL_EMOJIS: Record<string, string> = {
+  compete: "\u{1F3C6}",
+  english: "\u{1F4DA}",
+  critical: "\u{1F9E0}",
+  interview: "\u{1F393}",
+  explore: "\u{1F3AF}",
+};
 
 interface GoalStepProps {
   selected: string | null;
@@ -46,6 +22,8 @@ interface GoalStepProps {
 }
 
 export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
+  const t = useTranslations("onboarding");
+  const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<string | null>(selected);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,7 +35,7 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
     onSelect(id);
 
     textTimeout.current = setTimeout(() => {
-      setReactiveText(REACTIVE_RESPONSES.goal[id] ?? null);
+      setReactiveText(tReactive("goal." + id));
     }, 300);
 
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
@@ -77,24 +55,24 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6 text-center text-2xl font-bold text-on-surface"
       >
-        What&apos;s your main goal?
+        {t("goal.headline")}
       </motion.h2>
 
       <div className="space-y-3">
-        {GOALS.map((goal, i) => (
+        {GOAL_IDS.map((id, i) => (
           <motion.div
-            key={goal.id}
+            key={id}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
             <SelectionCard
-              emoji={goal.emoji}
-              title={goal.title}
-              description={goal.description}
-              selected={localSelected === goal.id}
+              emoji={GOAL_EMOJIS[id]}
+              title={t("goal.options." + id + ".title")}
+              description={t("goal.options." + id + ".description")}
+              selected={localSelected === id}
               disabled={localSelected !== null}
-              onClick={() => handleSelect(goal.id)}
+              onClick={() => handleSelect(id)}
             />
           </motion.div>
         ))}

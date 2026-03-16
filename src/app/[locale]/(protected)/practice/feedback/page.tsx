@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import { RotateCcw, Plus, History, Sparkles } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
-import confettiAnimation from "../../../../../public/lottie/confetti.json";
+import confettiAnimation from "../../../../../../public/lottie/confetti.json";
 import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ScoreHero } from "@/components/feedback/score-hero";

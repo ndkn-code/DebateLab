@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface DemoIntroStepProps {
@@ -15,6 +16,8 @@ export function DemoIntroStep({
   position,
   onNext,
 }: DemoIntroStepProps) {
+  const t = useTranslations("onboarding");
+
   return (
     <div className="text-center">
       <motion.h2
@@ -22,7 +25,7 @@ export function DemoIntroStep({
         animate={{ opacity: 1, y: 0 }}
         className="mb-2 text-2xl font-bold text-on-surface"
       >
-        Let&apos;s try a quick debate!
+        {t("demo_intro.headline")}
       </motion.h2>
 
       <motion.p
@@ -31,8 +34,7 @@ export function DemoIntroStep({
         transition={{ delay: 0.1 }}
         className="mb-8 text-gray-500"
       >
-        You&apos;ll get 30 seconds to argue your position. Don&apos;t worry
-        &mdash; this is just practice!
+        {t("demo_intro.subheadline")}
       </motion.p>
 
       {/* Topic card */}
@@ -64,7 +66,7 @@ export function DemoIntroStep({
           className="gap-2 rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
         >
-          I&apos;m ready
+          {t("demo_intro.cta")}
           <ArrowRight className="h-5 w-5" />
         </Button>
       </motion.div>

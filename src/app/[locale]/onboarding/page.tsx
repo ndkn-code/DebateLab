@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { ChevronLeft } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
@@ -46,6 +47,7 @@ const slideVariants = {
 };
 
 export default function OnboardingPage() {
+  const t = useTranslations("onboarding");
   const store = useOnboardingStore();
   const currentStep = store.currentStep;
   const directionRef = useRef(1);
@@ -187,7 +189,7 @@ export default function OnboardingPage() {
             className="flex items-center gap-1 rounded-lg p-2 text-gray-400 transition-colors hover:text-gray-600"
           >
             <ChevronLeft className="h-5 w-5" />
-            <span className="text-sm">Back</span>
+            <span className="text-sm">{t("back")}</span>
           </button>
         </div>
       )}

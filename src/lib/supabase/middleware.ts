@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(
+  request: NextRequest,
+  response?: NextResponse
+) {
+  let supabaseResponse = response ?? NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +19,9 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          if (!response) {
+            supabaseResponse = NextResponse.next({ request });
+          }
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -25,10 +30,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Use getSession() instead of getUser() to avoid an extra API round trip.
-  // getUser() makes a network call to Supabase Auth to verify the JWT;
-  // getSession() only reads/refreshes the local session from cookies.
-  // Actual user verification (getUser) is done in page components/API routes.
   await supabase.auth.getSession();
 
   return supabaseResponse;
