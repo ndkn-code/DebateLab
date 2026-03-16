@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import emptyAnimation from "../../../public/lottie/empty-search.json";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AchievementData } from "./profile-content";
@@ -52,7 +54,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
 
       {totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Trophy className="mb-3 h-8 w-8 text-gray-300" />
+          <LottieAnimation animationData={emptyAnimation} className="w-32 h-32 mb-2" />
           <p className="text-sm text-gray-500">No achievements yet</p>
         </div>
       ) : (

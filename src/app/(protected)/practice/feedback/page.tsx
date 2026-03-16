@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { RotateCcw, Plus, History, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import confettiAnimation from "../../../../../public/lottie/confetti.json";
 import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ScoreHero } from "@/components/feedback/score-hero";
@@ -41,6 +43,7 @@ export default function FeedbackPage() {
     storeFeedback
   );
   const [modelUsed, setModelUsed] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -115,6 +118,8 @@ export default function FeedbackPage() {
       setLocalFeedback(data);
       setFeedback(data);
       setPhase("feedback");
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
 
       // Save session
       if (!hasSaved.current) {
@@ -182,6 +187,8 @@ export default function FeedbackPage() {
     if (storeFeedback) {
       setLocalFeedback(storeFeedback);
       setLoading(false);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
       return;
     }
 
@@ -218,6 +225,15 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50">
+          <LottieAnimation
+            animationData={confettiAnimation}
+            loop={false}
+            className="w-full h-full"
+          />
+        </div>
+      )}
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Loading */}
         {loading && !error && <LoadingState />}

@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillSelector } from "./pill-selector";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import fireAnimation from "../../../public/lottie/fire.json";
 
 const OPTIONS = [
   { label: "5 min", value: 5 },
@@ -51,15 +53,15 @@ export function CommitmentStep({
       >
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
           <div key={day} className="flex flex-col items-center gap-1">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                i < 5
-                  ? "bg-primary/15 text-primary"
-                  : "bg-gray-100 text-gray-300"
-              }`}
-            >
-              <Flame className="h-5 w-5" />
-            </div>
+            {i < 5 ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                <LottieAnimation animationData={fireAnimation} className="w-8 h-8" />
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
+                <Flame className="h-5 w-5 text-gray-300" />
+              </div>
+            )}
             <span className="text-[10px] text-gray-400">{day}</span>
           </div>
         ))}

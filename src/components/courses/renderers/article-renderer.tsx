@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import checkmarkAnimation from "../../../../public/lottie/checkmark.json";
 import { markLessonCompleteAction } from "@/app/(protected)/courses/actions";
 import type { LessonWithContext } from "@/lib/api/courses";
 
@@ -40,7 +41,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
       <div className="mt-6 flex justify-center">
         {completed ? (
           <div className="flex items-center gap-2 text-emerald-600">
-            <CheckCircle2 className="h-5 w-5" />
+            <LottieAnimation animationData={checkmarkAnimation} className="w-16 h-16" loop={false} />
             <span className="font-medium">Lesson completed</span>
           </div>
         ) : (

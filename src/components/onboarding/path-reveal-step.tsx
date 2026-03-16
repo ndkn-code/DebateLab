@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import posthog from "posthog-js";
 import { motion } from "framer-motion";
-import { Rocket, BookOpen, Mic, Star } from "lucide-react";
+import { BookOpen, Mic, Star } from "lucide-react";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import rocketAnimation from "../../../public/lottie/rocket.json";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/app/onboarding/actions";
 
@@ -98,12 +100,16 @@ export function PathRevealStep({
     <div className="text-center">
       {/* Rocket illustration */}
       <motion.div
-        initial={{ scale: 0, rotate: -45 }}
-        animate={{ scale: 1, rotate: 0 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", duration: 0.6 }}
-        className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10"
+        className="mx-auto mb-6"
       >
-        <Rocket className="h-10 w-10 text-primary" />
+        <LottieAnimation
+          animationData={rocketAnimation}
+          className="w-40 h-40 mx-auto"
+          loop={false}
+        />
       </motion.div>
 
       <motion.h2

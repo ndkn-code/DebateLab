@@ -6,7 +6,6 @@ import {
   Clock,
   Trophy,
   Star,
-  Mic2,
   BookOpen,
   ArrowRight,
   Sparkles,
@@ -17,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { WeeklyChart } from "./weekly-chart";
 import { AiCoachWidget } from "./ai-coach-widget";
 import { cn } from "@/lib/utils";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import fireAnimation from "../../../public/lottie/fire.json";
+import emptyAnimation from "../../../public/lottie/empty-search.json";
 import type { DashboardData } from "@/lib/api/dashboard";
 
 const GREETINGS = [
@@ -84,7 +86,11 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         {/* Streak */}
         <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
-            <Flame className="h-5 w-5 text-primary" />
+            {streak > 0 ? (
+              <LottieAnimation animationData={fireAnimation} className="w-8 h-8" loop={true} />
+            ) : (
+              <Flame className="h-5 w-5 text-gray-400" />
+            )}
           </div>
           <p className="text-2xl font-bold text-on-surface">
             {streak} <span className="text-sm font-medium text-on-surface-variant">days</span>
@@ -163,7 +169,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           {enrollments.length === 0 ? (
             <Link href="/courses">
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
-                <BookOpen className="mb-3 h-8 w-8 text-primary/40" />
+                <LottieAnimation animationData={emptyAnimation} className="w-24 h-24 mb-2" />
                 <p className="font-medium text-on-surface">
                   Start your first course!
                 </p>
@@ -226,7 +232,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           {recentSessions.length === 0 ? (
             <Link href="/practice">
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
-                <Mic2 className="mb-3 h-8 w-8 text-primary/40" />
+                <LottieAnimation animationData={emptyAnimation} className="w-24 h-24 mb-2" />
                 <p className="font-medium text-on-surface">
                   Complete your first debate!
                 </p>

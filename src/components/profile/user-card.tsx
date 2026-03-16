@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Flame, BarChart3, Clock, BookOpen, Sparkles } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import fireAnimation from "../../../public/lottie/fire.json";
 import type { ProfileData } from "./profile-content";
 
 interface UserCardProps {
@@ -120,7 +122,11 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
             className="flex items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest px-3 py-2.5"
           >
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}>
-              <stat.icon className={`h-4.5 w-4.5 ${stat.color}`} />
+              {stat.label === "Day Streak" && profile.streak_current > 0 ? (
+                <LottieAnimation animationData={fireAnimation} className="w-7 h-7" loop={true} />
+              ) : (
+                <stat.icon className={`h-4.5 w-4.5 ${stat.color}`} />
+              )}
             </div>
             <div>
               <p className="text-lg font-bold leading-tight text-on-surface">{stat.value}</p>

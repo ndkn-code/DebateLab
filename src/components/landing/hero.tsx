@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import micAnimation from "../../../public/lottie/microphone.json";
 
 export function Hero() {
   return (
@@ -40,6 +42,18 @@ export function Hero() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-4xl text-center">
+        {/* Mic animation - desktop only */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, delay: 0.3 }}
+          className="mx-auto mb-8 hidden md:block"
+        >
+          <LottieAnimation
+            animationData={micAnimation}
+            className="w-64 h-64 mx-auto"
+          />
+        </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

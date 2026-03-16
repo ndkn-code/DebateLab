@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain } from "lucide-react";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
+import thinkingAnimation from "../../../public/lottie/thinking.json";
 
 const TIPS = [
   "Strong debaters always address counter-arguments before their opponent brings them up.",
@@ -45,17 +46,13 @@ export function LoadingState() {
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4">
-      {/* Pulsing brain */}
-      <motion.div
-        animate={{
-          scale: [1, 1.15, 1],
-          opacity: [0.7, 1, 0.7],
-        }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary-container/40"
-      >
-        <Brain className="h-12 w-12 text-primary" />
-      </motion.div>
+      {/* Thinking brain animation */}
+      <div className="mb-8">
+        <LottieAnimation
+          animationData={thinkingAnimation}
+          className="w-32 h-32"
+        />
+      </div>
 
       <h2 className="mb-2 text-xl font-bold text-on-surface">
         Analyzing your debate performance...
