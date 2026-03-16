@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/shared/toast-provider";
+import { PostHogProvider, PostHogPageview } from "@/app/posthog-provider";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -62,7 +63,10 @@ export default function RootLayout({
       <body
         className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
-        {children}
+        <PostHogProvider>
+          <PostHogPageview />
+          {children}
+        </PostHogProvider>
         <ToastProvider />
       </body>
     </html>

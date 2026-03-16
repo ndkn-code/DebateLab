@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import posthog from "posthog-js";
 import { ConversationSidebar } from "./conversation-sidebar";
 import { ChatArea } from "./chat-area";
 import type { ConversationWithPreview } from "@/lib/api/chat";
@@ -97,6 +98,7 @@ export function ChatShell({
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
+      posthog.capture("chat_message_sent", { message_length: text.trim().length });
 
       // Add placeholder assistant message
       const assistantMsg: ChatMessageLocal = {

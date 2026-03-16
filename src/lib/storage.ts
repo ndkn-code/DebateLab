@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import type { DebateSession } from "@/types";
 
@@ -62,6 +63,18 @@ const supabaseAdapter = {
       // Fall back to localStorage
       localAdapter.saveSession(session);
       return;
+    }
+
+    if (typeof window !== "undefined") {
+      posthog.capture("debate_completed", {
+        topic: session.topic.title,
+        category: session.topic.category,
+        stance: session.side,
+        mode: session.mode,
+        difficulty: session.topic.difficulty,
+        score: session.feedback?.totalScore ?? null,
+        duration_seconds: session.duration,
+      });
     }
 
     // Insert activity log

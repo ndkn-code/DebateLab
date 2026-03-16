@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
@@ -16,6 +17,18 @@ import { DemoFeedbackStep } from "@/components/onboarding/demo-feedback-step";
 import { PathRevealStep } from "@/components/onboarding/path-reveal-step";
 
 const TOTAL_STEPS = 9;
+
+const STEP_NAMES = [
+  "welcome",
+  "goal",
+  "experience",
+  "english",
+  "commitment",
+  "demo-intro",
+  "demo-speak",
+  "demo-feedback",
+  "path-reveal",
+];
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -38,6 +51,10 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    posthog.capture("onboarding_step_viewed", {
+      step: currentStep,
+      step_name: STEP_NAMES[currentStep],
+    });
   }, [currentStep]);
 
   const handleNext = useCallback(() => {

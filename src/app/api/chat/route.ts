@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { getPostHogServer } from "@/lib/posthog-server";
 
 export const maxDuration = 60;
 
@@ -168,6 +169,12 @@ export async function POST(req: NextRequest) {
             conversation_id: conversationId,
             role: "assistant",
             content: fullResponse,
+          });
+
+          getPostHogServer().capture({
+            distinctId: user.id,
+            event: "ai_chat_response",
+            properties: { model: chatModel, response_length: fullResponse.length },
           });
 
           // Auto-generate title from first user message

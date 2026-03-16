@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import posthog from "posthog-js";
 import { motion } from "framer-motion";
 import { Rocket, BookOpen, Mic, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,13 @@ export function PathRevealStep({
         setSaving(false);
         return;
       }
+
+      posthog.capture("onboarding_completed", {
+        goal,
+        experience_level: experienceLevel,
+        english_confidence: englishConfidence,
+        daily_goal_minutes: dailyGoalMinutes,
+      });
 
       // Hard navigate to bust the server-side cache so the protected
       // layout re-reads the updated onboarding_completed flag

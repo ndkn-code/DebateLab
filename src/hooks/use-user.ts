@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/types/database";
@@ -31,6 +32,12 @@ export function useUser(): UseUserReturn {
 
       if (data) {
         setProfile(data as Profile);
+        if (typeof window !== "undefined") {
+          posthog.identify(userId, {
+            display_name: data.display_name,
+            role: data.role,
+          });
+        }
       }
     },
     [supabase]
@@ -81,6 +88,7 @@ export function useUser(): UseUserReturn {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    posthog.reset();
     setUser(null);
     setProfile(null);
   }, [supabase]);
