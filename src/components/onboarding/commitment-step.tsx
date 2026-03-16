@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { PillSelector } from "./pill-selector";
+import { ReactiveResponse } from "./reactive-response";
+import { REACTIVE_RESPONSES } from "./reactive-responses";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 
@@ -25,6 +27,32 @@ export function CommitmentStep({
   onSelect,
   onNext,
 }: CommitmentStepProps) {
+  const [localSelected, setLocalSelected] = useState<number | null>(selected);
+  const [reactiveText, setReactiveText] = useState<string | null>(null);
+  const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSelect = (value: number) => {
+    if (localSelected !== null) return;
+    setLocalSelected(value);
+    onSelect(value);
+
+    textTimeout.current = setTimeout(() => {
+      setReactiveText(
+        REACTIVE_RESPONSES.dailyCommitment[String(value)] ?? null
+      );
+    }, 300);
+
+    advanceTimeout.current = setTimeout(() => onNext(), 2000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+      if (textTimeout.current) clearTimeout(textTimeout.current);
+    };
+  }, []);
+
   return (
     <div className="text-center">
       <motion.h2
@@ -55,7 +83,10 @@ export function CommitmentStep({
           <div key={day} className="flex flex-col items-center gap-1">
             {i < 5 ? (
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                <LottieAnimation animationData={fireAnimation} className="w-8 h-8" />
+                <LottieAnimation
+                  animationData={fireAnimation}
+                  className="w-8 h-8"
+                />
               </div>
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
@@ -71,29 +102,17 @@ export function CommitmentStep({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="mb-8"
+        className="mb-4"
       >
         <PillSelector
           options={OPTIONS}
-          selected={selected}
-          onSelect={onSelect}
+          selected={localSelected}
+          onSelect={handleSelect}
+          disabled={localSelected !== null}
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: selected ? 1 : 0.4 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Button
-          onClick={onNext}
-          disabled={!selected}
-          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white disabled:opacity-40"
-          size="lg"
-        >
-          Continue
-        </Button>
-      </motion.div>
+      <ReactiveResponse text={reactiveText} />
     </div>
   );
 }

@@ -11,48 +11,46 @@ interface WelcomeStepProps {
 
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
   return (
-    <div className="flex flex-col items-center text-center">
-      {/* Welcome animation */}
+    <div className="flex flex-col items-center justify-center text-center">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mb-8"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
       >
         <LottieAnimation
           animationData={welcomeAnimation}
-          className="w-40 h-40 mx-auto"
-          loop={true}
+          className="w-72 h-72 md:w-96 md:h-96 mx-auto"
+          loop={false}
         />
       </motion.div>
 
       <motion.h1
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="mb-3 text-3xl font-bold text-on-surface"
+        transition={{ delay: 1.5, duration: 0.6 }}
+        className="text-4xl md:text-5xl font-bold text-gray-900 text-center"
       >
         Welcome to DebateLab
       </motion.h1>
 
       <motion.p
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mb-10 text-gray-500"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.0, duration: 0.5 }}
+        className="text-lg text-gray-400 text-center mt-3"
       >
-        Master the art of debate — one argument at a time
+        Master the art of debate
       </motion.p>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 2.5, duration: 0.4 }}
       >
         <Button
           onClick={onNext}
-          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
+          className="mt-8 px-10 py-3 text-lg rounded-xl bg-primary text-white font-semibold"
         >
           Get Started
         </Button>

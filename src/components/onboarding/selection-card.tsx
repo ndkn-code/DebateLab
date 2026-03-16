@@ -2,12 +2,14 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SelectionCardProps {
   emoji: string;
   title: string;
   description: string;
   selected: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }
 
@@ -16,18 +18,25 @@ export function SelectionCard({
   title,
   description,
   selected,
+  disabled = false,
   onClick,
 }: SelectionCardProps) {
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className={`relative flex w-full items-center gap-4 rounded-2xl border-2 bg-white p-4 text-left transition-colors ${
+      whileHover={!disabled ? { scale: 1.02 } : undefined}
+      whileTap={!disabled ? { scale: 0.98 } : undefined}
+      onClick={!disabled ? onClick : undefined}
+      animate={{
+        opacity: disabled && !selected ? 0.5 : 1,
+      }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        "relative flex w-full items-center gap-4 rounded-2xl border-2 bg-white p-4 text-left transition-colors",
         selected
           ? "border-primary bg-primary/5"
-          : "border-gray-200 hover:border-primary/40 hover:shadow-md"
-      }`}
+          : "border-gray-200 hover:border-primary/40 hover:shadow-md",
+        disabled && !selected && "pointer-events-none"
+      )}
     >
       <span className="text-2xl">{emoji}</span>
       <div className="min-w-0 flex-1">

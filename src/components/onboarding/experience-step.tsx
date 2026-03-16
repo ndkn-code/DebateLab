@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SelectionCard } from "./selection-card";
+import { ReactiveResponse } from "./reactive-response";
+import { REACTIVE_RESPONSES } from "./reactive-responses";
 
 const LEVELS = [
   {
@@ -36,17 +38,27 @@ export function ExperienceStep({
   onSelect,
   onNext,
 }: ExperienceStepProps) {
+  const [localSelected, setLocalSelected] = useState<string | null>(selected);
+  const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSelect = (id: string) => {
+    if (localSelected !== null) return;
+    setLocalSelected(id);
     onSelect(id);
-    if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
-    advanceTimeout.current = setTimeout(() => onNext(), 500);
+
+    textTimeout.current = setTimeout(() => {
+      setReactiveText(REACTIVE_RESPONSES.experience[id] ?? null);
+    }, 300);
+
+    advanceTimeout.current = setTimeout(() => onNext(), 2000);
   };
 
   useEffect(() => {
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+      if (textTimeout.current) clearTimeout(textTimeout.current);
     };
   }, []);
 
@@ -72,12 +84,15 @@ export function ExperienceStep({
               emoji={level.emoji}
               title={level.title}
               description={level.description}
-              selected={selected === level.id}
+              selected={localSelected === level.id}
+              disabled={localSelected !== null}
               onClick={() => handleSelect(level.id)}
             />
           </motion.div>
         ))}
       </div>
+
+      <ReactiveResponse text={reactiveText} />
     </div>
   );
 }

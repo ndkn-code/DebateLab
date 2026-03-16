@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -32,7 +32,7 @@ const STEP_NAMES = [
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 100 : -100,
+    x: direction > 0 ? 60 : -60,
     opacity: 0,
   }),
   center: {
@@ -40,7 +40,7 @@ const slideVariants = {
     opacity: 1,
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? -100 : 100,
+    x: direction > 0 ? -60 : 60,
     opacity: 0,
   }),
 };
@@ -48,6 +48,7 @@ const slideVariants = {
 export default function OnboardingPage() {
   const store = useOnboardingStore();
   const currentStep = store.currentStep;
+  const directionRef = useRef(1);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -58,17 +59,20 @@ export default function OnboardingPage() {
   }, [currentStep]);
 
   const handleNext = useCallback(() => {
+    directionRef.current = 1;
     store.nextStep();
   }, [store]);
 
   const handleBack = () => {
     if (store.currentStep > 0) {
+      directionRef.current = -1;
       store.prevStep();
     }
   };
 
   const handleDemoComplete = useCallback(
     (transcript: string) => {
+      directionRef.current = 1;
       store.setDemoTranscript(transcript);
       store.nextStep();
     },
@@ -76,8 +80,8 @@ export default function OnboardingPage() {
   );
 
   const handleDemoSkip = useCallback(() => {
+    directionRef.current = 1;
     store.setDemoTranscript("");
-    // Skip both demo speak and feedback steps (jump directly to path reveal)
     store.skipToStep(8);
   }, [store]);
 
@@ -159,9 +163,15 @@ export default function OnboardingPage() {
     }
   };
 
+  const isWelcome = store.currentStep === 0;
+
   return (
-    <div className="flex min-h-[100dvh] flex-col">
-      {/* Progress bar */}
+    <div
+      className={`flex min-h-[100dvh] flex-col transition-colors duration-500 ${
+        isWelcome ? "bg-[#fbf8ff]" : "bg-background"
+      }`}
+    >
+      {/* Progress bar — hidden on welcome screen */}
       {store.currentStep > 0 && (
         <OnboardingProgress
           currentStep={store.currentStep}
@@ -183,17 +193,23 @@ export default function OnboardingPage() {
       )}
 
       {/* Step content */}
-      <div className="flex flex-1 items-center justify-start pt-8 md:justify-center md:pt-0 px-4 py-8">
+      <div
+        className={`flex flex-1 items-center px-4 py-8 ${
+          isWelcome
+            ? "justify-center"
+            : "justify-start pt-8 md:justify-center md:pt-0"
+        }`}
+      >
         <div className="w-full max-w-lg">
-          <AnimatePresence mode="wait" custom={1}>
+          <AnimatePresence mode="wait" custom={directionRef.current}>
             <motion.div
               key={store.currentStep}
-              custom={1}
+              custom={directionRef.current}
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
             >
               {renderStep()}
             </motion.div>

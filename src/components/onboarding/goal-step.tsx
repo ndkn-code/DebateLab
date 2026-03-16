@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SelectionCard } from "./selection-card";
+import { ReactiveResponse } from "./reactive-response";
+import { REACTIVE_RESPONSES } from "./reactive-responses";
 
 const GOALS = [
   {
@@ -44,17 +46,27 @@ interface GoalStepProps {
 }
 
 export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
+  const [localSelected, setLocalSelected] = useState<string | null>(selected);
+  const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSelect = (id: string) => {
+    if (localSelected !== null) return;
+    setLocalSelected(id);
     onSelect(id);
-    if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
-    advanceTimeout.current = setTimeout(() => onNext(), 500);
+
+    textTimeout.current = setTimeout(() => {
+      setReactiveText(REACTIVE_RESPONSES.goal[id] ?? null);
+    }, 300);
+
+    advanceTimeout.current = setTimeout(() => onNext(), 2000);
   };
 
   useEffect(() => {
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+      if (textTimeout.current) clearTimeout(textTimeout.current);
     };
   }, []);
 
@@ -80,12 +92,15 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
               emoji={goal.emoji}
               title={goal.title}
               description={goal.description}
-              selected={selected === goal.id}
+              selected={localSelected === goal.id}
+              disabled={localSelected !== null}
               onClick={() => handleSelect(goal.id)}
             />
           </motion.div>
         ))}
       </div>
+
+      <ReactiveResponse text={reactiveText} />
     </div>
   );
 }

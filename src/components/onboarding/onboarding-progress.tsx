@@ -19,7 +19,7 @@ export function OnboardingProgress({
         className="h-full bg-primary"
         initial={{ width: 0 }}
         animate={{ width: `${percent}%` }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
       />
     </div>
   );
