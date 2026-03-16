@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
     ];
 
     // Stream response from Groq
+    const streamStartTime = Date.now();
     const chatCompletion = await getGroq().chat.completions.create({
       messages,
       model: chatModel,
@@ -173,8 +174,16 @@ export async function POST(req: NextRequest) {
 
           getPostHogServer().capture({
             distinctId: user.id,
-            event: "ai_chat_response",
-            properties: { model: chatModel, response_length: fullResponse.length },
+            event: "$ai_generation",
+            properties: {
+              $ai_provider: "groq",
+              $ai_model: chatModel,
+              $ai_output_tokens: Math.ceil(fullResponse.length / 4),
+              $ai_latency: Date.now() - streamStartTime,
+              $ai_is_error: false,
+              $ai_trace_id: crypto.randomUUID(),
+              route: "/api/chat",
+            },
           });
 
           // Auto-generate title from first user message

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { getPostHogServer } from "@/lib/posthog-server";
 
 export const maxDuration = 15;
 
@@ -47,9 +48,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      model: modelName,
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.5,
@@ -73,8 +75,26 @@ Return JSON:
 Be encouraging — this is their first try. Score generously (60-85 range for any reasonable attempt).
 Keep all responses under 20 words each.`;
 
+    const startTime = Date.now();
     const result = await model.generateContent(prompt);
+    const latency = Date.now() - startTime;
     const text = result.response.text();
+    const usage = result.response.usageMetadata;
+
+    getPostHogServer().capture({
+      distinctId: user.id,
+      event: "$ai_generation",
+      properties: {
+        $ai_provider: "google",
+        $ai_model: modelName,
+        $ai_input_tokens: usage?.promptTokenCount,
+        $ai_output_tokens: usage?.candidatesTokenCount,
+        $ai_latency: latency,
+        $ai_is_error: false,
+        $ai_trace_id: crypto.randomUUID(),
+        route: "/api/onboarding-feedback",
+      },
+    });
 
     let data;
     try {

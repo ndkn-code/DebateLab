@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { getPostHogServer } from "@/lib/posthog-server";
 import type { AiDifficulty } from "@/types";
 
 export const maxDuration = 30;
@@ -110,9 +111,10 @@ Rules:
 - Write ONLY the rebuttal text, no meta-commentary or labels
 - This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner`;
 
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      model: modelName,
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 500,
@@ -123,12 +125,30 @@ Rules:
       setTimeout(() => reject(new Error("TIMEOUT")), 25000);
     });
 
+    const startTime = Date.now();
     const result = await Promise.race([
       model.generateContent(prompt),
       timeoutPromise,
     ]);
+    const latency = Date.now() - startTime;
 
     const text = result.response.text().trim();
+    const usage = result.response.usageMetadata;
+
+    getPostHogServer().capture({
+      distinctId: user.id,
+      event: "$ai_generation",
+      properties: {
+        $ai_provider: "google",
+        $ai_model: modelName,
+        $ai_input_tokens: usage?.promptTokenCount,
+        $ai_output_tokens: usage?.candidatesTokenCount,
+        $ai_latency: latency,
+        $ai_is_error: false,
+        $ai_trace_id: crypto.randomUUID(),
+        route: "/api/rebuttal",
+      },
+    });
 
     return NextResponse.json({ rebuttal: text });
   } catch (err) {

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
-import { getPostHogServer } from "@/lib/posthog-server";
 
 // Allow up to 30s for Vercel serverless functions
 export const maxDuration = 30;
@@ -90,16 +89,11 @@ export async function POST(req: NextRequest) {
           actualDuration: actualDuration || 0,
           isFullRound,
           rounds,
-        }),
+        }, user.id),
         timeoutPromise,
       ]);
 
       const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-      getPostHogServer().capture({
-        distinctId: user.id,
-        event: "ai_analysis_completed",
-        properties: { model: modelUsed, topic, side },
-      });
       return NextResponse.json({ ...feedback, _model: modelUsed });
     } catch (err) {
       console.error("Gemini API error:", err);
