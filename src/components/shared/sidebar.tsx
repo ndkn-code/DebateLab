@@ -40,6 +40,7 @@ const NAV_ITEMS = [
   { href: "/practice", label: "Practice", icon: Mic },
   { href: "/chat", label: "AI Coach", icon: MessageCircle },
   { href: "/history", label: "History", icon: Clock },
+  { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

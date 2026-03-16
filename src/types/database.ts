@@ -13,6 +13,9 @@ export interface Profile {
   level: number;
   onboarding_completed: boolean;
   preferences: Record<string, unknown>;
+  selected_title: string | null;
+  unlocked_titles: string[];
+  banner_color: string;
   created_at: string;
   updated_at: string;
 }

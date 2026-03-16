@@ -1,5 +1,6 @@
 import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
@@ -137,6 +138,9 @@ const supabaseAdapter = {
         })
         .eq("id", userId);
     }
+
+    // Check for newly unlocked achievements (fire-and-forget)
+    checkAndUnlockAchievements(userId).catch(() => {});
   },
 
   async getSessions(userId: string): Promise<DebateSession[]> {
