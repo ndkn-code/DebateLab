@@ -103,7 +103,7 @@ function NavContent({
               href={item.href}
               onClick={onNavClick}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all min-h-[44px]",
                 collapsed && "justify-center px-0",
                 isActive
                   ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
@@ -210,7 +210,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       {/* Mobile top bar + sheet */}
       <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">
         <Sheet>
-          <SheetTrigger className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container">
+          <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
             <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0" showCloseButton={false}>

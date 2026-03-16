@@ -271,7 +271,7 @@ export default function HistoryPage() {
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
                 className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  "shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors min-h-[44px] flex items-center",
                   categoryFilter === cat
                     ? "bg-primary/15 text-primary"
                     : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
@@ -384,7 +384,7 @@ export default function HistoryPage() {
                     setDeleteId(session.id);
                   }}
                   aria-label={`Delete session: ${session.topic.title}`}
-                  className="absolute right-3 top-3 rounded-lg p-2 text-on-surface-variant opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                  className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

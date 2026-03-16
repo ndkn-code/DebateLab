@@ -12,6 +12,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { LandingNavbar } from "@/components/landing/landing-navbar";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -22,63 +23,10 @@ export default async function Home() {
   return (
     <main className="bg-background text-on-surface">
       {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/10">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <span className="text-2xl font-extrabold text-primary tracking-tight">
-              DebateLab
-            </span>
-            <div className="hidden md:flex items-center gap-8">
-              <a
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="#features"
-              >
-                Features
-              </a>
-              <a
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="#how-it-works"
-              >
-                How it Works
-              </a>
-              <Link
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="/history"
-              >
-                History
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-              >
-                Go to Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                >
-                  Log In
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <LandingNavbar isLoggedIn={!!user} />
 
       {/* Hero Section */}
-      <section className="pt-40 pb-24 px-6 overflow-hidden">
+      <section className="pt-28 pb-12 md:pt-40 md:pb-24 px-6 overflow-hidden">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 bg-primary-container px-4 py-2 rounded-full">

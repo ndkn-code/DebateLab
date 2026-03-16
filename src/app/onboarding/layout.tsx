@@ -31,7 +31,7 @@ export default async function OnboardingLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf8ff]">
+    <div className="min-h-[100dvh] bg-[#fbf8ff]">
       {children}
     </div>
   );

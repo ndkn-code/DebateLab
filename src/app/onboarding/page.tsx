@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
@@ -34,6 +34,11 @@ const slideVariants = {
 
 export default function OnboardingPage() {
   const store = useOnboardingStore();
+  const currentStep = store.currentStep;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentStep]);
 
   const handleNext = useCallback(() => {
     store.nextStep();
@@ -138,7 +143,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-[100dvh] flex-col">
       {/* Progress bar */}
       {store.currentStep > 0 && (
         <OnboardingProgress
@@ -161,7 +166,7 @@ export default function OnboardingPage() {
       )}
 
       {/* Step content */}
-      <div className="flex flex-1 items-center justify-center px-4 py-8">
+      <div className="flex flex-1 items-center justify-start pt-8 md:justify-center md:pt-0 px-4 py-8">
         <div className="w-full max-w-lg">
           <AnimatePresence mode="wait" custom={1}>
             <motion.div

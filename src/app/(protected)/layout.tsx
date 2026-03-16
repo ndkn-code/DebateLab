@@ -30,7 +30,7 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background md:flex-row">
       <Sidebar
         profile={profile as Profile | null}
         userEmail={user.email ?? null}

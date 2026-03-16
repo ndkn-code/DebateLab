@@ -76,7 +76,7 @@ export function ChatArea({
       <div className="flex items-center gap-3 border-b border-outline-variant/10 px-4 py-3">
         <button
           onClick={onOpenSidebar}
-          className="rounded-lg p-1.5 hover:bg-surface-container lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-container lg:hidden"
         >
           <Menu className="h-5 w-5 text-on-surface-variant" />
         </button>
@@ -96,7 +96,7 @@ export function ChatArea({
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-6 sm:px-4">
         {showWelcome ? (
           <WelcomeScreen onPromptClick={handleSubmit} />
         ) : (
@@ -115,7 +115,7 @@ export function ChatArea({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-outline-variant/10 bg-surface px-4 py-3">
+      <div className="sticky bottom-0 border-t border-outline-variant/10 bg-surface px-3 py-3 sm:px-4">
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <div className="relative flex-1">
             <textarea

@@ -48,7 +48,7 @@ export function CategoryTabs({
               key={cat}
               onClick={() => onSelect(cat)}
               className={cn(
-                "relative flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                "relative flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px]",
                 isActive
                   ? "text-on-surface"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"

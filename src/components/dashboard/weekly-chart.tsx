@@ -29,7 +29,7 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
   }));
 
   return (
-    <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
+    <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 sm:p-6 soft-shadow">
       <div className="mb-6 flex items-center justify-between">
         <h3 className="text-base font-semibold text-on-surface">
           This Week&apos;s Activity

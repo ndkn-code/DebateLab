@@ -240,7 +240,7 @@ export function ChatShell({
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-0px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden md:h-screen">
       <ConversationSidebar
         conversations={conversations}
         activeId={activeConversationId}

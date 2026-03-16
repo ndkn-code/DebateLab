@@ -53,13 +53,13 @@ export function CourseListContent({
       </div>
 
       {/* Category Filter */}
-      <div className="mb-6 flex gap-2">
+      <div className="scrollbar-hide -mx-4 mb-6 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value}
             onClick={() => setCategory(cat.value)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors min-h-[44px]",
               category === cat.value
                 ? "bg-primary text-on-primary"
                 : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
@@ -80,7 +80,7 @@ export function CourseListContent({
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((course) => {
             const enrollment = enrollmentMap.get(course.id);
             const isEnrolled = !!enrollment;

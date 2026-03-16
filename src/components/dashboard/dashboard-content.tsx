@@ -80,7 +80,7 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
       </div>
 
       {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {/* Streak */}
         <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
