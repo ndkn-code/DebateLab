@@ -8,9 +8,10 @@ import type { ChatMessageLocal } from "./chat-shell";
 
 interface ChatBubbleProps {
   message: ChatMessageLocal;
+  isStreaming?: boolean;
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
+export function ChatBubble({ message, isStreaming = false }: ChatBubbleProps) {
   const isUser = message.role === "user";
 
   return (
@@ -43,10 +44,13 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : message.content ? (
-          <div className="prose prose-sm max-w-none prose-headings:text-on-surface prose-p:text-on-surface-variant prose-strong:text-on-surface prose-li:text-on-surface-variant prose-a:text-primary prose-code:text-primary prose-code:bg-surface-container prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-pre:bg-surface-container prose-pre:rounded-xl">
+          <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mt-3 prose-headings:mb-1 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:text-primary prose-code:bg-surface-container prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-pre:bg-surface-container prose-pre:rounded-xl">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {message.content}
             </ReactMarkdown>
+            {isStreaming && (
+              <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-0.5 align-text-bottom" />
+            )}
           </div>
         ) : null}
       </div>

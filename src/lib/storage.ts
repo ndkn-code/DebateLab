@@ -1,6 +1,7 @@
 import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
+import { useAchievementStore } from "@/stores/achievement-store";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
@@ -106,8 +107,25 @@ const supabaseAdapter = {
       p_score: session.feedback?.totalScore ?? null,
     });
 
+    // Get current XP/level before awarding
+    const { data: preXpData } = await supabase
+      .from("profiles")
+      .select("xp, level")
+      .eq("id", userId)
+      .single();
+    const oldLevel = preXpData?.level ?? 1;
+
     // Award XP atomically via RPC
     await supabase.rpc("increment_xp", { user_id: userId, amount: xpEarned });
+
+    // Check for level-up
+    if (typeof window !== "undefined" && preXpData) {
+      const newXp = (preXpData.xp ?? 0) + xpEarned;
+      const newLevel = Math.floor(newXp / 500) + 1;
+      if (newLevel > oldLevel) {
+        useAchievementStore.getState().showLevelUp(newLevel);
+      }
+    }
 
     // Update session count, practice minutes, and streak
     const { data: profileData } = await supabase

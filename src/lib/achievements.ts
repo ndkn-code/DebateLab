@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { showToast } from "@/components/shared/toast";
+import { useAchievementStore } from "@/stores/achievement-store";
 import posthog from "posthog-js";
 
 interface Achievement {
@@ -123,14 +123,17 @@ export async function checkAndUnlockAchievements(
     }
   }
 
-  // Show toasts and track PostHog events
+  // Show achievement toasts and track PostHog events
   for (const a of newlyUnlocked) {
-    const titleText = a.title_reward
-      ? ` You earned the title "${a.title_reward}"!`
-      : "";
-    showToast(`${a.icon} Achievement Unlocked: ${a.title}!${titleText}`, "success");
-
+    // Show Lottie achievement toast
     if (typeof window !== "undefined") {
+      useAchievementStore.getState().showAchievement({
+        title: a.title,
+        description: a.description,
+        icon: a.icon,
+        titleReward: a.title_reward ?? undefined,
+      });
+
       posthog.capture("achievement_unlocked", {
         achievement: a.slug,
         title_reward: a.title_reward,

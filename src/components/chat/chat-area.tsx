@@ -101,15 +101,26 @@ export function ChatArea({
           <WelcomeScreen onPromptClick={handleSubmit} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-4">
-            {messages.map((msg) => (
-              <ChatBubble key={msg.id} message={msg} />
-            ))}
-            {isLoading &&
-              messages.length > 0 &&
-              messages[messages.length - 1].role === "assistant" &&
-              messages[messages.length - 1].content === "" && (
-                <TypingIndicator />
-              )}
+            {messages.map((msg, i) => {
+              const isLastAssistant =
+                i === messages.length - 1 &&
+                msg.role === "assistant" &&
+                isLoading;
+              const isEmptyStreaming =
+                isLastAssistant && msg.content === "";
+
+              if (isEmptyStreaming) {
+                return <TypingIndicator key={msg.id} />;
+              }
+
+              return (
+                <ChatBubble
+                  key={msg.id}
+                  message={msg}
+                  isStreaming={isLastAssistant && msg.content !== ""}
+                />
+              );
+            })}
           </div>
         )}
       </div>

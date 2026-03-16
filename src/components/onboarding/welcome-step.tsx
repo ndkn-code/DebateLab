@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
-import micAnimation from "../../../public/lottie/microphone.json";
+import welcomeAnimation from "../../../public/lottie/welcome.json";
 
 interface WelcomeStepProps {
   onNext: () => void;
@@ -12,7 +12,7 @@ interface WelcomeStepProps {
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
   return (
     <div className="flex flex-col items-center text-center">
-      {/* Animated illustration */}
+      {/* Welcome animation */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -20,8 +20,9 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         className="mb-8"
       >
         <LottieAnimation
-          animationData={micAnimation}
-          className="w-32 h-32 mx-auto"
+          animationData={welcomeAnimation}
+          className="w-40 h-40 mx-auto"
+          loop={true}
         />
       </motion.div>
 
