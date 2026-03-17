@@ -176,7 +176,8 @@
     },
     "commitment": {
       "headline": "How much time can you practice each day?",
-      "subheadline": "Even 10 minutes a day builds real skill"
+      "subheadline": "Even 10 minutes a day builds real skill",
+      "minutes_label": "min"
     },
     "reactive_responses": {
       "goal": {
@@ -207,26 +208,40 @@
     "demo_intro": {
       "headline": "Let's try a quick debate!",
       "subheadline": "You'll get 30 seconds to argue your position. Don't worry — this is just practice!",
-      "cta": "I'm ready"
+      "cta": "I'm ready",
+      "for": "FOR",
+      "against": "AGAINST"
     },
     "demo_speak": {
       "headline": "Speak now!",
       "done": "Done",
       "time_remaining": "{seconds}s remaining",
       "mic_error": "Can't access your microphone. Please check permissions!",
-      "skip": "Skip"
+      "skip": "Skip",
+      "recording": "Recording...",
+      "speak_placeholder": "Start speaking... your words will appear here"
     },
     "demo_feedback": {
       "headline": "Here's how you did!",
       "analyzing": "Analyzing your argument...",
       "strength": "Strength",
       "improvement": "To improve",
-      "cta": "See my learning path"
+      "cta": "See my learning path",
+      "fallback_strength": "You took the initiative to practice!",
+      "fallback_improvement": "Try adding specific examples next time.",
+      "fallback_encouragement": "Every champion started as a beginner!"
     },
     "path_reveal": {
       "headline": "Your learning path is ready!",
       "recommended": "Recommended for you",
-      "cta": "Go to Dashboard"
+      "cta": "Go to Dashboard",
+      "course_foundations": "Foundations of Competitive Debate",
+      "course_foundations_desc": "Learn the building blocks of strong arguments",
+      "course_speaking": "Public Speaking Mastery",
+      "course_speaking_desc": "Build confidence and delivery skills",
+      "course_daily": "Daily Debate Practice",
+      "course_daily_desc": "Practice with AI opponents to sharpen your skills",
+      "lets_go": "Let's go!"
     },
     "back": "Back"
   },
@@ -268,7 +283,145 @@
       "practice_get_feedback": "Practice and get AI-powered feedback",
       "for": "FOR",
       "against": "AGAINST",
-      "start_new_practice": "Start New Practice"
+      "start_new_practice": "Start New Practice",
+      "welcome_banner": "Welcome to DebateLab, {name}! 🎉",
+      "welcome_banner_subtitle": "Here's your personalized learning path.",
+      "start_course": "Start Course",
+      "this_weeks_activity": "This Week's Activity",
+      "total_hours": "{hours}h total",
+      "ask_ai_coach": "Ask your AI Coach",
+      "ask_ai_coach_subtitle": "Get instant help with debate techniques",
+      "ask_placeholder": "Ask anything about debate...",
+      "suggestion_rebuttal": "How to structure a rebuttal?",
+      "suggestion_wsdc": "Explain WSDC format",
+      "suggestion_review": "Review my last debate",
+      "student": "student",
+      "days_labels": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
+    },
+    "courses": {
+      "page_headline": "Courses",
+      "page_subtitle": "Structured lessons to build your debate and speaking skills.",
+      "tab_all": "All Courses",
+      "tab_debate": "Debate",
+      "tab_speaking": "Public Speaking",
+      "empty": "No courses found",
+      "empty_subtitle": "Check back soon for new content!",
+      "start": "Start Course",
+      "continue": "Continue",
+      "completed": "Completed",
+      "progress": "Progress",
+      "lessons_count": "{count} Lessons",
+      "modules_count": "{count} Modules"
+    },
+    "practice": {
+      "page_headline": "Choose Your Battle",
+      "page_subtitle": "Select a debate topic, configure your session, and start practicing.",
+      "tab_all": "All",
+      "tab_education": "Education & School Life",
+      "tab_technology": "Technology & Social Media",
+      "tab_society": "Society & Culture",
+      "tab_environment": "Environment & Sustainability",
+      "tab_ethics": "Ethics & Philosophy",
+      "tab_vietnam": "Vietnam-Specific Issues",
+      "difficulty_beginner": "Beginner",
+      "difficulty_intermediate": "Intermediate",
+      "difficulty_advanced": "Advanced",
+      "surprise_me": "Surprise Me",
+      "no_topics": "No topics found in this category",
+      "session_config": "Session Configuration",
+      "mode": "Mode",
+      "quick_practice": "Quick Practice",
+      "full_round": "Full Round",
+      "quick_desc": "One round of prep + speech",
+      "full_desc": "5-round debate with AI opponent (Trường Teen style)",
+      "ai_difficulty": "AI Difficulty",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard",
+      "easy_desc": "Beginner-friendly AI — simpler arguments",
+      "medium_desc": "Balanced AI — solid counter-arguments",
+      "hard_desc": "Expert AI — championship-level rebuttals",
+      "your_side": "Your Side",
+      "random": "Random",
+      "for": "For",
+      "against": "Against",
+      "prep_time": "Prep Time",
+      "speech_time": "Speech Time",
+      "ai_hints": "AI Hints during prep",
+      "ai_hints_desc": "Shows brainstorm hints during preparation time",
+      "begin_session": "Begin Session",
+      "recording": "Recording...",
+      "speak_placeholder": "Start speaking... your words will appear here"
+    },
+    "chat": {
+      "new_chat": "+ New Chat",
+      "header_title": "AI Debate Coach",
+      "header_subtitle": "Always ready to help",
+      "sidebar_empty": "Start a conversation with your AI Coach",
+      "welcome_title": "Hi! I'm your AI Debate Coach",
+      "welcome_subtitle": "Ask me anything about debate techniques, argumentation, public speaking, or let me help you practice.",
+      "suggestion_opening": "How do I structure a strong opening statement?",
+      "suggestion_wsdc": "Explain the WSDC debate format",
+      "suggestion_fallacies": "What are common logical fallacies?",
+      "suggestion_rebuttals": "Help me practice rebuttals",
+      "suggestion_review": "Review my last debate performance",
+      "suggestion_impromptu": "Tips for impromptu speaking",
+      "input_placeholder": "Ask your AI Coach anything...",
+      "new_conversation": "New conversation",
+      "conversations": "Conversations",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "days_ago": "{count}d ago",
+      "error_message": "Sorry, I encountered an error. Please try again."
+    },
+    "history": {
+      "page_headline": "Practice History",
+      "page_subtitle": "Review your past debate sessions and track improvement",
+      "empty": "No practice sessions yet",
+      "empty_subtitle": "Start your first debate and your history will appear here!",
+      "start_practicing": "Start Practicing",
+      "no_match": "No sessions match your filters",
+      "no_match_subtitle": "Try adjusting your search or filters",
+      "total_sessions": "Total Sessions",
+      "average_score": "Average Score",
+      "best_score": "Best Score",
+      "most_practiced": "Most Practiced",
+      "search_placeholder": "Search topics...",
+      "sort_newest": "Newest First",
+      "sort_oldest": "Oldest First",
+      "sort_highest": "Highest Score",
+      "sort_lowest": "Lowest Score",
+      "for": "FOR",
+      "against": "AGAINST",
+      "full": "Full",
+      "quick": "Quick",
+      "delete_title": "Delete Session",
+      "delete_description": "Are you sure you want to delete this session? This action cannot be undone.",
+      "category_all": "All",
+      "category_education": "Education",
+      "category_technology": "Technology",
+      "category_society": "Society",
+      "category_environment": "Environment",
+      "category_ethics": "Ethics",
+      "category_vietnam": "Vietnam"
+    },
+    "profile": {
+      "level": "Level {level}",
+      "xp_display": "{current} / {max} XP",
+      "day_streak": "Day Streak",
+      "debates": "Debates",
+      "practiced": "Practiced",
+      "courses": "Courses",
+      "change_title": "Change Title",
+      "edit_profile": "Edit Profile"
     }
   },
   "chat": {
@@ -372,6 +525,17 @@
       "has_account": "Already have an account?",
       "login_link": "Sign in"
     }
+  },
+  "metadata": {
+    "title": "DebateLab — Practice Debate With AI",
+    "description": "Practice debate, get instant AI feedback, and sharpen your English speaking skills. Built for Vietnamese students."
+  },
+  "errors": {
+    "generic": "Oops! Something went wrong.",
+    "network": "Connection lost. Check your internet!",
+    "not_found": "Page not found",
+    "unauthorized": "Please sign in",
+    "session_expired": "Session expired. Please sign in again."
   },
   "common": {
     "loading": "Loading...",

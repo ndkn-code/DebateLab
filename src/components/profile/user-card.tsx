@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Flame, BarChart3, Clock, BookOpen, Sparkles } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +32,8 @@ function formatMinutes(minutes: number): string {
 }
 
 export function UserCard({ profile, onTitleChange }: UserCardProps) {
+  const t = useTranslations("dashboard.profile");
+
   if (!profile) return null;
 
   const xpInLevel = profile.xp % 500;
@@ -40,28 +43,28 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
     {
       icon: Flame,
       value: profile.streak_current,
-      label: "Day Streak",
+      label: t("day_streak"),
       color: "text-orange-500",
       bg: "bg-orange-500/10",
     },
     {
       icon: BarChart3,
       value: profile.total_sessions_completed,
-      label: "Debates",
+      label: t("debates"),
       color: "text-primary",
       bg: "bg-primary/10",
     },
     {
       icon: Clock,
       value: formatMinutes(profile.total_practice_minutes),
-      label: "Practiced",
+      label: t("practiced"),
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
     },
     {
       icon: BookOpen,
       value: "\u2014",
-      label: "Courses",
+      label: t("courses"),
       color: "text-purple-500",
       bg: "bg-purple-500/10",
     },
@@ -99,9 +102,9 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
           {/* XP bar */}
           <div className="mt-4">
             <div className="mb-1.5 flex items-center justify-between text-sm">
-              <span className="font-semibold text-on-surface">Level {profile.level}</span>
+              <span className="font-semibold text-on-surface">{t("level", { level: profile.level })}</span>
               <span className="text-on-surface-variant">
-                {xpInLevel} / 500 XP
+                {t("xp_display", { current: xpInLevel, max: 500 })}
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-primary/10">
@@ -122,7 +125,7 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
             className="flex items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest px-3 py-2.5"
           >
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}>
-              {stat.label === "Day Streak" && profile.streak_current > 0 ? (
+              {stat.label === t("day_streak") && profile.streak_current > 0 ? (
                 <LottieAnimation animationData={fireAnimation} className="w-7 h-7" loop={true} />
               ) : (
                 <stat.icon className={`h-4.5 w-4.5 ${stat.color}`} />
@@ -139,11 +142,11 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
       {/* Action buttons */}
       <div className="relative mt-5 flex flex-wrap gap-3">
         <Button variant="outline" size="sm" onClick={onTitleChange} className="rounded-xl">
-          Change Title
+          {t("change_title")}
         </Button>
         <Link href="/settings">
           <Button variant="outline" size="sm" className="rounded-xl">
-            Edit Profile
+            {t("edit_profile")}
           </Button>
         </Link>
       </div>

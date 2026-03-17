@@ -1,14 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
-
-const difficultyConfig = {
-  beginner: { label: "Beginner", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  intermediate: { label: "Intermediate", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  advanced: { label: "Advanced", color: "bg-red-500/10 text-red-400 border-red-500/20" },
-};
 
 interface TopicCardProps {
   topic: DebateTopic;
@@ -18,6 +13,14 @@ interface TopicCardProps {
 }
 
 export function TopicCard({ topic, isSelected, onSelect, index }: TopicCardProps) {
+  const t = useTranslations("dashboard.practice");
+
+  const difficultyConfig = {
+    beginner: { label: t("difficulty_beginner"), color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    intermediate: { label: t("difficulty_intermediate"), color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    advanced: { label: t("difficulty_advanced"), color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  };
+
   const diff = difficultyConfig[topic.difficulty];
 
   return (

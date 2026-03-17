@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -51,6 +52,7 @@ function OptionButton({
 
 export function SessionConfig({ topic, onClose }: SessionConfigProps) {
   const router = useRouter();
+  const t = useTranslations("dashboard.practice");
   const {
     side,
     mode,
@@ -88,7 +90,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           <div className="mb-6 flex items-start justify-between">
             <div className="flex-1 pr-4">
               <h3 className="text-lg font-bold text-on-surface">
-                Session Configuration
+                {t("session_config")}
               </h3>
               <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
                 {topic.title}
@@ -107,7 +109,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           <div className="mb-6">
             <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
               <Layers className="h-4 w-4 text-primary" />
-              Mode
+              {t("mode")}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <OptionButton
@@ -115,20 +117,20 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
                 onClick={() => setMode("quick")}
               >
                 <Zap className="mr-1.5 inline h-3.5 w-3.5" />
-                Quick Practice
+                {t("quick_practice")}
               </OptionButton>
               <OptionButton
                 active={mode === "full"}
                 onClick={() => setMode("full")}
               >
                 <Layers className="mr-1.5 inline h-3.5 w-3.5" />
-                Full Round
+                {t("full_round")}
               </OptionButton>
             </div>
             <p className="mt-1.5 text-xs text-on-surface-variant">
               {mode === "quick"
-                ? "One round of prep + speech"
-                : "5-round debate with AI opponent (Trường Teen style)"}
+                ? t("quick_desc")
+                : t("full_desc")}
             </p>
           </div>
 
@@ -137,34 +139,34 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             <div className="mb-6">
               <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
                 <Bot className="h-4 w-4 text-primary" />
-                AI Difficulty
+                {t("ai_difficulty")}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <OptionButton
                   active={aiDifficulty === "easy"}
                   onClick={() => setAiDifficulty("easy")}
                 >
-                  Easy
+                  {t("easy")}
                 </OptionButton>
                 <OptionButton
                   active={aiDifficulty === "medium"}
                   onClick={() => setAiDifficulty("medium")}
                 >
-                  Medium
+                  {t("medium")}
                 </OptionButton>
                 <OptionButton
                   active={aiDifficulty === "hard"}
                   onClick={() => setAiDifficulty("hard")}
                 >
-                  Hard
+                  {t("hard")}
                 </OptionButton>
               </div>
               <p className="mt-1.5 text-xs text-on-surface-variant">
                 {aiDifficulty === "easy"
-                  ? "Beginner-friendly AI — simpler arguments"
+                  ? t("easy_desc")
                   : aiDifficulty === "medium"
-                    ? "Balanced AI — solid counter-arguments"
-                    : "Expert AI — championship-level rebuttals"}
+                    ? t("medium_desc")
+                    : t("hard_desc")}
               </p>
             </div>
           )}
@@ -173,7 +175,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           <div className="mb-6">
             <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
               <Shuffle className="h-4 w-4 text-primary" />
-              Your Side
+              {t("your_side")}
             </label>
             <div className="grid grid-cols-3 gap-2">
               <OptionButton
@@ -181,21 +183,21 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
                 onClick={() => setSide("random")}
               >
                 <Shuffle className="mr-1 inline h-3.5 w-3.5" />
-                Random
+                {t("random")}
               </OptionButton>
               <OptionButton
                 active={side === "proposition"}
                 onClick={() => setSide("proposition")}
               >
                 <ThumbsUp className="mr-1 inline h-3.5 w-3.5" />
-                For
+                {t("for")}
               </OptionButton>
               <OptionButton
                 active={side === "opposition"}
                 onClick={() => setSide("opposition")}
               >
                 <ThumbsDown className="mr-1 inline h-3.5 w-3.5" />
-                Against
+                {t("against")}
               </OptionButton>
             </div>
           </div>
@@ -204,16 +206,16 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           <div className="mb-6">
             <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
               <Clock className="h-4 w-4 text-primary" />
-              Prep Time
+              {t("prep_time")}
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {[60, 120, 180].map((t) => (
+              {[60, 120, 180].map((val) => (
                 <OptionButton
-                  key={t}
-                  active={prepTime === t}
-                  onClick={() => setPrepTime(t)}
+                  key={val}
+                  active={prepTime === val}
+                  onClick={() => setPrepTime(val)}
                 >
-                  {t / 60} min
+                  {val / 60} min
                 </OptionButton>
               ))}
             </div>
@@ -223,16 +225,16 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
           <div className="mb-6">
             <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
               <Mic2 className="h-4 w-4 text-primary" />
-              Speech Time
+              {t("speech_time")}
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {[120, 180, 240].map((t) => (
+              {[120, 180, 240].map((val) => (
                 <OptionButton
-                  key={t}
-                  active={speechTime === t}
-                  onClick={() => setSpeechTime(t)}
+                  key={val}
+                  active={speechTime === val}
+                  onClick={() => setSpeechTime(val)}
                 >
-                  {t / 60} min
+                  {val / 60} min
                 </OptionButton>
               ))}
             </div>
@@ -243,7 +245,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm font-medium text-on-surface">
                 <Lightbulb className="h-4 w-4 text-primary" />
-                AI Hints during prep
+                {t("ai_hints")}
               </label>
               <button
                 role="switch"
@@ -264,7 +266,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
               </button>
             </div>
             <p className="mt-1.5 text-xs text-on-surface-variant">
-              Shows brainstorm hints during preparation time
+              {t("ai_hints_desc")}
             </p>
           </div>
 
@@ -273,7 +275,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             onClick={handleBegin}
             className="w-full gap-2 bg-primary py-6 text-base font-semibold text-on-primary hover:bg-primary/90"
           >
-            Begin Session
+            {t("begin_session")}
             <ArrowRight className="h-5 w-5" />
           </Button>
         </div>

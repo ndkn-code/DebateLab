@@ -1,18 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { BookOpen, Clock, BarChart3, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Course, Enrollment } from "@/types/database";
-
-const CATEGORIES = [
-  { value: "all", label: "All Courses" },
-  { value: "debate", label: "Debate" },
-  { value: "public-speaking", label: "Public Speaking" },
-];
 
 const DIFFICULTY_COLORS = {
   beginner: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
@@ -29,7 +24,28 @@ export function CourseListContent({
   courses,
   enrollments,
 }: CourseListContentProps) {
+  const t = useTranslations("dashboard.courses");
+  const tp = useTranslations("dashboard.practice");
   const [category, setCategory] = useState("all");
+
+  const CATEGORIES = [
+    { value: "all", label: t("tab_all") },
+    { value: "debate", label: t("tab_debate") },
+    { value: "public-speaking", label: t("tab_speaking") },
+  ];
+
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case "beginner":
+        return tp("difficulty_beginner");
+      case "intermediate":
+        return tp("difficulty_intermediate");
+      case "advanced":
+        return tp("difficulty_advanced");
+      default:
+        return difficulty;
+    }
+  };
 
   const enrollmentMap = new Map(
     enrollments.map((e) => [e.course_id, e])
@@ -45,10 +61,10 @@ export function CourseListContent({
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-on-surface sm:text-3xl">
-          Courses
+          {t("page_headline")}
         </h1>
         <p className="mt-1 text-on-surface-variant">
-          Structured lessons to build your debate and speaking skills
+          {t("page_subtitle")}
         </p>
       </div>
 
@@ -74,9 +90,9 @@ export function CourseListContent({
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-12 text-center">
           <BookOpen className="mb-3 h-10 w-10 text-primary/30" />
-          <p className="font-medium text-on-surface">No courses found</p>
+          <p className="font-medium text-on-surface">{t("empty")}</p>
           <p className="mt-1 text-sm text-on-surface-variant">
-            Check back soon for new content
+            {t("empty_subtitle")}
           </p>
         </div>
       ) : (
@@ -108,7 +124,7 @@ export function CourseListContent({
                         DIFFICULTY_COLORS[course.difficulty]
                       )}
                     >
-                      {course.difficulty}
+                      {getDifficultyLabel(course.difficulty)}
                     </Badge>
                   </div>
                 </div>
@@ -137,7 +153,7 @@ export function CourseListContent({
                 {isEnrolled && !isCompleted ? (
                   <div className="mt-4">
                     <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
-                      <span>Progress</span>
+                      <span>{t("progress")}</span>
                       <span>{enrollment.progress_percent}%</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container">
@@ -154,7 +170,7 @@ export function CourseListContent({
                     size="sm"
                     className="mt-4 w-full bg-primary text-on-primary"
                   >
-                    Start Course
+                    {t("start")}
                   </Button>
                 ) : null}
               </Link>

@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { MessageCircle, Send } from "lucide-react";
-
-const QUICK_PROMPTS = [
-  "How to structure a rebuttal?",
-  "Explain WSDC format",
-  "Review my last debate",
-];
 
 export function AiCoachWidget() {
   const router = useRouter();
+  const t = useTranslations("dashboard.home");
   const [input, setInput] = useState("");
+
+  const QUICK_PROMPTS = [
+    t("suggestion_rebuttal"),
+    t("suggestion_wsdc"),
+    t("suggestion_review"),
+  ];
 
   const handleSubmit = (message: string) => {
     if (!message.trim()) return;
@@ -31,10 +33,10 @@ export function AiCoachWidget() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-on-surface">
-              Ask your AI Coach
+              {t("ask_ai_coach")}
             </h3>
             <p className="text-xs text-on-surface-variant">
-              Get instant help with debate techniques
+              {t("ask_ai_coach_subtitle")}
             </p>
           </div>
         </div>
@@ -43,7 +45,7 @@ export function AiCoachWidget() {
         <div className="relative mb-3">
           <input
             type="text"
-            placeholder="Ask anything about debate..."
+            placeholder={t("ask_placeholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

@@ -139,7 +139,7 @@ export function DemoSpeakStep({
               : "bg-rose-100 text-rose-700"
           }`}
         >
-          {position}
+          {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
         </span>
       </motion.div>
 
@@ -187,7 +187,7 @@ export function DemoSpeakStep({
           className="mb-4 flex items-center justify-center gap-2"
         >
           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          <span className="text-sm text-gray-500">Recording...</span>
+          <span className="text-sm text-gray-500">{t("demo_speak.recording")}</span>
         </motion.div>
       )}
 
@@ -210,7 +210,7 @@ export function DemoSpeakStep({
             </p>
           ) : (
             <p className="text-base text-gray-400 italic">
-              Start speaking... your words will appear here
+              {t("demo_speak.speak_placeholder")}
             </p>
           )}
         </motion.div>

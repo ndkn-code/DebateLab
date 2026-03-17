@@ -11,73 +11,73 @@
       "history": "Lịch sử"
     },
     "hero": {
-      "badge": "AI-Powered Training",
-      "headline": "Luyện Debate Cùng AI Coach Riêng Của Bạn.",
-      "subheadline": "Nói, nhận feedback tức thì, và crush cuộc thi tiếp theo. Thiết kế cho thế hệ debater Việt Nam mới.",
+      "badge": "Luyện Với AI",
+      "headline": "Luyện Debate Với AI. Lên Trình Mỗi Ngày.",
+      "subheadline": "Nói, nhận feedback ngay, crush cuộc thi tiếp theo. Dành cho debater Việt Nam.",
       "cta": "Bắt đầu miễn phí",
       "cta_logged_in": "Vào Luyện Tập",
       "social_proof": "Gia nhập 500+ debater Việt Nam",
-      "session_timer": "Session Timer",
-      "live_analysis": "LIVE ANALYSIS"
+      "session_timer": "Đồng Hồ",
+      "live_analysis": "ĐANG PHÂN TÍCH"
     },
     "features": {
-      "headline": "Bộ Công Cụ AI Để Chiến Thắng",
-      "subheadline": "Tính năng mạnh mẽ, xây dựng cho hiệu suất thi đấu.",
+      "headline": "Mọi Thứ Bạn Cần Để Lên Trình",
+      "subheadline": "Từ luyện tập đến chấm điểm — AI lo hết.",
       "solo_practice": {
         "title": "Luyện Tập Solo",
-        "description": "Chọn motion, chọn phe, và bấm giờ. Hỗ trợ đầy đủ WSDC & BP."
+        "description": "Chọn motion, chọn phe, bấm giờ. WSDC & BP đều có."
       },
       "transcription": {
         "title": "Phiên Âm Trực Tiếp",
-        "description": "Chuyển giọng nói thành văn bản siêu chính xác để review lại bài nói."
+        "description": "Giọng nói → văn bản, chuẩn từng từ. Review lại bài nói dễ hơn."
       },
       "ai_analysis": {
         "title": "Phân Tích AI",
-        "description": "Chấm điểm tức thì về Nội dung, Cấu trúc, Ngôn ngữ, và Thuyết phục.",
+        "description": "Nói xong là có điểm. Nội dung, Cấu trúc, Ngôn ngữ, Thuyết phục — đều chấm hết.",
         "content": "Nội dung",
         "style": "Phong cách"
       },
       "growth": {
-        "title": "Phát Triển Thông Minh",
-        "description": "Feedback hành động được và lập luận mẫu để cải thiện ngay lập tức.",
+        "title": "Lên Trình Nhanh",
+        "description": "Feedback cụ thể + lập luận mẫu. Biết sai ở đâu, sửa ngay.",
         "progress": "Tiến độ"
       }
     },
     "courses": {
-      "headline": "Lộ Trình Học Có Cấu Trúc",
-      "subheadline": "Không chỉ luyện tập — master debate với khóa học dành riêng cho học sinh Việt Nam.",
+      "headline": "Khóa Học Debate Bài Bản",
+      "subheadline": "Không chỉ luyện — học debate từ gốc với khóa học cho học sinh Việt Nam.",
       "foundations": {
         "title": "Foundations of Competitive Debate",
-        "description": "Master nền tảng lập luận, nghiên cứu, và trình bày. Hoàn hảo cho beginner và intermediate.",
-        "modules": "4 Modules",
-        "lessons": "16 Lessons"
+        "description": "Nắm vững lập luận, nghiên cứu, trình bày. Cho bạn mới bắt đầu.",
+        "modules": "4 Phần",
+        "lessons": "16 Bài"
       },
       "speaking": {
         "title": "Public Speaking Mastery",
-        "description": "Xây dựng tự tin, nâng cao kỹ năng trình bày, và học thuyết phục nâng cao.",
-        "modules": "3 Modules",
-        "lessons": "11 Lessons"
+        "description": "Tự tin hơn, trình bày xịn hơn, thuyết phục đỉnh hơn.",
+        "modules": "3 Phần",
+        "lessons": "11 Bài"
       },
       "browse": "Xem Tất Cả Khóa Học",
-      "signup_to_access": "Đăng Ký Để Truy Cập Khóa Học"
+      "signup_to_access": "Đăng Ký Để Học Ngay"
     },
     "howItWorks": {
       "headline": "Cách Hoạt Động",
       "step1": {
         "title": "Học",
-        "description": "Học các khóa có cấu trúc với bài viết, quiz, và video về nền tảng debate."
+        "description": "Khóa học bài bản: bài viết, quiz, video — từ cơ bản đến nâng cao."
       },
       "step2": {
         "title": "Luyện Tập",
-        "description": "Chọn chủ đề, nói vào app, và nhận phiên âm trực tiếp bài nói."
+        "description": "Chọn đề, nói vào mic, bài nói chuyển thành text ngay."
       },
       "step3": {
         "title": "Nhận Feedback",
-        "description": "Nhận chấm điểm AI và feedback chi tiết về nội dung, cấu trúc, và trình bày."
+        "description": "AI chấm điểm + feedback chi tiết. Biết mình mạnh yếu ở đâu."
       },
       "step4": {
         "title": "Hỏi AI Coach",
-        "description": "Chat với AI debate coach riêng bất cứ lúc nào để nhận tips, giải thích, và luyện tập."
+        "description": "Chat với AI Coach 24/7. Hỏi gì cũng được, trả lời ngay."
       }
     },
     "testimonial": {
@@ -86,15 +86,15 @@
       "title": "Top Speaker, National Schools Debating Championship"
     },
     "finalCta": {
-      "headline": "Sẵn sàng chiến thắng debate tiếp theo?",
-      "subheadline": "Tham gia nền tảng luyện debate tiên tiến nhất cho debater Việt Nam. Không cần luyện với phòng trống nữa.",
+      "headline": "Sẵn sàng lên trình chưa?",
+      "subheadline": "Hết thời luyện một mình trong phòng. Có AI Coach rồi.",
       "cta": "Bắt Đầu Ngay",
       "cta_logged_in": "Vào Dashboard",
       "secondary": "Xem Lịch Sử",
       "secondary_logged_out": "Đăng Nhập"
     },
     "footer": {
-      "tagline": "Xây dựng nền tảng luyện debate thông minh nhất thế giới cho các nhà lãnh đạo tương lai.",
+      "tagline": "Luyện debate thông minh. Made in Vietnam 🇻🇳",
       "product": "Sản phẩm",
       "courses": "Khóa học",
       "practice": "Luyện tập",
@@ -102,7 +102,7 @@
       "legal": "Pháp lý",
       "privacy": "Chính sách bảo mật",
       "terms": "Điều khoản dịch vụ",
-      "copyright": "© {year} DebateLab. All rights reserved."
+      "copyright": "© {year} DebateLab. Tất cả quyền được bảo lưu."
     }
   },
   "onboarding": {
@@ -176,7 +176,8 @@
     },
     "commitment": {
       "headline": "Mỗi ngày luyện được bao lâu?",
-      "subheadline": "10 phút mỗi ngày cũng đủ lên trình rồi"
+      "subheadline": "10 phút mỗi ngày cũng đủ lên trình rồi",
+      "minutes_label": "phút"
     },
     "reactive_responses": {
       "goal": {
@@ -207,26 +208,40 @@
     "demo_intro": {
       "headline": "Thử debate nhanh nhé!",
       "subheadline": "Bạn có 30 giây để nói lập luận. Đừng lo — đây chỉ là thử thôi!",
-      "cta": "Sẵn sàng rồi"
+      "cta": "Sẵn sàng rồi",
+      "for": "ỦNG HỘ",
+      "against": "PHẢN ĐỐI"
     },
     "demo_speak": {
       "headline": "Nói đi!",
       "done": "Xong rồi",
       "time_remaining": "Còn {seconds} giây",
       "mic_error": "Không thể truy cập mic. Kiểm tra quyền truy cập nhé!",
-      "skip": "Bỏ qua"
+      "skip": "Bỏ qua",
+      "recording": "Đang ghi âm...",
+      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây"
     },
     "demo_feedback": {
       "headline": "Kết quả nè!",
       "analyzing": "Đang phân tích lập luận...",
       "strength": "Điểm mạnh",
       "improvement": "Cần cải thiện",
-      "cta": "Xem lộ trình học"
+      "cta": "Xem lộ trình học",
+      "fallback_strength": "Bạn đã chủ động luyện tập!",
+      "fallback_improvement": "Lần sau thử thêm ví dụ cụ thể nhé.",
+      "fallback_encouragement": "Mọi nhà vô địch đều bắt đầu từ đây!"
     },
     "path_reveal": {
       "headline": "Lộ trình học của bạn đã sẵn sàng!",
       "recommended": "Đề xuất cho bạn",
-      "cta": "Vào Dashboard"
+      "cta": "Vào Dashboard",
+      "course_foundations": "Foundations of Competitive Debate",
+      "course_foundations_desc": "Học những nền tảng xây dựng lập luận mạnh",
+      "course_speaking": "Public Speaking Mastery",
+      "course_speaking_desc": "Xây dựng sự tự tin và kỹ năng trình bày",
+      "course_daily": "Daily Debate Practice",
+      "course_daily_desc": "Luyện tập với AI để mài giũa kỹ năng",
+      "lets_go": "Chiến thôi!"
     },
     "back": "Quay lại"
   },
@@ -268,7 +283,145 @@
       "practice_get_feedback": "Luyện tập và nhận feedback từ AI",
       "for": "ỦNG HỘ",
       "against": "PHẢN ĐỐI",
-      "start_new_practice": "Bắt Đầu Luyện Mới"
+      "start_new_practice": "Bắt Đầu Luyện Mới",
+      "welcome_banner": "Chào mừng đến DebateLab, {name}! 🎉",
+      "welcome_banner_subtitle": "Đây là lộ trình cá nhân hóa cho bạn.",
+      "start_course": "Bắt Đầu Khóa Học",
+      "this_weeks_activity": "Hoạt Động Tuần Này",
+      "total_hours": "{hours}giờ tổng",
+      "ask_ai_coach": "Hỏi AI Coach",
+      "ask_ai_coach_subtitle": "Được trợ giúp ngay về kỹ thuật debate",
+      "ask_placeholder": "Hỏi bất cứ gì về debate...",
+      "suggestion_rebuttal": "Cách cấu trúc phản biện?",
+      "suggestion_wsdc": "Giải thích format WSDC",
+      "suggestion_review": "Review bài debate vừa rồi",
+      "student": "học sinh",
+      "days_labels": {
+        "mon": "T2",
+        "tue": "T3",
+        "wed": "T4",
+        "thu": "T5",
+        "fri": "T6",
+        "sat": "T7",
+        "sun": "CN"
+      }
+    },
+    "courses": {
+      "page_headline": "Khóa Học",
+      "page_subtitle": "Bài học có cấu trúc để nâng kỹ năng debate và thuyết trình.",
+      "tab_all": "Tất cả",
+      "tab_debate": "Debate",
+      "tab_speaking": "Thuyết trình",
+      "empty": "Chưa có khóa học nào",
+      "empty_subtitle": "Quay lại sau để xem nội dung mới nhé!",
+      "start": "Bắt đầu",
+      "continue": "Học tiếp",
+      "completed": "Hoàn thành",
+      "progress": "Tiến độ",
+      "lessons_count": "{count} Bài",
+      "modules_count": "{count} Phần"
+    },
+    "practice": {
+      "page_headline": "Chọn Trận Đấu",
+      "page_subtitle": "Chọn đề debate, thiết lập phiên, và bắt đầu luyện.",
+      "tab_all": "Tất cả",
+      "tab_education": "Giáo Dục & Đời Sống",
+      "tab_technology": "Công Nghệ & Mạng Xã Hội",
+      "tab_society": "Xã Hội & Văn Hóa",
+      "tab_environment": "Môi Trường & Bền Vững",
+      "tab_ethics": "Đạo Đức & Triết Học",
+      "tab_vietnam": "Vấn Đề Việt Nam",
+      "difficulty_beginner": "Cơ bản",
+      "difficulty_intermediate": "Trung cấp",
+      "difficulty_advanced": "Nâng cao",
+      "surprise_me": "Ngẫu nhiên",
+      "no_topics": "Không tìm thấy đề nào",
+      "session_config": "Cấu Hình Phiên",
+      "mode": "Chế độ",
+      "quick_practice": "Luyện Nhanh",
+      "full_round": "Trận Đầy Đủ",
+      "quick_desc": "Một vòng chuẩn bị + nói",
+      "full_desc": "5 vòng debate với AI (kiểu Trường Teen)",
+      "ai_difficulty": "Độ Khó AI",
+      "easy": "Dễ",
+      "medium": "Trung bình",
+      "hard": "Khó",
+      "easy_desc": "AI thân thiện — lập luận đơn giản",
+      "medium_desc": "AI cân bằng — phản biện chắc",
+      "hard_desc": "AI chuyên gia — phản biện cấp giải",
+      "your_side": "Phe Của Bạn",
+      "random": "Ngẫu nhiên",
+      "for": "Ủng hộ",
+      "against": "Phản đối",
+      "prep_time": "Thời Gian Chuẩn Bị",
+      "speech_time": "Thời Gian Nói",
+      "ai_hints": "Gợi ý AI khi chuẩn bị",
+      "ai_hints_desc": "Hiện gợi ý brainstorm trong lúc chuẩn bị",
+      "begin_session": "Bắt Đầu",
+      "recording": "Đang ghi âm...",
+      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây"
+    },
+    "chat": {
+      "new_chat": "+ Chat Mới",
+      "header_title": "AI Debate Coach",
+      "header_subtitle": "Luôn sẵn sàng giúp bạn",
+      "sidebar_empty": "Bắt đầu trò chuyện với AI Coach",
+      "welcome_title": "Xin chào! Mình là AI Debate Coach",
+      "welcome_subtitle": "Hỏi mình bất cứ gì về kỹ thuật debate, lập luận, thuyết trình, hoặc để mình giúp bạn luyện tập.",
+      "suggestion_opening": "Cách mở bài ấn tượng?",
+      "suggestion_wsdc": "Giải thích format WSDC",
+      "suggestion_fallacies": "Lỗi ngụy biện thường gặp?",
+      "suggestion_rebuttals": "Giúp mình luyện phản biện",
+      "suggestion_review": "Review bài debate vừa rồi",
+      "suggestion_impromptu": "Mẹo nói ứng biến",
+      "input_placeholder": "Hỏi AI Coach bất cứ gì...",
+      "new_conversation": "Cuộc hội thoại mới",
+      "conversations": "Hội thoại",
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "days_ago": "{count} ngày trước",
+      "error_message": "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại."
+    },
+    "history": {
+      "page_headline": "Lịch Sử Luyện Tập",
+      "page_subtitle": "Xem lại các phiên debate và theo dõi tiến bộ",
+      "empty": "Chưa có phiên luyện nào",
+      "empty_subtitle": "Bắt đầu debate đầu tiên, lịch sử sẽ hiện ở đây!",
+      "start_practicing": "Bắt Đầu Luyện",
+      "no_match": "Không có phiên nào khớp",
+      "no_match_subtitle": "Thử thay đổi tìm kiếm hoặc bộ lọc",
+      "total_sessions": "Tổng Phiên",
+      "average_score": "Điểm TB",
+      "best_score": "Điểm Cao Nhất",
+      "most_practiced": "Luyện Nhiều Nhất",
+      "search_placeholder": "Tìm kiếm đề...",
+      "sort_newest": "Mới nhất",
+      "sort_oldest": "Cũ nhất",
+      "sort_highest": "Điểm cao nhất",
+      "sort_lowest": "Điểm thấp nhất",
+      "for": "ỦNG HỘ",
+      "against": "PHẢN ĐỐI",
+      "full": "Đầy đủ",
+      "quick": "Nhanh",
+      "delete_title": "Xóa Phiên",
+      "delete_description": "Bạn có chắc muốn xóa phiên này? Hành động này không thể hoàn tác.",
+      "category_all": "Tất cả",
+      "category_education": "Giáo dục",
+      "category_technology": "Công nghệ",
+      "category_society": "Xã hội",
+      "category_environment": "Môi trường",
+      "category_ethics": "Đạo đức",
+      "category_vietnam": "Việt Nam"
+    },
+    "profile": {
+      "level": "Level {level}",
+      "xp_display": "{current} / {max} XP",
+      "day_streak": "Chuỗi ngày",
+      "debates": "Trận debate",
+      "practiced": "Đã luyện",
+      "courses": "Khóa học",
+      "change_title": "Đổi Danh Hiệu",
+      "edit_profile": "Sửa Hồ Sơ"
     }
   },
   "chat": {
@@ -372,6 +525,17 @@
       "has_account": "Đã có tài khoản?",
       "login_link": "Đăng nhập"
     }
+  },
+  "metadata": {
+    "title": "DebateLab — Luyện Debate Cùng AI",
+    "description": "Luyện debate, nhận feedback AI tức thì, và nâng cao kỹ năng tranh biện bằng tiếng Anh. Dành cho học sinh Việt Nam."
+  },
+  "errors": {
+    "generic": "Ối dồi ôi! Có lỗi rồi.",
+    "network": "Mất kết nối. Kiểm tra mạng nhé!",
+    "not_found": "Trang này không tồn tại",
+    "unauthorized": "Bạn cần đăng nhập",
+    "session_expired": "Phiên đã hết hạn. Đăng nhập lại nhé!"
   },
   "common": {
     "loading": "Đang tải...",

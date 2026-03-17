@@ -51,7 +51,7 @@ export function DemoIntroStep({
               : "bg-rose-100 text-rose-700"
           }`}
         >
-          {position}
+          {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
         </span>
       </motion.div>
 

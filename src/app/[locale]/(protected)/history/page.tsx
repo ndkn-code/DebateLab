@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import {
@@ -34,16 +35,6 @@ const CATEGORY_FILTERS = [
   "Vietnam-Specific Issues",
 ] as const;
 
-const CATEGORY_SHORT: Record<string, string> = {
-  "All": "All",
-  "Education & School Life": "Education",
-  "Technology & Social Media": "Technology",
-  "Society & Culture": "Society",
-  "Environment & Sustainability": "Environment",
-  "Ethics & Philosophy": "Ethics",
-  "Vietnam-Specific Issues": "Vietnam",
-};
-
 function formatDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", {
@@ -71,6 +62,7 @@ async function fetchSessions(): Promise<DebateSession[]> {
 }
 
 export default function HistoryPage() {
+  const t = useTranslations("dashboard.history");
   const router = useRouter();
   const { data: sessions = [], mutate, isLoading } = useSupabaseQuery(
     "history-sessions",
@@ -80,6 +72,16 @@ export default function HistoryPage() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const CATEGORY_SHORT: Record<string, string> = {
+    "All": t("category_all"),
+    "Education & School Life": t("category_education"),
+    "Technology & Social Media": t("category_technology"),
+    "Society & Culture": t("category_society"),
+    "Environment & Sustainability": t("category_environment"),
+    "Ethics & Philosophy": t("category_ethics"),
+    "Vietnam-Specific Issues": t("category_vietnam"),
+  };
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
@@ -110,7 +112,7 @@ export default function HistoryPage() {
       catCount[s.topic.category] = (catCount[s.topic.category] || 0) + 1;
     });
     const topCat =
-      Object.entries(catCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+      Object.entries(catCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "\u2014";
 
     return {
       total: sessions.length,
@@ -118,7 +120,7 @@ export default function HistoryPage() {
       best,
       topCategory: CATEGORY_SHORT[topCat] ?? topCat,
     };
-  }, [sessions]);
+  }, [sessions, CATEGORY_SHORT]);
 
   // Filter & sort
   const filtered = useMemo(() => {
@@ -192,9 +194,9 @@ export default function HistoryPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-on-surface">Practice History</h1>
+          <h1 className="text-3xl font-bold text-on-surface">{t("page_headline")}</h1>
           <p className="mt-2 text-on-surface-variant">
-            Review your past debate sessions and track improvement
+            {t("page_subtitle")}
           </p>
         </motion.div>
 
@@ -208,24 +210,24 @@ export default function HistoryPage() {
           <div className="rounded-xl border border-outline-variant/10 bg-primary-container/30 p-4">
             <Target className="mb-2 h-5 w-5 text-primary" />
             <p className="text-2xl font-bold text-on-surface">{stats.total}</p>
-            <p className="text-xs text-on-surface-variant">Total Sessions</p>
+            <p className="text-xs text-on-surface-variant">{t("total_sessions")}</p>
           </div>
           <div className="rounded-xl border border-outline-variant/10 bg-tertiary-container/30 p-4">
             <BarChart3 className="mb-2 h-5 w-5 text-tertiary" />
             <p className="text-2xl font-bold text-on-surface">{stats.avg}</p>
-            <p className="text-xs text-on-surface-variant">Average Score</p>
+            <p className="text-xs text-on-surface-variant">{t("average_score")}</p>
           </div>
           <div className="rounded-xl border border-outline-variant/10 bg-secondary-container/30 p-4">
             <Trophy className="mb-2 h-5 w-5 text-secondary" />
             <p className="text-2xl font-bold text-on-surface">{stats.best}</p>
-            <p className="text-xs text-on-surface-variant">Best Score</p>
+            <p className="text-xs text-on-surface-variant">{t("best_score")}</p>
           </div>
           <div className="rounded-xl border border-outline-variant/10 bg-[#fff9e5] p-4">
             <FolderOpen className="mb-2 h-5 w-5 text-[#b28b00]" />
             <p className="truncate text-lg font-bold text-on-surface">
               {stats.topCategory}
             </p>
-            <p className="text-xs text-on-surface-variant">Most Practiced</p>
+            <p className="text-xs text-on-surface-variant">{t("most_practiced")}</p>
           </div>
         </motion.div>
 
@@ -242,7 +244,7 @@ export default function HistoryPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <input
                 type="text"
-                placeholder="Search topics..."
+                placeholder={t("search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-4 text-sm text-on-surface placeholder-outline-variant outline-none transition-colors focus:border-primary/50"
@@ -255,10 +257,10 @@ export default function HistoryPage() {
                 onChange={(e) => setSort(e.target.value as SortOption)}
                 className="w-full appearance-none rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-8 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 sm:w-44"
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="highest">Highest Score</option>
-                <option value="lowest">Lowest Score</option>
+                <option value="newest">{t("sort_newest")}</option>
+                <option value="oldest">{t("sort_oldest")}</option>
+                <option value="highest">{t("sort_highest")}</option>
+                <option value="lowest">{t("sort_lowest")}</option>
               </select>
             </div>
           </div>
@@ -292,18 +294,18 @@ export default function HistoryPage() {
             <Mic2 className="mb-4 h-12 w-12 text-outline-variant" />
             <h3 className="text-lg font-semibold text-on-surface-variant">
               {sessions.length === 0
-                ? "No practice sessions yet"
-                : "No sessions match your filters"}
+                ? t("empty")
+                : t("no_match")}
             </h3>
             <p className="mt-1 text-sm text-on-surface-variant">
               {sessions.length === 0
-                ? "Start your first debate and your history will appear here!"
-                : "Try adjusting your search or filters"}
+                ? t("empty_subtitle")
+                : t("no_match_subtitle")}
             </p>
             {sessions.length === 0 && (
               <Link href="/practice" className="mt-6">
                 <Button className="gap-2 bg-primary text-white">
-                  Start Practicing
+                  {t("start_practicing")}
                 </Button>
               </Link>
             )}
@@ -348,10 +350,10 @@ export default function HistoryPage() {
                               : "bg-rose-500/10 text-rose-400"
                           )}
                         >
-                          {session.side === "proposition" ? "FOR" : "AGAINST"}
+                          {session.side === "proposition" ? t("for") : t("against")}
                         </span>
                         <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                          {session.mode === "full" ? "Full" : "Quick"}
+                          {session.mode === "full" ? t("full") : t("quick")}
                         </span>
                         {session.feedback && (
                           <span
@@ -396,8 +398,8 @@ export default function HistoryPage() {
       {/* Delete confirmation */}
       <ConfirmDialog
         open={deleteId !== null}
-        title="Delete Session"
-        description="Are you sure you want to delete this session? This action cannot be undone."
+        title={t("delete_title")}
+        description={t("delete_description")}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

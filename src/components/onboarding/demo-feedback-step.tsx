@@ -49,16 +49,16 @@ export function DemoFeedbackStep({
     } catch {
       const fallback = {
         score: 70,
-        strength: "You took the initiative to practice!",
-        improvement: "Try adding specific examples next time.",
-        encouragement: "Every champion started as a beginner!",
+        strength: t("demo_feedback.fallback_strength"),
+        improvement: t("demo_feedback.fallback_improvement"),
+        encouragement: t("demo_feedback.fallback_encouragement"),
       };
       setFeedback(fallback);
       onFeedbackLoaded(fallback);
     } finally {
       setLoading(false);
     }
-  }, [transcript, topic, position, onFeedbackLoaded]);
+  }, [transcript, topic, position, onFeedbackLoaded, t]);
 
   useEffect(() => {
     if (!existingFeedback) {

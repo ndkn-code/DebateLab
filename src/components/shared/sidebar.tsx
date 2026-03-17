@@ -66,6 +66,7 @@ function NavContent({
   const pathname = usePathname();
   const t = useTranslations('dashboard.nav');
   const tc = useTranslations('common');
+  const ts = useTranslations('dashboard.home');
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
   const initials = displayName
@@ -147,7 +148,7 @@ function NavContent({
                   {displayName}
                 </p>
                 <p className="truncate text-xs text-on-surface-variant">
-                  {profile?.role ?? "student"}
+                  {profile?.role ?? ts("student")}
                 </p>
               </div>
             )}

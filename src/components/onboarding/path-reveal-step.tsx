@@ -16,41 +16,6 @@ interface PathRevealStepProps {
   dailyGoalMinutes: number | null;
 }
 
-function getRecommendations(
-  goal: string | null,
-  experience: string | null
-): { title: string; desc: string; icon: typeof BookOpen }[] {
-  const recs = [];
-
-  if (experience !== "experienced") {
-    recs.push({
-      title: "Foundations of Competitive Debate",
-      desc: "Learn the building blocks of strong arguments",
-      icon: BookOpen,
-    });
-  }
-
-  if (
-    goal === "english" ||
-    goal === "interview" ||
-    experience === "experienced"
-  ) {
-    recs.push({
-      title: "Public Speaking Mastery",
-      desc: "Build confidence and delivery skills",
-      icon: Mic,
-    });
-  }
-
-  recs.push({
-    title: "Daily Debate Practice",
-    desc: "Practice with AI opponents to sharpen your skills",
-    icon: Star,
-  });
-
-  return recs.slice(0, 3);
-}
-
 export function PathRevealStep({
   goal,
   experienceLevel,
@@ -63,6 +28,41 @@ export function PathRevealStep({
   const [isLaunching, setIsLaunching] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [rocketAnimation, setRocketAnimation] = useState<object | null>(null);
+
+  function getRecommendations(
+    goalVal: string | null,
+    experience: string | null
+  ): { title: string; desc: string; icon: typeof BookOpen }[] {
+    const recs = [];
+
+    if (experience !== "experienced") {
+      recs.push({
+        title: t("path_reveal.course_foundations"),
+        desc: t("path_reveal.course_foundations_desc"),
+        icon: BookOpen,
+      });
+    }
+
+    if (
+      goalVal === "english" ||
+      goalVal === "interview" ||
+      experience === "experienced"
+    ) {
+      recs.push({
+        title: t("path_reveal.course_speaking"),
+        desc: t("path_reveal.course_speaking_desc"),
+        icon: Mic,
+      });
+    }
+
+    recs.push({
+      title: t("path_reveal.course_daily"),
+      desc: t("path_reveal.course_daily_desc"),
+      icon: Star,
+    });
+
+    return recs.slice(0, 3);
+  }
 
   const recommendations = getRecommendations(goal, experienceLevel);
 
@@ -227,7 +227,7 @@ export function PathRevealStep({
               }
               className="text-2xl md:text-3xl font-bold mt-4 bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent"
             >
-              Let&apos;s go!
+              {t("path_reveal.lets_go")}
             </motion.p>
           </motion.div>
         )}

@@ -1,20 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Send, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
-
-const STARTER_PROMPTS = [
-  "How do I structure a strong opening statement?",
-  "Explain the WSDC debate format",
-  "What are common logical fallacies?",
-  "Help me practice rebuttals",
-  "Review my last debate performance",
-  "Tips for impromptu speaking",
-];
 
 interface ChatAreaProps {
   messages: ChatMessageLocal[];
@@ -31,9 +23,19 @@ export function ChatArea({
   onOpenSidebar,
   hasConversation,
 }: ChatAreaProps) {
+  const t = useTranslations("dashboard.chat");
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const STARTER_PROMPTS = [
+    t("suggestion_opening"),
+    t("suggestion_wsdc"),
+    t("suggestion_fallacies"),
+    t("suggestion_rebuttals"),
+    t("suggestion_review"),
+    t("suggestion_impromptu"),
+  ];
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -86,10 +88,10 @@ export function ChatArea({
           </div>
           <div>
             <h2 className="text-sm font-semibold text-on-surface">
-              AI Debate Coach
+              {t("header_title")}
             </h2>
             <p className="text-[10px] text-on-surface-variant">
-              Always ready to help
+              {t("header_subtitle")}
             </p>
           </div>
         </div>
@@ -98,7 +100,7 @@ export function ChatArea({
       {/* Messages Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-6 sm:px-4">
         {showWelcome ? (
-          <WelcomeScreen onPromptClick={handleSubmit} />
+          <WelcomeScreen onPromptClick={handleSubmit} t={t} starterPrompts={STARTER_PROMPTS} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-4">
             {messages.map((msg, i) => {
@@ -134,7 +136,7 @@ export function ChatArea({
               value={input}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
-              placeholder="Ask your AI Coach anything..."
+              placeholder={t("input_placeholder")}
               rows={1}
               className="w-full resize-none rounded-2xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 pr-12 text-sm text-on-surface placeholder-on-surface-variant/60 outline-none transition-colors focus:border-primary/40"
               style={{ maxHeight: 160 }}
@@ -156,8 +158,12 @@ export function ChatArea({
 
 function WelcomeScreen({
   onPromptClick,
+  t,
+  starterPrompts,
 }: {
   onPromptClick: (text: string) => void;
+  t: ReturnType<typeof useTranslations>;
+  starterPrompts: string[];
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">
@@ -165,14 +171,13 @@ function WelcomeScreen({
         <Sparkles className="h-8 w-8 text-primary" />
       </div>
       <h2 className="mb-2 text-xl font-bold text-on-surface">
-        Hi! I&apos;m your AI Debate Coach
+        {t("welcome_title")}
       </h2>
       <p className="mb-8 max-w-md text-center text-sm text-on-surface-variant">
-        Ask me anything about debate techniques, argumentation, public speaking,
-        or let me help you practice.
+        {t("welcome_subtitle")}
       </p>
       <div className="grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-        {STARTER_PROMPTS.map((prompt) => (
+        {starterPrompts.map((prompt) => (
           <button
             key={prompt}
             onClick={() => onPromptClick(prompt)}

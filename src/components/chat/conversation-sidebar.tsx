@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Plus, MessageCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,18 +24,6 @@ interface ConversationSidebarProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
 function SidebarContent({
   conversations,
   activeId,
@@ -43,6 +32,19 @@ function SidebarContent({
   onDelete,
 }: Omit<ConversationSidebarProps, "open" | "onOpenChange">) {
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("dashboard.chat");
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return t("today");
+    if (diffDays === 1) return t("yesterday");
+    if (diffDays < 7) return t("days_ago", { count: diffDays });
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -62,7 +64,7 @@ function SidebarContent({
           size="sm"
         >
           <Plus className="h-4 w-4" />
-          New Chat
+          {t("new_chat")}
         </Button>
       </div>
 
@@ -72,7 +74,7 @@ function SidebarContent({
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
             <MessageCircle className="mb-3 h-8 w-8 text-primary/30" />
             <p className="text-sm text-on-surface-variant">
-              Start a conversation with your AI Coach
+              {t("sidebar_empty")}
             </p>
           </div>
         ) : (
@@ -90,7 +92,7 @@ function SidebarContent({
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {conv.title || "New conversation"}
+                    {conv.title || t("new_conversation")}
                   </p>
                   <p className="text-[10px] text-on-surface-variant">
                     {formatDate(conv.updated_at || conv.created_at)}

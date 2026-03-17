@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { topics, CATEGORIES } from "@/lib/topics";
 import type { DebateTopic } from "@/types";
 
 export default function PracticePage() {
+  const t = useTranslations("dashboard.practice");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedTopic, setSelectedTopic] = useState<DebateTopic | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -49,10 +51,10 @@ export default function PracticePage() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-on-surface sm:text-4xl">
-            Choose Your Battle
+            {t("page_headline")}
           </h1>
           <p className="mt-2 text-on-surface-variant">
-            Select a debate topic, configure your session, and start practicing
+            {t("page_subtitle")}
           </p>
         </motion.div>
 
@@ -74,7 +76,7 @@ export default function PracticePage() {
             className="shrink-0 gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
           >
             <Shuffle className="h-4 w-4" />
-            Surprise Me
+            {t("surprise_me")}
           </Button>
         </motion.div>
 
@@ -111,7 +113,7 @@ export default function PracticePage() {
 
             {filteredTopics.length === 0 && (
               <div className="flex h-64 items-center justify-center text-on-surface-variant">
-                No topics found in this category
+                {t("no_topics")}
               </div>
             )}
           </div>

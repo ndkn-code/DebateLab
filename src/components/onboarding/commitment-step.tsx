@@ -9,13 +9,6 @@ import { ReactiveResponse } from "./reactive-response";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 
-const OPTIONS = [
-  { label: "5 min", value: 5 },
-  { label: "10 min", value: 10 },
-  { label: "15 min", value: 15 },
-  { label: "20+ min", value: 20 },
-];
-
 interface CommitmentStepProps {
   selected: number | null;
   onSelect: (minutes: number) => void;
@@ -28,11 +21,29 @@ export function CommitmentStep({
   onNext,
 }: CommitmentStepProps) {
   const t = useTranslations("onboarding");
+  const th = useTranslations("dashboard.home");
   const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<number | null>(null);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const OPTIONS = [
+    { label: `5 ${t("commitment.minutes_label")}`, value: 5 },
+    { label: `10 ${t("commitment.minutes_label")}`, value: 10 },
+    { label: `15 ${t("commitment.minutes_label")}`, value: 15 },
+    { label: `20+ ${t("commitment.minutes_label")}`, value: 20 },
+  ];
+
+  const dayLabels = [
+    th("days_labels.mon"),
+    th("days_labels.tue"),
+    th("days_labels.wed"),
+    th("days_labels.thu"),
+    th("days_labels.fri"),
+    th("days_labels.sat"),
+    th("days_labels.sun"),
+  ];
 
   // Reset state when step mounts/remounts (fixes back button issue)
   useEffect(() => {
@@ -83,7 +94,7 @@ export function CommitmentStep({
         transition={{ delay: 0.15 }}
         className="mb-8 flex items-center justify-center gap-2"
       >
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+        {dayLabels.map((day, i) => (
           <div key={day} className="flex flex-col items-center gap-1">
             {i < 5 ? (
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
