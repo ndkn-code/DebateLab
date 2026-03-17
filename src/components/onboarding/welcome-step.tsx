@@ -14,16 +14,25 @@ interface WelcomeStepProps {
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
   const t = useTranslations("onboarding");
   const lottieRef = useRef<LottieRefCurrentProps>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Replay the animation every 3 seconds
-    intervalRef.current = setInterval(() => {
-      lottieRef.current?.goToAndPlay(0);
-    }, 3000);
+    // When the animation completes, wait 1.5s then replay
+    const lottie = lottieRef.current;
+    if (!lottie) return;
+
+    const onComplete = () => {
+      intervalRef.current = setTimeout(() => {
+        lottie.goToAndPlay(0);
+      }, 1500);
+    };
+
+    // lottie-react exposes the animation instance on the ref
+    lottie.animationItem?.addEventListener("complete", onComplete);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      lottie.animationItem?.removeEventListener("complete", onComplete);
+      if (intervalRef.current) clearTimeout(intervalRef.current);
     };
   }, []);
 
