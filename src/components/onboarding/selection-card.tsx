@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface SelectionCardProps {
   emoji: string;
   title: string;
-  description: string;
+  description?: string;
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -31,17 +31,19 @@ export function SelectionCard({
       }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "relative flex w-full items-center gap-4 rounded-2xl border-2 bg-white p-4 text-left transition-colors",
+        "relative flex w-full items-center gap-4 rounded-2xl border-2 bg-white py-4 px-5 text-left transition-colors",
         selected
           ? "border-primary bg-primary/5"
           : "border-gray-200 hover:border-primary/40 hover:shadow-md",
         disabled && !selected && "pointer-events-none"
       )}
     >
-      <span className="text-2xl">{emoji}</span>
+      <span className="text-3xl">{emoji}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-on-surface">{title}</p>
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-lg md:text-xl font-semibold text-on-surface">{title}</p>
+        {description && (
+          <p className="text-sm text-gray-500">{description}</p>
+        )}
       </div>
       {selected && (
         <motion.div

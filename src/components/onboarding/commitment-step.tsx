@@ -29,10 +29,21 @@ export function CommitmentStep({
 }: CommitmentStepProps) {
   const t = useTranslations("onboarding");
   const tReactive = useTranslations("onboarding.reactive_responses");
-  const [localSelected, setLocalSelected] = useState<number | null>(selected);
+  const [localSelected, setLocalSelected] = useState<number | null>(null);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset state when step mounts/remounts (fixes back button issue)
+  useEffect(() => {
+    setLocalSelected(null);
+    setReactiveText(null);
+
+    return () => {
+      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+      if (textTimeout.current) clearTimeout(textTimeout.current);
+    };
+  }, []);
 
   const handleSelect = (value: number) => {
     if (localSelected !== null) return;
@@ -46,19 +57,12 @@ export function CommitmentStep({
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
   };
 
-  useEffect(() => {
-    return () => {
-      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
-      if (textTimeout.current) clearTimeout(textTimeout.current);
-    };
-  }, []);
-
   return (
     <div className="text-center">
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-2 text-2xl font-bold text-on-surface"
+        className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
       >
         {t("commitment.headline")}
       </motion.h2>
@@ -67,7 +71,7 @@ export function CommitmentStep({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mb-8 text-gray-500"
+        className="mb-8 text-base md:text-lg text-gray-500"
       >
         {t("commitment.subheadline")}
       </motion.p>

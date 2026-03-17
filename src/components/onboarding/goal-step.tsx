@@ -24,10 +24,21 @@ interface GoalStepProps {
 export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
   const t = useTranslations("onboarding");
   const tReactive = useTranslations("onboarding.reactive_responses");
-  const [localSelected, setLocalSelected] = useState<string | null>(selected);
+  const [localSelected, setLocalSelected] = useState<string | null>(null);
   const [reactiveText, setReactiveText] = useState<string | null>(null);
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset state when step mounts/remounts (fixes back button issue)
+  useEffect(() => {
+    setLocalSelected(null);
+    setReactiveText(null);
+
+    return () => {
+      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+      if (textTimeout.current) clearTimeout(textTimeout.current);
+    };
+  }, []);
 
   const handleSelect = (id: string) => {
     if (localSelected !== null) return;
@@ -41,19 +52,12 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
     advanceTimeout.current = setTimeout(() => onNext(), 2000);
   };
 
-  useEffect(() => {
-    return () => {
-      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
-      if (textTimeout.current) clearTimeout(textTimeout.current);
-    };
-  }, []);
-
   return (
     <div>
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-center text-2xl font-bold text-on-surface"
+        className="mb-6 text-center text-3xl md:text-4xl font-bold text-on-surface"
       >
         {t("goal.headline")}
       </motion.h2>
@@ -69,7 +73,6 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
             <SelectionCard
               emoji={GOAL_EMOJIS[id]}
               title={t("goal.options." + id + ".title")}
-              description={t("goal.options." + id + ".description")}
               selected={localSelected === id}
               disabled={localSelected !== null}
               onClick={() => handleSelect(id)}

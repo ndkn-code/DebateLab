@@ -35,7 +35,7 @@ export function PillSelector({
             animate={{ opacity: isFaded ? 0.5 : 1 }}
             transition={{ duration: 0.3 }}
             className={cn(
-              "rounded-full px-6 py-3 text-sm font-semibold transition-colors",
+              "rounded-full px-6 py-3 text-base md:text-lg font-medium transition-colors",
               isSelected
                 ? "bg-primary text-white shadow-md"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200",

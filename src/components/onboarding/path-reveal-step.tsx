@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import posthog from "posthog-js";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { BookOpen, Mic, Star } from "lucide-react";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
-import rocketAnimation from "../../../public/lottie/rocket.json";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/app/[locale]/onboarding/actions";
 
@@ -23,7 +22,6 @@ function getRecommendations(
 ): { title: string; desc: string; icon: typeof BookOpen }[] {
   const recs = [];
 
-  // Always recommend foundations for beginners/intermediate
   if (experience !== "experienced") {
     recs.push({
       title: "Foundations of Competitive Debate",
@@ -32,7 +30,6 @@ function getRecommendations(
     });
   }
 
-  // Speaking-related goals
   if (
     goal === "english" ||
     goal === "interview" ||
@@ -45,7 +42,6 @@ function getRecommendations(
     });
   }
 
-  // Always suggest practice
   recs.push({
     title: "Daily Debate Practice",
     desc: "Practice with AI opponents to sharpen your skills",
@@ -63,13 +59,23 @@ export function PathRevealStep({
 }: PathRevealStepProps) {
   const t = useTranslations("onboarding");
   const [isPending, startTransition] = useTransition();
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [rocketAnimation, setRocketAnimation] = useState<object | null>(null);
 
   const recommendations = getRecommendations(goal, experienceLevel);
 
+  // Lazy-load rocket animation only when needed
+  useEffect(() => {
+    import("../../../public/lottie/rocket.json").then((mod) => {
+      setRocketAnimation(mod.default);
+    });
+  }, []);
+
   const handleFinish = () => {
-    setSaving(true);
+    setIsLaunching(true);
+
+    // Save onboarding data in parallel while animation plays
     startTransition(async () => {
       const result = await completeOnboarding({
         goal,
@@ -81,7 +87,7 @@ export function PathRevealStep({
       if (result.error) {
         console.error("Onboarding error:", result.error);
         setError(result.error);
-        setSaving(false);
+        setIsLaunching(false);
         return;
       }
 
@@ -91,94 +97,120 @@ export function PathRevealStep({
         english_confidence: englishConfidence,
         daily_goal_minutes: dailyGoalMinutes,
       });
-
-      // Hard navigate to bust the server-side cache so the protected
-      // layout re-reads the updated onboarding_completed flag
-      window.location.href = "/dashboard";
     });
+
+    // Navigate after rocket animation plays (~2.5s)
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 2500);
   };
 
   return (
-    <div className="text-center">
-      {/* Rocket illustration */}
-      <motion.div
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", duration: 0.6 }}
-        className="mx-auto mb-6"
-      >
-        <LottieAnimation
-          animationData={rocketAnimation}
-          className="w-40 h-40 mx-auto"
-          loop={false}
-        />
-      </motion.div>
+    <>
+      {/* Normal path reveal content */}
+      {!isLaunching && (
+        <div className="text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
+          >
+            {t("path_reveal.headline")}
+          </motion.h2>
 
-      <motion.h2
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="mb-2 text-2xl font-bold text-on-surface"
-      >
-        {t("path_reveal.headline")}
-      </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8 text-base md:text-lg text-gray-500"
+          >
+            {t("path_reveal.recommended")}
+          </motion.p>
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="mb-8 text-gray-500"
-      >
-        {t("path_reveal.recommended")}
-      </motion.p>
+          {/* Recommendation cards */}
+          <div className="mb-8 space-y-3">
+            {recommendations.map((rec, i) => {
+              const Icon = rec.icon;
+              return (
+                <motion.div
+                  key={rec.title}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + i * 0.2 }}
+                  className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base md:text-lg font-semibold text-on-surface">
+                      {rec.title}
+                    </p>
+                    <p className="text-sm text-gray-500">{rec.desc}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    {t("path_reveal.recommended")}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
 
-      {/* Recommendation cards */}
-      <div className="mb-8 space-y-3">
-        {recommendations.map((rec, i) => {
-          const Icon = rec.icon;
-          return (
-            <motion.div
-              key={rec.title}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 + i * 0.2 }}
-              className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm"
+          {error && (
+            <p className="mb-4 text-sm text-red-500">Error: {error}</p>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+          >
+            <Button
+              onClick={handleFinish}
+              disabled={isPending}
+              className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+              size="lg"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <Icon className="h-6 w-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-on-surface">
-                  {rec.title}
-                </p>
-                <p className="text-xs text-gray-500">{rec.desc}</p>
-              </div>
-              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                {t("path_reveal.recommended")}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {error && (
-        <p className="mb-4 text-sm text-red-500">Error: {error}</p>
+              {t("path_reveal.cta")}
+            </Button>
+          </motion.div>
+        </div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
-      >
-        <Button
-          onClick={handleFinish}
-          disabled={isPending || saving}
-          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
-          size="lg"
-        >
-          {isPending || saving ? "..." : t("path_reveal.cta")}
-        </Button>
-      </motion.div>
-    </div>
+      {/* Fullscreen rocket overlay */}
+      <AnimatePresence>
+        {isLaunching && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[200] bg-[#fbf8ff] flex flex-col items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 15, stiffness: 200 }}
+            >
+              {rocketAnimation && (
+                <LottieAnimation
+                  animationData={rocketAnimation}
+                  className="w-64 h-64 md:w-80 md:h-80"
+                  loop={false}
+                />
+              )}
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="text-2xl md:text-3xl font-bold mt-4 bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent"
+            >
+              Let&apos;s go!
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
