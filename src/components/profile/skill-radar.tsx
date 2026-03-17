@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   RadarChart,
   PolarGrid,
@@ -15,19 +16,20 @@ interface SkillRadarProps {
 }
 
 export function SkillRadar({ skills }: SkillRadarProps) {
+  const t = useTranslations("dashboard.profile");
   const hasEnoughData = skills.total_sessions >= 3;
 
   const data = [
-    { skill: "Content", value: Math.round(skills.content) },
-    { skill: "Structure", value: Math.round(skills.structure) },
-    { skill: "Language", value: Math.round(skills.language) },
-    { skill: "Persuasion", value: Math.round(skills.persuasion) },
+    { skill: t("skill_content"), value: Math.round(skills.content) },
+    { skill: t("skill_structure"), value: Math.round(skills.structure) },
+    { skill: t("skill_language"), value: Math.round(skills.language) },
+    { skill: t("skill_persuasion"), value: Math.round(skills.persuasion) },
   ];
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">
-        Skill Breakdown
+        {t("skill_breakdown")}
       </h2>
 
       {!hasEnoughData ? (
@@ -36,10 +38,10 @@ export function SkillRadar({ skills }: SkillRadarProps) {
             <Brain className="h-6 w-6 text-gray-300" />
           </div>
           <p className="text-sm font-medium text-gray-500">
-            Complete a few debates to see your skill profile!
+            {t("skill_empty")}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            At least 3 sessions needed
+            {t("skill_min_sessions")}
           </p>
         </div>
       ) : (

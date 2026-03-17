@@ -28,18 +28,18 @@ const AVATAR_PRESETS = [
   "🎤", "🏆", "📚", "💡", "🎯", "⚡", "🌟", "🔥",
 ];
 
-const PREP_TIME_OPTIONS = [
-  { label: "5 min", value: 300 },
-  { label: "7 min", value: 420 },
-  { label: "10 min", value: 600 },
-  { label: "15 min", value: 900 },
+const PREP_TIME_VALUES = [
+  { minutes: 5, value: 300 },
+  { minutes: 7, value: 420 },
+  { minutes: 10, value: 600 },
+  { minutes: 15, value: 900 },
 ];
 
-const SPEECH_TIME_OPTIONS = [
-  { label: "3 min", value: 180 },
-  { label: "5 min", value: 300 },
-  { label: "7 min", value: 420 },
-  { label: "8 min", value: 480 },
+const SPEECH_TIME_VALUES = [
+  { minutes: 3, value: 180 },
+  { minutes: 5, value: 300 },
+  { minutes: 7, value: 420 },
+  { minutes: 8, value: 480 },
 ];
 
 interface SettingsContentProps {
@@ -288,7 +288,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
               {t('default_prep_time')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {PREP_TIME_OPTIONS.map((opt) => (
+              {PREP_TIME_VALUES.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setDefaultPrepTime(opt.value)}
@@ -298,7 +298,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
                       : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  {opt.label}
+                  {opt.minutes} {t('minutes_short')}
                 </button>
               ))}
             </div>
@@ -309,7 +309,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
               {t('default_speech_time')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {SPEECH_TIME_OPTIONS.map((opt) => (
+              {SPEECH_TIME_VALUES.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setDefaultSpeechTime(opt.value)}
@@ -319,7 +319,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
                       : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  {opt.label}
+                  {opt.minutes} {t('minutes_short')}
                 </button>
               ))}
             </div>
