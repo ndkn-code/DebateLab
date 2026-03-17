@@ -34,12 +34,6 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
             >
               {t("howItWorks")}
             </a>
-            <Link
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-              href="/history"
-            >
-              {t("history")}
-            </Link>
           </div>
         </div>
 
@@ -97,13 +91,6 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
             >
               {t("howItWorks")}
             </a>
-            <Link
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3"
-              href="/history"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t("history")}
-            </Link>
 
             <div className="flex justify-center py-2">
               <LanguageToggle />
