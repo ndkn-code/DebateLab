@@ -207,7 +207,7 @@
     "demo_intro": {
       "headline": "Let's try a quick debate!",
       "subheadline": "You'll get 30 seconds to argue your position. Don't worry — this is just practice!",
-      "cta": "I'm ready →"
+      "cta": "I'm ready"
     },
     "demo_speak": {
       "headline": "Speak now!",
@@ -221,7 +221,7 @@
       "analyzing": "Analyzing your argument...",
       "strength": "Strength",
       "improvement": "To improve",
-      "cta": "See my learning path →"
+      "cta": "See my learning path"
     },
     "path_reveal": {
       "headline": "Your learning path is ready!",

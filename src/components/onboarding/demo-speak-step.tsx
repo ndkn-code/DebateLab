@@ -107,15 +107,15 @@ export function DemoSpeakStep({
         <div className="mb-6 flex h-16 w-16 mx-auto items-center justify-center rounded-2xl bg-red-100">
           <MicOff className="h-8 w-8 text-red-500" />
         </div>
-        <h2 className="mb-2 text-xl font-bold text-on-surface">
+        <h2 className="mb-2 text-2xl md:text-3xl font-bold text-on-surface">
           {t("demo_speak.mic_error")}
         </h2>
-        <p className="mb-6 text-sm text-gray-500">
+        <p className="mb-6 text-base text-gray-500">
           {t("demo_speak.mic_error")}
         </p>
         <button
           onClick={onSkip}
-          className="text-sm font-medium text-primary hover:underline"
+          className="text-base font-medium text-primary hover:underline"
         >
           {t("demo_speak.skip")}
         </button>
@@ -131,9 +131,9 @@ export function DemoSpeakStep({
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <p className="text-sm text-gray-500">{topic}</p>
+        <p className="text-lg md:text-xl font-medium text-gray-600">{topic}</p>
         <span
-          className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-bold ${
+          className={`mt-2 inline-block rounded-full px-4 py-1 text-sm font-bold ${
             position === "FOR"
               ? "bg-emerald-100 text-emerald-700"
               : "bg-rose-100 text-rose-700"
@@ -144,7 +144,7 @@ export function DemoSpeakStep({
       </motion.div>
 
       {/* Timer ring */}
-      <div className="relative mx-auto mb-6 h-32 w-32">
+      <div className="relative mx-auto mb-6 h-36 w-36">
         <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
           <circle
             cx="60"
@@ -169,13 +169,13 @@ export function DemoSpeakStep({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
-            className={`text-3xl font-bold ${
+            className={`text-4xl font-bold ${
               timeLeft <= 5 ? "text-red-500" : "text-on-surface"
             }`}
           >
             {timeLeft}
           </span>
-          <span className="text-[10px] text-gray-400">{t("demo_speak.time_remaining", { seconds: timeLeft })}</span>
+          <span className="text-xs text-gray-400">{t("demo_speak.time_remaining", { seconds: timeLeft })}</span>
         </div>
       </div>
 
@@ -187,7 +187,7 @@ export function DemoSpeakStep({
           className="mb-4 flex items-center justify-center gap-2"
         >
           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          <span className="text-xs text-gray-500">Recording...</span>
+          <span className="text-sm text-gray-500">Recording...</span>
         </motion.div>
       )}
 
@@ -199,7 +199,7 @@ export function DemoSpeakStep({
           className="mb-6 min-h-[80px] rounded-2xl border border-gray-200 bg-white p-4 text-left"
         >
           {speech.transcript || speech.interimTranscript ? (
-            <p className="text-sm text-on-surface">
+            <p className="text-base text-on-surface">
               {speech.transcript}
               {speech.interimTranscript && (
                 <span className="text-gray-400">
@@ -209,7 +209,7 @@ export function DemoSpeakStep({
               )}
             </p>
           ) : (
-            <p className="text-sm text-gray-400 italic">
+            <p className="text-base text-gray-400 italic">
               Start speaking... your words will appear here
             </p>
           )}
@@ -240,7 +240,7 @@ export function DemoSpeakStep({
       <div className="mt-4">
         <button
           onClick={onSkip}
-          className="text-xs text-gray-400 hover:text-gray-600"
+          className="text-base text-gray-400 hover:text-gray-600"
         >
           {t("demo_speak.skip")}
         </button>

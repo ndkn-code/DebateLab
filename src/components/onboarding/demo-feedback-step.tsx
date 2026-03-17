@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { ArrowRight, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DemoFeedback {
@@ -76,10 +76,9 @@ export function DemoFeedbackStep({
         >
           <Sparkles className="h-10 w-10 text-primary" />
         </motion.div>
-        <p className="text-lg font-semibold text-on-surface">
+        <p className="text-xl font-semibold text-on-surface">
           {t("demo_feedback.analyzing")}
         </p>
-        <p className="mt-1 text-sm text-gray-500">{t("demo_feedback.analyzing")}</p>
       </div>
     );
   }
@@ -93,6 +92,14 @@ export function DemoFeedbackStep({
 
   return (
     <div className="text-center">
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 text-3xl md:text-4xl font-bold text-on-surface"
+      >
+        {t("demo_feedback.headline")}
+      </motion.h2>
+
       {/* Score */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -131,11 +138,11 @@ export function DemoFeedbackStep({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-2xl font-bold text-on-surface"
+              className="text-3xl font-bold text-on-surface"
             >
               {feedback.score}
             </motion.span>
-            <span className="text-[10px] text-gray-400">/100</span>
+            <span className="text-xs text-gray-400">/100</span>
           </div>
         </div>
       </motion.div>
@@ -150,8 +157,8 @@ export function DemoFeedbackStep({
         >
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
           <div>
-            <p className="text-xs font-semibold text-emerald-600">{t("demo_feedback.strength")}</p>
-            <p className="text-sm text-gray-600">{feedback.strength}</p>
+            <p className="text-sm font-semibold text-emerald-600">{t("demo_feedback.strength")}</p>
+            <p className="text-base text-gray-600">{feedback.strength}</p>
           </div>
         </motion.div>
 
@@ -163,8 +170,8 @@ export function DemoFeedbackStep({
         >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
-            <p className="text-xs font-semibold text-amber-600">{t("demo_feedback.improvement")}</p>
-            <p className="text-sm text-gray-600">{feedback.improvement}</p>
+            <p className="text-sm font-semibold text-amber-600">{t("demo_feedback.improvement")}</p>
+            <p className="text-base text-gray-600">{feedback.improvement}</p>
           </div>
         </motion.div>
       </div>
@@ -173,7 +180,7 @@ export function DemoFeedbackStep({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mb-8 text-sm font-medium text-primary"
+        className="mb-8 text-base font-medium text-primary"
       >
         {feedback.encouragement}
       </motion.p>
@@ -185,11 +192,10 @@ export function DemoFeedbackStep({
       >
         <Button
           onClick={onNext}
-          className="gap-2 rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
         >
           {t("demo_feedback.cta")}
-          <ArrowRight className="h-5 w-5" />
         </Button>
       </motion.div>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
@@ -23,7 +22,7 @@ export function DemoIntroStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-2 text-2xl font-bold text-on-surface"
+        className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
       >
         {t("demo_intro.headline")}
       </motion.h2>
@@ -32,7 +31,7 @@ export function DemoIntroStep({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mb-8 text-gray-500"
+        className="mb-8 text-base md:text-lg text-gray-500"
       >
         {t("demo_intro.subheadline")}
       </motion.p>
@@ -44,7 +43,7 @@ export function DemoIntroStep({
         transition={{ delay: 0.2 }}
         className="mb-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-md"
       >
-        <p className="mb-4 text-lg font-semibold text-on-surface">{topic}</p>
+        <p className="mb-4 text-xl md:text-2xl font-semibold text-on-surface">{topic}</p>
         <span
           className={`inline-block rounded-full px-4 py-1.5 text-sm font-bold ${
             position === "FOR"
@@ -63,11 +62,10 @@ export function DemoIntroStep({
       >
         <Button
           onClick={onNext}
-          className="gap-2 rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
           size="lg"
         >
           {t("demo_intro.cta")}
-          <ArrowRight className="h-5 w-5" />
         </Button>
       </motion.div>
     </div>

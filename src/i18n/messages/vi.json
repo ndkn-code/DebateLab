@@ -207,7 +207,7 @@
     "demo_intro": {
       "headline": "Thử debate nhanh nhé!",
       "subheadline": "Bạn có 30 giây để nói lập luận. Đừng lo — đây chỉ là thử thôi!",
-      "cta": "Sẵn sàng rồi →"
+      "cta": "Sẵn sàng rồi"
     },
     "demo_speak": {
       "headline": "Nói đi!",
@@ -221,7 +221,7 @@
       "analyzing": "Đang phân tích lập luận...",
       "strength": "Điểm mạnh",
       "improvement": "Cần cải thiện",
-      "cta": "Xem lộ trình học →"
+      "cta": "Xem lộ trình học"
     },
     "path_reveal": {
       "headline": "Lộ trình học của bạn đã sẵn sàng!",

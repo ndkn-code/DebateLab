@@ -61,6 +61,7 @@ export function PathRevealStep({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [rocketAnimation, setRocketAnimation] = useState<object | null>(null);
 
   const recommendations = getRecommendations(goal, experienceLevel);
@@ -99,10 +100,14 @@ export function PathRevealStep({
       });
     });
 
-    // Navigate after rocket animation plays (~2.5s)
+    // Start fade-out after rocket plays, then navigate
+    setTimeout(() => {
+      setIsFadingOut(true);
+    }, 3200);
+
     setTimeout(() => {
       window.location.href = "/dashboard";
-    }, 2500);
+    }, 4000);
   };
 
   return (
@@ -183,13 +188,22 @@ export function PathRevealStep({
         {isLaunching && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: isFadingOut ? 0 : 1 }}
+            transition={{ duration: isFadingOut ? 0.8 : 0.4, ease: "easeInOut" }}
             className="fixed inset-0 z-[200] bg-[#fbf8ff] flex flex-col items-center justify-center"
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", damping: 15, stiffness: 200 }}
+              animate={{
+                scale: isFadingOut ? 1.2 : 1,
+                opacity: isFadingOut ? 0 : 1,
+                y: isFadingOut ? -40 : 0,
+              }}
+              transition={
+                isFadingOut
+                  ? { duration: 0.8, ease: "easeInOut" }
+                  : { type: "spring", damping: 15, stiffness: 200 }
+              }
             >
               {rocketAnimation && (
                 <LottieAnimation
@@ -202,8 +216,15 @@ export function PathRevealStep({
 
             <motion.p
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              animate={{
+                opacity: isFadingOut ? 0 : 1,
+                y: isFadingOut ? -20 : 0,
+              }}
+              transition={
+                isFadingOut
+                  ? { duration: 0.6, ease: "easeInOut" }
+                  : { delay: 0.5, duration: 0.5 }
+              }
               className="text-2xl md:text-3xl font-bold mt-4 bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent"
             >
               Let&apos;s go!
