@@ -13,10 +13,13 @@
     "hero": {
       "badge": "AI-Powered Training",
       "headline": "Master the Art of Debate with your Personal AI Coach.",
+      "headline_rich": "Master the Art of Debate with your Personal <gradient>AI</gradient> Coach.",
       "subheadline": "Practice solo, get real-time feedback, and crush your next competition. Designed for the next generation of Vietnamese debaters.",
       "cta": "Start Practicing for Free",
       "cta_logged_in": "Start Practicing",
-      "social_proof": "Join 500+ Vietnamese debaters",
+      "social_proof": "Join 500+ debaters in Vietnam",
+      "announcement_badge": "New",
+      "announcement": "AI Coach debates live with you",
       "session_timer": "Session Timer",
       "live_analysis": "LIVE ANALYSIS"
     },
@@ -80,10 +83,32 @@
         "description": "Chat with your personal AI debate coach anytime for tips, explanations, and practice."
       }
     },
-    "testimonial": {
-      "quote": "DebateLab finally gives us that Truong Teen vibe at home. The AI analysis on my structure helped me jump from regional rounds to national finals!",
-      "name": "Minh Anh Nguyen",
-      "title": "Top Speaker, National Schools Debating Championship"
+    "testimonials": {
+      "headline": "What Debaters Say",
+      "0": {
+        "quote": "DebateLab finally gave us the Truong Teen experience at home. The AI structure analysis helped me jump from regionals to the national finals!"
+      },
+      "1": {
+        "quote": "I practiced on DebateLab 15 minutes every night, and saw a clear difference in 2 weeks. The feedback is more detailed than a real coach!"
+      },
+      "2": {
+        "quote": "The AI Coach explains WSDC format way better than textbooks. Our whole team now uses DebateLab to warm up before tournaments."
+      }
+    },
+    "stats": {
+      "debaters": "Active debaters",
+      "sessions": "Debate sessions",
+      "improvement": "Avg. score improvement",
+      "rating": "Student rating"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "Is DebateLab free?",
+      "a1": "Yes! DebateLab is completely free. Just create an account and start practicing.",
+      "q2": "What do I need to get started?",
+      "a2": "Just a computer with a microphone (or headphones with a mic) and Chrome browser. That's it!",
+      "q3": "How accurate is the AI scoring?",
+      "a3": "DebateLab's AI analyzes 4 criteria: Content, Structure, Language, and Persuasion. Detailed feedback for each category tells you exactly what to improve."
     },
     "finalCta": {
       "headline": "Ready to win your next debate?",
@@ -102,7 +127,8 @@
       "legal": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "copyright": "© {year} DebateLab. All rights reserved."
+      "copyright": "© {year} DebateLab. All rights reserved.",
+      "made_with_love": "Made with ❤️ in Vietnam 🇻🇳"
     }
   },
   "onboarding": {

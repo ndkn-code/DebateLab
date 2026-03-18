@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Menu, X } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import { cn } from "@/lib/utils";
 
 interface LandingNavbarProps {
   isLoggedIn: boolean;
@@ -12,13 +13,27 @@ interface LandingNavbarProps {
 
 export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const t = useTranslations("landing.nav");
 
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler);
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
   return (
-    <nav className="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/10">
+    <nav
+      className={cn(
+        "fixed top-0 w-full z-50 transition-all duration-300",
+        scrolled
+          ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100"
+          : "bg-transparent"
+      )}
+    >
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <span className="text-2xl font-extrabold text-primary tracking-tight">
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent tracking-tight">
             DebateLab
           </span>
           <div className="hidden md:flex items-center gap-8">
@@ -42,7 +57,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
           {isLoggedIn ? (
             <Link
               href="/dashboard"
-              className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
             >
               {t("dashboard")}
             </Link>
@@ -56,7 +71,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
               >
                 {t("signup")}
               </Link>
@@ -69,7 +84,11 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
         >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {mobileOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </button>
       </div>
 
@@ -100,7 +119,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               {isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
+                  className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                   onClick={() => setMobileOpen(false)}
                 >
                   {t("dashboard")}
@@ -116,7 +135,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
                   </Link>
                   <Link
                     href="/auth/signup"
-                    className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
+                    className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                     onClick={() => setMobileOpen(false)}
                   >
                     {t("signup")}

@@ -13,10 +13,13 @@
     "hero": {
       "badge": "Luyện Với AI",
       "headline": "Luyện Debate Với AI. Lên Trình Mỗi Ngày.",
+      "headline_rich": "Luyện Debate Với <gradient>AI</gradient>. Lên Trình Mỗi Ngày.",
       "subheadline": "Nói, nhận feedback ngay, crush cuộc thi tiếp theo. Dành cho debater Việt Nam.",
       "cta": "Bắt đầu miễn phí",
       "cta_logged_in": "Vào Luyện Tập",
       "social_proof": "Gia nhập 500+ debater Việt Nam",
+      "announcement_badge": "Mới",
+      "announcement": "AI Coach tranh luận trực tiếp với bạn",
       "session_timer": "Đồng Hồ",
       "live_analysis": "ĐANG PHÂN TÍCH"
     },
@@ -80,10 +83,32 @@
         "description": "Chat với AI Coach 24/7. Hỏi gì cũng được, trả lời ngay."
       }
     },
-    "testimonial": {
-      "quote": "DebateLab cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!",
-      "name": "Minh Anh Nguyen",
-      "title": "Top Speaker, National Schools Debating Championship"
+    "testimonials": {
+      "headline": "Debater Nói Gì?",
+      "0": {
+        "quote": "DebateLab cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!"
+      },
+      "1": {
+        "quote": "Mình luyện trên DebateLab mỗi tối 15 phút, sau 2 tuần là thấy khác biệt rõ. Feedback chi tiết hơn cả coach thật!"
+      },
+      "2": {
+        "quote": "AI Coach giải thích WSDC format dễ hiểu hơn hẳn đọc sách. Cả team mình giờ dùng DebateLab để warm-up trước giải."
+      }
+    },
+    "stats": {
+      "debaters": "Debater đang luyện",
+      "sessions": "Phiên tranh luận",
+      "improvement": "Điểm cải thiện TB",
+      "rating": "Đánh giá từ học sinh"
+    },
+    "faq": {
+      "title": "Câu Hỏi Thường Gặp",
+      "q1": "DebateLab có miễn phí không?",
+      "a1": "Có! DebateLab hoàn toàn miễn phí. Bạn chỉ cần đăng ký tài khoản và bắt đầu luyện tập ngay.",
+      "q2": "Cần chuẩn bị gì để bắt đầu?",
+      "a2": "Chỉ cần máy tính có mic (hoặc tai nghe có mic) và trình duyệt Chrome. Vậy là đủ!",
+      "q3": "AI chấm điểm chính xác không?",
+      "a3": "AI của DebateLab phân tích 4 tiêu chí: Nội dung, Cấu trúc, Ngôn ngữ, và Thuyết phục. Feedback chi tiết từng mục giúp bạn biết chính xác cần cải thiện gì."
     },
     "finalCta": {
       "headline": "Sẵn sàng lên trình chưa?",
@@ -102,7 +127,8 @@
       "legal": "Pháp lý",
       "privacy": "Chính sách bảo mật",
       "terms": "Điều khoản dịch vụ",
-      "copyright": "© {year} DebateLab. Tất cả quyền được bảo lưu."
+      "copyright": "© {year} DebateLab. Tất cả quyền được bảo lưu.",
+      "made_with_love": "Made with ❤️ in Vietnam 🇻🇳"
     }
   },
   "onboarding": {
