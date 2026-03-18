@@ -359,7 +359,21 @@
       "ai_hints_desc": "Shows brainstorm hints during preparation time",
       "begin_session": "Begin Session",
       "recording": "Recording...",
-      "speak_placeholder": "Start speaking... your words will appear here"
+      "speak_placeholder": "Start speaking... your words will appear here",
+      "audioCheck": {
+        "title": "Audio Check",
+        "description": "Turn on your speakers or plug in headphones, then tap below to test.",
+        "playTest": "Play Test Sound",
+        "playing": "Playing...",
+        "tryAgain": "Try Again",
+        "confirm": "Sounds good, let's go!"
+      },
+      "tts": {
+        "generating": "Generating voice...",
+        "pause": "Pause",
+        "replay": "Replay",
+        "error": "Audio playback failed"
+      }
     },
     "chat": {
       "new_chat": "+ New Chat",
@@ -501,6 +515,12 @@
     "save_preferences": "Save Preferences",
     "language": "Language",
     "language_description": "Choose display language",
+    "voice": {
+      "title": "AI Voice",
+      "description": "Choose the voice for your AI debate opponent",
+      "female": "Female",
+      "male": "Male"
+    },
     "sign_out": "Sign Out",
     "toast": {
       "profile_updated": "Profile updated!",

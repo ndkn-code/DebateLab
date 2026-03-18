@@ -359,7 +359,21 @@
       "ai_hints_desc": "Hiện gợi ý brainstorm trong lúc chuẩn bị",
       "begin_session": "Bắt Đầu",
       "recording": "Đang ghi âm...",
-      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây"
+      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây",
+      "audioCheck": {
+        "title": "Kiểm tra âm thanh",
+        "description": "Bật loa hoặc cắm tai nghe rồi nhấn nút bên dưới để kiểm tra nha!",
+        "playTest": "Phát thử âm thanh",
+        "playing": "Đang phát...",
+        "tryAgain": "Thử lại",
+        "confirm": "Nghe được rồi, bắt đầu!"
+      },
+      "tts": {
+        "generating": "Đang tạo giọng nói...",
+        "pause": "Tạm dừng",
+        "replay": "Nghe lại",
+        "error": "Lỗi phát âm thanh"
+      }
     },
     "chat": {
       "new_chat": "+ Chat Mới",
@@ -501,6 +515,12 @@
     "save_preferences": "Lưu cài đặt",
     "language": "Ngôn ngữ",
     "language_description": "Chọn ngôn ngữ hiển thị",
+    "voice": {
+      "title": "Giọng nói AI",
+      "description": "Chọn giọng nói cho AI đối thủ khi tranh luận",
+      "female": "Nữ",
+      "male": "Nam"
+    },
     "sign_out": "Đăng xuất",
     "toast": {
       "profile_updated": "Đã cập nhật hồ sơ!",

@@ -12,7 +12,10 @@ import {
   Check,
   Loader2,
   Globe,
+  Volume2,
 } from "lucide-react";
+import { VoiceSettings } from "@/components/settings/voice-settings";
+import { DEFAULT_VOICE } from "@/lib/tts-voices";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/shared/toast";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -22,6 +25,7 @@ import {
   changePassword,
 } from "@/app/[locale]/(protected)/settings/actions";
 import { createClient } from "@/lib/supabase/client";
+import { usePostHog } from "posthog-js/react";
 import type { Profile } from "@/types/database";
 
 const AVATAR_PRESETS = [
@@ -50,6 +54,7 @@ interface SettingsContentProps {
 export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
   const router = useRouter();
   const t = useTranslations('settings');
+  const posthog = usePostHog();
   const [isPending, startTransition] = useTransition();
 
   // Profile state
@@ -72,6 +77,9 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
   );
   const [defaultDifficulty, setDefaultDifficulty] = useState(
     (prefs.default_ai_difficulty as string) ?? "medium"
+  );
+  const [ttsVoice, setTtsVoice] = useState(
+    (prefs.tts_voice as string) ?? DEFAULT_VOICE
   );
 
   const DIFFICULTY_OPTIONS = [
@@ -101,6 +109,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
           default_prep_time: defaultPrepTime,
           default_speech_time: defaultSpeechTime,
           default_ai_difficulty: defaultDifficulty,
+          tts_voice: ttsVoice,
         });
         showToast(t('toast.preferences_saved'), "success");
       } catch {
@@ -346,6 +355,36 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
             </div>
           </div>
 
+          <Button
+            onClick={handleSavePreferences}
+            disabled={isPending}
+            className="gap-2 bg-primary text-on-primary"
+            size="sm"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+            {t('save_preferences')}
+          </Button>
+        </div>
+      </section>
+
+      {/* Voice Section */}
+      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
+        <VoiceSettings
+          currentVoice={ttsVoice}
+          onVoiceChange={(voiceId) => {
+            const previousVoice = ttsVoice;
+            setTtsVoice(voiceId);
+            posthog?.capture('tts_voice_changed', {
+              new_voice: voiceId,
+              previous_voice: previousVoice,
+            });
+          }}
+        />
+        <div className="mt-4">
           <Button
             onClick={handleSavePreferences}
             disabled={isPending}

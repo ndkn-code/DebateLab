@@ -5,11 +5,14 @@ import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Globe } from "lucide-react";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
+import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import { createClient } from "@/lib/supabase/client";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
 import { MicCheck } from "@/components/practice/mic-check";
+import { AudioCheck } from "@/components/practice/audio-check";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
 import { AiRebuttalPhase } from "@/components/practice/ai-rebuttal-phase";
@@ -49,6 +52,8 @@ export default function SessionPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [showShortDialog, setShowShortDialog] = useState(false);
   const [shortWordCount, setShortWordCount] = useState(0);
+  const [audioChecked, setAudioChecked] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState(DEFAULT_VOICE);
   const hasStartedRef = useRef(false);
   const hasEndedRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
@@ -68,6 +73,22 @@ export default function SessionPage() {
   const currentRoundInfo = isFullRound
     ? rounds.find((r) => r.roundNumber === currentRound)
     : undefined;
+
+  // Load TTS voice preference
+  useEffect(() => {
+    const loadVoice = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+        const prefs = data?.preferences as Record<string, unknown> | null;
+        if (prefs?.tts_voice && typeof prefs.tts_voice === 'string') {
+          setTtsVoice(prefs.tts_voice);
+        }
+      }
+    };
+    loadVoice();
+  }, []);
 
   // Redirect if no topic
   useEffect(() => {
@@ -530,8 +551,13 @@ export default function SessionPage() {
           <RoundProgress rounds={rounds} currentRound={currentRound} />
         )}
 
+      {/* Audio Check (pre-session, for full round mode with TTS) */}
+      {currentPhase === "mic-check" && !audioChecked && isFullRound && (
+        <AudioCheck onPassed={() => setAudioChecked(true)} />
+      )}
+
       {/* Mic Check Phase */}
-      {currentPhase === "mic-check" && (
+      {currentPhase === "mic-check" && (audioChecked || !isFullRound) && (
         <MicCheck onReady={handleMicReady} onBack={handleMicBack} />
       )}
 
@@ -579,6 +605,7 @@ export default function SessionPage() {
           difficulty={aiDifficulty}
           previousRounds={previousRoundsForAi}
           onComplete={handleAiRebuttalComplete}
+          ttsVoice={ttsVoice}
         />
       )}
 

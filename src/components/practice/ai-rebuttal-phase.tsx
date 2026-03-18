@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Bot, Loader2, AlertTriangle, RotateCcw, ArrowRight } from "lucide-react";
+import { Bot, Loader2, AlertTriangle, RotateCcw, ArrowRight, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTTS } from "@/hooks/use-tts";
+import { useTranslations } from "next-intl";
 import type { AiDifficulty } from "@/types";
 
 interface AiRebuttalPhaseProps {
@@ -14,6 +16,7 @@ interface AiRebuttalPhaseProps {
   difficulty: AiDifficulty;
   previousRounds?: { label: string; speaker: string; text: string }[];
   onComplete: (rebuttal: string) => void;
+  ttsVoice?: string;
 }
 
 export function AiRebuttalPhase({
@@ -24,13 +27,29 @@ export function AiRebuttalPhase({
   difficulty,
   previousRounds,
   onComplete,
+  ttsVoice = 'aura-asteria-en',
 }: AiRebuttalPhaseProps) {
+  const t = useTranslations('dashboard.practice');
   const [status, setStatus] = useState<"loading" | "typing" | "done" | "error">("loading");
   const [fullText, setFullText] = useState("");
   const [displayedText, setDisplayedText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const hasFetched = useRef(false);
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ttsTriggeredRef = useRef(false);
+
+  const {
+    speak: ttsSpeak,
+    stop: ttsStop,
+    replay: ttsReplay,
+    isLoading: ttsLoading,
+    isPlaying: ttsPlaying,
+    hasPlayed: ttsHasPlayed,
+    error: ttsError,
+  } = useTTS({
+    voice: ttsVoice,
+    autoPlay: true,
+  });
 
   const fetchRebuttal = useCallback(async () => {
     setStatus("loading");
@@ -109,6 +128,14 @@ export function AiRebuttalPhase({
       }
     };
   }, [status, fullText]);
+
+  // Trigger TTS when typewriter finishes
+  useEffect(() => {
+    if (status === "done" && fullText && !ttsTriggeredRef.current) {
+      ttsTriggeredRef.current = true;
+      ttsSpeak(fullText);
+    }
+  }, [status, fullText, ttsSpeak]);
 
   const handleSkipAnimation = () => {
     if (typewriterRef.current) {
@@ -232,6 +259,36 @@ export function AiRebuttalPhase({
           )}
         </div>
       </div>
+
+      {/* TTS controls */}
+      {status === "done" && (
+        <div className="flex items-center justify-center gap-2">
+          {ttsLoading && (
+            <span className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {t('tts.generating')}
+            </span>
+          )}
+
+          {ttsPlaying && (
+            <Button variant="ghost" size="sm" onClick={ttsStop} className="gap-1">
+              <Pause className="h-3.5 w-3.5" />
+              {t('tts.pause')}
+            </Button>
+          )}
+
+          {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
+            <Button variant="ghost" size="sm" onClick={ttsReplay} className="gap-1">
+              <RotateCcw className="h-3.5 w-3.5" />
+              {t('tts.replay')}
+            </Button>
+          )}
+
+          {ttsError && (
+            <span className="text-xs text-destructive">{t('tts.error')}</span>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="sticky bottom-4 flex items-center justify-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest/95 p-3 backdrop-blur-xl">
