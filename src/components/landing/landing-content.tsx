@@ -387,35 +387,54 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
             </div>
           </ScrollReveal>
 
-          <div className="relative">
-            {/* Connecting line */}
-            <div className="hidden lg:block absolute top-8 left-[12.5%] right-[12.5%] h-[2px] border-t-2 border-dashed border-primary/20" />
+          <div className="relative hidden lg:flex items-start justify-between">
+            {/* Connecting line — runs through circle centers */}
+            <div className="absolute top-[52px] left-[60px] right-[60px] border-t-2 border-dashed border-primary/20 z-0" />
 
-            <div className="grid lg:grid-cols-4 gap-12">
-              {(["step1", "step2", "step3", "step4"] as const).map(
-                (step, i) => {
-                  const Icon = HOW_IT_WORKS_ICONS[i];
-                  return (
-                    <ScrollReveal key={step} delay={i * 0.15}>
-                      <div className="space-y-5 text-center lg:text-left">
-                        <div className="flex flex-col items-center lg:items-start gap-3">
-                          <Icon className="w-5 h-5 text-primary/60" />
-                          <div className="relative z-10 w-16 h-16 rounded-3xl bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white flex items-center justify-center text-2xl font-extrabold shadow-lg shadow-primary/20">
-                            {i + 1}
-                          </div>
-                        </div>
-                        <h3 className="text-2xl font-extrabold text-on-surface">
-                          {t(`howItWorks.${step}.title`)}
-                        </h3>
-                        <p className="text-on-surface-variant leading-relaxed font-medium">
-                          {t(`howItWorks.${step}.description`)}
-                        </p>
+            {(["step1", "step2", "step3", "step4"] as const).map(
+              (step, i) => {
+                const Icon = HOW_IT_WORKS_ICONS[i];
+                return (
+                  <ScrollReveal key={step} delay={i * 0.15} className="relative z-10 flex flex-col items-center text-center w-1/4">
+                    <Icon className="w-5 h-5 text-muted-foreground mb-3" />
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white flex items-center justify-center text-lg font-bold mb-4 shadow-lg shadow-primary/20">
+                      {i + 1}
+                    </div>
+                    <h3 className="text-lg font-extrabold text-on-surface mb-2">
+                      {t(`howItWorks.${step}.title`)}
+                    </h3>
+                    <p className="text-sm text-on-surface-variant leading-relaxed font-medium px-2">
+                      {t(`howItWorks.${step}.description`)}
+                    </p>
+                  </ScrollReveal>
+                );
+              }
+            )}
+          </div>
+
+          {/* Mobile: stacked layout without connecting line */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 lg:hidden">
+            {(["step1", "step2", "step3", "step4"] as const).map(
+              (step, i) => {
+                const Icon = HOW_IT_WORKS_ICONS[i];
+                return (
+                  <ScrollReveal key={step} delay={i * 0.1}>
+                    <div className="flex flex-col items-center text-center space-y-4">
+                      <Icon className="w-5 h-5 text-muted-foreground" />
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-primary/20">
+                        {i + 1}
                       </div>
-                    </ScrollReveal>
-                  );
-                }
-              )}
-            </div>
+                      <h3 className="text-lg font-extrabold text-on-surface">
+                        {t(`howItWorks.${step}.title`)}
+                      </h3>
+                      <p className="text-sm text-on-surface-variant leading-relaxed font-medium">
+                        {t(`howItWorks.${step}.description`)}
+                      </p>
+                    </div>
+                  </ScrollReveal>
+                );
+              }
+            )}
           </div>
         </div>
       </section>

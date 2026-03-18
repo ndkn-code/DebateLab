@@ -13,8 +13,8 @@ interface BrowserFrameProps {
 export function BrowserFrame({
   src,
   alt,
-  width = 600,
-  height = 400,
+  width = 1200,
+  height = 800,
   className = "",
 }: BrowserFrameProps) {
   return (
@@ -38,8 +38,10 @@ export function BrowserFrame({
         alt={alt}
         width={width}
         height={height}
-        className="w-full"
+        unoptimized
         priority
+        sizes="(max-width: 768px) 100vw, 600px"
+        className="w-full"
       />
     </div>
   );
