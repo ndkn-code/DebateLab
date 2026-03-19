@@ -164,7 +164,16 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       });
 
       if (autoPlay) {
-        await audio.play();
+        try {
+          await audio.play();
+        } catch (playErr) {
+          // Browser blocked autoplay — user hasn't interacted recently enough
+          // Don't treat as error: just mark as "ready to play" so replay button appears
+          console.warn('Autoplay blocked by browser:', playErr);
+          setIsPlaying(false);
+          setHasPlayed(true); // Show replay button so user can tap to play
+          posthog?.capture('tts_autoplay_blocked', { voice, text_length: truncatedText.length });
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'TTS failed';
@@ -187,7 +196,11 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const replay = useCallback(() => {
     if (audioRef.current && blobUrlRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play();
+      setHasPlayed(false);
+      audioRef.current.play().catch((err) => {
+        console.warn('Replay play() failed:', err);
+        setHasPlayed(true);
+      });
 
       posthog?.capture('tts_replay', { voice });
     }
