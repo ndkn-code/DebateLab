@@ -37,6 +37,7 @@ export function AiRebuttalPhase({
   const hasFetched = useRef(false);
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsTriggeredRef = useRef(false);
+  const ttsWasLoadingRef = useRef(false);
 
   const {
     speak: ttsSpeak,
@@ -84,7 +85,10 @@ export function AiRebuttalPhase({
 
       const data = (await res.json()) as { rebuttal: string };
       setFullText(data.rebuttal);
-      setStatus("typing");
+      // Don't set status="typing" yet — wait for TTS audio to load first
+      // so typewriter and audio start simultaneously
+      ttsTriggeredRef.current = true;
+      ttsSpeak(data.rebuttal);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setError("AI response timed out. Please try again.");
@@ -129,13 +133,17 @@ export function AiRebuttalPhase({
     };
   }, [status, fullText]);
 
-  // Trigger TTS as soon as full text is available (parallel with typewriter)
+  // Wait for TTS audio to load, then start typewriter so both run simultaneously
   useEffect(() => {
-    if (status === "typing" && fullText && !ttsTriggeredRef.current) {
-      ttsTriggeredRef.current = true;
-      ttsSpeak(fullText);
+    if (ttsLoading) {
+      ttsWasLoadingRef.current = true;
     }
-  }, [status, fullText, ttsSpeak]);
+    // Once TTS finishes loading (success, autoplay-blocked, or error) AND we have
+    // text AND we haven't started typing yet → start the typewriter
+    if (ttsWasLoadingRef.current && !ttsLoading && fullText && status === "loading") {
+      setStatus("typing");
+    }
+  }, [ttsLoading, fullText, status]);
 
   const handleSkipAnimation = () => {
     if (typewriterRef.current) {
