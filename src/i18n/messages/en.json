@@ -402,7 +402,7 @@
       }
     },
     "chat": {
-      "new_chat": "+ New Chat",
+      "new_chat": "New Chat",
       "header_title": "AI Debate Coach",
       "header_subtitle": "Always ready to help",
       "sidebar_empty": "Start a conversation with your AI Coach",

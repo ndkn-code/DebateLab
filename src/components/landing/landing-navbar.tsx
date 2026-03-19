@@ -33,7 +33,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
     >
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent tracking-tight">
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent tracking-tight">
             DebateLab
           </span>
           <div className="hidden md:flex items-center gap-8">
@@ -57,7 +57,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
           {isLoggedIn ? (
             <Link
               href="/dashboard"
-              className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
             >
               {t("dashboard")}
             </Link>
@@ -71,7 +71,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
               >
                 {t("signup")}
               </Link>
@@ -119,7 +119,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
               {isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
+                  className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                   onClick={() => setMobileOpen(false)}
                 >
                   {t("dashboard")}
@@ -135,7 +135,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
                   </Link>
                   <Link
                     href="/auth/signup"
-                    className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
+                    className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
                     onClick={() => setMobileOpen(false)}
                   >
                     {t("signup")}

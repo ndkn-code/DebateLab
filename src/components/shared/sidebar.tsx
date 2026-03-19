@@ -41,8 +41,6 @@ const NAV_ITEMS = [
   { href: "/practice", key: "practice", icon: Mic },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
-  { href: "/profile", key: "profile", icon: User },
-  { href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
 interface SidebarProps {
@@ -64,6 +62,7 @@ function NavContent({
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations('dashboard.nav');
   const tc = useTranslations('common');
   const ts = useTranslations('dashboard.home');
@@ -154,11 +153,11 @@ function NavContent({
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" sideOffset={8}>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/profile'); }}>
               <User className="h-4 w-4" />
               {t('profile')}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/settings'); }}>
               <Settings className="h-4 w-4" />
               {t('settings')}
             </DropdownMenuItem>

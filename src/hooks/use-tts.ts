@@ -64,22 +64,37 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const speak = useCallback(async (text: string) => {
     setIsLoading(true);
     setError(null);
-    const fetchStart = Date.now();
 
-    try {
+    const truncatedText = text.length > 2000 ? text.substring(0, 2000) : text;
+
+    const attemptFetch = async (): Promise<{ blob: Blob; latency: number }> => {
+      const fetchStart = Date.now();
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice }),
+        body: JSON.stringify({ text: truncatedText, voice }),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'TTS failed' }));
-        throw new Error(errData.error || 'TTS request failed');
+        throw new Error(errData.error || `TTS request failed (${res.status})`);
       }
 
-      const audioBlob = await res.blob();
-      const latency = Date.now() - fetchStart;
+      return { blob: await res.blob(), latency: Date.now() - fetchStart };
+    };
+
+    try {
+      let result: { blob: Blob; latency: number };
+
+      try {
+        result = await attemptFetch();
+      } catch (firstErr) {
+        console.warn('TTS first attempt failed, retrying...', firstErr);
+        // Retry once
+        result = await attemptFetch();
+      }
+
+      const { blob: audioBlob, latency } = result;
       setLatencyMs(latency);
 
       // Clean up previous blob URL
@@ -106,7 +121,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
         posthog?.capture('tts_playback_completed', {
           voice,
-          text_length: text.length,
+          text_length: truncatedText.length,
           listen_duration_ms: listenDuration,
           latency_ms: latency,
           audio_size_bytes: audioBlob.size,
@@ -125,7 +140,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
           posthog?.capture('tts_playback_skipped', {
             voice,
-            text_length: text.length,
+            text_length: truncatedText.length,
             listen_duration_ms: listenDuration,
             skip_point: audio.currentTime,
             total_duration: audio.duration,
@@ -136,14 +151,14 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       audio.onerror = () => {
         setIsPlaying(false);
         setError('Audio playback failed');
-        posthog?.capture('tts_playback_error', { voice, text_length: text.length });
+        posthog?.capture('tts_playback_error', { voice, text_length: truncatedText.length });
         onError?.('Audio playback failed');
       };
 
       // PostHog: TTS generated
       posthog?.capture('tts_generated', {
         voice,
-        text_length: text.length,
+        text_length: truncatedText.length,
         latency_ms: latency,
         audio_size_bytes: audioBlob.size,
       });
@@ -154,7 +169,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'TTS failed';
       setError(msg);
-      posthog?.capture('tts_generation_error', { voice, error: msg });
+      posthog?.capture('tts_silent_failure', { voice, text_length: truncatedText.length, error: msg });
       onError?.(msg);
     } finally {
       setIsLoading(false);

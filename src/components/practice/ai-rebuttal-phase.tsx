@@ -129,9 +129,9 @@ export function AiRebuttalPhase({
     };
   }, [status, fullText]);
 
-  // Trigger TTS when typewriter finishes
+  // Trigger TTS as soon as full text is available (parallel with typewriter)
   useEffect(() => {
-    if (status === "done" && fullText && !ttsTriggeredRef.current) {
+    if (status === "typing" && fullText && !ttsTriggeredRef.current) {
       ttsTriggeredRef.current = true;
       ttsSpeak(fullText);
     }
@@ -261,7 +261,7 @@ export function AiRebuttalPhase({
       </div>
 
       {/* TTS controls */}
-      {status === "done" && (
+      {(status === "typing" || status === "done") && (
         <div className="flex items-center justify-center gap-2">
           {ttsLoading && (
             <span className="flex items-center gap-1.5 text-xs text-on-surface-variant">
@@ -284,8 +284,14 @@ export function AiRebuttalPhase({
             </Button>
           )}
 
-          {ttsError && (
-            <span className="text-xs text-destructive">{t('tts.error')}</span>
+          {ttsError && !ttsLoading && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-destructive">{t('tts.error')}</span>
+              <Button variant="ghost" size="sm" onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }} className="gap-1 text-xs">
+                <RotateCcw className="h-3 w-3" />
+                Try again
+              </Button>
+            </div>
           )}
         </div>
       )}

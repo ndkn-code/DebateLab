@@ -92,7 +92,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
           className="absolute inset-0 -z-10"
           style={{
             background:
-              "radial-gradient(ellipse at 30% 50%, rgba(47,79,221,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(124,58,237,0.06) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 30% 50%, rgba(47,79,221,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(79,70,229,0.06) 0%, transparent 50%)",
           }}
         />
 
@@ -108,7 +108,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 href="/chat"
                 className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-sm text-primary hover:bg-primary/10 transition-colors"
               >
-                <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] text-white text-xs font-medium">
+                <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white text-xs font-medium">
                   {t("hero.announcement_badge")}
                 </span>
                 <span>{t("hero.announcement")}</span>
@@ -125,7 +125,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
             >
               {t.rich("hero.headline_rich", {
                 gradient: (chunks) => (
-                  <span className="bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent">
                     {chunks}
                   </span>
                 ),
@@ -165,7 +165,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="relative hidden lg:block"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/10 to-[#7c3aed]/10 rounded-2xl blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/10 to-[#4f46e5]/10 rounded-2xl blur-3xl" />
             <BrowserFrame
               src="/images/landing/dashboard.jpg"
               alt="DebateLab Dashboard"
@@ -215,7 +215,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                         <div
                           className={`p-2.5 rounded-xl ${
                             isActive
-                              ? "bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white"
+                              ? "bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white"
                               : "bg-gray-100 text-gray-500"
                           }`}
                         >
@@ -243,7 +243,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
 
               {/* Screenshot */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/5 to-[#7c3aed]/5 rounded-2xl blur-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/5 to-[#4f46e5]/5 rounded-2xl blur-2xl" />
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeFeature}
@@ -268,7 +268,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-primary/5 via-transparent to-purple-500/5">
+      <section className="py-20 px-6 bg-gradient-to-r from-primary/5 via-transparent to-indigo-500/5">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -289,7 +289,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 0.1}>
                 <div>
-                  <div className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent">
+                  <div className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent">
                     <CountUp
                       target={stat.target}
                       suffix={stat.suffix}
@@ -331,7 +331,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
               <ScrollReveal key={course.key} delay={i * 0.15}>
                 <div className="relative rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden group">
                   {/* Gradient top border */}
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed]" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5]" />
                   <div
                     className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-${course.color}-container/40 mb-5`}
                   >
@@ -397,7 +397,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 return (
                   <ScrollReveal key={step} delay={i * 0.15} className="relative z-10 flex flex-col items-center text-center w-1/4">
                     <Icon className="w-5 h-5 text-muted-foreground mb-3" />
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white flex items-center justify-center text-lg font-bold mb-4 shadow-lg shadow-primary/20">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white flex items-center justify-center text-lg font-bold mb-4 shadow-lg shadow-primary/20">
                       {i + 1}
                     </div>
                     <h3 className="text-lg font-extrabold text-on-surface mb-2">
@@ -421,7 +421,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                   <ScrollReveal key={step} delay={i * 0.1}>
                     <div className="flex flex-col items-center text-center space-y-4">
                       <Icon className="w-5 h-5 text-muted-foreground" />
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-primary/20">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-primary/20">
                         {i + 1}
                       </div>
                       <h3 className="text-lg font-extrabold text-on-surface">
@@ -469,7 +469,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                   </p>
                   {/* Author */}
                   <div className="flex items-center gap-3 mt-6 pt-6 border-t border-outline-variant/10">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] flex items-center justify-center text-white text-sm font-bold">
                       {testimonial.initials}
                     </div>
                     <div>
@@ -491,7 +491,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       {/* Final CTA Section */}
       <section className="py-24 md:py-32 px-6">
         <ScrollReveal>
-          <div className="max-w-7xl mx-auto bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] rounded-[3rem] p-12 md:p-24 text-center space-y-10 relative overflow-hidden shadow-2xl shadow-primary/30">
+          <div className="max-w-7xl mx-auto bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] rounded-[3rem] p-12 md:p-24 text-center space-y-10 relative overflow-hidden shadow-2xl shadow-primary/30">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
             <h2 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white max-w-3xl mx-auto tracking-tight relative z-10">
               {t("finalCta.headline")}
@@ -516,7 +516,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
               </Link>
             </div>
             <div className="relative z-10 flex justify-center">
-              <AvatarStack label={t("hero.social_proof")} />
+              <AvatarStack label={t("hero.social_proof")} variant="on-dark" />
             </div>
           </div>
         </ScrollReveal>
@@ -557,7 +557,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       <footer className="py-20 bg-surface-container-lowest px-6 border-t border-outline-variant/10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
           <div className="space-y-4">
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent tracking-tight">
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent tracking-tight">
               DebateLab
             </span>
             <p className="text-sm font-medium text-on-surface-variant max-w-xs">
