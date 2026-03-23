@@ -2,20 +2,43 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { enrollInCourse as enrollInCourseApi, markLessonComplete } from "@/lib/api/courses";
 
-// Used by the existing course-detail-content.tsx (student-facing)
+// Used by course-detail-content.tsx (student-facing enroll button)
 export async function enrollAction(courseId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  await enrollInCourseApi(user.id, courseId);
+  // Upsert enrollment
+  const { error } = await supabase
+    .from("enrollments")
+    .upsert(
+      {
+        user_id: user.id,
+        course_id: courseId,
+        status: "active",
+        progress_pct: 0,
+      },
+      { onConflict: "user_id,course_id" }
+    );
+
+  if (error) throw new Error(error.message);
+
+  // Log activity
+  await supabase.from("activity_log").insert({
+    user_id: user.id,
+    activity_type: "course_started",
+    reference_id: courseId,
+    reference_type: "course",
+    xp_earned: 0,
+    metadata: {},
+  });
+
   revalidatePath("/courses");
   revalidatePath("/dashboard");
 }
 
-// Used by the admin panel's student course player
+// Used by admin panel's student course player
 export async function enrollInCourse(courseId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,6 +59,7 @@ export async function enrollInCourse(courseId: string) {
   revalidatePath("/dashboard/courses");
 }
 
+// Used by lesson renderers (article, video, quiz, practice)
 export async function markLessonCompleteAction(
   lessonId: string,
   courseId: string,
@@ -46,10 +70,46 @@ export async function markLessonCompleteAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const result = await markLessonComplete(user.id, lessonId, courseId, score, timeSpentSeconds);
+  // Upsert lesson progress
+  await supabase
+    .from("lesson_progress")
+    .upsert(
+      {
+        user_id: user.id,
+        lesson_id: lessonId,
+        course_id: courseId,
+        status: "completed",
+        score: score ?? null,
+        time_spent_seconds: timeSpentSeconds ?? 0,
+        completed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,lesson_id" }
+    );
+
+  const xpEarned = score != null ? 25 + Math.round((score / 100) * 25) : 25;
+
+  // Log activity + award XP
+  await supabase.from("activity_log").insert({
+    user_id: user.id,
+    activity_type: "lesson_completed",
+    reference_id: lessonId,
+    reference_type: "lesson",
+    xp_earned: xpEarned,
+    metadata: { score, time_spent_seconds: timeSpentSeconds },
+  });
+
+  await supabase.rpc("increment_xp", { user_id: user.id, amount: xpEarned });
+  await supabase.rpc("upsert_daily_stats", {
+    p_user_id: user.id,
+    p_sessions: 0,
+    p_minutes: 0,
+    p_xp: xpEarned,
+  });
+
   revalidatePath("/courses");
   revalidatePath("/dashboard");
-  return result;
+
+  return { xpEarned };
 }
 
 export async function unenrollFromCourse(courseId: string) {
