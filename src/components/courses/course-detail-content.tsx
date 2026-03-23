@@ -61,8 +61,15 @@ export function CourseDetailContent({
   };
 
   const totalLessons = course.total_lessons;
+  const totalActivities = course.total_activities ?? 0;
+  const totalContent = totalLessons + totalActivities;
   const completedLessons = course.completed_lessons;
   const progress = course.enrollment?.progress_percent ?? 0;
+  const totalDurationMinutes = course.modules.reduce(
+    (sum, m) => sum + (m.activities ?? []).reduce((s, a) => s + (a.duration_minutes ?? 0), 0),
+    0
+  );
+  const estimatedHours = course.estimated_hours || (totalDurationMinutes > 0 ? Math.round(totalDurationMinutes / 60 * 10) / 10 : 0);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:py-8">
@@ -102,11 +109,11 @@ export function CourseDetailContent({
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                {course.estimated_hours} hours
+                {estimatedHours > 0 ? `${estimatedHours}h` : "—"}
               </span>
               <span className="flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4" />
-                {totalLessons} lessons
+                {totalContent > 0 ? `${totalContent} lessons` : "No content yet"}
               </span>
               <span className="flex items-center gap-1.5">
                 <BarChart3 className="h-4 w-4" />
@@ -168,7 +175,7 @@ export function CourseDetailContent({
                   </span>
                 )}
                 <span className="text-xs text-on-surface-variant">
-                  {mod.lessons.length} lesson{mod.lessons.length !== 1 ? "s" : ""}
+                  {mod.lessons.length + (mod.activities ?? []).length} item{(mod.lessons.length + (mod.activities ?? []).length) !== 1 ? "s" : ""}
                 </span>
               </div>
             </AccordionTrigger>
@@ -209,6 +216,37 @@ export function CourseDetailContent({
                         <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant" />
                       )}
                     </Link>
+                  );
+                })}
+                {/* Activities from new admin panel */}
+                {(mod.activities ?? []).map((activity) => {
+                  const ACTIVITY_ICONS: Record<string, typeof BookOpen> = {
+                    lesson: FileText, quiz: HelpCircle, matching: BookOpen,
+                    fill_blank: FileText, drag_order: BookOpen, flashcard: BookOpen,
+                  };
+                  const ActIcon = ACTIVITY_ICONS[activity.activity_type] ?? BookOpen;
+                  return (
+                    <div
+                      key={activity.id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
+                        isEnrolled
+                          ? "hover:bg-surface-container cursor-pointer"
+                          : "opacity-60 cursor-not-allowed"
+                      )}
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container">
+                        <ActIcon className="h-4 w-4 text-on-surface-variant" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-on-surface">
+                          {activity.title}
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {activity.activity_type.replace("_", " ")} &middot; {activity.duration_minutes} min
+                        </p>
+                      </div>
+                    </div>
                   );
                 })}
               </div>

@@ -47,7 +47,7 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              <span>{t(item.key)}</span>
+              <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}

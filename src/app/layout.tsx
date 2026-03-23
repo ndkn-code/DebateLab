@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -63,6 +64,7 @@ export default function RootLayout({
         className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
         {children}
+        <Toaster position="top-right" richColors />
         <SpeedInsights />
         <Analytics />
       </body>

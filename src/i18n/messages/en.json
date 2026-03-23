@@ -644,8 +644,10 @@
     "title": "Administration",
     "switchToAdmin": "Switch to Administration",
     "backToDashboard": "Back to Dashboard",
-    "overview": "Overview",
-    "courses": "Courses",
+    "nav": {
+      "overview": "Overview",
+      "courses": "Courses"
+    },
     "comingSoon": "Coming soon",
     "unauthorized": "You don't have permission to access this page.",
     "overview": {

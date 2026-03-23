@@ -644,8 +644,10 @@
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",
     "backToDashboard": "Quay lại Dashboard",
-    "overview": "Tổng quan",
-    "courses": "Khóa học",
+    "nav": {
+      "overview": "Tổng quan",
+      "courses": "Khóa học"
+    },
     "comingSoon": "Sắp ra mắt",
     "unauthorized": "Bạn không có quyền truy cập trang này.",
     "overview": {

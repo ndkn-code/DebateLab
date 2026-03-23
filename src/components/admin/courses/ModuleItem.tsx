@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronDown, ChevronRight, GripVertical, Trash2, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { updateModule, deleteModule } from "@/app/actions/courses";
-import type { AdminCourseModule, Activity, ActivityType } from "@/lib/types/admin";
+import type { AdminCourseModule, Activity } from "@/lib/types/admin";
 import { ActivityItem } from "./ActivityItem";
 import { AddActivityButton } from "./AddActivityButton";
 
@@ -21,23 +22,38 @@ export function ModuleItem({ module, index, courseId }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [title, setTitle] = useState(module.title);
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const activities = module.activities ?? [];
 
   const handleTitleSave = async () => {
     setEditing(false);
-    if (title !== module.title) {
-      await updateModule(module.id, { title });
-      router.refresh();
+    if (title !== module.title && title.trim()) {
+      try {
+        await updateModule(module.id, { title: title.trim() });
+        toast.success("Module renamed");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to rename");
+        setTitle(module.title);
+      }
     }
   };
 
   const handleDelete = async () => {
     if (!confirm(t("confirmDeleteModule"))) return;
-    await deleteModule(module.id);
-    router.refresh();
+    setDeleting(true);
+    try {
+      await deleteModule(module.id);
+      toast.success("Module deleted");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+      setDeleting(false);
+    }
   };
 
   return (
-    <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 shadow-sm overflow-hidden">
+    <div className={`rounded-2xl bg-surface-container-lowest border border-outline-variant/10 shadow-sm overflow-hidden ${deleting ? "opacity-50 pointer-events-none" : ""}`}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3">
         <GripVertical className="h-4 w-4 text-on-surface-variant/40 shrink-0 cursor-grab" />
@@ -52,7 +68,10 @@ export function ModuleItem({ module, index, courseId }: Props) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleTitleSave}
-            onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTitleSave();
+              if (e.key === "Escape") { setTitle(module.title); setEditing(false); }
+            }}
             autoFocus
             className="flex-1 rounded-lg border border-primary/30 px-2 py-1 text-sm focus:outline-none"
           />
@@ -62,19 +81,23 @@ export function ModuleItem({ module, index, courseId }: Props) {
           </button>
         )}
         {!expanded && (
-          <span className="text-xs text-on-surface-variant">({(module.activities ?? []).length} activities)</span>
+          <span className="text-xs text-on-surface-variant">({activities.length} activities)</span>
         )}
-        <button onClick={handleDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-on-surface-variant hover:text-red-600 transition-colors shrink-0">
-          <Trash2 className="h-4 w-4" />
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-on-surface-variant hover:text-red-600 transition-colors shrink-0 disabled:opacity-50"
+        >
+          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
         </button>
       </div>
 
       {/* Activities */}
       {expanded && (
         <div className="border-t border-outline-variant/10">
-          {(module.activities ?? []).length > 0 ? (
+          {activities.length > 0 ? (
             <div className="divide-y divide-outline-variant/5">
-              {(module.activities ?? []).map((act) => (
+              {activities.map((act) => (
                 <ActivityItem key={act.id} activity={act} />
               ))}
             </div>

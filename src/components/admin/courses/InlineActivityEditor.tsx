@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import { updateActivity } from "@/app/actions/courses";
 import { validateActivityContent } from "@/lib/activity/validators";
 import type { Activity, ActivityPhase, ActivityContent } from "@/lib/types/admin";
@@ -37,8 +38,10 @@ export function InlineActivityEditor({ activity, onClose }: Props) {
     setSaving(true);
     try {
       await updateActivity(activity.id, { title, phase, duration_minutes: duration, content });
+      toast.success("Activity saved!");
       onClose();
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
       setErrors([err instanceof Error ? err.message : "Save failed"]);
     }
     setSaving(false);

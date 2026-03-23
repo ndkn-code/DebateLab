@@ -26,10 +26,11 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
+  // Use fixed positioning to completely replace the parent layout's sidebar
   return (
-    <div className="flex min-h-screen flex-col bg-background md:flex-row">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background md:flex-row">
       <AdminSidebar />
-      <main className="flex-1 min-w-0">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
     </div>
   );
 }

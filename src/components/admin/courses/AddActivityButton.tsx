@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Plus, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers } from "lucide-react";
+import { toast } from "sonner";
 import { createActivity } from "@/app/actions/courses";
-import type { ActivityType, ActivityPhase } from "@/lib/types/admin";
+import type { ActivityType } from "@/lib/types/admin";
 import { getDefaultContent, getDefaultPhase } from "@/lib/activity/registry";
 
 const ACTIVITY_TYPES: { type: ActivityType; icon: typeof BookOpen; labelKey: string }[] = [
@@ -23,21 +24,27 @@ interface Props {
 
 export function AddActivityButton({ moduleId }: Props) {
   const t = useTranslations("admin.courses.activityTypes");
+  const tc = useTranslations("admin.courses");
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const handleSelect = async (type: ActivityType) => {
     setOpen(false);
-    const phase = getDefaultPhase(type);
-    const content = getDefaultContent(type);
+    try {
+      const phase = getDefaultPhase(type);
+      const content = getDefaultContent(type);
 
-    await createActivity(moduleId, {
-      activity_type: type,
-      title: `New ${type.replace("_", " ")}`,
-      phase,
-      content,
-    });
-    router.refresh();
+      await createActivity(moduleId, {
+        activity_type: type,
+        title: `New ${type.replace("_", " ")}`,
+        phase,
+        content,
+      });
+      toast.success("Activity added!");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add activity");
+    }
   };
 
   return (
@@ -47,7 +54,7 @@ export function AddActivityButton({ moduleId }: Props) {
         className="flex items-center gap-1.5 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors"
       >
         <Plus className="h-4 w-4" />
-        <span>{useTranslations("admin.courses")("addActivity")}</span>
+        <span>{tc("addActivity")}</span>
       </button>
 
       {open && (

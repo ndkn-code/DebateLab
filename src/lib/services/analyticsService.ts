@@ -2,8 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AnalyticsOverview } from "@/lib/types/admin";
 
 export async function getTotalUsers(supabase: SupabaseClient) {
-  const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-  // Growth: count users created in last 7 days vs previous 7 days
+  const { count, error } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+  if (error) console.error("getTotalUsers error:", error.message);
+
   const now = new Date();
   const d7 = new Date(now.getTime() - 7 * 86400000).toISOString();
   const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
@@ -15,20 +16,28 @@ export async function getTotalUsers(supabase: SupabaseClient) {
     .from("profiles").select("*", { count: "exact", head: true })
     .gte("created_at", d14).lt("created_at", d7);
 
-  const growthPct = previous && previous > 0
-    ? (((recent ?? 0) - previous) / previous) * 100
-    : (recent ?? 0) > 0 ? 100 : 0;
+  const recentN = recent ?? 0;
+  const previousN = previous ?? 0;
+
+  let growthPct = 0;
+  if (previousN > 0) {
+    growthPct = ((recentN - previousN) / previousN) * 100;
+  } else if (recentN > 0) {
+    growthPct = 100;
+  }
+  // No users in either period = 0% growth (not -100%)
 
   return { count: count ?? 0, growth: Math.round(growthPct * 10) / 10 };
 }
 
 export async function getOnlineUsers(supabase: SupabaseClient) {
   const cutoff = new Date(Date.now() - 2 * 60000).toISOString();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("user_sessions")
     .select("*", { count: "exact", head: true })
     .eq("is_active", true)
     .gte("last_seen_at", cutoff);
+  if (error) console.error("getOnlineUsers error:", error.message);
   return count ?? 0;
 }
 
@@ -119,23 +128,26 @@ export async function getSessionTrend(supabase: SupabaseClient, days: number = 3
 }
 
 export async function getPopularCourses(supabase: SupabaseClient, limit: number = 5) {
-  const { data } = await supabase
+  // Simple approach: get courses, then count enrollments separately
+  const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, enrollments(count)")
+    .select("id, title")
     .eq("is_published", true)
     .eq("is_archived", false)
-    .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (!data) return [];
+  if (!courses || courses.length === 0) return [];
 
-  return data.map((c: Record<string, unknown>) => ({
-    course_id: c.id as string,
-    title: c.title as string,
-    enrollment_count: Array.isArray(c.enrollments) && c.enrollments[0]
-      ? (c.enrollments[0] as Record<string, number>).count ?? 0
-      : 0,
-  })).sort((a, b) => b.enrollment_count - a.enrollment_count);
+  const result: { course_id: string; title: string; enrollment_count: number }[] = [];
+  for (const c of courses) {
+    const { count } = await supabase
+      .from("enrollments")
+      .select("*", { count: "exact", head: true })
+      .eq("course_id", c.id);
+    result.push({ course_id: c.id, title: c.title, enrollment_count: count ?? 0 });
+  }
+
+  return result.sort((a, b) => b.enrollment_count - a.enrollment_count);
 }
 
 export async function getApiUsageSummary(supabase: SupabaseClient, days: number = 7) {
@@ -180,6 +192,7 @@ export async function getOverviewData(supabase: SupabaseClient, _userId: string,
     getApiUsageSummary(supabase),
   ]);
 
+  // Count courses and enrollments separately to avoid RLS issues with joins
   const { count: totalCourses } = await supabase
     .from("courses").select("*", { count: "exact", head: true }).eq("is_archived", false);
   const { count: totalEnrollments } = await supabase

@@ -4,11 +4,11 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { updateCourse, createModule, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, AdminCourseModule, Activity } from "@/lib/types/admin";
 import { ModuleItem } from "./ModuleItem";
-import { AddActivityButton } from "./AddActivityButton";
 
 interface Props {
   course: AdminCourse & { modules: (AdminCourseModule & { activities: Activity[] })[] };
@@ -20,40 +20,66 @@ export function CourseEditor({ course: initialCourse }: Props) {
   const [course, setCourse] = useState(initialCourse);
   const [infoOpen, setInfoOpen] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? "");
+  const [addingModule, setAddingModule] = useState(false);
+  const [newModuleTitle, setNewModuleTitle] = useState("");
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       await updateCourse(course.id, { title, description });
+      toast.success(t("courseSaved"));
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : "Save failed");
     }
     setSaving(false);
-  }, [course.id, title, description, router]);
+  }, [course.id, title, description, router, t]);
 
   const handleAddModule = async () => {
-    const name = prompt(t("moduleName"), `Module ${course.modules.length + 1}`);
-    if (!name) return;
-    await createModule(course.id, name);
-    router.refresh();
+    if (addingModule) return;
+    setAddingModule(true);
+    setNewModuleTitle("");
+  };
+
+  const handleSaveNewModule = async () => {
+    const name = newModuleTitle.trim() || `Module ${course.modules.length + 1}`;
+    try {
+      const mod = await createModule(course.id, name);
+      toast.success("Module added!");
+      setAddingModule(false);
+      setNewModuleTitle("");
+      // Optimistic update
+      setCourse((prev) => ({
+        ...prev,
+        modules: [...prev.modules, { ...mod, activities: [] }],
+      }));
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add module");
+    }
   };
 
   const handleTogglePublish = async () => {
+    setPublishing(true);
     try {
       await togglePublish(course.id);
+      const newState = !course.is_published;
+      toast.success(newState ? "Course published!" : "Course unpublished");
+      setCourse((prev) => ({ ...prev, is_published: newState }));
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : "Error");
     }
+    setPublishing(false);
   };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 space-y-6">
       {/* Top bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Link
           href="/dashboard/admin/courses"
           className="flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
@@ -70,17 +96,25 @@ export function CourseEditor({ course: initialCourse }: Props) {
           </Link>
           <button
             onClick={handleTogglePublish}
-            className="flex items-center gap-1.5 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+            disabled={publishing}
+            className="flex items-center gap-1.5 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-50"
           >
-            {course.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {publishing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : course.is_published ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
             {course.is_published ? t("unpublish") : t("publish")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            {saving ? "..." : t("courseSaved").replace("saved", "Save")}
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
@@ -129,7 +163,7 @@ export function CourseEditor({ course: initialCourse }: Props) {
           </button>
         </div>
 
-        {course.modules.length === 0 ? (
+        {course.modules.length === 0 && !addingModule ? (
           <div className="text-center py-12 text-on-surface-variant">
             <p className="text-sm">No modules yet. Add your first module to get started.</p>
           </div>
@@ -143,6 +177,40 @@ export function CourseEditor({ course: initialCourse }: Props) {
                 courseId={course.id}
               />
             ))}
+
+            {/* Inline new module input */}
+            {addingModule && (
+              <div className="rounded-2xl bg-surface-container-lowest border-2 border-primary/30 shadow-sm p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-primary bg-primary/10 rounded-md px-1.5 py-0.5">
+                    {course.modules.length + 1}
+                  </span>
+                  <input
+                    value={newModuleTitle}
+                    onChange={(e) => setNewModuleTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveNewModule();
+                      if (e.key === "Escape") setAddingModule(false);
+                    }}
+                    placeholder="Module title..."
+                    autoFocus
+                    className="flex-1 rounded-lg border border-outline-variant/20 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <button
+                    onClick={handleSaveNewModule}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-on-primary hover:bg-primary/90"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => setAddingModule(false)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:bg-surface-container"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

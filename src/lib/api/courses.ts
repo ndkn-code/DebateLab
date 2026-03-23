@@ -10,11 +10,21 @@ import type {
 
 // ── Query types ──────────────────────────────────────────────────────
 
+export interface ActivitySummary {
+  id: string;
+  title: string;
+  activity_type: string;
+  phase: string;
+  duration_minutes: number;
+  order_index: number;
+}
+
 export interface CourseWithModules extends Course {
-  modules: (CourseModule & { lessons: Lesson[] })[];
+  modules: (CourseModule & { lessons: Lesson[]; activities?: ActivitySummary[] })[];
   enrollment?: Enrollment | null;
   total_lessons: number;
   completed_lessons: number;
+  total_activities: number;
 }
 
 export interface LessonWithContext extends Lesson {
@@ -85,13 +95,13 @@ export async function getCourseBySlug(
 
   if (error || !course) return null;
 
-  // Fetch modules and enrollment in parallel
+  // Fetch modules (with lessons AND activities) and enrollment in parallel
   const [modulesRes, enrollmentRes] = await Promise.all([
     supabase
       .from("course_modules")
-      .select("*, lessons(*)")
+      .select("*, lessons(*), activities(id, title, activity_type, phase, duration_minutes, order_index)")
       .eq("course_id", course.id)
-      .order("order_index"),
+      .order("sort_order"),
     userId
       ? supabase
           .from("enrollments")
@@ -102,17 +112,24 @@ export async function getCourseBySlug(
       : Promise.resolve({ data: null }),
   ]);
 
-  // Sort lessons within each module
-  const sortedModules = (modulesRes.data ?? []).map((m: CourseModule & { lessons: Lesson[] }) => ({
+  // Sort lessons and activities within each module
+  const sortedModules = (modulesRes.data ?? []).map((m: CourseModule & { lessons: Lesson[]; activities?: ActivitySummary[] }) => ({
     ...m,
     lessons: (m.lessons ?? []).sort(
       (a: Lesson, b: Lesson) => a.order_index - b.order_index
     ),
+    activities: (m.activities ?? []).sort(
+      (a: ActivitySummary, b: ActivitySummary) => a.order_index - b.order_index
+    ),
   }));
 
-  // Count total lessons
+  // Count total lessons + activities
   const totalLessons = sortedModules.reduce(
     (sum: number, m: { lessons: Lesson[] }) => sum + m.lessons.length,
+    0
+  );
+  const totalActivities = sortedModules.reduce(
+    (sum: number, m: { activities?: ActivitySummary[] }) => sum + (m.activities ?? []).length,
     0
   );
 
@@ -142,6 +159,7 @@ export async function getCourseBySlug(
     enrollment,
     total_lessons: totalLessons,
     completed_lessons: completedLessons,
+    total_activities: totalActivities,
   };
 }
 
