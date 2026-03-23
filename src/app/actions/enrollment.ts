@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { enrollInCourse as enrollInCourseApi } from "@/lib/api/courses";
+import { enrollInCourse as enrollInCourseApi, markLessonComplete } from "@/lib/api/courses";
 
 // Used by the existing course-detail-content.tsx (student-facing)
 export async function enrollAction(courseId: string) {
@@ -34,6 +34,22 @@ export async function enrollInCourse(courseId: string) {
 
   revalidatePath("/courses");
   revalidatePath("/dashboard/courses");
+}
+
+export async function markLessonCompleteAction(
+  lessonId: string,
+  courseId: string,
+  score?: number,
+  timeSpentSeconds?: number
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const result = await markLessonComplete(user.id, lessonId, courseId, score, timeSpentSeconds);
+  revalidatePath("/courses");
+  revalidatePath("/dashboard");
+  return result;
 }
 
 export async function unenrollFromCourse(courseId: string) {

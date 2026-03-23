@@ -6,7 +6,7 @@ import { Mic2, CheckCircle2, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { markLessonCompleteAction } from "@/app/[locale]/(protected)/courses/actions";
+import { markLessonCompleteAction } from "@/app/actions/enrollment";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface PracticeRendererProps {
