@@ -15,6 +15,7 @@ import {
   User,
   ChevronLeft,
   Menu,
+  Shield,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -161,6 +162,12 @@ function NavContent({
               <Settings className="h-4 w-4" />
               {t('settings')}
             </DropdownMenuItem>
+            {profile?.role === 'admin' && (
+              <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/dashboard/admin'); }}>
+                <Shield className="h-4 w-4" />
+                {t('switchToAdmin')}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onSignOut}>
               <LogOut className="h-4 w-4" />
