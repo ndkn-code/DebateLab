@@ -226,8 +226,16 @@ export function CourseDetailContent({
                   };
                   const ActIcon = ACTIVITY_ICONS[activity.activity_type] ?? BookOpen;
                   return (
-                    <div
+                    <Link
                       key={activity.id}
+                      href={
+                        isEnrolled
+                          ? `/dashboard/courses/${course.id}/activity/${activity.id}`
+                          : "#"
+                      }
+                      onClick={(e) => {
+                        if (!isEnrolled) e.preventDefault();
+                      }}
                       className={cn(
                         "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
                         isEnrolled
@@ -246,7 +254,10 @@ export function CourseDetailContent({
                           {activity.activity_type.replace("_", " ")} &middot; {activity.duration_minutes} min
                         </p>
                       </div>
-                    </div>
+                      {isEnrolled && (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant" />
+                      )}
+                    </Link>
                   );
                 })}
               </div>
