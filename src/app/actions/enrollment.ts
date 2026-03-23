@@ -2,21 +2,28 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { canAccessCourse } from "@/lib/utils/courseAccess";
+import { enrollInCourse as enrollInCourseApi } from "@/lib/api/courses";
 
+// Used by the existing course-detail-content.tsx (student-facing)
+export async function enrollAction(courseId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  await enrollInCourseApi(user.id, courseId);
+  revalidatePath("/courses");
+  revalidatePath("/dashboard");
+}
+
+// Used by the admin panel's student course player
 export async function enrollInCourse(courseId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  // Check if already enrolled
   const { data: existing } = await supabase.from("enrollments")
     .select("id").eq("course_id", courseId).eq("user_id", user.id).limit(1);
   if (existing && existing.length > 0) return;
-
-  // Check access
-  const hasAccess = await canAccessCourse(supabase, user.id, courseId);
-  if (!hasAccess) throw new Error("You don't have access to this course");
 
   await supabase.from("enrollments").insert({
     course_id: courseId,
@@ -25,6 +32,7 @@ export async function enrollInCourse(courseId: string) {
     progress_pct: 0,
   });
 
+  revalidatePath("/courses");
   revalidatePath("/dashboard/courses");
 }
 

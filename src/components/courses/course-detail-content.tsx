@@ -23,7 +23,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { enrollAction } from "@/app/[locale]/(protected)/courses/actions";
+import { enrollAction } from "@/app/actions/enrollment";
 import type { CourseWithModules } from "@/lib/api/courses";
 
 const LESSON_ICONS = {
