@@ -1,8 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, X } from "lucide-react";
 import type { MatchingContent, ActivityContent } from "@/lib/types/admin";
+
+const PAIR_COLORS = [
+  { bg: "bg-blue-50", border: "border-blue-400", text: "text-blue-700" },
+  { bg: "bg-purple-50", border: "border-purple-400", text: "text-purple-700" },
+  { bg: "bg-teal-50", border: "border-teal-400", text: "text-teal-700" },
+  { bg: "bg-amber-50", border: "border-amber-400", text: "text-amber-700" },
+  { bg: "bg-pink-50", border: "border-pink-400", text: "text-pink-700" },
+  { bg: "bg-emerald-50", border: "border-emerald-400", text: "text-emerald-700" },
+];
 
 interface Props {
   content: ActivityContent;
@@ -13,89 +24,153 @@ export function MatchingPlayer({ content, onComplete }: Props) {
   const t = useTranslations("courses.player");
   const c = content as MatchingContent;
   const pairs = c.pairs ?? [];
-  const [selections, setSelections] = useState<Record<string, string>>({});
-  const [checked, setChecked] = useState(false);
+  const startTime = useRef(Date.now());
 
-  // Shuffle right side once
   const shuffledRight = useMemo(
     () => [...pairs].sort(() => Math.random() - 0.5),
     [pairs]
   );
 
-  const handleSelect = (leftId: string, rightId: string) => {
+  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
+  const [selectedRight, setSelectedRight] = useState<string | null>(null);
+  const [matches, setMatches] = useState<Record<string, string>>({});
+  const [checked, setChecked] = useState(false);
+  const [matchIdx, setMatchIdx] = useState(0);
+
+  const handleLeftClick = (id: string) => {
     if (checked) return;
-    setSelections((prev) => ({ ...prev, [leftId]: rightId }));
+    if (matches[id]) {
+      setMatches((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      return;
+    }
+    setSelectedLeft(id);
+    if (selectedRight) {
+      setMatches((prev) => ({ ...prev, [id]: selectedRight }));
+      setMatchIdx((i) => i + 1);
+      setSelectedLeft(null);
+      setSelectedRight(null);
+    }
+  };
+
+  const handleRightClick = (id: string) => {
+    if (checked) return;
+    const matchedLeft = Object.entries(matches).find(([, v]) => v === id)?.[0];
+    if (matchedLeft) {
+      setMatches((prev) => { const n = { ...prev }; delete n[matchedLeft]; return n; });
+      return;
+    }
+    setSelectedRight(id);
+    if (selectedLeft) {
+      setMatches((prev) => ({ ...prev, [selectedLeft]: id }));
+      setMatchIdx((i) => i + 1);
+      setSelectedLeft(null);
+      setSelectedRight(null);
+    }
   };
 
   const handleCheck = () => {
     setChecked(true);
-    const score = pairs.filter(
-      (p) => selections[p.id] === p.id
-    ).length;
-    onComplete(score, pairs.length, selections);
+    const score = pairs.filter((p) => matches[p.id] === p.id).length;
+    const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+    onComplete(score, pairs.length, { matches, timeSpentSeconds: elapsed });
   };
 
-  // For matching, we store leftId -> which right pair they selected
-  // The correct match is when they select the right item that has the same id
-  const isCorrect = (leftId: string) => {
-    const selectedRightId = selections[leftId];
-    return selectedRightId === leftId;
-  };
+  // Build color mapping by insertion order
+  const colorMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    let idx = 0;
+    for (const key of Object.keys(matches)) {
+      map[key] = idx++;
+    }
+    return map;
+  }, [matches]);
+
+  const getColor = (leftId: string) => PAIR_COLORS[colorMap[leftId] % PAIR_COLORS.length];
+  const getRightLeftId = (rightId: string) => Object.entries(matches).find(([, v]) => v === rightId)?.[0];
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-on-surface-variant">Match each term with its definition</p>
+    <div className="flex flex-col items-center w-full max-w-3xl mx-auto px-4">
+      <p className="text-base font-medium text-on-surface-variant mb-2 text-center">{t("matchTerms")}</p>
+      <p className="text-sm text-on-surface-variant mb-6">
+        {t("matched", { count: Object.keys(matches).length, total: pairs.length })}
+      </p>
 
-      <div className="space-y-3">
-        {pairs.map((pair) => (
-          <div key={pair.id} className="flex items-center gap-3">
-            <div className={`flex-1 rounded-xl border-2 p-3 text-sm font-medium ${
-              checked
-                ? isCorrect(pair.id) ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"
-                : "border-outline-variant/20"
-            }`}>
-              {pair.left}
-            </div>
-            <span className="text-on-surface-variant">=</span>
-            <select
-              value={selections[pair.id] ?? ""}
-              onChange={(e) => handleSelect(pair.id, e.target.value)}
-              disabled={checked}
-              className={`flex-1 rounded-xl border-2 p-3 text-sm ${
-                checked
-                  ? isCorrect(pair.id) ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"
-                  : "border-outline-variant/20"
-              }`}
-            >
-              <option value="">Select...</option>
-              {shuffledRight.map((r) => (
-                <option key={r.id} value={r.id}>{r.right}</option>
-              ))}
-            </select>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Terms</p>
+          {pairs.map((pair) => {
+            const matched = !!matches[pair.id];
+            const color = matched ? getColor(pair.id) : null;
+            const isSelected = selectedLeft === pair.id;
+            const correctAfterCheck = checked && matches[pair.id] === pair.id;
+            const wrongAfterCheck = checked && matches[pair.id] && matches[pair.id] !== pair.id;
+
+            return (
+              <motion.button
+                key={pair.id}
+                onClick={() => handleLeftClick(pair.id)}
+                className={`w-full text-left rounded-2xl border-2 p-4 text-sm font-semibold transition-all ${
+                  checked
+                    ? correctAfterCheck ? "border-green-500 bg-green-50" : wrongAfterCheck ? "border-red-500 bg-red-50" : "border-gray-200"
+                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-gray-200 hover:border-primary/40"
+                }`}
+                whileTap={{ scale: 0.97 }}
+                layout
+              >
+                <span className="flex items-center gap-2">
+                  <span className="flex-1">{pair.left}</span>
+                  {checked && correctAfterCheck && <Check className="h-4 w-4 text-green-600" />}
+                  {checked && wrongAfterCheck && <X className="h-4 w-4 text-red-600" />}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Definitions</p>
+          {shuffledRight.map((pair) => {
+            const leftId = getRightLeftId(pair.id);
+            const matched = !!leftId;
+            const color = matched ? getColor(leftId!) : null;
+            const isSelected = selectedRight === pair.id;
+
+            return (
+              <motion.button
+                key={pair.id}
+                onClick={() => handleRightClick(pair.id)}
+                className={`w-full text-left rounded-2xl border-2 p-4 text-sm transition-all ${
+                  checked ? "border-gray-200 bg-gray-50/50"
+                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-gray-200 hover:border-primary/40"
+                }`}
+                whileTap={{ scale: 0.97 }}
+                layout
+              >
+                {pair.right}
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
-      {checked && (
-        <p className="text-center text-lg font-bold">
-          {t("results", {
-            score: pairs.filter((p) => isCorrect(p.id)).length,
-            total: pairs.length,
-          })}
-        </p>
+      {!checked && (
+        <motion.button
+          onClick={handleCheck}
+          disabled={Object.keys(matches).length < pairs.length}
+          className="mt-8 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary transition-all disabled:opacity-40 hover:bg-primary/90 min-w-[200px]"
+          whileTap={{ scale: 0.97 }}
+        >
+          {t("checkMatches")}
+        </motion.button>
       )}
 
-      {!checked && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleCheck}
-            disabled={Object.keys(selections).length < pairs.length}
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {t("checkAnswers")}
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {checked && (
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 text-xl font-bold text-on-surface">
+            {t("results", { score: pairs.filter((p) => matches[p.id] === p.id).length, total: pairs.length })}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

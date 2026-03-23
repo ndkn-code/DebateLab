@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { GripVertical, ChevronUp, ChevronDown, Check, X } from "lucide-react";
 import type { DragOrderContent, ActivityContent } from "@/lib/types/admin";
 
 interface Props {
@@ -13,8 +14,8 @@ interface Props {
 export function DragOrderPlayer({ content, onComplete }: Props) {
   const t = useTranslations("courses.player");
   const c = content as DragOrderContent;
+  const startTime = useRef(Date.now());
 
-  // Shuffle items once
   const shuffled = useMemo(
     () => [...(c.items ?? [])].sort(() => Math.random() - 0.5),
     [c.items]
@@ -34,62 +35,101 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
   const handleCheck = () => {
     setChecked(true);
     const score = items.filter((item, i) => item.correctOrder === i + 1).length;
-    onComplete(score, items.length, { order: items.map((i) => i.id) });
+    const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+    onComplete(score, items.length, { order: items.map((i) => i.id), timeSpentSeconds: elapsed });
   };
 
-  return (
-    <div className="space-y-4">
-      {c.instruction && (
-        <p className="text-sm text-on-surface-variant">{c.instruction}</p>
-      )}
+  const score = items.filter((item, i) => item.correctOrder === i + 1).length;
 
-      <div className="space-y-2">
+  return (
+    <div className="flex flex-col items-center w-full max-w-2xl mx-auto px-4">
+      <p className="text-base font-medium text-on-surface-variant mb-6 text-center">
+        {c.instruction ?? t("arrangeOrder")}
+      </p>
+
+      <div className="space-y-3 w-full">
         {items.map((item, i) => {
           const isCorrect = checked ? item.correctOrder === i + 1 : undefined;
+
           return (
-            <div
+            <motion.div
               key={item.id}
-              className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+              layout
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`flex items-center gap-3 rounded-2xl border-2 p-4 transition-all ${
                 checked
-                  ? isCorrect ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"
-                  : "border-outline-variant/20"
+                  ? isCorrect
+                    ? "border-green-500 bg-green-50"
+                    : "border-red-500 bg-red-50"
+                  : "border-gray-200 bg-white hover:shadow-sm"
               }`}
             >
-              <GripVertical className="h-4 w-4 text-on-surface-variant/40 shrink-0" />
-              <span className="flex-1 text-sm text-on-surface">{item.text}</span>
+              {/* Position number */}
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                checked
+                  ? isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                  : "bg-gray-100 text-on-surface-variant"
+              }`}>
+                {checked ? (isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />) : i + 1}
+              </div>
+
+              {/* Drag handle */}
+              {!checked && <GripVertical className="h-5 w-5 text-gray-300 shrink-0" />}
+
+              {/* Text */}
+              <span className="flex-1 text-base font-medium text-on-surface">{item.text}</span>
+
+              {/* Correction hint */}
+              {checked && !isCorrect && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-red-600 shrink-0"
+                >
+                  #{item.correctOrder}
+                </motion.span>
+              )}
+
+              {/* Move buttons */}
               {!checked && (
-                <div className="flex flex-col shrink-0">
-                  <button onClick={() => move(i, -1)} disabled={i === 0} className="p-0.5 disabled:opacity-20 hover:text-primary">
+                <div className="flex flex-col shrink-0 gap-0.5">
+                  <button
+                    onClick={() => move(i, -1)}
+                    disabled={i === 0}
+                    className="p-1 rounded-lg disabled:opacity-20 hover:bg-gray-100 hover:text-primary transition-colors"
+                  >
                     <ChevronUp className="h-4 w-4" />
                   </button>
-                  <button onClick={() => move(i, 1)} disabled={i === items.length - 1} className="p-0.5 disabled:opacity-20 hover:text-primary">
+                  <button
+                    onClick={() => move(i, 1)}
+                    disabled={i === items.length - 1}
+                    className="p-1 rounded-lg disabled:opacity-20 hover:bg-gray-100 hover:text-primary transition-colors"
+                  >
                     <ChevronDown className="h-4 w-4" />
                   </button>
                 </div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {checked && (
-        <p className="text-center text-lg font-bold">
-          {t("results", {
-            score: items.filter((item, i) => item.correctOrder === i + 1).length,
-            total: items.length,
-          })}
-        </p>
-      )}
+      <AnimatePresence>
+        {checked && (
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 text-xl font-bold text-on-surface">
+            {t("results", { score, total: items.length })}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {!checked && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleCheck}
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
-          >
-            {t("checkAnswers")}
-          </button>
-        </div>
+        <motion.button
+          onClick={handleCheck}
+          className="mt-8 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 min-w-[200px]"
+          whileTap={{ scale: 0.97 }}
+        >
+          {t("checkOrder")}
+        </motion.button>
       )}
     </div>
   );

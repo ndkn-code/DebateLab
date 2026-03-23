@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import type { Activity, ActivityPhase } from "@/lib/types/admin";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Activity, ActivityType } from "@/lib/types/admin";
+import { useActivityPlayerStore } from "@/lib/stores/activityPlayerStore";
+import { completeActivity } from "@/app/actions/activities";
+import { TopProgressBar } from "./TopProgressBar";
+import { ActivityCompletionScreen } from "./ActivityCompletionScreen";
+import { ModuleCompletionScreen } from "./ModuleCompletionScreen";
+import { CourseCompletionScreen } from "./CourseCompletionScreen";
 import { QuizPlayer } from "./QuizPlayer";
 import { MatchingPlayer } from "./MatchingPlayer";
 import { FillBlankPlayer } from "./FillBlankPlayer";
@@ -14,113 +18,237 @@ import { DragOrderPlayer } from "./DragOrderPlayer";
 import { FlashcardPlayer } from "./FlashcardPlayer";
 import { LessonPlayer } from "./LessonPlayer";
 
-const PHASE_COLORS: Record<ActivityPhase, string> = {
-  learn: "bg-green-100 text-green-700",
-  practice: "bg-amber-100 text-amber-700",
-  apply: "bg-blue-100 text-blue-700",
-};
+interface ActivitySummary {
+  id: string;
+  title: string;
+  order_index: number;
+  activity_type: ActivityType;
+}
+
+interface ModuleSummary {
+  id: string;
+  title: string;
+  activities: ActivitySummary[];
+}
 
 interface Props {
   activity: Activity;
   courseId: string;
+  courseTitle: string;
   userId: string;
-  siblings: { id: string; title: string; order_index: number }[];
-  moduleTitle: string;
-  moduleIndex: number;
+  currentModule: ModuleSummary;
+  allModules: ModuleSummary[];
+  completedActivityIds: string[];
 }
 
-export function ActivityPlayerWrapper({ activity, courseId, userId, siblings, moduleTitle, moduleIndex }: Props) {
+type PlayerState = "playing" | "completed" | "module_complete" | "course_complete";
+
+// XP calculation
+function calculateXP(activityType: ActivityType, score: number, maxScore: number): number {
+  if (activityType === "lesson") return 10;
+  if (activityType === "flashcard") return maxScore > 0 ? Math.round((score / maxScore) * 10) : 5;
+  return maxScore > 0 ? Math.round((score / maxScore) * 15) : 0;
+}
+
+export function ActivityPlayerWrapper({
+  activity,
+  courseId,
+  courseTitle,
+  userId,
+  currentModule,
+  allModules,
+  completedActivityIds: initialCompletedIds,
+}: Props) {
   const t = useTranslations("courses.player");
   const router = useRouter();
-  const supabase = createClient();
-  const [completed, setCompleted] = useState(false);
+  const { sessionXP, addSessionXP, markActivityCompleted, enterActivityMode, exitActivityMode } = useActivityPlayerStore();
 
+  const [state, setState] = useState<PlayerState>("playing");
+  const [score, setScore] = useState(0);
+  const [maxScore, setMaxScore] = useState(0);
+  const [xpEarned, setXpEarned] = useState(0);
+  const [completedIds, setCompletedIds] = useState(new Set(initialCompletedIds));
+  const startTime = useRef(Date.now());
+
+  // Enter activity mode on mount
+  useEffect(() => {
+    enterActivityMode();
+    return () => exitActivityMode();
+  }, [enterActivityMode, exitActivityMode]);
+
+  // Find siblings, prev/next
+  const siblings = currentModule.activities;
   const currentIdx = siblings.findIndex((s) => s.id === activity.id);
-  const prevActivity = currentIdx > 0 ? siblings[currentIdx - 1] : null;
   const nextActivity = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] : null;
 
-  const handleComplete = useCallback(async (score?: number, maxScore?: number, responses?: Record<string, unknown>) => {
-    setCompleted(true);
+  // Find next module
+  const moduleIdx = allModules.findIndex((m) => m.id === currentModule.id);
+  const nextModule = moduleIdx < allModules.length - 1 ? allModules[moduleIdx + 1] : null;
+  const isLastModule = moduleIdx === allModules.length - 1;
 
-    await supabase.from("activity_attempts").insert({
-      user_id: userId,
-      activity_id: activity.id,
-      completed_at: new Date().toISOString(),
-      score: score ?? null,
-      max_score: maxScore ?? null,
-      is_passed: score != null && maxScore != null ? score >= maxScore * 0.6 : true,
-      attempt_number: 1,
-      time_spent_seconds: null,
-      responses: responses ?? null,
-    });
-  }, [supabase, userId, activity.id]);
+  const handleComplete = useCallback(
+    async (s?: number, ms?: number, responses?: Record<string, unknown>) => {
+      const finalScore = s ?? 1;
+      const finalMaxScore = ms ?? 1;
+      const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+      const xp = calculateXP(activity.activity_type, finalScore, finalMaxScore);
 
-  const renderPlayer = () => {
-    const props = { content: activity.content, onComplete: handleComplete };
-    switch (activity.activity_type) {
-      case "quiz": return <QuizPlayer {...props} />;
-      case "matching": return <MatchingPlayer {...props} />;
-      case "fill_blank": return <FillBlankPlayer {...props} />;
-      case "drag_order": return <DragOrderPlayer {...props} />;
-      case "flashcard": return <FlashcardPlayer {...props} />;
-      case "lesson": return <LessonPlayer content={activity.content} onComplete={() => handleComplete()} />;
+      setScore(finalScore);
+      setMaxScore(finalMaxScore);
+      setXpEarned(xp);
+      addSessionXP(xp);
+      markActivityCompleted(activity.id);
+      setCompletedIds((prev) => new Set([...prev, activity.id]));
+
+      // Save to server
+      try {
+        await completeActivity(activity.id, courseId, finalScore, finalMaxScore, responses ?? {}, xp, elapsed);
+      } catch {
+        // Don't block the UI
+      }
+
+      // Determine next state
+      const newCompleted = new Set([...completedIds, activity.id]);
+      const allModuleActivitiesComplete = siblings.every((s) => newCompleted.has(s.id));
+      const allCourseActivitiesComplete = allModules.every((m) =>
+        m.activities.every((a) => newCompleted.has(a.id))
+      );
+
+      if (allCourseActivitiesComplete) {
+        setState("course_complete");
+      } else if (allModuleActivitiesComplete && !nextActivity) {
+        setState("module_complete");
+      } else {
+        setState("completed");
+      }
+    },
+    [activity, courseId, addSessionXP, markActivityCompleted, completedIds, siblings, allModules, nextActivity]
+  );
+
+  const handleContinue = () => {
+    if (nextActivity) {
+      router.push(`/dashboard/courses/${courseId}/activity/${nextActivity.id}`);
+    } else if (nextModule && nextModule.activities.length > 0) {
+      router.push(`/dashboard/courses/${courseId}/activity/${nextModule.activities[0].id}`);
+    } else {
+      router.push(`/dashboard/courses/${courseId}`);
     }
   };
 
+  const renderPlayer = () => {
+    const onComplete = handleComplete;
+    switch (activity.activity_type) {
+      case "quiz":
+        return <QuizPlayer content={activity.content} onComplete={onComplete} />;
+      case "matching":
+        return <MatchingPlayer content={activity.content} onComplete={onComplete} />;
+      case "fill_blank":
+        return <FillBlankPlayer content={activity.content} onComplete={onComplete} />;
+      case "drag_order":
+        return <DragOrderPlayer content={activity.content} onComplete={onComplete} />;
+      case "flashcard":
+        return <FlashcardPlayer content={activity.content} onComplete={onComplete} />;
+      case "lesson":
+        return <LessonPlayer content={activity.content} onComplete={() => onComplete(1, 1, {})} />;
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
+            <p className="text-lg mb-4">This activity isn&apos;t available yet.</p>
+            <button onClick={() => onComplete(0, 0, {})} className="rounded-2xl bg-primary px-6 py-3 text-base font-semibold text-on-primary">
+              {t("skipActivity")}
+            </button>
+          </div>
+        );
+    }
+  };
+
+  // Total XP for module completion
+  const moduleTotalXP = sessionXP;
+
+  // Course total stats
+  const totalCourseActivities = allModules.reduce((sum, m) => sum + m.activities.length, 0);
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/dashboard/courses/${courseId}`}
-          className="flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface"
-        >
-          <ArrowLeft className="h-4 w-4" />{t("backToCourse")}
-        </Link>
-        <span className="text-xs text-on-surface-variant">
-          Module {moduleIndex + 1} / Activity {currentIdx + 1}
-        </span>
-      </div>
+    <div className="flex flex-col min-h-screen bg-[#fbf8ff]">
+      {/* Top progress bar */}
+      <TopProgressBar
+        activities={siblings}
+        currentActivityId={activity.id}
+        completedIds={completedIds}
+        sessionXP={sessionXP}
+        moduleName={currentModule.title}
+        courseId={courseId}
+      />
 
-      {/* Activity header */}
-      <div className="flex items-center gap-3">
-        <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${PHASE_COLORS[activity.phase]}`}>
-          {activity.phase}
-        </span>
-        <h1 className="text-xl font-bold text-on-surface">{activity.title}</h1>
-        <span className="text-xs text-on-surface-variant ml-auto">{activity.duration_minutes} min</span>
-      </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        <AnimatePresence mode="wait">
+          {state === "playing" && (
+            <motion.div
+              key="playing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col justify-center py-8"
+            >
+              {/* Activity header */}
+              <div className="text-center mb-6 px-4">
+                <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-lg mb-2 ${
+                  activity.phase === "learn"
+                    ? "bg-green-100 text-green-700"
+                    : activity.phase === "practice"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}>
+                  {activity.phase}
+                </span>
+                <h1 className="text-lg font-bold text-on-surface">{activity.title}</h1>
+              </div>
 
-      {/* Player */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 p-6 shadow-sm">
-        {renderPlayer()}
-      </div>
+              {/* Player */}
+              {renderPlayer()}
+            </motion.div>
+          )}
 
-      {/* Completed state */}
-      {completed && (
-        <div className="text-center py-4">
-          <p className="text-lg font-bold text-green-600">{t("completed")}</p>
-        </div>
-      )}
+          {state === "completed" && (
+            <motion.div key="completed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ActivityCompletionScreen
+                activityTitle={activity.title}
+                activityType={activity.activity_type}
+                score={score}
+                maxScore={maxScore}
+                xpEarned={xpEarned}
+                onContinue={handleContinue}
+                nextActivityTitle={nextActivity?.title}
+              />
+            </motion.div>
+          )}
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        {prevActivity ? (
-          <Link
-            href={`/dashboard/courses/${courseId}/activity/${prevActivity.id}`}
-            className="flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface"
-          >
-            <ChevronLeft className="h-4 w-4" />{t("previousActivity")}
-          </Link>
-        ) : <div />}
-        {nextActivity ? (
-          <Link
-            href={`/dashboard/courses/${courseId}/activity/${nextActivity.id}`}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
-          >
-            {t("nextActivity")}<ChevronRight className="h-4 w-4" />
-          </Link>
-        ) : <div />}
+          {state === "module_complete" && (
+            <motion.div key="module_complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ModuleCompletionScreen
+                moduleTitle={currentModule.title}
+                moduleTotalXP={moduleTotalXP}
+                activitiesCompleted={siblings.length}
+                nextModuleTitle={nextModule?.title}
+                courseId={courseId}
+                nextModuleFirstActivityId={nextModule?.activities?.[0]?.id}
+                isLastModule={isLastModule}
+              />
+            </motion.div>
+          )}
+
+          {state === "course_complete" && (
+            <motion.div key="course_complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CourseCompletionScreen
+                courseTitle={courseTitle}
+                totalXP={moduleTotalXP}
+                totalActivities={totalCourseActivities}
+                totalModules={allModules.length}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
