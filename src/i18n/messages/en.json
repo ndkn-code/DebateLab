@@ -267,7 +267,8 @@
       "course_speaking_desc": "Build confidence and delivery skills",
       "course_daily": "Daily Debate Practice",
       "course_daily_desc": "Practice with AI opponents to sharpen your skills",
-      "lets_go": "Let's go!"
+      "lets_go": "Let's go!",
+      "ready_to_practice": "You're all set! Let's start practicing with AI debates."
     },
     "back": "Back"
   },
@@ -589,7 +590,8 @@
       "google": "Continue with Google",
       "or": "or",
       "no_account": "Don't have an account?",
-      "signup_link": "Sign up"
+      "signup_link": "Sign up",
+      "error_generic": "Something went wrong. Please try again."
     },
     "signup": {
       "headline": "Create Account",

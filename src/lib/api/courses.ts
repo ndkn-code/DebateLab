@@ -49,7 +49,6 @@ export async function getCourses(userId?: string) {
       .order("created_at");
 
     if (error) {
-      console.error("Failed to fetch courses:", error);
       return { courses: [], enrollments: [] };
     }
     return { courses: courses ?? [], enrollments: [] };
@@ -69,7 +68,6 @@ export async function getCourses(userId?: string) {
   ]);
 
   if (coursesRes.error) {
-    console.error("Failed to fetch courses:", coursesRes.error);
     return { courses: [], enrollments: [] };
   }
 

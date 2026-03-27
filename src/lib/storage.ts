@@ -61,7 +61,6 @@ const supabaseAdapter = {
 
     const { error } = await supabase.from("debate_sessions").insert(row);
     if (error) {
-      console.error("Failed to save session to Supabase:", error);
       // Fall back to localStorage
       localAdapter.saveSession(session);
       return;
@@ -171,7 +170,6 @@ const supabaseAdapter = {
       .limit(MAX_SESSIONS);
 
     if (error || !data) {
-      console.error("Failed to fetch sessions from Supabase:", error);
       return localAdapter.getSessions();
     }
 
@@ -203,7 +201,7 @@ const supabaseAdapter = {
       .eq("user_id", userId);
 
     if (error) {
-      console.error("Failed to delete session from Supabase:", error);
+      // deletion failed silently
     }
   },
 };

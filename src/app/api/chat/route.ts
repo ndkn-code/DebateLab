@@ -117,8 +117,8 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        console.error("Failed to create conversation:", error);
-        throw new Error(`DB error creating conversation: ${error.message}`);
+        if (process.env.NODE_ENV === 'development') console.error("Failed to create conversation:", error);
+        throw new Error("Failed to create conversation");
       }
       conversationId = conv.id;
     }
@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
       content: message.trim(),
     });
     if (msgError) {
-      console.error("Failed to save user message:", msgError);
-      throw new Error(`DB error: ${msgError.message}`);
+      if (process.env.NODE_ENV === 'development') console.error("Failed to save user message:", msgError);
+      throw new Error("Failed to save message");
     }
 
     // Load conversation history (last 20 messages)
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
           );
           controller.close();
         } catch (err) {
-          console.error("Stream error:", err);
+          if (process.env.NODE_ENV === 'development') console.error("Stream error:", err);
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`
@@ -231,10 +231,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error("Chat API error:", errMsg, error);
+    if (process.env.NODE_ENV === 'development') console.error("Chat API error:", error);
     return new Response(
-      JSON.stringify({ error: `Chat failed: ${errMsg}` }),
+      JSON.stringify({ error: "Something went wrong. Please try again." }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

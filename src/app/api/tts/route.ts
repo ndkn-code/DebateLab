@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('Deepgram TTS error:', error);
-      return NextResponse.json({ error: 'TTS generation failed' }, { status: 500 });
+      if (process.env.NODE_ENV === 'development') console.error('Deepgram TTS error:', error);
+      return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
     }
 
     const audioBuffer = await response.arrayBuffer();
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('TTS route error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    if (process.env.NODE_ENV === 'development') console.error('TTS route error:', err);
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
   }
 }

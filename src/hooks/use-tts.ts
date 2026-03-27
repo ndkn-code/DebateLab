@@ -89,7 +89,6 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       try {
         result = await attemptFetch();
       } catch (firstErr) {
-        console.warn('TTS first attempt failed, retrying...', firstErr);
         // Retry once
         result = await attemptFetch();
       }
@@ -169,7 +168,6 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         } catch (playErr) {
           // Browser blocked autoplay — user hasn't interacted recently enough
           // Don't treat as error: just mark as "ready to play" so replay button appears
-          console.warn('Autoplay blocked by browser:', playErr);
           setIsPlaying(false);
           setHasPlayed(true); // Show replay button so user can tap to play
           posthog?.capture('tts_autoplay_blocked', { voice, text_length: truncatedText.length });
@@ -198,7 +196,6 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       audioRef.current.currentTime = 0;
       setHasPlayed(false);
       audioRef.current.play().catch((err) => {
-        console.warn('Replay play() failed:', err);
         setHasPlayed(true);
       });
 

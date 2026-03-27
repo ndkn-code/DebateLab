@@ -103,7 +103,6 @@ export function useDeepgramTranscription() {
         if (!data.key) throw new Error(data.error || "No key returned");
         apiKey = data.key;
       } catch (err) {
-        console.error("[Deepgram] Token fetch failed:", err);
         setError("Failed to initialize speech recognition");
         return;
       }
@@ -125,7 +124,6 @@ export function useDeepgramTranscription() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[Deepgram] WebSocket connected");
         reconnectCountRef.current = 0;
         setError(null);
 
@@ -152,9 +150,7 @@ export function useDeepgramTranscription() {
           source.connect(processor);
           processor.connect(audioContext.destination);
 
-          console.log("[Deepgram] Audio processing started");
-        } catch (err) {
-          console.error("[Deepgram] Audio processing setup failed:", err);
+        } catch {
           setError("Failed to set up audio capture");
         }
       };
@@ -183,26 +179,21 @@ export function useDeepgramTranscription() {
               transcriptRef.current += (transcriptRef.current ? " " : "") + text;
               setTranscript(transcriptRef.current);
               setInterimTranscript("");
-              console.log("[Deepgram] Final:", text.substring(0, 60));
             } else {
               // Show interim text
               setInterimTranscript(text);
             }
-          } else if (data.type === "Metadata") {
-            console.log("[Deepgram] Metadata received");
           }
-        } catch (err) {
-          console.warn("[Deepgram] Failed to parse message:", err);
+        } catch {
+          // ignore parse errors
         }
       };
 
-      ws.onerror = (event) => {
-        console.error("[Deepgram] WebSocket error:", event);
+      ws.onerror = () => {
         setError("network");
       };
 
-      ws.onclose = (event) => {
-        console.log("[Deepgram] WebSocket closed:", event.code, event.reason);
+      ws.onclose = () => {
         closeAudioProcessing();
 
         if (shouldBeListeningRef.current) {
@@ -211,7 +202,6 @@ export function useDeepgramTranscription() {
             setError("reconnecting");
             return;
           }
-          console.log("[Deepgram] Attempting reconnect...", reconnectCountRef.current);
           const delay = Math.min(reconnectCountRef.current * 500, 2000);
           reconnectTimerRef.current = setTimeout(() => {
             reconnectTimerRef.current = null;
@@ -229,7 +219,6 @@ export function useDeepgramTranscription() {
     async (micStream: MediaStream) => {
       if (typeof window === "undefined") return;
 
-      console.log("[Deepgram] Starting transcription...");
       setError(null);
       reconnectCountRef.current = 0;
       hasReceivedSpeechRef.current = false;
@@ -246,7 +235,6 @@ export function useDeepgramTranscription() {
   );
 
   const stopListening = useCallback(() => {
-    console.log("[Deepgram] Stopping transcription...");
     shouldBeListeningRef.current = false;
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);

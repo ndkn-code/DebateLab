@@ -23,9 +23,9 @@ export async function GET() {
 
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
-      console.error("DEEPGRAM_API_KEY is not set in environment variables");
+      if (process.env.NODE_ENV === 'development') console.error("DEEPGRAM_API_KEY is not set");
       return NextResponse.json(
-        { error: "Deepgram API key not configured" },
+        { error: "Something went wrong. Please try again." },
         { status: 500 }
       );
     }
@@ -37,9 +37,9 @@ export async function GET() {
     // 3. For production hardening, replace with Deepgram's temporary scoped keys
     return NextResponse.json({ key: apiKey });
   } catch (error) {
-    console.error("Deepgram token error:", error);
+    if (process.env.NODE_ENV === 'development') console.error("Deepgram token error:", error);
     return NextResponse.json(
-      { error: "Failed to get Deepgram token" },
+      { error: "Something went wrong. Please try again." },
       { status: 500 }
     );
   }

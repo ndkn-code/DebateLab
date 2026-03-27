@@ -26,7 +26,6 @@ export function useMicrophone() {
       streamRef.current = mediaStream;
       setStream(mediaStream);
       setIsActive(true);
-      console.log("[Microphone] Stream started");
       return mediaStream;
     } catch (err) {
       if (err instanceof DOMException) {
@@ -40,7 +39,6 @@ export function useMicrophone() {
       } else {
         setError("Failed to access microphone");
       }
-      console.error("[Microphone] Failed to start:", err);
       return null;
     }
   }, []);
@@ -51,7 +49,6 @@ export function useMicrophone() {
       streamRef.current = null;
       setStream(null);
       setIsActive(false);
-      console.log("[Microphone] Stream stopped");
     }
   }, []);
 

@@ -39,14 +39,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!process.env.GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not set in environment variables");
+      if (process.env.NODE_ENV === 'development') console.error("GEMINI_API_KEY is not set");
       return NextResponse.json(
-        { error: "API key not configured. Please set GEMINI_API_KEY in your environment variables." },
+        { error: "Something went wrong. Please try again." },
         { status: 500 }
       );
     }
-
-    console.log("Using Gemini model:", process.env.GEMINI_MODEL || "gemini-2.5-flash");
 
     const body = (await req.json()) as AnalyzeRequest;
     const { transcript, topic, side, speechType, timeLimit, actualDuration, isFullRound, rounds } =
@@ -96,7 +94,7 @@ export async function POST(req: NextRequest) {
       const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
       return NextResponse.json({ ...feedback, _model: modelUsed });
     } catch (err) {
-      console.error("Gemini API error:", err);
+      if (process.env.NODE_ENV === 'development') console.error("Gemini API error:", err);
 
       if (err instanceof Error) {
         if (err.message === "TIMEOUT") {
@@ -119,13 +117,12 @@ export async function POST(req: NextRequest) {
         }
         if (err.message.includes("API_KEY") || err.message.includes("401") || err.message.includes("403")) {
           return NextResponse.json(
-            { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
+            { error: "Something went wrong. Please try again." },
             { status: 401 }
           );
         }
-        // Return the actual error message for debugging
         return NextResponse.json(
-          { error: `Analysis failed: ${err.message}` },
+          { error: "Something went wrong. Please try again." },
           { status: 500 }
         );
       }
@@ -136,9 +133,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (err) {
-    console.error("Analyze API unexpected error:", err);
+    if (process.env.NODE_ENV === 'development') console.error("Analyze API unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal server error. Please try again." },
+      { error: "Something went wrong. Please try again." },
       { status: 500 }
     );
   }

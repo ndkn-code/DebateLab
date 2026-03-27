@@ -3,8 +3,6 @@ import type { AnalyticsOverview } from "@/lib/types/admin";
 
 export async function getTotalUsers(supabase: SupabaseClient) {
   const { count, error } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-  if (error) console.error("getTotalUsers error:", error.message);
-
   const now = new Date();
   const d7 = new Date(now.getTime() - 7 * 86400000).toISOString();
   const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
@@ -37,7 +35,6 @@ export async function getOnlineUsers(supabase: SupabaseClient) {
     .select("*", { count: "exact", head: true })
     .eq("is_active", true)
     .gte("last_seen_at", cutoff);
-  if (error) console.error("getOnlineUsers error:", error.message);
   return count ?? 0;
 }
 

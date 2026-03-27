@@ -41,9 +41,9 @@ export async function GET(
       messages: messages ?? [],
     });
   } catch (error) {
-    console.error("Failed to load conversation:", error);
+    if (process.env.NODE_ENV === 'development') console.error("Failed to load conversation:", error);
     return NextResponse.json(
-      { error: "Failed to load conversation" },
+      { error: "Something went wrong. Please try again." },
       { status: 500 }
     );
   }

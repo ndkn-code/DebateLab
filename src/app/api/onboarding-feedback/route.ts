@@ -116,7 +116,7 @@ Keep all responses under 20 words each.`;
       encouragement: data.encouragement ?? "Great start! Keep practicing and you'll improve fast.",
     });
   } catch (error) {
-    console.error("Onboarding feedback error:", error);
+    if (process.env.NODE_ENV === 'development') console.error("Onboarding feedback error:", error);
     return NextResponse.json({
       score: 70,
       strength: "You took the initiative to practice - great first step!",

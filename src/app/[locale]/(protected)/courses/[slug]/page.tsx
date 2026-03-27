@@ -26,6 +26,14 @@ export default async function CourseDetailPage({
 
   if (!user) redirect("/auth/login");
 
+  // Courses are admin-only for now
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") redirect("/dashboard");
+
   const course = await getCourseBySlug(slug, user.id);
   if (!course) notFound();
 

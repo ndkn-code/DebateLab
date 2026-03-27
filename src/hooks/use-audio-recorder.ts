@@ -42,9 +42,7 @@ export function useAudioRecorder() {
       mediaRecorderRef.current = recorder;
       recorder.start(1000); // Collect chunks every 1s
       setIsRecording(true);
-      console.log("[AudioRecorder] Recording started");
-    } catch (err) {
-      console.error("[AudioRecorder] Failed to start:", err);
+    } catch {
       setError("Failed to start recording. Please check your microphone.");
     }
   }, []);
@@ -56,7 +54,6 @@ export function useAudioRecorder() {
     ) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      console.log("[AudioRecorder] Recording stopped");
     }
   }, []);
 

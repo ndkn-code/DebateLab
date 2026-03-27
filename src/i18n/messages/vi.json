@@ -267,7 +267,8 @@
       "course_speaking_desc": "Xây dựng sự tự tin và kỹ năng trình bày",
       "course_daily": "Daily Debate Practice",
       "course_daily_desc": "Luyện tập với AI để mài giũa kỹ năng",
-      "lets_go": "Chiến thôi!"
+      "lets_go": "Chiến thôi!",
+      "ready_to_practice": "Sẵn sàng rồi! Bắt đầu luyện tranh biện với AI nào."
     },
     "back": "Quay lại"
   },
@@ -589,7 +590,8 @@
       "google": "Tiếp tục với Google",
       "or": "hoặc",
       "no_account": "Chưa có tài khoản?",
-      "signup_link": "Đăng ký ngay"
+      "signup_link": "Đăng ký ngay",
+      "error_generic": "Đã xảy ra lỗi. Vui lòng thử lại."
     },
     "signup": {
       "headline": "Tạo tài khoản",

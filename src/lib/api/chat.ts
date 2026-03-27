@@ -18,7 +18,6 @@ export async function getConversations(
     .limit(30);
 
   if (error) {
-    console.error("Failed to fetch conversations:", error);
     return [];
   }
   return (data ?? []) as ConversationWithPreview[];

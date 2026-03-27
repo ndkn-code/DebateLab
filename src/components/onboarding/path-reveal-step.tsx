@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { BookOpen, Mic, Star } from "lucide-react";
+import { Mic } from "lucide-react";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/app/[locale]/onboarding/actions";
@@ -29,43 +29,6 @@ export function PathRevealStep({
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [rocketAnimation, setRocketAnimation] = useState<object | null>(null);
 
-  function getRecommendations(
-    goalVal: string | null,
-    experience: string | null
-  ): { title: string; desc: string; icon: typeof BookOpen }[] {
-    const recs = [];
-
-    if (experience !== "experienced") {
-      recs.push({
-        title: t("path_reveal.course_foundations"),
-        desc: t("path_reveal.course_foundations_desc"),
-        icon: BookOpen,
-      });
-    }
-
-    if (
-      goalVal === "english" ||
-      goalVal === "interview" ||
-      experience === "experienced"
-    ) {
-      recs.push({
-        title: t("path_reveal.course_speaking"),
-        desc: t("path_reveal.course_speaking_desc"),
-        icon: Mic,
-      });
-    }
-
-    recs.push({
-      title: t("path_reveal.course_daily"),
-      desc: t("path_reveal.course_daily_desc"),
-      icon: Star,
-    });
-
-    return recs.slice(0, 3);
-  }
-
-  const recommendations = getRecommendations(goal, experienceLevel);
-
   // Lazy-load rocket animation only when needed
   useEffect(() => {
     import("../../../public/lottie/rocket.json").then((mod) => {
@@ -86,7 +49,6 @@ export function PathRevealStep({
       });
 
       if (result.error) {
-        console.error("Onboarding error:", result.error);
         setError(result.error);
         setIsLaunching(false);
         return;
@@ -124,43 +86,19 @@ export function PathRevealStep({
             {t("path_reveal.headline")}
           </motion.h2>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mb-8 text-base md:text-lg text-gray-500"
+            className="mb-8 flex items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
           >
-            {t("path_reveal.recommended")}
-          </motion.p>
-
-          {/* Recommendation cards */}
-          <div className="mb-8 space-y-3">
-            {recommendations.map((rec, i) => {
-              const Icon = rec.icon;
-              return (
-                <motion.div
-                  key={rec.title}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + i * 0.2 }}
-                  className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <Icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-base md:text-lg font-semibold text-on-surface">
-                      {rec.title}
-                    </p>
-                    <p className="text-sm text-gray-500">{rec.desc}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    {t("path_reveal.recommended")}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Mic className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-base md:text-lg text-gray-600">
+              {t("path_reveal.ready_to_practice")}
+            </p>
+          </motion.div>
 
           {error && (
             <p className="mb-4 text-sm text-red-500">Error: {error}</p>

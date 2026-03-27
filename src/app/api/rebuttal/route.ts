@@ -152,7 +152,7 @@ Rules:
 
     return NextResponse.json({ rebuttal: text });
   } catch (err) {
-    console.error("Rebuttal API error:", err);
+    if (process.env.NODE_ENV === 'development') console.error("Rebuttal API error:", err);
 
     if (err instanceof Error) {
       if (err.message === "TIMEOUT") {

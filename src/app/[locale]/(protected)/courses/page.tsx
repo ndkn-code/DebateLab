@@ -15,6 +15,14 @@ export default async function CoursesPage() {
 
   if (!user) redirect("/auth/login");
 
+  // Courses are admin-only for now
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") redirect("/dashboard");
+
   const { courses, enrollments } = await getCourses(user.id);
 
   return <CourseListContent courses={courses} enrollments={enrollments} />;

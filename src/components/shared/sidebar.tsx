@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
-  BookOpen,
   Mic,
   MessageCircle,
   Clock,
@@ -38,7 +37,6 @@ import type { Profile } from "@/types/database";
 
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/courses", key: "courses", icon: BookOpen },
   { href: "/practice", key: "practice", icon: Mic },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },

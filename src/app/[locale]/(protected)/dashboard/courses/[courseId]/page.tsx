@@ -8,6 +8,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
+  // Courses are admin-only for now
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") redirect("/dashboard");
+
   const { data: course } = await supabase
     .from("courses")
     .select("*")
