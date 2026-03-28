@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, BookOpen, ArrowRight } from "lucide-react";
+import { X, Sparkles, Mic, ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import confetti from "canvas-confetti";
+import { useTranslations } from "next-intl";
 
 interface WelcomeBannerProps {
   displayName: string;
@@ -20,11 +20,13 @@ export function WelcomeBanner({
   show,
 }: WelcomeBannerProps) {
   const [visible, setVisible] = useState(show);
+  const t = useTranslations("dashboard.home");
 
   // Fire confetti on first render
   useEffect(() => {
     if (show) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        const confetti = (await import("canvas-confetti")).default;
         confetti({
           particleCount: 80,
           spread: 70,
@@ -80,17 +82,17 @@ export function WelcomeBanner({
 
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-on-surface">
-                  Welcome to DebateLab, {displayName}! 🎉
+                  {t("welcome_banner", { name: displayName })}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Here&apos;s your personalized plan to get started.
+                  {t("welcome_banner_subtitle")}
                 </p>
               </div>
 
-              <Link href="/courses" className="shrink-0">
+              <Link href="/practice" className="shrink-0">
                 <Button className="gap-2 rounded-xl bg-primary text-white">
-                  <BookOpen className="h-4 w-4" />
-                  Start Course
+                  <Mic className="h-4 w-4" />
+                  {t("start_practice")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

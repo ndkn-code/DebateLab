@@ -7,7 +7,7 @@ import {
   Clock,
   Trophy,
   Star,
-  BookOpen,
+  Mic,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
@@ -144,69 +144,27 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
 
       {/* Two column grid */}
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
-        {/* Continue Learning */}
+        {/* Quick Practice */}
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4">
             <h2 className="text-base font-semibold text-on-surface">
-              {t('continue_learning')}
+              {t('quick_practice')}
             </h2>
-            {enrollments.length > 0 && (
-              <Link
-                href="/courses"
-                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                {t('see_all')} <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
           </div>
 
-          {enrollments.length === 0 ? (
-            <Link href="/courses">
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
-                <LottieAnimation animationData={emptyAnimation} className="w-24 h-24 mb-2" />
-                <p className="font-medium text-on-surface">
-                  {t('start_first_course')}
-                </p>
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  {t('explore_courses')}
-                </p>
+          <Link href="/practice">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-3">
+                <Mic className="h-7 w-7 text-primary" />
               </div>
-            </Link>
-          ) : (
-            <div className="space-y-3">
-              {enrollments.map((e) => (
-                <Link
-                  key={e.id}
-                  href={`/courses/${e.course_id}`}
-                  className="flex items-center gap-4 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 transition-all hover:border-primary/20 soft-shadow"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/30">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-on-surface">
-                      {e.course_title}
-                    </p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <Progress
-                        value={e.progress_percent}
-                        className="h-1.5 flex-1"
-                      />
-                      <span className="text-xs font-medium text-on-surface-variant">
-                        {e.progress_percent}%
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="shrink-0 bg-primary text-on-primary"
-                  >
-                    {t('continue')}
-                  </Button>
-                </Link>
-              ))}
+              <p className="font-medium text-on-surface">
+                {t('start_new_practice')}
+              </p>
+              <p className="mt-1 text-xs text-on-surface-variant">
+                {t('practice_get_feedback')}
+              </p>
             </div>
-          )}
+          </Link>
         </div>
 
         {/* Recent Practice */}
