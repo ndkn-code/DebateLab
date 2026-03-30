@@ -8,8 +8,12 @@ const intlMiddleware = createIntlMiddleware(routing);
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip intl middleware for API routes and auth callback
-  if (pathname.startsWith("/api") || pathname.startsWith("/auth/callback")) {
+  // Skip intl middleware for API routes, auth callback, and join referral route
+  if (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/join/")
+  ) {
     return await updateSession(request);
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +20,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/store/session-store";
+import { OrbBalance } from "@/components/shared/orb-balance";
+import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
+import { deductOrbsAction, getOrbBalanceAction } from "@/app/actions/orbs";
+import { createClient } from "@/lib/supabase/client";
 import type { DebateTopic } from "@/types";
 
 interface SessionConfigProps {
@@ -70,7 +75,48 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
     startSession,
   } = useSessionStore();
 
-  const handleBegin = () => {
+  const [orbBalance, setOrbBalance] = useState<number | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [showOrbModal, setShowOrbModal] = useState(false);
+  const [isDeducting, setIsDeducting] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const balance = await getOrbBalanceAction();
+      setOrbBalance(balance);
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("referral_code")
+          .eq("id", user.id)
+          .single();
+        setReferralCode(data?.referral_code ?? "");
+      }
+    };
+    load();
+  }, []);
+
+  const orbCost = mode === "quick" ? 1 : 2;
+
+  const handleBegin = async () => {
+    if (orbBalance !== null && orbBalance < orbCost) {
+      setShowOrbModal(true);
+      return;
+    }
+
+    setIsDeducting(true);
+    const result = await deductOrbsAction(mode);
+    setIsDeducting(false);
+
+    if (!result.success) {
+      setOrbBalance(result.newBalance);
+      setShowOrbModal(true);
+      return;
+    }
+
+    setOrbBalance(result.newBalance);
     setTopic(topic);
     startSession();
     router.push("/practice/session");
@@ -270,15 +316,47 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             </p>
           </div>
 
+          {/* Orb Cost Indicator */}
+          {orbBalance !== null && (
+            <div className="mb-3 flex items-center justify-between rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-2.5">
+              <span className="text-sm text-on-surface-variant">Session cost</span>
+              <OrbBalance balance={orbCost} size="sm" showLabel />
+            </div>
+          )}
+
           {/* Begin Button */}
           <Button
             onClick={handleBegin}
+            disabled={isDeducting}
             className="w-full gap-2 bg-primary py-6 text-base font-semibold text-on-primary hover:bg-primary/90"
           >
-            {t("begin_session")}
-            <ArrowRight className="h-5 w-5" />
+            {isDeducting ? (
+              "Starting..."
+            ) : (
+              <>
+                {t("begin_session")}
+                <ArrowRight className="h-5 w-5" />
+              </>
+            )}
           </Button>
+
+          {/* Current balance */}
+          {orbBalance !== null && (
+            <div className="mt-2 flex items-center justify-center gap-1 text-xs text-on-surface-variant">
+              <span>Your balance:</span>
+              <OrbBalance balance={orbBalance} size="sm" />
+            </div>
+          )}
         </div>
+
+        {/* Out of Orbs Modal */}
+        <OutOfOrbsModal
+          open={showOrbModal}
+          onClose={() => setShowOrbModal(false)}
+          referralCode={referralCode}
+          orbBalance={orbBalance ?? 0}
+          orbCost={orbCost}
+        />
       </motion.div>
     </AnimatePresence>
   );

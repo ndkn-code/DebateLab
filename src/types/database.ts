@@ -16,6 +16,9 @@ export interface Profile {
   selected_title: string | null;
   unlocked_titles: string[];
   banner_color: string;
+  referral_code: string | null;
+  orb_balance: number;
+  referred_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -160,5 +163,27 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   tokens_used: number | null;
+  created_at: string;
+}
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  referee_id: string;
+  status: "pending" | "qualified" | "credited" | "rejected";
+  referrer_orbs_awarded: number;
+  referee_orbs_awarded: number;
+  qualified_at: string | null;
+  credited_at: string | null;
+  created_at: string;
+}
+
+export interface OrbTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: "signup_bonus" | "referral_reward" | "referral_bonus" | "practice_quick" | "practice_full" | "admin_grant";
+  reference_id: string | null;
+  balance_after: number;
   created_at: string;
 }

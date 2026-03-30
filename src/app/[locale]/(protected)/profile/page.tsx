@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileContent } from "@/components/profile/profile-content";
+import { getReferralStats } from "@/lib/api/referrals";
 
 export const metadata = { title: "Profile — DebateLab" };
 
@@ -12,7 +13,7 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/auth/login");
 
-  const [profileRes, achievementsRes, userAchievementsRes, skillsRes, activityRes] =
+  const [profileRes, achievementsRes, userAchievementsRes, skillsRes, activityRes, referralStats] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("achievements").select("*").order("sort_order"),
@@ -27,6 +28,7 @@ export default async function ProfilePage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10),
+      getReferralStats(user.id),
     ]);
 
   const unlockedMap = new Map<string, string>();
@@ -54,6 +56,7 @@ export default async function ProfilePage() {
         }
       }
       activity={activityRes.data ?? []}
+      referralStats={referralStats}
     />
   );
 }

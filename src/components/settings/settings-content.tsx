@@ -13,7 +13,10 @@ import {
   Loader2,
   Globe,
   Volume2,
+  Gift,
+  Copy,
 } from "lucide-react";
+import { OrbBalance } from "@/components/shared/orb-balance";
 import { VoiceSettings } from "@/components/settings/voice-settings";
 import { DEFAULT_VOICE } from "@/lib/tts-voices";
 import { Button } from "@/components/ui/button";
@@ -81,6 +84,13 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
   const [ttsVoice, setTtsVoice] = useState(
     (prefs.tts_voice as string) ?? DEFAULT_VOICE
   );
+
+  // Referral state
+  const [refCodeInput, setRefCodeInput] = useState("");
+  const [refCopied, setRefCopied] = useState(false);
+  const [refApplying, setRefApplying] = useState(false);
+  const [refError, setRefError] = useState<string | null>(null);
+  const [refSuccess, setRefSuccess] = useState<string | null>(null);
 
   const DIFFICULTY_OPTIONS = [
     { label: t('difficulty_easy'), value: "easy" },
@@ -413,6 +423,129 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
           </div>
         </div>
         <LanguageToggle />
+      </section>
+
+      {/* Referral Section */}
+      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+            <Gift className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-on-surface">Referrals</h2>
+            <p className="text-sm text-on-surface-variant">Invite friends and earn Orbs</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Current Orb balance */}
+          <div className="flex items-center justify-between rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
+            <span className="text-sm text-on-surface-variant">Your Orb balance</span>
+            <OrbBalance balance={profile?.orb_balance ?? 0} size="md" showLabel />
+          </div>
+
+          {/* Your referral code */}
+          {profile?.referral_code && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
+                Your invite link
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/join/${profile.referral_code}`}
+                  className="flex-1 rounded-xl border border-outline-variant/10 bg-surface-container px-4 py-2.5 text-sm text-on-surface-variant"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5 border-outline-variant/20"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/join/${profile.referral_code}`
+                    );
+                    setRefCopied(true);
+                    setTimeout(() => setRefCopied(false), 2000);
+                  }}
+                >
+                  {refCopied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              <p className="mt-1.5 text-xs text-on-surface-variant">
+                Both you and your friend earn 3 bonus Orbs when they complete their first practice
+              </p>
+            </div>
+          )}
+
+          {/* Enter referral code (only if not already referred) */}
+          {!profile?.referred_by && (
+            <div className="border-t border-outline-variant/10 pt-4">
+              <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
+                Have a referral code?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={refCodeInput}
+                  onChange={(e) => {
+                    setRefCodeInput(e.target.value.toUpperCase());
+                    setRefError(null);
+                  }}
+                  placeholder="e.g. K7X2MN"
+                  maxLength={6}
+                  className="flex-1 rounded-xl border border-outline-variant/20 bg-surface px-4 py-2.5 text-sm text-on-surface uppercase tracking-widest outline-none transition-colors focus:border-primary/40"
+                />
+                <Button
+                  onClick={async () => {
+                    if (refCodeInput.length !== 6) {
+                      setRefError("Code must be 6 characters");
+                      return;
+                    }
+                    setRefApplying(true);
+                    setRefError(null);
+                    try {
+                      const res = await fetch("/api/referral/apply", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ code: refCodeInput }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        setRefError(data.error || "Failed to apply code");
+                      } else {
+                        setRefSuccess(`Linked! Referred by ${data.referrerName}`);
+                        setRefCodeInput("");
+                      }
+                    } catch {
+                      setRefError("Failed to apply code");
+                    }
+                    setRefApplying(false);
+                  }}
+                  disabled={refApplying || refCodeInput.length !== 6}
+                  className="gap-2 bg-primary text-on-primary"
+                  size="sm"
+                >
+                  {refApplying ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Apply"
+                  )}
+                </Button>
+              </div>
+              {refError && (
+                <p className="mt-1.5 text-xs text-red-500">{refError}</p>
+              )}
+              {refSuccess && (
+                <p className="mt-1.5 text-xs text-emerald-500">{refSuccess}</p>
+              )}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Sign Out */}

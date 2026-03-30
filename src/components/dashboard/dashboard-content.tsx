@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -10,6 +11,9 @@ import {
   Mic,
   ArrowRight,
   Sparkles,
+  Gift,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 import emptyAnimation from "../../../public/lottie/empty-search.json";
+import { OrbBalance } from "@/components/shared/orb-balance";
 import type { DashboardData } from "@/lib/api/dashboard";
 
 function getTimeGreetingKey(): string {
@@ -43,6 +48,7 @@ interface DashboardContentProps {
 
 export function DashboardContent({ data, displayName }: DashboardContentProps) {
   const t = useTranslations('dashboard.home');
+  const [copied, setCopied] = useState(false);
   const { profile, enrollments, recentSessions, weeklyStats } = data;
 
   const streak = profile?.streak_current ?? 0;
@@ -136,6 +142,47 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           </div>
         </div>
       </div>
+
+      {/* Orb Balance & Referral Card */}
+      {profile?.referral_code && (
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-amber-500/5 p-5">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
+              <Gift className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <OrbBalance balance={profile.orb_balance ?? 0} size="md" showLabel />
+                <span className="text-xs text-on-surface-variant">remaining</span>
+              </div>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                Invite friends to earn 3 Orbs each
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const link = `${window.location.origin}/join/${profile.referral_code}`;
+              navigator.clipboard.writeText(link);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-lowest px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low"
+          >
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 text-emerald-500" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                Copy invite link
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Weekly Activity Chart */}
       <div className="mb-8">

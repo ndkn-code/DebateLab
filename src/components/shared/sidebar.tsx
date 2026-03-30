@@ -15,7 +15,9 @@ import {
   ChevronLeft,
   Menu,
   Shield,
+  Gift,
 } from "lucide-react";
+import { OrbBalance } from "@/components/shared/orb-balance";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -92,6 +94,21 @@ function NavContent({
           </span>
         )}
       </div>
+
+      {/* Orb Balance */}
+      {profile?.orb_balance !== undefined && (
+        <div
+          className={cn(
+            "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2",
+            collapsed && "justify-center px-2"
+          )}
+        >
+          <OrbBalance balance={profile.orb_balance} size="sm" />
+          {!collapsed && (
+            <span className="text-xs text-on-surface-variant">Orbs</span>
+          )}
+        </div>
+      )}
 
       {/* Nav Links */}
       <nav className="flex-1 space-y-1 px-3 py-4">

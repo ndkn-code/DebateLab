@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
-import { RotateCcw, Plus, History, Sparkles } from "lucide-react";
+import { RotateCcw, Plus, History, Sparkles, Gift, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import confettiAnimation from "../../../../../../public/lottie/confetti.json";
@@ -15,6 +15,7 @@ import { FeedbackSections } from "@/components/feedback/feedback-sections";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
+import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/referrals";
 import type { DebateScore } from "@/types/feedback";
 
 export default function FeedbackPage() {
@@ -43,6 +44,8 @@ export default function FeedbackPage() {
   );
   const [modelUsed, setModelUsed] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [linkCopied, setLinkCopied] = useState(false);
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -144,6 +147,9 @@ export default function FeedbackPage() {
         const { data: authData } = await supabase.auth.getUser();
         if (authData.user) {
           supabaseStorage.saveSession(sessionData, authData.user.id);
+          // Qualify referral if this is user's first real practice
+          const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
+          qualifyReferralAction(wordCount).catch(() => {});
         } else {
           storage.saveSession(sessionData);
         }
@@ -196,6 +202,9 @@ export default function FeedbackPage() {
       hasCalledApi.current = true;
       fetchFeedback();
     }
+
+    // Fetch referral code for share card
+    getReferralCodeAction().then(setReferralCode).catch(() => {});
   }, [selectedTopic, storeFeedback, fetchFeedback, router]);
 
   const handleRetry = useCallback(() => {
@@ -300,6 +309,51 @@ export default function FeedbackPage() {
 
             {/* Feedback Sections */}
             <FeedbackSections feedback={feedback} transcript={transcript} />
+
+            {/* Referral Challenge Card */}
+            {referralCode && (
+              <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 mb-3">
+                    <Gift className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Challenge a friend to beat your score!
+                  </h3>
+                  <p className="mt-1 text-sm text-on-surface-variant">
+                    You scored {feedback.totalScore}/100. Share your invite link and both earn 3 bonus Orbs.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      const link = `${window.location.origin}/join/${referralCode}`;
+                      const shareText = `I scored ${feedback.totalScore}/100 on DebateLab! Can you beat me? ${link}`;
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({ title: "DebateLab Challenge", text: shareText });
+                        } catch { /* cancelled */ }
+                      } else {
+                        await navigator.clipboard.writeText(shareText);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      }
+                    }}
+                    className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
+                  >
+                    {linkCopied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Share Challenge
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Model indicator */}
             {modelUsed && (

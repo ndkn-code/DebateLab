@@ -76,7 +76,7 @@ export async function getDashboardData(
       // Profile — select only fields used by dashboard
       supabase
         .from("profiles")
-        .select("id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences")
+        .select("id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code")
         .eq("id", userId)
         .single(),
 

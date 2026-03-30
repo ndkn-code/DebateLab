@@ -8,6 +8,8 @@ import { SkillRadar } from "./skill-radar";
 import { AchievementGrid } from "./achievement-grid";
 import { ActivityTimeline } from "./activity-timeline";
 import { TitleSelectModal } from "./title-select-modal";
+import { ReferralStats } from "./referral-stats";
+import type { ReferralStats as ReferralStatsType } from "@/lib/api/referrals";
 
 export interface ProfileData {
   id: string;
@@ -61,6 +63,7 @@ interface ProfileContentProps {
   achievements: AchievementData[];
   skills: SkillData;
   activity: ActivityEntry[];
+  referralStats: ReferralStatsType;
 }
 
 const fadeUp = {
@@ -77,6 +80,7 @@ export function ProfileContent({
   achievements,
   skills,
   activity,
+  referralStats,
 }: ProfileContentProps) {
   const [titleModalOpen, setTitleModalOpen] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(profile?.selected_title ?? null);
@@ -129,15 +133,28 @@ export function ProfileContent({
         </motion.div>
       </div>
 
-      <motion.div
-        custom={3}
-        initial="hidden"
-        animate="visible"
-        variants={fadeUp}
-        className="mt-6"
-      >
-        <ActivityTimeline activity={activity} />
-      </motion.div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <motion.div
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
+          <ActivityTimeline activity={activity} />
+        </motion.div>
+
+        <motion.div
+          custom={4}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
+          <ReferralStats
+            stats={referralStats}
+            orbBalance={(profile as Record<string, unknown>)?.orb_balance as number ?? 0}
+          />
+        </motion.div>
+      </div>
 
       <TitleSelectModal
         open={titleModalOpen}

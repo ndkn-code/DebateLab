@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Mic } from "lucide-react";
+import { Mic, Sparkles } from "lucide-react";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/app/[locale]/onboarding/actions";
@@ -98,6 +98,28 @@ export function PathRevealStep({
             <p className="text-base md:text-lg text-gray-600">
               {t("path_reveal.ready_to_practice")}
             </p>
+          </motion.div>
+
+          {/* Orb Introduction */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-left"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-on-surface">
+                  You start with 5 free Orbs
+                </p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">
+                  Each practice costs 1-2 Orbs. Invite friends to earn more!
+                </p>
+              </div>
+            </div>
           </motion.div>
 
           {error && (
