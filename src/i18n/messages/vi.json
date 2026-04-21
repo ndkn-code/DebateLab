@@ -294,6 +294,32 @@
         "Lên trình rhetoric thôi!",
         "Thêm một ngày, thêm một chiến thắng!"
       ],
+      "streak_title": "Chuỗi Hiện Tại",
+      "best_run": "Chuỗi Tốt Nhất",
+      "week_activity": "Tuần Này",
+      "week_minutes": "Đã luyện {count} phút",
+      "streak_week_title": "Nhịp luyện trong 7 ngày",
+      "active_days_this_week": "{count}/7 ngày có hoạt động trong tuần này",
+      "minutes_practiced": "Phút đã luyện",
+      "sessions_completed": "Phiên đã hoàn thành",
+      "xp_progress": "Tiến độ XP",
+      "continue_course": "Tiếp Tục Khóa Học",
+      "continue_learning_subtitle": "Quay lại đúng chỗ đang làm dở trong trải nghiệm khóa học admin và soi kỹ flow phía học viên.",
+      "active_courses": "{count} khóa học đang hoạt động",
+      "course_progress_label": "Tiến độ khóa học",
+      "open_course": "Mở Khóa Học",
+      "course_preview_note": "Thao tác này mở flow khóa học hiện chỉ dành cho admin, để bạn kiểm tra trải nghiệm phía học viên trước khi rollout rộng hơn.",
+      "browse_admin_courses": "Mở Quản Trị Khóa Học",
+      "course_empty_admin_note": "Khi bạn đăng ký hoặc thiết lập một khóa học, nó sẽ xuất hiện ở đây như thẻ tiếp tục chính.",
+      "course_empty_student_note": "Phần tiếp tục học sẽ hiện ở đây khi quyền truy cập khóa học mở rộng ra ngoài tài khoản admin.",
+      "course_access_limited": "Việc tiếp tục khóa học hiện vẫn chỉ dành cho tài khoản admin.",
+      "single_active_course": "Hiện bạn chỉ có một khóa học đang hoạt động nên nó được ghim làm trọng tâm ở đây.",
+      "streak_messages": {
+        "zero": "Bắt đầu chuỗi hôm nay và biến buổi luyện tiếp theo thành đà tiến bộ.",
+        "building": "Đã vào nhịp {count} ngày. Cố giữ chuỗi này nhé.",
+        "steady": "Liên tiếp {count} ngày rồi. Sự đều đặn của bạn đang có tác dụng.",
+        "on_fire": "{count} ngày liên tiếp. Đúng nghĩa đang cháy luôn."
+      },
       "days": "ngày",
       "longest": "Dài nhất: {count}",
       "min": "phút",
@@ -762,6 +788,7 @@
       "courseCreated": "Tạo khóa học thành công!",
       "courseSaved": "Đã lưu thay đổi",
       "unsavedChanges": "Bạn có thay đổi chưa lưu",
+      "preview": "Xem trước",
       "addModule": "Thêm Module",
       "moduleName": "Tên module",
       "addActivity": "Thêm hoạt động",
@@ -933,7 +960,13 @@
       "unenroll": "Hủy đăng ký",
       "restrictedAccess": "Khóa học này chỉ dành cho học viên được mời.",
       "premiumRequired": "Cần đăng ký Premium.",
-      "unlockAfterPurchase": "Mở khóa sau khi mua"
+      "unlockAfterPurchase": "Mở khóa sau khi mua",
+      "backToEditor": "Quay lại trình chỉnh sửa",
+      "adminPreview": "Xem trước quản trị",
+      "previewDraft": "Bản nháp",
+      "previewPublished": "Đã xuất bản",
+      "previewSavedVersion": "Bản xem trước này phản ánh phiên bản đã lưu của khóa học. Hãy lưu thay đổi trong trình chỉnh sửa để cập nhật.",
+      "previewNoTracking": "Chế độ xem trước không ghi nhận tiến độ, đăng ký hay hoàn thành. Hãy mở một hoạt động để kiểm tra trải nghiệm của học viên."
     }
   }
 }

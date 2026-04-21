@@ -15,6 +15,8 @@ interface Props {
   courseId: string;
   nextModuleFirstActivityId?: string;
   isLastModule: boolean;
+  courseOverviewHref?: string;
+  nextModuleHref?: string;
 }
 
 export function ModuleCompletionScreen({
@@ -25,6 +27,8 @@ export function ModuleCompletionScreen({
   courseId,
   nextModuleFirstActivityId,
   isLastModule,
+  courseOverviewHref,
+  nextModuleHref,
 }: Props) {
   const t = useTranslations("courses.player");
   const [displayXP, setDisplayXP] = useState(0);
@@ -107,7 +111,7 @@ export function ModuleCompletionScreen({
         >
           {nextModuleFirstActivityId && !isLastModule && (
             <Link
-              href={`/dashboard/courses/${courseId}/activity/${nextModuleFirstActivityId}`}
+              href={nextModuleHref ?? `/dashboard/courses/${courseId}/activity/${nextModuleFirstActivityId}`}
               className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
             >
               {t("continueToModule", { moduleName: nextModuleTitle ?? "Next" })}
@@ -115,7 +119,7 @@ export function ModuleCompletionScreen({
             </Link>
           )}
           <Link
-            href={`/dashboard/courses/${courseId}`}
+            href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
             className="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 px-6 py-3 text-base font-medium text-on-surface-variant hover:bg-gray-50 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

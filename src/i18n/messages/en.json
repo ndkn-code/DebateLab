@@ -294,6 +294,32 @@
         "Time to level up your rhetoric!",
         "Another day, another argument won!"
       ],
+      "streak_title": "Current Streak",
+      "best_run": "Best Run",
+      "week_activity": "This Week",
+      "week_minutes": "{count} minutes practiced",
+      "streak_week_title": "Seven-day rhythm",
+      "active_days_this_week": "{count}/7 active days this week",
+      "minutes_practiced": "Minutes practiced",
+      "sessions_completed": "Sessions completed",
+      "xp_progress": "XP progress",
+      "continue_course": "Continue Course",
+      "continue_learning_subtitle": "Pick up where you left off in the admin course experience and spot weak points in the learner flow.",
+      "active_courses": "{count} active courses",
+      "course_progress_label": "Course progress",
+      "open_course": "Open Course",
+      "course_preview_note": "This opens the current admin-only course flow, so you can inspect the learner-facing experience before wider rollout.",
+      "browse_admin_courses": "Browse Course Admin",
+      "course_empty_admin_note": "Once you enroll in or set up a course, it will appear here as your main continuation card.",
+      "course_empty_student_note": "Course learning will show up here once course access is opened beyond admin accounts.",
+      "course_access_limited": "Course continuation is still limited to admin accounts right now.",
+      "single_active_course": "You only have one active course at the moment, so it stays front and center here.",
+      "streak_messages": {
+        "zero": "Start your streak today and turn your next practice into momentum.",
+        "building": "{count}-day rhythm. Keep the chain alive.",
+        "steady": "{count} days in a row. Your consistency is paying off.",
+        "on_fire": "{count} days strong. You're properly on fire now."
+      },
       "days": "days",
       "longest": "Longest: {count}",
       "min": "min",
@@ -762,6 +788,7 @@
       "courseCreated": "Course created successfully!",
       "courseSaved": "Changes saved",
       "unsavedChanges": "You have unsaved changes",
+      "preview": "Preview",
       "addModule": "Add Module",
       "moduleName": "Module name",
       "addActivity": "Add Activity",
@@ -934,6 +961,13 @@
       "restrictedAccess": "This course is available by invitation only.",
       "premiumRequired": "Premium subscription required.",
       "unlockAfterPurchase": "Available after purchase"
+      ,
+      "backToEditor": "Back to Editor",
+      "adminPreview": "Admin Preview",
+      "previewDraft": "Draft",
+      "previewPublished": "Published",
+      "previewSavedVersion": "This preview reflects the saved version of the course. Save changes in the editor to refresh it.",
+      "previewNoTracking": "Progress, enrollment, and completion tracking are hidden in preview mode. Open an activity to check the learner experience."
     }
   }
 }

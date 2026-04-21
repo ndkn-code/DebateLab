@@ -4,10 +4,14 @@ import { ActivityPlayerWrapper } from "@/components/activities/ActivityPlayerWra
 
 export default async function ActivityPlayerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ courseId: string; activityId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { courseId, activityId } = await params;
+  const { preview } = await searchParams;
+  const previewMode = preview === "1";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
@@ -27,7 +31,9 @@ export default async function ActivityPlayerPage({
     .eq("id", activityId)
     .single();
 
-  if (!activity) redirect(`/dashboard/courses/${courseId}`);
+  const courseOverviewHref = `/dashboard/courses/${courseId}${previewMode ? "?preview=1" : ""}`;
+
+  if (!activity) redirect(courseOverviewHref);
 
   // Fetch module info
   const { data: moduleData } = await supabase
@@ -36,7 +42,7 @@ export default async function ActivityPlayerPage({
     .eq("id", activity.module_id)
     .single();
 
-  if (!moduleData) redirect(`/dashboard/courses/${courseId}`);
+  if (!moduleData) redirect(courseOverviewHref);
 
   // Fetch course title
   const { data: course } = await supabase
@@ -72,17 +78,21 @@ export default async function ActivityPlayerPage({
   };
 
   // Fetch user's completed activity IDs for this course
-  const allActivityIds = allModules.flatMap((m) => m.activities.map((a) => a.id));
-  const { data: completedAttempts } = allActivityIds.length > 0
-    ? await supabase
-        .from("activity_attempts")
-        .select("activity_id")
-        .eq("user_id", user.id)
-        .not("completed_at", "is", null)
-        .in("activity_id", allActivityIds)
-    : { data: [] };
+  let completedActivityIds: string[] = [];
 
-  const completedActivityIds = [...new Set((completedAttempts ?? []).map((a) => a.activity_id))];
+  if (!previewMode) {
+    const allActivityIds = allModules.flatMap((m) => m.activities.map((a) => a.id));
+    const { data: completedAttempts } = allActivityIds.length > 0
+      ? await supabase
+          .from("activity_attempts")
+          .select("activity_id")
+          .eq("user_id", user.id)
+          .not("completed_at", "is", null)
+          .in("activity_id", allActivityIds)
+      : { data: [] };
+
+    completedActivityIds = [...new Set((completedAttempts ?? []).map((a) => a.activity_id))];
+  }
 
   return (
     <ActivityPlayerWrapper
@@ -92,6 +102,8 @@ export default async function ActivityPlayerPage({
       currentModule={currentModule}
       allModules={allModules}
       completedActivityIds={completedActivityIds}
+      previewMode={previewMode}
+      courseOverviewHref={courseOverviewHref}
     />
   );
 }

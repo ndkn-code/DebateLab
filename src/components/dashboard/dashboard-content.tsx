@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
-  Flame,
   Clock,
   Trophy,
   Star,
@@ -20,9 +19,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { WeeklyChart } from "./weekly-chart";
 import { AiCoachWidget } from "./ai-coach-widget";
+import { ContinueLearningCard } from "./continue-learning-card";
+import { StreakCard } from "./streak-card";
 import { cn } from "@/lib/utils";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
-import fireAnimation from "../../../public/lottie/fire.json";
 import emptyAnimation from "../../../public/lottie/empty-search.json";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import type { DashboardData } from "@/lib/api/dashboard";
@@ -46,11 +46,48 @@ interface DashboardContentProps {
   displayName: string;
 }
 
+interface MetricCardProps {
+  icon: ReactNode;
+  accentClassName: string;
+  value: ReactNode;
+  caption: string;
+  footer?: string;
+}
+
+function MetricCard({
+  icon,
+  accentClassName,
+  value,
+  caption,
+  footer,
+}: MetricCardProps) {
+  return (
+    <div className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow">
+      <div
+        className={cn(
+          "mb-4 flex h-11 w-11 items-center justify-center rounded-2xl",
+          accentClassName
+        )}
+      >
+        {icon}
+      </div>
+      <p className="text-2xl font-bold text-on-surface">{value}</p>
+      <p className="mt-1 text-sm font-medium text-on-surface-variant">
+        {caption}
+      </p>
+      {footer ? (
+        <p className="mt-3 text-xs text-on-surface-variant">{footer}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function DashboardContent({ data, displayName }: DashboardContentProps) {
   const t = useTranslations('dashboard.home');
   const [copied, setCopied] = useState(false);
   const { profile, recentSessions, weeklyStats } = data;
 
+  const isAdmin = profile?.role === "admin";
   const streak = profile?.streak_current ?? 0;
   const longestStreak = profile?.streak_longest ?? 0;
   const totalMinutes = profile?.total_practice_minutes ?? 0;
@@ -86,64 +123,58 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         <p className="mt-1 text-on-surface-variant">{motivation}</p>
       </div>
 
-      {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {/* Streak */}
-        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
-            {streak > 0 ? (
-              <LottieAnimation animationData={fireAnimation} className="w-8 h-8" loop={true} />
-            ) : (
-              <Flame className="h-5 w-5 text-gray-400" />
-            )}
-          </div>
-          <p className="text-2xl font-bold text-on-surface">
-            {streak} <span className="text-sm font-medium text-on-surface-variant">{t('days')}</span>
-          </p>
-          <p className="text-xs text-on-surface-variant">
-            {t('longest', { count: longestStreak })}
-          </p>
-        </div>
+      {/* Hero Dashboard Cards */}
+      <div className="mb-8 grid gap-4 xl:grid-cols-[1.35fr_0.95fr] xl:items-start">
+        <StreakCard
+          streak={streak}
+          longestStreak={longestStreak}
+          weeklyStats={weeklyStats}
+        />
 
-        {/* Study Hours */}
-        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-tertiary-container/40">
-            <Clock className="h-5 w-5 text-tertiary" />
-          </div>
-          <p className="text-2xl font-bold text-on-surface">
-            {totalMinutes}<span className="text-sm font-medium text-on-surface-variant">{t('min')}</span>
-          </p>
-          <p className="text-xs text-on-surface-variant">
-            {t('this_week_min', { count: weekMinutes })}
-          </p>
-        </div>
+        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+          <MetricCard
+            icon={<Clock className="h-5 w-5 text-tertiary" />}
+            accentClassName="bg-tertiary-container/40"
+            value={
+              <>
+                {totalMinutes}
+                <span className="ml-1 text-sm font-medium text-on-surface-variant">
+                  {t('min')}
+                </span>
+              </>
+            }
+            caption={t('minutes_practiced')}
+            footer={t('this_week_min', { count: weekMinutes })}
+          />
 
-        {/* Sessions */}
-        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-container/40">
-            <Trophy className="h-5 w-5 text-secondary" />
-          </div>
-          <p className="text-2xl font-bold text-on-surface">{totalSessions}</p>
-          <p className="text-xs text-on-surface-variant">
-            {t('this_week_sessions', { count: weekSessions })}
-          </p>
-        </div>
+          <MetricCard
+            icon={<Trophy className="h-5 w-5 text-secondary" />}
+            accentClassName="bg-secondary-container/40"
+            value={totalSessions}
+            caption={t('sessions_completed')}
+            footer={t('this_week_sessions', { count: weekSessions })}
+          />
 
-        {/* Level & XP */}
-        <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 soft-shadow">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff9e5]">
-            <Star className="h-5 w-5 text-[#b28b00]" />
-          </div>
-          <p className="text-2xl font-bold text-on-surface">{t('level', { level })}</p>
-          <div className="mt-1.5">
-            <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
-              <span>{xpInLevel} XP</span>
-              <span>{xpToNext} XP</span>
+          <div className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff9e5]">
+              <Star className="h-5 w-5 text-[#b28b00]" />
             </div>
-            <Progress
-              value={(xpInLevel / xpToNext) * 100}
-              className="h-1.5 bg-[#fff9e5]"
-            />
+            <p className="text-2xl font-bold text-on-surface">
+              {t('level', { level })}
+            </p>
+            <p className="mt-1 text-sm font-medium text-on-surface-variant">
+              {t('xp_progress')}
+            </p>
+            <div className="mt-4">
+              <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
+                <span>{xpInLevel} XP</span>
+                <span>{xpToNext} XP</span>
+              </div>
+              <Progress
+                value={(xpInLevel / xpToNext) * 100}
+                className="h-1.5 bg-[#fff9e5]"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -194,30 +225,21 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         <WeeklyChart stats={weeklyStats} />
       </div>
 
-      {/* Two column grid */}
-      <div className="mb-8 grid gap-6 lg:grid-cols-2">
-        {/* Quick Practice */}
-        <div>
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-on-surface">
-              {t('quick_practice')}
-            </h2>
-          </div>
-
-          <Link href="/practice">
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-3">
-                <Mic className="h-7 w-7 text-primary" />
-              </div>
-              <p className="font-medium text-on-surface">
-                {t('start_new_practice')}
-              </p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                {t('practice_get_feedback')}
-              </p>
-            </div>
-          </Link>
-        </div>
+      {/* Action grid */}
+      <div
+        className={cn(
+          "mb-8 grid gap-6",
+          isAdmin || data.enrollments.length > 0
+            ? "xl:grid-cols-[1.2fr_1fr_0.9fr]"
+            : "lg:grid-cols-2"
+        )}
+      >
+        {(isAdmin || data.enrollments.length > 0) && (
+          <ContinueLearningCard
+            enrollments={data.enrollments}
+            isAdmin={isAdmin}
+          />
+        )}
 
         {/* Recent Practice */}
         <div>
@@ -313,6 +335,29 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
               </Link>
             </div>
           )}
+        </div>
+
+        {/* Quick Practice */}
+        <div>
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-on-surface">
+              {t('quick_practice')}
+            </h2>
+          </div>
+
+          <Link href="/practice">
+            <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-lowest p-8 text-center transition-colors hover:border-primary/30 hover:bg-primary-container/5">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                <Mic className="h-7 w-7 text-primary" />
+              </div>
+              <p className="font-medium text-on-surface">
+                {t('start_new_practice')}
+              </p>
+              <p className="mt-1 text-xs text-on-surface-variant">
+                {t('practice_get_feedback')}
+              </p>
+            </div>
+          </Link>
         </div>
       </div>
 

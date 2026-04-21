@@ -88,6 +88,7 @@ export async function getDashboardData(
         )
         .eq("user_id", userId)
         .eq("status", "active")
+        .order("progress_percent", { ascending: false })
         .limit(3),
 
       // Recent debate sessions (limit 3)

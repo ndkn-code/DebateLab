@@ -12,6 +12,9 @@ interface Props {
   totalXP: number;
   totalActivities: number;
   totalModules: number;
+  previewMode?: boolean;
+  courseOverviewHref?: string;
+  editorHref?: string;
 }
 
 export function CourseCompletionScreen({
@@ -19,6 +22,9 @@ export function CourseCompletionScreen({
   totalXP,
   totalActivities,
   totalModules,
+  previewMode = false,
+  courseOverviewHref,
+  editorHref,
 }: Props) {
   const t = useTranslations("courses.player");
   const [displayXP, setDisplayXP] = useState(0);
@@ -114,18 +120,37 @@ export function CourseCompletionScreen({
           transition={{ delay: 1.2 }}
           className="flex flex-col gap-3 mt-6 w-full"
         >
-          <Link
-            href="/dashboard/courses"
-            className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
-          >
-            {t("exploreMore")} →
-          </Link>
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 px-6 py-3 text-base font-medium text-on-surface-variant hover:bg-gray-50 transition-colors"
-          >
-            {t("backToDashboard")}
-          </Link>
+          {previewMode ? (
+            <>
+              <Link
+                href={courseOverviewHref ?? "/dashboard/courses"}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
+              >
+                {t("backToCourseOverview")}
+              </Link>
+              <Link
+                href={editorHref ?? "/dashboard/admin/courses"}
+                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 px-6 py-3 text-base font-medium text-on-surface-variant hover:bg-gray-50 transition-colors"
+              >
+                {t("backToEditor")}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/dashboard/courses"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
+              >
+                {t("exploreMore")} →
+              </Link>
+              <Link
+                href="/dashboard"
+                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 px-6 py-3 text-base font-medium text-on-surface-variant hover:bg-gray-50 transition-colors"
+              >
+                {t("backToDashboard")}
+              </Link>
+            </>
+          )}
         </motion.div>
       </motion.div>
     </div>

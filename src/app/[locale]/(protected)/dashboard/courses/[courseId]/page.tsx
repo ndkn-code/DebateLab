@@ -2,8 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CoursePlayerView } from "@/components/activities/CoursePlayerView";
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+export default async function CourseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ courseId: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const { courseId } = await params;
+  const { preview } = await searchParams;
+  const previewMode = preview === "1";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
@@ -16,14 +24,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     .single();
   if (!profile || profile.role !== "admin") redirect("/dashboard");
 
-  const { data: course } = await supabase
+  let courseQuery = supabase
     .from("courses")
     .select("*")
-    .eq("id", courseId)
-    .eq("is_published", true)
-    .single();
+    .eq("id", courseId);
 
-  if (!course) redirect("/courses");
+  if (!previewMode) {
+    courseQuery = courseQuery.eq("is_published", true);
+  }
+
+  const { data: course } = await courseQuery.single();
+
+  if (!course) {
+    redirect(previewMode ? `/dashboard/admin/courses/${courseId}` : "/courses");
+  }
 
   const { data: modules } = await supabase
     .from("course_modules")
@@ -45,25 +59,30 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   );
 
   // Get enrollment
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("*")
-    .eq("course_id", courseId)
-    .eq("user_id", user.id)
-    .single();
+  let enrollment = null;
+  let completedIds: Set<string> = new Set();
 
-  // Get completed attempts
-  const allActivityIds = modulesWithActivities.flatMap((m) => m.activities.map((a: { id: string }) => a.id));
-  const { data: attempts } = allActivityIds.length > 0
-    ? await supabase
-      .from("activity_attempts")
-      .select("activity_id")
+  if (!previewMode) {
+    const { data: enrollmentData } = await supabase
+      .from("enrollments")
+      .select("*")
+      .eq("course_id", courseId)
       .eq("user_id", user.id)
-      .not("completed_at", "is", null)
-      .in("activity_id", allActivityIds)
-    : { data: [] };
+      .single();
+    enrollment = enrollmentData;
 
-  const completedIds = new Set((attempts ?? []).map((a) => a.activity_id));
+    const allActivityIds = modulesWithActivities.flatMap((m) => m.activities.map((a: { id: string }) => a.id));
+    const { data: attempts } = allActivityIds.length > 0
+      ? await supabase
+        .from("activity_attempts")
+        .select("activity_id")
+        .eq("user_id", user.id)
+        .not("completed_at", "is", null)
+        .in("activity_id", allActivityIds)
+      : { data: [] };
+
+    completedIds = new Set((attempts ?? []).map((a) => a.activity_id));
+  }
 
   return (
     <CoursePlayerView
@@ -71,6 +90,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
       modules={modulesWithActivities}
       enrollment={enrollment}
       completedActivityIds={Array.from(completedIds)}
+      previewMode={previewMode}
+      editorHref={`/dashboard/admin/courses/${courseId}`}
+      publicationState={course.is_published ? "published" : "draft"}
     />
   );
 }

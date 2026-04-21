@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateCourse, createModule, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, AdminCourseModule, Activity } from "@/lib/types/admin";
@@ -88,6 +88,15 @@ export function CourseEditor({ course: initialCourse }: Props) {
           {t("title")}
         </Link>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/courses/${course.id}?preview=1`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            {t("preview")}
+          </Link>
           <Link
             href={`/dashboard/admin/courses/${course.id}/settings`}
             className="flex items-center gap-1.5 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"

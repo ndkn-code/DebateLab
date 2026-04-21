@@ -17,6 +17,7 @@ interface Props {
   sessionXP: number;
   moduleName: string;
   courseId: string;
+  courseOverviewHref?: string;
 }
 
 export function TopProgressBar({
@@ -26,12 +27,13 @@ export function TopProgressBar({
   sessionXP,
   moduleName,
   courseId,
+  courseOverviewHref,
 }: Props) {
   return (
     <div className="sticky top-0 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shadow-sm">
       {/* Back button */}
       <Link
-        href={`/dashboard/courses/${courseId}`}
+        href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-surface-variant hover:bg-gray-100 transition-colors"
       >
         <ArrowLeft className="h-5 w-5" />

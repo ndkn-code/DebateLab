@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "lucide-react";
 import { enrollInCourse } from "@/app/actions/enrollment";
 import type { ActivityType, ActivityPhase } from "@/lib/types/admin";
 
@@ -23,17 +23,35 @@ interface Props {
   modules: (Record<string, unknown> & { activities: { id: string; title: string; activity_type: ActivityType; phase: ActivityPhase; order_index: number; duration_minutes: number }[] })[];
   enrollment: Record<string, unknown> | null;
   completedActivityIds: string[];
+  previewMode?: boolean;
+  editorHref?: string;
+  publicationState?: "draft" | "published";
 }
 
-export function CoursePlayerView({ course, modules, enrollment, completedActivityIds }: Props) {
+export function CoursePlayerView({
+  course,
+  modules,
+  enrollment,
+  completedActivityIds,
+  previewMode = false,
+  editorHref,
+  publicationState = "published",
+}: Props) {
   const t = useTranslations("courses.player");
   const router = useRouter();
+  const courseId = course.id as string;
   const completed = new Set(completedActivityIds);
   const totalActivities = modules.reduce((sum, m) => sum + m.activities.length, 0);
   const completedCount = completedActivityIds.length;
   const progressPct = totalActivities > 0 ? Math.round((completedCount / totalActivities) * 100) : 0;
+  const hasAccess = previewMode || !!enrollment;
+  const backHref = previewMode ? (editorHref ?? `/dashboard/admin/courses/${courseId}`) : "/courses";
+  const backLabel = previewMode ? t("backToEditor") : t("backToCourse");
+  const previewStateLabel =
+    publicationState === "published" ? t("previewPublished") : t("previewDraft");
 
   const handleEnroll = async () => {
+    if (previewMode) return;
     await enrollInCourse(course.id as string);
     router.refresh();
   };
@@ -46,12 +64,29 @@ export function CoursePlayerView({ course, modules, enrollment, completedActivit
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 space-y-6">
-      <Link href="/courses" className="flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface">
-        <ArrowLeft className="h-4 w-4" />{t("backToCourse")}
+      <Link href={backHref} className="flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface">
+        <ArrowLeft className="h-4 w-4" />{backLabel}
       </Link>
 
       {/* Course header */}
       <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 p-6 shadow-sm">
+        {previewMode ? (
+          <div className="mb-4 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Eye className="h-3.5 w-3.5" />
+                {t("adminPreview")}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">
+                {previewStateLabel}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-on-surface-variant">
+              {t("previewSavedVersion")}
+            </p>
+          </div>
+        ) : null}
+
         <h1 className="text-2xl font-bold text-on-surface">{course.title as string}</h1>
         {course.description ? (
           <p className="text-sm text-on-surface-variant mt-2">{String(course.description)}</p>
@@ -62,7 +97,11 @@ export function CoursePlayerView({ course, modules, enrollment, completedActivit
           <span>{modules.length} modules</span>
         </div>
 
-        {enrollment ? (
+        {previewMode ? (
+          <div className="mt-4 rounded-xl border border-dashed border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+            {t("previewNoTracking")}
+          </div>
+        ) : enrollment ? (
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs text-on-surface-variant mb-1">
               <span>{t("progress", { completed: completedCount, total: totalActivities })}</span>
@@ -111,7 +150,11 @@ export function CoursePlayerView({ course, modules, enrollment, completedActivit
                   return (
                     <Link
                       key={act.id}
-                      href={enrollment ? `/dashboard/courses/${course.id as string}/activity/${act.id}` : "#"}
+                      href={
+                        hasAccess
+                          ? `/dashboard/courses/${courseId}/activity/${act.id}${previewMode ? "?preview=1" : ""}`
+                          : "#"
+                      }
                       className="flex items-center gap-3 px-5 py-3 hover:bg-surface-container/50 transition-colors"
                     >
                       {isCompleted ? (
@@ -119,10 +162,10 @@ export function CoursePlayerView({ course, modules, enrollment, completedActivit
                           <Check className="h-3.5 w-3.5" />
                         </div>
                       ) : (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-outline-variant/20">
-                          <Icon className="h-3 w-3 text-on-surface-variant" />
-                        </div>
-                      )}
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-outline-variant/20">
+                      <Icon className="h-3 w-3 text-on-surface-variant" />
+                    </div>
+                  )}
                       <span className="flex-1 text-sm text-on-surface">{act.title}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PHASE_COLORS[act.phase]}`}>
                         {act.phase}

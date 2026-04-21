@@ -39,6 +39,8 @@ interface Props {
   currentModule: ModuleSummary;
   allModules: ModuleSummary[];
   completedActivityIds: string[];
+  previewMode?: boolean;
+  courseOverviewHref?: string;
 }
 
 type PlayerState = "playing" | "completed" | "module_complete" | "course_complete";
@@ -57,6 +59,8 @@ export function ActivityPlayerWrapper({
   currentModule,
   allModules,
   completedActivityIds: initialCompletedIds,
+  previewMode = false,
+  courseOverviewHref,
 }: Props) {
   const t = useTranslations("courses.player");
   const router = useRouter();
@@ -101,10 +105,12 @@ export function ActivityPlayerWrapper({
       setCompletedIds((prev) => new Set([...prev, activity.id]));
 
       // Save to server
-      try {
-        await completeActivity(activity.id, courseId, finalScore, finalMaxScore, responses ?? {}, xp, elapsed);
-      } catch {
-        // Don't block the UI
+      if (!previewMode) {
+        try {
+          await completeActivity(activity.id, courseId, finalScore, finalMaxScore, responses ?? {}, xp, elapsed);
+        } catch {
+          // Don't block the UI
+        }
       }
 
       // Determine next state
@@ -122,16 +128,16 @@ export function ActivityPlayerWrapper({
         setState("completed");
       }
     },
-    [activity, courseId, addSessionXP, markActivityCompleted, completedIds, siblings, allModules, nextActivity]
+    [activity, courseId, addSessionXP, markActivityCompleted, completedIds, siblings, allModules, nextActivity, previewMode]
   );
 
   const handleContinue = () => {
     if (nextActivity) {
-      router.push(`/dashboard/courses/${courseId}/activity/${nextActivity.id}`);
+      router.push(`/dashboard/courses/${courseId}/activity/${nextActivity.id}${previewMode ? "?preview=1" : ""}`);
     } else if (nextModule && nextModule.activities.length > 0) {
-      router.push(`/dashboard/courses/${courseId}/activity/${nextModule.activities[0].id}`);
+      router.push(`/dashboard/courses/${courseId}/activity/${nextModule.activities[0].id}${previewMode ? "?preview=1" : ""}`);
     } else {
-      router.push(`/dashboard/courses/${courseId}`);
+      router.push(courseOverviewHref ?? `/dashboard/courses/${courseId}`);
     }
   };
 
@@ -178,6 +184,7 @@ export function ActivityPlayerWrapper({
         sessionXP={sessionXP}
         moduleName={currentModule.title}
         courseId={courseId}
+        courseOverviewHref={courseOverviewHref}
       />
 
       {/* Main content */}
@@ -193,15 +200,22 @@ export function ActivityPlayerWrapper({
             >
               {/* Activity header */}
               <div className="text-center mb-6 px-4">
-                <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-lg mb-2 ${
-                  activity.phase === "learn"
-                    ? "bg-green-100 text-green-700"
-                    : activity.phase === "practice"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}>
-                  {activity.phase}
-                </span>
+                <div className="mb-2 flex flex-wrap items-center justify-center gap-2">
+                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                    activity.phase === "learn"
+                      ? "bg-green-100 text-green-700"
+                      : activity.phase === "practice"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}>
+                    {activity.phase}
+                  </span>
+                  {previewMode ? (
+                    <span className="inline-block rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {t("adminPreview")}
+                    </span>
+                  ) : null}
+                </div>
                 <h1 className="text-lg font-bold text-on-surface">{activity.title}</h1>
               </div>
 
@@ -233,6 +247,12 @@ export function ActivityPlayerWrapper({
                 courseId={courseId}
                 nextModuleFirstActivityId={nextModule?.activities?.[0]?.id}
                 isLastModule={isLastModule}
+                courseOverviewHref={courseOverviewHref}
+                nextModuleHref={
+                  nextModule?.activities?.[0]?.id
+                    ? `/dashboard/courses/${courseId}/activity/${nextModule.activities[0].id}${previewMode ? "?preview=1" : ""}`
+                    : undefined
+                }
               />
             </motion.div>
           )}
@@ -244,6 +264,9 @@ export function ActivityPlayerWrapper({
                 totalXP={moduleTotalXP}
                 totalActivities={totalCourseActivities}
                 totalModules={allModules.length}
+                previewMode={previewMode}
+                courseOverviewHref={courseOverviewHref}
+                editorHref={`/dashboard/admin/courses/${courseId}`}
               />
             </motion.div>
           )}
