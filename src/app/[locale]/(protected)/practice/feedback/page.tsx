@@ -23,7 +23,9 @@ export default function FeedbackPage() {
   const {
     selectedTopic,
     side,
+    practiceTrack,
     mode,
+    prepTime,
     speechTime,
     transcript,
     feedback: storeFeedback,
@@ -34,6 +36,12 @@ export default function FeedbackPage() {
     setPhase,
     resetSession,
     setTopic,
+    setSide,
+    setPracticeTrack,
+    setMode,
+    setPrepTime,
+    setSpeechTime,
+    setAiDifficulty,
     startSession: storeStartSession,
   } = useSessionStore();
 
@@ -54,7 +62,16 @@ export default function FeedbackPage() {
       ? "proposition"
       : (side as "proposition" | "opposition");
 
-  const isFullRound = mode === "full" && rounds.length > 0;
+  const isFullRound =
+    practiceTrack === "debate" && mode === "full" && rounds.length > 0;
+
+  const normalizeFeedback = useCallback(
+    (data: DebateScore): DebateScore => ({
+      ...data,
+      practiceTrack: data.practiceTrack ?? practiceTrack,
+    }),
+    [practiceTrack]
+  );
 
   const fetchFeedback = useCallback(async () => {
     if (!selectedTopic || !transcript) return;
@@ -67,6 +84,15 @@ export default function FeedbackPage() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+    const speechType =
+      practiceTrack === "speaking"
+        ? "Speaking Practice"
+        : isFullRound
+          ? "Full Round Debate (5 rounds)"
+          : mode === "full"
+            ? "Opening Statement"
+            : "Quick Debate Practice";
+
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -76,11 +102,8 @@ export default function FeedbackPage() {
           transcript,
           topic: selectedTopic.title,
           side: resolvedSide,
-          speechType: isFullRound
-            ? "Full Round Debate (5 rounds)"
-            : mode === "full"
-              ? "Opening Statement"
-              : "Quick Practice",
+          practiceTrack,
+          speechType,
           timeLimit: speechTime / 60,
           actualDuration,
           isFullRound,
@@ -117,8 +140,10 @@ export default function FeedbackPage() {
         delete data._model;
       }
 
-      setLocalFeedback(data);
-      setFeedback(data);
+      const normalizedFeedback = normalizeFeedback(data);
+
+      setLocalFeedback(normalizedFeedback);
+      setFeedback(normalizedFeedback);
       setPhase("feedback");
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
@@ -131,14 +156,18 @@ export default function FeedbackPage() {
           date: new Date().toISOString(),
           topic: selectedTopic,
           side: resolvedSide,
+          practiceTrack,
           mode,
-          prepTime: useSessionStore.getState().prepTime,
+          prepTime,
           speechTime,
           transcript,
-          feedback: data,
+          feedback: normalizedFeedback,
           duration: actualDuration,
           prepNotes: useSessionStore.getState().prepNotes,
-          aiDifficulty: isFullRound ? aiDifficulty : undefined,
+          aiDifficulty:
+            practiceTrack === "debate" && mode === "full"
+              ? aiDifficulty
+              : undefined,
           rounds: isFullRound ? rounds : undefined,
         };
 
@@ -171,7 +200,9 @@ export default function FeedbackPage() {
     selectedTopic,
     transcript,
     resolvedSide,
+    practiceTrack,
     mode,
+    prepTime,
     speechTime,
     sessionStartTime,
     setFeedback,
@@ -179,6 +210,7 @@ export default function FeedbackPage() {
     isFullRound,
     rounds,
     aiDifficulty,
+    normalizeFeedback,
   ]);
 
   // Redirect if no session data
@@ -190,22 +222,18 @@ export default function FeedbackPage() {
 
     // If we already have feedback (e.g. from store), skip API call
     if (storeFeedback) {
-      setLocalFeedback(storeFeedback);
+      setLocalFeedback(normalizeFeedback(storeFeedback));
       setLoading(false);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
-      return;
-    }
-
-    // Call API once
-    if (!hasCalledApi.current) {
+    } else if (!hasCalledApi.current) {
       hasCalledApi.current = true;
       fetchFeedback();
     }
 
     // Fetch referral code for share card
     getReferralCodeAction().then(setReferralCode).catch(() => {});
-  }, [selectedTopic, storeFeedback, fetchFeedback, router]);
+  }, [selectedTopic, storeFeedback, fetchFeedback, normalizeFeedback, router]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -220,6 +248,14 @@ export default function FeedbackPage() {
     if (!topic) return;
     resetSession();
     setTopic(topic);
+    setPracticeTrack(practiceTrack);
+    setSide(resolvedSide);
+    setMode(mode);
+    setPrepTime(prepTime);
+    setSpeechTime(speechTime);
+    if (practiceTrack === "debate" && mode === "full") {
+      setAiDifficulty(aiDifficulty);
+    }
     storeStartSession();
     router.push("/practice/session");
   };
@@ -230,6 +266,17 @@ export default function FeedbackPage() {
   };
 
   if (!selectedTopic) return null;
+
+  const feedbackPracticeTrack = feedback?.practiceTrack ?? practiceTrack;
+  const isSpeakingTrack = feedbackPracticeTrack === "speaking";
+  const sessionBadgeLabel = isSpeakingTrack
+    ? "Speaking Practice"
+    : isFullRound
+      ? "Full Round Debate"
+      : "Quick Debate Practice";
+  const coachPrompt = isSpeakingTrack
+    ? `I just finished a speaking practice on "${selectedTopic.title}" (${resolvedSide} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
+    : `I just finished a debate on "${selectedTopic.title}" (${resolvedSide} side, ${mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -280,16 +327,19 @@ export default function FeedbackPage() {
             className="space-y-8"
           >
             {/* Full Round badge */}
-            {isFullRound && (
-              <div className="flex items-center justify-center gap-2">
-                <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-                  Full Round Debate
-                </span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                {sessionBadgeLabel}
+              </span>
+              <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs text-on-surface-variant">
+                {isSpeakingTrack ? "Speaking" : "Debate"}
+              </span>
+              {isFullRound && (
                 <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs capitalize text-on-surface-variant">
                   {aiDifficulty} AI
                 </span>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Score Hero */}
             <ScoreHero feedback={feedback} />
@@ -390,8 +440,8 @@ export default function FeedbackPage() {
               </Link>
               <Link
                 href={`/chat?message=${encodeURIComponent(
-                  `I just finished a debate on "${selectedTopic.title}" (${resolvedSide} side, ${mode} mode). I scored ${feedback.totalScore}/100 (${feedback.overallBand}). Can you help me analyze what I could improve?`
-                )}`}
+                  coachPrompt
+                )}&context=practice-feedback&contextId=${feedbackPracticeTrack}`}
               >
                 <Button
                   variant="outline"

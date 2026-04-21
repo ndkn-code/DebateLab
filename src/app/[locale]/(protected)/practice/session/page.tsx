@@ -26,6 +26,7 @@ export default function SessionPage() {
   const {
     selectedTopic,
     side,
+    practiceTrack,
     mode,
     prepTime,
     speechTime,
@@ -68,7 +69,7 @@ export default function SessionPage() {
   const speech = useDeepgramTranscription();
   const audio = useAudioRecorder();
 
-  const isFullRound = mode === "full";
+  const isFullRound = practiceTrack === "debate" && mode === "full";
   const totalRounds = isFullRound ? FULL_ROUND_STRUCTURE.length : 1;
   const currentRoundInfo = isFullRound
     ? rounds.find((r) => r.roundNumber === currentRound)
@@ -538,6 +539,7 @@ export default function SessionPage() {
         <SessionTopBar
           topicTitle={selectedTopic.title}
           side={resolvedSide}
+          practiceTrack={practiceTrack}
           mode={mode}
           phase={currentPhase}
         />
@@ -565,6 +567,7 @@ export default function SessionPage() {
         <PrepPhase
           topic={selectedTopic}
           side={resolvedSide}
+          practiceTrack={practiceTrack}
           aiHintsEnabled={aiHints}
           timeLeft={prepTimer.timeLeft}
           totalTime={prepTime}
@@ -603,6 +606,7 @@ export default function SessionPage() {
           userTranscript={latestUserTranscript}
           roundLabel={currentRoundInfo.label}
           difficulty={aiDifficulty}
+          practiceTrack={practiceTrack}
           previousRounds={previousRoundsForAi}
           onComplete={handleAiRebuttalComplete}
           ttsVoice={ttsVoice}

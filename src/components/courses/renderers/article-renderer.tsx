@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
+import { MarkdownRenderer } from "@/components/shared/markdown-renderer";
 import checkmarkAnimation from "../../../../public/lottie/checkmark.json";
 import { markLessonCompleteAction } from "@/app/actions/enrollment";
 import type { LessonWithContext } from "@/lib/api/courses";
@@ -14,7 +13,7 @@ interface ArticleRendererProps {
   courseSlug: string;
 }
 
-export function ArticleRenderer({ lesson }: ArticleRendererProps) {
+export function ArticleRenderer({ lesson, courseSlug }: ArticleRendererProps) {
   const [isPending, startTransition] = useTransition();
   const [completed, setCompleted] = useState(
     lesson.progress?.status === "completed"
@@ -25,7 +24,13 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
 
   const handleComplete = () => {
     startTransition(async () => {
-      await markLessonCompleteAction(lesson.id, lesson.course.id);
+      await markLessonCompleteAction(
+        lesson.id,
+        lesson.course.id,
+        undefined,
+        undefined,
+        courseSlug
+      );
       setCompleted(true);
     });
   };
@@ -33,8 +38,8 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
   return (
     <div>
       {/* Article content */}
-      <div className="prose prose-sm max-w-none rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 sm:p-8 soft-shadow prose-headings:text-on-surface prose-p:text-on-surface-variant prose-strong:text-on-surface prose-li:text-on-surface-variant prose-a:text-primary">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-6 sm:p-8 soft-shadow">
+        <MarkdownRenderer content={markdown} />
       </div>
 
       {/* Mark complete */}

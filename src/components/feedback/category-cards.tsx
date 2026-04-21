@@ -27,7 +27,7 @@ interface CategoryConfig {
   }[];
 }
 
-const categories: CategoryConfig[] = [
+const speakingCategories: CategoryConfig[] = [
   {
     key: "content",
     label: "Content & Argumentation",
@@ -86,12 +86,74 @@ const categories: CategoryConfig[] = [
   },
 ];
 
+const debateCategories: CategoryConfig[] = [
+  {
+    key: "content",
+    label: "Content & Casework",
+    icon: MessageSquareText,
+    maxScore: 40,
+    gradient: "from-primary-container/50 to-primary-container/20",
+    barColor: "bg-primary",
+    feedbackKey: "contentFeedback",
+    subScores: [
+      { key: "claimClarity", label: "Stance Clarity", max: 10 },
+      { key: "evidenceSupport", label: "Mechanism & Reasoning", max: 10 },
+      { key: "logicCoherence", label: "Internal Logic", max: 10 },
+      { key: "counterArgument", label: "Clash & Response", max: 10 },
+    ],
+  },
+  {
+    key: "structure",
+    label: "Structure & Strategy",
+    icon: LayoutList,
+    maxScore: 25,
+    gradient: "from-tertiary-container/50 to-tertiary-container/20",
+    barColor: "bg-tertiary",
+    feedbackKey: "structureFeedback",
+    subScores: [
+      { key: "introduction", label: "Framing", max: 8 },
+      { key: "bodyOrganization", label: "Case Progression", max: 9 },
+      { key: "conclusion", label: "Closing Weighing", max: 8 },
+    ],
+  },
+  {
+    key: "language",
+    label: "Language & Delivery",
+    icon: Languages,
+    maxScore: 25,
+    gradient: "from-secondary-container/50 to-secondary-container/20",
+    barColor: "bg-secondary",
+    feedbackKey: "languageFeedback",
+    subScores: [
+      { key: "vocabulary", label: "Precision", max: 8 },
+      { key: "grammar", label: "Grammar", max: 9 },
+      { key: "fluency", label: "Fluency", max: 8 },
+    ],
+  },
+  {
+    key: "persuasion",
+    label: "Persuasion & Weighing",
+    icon: Megaphone,
+    maxScore: 10,
+    gradient: "from-[#fff9e5] to-[#fff9e5]/50",
+    barColor: "bg-[#b28b00]",
+    feedbackKey: "persuasionFeedback",
+    subScores: [
+      { key: "audienceAwareness", label: "Judge Adaptation", max: 5 },
+      { key: "impactfulness", label: "Impact Calculus", max: 5 },
+    ],
+  },
+];
+
 interface CategoryCardsProps {
   feedback: DebateScore;
 }
 
 export function CategoryCards({ feedback }: CategoryCardsProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const practiceTrack = feedback.practiceTrack ?? "debate";
+  const categories =
+    practiceTrack === "debate" ? debateCategories : speakingCategories;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">

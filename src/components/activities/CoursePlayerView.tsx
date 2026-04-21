@@ -23,10 +23,9 @@ interface Props {
   modules: (Record<string, unknown> & { activities: { id: string; title: string; activity_type: ActivityType; phase: ActivityPhase; order_index: number; duration_minutes: number }[] })[];
   enrollment: Record<string, unknown> | null;
   completedActivityIds: string[];
-  userId: string;
 }
 
-export function CoursePlayerView({ course, modules, enrollment, completedActivityIds, userId }: Props) {
+export function CoursePlayerView({ course, modules, enrollment, completedActivityIds }: Props) {
   const t = useTranslations("courses.player");
   const router = useRouter();
   const completed = new Set(completedActivityIds);

@@ -49,7 +49,7 @@ interface DashboardContentProps {
 export function DashboardContent({ data, displayName }: DashboardContentProps) {
   const t = useTranslations('dashboard.home');
   const [copied, setCopied] = useState(false);
-  const { profile, enrollments, recentSessions, weeklyStats } = data;
+  const { profile, recentSessions, weeklyStats } = data;
 
   const streak = profile?.streak_current ?? 0;
   const longestStreak = profile?.streak_longest ?? 0;
@@ -67,9 +67,14 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
     0
   );
 
-  // Random motivation from translations
+  // Keep the greeting stable for a given user/session instead of choosing a new
+  // line on every render.
   const motivations = t.raw('motivations') as string[];
-  const motivation = motivations[Math.floor(Math.random() * motivations.length)];
+  const motivationIndex =
+    motivations.length > 0
+      ? (displayName.length + streak + level + totalSessions) % motivations.length
+      : 0;
+  const motivation = motivations[motivationIndex] ?? "";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">

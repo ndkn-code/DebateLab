@@ -16,6 +16,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Bot,
+  MessageSquareText,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,12 +62,14 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
   const t = useTranslations("dashboard.practice");
   const {
     side,
+    practiceTrack,
     mode,
     prepTime,
     speechTime,
     aiHints,
     aiDifficulty,
     setSide,
+    setPracticeTrack,
     setMode,
     setPrepTime,
     setSpeechTime,
@@ -98,7 +102,7 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
     load();
   }, []);
 
-  const orbCost = mode === "quick" ? 1 : 2;
+  const orbCost = practiceTrack === "debate" && mode === "full" ? 2 : 1;
 
   const handleBegin = async () => {
     if (orbBalance !== null && orbBalance < orbCost) {
@@ -151,37 +155,77 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
             </button>
           </div>
 
-          {/* Mode */}
+          {/* Practice Track */}
           <div className="mb-6">
             <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-              <Layers className="h-4 w-4 text-primary" />
-              {t("mode")}
+              <Scale className="h-4 w-4 text-primary" />
+              {t("practice_track")}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <OptionButton
-                active={mode === "quick"}
-                onClick={() => setMode("quick")}
+                active={practiceTrack === "speaking"}
+                onClick={() => setPracticeTrack("speaking")}
               >
-                <Zap className="mr-1.5 inline h-3.5 w-3.5" />
-                {t("quick_practice")}
+                <MessageSquareText className="mr-1.5 inline h-3.5 w-3.5" />
+                {t("speaking_practice")}
               </OptionButton>
               <OptionButton
-                active={mode === "full"}
-                onClick={() => setMode("full")}
+                active={practiceTrack === "debate"}
+                onClick={() => setPracticeTrack("debate")}
               >
-                <Layers className="mr-1.5 inline h-3.5 w-3.5" />
-                {t("full_round")}
+                <Scale className="mr-1.5 inline h-3.5 w-3.5" />
+                {t("debate_practice")}
               </OptionButton>
             </div>
             <p className="mt-1.5 text-xs text-on-surface-variant">
-              {mode === "quick"
-                ? t("quick_desc")
-                : t("full_desc")}
+              {practiceTrack === "speaking"
+                ? t("speaking_desc")
+                : t("debate_desc")}
             </p>
           </div>
 
+          {/* Mode */}
+          {practiceTrack === "debate" ? (
+            <div className="mb-6">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
+                <Layers className="h-4 w-4 text-primary" />
+                {t("mode")}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <OptionButton
+                  active={mode === "quick"}
+                  onClick={() => setMode("quick")}
+                >
+                  <Zap className="mr-1.5 inline h-3.5 w-3.5" />
+                  {t("quick_practice")}
+                </OptionButton>
+                <OptionButton
+                  active={mode === "full"}
+                  onClick={() => setMode("full")}
+                >
+                  <Layers className="mr-1.5 inline h-3.5 w-3.5" />
+                  {t("full_round")}
+                </OptionButton>
+              </div>
+              <p className="mt-1.5 text-xs text-on-surface-variant">
+                {mode === "quick"
+                  ? t("quick_desc")
+                  : t("full_desc")}
+              </p>
+            </div>
+          ) : (
+            <div className="mb-6 rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
+              <p className="text-sm font-medium text-on-surface">
+                {t("single_speech")}
+              </p>
+              <p className="mt-1 text-xs text-on-surface-variant">
+                {t("single_speech_desc")}
+              </p>
+            </div>
+          )}
+
           {/* AI Difficulty — only for Full Round */}
-          {mode === "full" && (
+          {practiceTrack === "debate" && mode === "full" && (
             <div className="mb-6">
               <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
                 <Bot className="h-4 w-4 text-primary" />

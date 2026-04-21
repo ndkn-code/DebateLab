@@ -71,6 +71,7 @@ const supabaseAdapter = {
         topic: session.topic.title,
         category: session.topic.category,
         stance: session.side,
+        practice_track: session.practiceTrack,
         mode: session.mode,
         difficulty: session.topic.difficulty,
         score: session.feedback?.totalScore ?? null,
@@ -87,6 +88,7 @@ const supabaseAdapter = {
       xp_earned: calculateXp(session),
       metadata: {
         topic: session.topic.title,
+        practice_track: session.practiceTrack,
         mode: session.mode,
         score: session.feedback?.totalScore ?? null,
         band: session.feedback?.overallBand ?? null,
@@ -226,6 +228,10 @@ function rowToSession(row: any): DebateSession {
       difficulty: row.topic_difficulty ?? "intermediate",
     },
     side: row.side,
+    practiceTrack:
+      row.practiceTrack ??
+      row.feedback?.practiceTrack ??
+      "debate",
     mode: row.mode,
     prepTime: row.prep_time_seconds,
     speechTime: row.speech_time_seconds,

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Activity, ActivityType } from "@/lib/types/admin";
 import { useActivityPlayerStore } from "@/lib/stores/activityPlayerStore";
 import { completeActivity } from "@/app/actions/activities";
+import { getElapsedSecondsSince } from "@/lib/time";
 import { TopProgressBar } from "./TopProgressBar";
 import { ActivityCompletionScreen } from "./ActivityCompletionScreen";
 import { ModuleCompletionScreen } from "./ModuleCompletionScreen";
@@ -35,7 +36,6 @@ interface Props {
   activity: Activity;
   courseId: string;
   courseTitle: string;
-  userId: string;
   currentModule: ModuleSummary;
   allModules: ModuleSummary[];
   completedActivityIds: string[];
@@ -54,7 +54,6 @@ export function ActivityPlayerWrapper({
   activity,
   courseId,
   courseTitle,
-  userId,
   currentModule,
   allModules,
   completedActivityIds: initialCompletedIds,
@@ -68,11 +67,12 @@ export function ActivityPlayerWrapper({
   const [maxScore, setMaxScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [completedIds, setCompletedIds] = useState(new Set(initialCompletedIds));
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
 
   // Enter activity mode on mount
   useEffect(() => {
     enterActivityMode();
+    startTime.current = Date.now();
     return () => exitActivityMode();
   }, [enterActivityMode, exitActivityMode]);
 
@@ -90,7 +90,7 @@ export function ActivityPlayerWrapper({
     async (s?: number, ms?: number, responses?: Record<string, unknown>) => {
       const finalScore = s ?? 1;
       const finalMaxScore = ms ?? 1;
-      const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+      const elapsed = getElapsedSecondsSince(startTime.current);
       const xp = calculateXP(activity.activity_type, finalScore, finalMaxScore);
 
       setScore(finalScore);
@@ -213,7 +213,6 @@ export function ActivityPlayerWrapper({
           {state === "completed" && (
             <motion.div key="completed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ActivityCompletionScreen
-                activityTitle={activity.title}
                 activityType={activity.activity_type}
                 score={score}
                 maxScore={maxScore}

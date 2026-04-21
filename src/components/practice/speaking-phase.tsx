@@ -67,7 +67,6 @@ export function SpeakingPhase({
   // Show "no speech detected" warning after 5 seconds if no transcript
   useEffect(() => {
     if (hasReceivedSpeech || !isRecording || isPaused) {
-      setShowNoSpeechWarning(false);
       if (noSpeechTimerRef.current) {
         clearTimeout(noSpeechTimerRef.current);
         noSpeechTimerRef.current = null;
@@ -88,6 +87,9 @@ export function SpeakingPhase({
       }
     };
   }, [hasReceivedSpeech, isRecording, isPaused]);
+
+  const shouldShowNoSpeechWarning =
+    showNoSpeechWarning && !speechError && !hasReceivedSpeech && isRecording && !isPaused;
 
   function getErrorMessage(error: string): string {
     switch (error) {
@@ -192,7 +194,7 @@ export function SpeakingPhase({
       )}
 
       {/* No speech detected warning */}
-      {showNoSpeechWarning && !speechError && (
+      {shouldShowNoSpeechWarning && (
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
           score: 65,
           strength: "You showed up and gave it a try - that takes courage!",
           improvement:
-            "Try speaking more to give us something to work with.",
+            "Try speaking a little longer so we can hear your full idea.",
           encouragement:
             "Everyone starts somewhere. DebateLab will help you find your voice!",
         },
@@ -59,10 +59,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const prompt = `You are a debate coach giving quick feedback to a student who just tried their first 30-second argument.
+    const prompt = `You are a warm, encouraging speaking coach giving quick feedback on a student's first 45-second warm-up speaking sample.
+Treat this as a low-stakes speaking warm-up, not a full debate evaluation.
 Topic: ${topic}
 Position: ${position}
-Student's argument: ${transcript}
+Student's response: ${transcript}
 
 Return JSON:
 {
@@ -72,6 +73,7 @@ Return JSON:
   "encouragement": "<one short encouraging sentence>"
 }
 
+Focus on clarity, structure, confidence, and understandable English.
 Be encouraging — this is their first try. Score generously (60-85 range for any reasonable attempt).
 Keep all responses under 20 words each.`;
 
@@ -111,8 +113,8 @@ Keep all responses under 20 words each.`;
 
     return NextResponse.json({
       score: Math.min(100, Math.max(0, data.score ?? 70)),
-      strength: data.strength ?? "You made a clear attempt at argumentation.",
-      improvement: data.improvement ?? "Try adding specific examples to support your points.",
+      strength: data.strength ?? "You made a clear attempt to express your idea.",
+      improvement: data.improvement ?? "Try adding one clear reason and one short example next time.",
       encouragement: data.encouragement ?? "Great start! Keep practicing and you'll improve fast.",
     });
   } catch (error) {
@@ -120,8 +122,8 @@ Keep all responses under 20 words each.`;
     return NextResponse.json({
       score: 70,
       strength: "You took the initiative to practice - great first step!",
-      improvement: "Try organizing your argument with a clear claim and evidence.",
-      encouragement: "Every champion started as a beginner. You've got this!",
+      improvement: "Try organizing your response with one clear point and one example.",
+      encouragement: "Every strong speaker started as a beginner. You've got this!",
     });
   }
 }

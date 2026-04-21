@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
-import type { AiDifficulty } from "@/types";
+import type { AiDifficulty, PracticeTrack } from "@/types";
 
 export const maxDuration = 30;
 
@@ -13,28 +13,31 @@ interface RebuttalRequest {
   userTranscript: string;
   roundLabel: string;
   difficulty: AiDifficulty;
+  practiceTrack?: PracticeTrack;
   previousRounds?: { label: string; speaker: string; text: string }[];
 }
 
 const difficultyPrompts: Record<AiDifficulty, string> = {
   easy: `You are a BEGINNER-level debate opponent. Your rebuttals should:
-- Use simple, straightforward arguments
-- Miss some obvious counter-points
+- Use simple but complete counter-arguments
+- Challenge the student's main idea without attacking every possible layer
 - Use basic vocabulary appropriate for ESL students
 - Be 80-120 words long
-- Occasionally make weak arguments that the student can easily counter`,
+- Leave some strategic openings that the student can answer`,
 
   medium: `You are a COMPETENT debate opponent. Your rebuttals should:
-- Present solid, well-structured arguments
-- Address key points from the opponent's speech
+- Present solid, well-structured arguments with clear clash
+- Address the opponent's logic, not just their wording
+- Do at least one layer of comparison or impact weighing
 - Use intermediate academic vocabulary
 - Be 100-150 words long
 - Challenge the student while remaining fair`,
 
   hard: `You are an EXPERT debate opponent (national championship level). Your rebuttals should:
-- Present sophisticated, multi-layered arguments
-- Systematically dismantle the opponent's key claims
-- Use advanced academic vocabulary and rhetorical techniques
+- Present sophisticated, multi-layered clash
+- Test assumptions, attack the mechanism, and compare impacts explicitly
+- Reframe the judge's choice around comparative weighing
+- Use precise, advanced but still spoken vocabulary
 - Be 120-180 words long
 - Force the student to think deeply and defend their position rigorously`,
 };
@@ -66,7 +69,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as RebuttalRequest;
-    const { topic, side, userTranscript, roundLabel, difficulty, previousRounds } = body;
+    const {
+      topic,
+      side,
+      userTranscript,
+      roundLabel,
+      difficulty,
+      practiceTrack,
+      previousRounds,
+    } = body;
 
     if (!topic || !userTranscript || !roundLabel) {
       return NextResponse.json(
@@ -77,6 +88,7 @@ export async function POST(req: NextRequest) {
 
     const aiSide = side === "proposition" ? "Opposition (AGAINST)" : "Proposition (FOR)";
     const difficultyInstructions = difficultyPrompts[difficulty || "medium"];
+    const track = practiceTrack || "debate";
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -85,6 +97,11 @@ export async function POST(req: NextRequest) {
           .map((r) => `### ${r.label} (${r.speaker})\n${r.text}`)
           .join("\n\n");
     }
+
+    const roundInstructions =
+      roundLabel.toLowerCase().includes("closing")
+        ? `This is a closing speech. Summarize the winning comparative framing, explain why your side wins on the key weighing, and crystallize the most important impacts. Do not just repeat earlier claims.`
+        : `This is a rebuttal speech. Directly answer the opponent's main claims by exposing weak assumptions, breaking their mechanism, comparing worlds, and weighing impacts.`;
 
     const prompt = `You are a debate AI playing the ${aiSide} side in a Trường Teen-style debate.
 
@@ -95,6 +112,8 @@ ${difficultyInstructions}
 ${contextSection}
 
 ## Current Round: ${roundLabel}
+## Practice Track
+${track}
 
 ## Opponent's Latest Speech
 """
@@ -102,10 +121,14 @@ ${userTranscript}
 """
 
 ## Your Task
-Write a ${roundLabel.toLowerCase()} responding to the opponent's speech. This is a spoken debate, so write in a natural speaking style — conversational but academic.
+Write a ${roundLabel.toLowerCase()} responding to the opponent's speech. This is a spoken debate, so write in a natural speaking style — conversational but academically sharp.
+
+${roundInstructions}
 
 Rules:
 - Directly address and counter specific points from the opponent's speech
+- Structure your logic around: argument label -> explanation or mechanism -> comparison or weighing -> impact -> link back to your side
+- Prioritize depth over fancy wording
 - Maintain your side (${aiSide}) consistently
 - Be respectful but firm
 - Write ONLY the rebuttal text, no meta-commentary or labels

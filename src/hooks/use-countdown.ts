@@ -11,7 +11,7 @@ export function useCountdown(initialSeconds: number) {
   const rafRef = useRef<number | null>(null);
   const pausedTimeLeftRef = useRef(initialSeconds);
 
-  const tick = useCallback(() => {
+  const tick = useCallback(function tickFrame() {
     if (!endTimeRef.current) return;
 
     const remaining = Math.max(
@@ -27,7 +27,7 @@ export function useCountdown(initialSeconds: number) {
       return;
     }
 
-    rafRef.current = requestAnimationFrame(tick);
+    rafRef.current = requestAnimationFrame(tickFrame);
   }, []);
 
   const start = useCallback(() => {

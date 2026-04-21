@@ -8,7 +8,6 @@ import confetti from "canvas-confetti";
 import type { ActivityType } from "@/lib/types/admin";
 
 interface Props {
-  activityTitle: string;
   activityType: ActivityType;
   score: number;
   maxScore: number;
@@ -25,7 +24,6 @@ const MESSAGES = {
 };
 
 export function ActivityCompletionScreen({
-  activityTitle,
   activityType,
   score,
   maxScore,
@@ -37,6 +35,9 @@ export function ActivityCompletionScreen({
   const [displayXP, setDisplayXP] = useState(0);
   const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 100;
   const isPerfect = score === maxScore;
+  const messagePool =
+    pct === 100 ? MESSAGES.perfect : pct >= 80 ? MESSAGES.great : pct >= 60 ? MESSAGES.good : MESSAGES.low;
+  const message = messagePool[pct % messagePool.length];
 
   // XP count-up animation
   useEffect(() => {
@@ -60,11 +61,6 @@ export function ActivityCompletionScreen({
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     }
   }, [isPerfect]);
-
-  const getMessage = () => {
-    const pool = pct === 100 ? MESSAGES.perfect : pct >= 80 ? MESSAGES.great : pct >= 60 ? MESSAGES.good : MESSAGES.low;
-    return pool[Math.floor(Math.random() * pool.length)];
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
@@ -123,7 +119,7 @@ export function ActivityCompletionScreen({
           transition={{ delay: 0.5 }}
           className="text-base text-on-surface-variant mt-4 text-center"
         >
-          {getMessage()}
+          {message}
         </motion.p>
 
         {/* Next activity preview */}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Link } from "@/i18n/navigation";
-import { Mic2, CheckCircle2, BarChart3 } from "lucide-react";
+import { Mic2, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ const DIFFICULTY_COLORS = {
   hard: "bg-rose-500/10 text-rose-500 border-rose-500/20",
 };
 
-export function PracticeRenderer({ lesson }: PracticeRendererProps) {
+export function PracticeRenderer({ lesson, courseSlug }: PracticeRendererProps) {
   const [isPending, startTransition] = useTransition();
   const [completed, setCompleted] = useState(
     lesson.progress?.status === "completed"
@@ -36,7 +36,13 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
 
   const handleComplete = () => {
     startTransition(async () => {
-      await markLessonCompleteAction(lesson.id, lesson.course.id);
+      await markLessonCompleteAction(
+        lesson.id,
+        lesson.course.id,
+        undefined,
+        undefined,
+        courseSlug
+      );
       setCompleted(true);
     });
   };

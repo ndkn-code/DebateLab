@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { DebateTopic, DebateRound, AiDifficulty } from "@/types";
+import type { DebateTopic, DebateRound, AiDifficulty, PracticeTrack } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 
 export type Side = "proposition" | "opposition" | "random";
@@ -26,6 +26,7 @@ interface SessionState {
   // Config
   selectedTopic: DebateTopic | null;
   side: Side;
+  practiceTrack: PracticeTrack;
   mode: Mode;
   prepTime: number;
   speechTime: number;
@@ -48,6 +49,7 @@ interface SessionState {
   // Actions
   setTopic: (topic: DebateTopic | null) => void;
   setSide: (side: Side) => void;
+  setPracticeTrack: (track: PracticeTrack) => void;
   setMode: (mode: Mode) => void;
   setPrepTime: (time: number) => void;
   setSpeechTime: (time: number) => void;
@@ -75,6 +77,7 @@ interface SessionState {
 export const useSessionStore = create<SessionState>((set, get) => ({
   selectedTopic: null,
   side: "random",
+  practiceTrack: "debate",
   mode: "full",
   prepTime: 120,
   speechTime: 120,
@@ -94,6 +97,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setTopic: (topic) => set({ selectedTopic: topic }),
   setSide: (side) => set({ side }),
+  setPracticeTrack: (practiceTrack) =>
+    set((state) => ({
+      practiceTrack,
+      mode: practiceTrack === "speaking" ? "quick" : state.mode,
+    })),
   setMode: (mode) => set({ mode }),
   setPrepTime: (time) => set({ prepTime: time }),
   setSpeechTime: (time) => set({ speechTime: time }),
@@ -116,8 +124,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             : "opposition"
           : state.side;
 
+      const resolvedMode = state.practiceTrack === "speaking" ? "quick" : state.mode;
       const rounds: DebateRound[] =
-        state.mode === "full"
+        state.practiceTrack === "debate" && resolvedMode === "full"
           ? FULL_ROUND_STRUCTURE.map((r) => ({ ...r }))
           : [];
 
@@ -130,6 +139,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         audioBlob: null,
         audioUrl: null,
         side: resolvedSide,
+        mode: resolvedMode,
         currentRound: 1,
         rounds,
       };
@@ -138,6 +148,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({
       selectedTopic: null,
       side: "random",
+      practiceTrack: "debate",
       mode: "full",
       prepTime: 120,
       speechTime: 120,

@@ -14,13 +14,15 @@ interface DemoSpeakStepProps {
   onSkip: () => void;
 }
 
+const DEMO_DURATION_SECONDS = 45;
+
 export function DemoSpeakStep({
   topic,
   position,
   onComplete,
   onSkip,
 }: DemoSpeakStepProps) {
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(DEMO_DURATION_SECONDS);
   const [isRecording, setIsRecording] = useState(false);
   const [micError, setMicError] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -47,13 +49,6 @@ export function DemoSpeakStep({
     const finalTranscript = speech.transcript || "";
     onComplete(finalTranscript);
   }, [stopRecording, speech.transcript, onComplete]);
-
-  // Auto-stop at 0
-  useEffect(() => {
-    if (timeLeft <= 0 && isRecording) {
-      handleDone();
-    }
-  }, [timeLeft, isRecording, handleDone]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -85,6 +80,7 @@ export function DemoSpeakStep({
         setTimeLeft((prev) => {
           if (prev <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
+            requestAnimationFrame(() => handleDone());
             return 0;
           }
           return prev - 1;
@@ -98,7 +94,7 @@ export function DemoSpeakStep({
   // Progress ring calculation
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const progress = timeLeft / 30;
+  const progress = timeLeft / DEMO_DURATION_SECONDS;
   const strokeDashoffset = circumference * (1 - progress);
 
   if (micError) {

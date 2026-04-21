@@ -6,7 +6,7 @@ import { Bot, Loader2, AlertTriangle, RotateCcw, ArrowRight, Pause } from "lucid
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTranslations } from "next-intl";
-import type { AiDifficulty } from "@/types";
+import type { AiDifficulty, PracticeTrack } from "@/types";
 
 interface AiRebuttalPhaseProps {
   topic: string;
@@ -14,6 +14,7 @@ interface AiRebuttalPhaseProps {
   userTranscript: string;
   roundLabel: string;
   difficulty: AiDifficulty;
+  practiceTrack?: PracticeTrack;
   previousRounds?: { label: string; speaker: string; text: string }[];
   onComplete: (rebuttal: string) => void;
   ttsVoice?: string;
@@ -25,6 +26,7 @@ export function AiRebuttalPhase({
   userTranscript,
   roundLabel,
   difficulty,
+  practiceTrack = "debate",
   previousRounds,
   onComplete,
   ttsVoice = 'aura-asteria-en',
@@ -72,6 +74,7 @@ export function AiRebuttalPhase({
           userTranscript,
           roundLabel,
           difficulty,
+          practiceTrack,
           previousRounds,
         }),
       });
@@ -97,7 +100,7 @@ export function AiRebuttalPhase({
       }
       setStatus("error");
     }
-  }, [topic, side, userTranscript, roundLabel, difficulty, previousRounds]);
+  }, [topic, side, userTranscript, roundLabel, difficulty, practiceTrack, previousRounds]);
 
   // Fetch on mount
   useEffect(() => {

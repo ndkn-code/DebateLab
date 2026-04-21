@@ -71,7 +71,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
       modules={modulesWithActivities}
       enrollment={enrollment}
       completedActivityIds={Array.from(completedIds)}
-      userId={user.id}
     />
   );
 }

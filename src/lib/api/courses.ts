@@ -17,10 +17,20 @@ export interface ActivitySummary {
   phase: string;
   duration_minutes: number;
   order_index: number;
+  completed?: boolean;
+}
+
+export interface CourseLessonSummary extends Lesson {
+  progress: LessonProgress | null;
+}
+
+export interface CourseModuleSummary extends CourseModule {
+  lessons: CourseLessonSummary[];
+  activities?: ActivitySummary[];
 }
 
 export interface CourseWithModules extends Course {
-  modules: (CourseModule & { lessons: Lesson[]; activities?: ActivitySummary[] })[];
+  modules: CourseModuleSummary[];
   enrollment?: Enrollment | null;
   total_lessons: number;
   completed_lessons: number;
@@ -34,6 +44,12 @@ export interface LessonWithContext extends Lesson {
   progress: LessonProgress | null;
   prev_lesson: { slug: string; title: string } | null;
   next_lesson: { slug: string; title: string } | null;
+  moduleLessonIndex: number;
+  moduleTotalLessons: number;
+  moduleCompletedLessons: number;
+  courseTotalLessons: number;
+  courseCompletedLessons: number;
+  courseProgressPercent: number;
 }
 
 // ── Courses ──────────────────────────────────────────────────────────
@@ -111,15 +127,17 @@ export async function getCourseBySlug(
   ]);
 
   // Sort lessons and activities within each module
-  const sortedModules = (modulesRes.data ?? []).map((m: CourseModule & { lessons: Lesson[]; activities?: ActivitySummary[] }) => ({
-    ...m,
-    lessons: (m.lessons ?? []).sort(
-      (a: Lesson, b: Lesson) => a.order_index - b.order_index
-    ),
-    activities: (m.activities ?? []).sort(
-      (a: ActivitySummary, b: ActivitySummary) => a.order_index - b.order_index
-    ),
-  }));
+  const sortedModules = (modulesRes.data ?? []).map(
+    (m: CourseModule & { lessons: Lesson[]; activities?: ActivitySummary[] }) => ({
+      ...m,
+      lessons: (m.lessons ?? []).sort(
+        (a: Lesson, b: Lesson) => a.order_index - b.order_index
+      ),
+      activities: (m.activities ?? []).sort(
+        (a: ActivitySummary, b: ActivitySummary) => a.order_index - b.order_index
+      ),
+    })
+  );
 
   // Count total lessons + activities
   const totalLessons = sortedModules.reduce(
@@ -133,27 +151,73 @@ export async function getCourseBySlug(
 
   const enrollment: Enrollment | null = enrollmentRes.data;
   let completedLessons = 0;
+  let modulesWithProgress: CourseModuleSummary[] = sortedModules.map(
+    (module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) => ({
+        ...lesson,
+        progress: null,
+      })),
+    })
+  );
 
   if (enrollment) {
     const allLessonIds = sortedModules.flatMap((m: { lessons: Lesson[] }) =>
       m.lessons.map((l: Lesson) => l.id)
     );
+    const allActivityIds = sortedModules.flatMap(
+      (m: { activities?: ActivitySummary[] }) => (m.activities ?? []).map((a) => a.id)
+    );
 
     if (allLessonIds.length > 0) {
-      const { count } = await supabase
+      const { data: progressRows, count } = await supabase
         .from("lesson_progress")
-        .select("*", { count: "exact", head: true })
+        .select("*", { count: "exact" })
         .eq("user_id", userId!)
-        .eq("status", "completed")
         .in("lesson_id", allLessonIds);
 
-      completedLessons = count ?? 0;
+      const progressByLessonId = new Map(
+        (progressRows ?? []).map((progress) => [progress.lesson_id, progress])
+      );
+
+      completedLessons =
+        progressRows?.filter((progress) => progress.status === "completed")
+          .length ?? count ?? 0;
+
+      modulesWithProgress = sortedModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) => ({
+          ...lesson,
+          progress: progressByLessonId.get(lesson.id) ?? null,
+        })),
+      }));
+    }
+
+    if (allActivityIds.length > 0) {
+      const { data: activityAttempts } = await supabase
+        .from("activity_attempts")
+        .select("activity_id")
+        .eq("user_id", userId!)
+        .not("completed_at", "is", null)
+        .in("activity_id", allActivityIds);
+
+      const completedActivityIds = new Set(
+        (activityAttempts ?? []).map((attempt) => attempt.activity_id)
+      );
+
+      modulesWithProgress = modulesWithProgress.map((module) => ({
+        ...module,
+        activities: (module.activities ?? []).map((activity) => ({
+          ...activity,
+          completed: completedActivityIds.has(activity.id),
+        })),
+      }));
     }
   }
 
   return {
     ...course,
-    modules: sortedModules,
+    modules: modulesWithProgress,
     enrollment,
     total_lessons: totalLessons,
     completed_lessons: completedLessons,
@@ -226,6 +290,44 @@ export async function getLessonBySlug(
     progress = data;
   }
 
+  const moduleLessons = allLessons.filter(
+    (entry) => entry.module.id === module.id
+  );
+  const moduleLessonIndex =
+    moduleLessons.findIndex((entry) => entry.lesson.id === lesson.id) + 1;
+  const moduleTotalLessons = moduleLessons.length;
+
+  let courseCompletedLessons = 0;
+  let moduleCompletedLessons = 0;
+
+  if (userId) {
+    const allLessonIds = allLessons.map((entry) => entry.lesson.id);
+
+    if (allLessonIds.length > 0) {
+      const { data: completedProgress } = await supabase
+        .from("lesson_progress")
+        .select("lesson_id, status")
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .in("lesson_id", allLessonIds);
+
+      const completedLessonIds = new Set(
+        (completedProgress ?? []).map((entry) => entry.lesson_id)
+      );
+
+      courseCompletedLessons = completedLessonIds.size;
+      moduleCompletedLessons = moduleLessons.filter((entry) =>
+        completedLessonIds.has(entry.lesson.id)
+      ).length;
+    }
+  }
+
+  const courseTotalLessons = allLessons.length;
+  const courseProgressPercent =
+    courseTotalLessons > 0
+      ? Math.round((courseCompletedLessons / courseTotalLessons) * 100)
+      : 0;
+
   // Build prev/next
   const prev = idx > 0 ? allLessons[idx - 1] : null;
   const next = idx < allLessons.length - 1 ? allLessons[idx + 1] : null;
@@ -242,6 +344,12 @@ export async function getLessonBySlug(
     next_lesson: next
       ? { slug: next.lesson.slug, title: next.lesson.title }
       : null,
+    moduleLessonIndex,
+    moduleTotalLessons,
+    moduleCompletedLessons,
+    courseTotalLessons,
+    courseCompletedLessons,
+    courseProgressPercent,
   };
 }
 

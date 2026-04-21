@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import type { FillBlankContent, ActivityContent } from "@/lib/types/admin";
+import { getElapsedSecondsSince } from "@/lib/time";
 
 interface Props {
   content: ActivityContent;
@@ -17,7 +18,11 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
   const passages = c.passages ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(false);
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
+
+  useEffect(() => {
+    startTime.current = Date.now();
+  }, []);
 
   const allBlanks = passages.flatMap((p) => p.blanks);
   const allFilled = allBlanks.every((b) => (answers[b.id] ?? "").trim().length > 0);
@@ -32,7 +37,7 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
   const handleCheck = () => {
     setChecked(true);
     const score = allBlanks.filter((b) => isBlankCorrect(b)).length;
-    const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+    const elapsed = getElapsedSecondsSince(startTime.current);
     onComplete(score, allBlanks.length, { answers, timeSpentSeconds: elapsed });
   };
 

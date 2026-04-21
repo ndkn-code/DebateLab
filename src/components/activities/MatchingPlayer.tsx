@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X } from "lucide-react";
 import type { MatchingContent, ActivityContent } from "@/lib/types/admin";
+import { getElapsedSecondsSince } from "@/lib/time";
 
 const PAIR_COLORS = [
   { bg: "bg-blue-50", border: "border-blue-400", text: "text-blue-700" },
@@ -20,14 +21,30 @@ interface Props {
   onComplete: (score: number, maxScore: number, responses: Record<string, unknown>) => void;
 }
 
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
 export function MatchingPlayer({ content, onComplete }: Props) {
   const t = useTranslations("courses.player");
   const c = content as MatchingContent;
-  const pairs = c.pairs ?? [];
-  const startTime = useRef(Date.now());
+  const pairs = useMemo(() => c.pairs ?? [], [c.pairs]);
+  const startTime = useRef<number | null>(null);
+
+  useEffect(() => {
+    startTime.current = Date.now();
+  }, []);
 
   const shuffledRight = useMemo(
-    () => [...pairs].sort(() => Math.random() - 0.5),
+    () =>
+      [...pairs].sort(
+        (left, right) =>
+          hashString(`${left.id}:${left.right}`) - hashString(`${right.id}:${right.right}`)
+      ),
     [pairs]
   );
 
@@ -35,7 +52,6 @@ export function MatchingPlayer({ content, onComplete }: Props) {
   const [selectedRight, setSelectedRight] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(false);
-  const [matchIdx, setMatchIdx] = useState(0);
 
   const handleLeftClick = (id: string) => {
     if (checked) return;
@@ -46,7 +62,6 @@ export function MatchingPlayer({ content, onComplete }: Props) {
     setSelectedLeft(id);
     if (selectedRight) {
       setMatches((prev) => ({ ...prev, [id]: selectedRight }));
-      setMatchIdx((i) => i + 1);
       setSelectedLeft(null);
       setSelectedRight(null);
     }
@@ -62,7 +77,6 @@ export function MatchingPlayer({ content, onComplete }: Props) {
     setSelectedRight(id);
     if (selectedLeft) {
       setMatches((prev) => ({ ...prev, [selectedLeft]: id }));
-      setMatchIdx((i) => i + 1);
       setSelectedLeft(null);
       setSelectedRight(null);
     }
@@ -71,7 +85,7 @@ export function MatchingPlayer({ content, onComplete }: Props) {
   const handleCheck = () => {
     setChecked(true);
     const score = pairs.filter((p) => matches[p.id] === p.id).length;
-    const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+    const elapsed = getElapsedSecondsSince(startTime.current);
     onComplete(score, pairs.length, { matches, timeSpentSeconds: elapsed });
   };
 

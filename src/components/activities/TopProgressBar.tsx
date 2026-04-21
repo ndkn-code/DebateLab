@@ -1,11 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, Star } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { XPAnimation } from "./XPAnimation";
-import { useState, useEffect } from "react";
 
 interface ActivitySummary {
   id: string;
@@ -30,21 +27,6 @@ export function TopProgressBar({
   moduleName,
   courseId,
 }: Props) {
-  const t = useTranslations("courses.player");
-  const [showXPAnim, setShowXPAnim] = useState(false);
-  const [prevXP, setPrevXP] = useState(sessionXP);
-
-  // Trigger XP animation when sessionXP increases
-  useEffect(() => {
-    if (sessionXP > prevXP) {
-      setShowXPAnim(true);
-      setTimeout(() => setShowXPAnim(false), 1500);
-      setPrevXP(sessionXP);
-    }
-  }, [sessionXP, prevXP]);
-
-  const currentIdx = activities.findIndex((a) => a.id === currentActivityId);
-
   return (
     <div className="sticky top-0 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shadow-sm">
       {/* Back button */}
@@ -101,7 +83,6 @@ export function TopProgressBar({
         >
           {sessionXP}
         </motion.span>
-        <XPAnimation xp={sessionXP - prevXP + (sessionXP > prevXP ? sessionXP - prevXP : 0)} trigger={showXPAnim} position="top-right" />
       </div>
     </div>
   );

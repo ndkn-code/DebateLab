@@ -12,7 +12,7 @@ interface QuizRendererProps {
   courseSlug: string;
 }
 
-export function QuizRenderer({ lesson }: QuizRendererProps) {
+export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
   const questions = lesson.quiz_questions;
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Map<string, string>>(new Map());
@@ -48,7 +48,13 @@ export function QuizRenderer({ lesson }: QuizRendererProps) {
       setSubmitted(true);
 
       startTransition(async () => {
-        await markLessonCompleteAction(lesson.id, lesson.course.id, score);
+        await markLessonCompleteAction(
+          lesson.id,
+          lesson.course.id,
+          score,
+          undefined,
+          courseSlug
+        );
         setCompleted(true);
       });
     } else {
@@ -207,7 +213,11 @@ export function QuizRenderer({ lesson }: QuizRendererProps) {
             Check Answer
           </Button>
         ) : (
-          <Button onClick={handleNext} className="gap-2 bg-primary text-on-primary">
+          <Button
+            onClick={handleNext}
+            disabled={isPending}
+            className="gap-2 bg-primary text-on-primary"
+          >
             {isLast ? "Finish Quiz" : "Next Question"}
             <ArrowRight className="h-4 w-4" />
           </Button>

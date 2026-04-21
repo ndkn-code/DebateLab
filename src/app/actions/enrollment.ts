@@ -64,7 +64,8 @@ export async function markLessonCompleteAction(
   lessonId: string,
   courseId: string,
   score?: number,
-  timeSpentSeconds?: number
+  timeSpentSeconds?: number,
+  courseSlug?: string
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -108,6 +109,9 @@ export async function markLessonCompleteAction(
 
   revalidatePath("/courses");
   revalidatePath("/dashboard");
+  if (courseSlug) {
+    revalidatePath(`/courses/${courseSlug}`);
+  }
 
   return { xpEarned };
 }

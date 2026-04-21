@@ -37,5 +37,5 @@ export default async function CourseDetailPage({
   const course = await getCourseBySlug(slug, user.id);
   if (!course) notFound();
 
-  return <CourseDetailContent course={course} userId={user.id} />;
+  return <CourseDetailContent course={course} />;
 }

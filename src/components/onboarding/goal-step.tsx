@@ -16,12 +16,11 @@ const GOAL_EMOJIS: Record<string, string> = {
 };
 
 interface GoalStepProps {
-  selected: string | null;
   onSelect: (goal: string) => void;
   onNext: () => void;
 }
 
-export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
+export function GoalStep({ onSelect, onNext }: GoalStepProps) {
   const t = useTranslations("onboarding");
   const tReactive = useTranslations("onboarding.reactive_responses");
   const [localSelected, setLocalSelected] = useState<string | null>(null);
@@ -29,11 +28,7 @@ export function GoalStep({ selected, onSelect, onNext }: GoalStepProps) {
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset state when step mounts/remounts (fixes back button issue)
   useEffect(() => {
-    setLocalSelected(null);
-    setReactiveText(null);
-
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
       if (textTimeout.current) clearTimeout(textTimeout.current);

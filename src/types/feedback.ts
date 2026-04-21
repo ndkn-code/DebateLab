@@ -1,3 +1,13 @@
+export type PracticeTrack = "speaking" | "debate";
+
+export interface DebateArgumentBreakdown {
+  name: string;
+  summary: string;
+  whatWorked: string;
+  missingLayer: string;
+  betterVersion: string;
+}
+
 export interface DebateScore {
   content: {
     score: number;
@@ -34,6 +44,14 @@ export interface DebateScore {
   strengths: string[];
   improvements: string[];
   sampleArguments: string[];
+  practiceTrack?: PracticeTrack;
+  caseSummary?: string;
+  stanceFeedback?: string;
+  argumentBreakdowns?: DebateArgumentBreakdown[];
+  missingLayers?: string[];
+  weighingFeedback?: string;
+  clashFeedback?: string;
+  strongerRebuilds?: string[];
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;

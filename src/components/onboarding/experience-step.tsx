@@ -14,13 +14,11 @@ const LEVEL_EMOJIS: Record<string, string> = {
 };
 
 interface ExperienceStepProps {
-  selected: string | null;
   onSelect: (level: string) => void;
   onNext: () => void;
 }
 
 export function ExperienceStep({
-  selected,
   onSelect,
   onNext,
 }: ExperienceStepProps) {
@@ -31,11 +29,7 @@ export function ExperienceStep({
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset state when step mounts/remounts (fixes back button issue)
   useEffect(() => {
-    setLocalSelected(null);
-    setReactiveText(null);
-
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
       if (textTimeout.current) clearTimeout(textTimeout.current);

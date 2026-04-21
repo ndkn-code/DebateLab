@@ -1,23 +1,41 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { GripVertical, ChevronUp, ChevronDown, Check, X } from "lucide-react";
 import type { DragOrderContent, ActivityContent } from "@/lib/types/admin";
+import { getElapsedSecondsSince } from "@/lib/time";
 
 interface Props {
   content: ActivityContent;
   onComplete: (score: number, maxScore: number, responses: Record<string, unknown>) => void;
 }
 
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
 export function DragOrderPlayer({ content, onComplete }: Props) {
   const t = useTranslations("courses.player");
   const c = content as DragOrderContent;
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
+
+  useEffect(() => {
+    startTime.current = Date.now();
+  }, []);
 
   const shuffled = useMemo(
-    () => [...(c.items ?? [])].sort(() => Math.random() - 0.5),
+    () =>
+      [...(c.items ?? [])].sort(
+        (left, right) =>
+          hashString(`${left.id}:${left.correctOrder}`) -
+          hashString(`${right.id}:${right.correctOrder}`)
+      ),
     [c.items]
   );
 
@@ -35,7 +53,7 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
   const handleCheck = () => {
     setChecked(true);
     const score = items.filter((item, i) => item.correctOrder === i + 1).length;
-    const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+    const elapsed = getElapsedSecondsSince(startTime.current);
     onComplete(score, items.length, { order: items.map((i) => i.id), timeSpentSeconds: elapsed });
   };
 

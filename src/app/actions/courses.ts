@@ -393,7 +393,7 @@ export async function searchStudents(query: string, excludeCourseId?: string) {
   const supabase = await createClient();
   await verifyAdmin(supabase);
 
-  let q = supabase.from("profiles").select("id, display_name, avatar_url, email").or(`display_name.ilike.%${query}%,email.ilike.%${query}%`).limit(10);
+  const q = supabase.from("profiles").select("id, display_name, avatar_url, email").or(`display_name.ilike.%${query}%,email.ilike.%${query}%`).limit(10);
 
   const { data } = await q;
   if (!data || !excludeCourseId) return data ?? [];

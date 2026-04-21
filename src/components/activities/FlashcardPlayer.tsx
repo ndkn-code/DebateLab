@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check, RotateCcw } from "lucide-react";
 import type { FlashcardContent, ActivityContent } from "@/lib/types/admin";
+import { getElapsedSecondsSince } from "@/lib/time";
 
 interface Props {
   content: ActivityContent;
@@ -15,7 +16,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
   const t = useTranslations("courses.player");
   const c = content as FlashcardContent;
   const allCards = c.cards ?? [];
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
 
   const [deck, setDeck] = useState(() => [...allCards]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -25,41 +26,23 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
   const [triesMap, setTriesMap] = useState<Record<string, number>>({});
   const [done, setDone] = useState(false);
   const [exitDir, setExitDir] = useState(0);
+  const [completionScore, setCompletionScore] = useState(0);
+
+  useEffect(() => {
+    startTime.current = Date.now();
+  }, []);
 
   const card = deck[currentIdx];
   const gotItCount = gotItSet.size;
   const remaining = allCards.length - gotItCount;
 
   if (done || !card) {
-    if (!done && allCards.length > 0) {
-      // Check if review pile has cards
-      const reviewCards = allCards.filter((c) => reviewPile.includes(c.id) && !gotItSet.has(c.id));
-      if (reviewCards.length > 0) {
-        setDeck(reviewCards);
-        setCurrentIdx(0);
-        setReviewPile([]);
-        setFlipped(false);
-        return null;
-      }
-    }
-
-    const firstTryCount = allCards.filter((c) => (triesMap[c.id] ?? 1) === 1 && gotItSet.has(c.id)).length;
-    if (!done) {
-      const elapsed = Math.round((Date.now() - startTime.current) / 1000);
-      onComplete(firstTryCount, allCards.length, {
-        triesMap,
-        gotOnFirst: firstTryCount,
-        timeSpentSeconds: elapsed,
-      });
-      setDone(true);
-    }
-
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-4">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-6xl">🎉</motion.div>
         <p className="text-2xl font-bold text-on-surface">{t("completed")}</p>
         <p className="text-on-surface-variant">
-          {t("results", { score: firstTryCount, total: allCards.length })}
+          {t("results", { score: completionScore, total: allCards.length })}
         </p>
       </div>
     );
@@ -72,14 +55,28 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
       if (currentIdx < deck.length - 1) {
         setCurrentIdx((i) => i + 1);
       } else {
-        // Check review pile
-        const reviewCards = allCards.filter((c) => reviewPile.includes(c.id) && !gotItSet.has(c.id));
+        const reviewCards = allCards.filter(
+          (currentCard) =>
+            reviewPile.includes(currentCard.id) && !gotItSet.has(currentCard.id)
+        );
         if (reviewCards.length > 0) {
           setDeck(reviewCards);
           setCurrentIdx(0);
           setReviewPile([]);
+          setFlipped(false);
         } else {
-          setCurrentIdx(deck.length); // triggers completion
+          const firstTryCount = allCards.filter(
+            (currentCard) =>
+              (triesMap[currentCard.id] ?? 1) === 1 && gotItSet.has(currentCard.id)
+          ).length;
+          const elapsed = getElapsedSecondsSince(startTime.current);
+          setCompletionScore(firstTryCount);
+          onComplete(firstTryCount, allCards.length, {
+            triesMap,
+            gotOnFirst: firstTryCount,
+            timeSpentSeconds: elapsed,
+          });
+          setDone(true);
         }
       }
       setExitDir(0);

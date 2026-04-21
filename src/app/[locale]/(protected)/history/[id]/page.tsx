@@ -57,7 +57,16 @@ export default function SessionDetailPage({
   const [showDelete, setShowDelete] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const { setTopic, startSession: storeStartSession } = useSessionStore();
+  const {
+    setTopic,
+    setSide,
+    setPracticeTrack,
+    setMode,
+    setPrepTime,
+    setSpeechTime,
+    setAiDifficulty,
+    startSession: storeStartSession,
+  } = useSessionStore();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -82,8 +91,18 @@ export default function SessionDetailPage({
   const handleRetry = () => {
     if (!session) return;
     const { resetSession } = useSessionStore.getState();
+    const practiceTrack =
+      session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
     resetSession();
     setTopic(session.topic);
+    setPracticeTrack(practiceTrack);
+    setSide(session.side);
+    setMode(session.mode);
+    setPrepTime(session.prepTime);
+    setSpeechTime(session.speechTime);
+    if (practiceTrack === "debate" && session.mode === "full" && session.aiDifficulty) {
+      setAiDifficulty(session.aiDifficulty);
+    }
     storeStartSession();
     router.push("/practice/session");
   };
@@ -126,6 +145,21 @@ export default function SessionDetailPage({
 
   if (!session) return null;
 
+  const practiceTrack =
+    session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+  const feedback =
+    session.feedback
+      ? {
+          ...session.feedback,
+          practiceTrack: session.feedback.practiceTrack ?? practiceTrack,
+        }
+      : null;
+  const isFullRound =
+    practiceTrack === "debate" &&
+    session.mode === "full" &&
+    !!session.rounds &&
+    session.rounds.length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -151,12 +185,19 @@ export default function SessionDetailPage({
               {session.side === "proposition" ? "FOR" : "AGAINST"}
             </span>
             <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
-              {session.mode === "full" ? "Full Round" : "Quick Practice"}
+              {practiceTrack === "speaking" ? "Speaking" : "Debate"}
+            </span>
+            <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
+              {practiceTrack === "speaking"
+                ? "Single Speech"
+                : session.mode === "full"
+                  ? "Full Round"
+                  : "Quick Practice"}
             </span>
             <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
               {session.topic.category}
             </span>
-            {session.aiDifficulty && (
+            {practiceTrack === "debate" && session.aiDifficulty && (
               <span className="rounded-md bg-surface-container-high px-2.5 py-1 text-xs capitalize text-on-surface-variant">
                 {session.aiDifficulty} AI
               </span>
@@ -178,29 +219,29 @@ export default function SessionDetailPage({
         </motion.div>
 
         {/* Score & Feedback */}
-        {session.feedback ? (
+        {feedback ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
             className="space-y-8"
           >
-            <ScoreHero feedback={session.feedback} />
+            <ScoreHero feedback={feedback} />
 
             <div>
               <h2 className="mb-4 text-lg font-semibold text-on-surface">
                 Category Breakdown
               </h2>
-              <CategoryCards feedback={session.feedback} />
+              <CategoryCards feedback={feedback} />
             </div>
 
             {/* Debate Timeline (Full Round only) */}
-            {session.mode === "full" && session.rounds && session.rounds.length > 0 && (
-              <DebateTimeline rounds={session.rounds} />
+            {isFullRound && (
+              <DebateTimeline rounds={session.rounds!} />
             )}
 
             <FeedbackSections
-              feedback={session.feedback}
+              feedback={feedback}
               transcript={session.transcript}
             />
           </motion.div>

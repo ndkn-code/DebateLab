@@ -10,13 +10,11 @@ import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 
 interface CommitmentStepProps {
-  selected: number | null;
   onSelect: (minutes: number) => void;
   onNext: () => void;
 }
 
 export function CommitmentStep({
-  selected,
   onSelect,
   onNext,
 }: CommitmentStepProps) {
@@ -45,11 +43,7 @@ export function CommitmentStep({
     th("days_labels.sun"),
   ];
 
-  // Reset state when step mounts/remounts (fixes back button issue)
   useEffect(() => {
-    setLocalSelected(null);
-    setReactiveText(null);
-
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
       if (textTimeout.current) clearTimeout(textTimeout.current);

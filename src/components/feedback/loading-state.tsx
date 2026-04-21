@@ -18,9 +18,7 @@ const TIPS = [
 
 export function LoadingState() {
   const [progress, setProgress] = useState(0);
-  const [tipIndex, setTipIndex] = useState(
-    Math.floor(Math.random() * TIPS.length)
-  );
+  const [tipIndex, setTipIndex] = useState(0);
 
   // Fake progress: 0→90% over ~8s
   useEffect(() => {

@@ -8,16 +8,16 @@ interface AudioVisualizerProps {
 }
 
 const BAR_COUNT = 32;
+const EMPTY_LEVELS = Array(BAR_COUNT).fill(0);
 
 export function AudioVisualizer({ stream, isRecording }: AudioVisualizerProps) {
-  const [levels, setLevels] = useState<number[]>(new Array(BAR_COUNT).fill(0));
+  const [levels, setLevels] = useState<number[]>(EMPTY_LEVELS);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!stream || !isRecording) {
-      setLevels(new Array(BAR_COUNT).fill(0));
       return;
     }
 
@@ -59,7 +59,7 @@ export function AudioVisualizer({ stream, isRecording }: AudioVisualizerProps) {
 
   return (
     <div className="flex h-16 items-end justify-center gap-[3px]">
-      {levels.map((level, i) => (
+      {(stream && isRecording ? levels : EMPTY_LEVELS).map((level, i) => (
         <div
           key={i}
           className="w-1.5 rounded-full bg-primary transition-all duration-75"

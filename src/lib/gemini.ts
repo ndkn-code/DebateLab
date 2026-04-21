@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DebateScore } from "@/types/feedback";
-import type { DebateRound } from "@/types";
+import type { DebateRound, PracticeTrack } from "@/types";
 import { buildAnalysisPrompt } from "./prompts";
 import { getPostHogServer } from "./posthog-server";
 
@@ -13,6 +13,7 @@ export async function analyzeDebate(params: {
   speechType: string;
   timeLimit: number;
   actualDuration: number;
+  practiceTrack?: PracticeTrack;
   isFullRound?: boolean;
   rounds?: DebateRound[];
 }, userId?: string): Promise<DebateScore> {
@@ -77,6 +78,11 @@ export async function analyzeDebate(params: {
   ) {
     throw new Error("Invalid response structure from Gemini");
   }
+
+  parsed.practiceTrack = parsed.practiceTrack ?? params.practiceTrack ?? "debate";
+  parsed.argumentBreakdowns = parsed.argumentBreakdowns ?? [];
+  parsed.missingLayers = parsed.missingLayers ?? [];
+  parsed.strongerRebuilds = parsed.strongerRebuilds ?? [];
 
   return parsed;
 }

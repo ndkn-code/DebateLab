@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
   const t = useTranslations("onboarding");
   const store = useOnboardingStore();
   const currentStep = store.currentStep;
-  const directionRef = useRef(1);
+  const [direction, setDirection] = useState(1);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -61,20 +61,20 @@ export default function OnboardingPage() {
   }, [currentStep]);
 
   const handleNext = useCallback(() => {
-    directionRef.current = 1;
+    setDirection(1);
     store.nextStep();
   }, [store]);
 
   const handleBack = () => {
     if (store.currentStep > 0) {
-      directionRef.current = -1;
+      setDirection(-1);
       store.prevStep();
     }
   };
 
   const handleDemoComplete = useCallback(
     (transcript: string) => {
-      directionRef.current = 1;
+      setDirection(1);
       store.setDemoTranscript(transcript);
       store.nextStep();
     },
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
   );
 
   const handleDemoSkip = useCallback(() => {
-    directionRef.current = 1;
+    setDirection(1);
     store.setDemoTranscript("");
     store.skipToStep(8);
   }, [store]);
@@ -94,7 +94,6 @@ export default function OnboardingPage() {
       case 1:
         return (
           <GoalStep
-            selected={store.goal}
             onSelect={store.setGoal}
             onNext={handleNext}
           />
@@ -102,7 +101,6 @@ export default function OnboardingPage() {
       case 2:
         return (
           <ExperienceStep
-            selected={store.experienceLevel}
             onSelect={store.setExperienceLevel}
             onNext={handleNext}
           />
@@ -110,7 +108,6 @@ export default function OnboardingPage() {
       case 3:
         return (
           <EnglishStep
-            selected={store.englishConfidence}
             onSelect={store.setEnglishConfidence}
             onNext={handleNext}
           />
@@ -118,7 +115,6 @@ export default function OnboardingPage() {
       case 4:
         return (
           <CommitmentStep
-            selected={store.dailyGoalMinutes}
             onSelect={store.setDailyGoalMinutes}
             onNext={handleNext}
           />
@@ -203,10 +199,10 @@ export default function OnboardingPage() {
         }`}
       >
         <div className="w-full max-w-lg">
-          <AnimatePresence mode="wait" custom={directionRef.current}>
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={store.currentStep}
-              custom={directionRef.current}
+              custom={direction}
               variants={slideVariants}
               initial="enter"
               animate="center"

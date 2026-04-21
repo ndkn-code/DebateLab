@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 export const maxDuration = 30;
 
 import type { DebateRound } from "@/types";
+import type { PracticeTrack } from "@/types";
 
 interface AnalyzeRequest {
   transcript: string;
@@ -15,6 +16,7 @@ interface AnalyzeRequest {
   speechType: string;
   timeLimit: number;
   actualDuration: number;
+  practiceTrack?: PracticeTrack;
   isFullRound?: boolean;
   rounds?: DebateRound[];
 }
@@ -47,7 +49,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as AnalyzeRequest;
-    const { transcript, topic, side, speechType, timeLimit, actualDuration, isFullRound, rounds } =
+    const {
+      transcript,
+      topic,
+      side,
+      speechType,
+      timeLimit,
+      actualDuration,
+      practiceTrack,
+      isFullRound,
+      rounds,
+    } =
       body;
 
     // Validate required fields
@@ -85,6 +97,7 @@ export async function POST(req: NextRequest) {
           speechType: speechType || "Opening Statement",
           timeLimit: timeLimit || 2,
           actualDuration: actualDuration || 0,
+          practiceTrack: practiceTrack || "debate",
           isFullRound,
           rounds,
         }, user.id),

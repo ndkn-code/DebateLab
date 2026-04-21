@@ -2,18 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { BookOpen, Clock, BarChart3, CheckCircle2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CourseCard } from "@/components/courses/course-card";
 import type { Course, Enrollment } from "@/types/database";
-
-const DIFFICULTY_COLORS = {
-  beginner: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  intermediate: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  advanced: "bg-rose-500/10 text-rose-500 border-rose-500/20",
-};
 
 interface CourseListContentProps {
   courses: Course[];
@@ -99,81 +91,24 @@ export function CourseListContent({
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((course) => {
             const enrollment = enrollmentMap.get(course.id);
-            const isEnrolled = !!enrollment;
-            const isCompleted = enrollment?.status === "completed";
 
             return (
-              <Link
+              <CourseCard
                 key={course.id}
-                href={`/courses/${course.slug}`}
-                className="group flex flex-col rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 transition-all hover:border-primary/20 soft-shadow"
-              >
-                {/* Top row: icon + badges */}
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container/30">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isCompleted && (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    )}
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[10px] px-2 py-0.5",
-                        DIFFICULTY_COLORS[course.difficulty]
-                      )}
-                    >
-                      {getDifficultyLabel(course.difficulty)}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Title & description */}
-                <h3 className="mb-1 text-base font-semibold text-on-surface group-hover:text-primary transition-colors">
-                  {course.title}
-                </h3>
-                <p className="mb-4 line-clamp-2 text-sm text-on-surface-variant">
-                  {course.description}
-                </p>
-
-                {/* Meta */}
-                <div className="mt-auto flex items-center gap-4 text-xs text-on-surface-variant">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {course.estimated_hours}h
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    {course.category}
-                  </span>
-                </div>
-
-                {/* Progress bar or CTA */}
-                {isEnrolled && !isCompleted ? (
-                  <div className="mt-4">
-                    <div className="mb-1 flex justify-between text-[10px] text-on-surface-variant">
-                      <span>{t("progress")}</span>
-                      <span>{enrollment.progress_percent}%</span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{
-                          width: `${enrollment.progress_percent}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : !isEnrolled ? (
-                  <Button
-                    size="sm"
-                    className="mt-4 w-full bg-primary text-on-primary"
-                  >
-                    {t("start")}
-                  </Button>
-                ) : null}
-              </Link>
+                course={course}
+                enrollment={enrollment}
+                difficultyLabel={getDifficultyLabel(course.difficulty)}
+                categoryLabel={
+                  course.category === "debate"
+                    ? t("tab_debate")
+                    : t("tab_speaking")
+                }
+                descriptionFallbackLabel={t("description_fallback")}
+                startLabel={t("start")}
+                continueLabel={t("continue")}
+                completedLabel={t("completed")}
+                progressLabel={t("progress")}
+              />
             );
           })}
         </div>

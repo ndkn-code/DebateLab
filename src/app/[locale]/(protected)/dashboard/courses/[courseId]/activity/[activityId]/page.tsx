@@ -89,7 +89,6 @@ export default async function ActivityPlayerPage({
       activity={activity}
       courseId={courseId}
       courseTitle={course?.title ?? "Course"}
-      userId={user.id}
       currentModule={currentModule}
       allModules={allModules}
       completedActivityIds={completedActivityIds}

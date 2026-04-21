@@ -18,7 +18,7 @@ function getYouTubeId(url: string): string | null {
   return match?.[1] ?? null;
 }
 
-export function VideoRenderer({ lesson }: VideoRendererProps) {
+export function VideoRenderer({ lesson, courseSlug }: VideoRendererProps) {
   const [isPending, startTransition] = useTransition();
   const [completed, setCompleted] = useState(
     lesson.progress?.status === "completed"
@@ -29,7 +29,13 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
 
   const handleComplete = () => {
     startTransition(async () => {
-      await markLessonCompleteAction(lesson.id, lesson.course.id);
+      await markLessonCompleteAction(
+        lesson.id,
+        lesson.course.id,
+        undefined,
+        undefined,
+        courseSlug
+      );
       setCompleted(true);
     });
   };

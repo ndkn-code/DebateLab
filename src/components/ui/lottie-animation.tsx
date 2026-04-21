@@ -1,10 +1,12 @@
 'use client';
 
 import Lottie from 'lottie-react';
-import { CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
+
+type LottieAnimationData = Parameters<typeof Lottie>[0]["animationData"];
 
 interface LottieAnimationProps {
-  animationData: any;
+  animationData: LottieAnimationData;
   loop?: boolean;
   autoplay?: boolean;
   style?: CSSProperties;

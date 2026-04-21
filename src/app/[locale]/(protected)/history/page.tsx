@@ -73,15 +73,36 @@ export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const CATEGORY_SHORT: Record<string, string> = {
-    "All": t("category_all"),
-    "Education & School Life": t("category_education"),
-    "Technology & Social Media": t("category_technology"),
-    "Society & Culture": t("category_society"),
-    "Environment & Sustainability": t("category_environment"),
-    "Ethics & Philosophy": t("category_ethics"),
-    "Vietnam-Specific Issues": t("category_vietnam"),
-  };
+  const CATEGORY_SHORT = useMemo<Record<string, string>>(
+    () => ({
+      "All": t("category_all"),
+      "Education & School Life": t("category_education"),
+      "Technology & Social Media": t("category_technology"),
+      "Society & Culture": t("category_society"),
+      "Environment & Sustainability": t("category_environment"),
+      "Ethics & Philosophy": t("category_ethics"),
+      "Vietnam-Specific Issues": t("category_vietnam"),
+    }),
+    [t]
+  );
+
+  const getTrackLabel = useCallback(
+    (practiceTrack: DebateSession["practiceTrack"] | undefined) =>
+      practiceTrack === "speaking" ? t("speaking") : t("debate"),
+    [t]
+  );
+
+  const getModeLabel = useCallback(
+    (session: DebateSession) => {
+      const practiceTrack =
+        session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+      if (practiceTrack === "speaking") {
+        return t("single_speech");
+      }
+      return session.mode === "full" ? t("full") : t("quick");
+    },
+    [t]
+  );
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
@@ -353,7 +374,12 @@ export default function HistoryPage() {
                           {session.side === "proposition" ? t("for") : t("against")}
                         </span>
                         <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                          {session.mode === "full" ? t("full") : t("quick")}
+                          {getTrackLabel(
+                            session.practiceTrack ?? session.feedback?.practiceTrack
+                          )}
+                        </span>
+                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
+                          {getModeLabel(session)}
                         </span>
                         {session.feedback && (
                           <span

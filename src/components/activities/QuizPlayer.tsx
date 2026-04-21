@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Lightbulb } from "lucide-react";
 import type { QuizContent, ActivityContent } from "@/lib/types/admin";
+import { getElapsedSecondsSince } from "@/lib/time";
 
 interface Props {
   content: ActivityContent;
@@ -19,7 +20,11 @@ export function QuizPlayer({ content, onComplete }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phase, setPhase] = useState<"answering" | "feedback">("answering");
   const [results, setResults] = useState<{ questionId: string; selectedOptionId: string; isCorrect: boolean }[]>([]);
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
+
+  useEffect(() => {
+    startTime.current = Date.now();
+  }, []);
 
   const q = questions[currentIdx];
   if (!q || questions.length === 0) {
@@ -45,7 +50,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
       setPhase("answering");
     } else {
       const score = results.filter((r) => r.isCorrect).length;
-      const elapsed = Math.round((Date.now() - startTime.current) / 1000);
+      const elapsed = getElapsedSecondsSince(startTime.current);
       onComplete(score, questions.length, { answers: results, timeSpentSeconds: elapsed });
     }
   };

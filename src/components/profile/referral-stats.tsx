@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Gift, Copy, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "@/components/shared/orb-balance";
@@ -20,13 +20,7 @@ interface ReferralStatsProps {
 
 export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
   const [copied, setCopied] = useState(false);
-  const [origin, setOrigin] = useState("");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  const referralLink = `${origin}/join/${stats.referralCode}`;
+  const referralPath = `/join/${stats.referralCode}`;
 
   return (
     <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
@@ -56,13 +50,14 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
       {/* Copy link */}
       <div className="flex gap-2">
         <div className="flex-1 rounded-xl border border-outline-variant/10 bg-surface-container px-3 py-2.5 text-xs text-on-surface-variant truncate">
-          {referralLink}
+          {referralPath}
         </div>
         <Button
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 border-outline-variant/20"
           onClick={() => {
+            const referralLink = `${window.location.origin}${referralPath}`;
             navigator.clipboard.writeText(referralLink);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);

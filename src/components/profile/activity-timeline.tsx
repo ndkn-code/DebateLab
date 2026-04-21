@@ -29,24 +29,13 @@ function getDotColor(activityType: string): string {
 export function ActivityTimeline({ activity }: ActivityTimelineProps) {
   const t = useTranslations("dashboard.profile");
 
-  function timeAgo(dateString: string): string {
-    const now = Date.now();
-    const then = new Date(dateString).getTime();
-    const diffSeconds = Math.floor((now - then) / 1000);
-
-    if (diffSeconds < 60) return t("time_just_now");
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    if (diffMinutes < 60) return t("time_minutes_ago", { count: diffMinutes });
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return t("time_hours_ago", { count: diffHours });
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return t("time_days_ago", { count: diffDays });
-    const diffWeeks = Math.floor(diffDays / 7);
-    if (diffWeeks < 5) return t("time_weeks_ago", { count: diffWeeks });
-    const diffMonths = Math.floor(diffDays / 30);
-    if (diffMonths < 12) return t("time_months_ago", { count: diffMonths });
-    const diffYears = Math.floor(diffDays / 365);
-    return t("time_years_ago", { count: diffYears });
+  function formatActivityTime(dateString: string): string {
+    return new Date(dateString).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
 
   function getDescription(entry: ActivityEntry): string {
@@ -116,7 +105,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
                   {getDescription(entry)}
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  {timeAgo(entry.created_at)}
+                  {formatActivityTime(entry.created_at)}
                 </p>
               </div>
             </div>
