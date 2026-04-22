@@ -33,8 +33,65 @@ const PRACTICE_OPTIONS = [
   },
 ] as const;
 
-export function PracticeLaunchpad() {
+interface PracticeLaunchpadProps {
+  embedded?: boolean;
+}
+
+export function PracticeLaunchpad({
+  embedded = false,
+}: PracticeLaunchpadProps) {
   const t = useTranslations("dashboard.home");
+  const content = (
+    <div className={cn("grid gap-3", embedded ? "lg:grid-cols-3" : "lg:grid-cols-3")}>
+      {PRACTICE_OPTIONS.map((option) => {
+        const Icon = option.icon;
+
+        return (
+          <Link key={option.key} href={option.href}>
+            <div
+              className={cn(
+                "group h-full rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-low transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_20px_32px_-24px_rgba(47,79,221,0.5)]",
+                embedded ? "p-4" : "p-4"
+              )}
+            >
+              <div
+                className={cn(
+                  "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
+                  option.accent
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <div className="mb-3 flex items-center gap-2">
+                <h3 className="text-base font-semibold text-on-surface">
+                  {t(`launchpad_options.${option.key}.title`)}
+                </h3>
+                {option.key === "debate_full" ? (
+                  <Badge variant="outline" className="text-[10px]">
+                    {t("launchpad_full_cost")}
+                  </Badge>
+                ) : null}
+              </div>
+
+              <p className="text-sm leading-6 text-on-surface-variant">
+                {t(`launchpad_options.${option.key}.description`)}
+              </p>
+
+              <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                {t("launchpad_open")}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
 
   return (
     <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-6 soft-shadow sm:p-7">
@@ -60,46 +117,7 @@ export function PracticeLaunchpad() {
         </Link>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        {PRACTICE_OPTIONS.map((option) => {
-          const Icon = option.icon;
-
-          return (
-            <Link key={option.key} href={option.href}>
-              <div className="group h-full rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-low p-4 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_20px_32px_-24px_rgba(47,79,221,0.5)]">
-                <div
-                  className={cn(
-                    "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
-                    option.accent
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-
-                <div className="mb-3 flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-on-surface">
-                    {t(`launchpad_options.${option.key}.title`)}
-                  </h3>
-                  {option.key === "debate_full" ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      {t("launchpad_full_cost")}
-                    </Badge>
-                  ) : null}
-                </div>
-
-                <p className="text-sm leading-6 text-on-surface-variant">
-                  {t(`launchpad_options.${option.key}.description`)}
-                </p>
-
-                <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                  {t("launchpad_open")}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      {content}
     </section>
   );
 }
