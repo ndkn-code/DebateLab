@@ -1,151 +1,121 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Menu, X } from "lucide-react";
-import { LanguageToggle } from "@/components/ui/language-toggle";
 import { cn } from "@/lib/utils";
+import { getLandingCopy } from "./copy";
+import { LogoMark } from "./logo-mark";
 
 interface LandingNavbarProps {
   isLoggedIn: boolean;
 }
 
-export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const t = useTranslations("landing.nav");
+const NAV_LINKS = [
+  { key: "features", href: "#features" },
+  { key: "howItWorks", href: "#how-it-works" },
+  { key: "pricing", href: "#pricing" },
+  { key: "resources", href: "#resources" },
+  { key: "about", href: "#about" },
+] as const;
 
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handler);
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
+export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
+  const locale = useLocale();
+  const copy = getLandingCopy(locale);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav
-      className={cn(
-        "fixed top-0 w-full z-50 transition-all duration-300",
-        scrolled
-          ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100"
-          : "bg-transparent"
-      )}
-    >
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent tracking-tight">
-            DebateLab
-          </span>
-          <div className="hidden md:flex items-center gap-8">
-            <a
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-              href="#features"
-            >
-              {t("features")}
-            </a>
-            <a
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-              href="#how-it-works"
-            >
-              {t("howItWorks")}
-            </a>
-          </div>
-        </div>
+    <header className="relative z-20 bg-[#F7FAFE]">
+      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-6 md:px-8">
+        <Link href="/" className="shrink-0">
+          <LogoMark
+            className="gap-2.5"
+            bubbleClassName="h-8 w-8"
+            textClassName="text-[1.35rem]"
+          />
+        </Link>
 
-        <div className="hidden md:flex items-center gap-4">
-          <LanguageToggle />
-          {isLoggedIn ? (
-            <Link
-              href="/dashboard"
-              className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+        <nav className="hidden items-center gap-10 lg:flex">
+          {NAV_LINKS.map((item) => (
+            <a
+              key={item.key}
+              href={item.href}
+              className="text-sm font-semibold text-[#415069] transition-colors hover:text-[#4D86F7]"
             >
-              {t("dashboard")}
+              {copy.nav[item.key]}
+            </a>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-4 lg:flex">
+          <Link
+            href={isLoggedIn ? "/dashboard" : "/auth/login"}
+            className="text-sm font-semibold text-[#162033] transition-colors hover:text-[#4D86F7]"
+          >
+            {isLoggedIn ? copy.nav.dashboard : copy.nav.login}
+          </Link>
+          {!isLoggedIn ? (
+            <Link
+              href="/auth/signup"
+              className="inline-flex h-12 items-center rounded-[14px] bg-[#4D86F7] px-6 text-sm font-semibold text-white shadow-[0_18px_30px_-18px_rgba(77,134,247,0.8)] transition-transform hover:-translate-y-0.5"
+            >
+              {copy.nav.signup}
             </Link>
-          ) : (
-            <>
-              <Link
-                href="/auth/login"
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-              >
-                {t("login")}
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-              >
-                {t("signup")}
-              </Link>
-            </>
-          )}
+          ) : null}
         </div>
 
         <button
-          className="md:hidden text-on-surface-variant hover:text-primary transition-colors"
-          onClick={() => setMobileOpen(!mobileOpen)}
+          type="button"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#DEE8F8] bg-white text-[#162033] lg:hidden"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMobileOpen((current) => !current)}
         >
-          {mobileOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile menu overlay */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-outline-variant/10 bg-white/95 backdrop-blur-sm">
-          <div className="flex flex-col gap-1 px-6 py-4">
-            <a
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3"
-              href="#features"
+      <div
+        className={cn(
+          "overflow-hidden border-t border-[#E8EFFA] bg-white transition-[max-height,opacity] duration-200 lg:hidden",
+          mobileOpen ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="mx-auto max-w-[1280px] px-6 py-4 md:px-8">
+          <div className="flex flex-col gap-1">
+            {NAV_LINKS.map((item) => (
+              <a
+                key={item.key}
+                href={item.href}
+                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#415069] transition-colors hover:bg-[#F7FAFE] hover:text-[#4D86F7]"
+                onClick={() => setMobileOpen(false)}
+              >
+                {copy.nav[item.key]}
+              </a>
+            ))}
+          </div>
+
+          <div className="mt-4 border-t border-[#E8EFFA] pt-4">
+            <Link
+              href={isLoggedIn ? "/dashboard" : "/auth/login"}
+              className="mb-3 block rounded-xl px-3 py-3 text-sm font-semibold text-[#162033] transition-colors hover:bg-[#F7FAFE] hover:text-[#4D86F7]"
               onClick={() => setMobileOpen(false)}
             >
-              {t("features")}
-            </a>
-            <a
-              className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3"
-              href="#how-it-works"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t("howItWorks")}
-            </a>
+              {isLoggedIn ? copy.nav.dashboard : copy.nav.login}
+            </Link>
 
-            <div className="flex justify-center py-2">
-              <LanguageToggle />
-            </div>
-
-            <div className="border-t border-outline-variant/10 mt-2 pt-4 flex flex-col gap-3">
-              {isLoggedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {t("dashboard")}
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/login"
-                    className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors py-3 text-center"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {t("login")}
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white px-8 py-3 rounded-full font-bold text-sm shadow-lg shadow-primary/20 text-center"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {t("signup")}
-                  </Link>
-                </>
-              )}
-            </div>
+            {!isLoggedIn ? (
+              <Link
+                href="/auth/signup"
+                className="inline-flex h-11 items-center rounded-[14px] bg-[#4D86F7] px-5 text-sm font-semibold text-white"
+                onClick={() => setMobileOpen(false)}
+              >
+                {copy.nav.signup}
+              </Link>
+            ) : null}
           </div>
         </div>
-      )}
-    </nav>
+      </div>
+    </header>
   );
 }

@@ -1,654 +1,543 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
-import {
-  Sparkles,
-  Timer,
-  AudioLines,
-  BarChart3,
-  MessageCircle,
-  Quote,
-  Star,
-  BookOpen,
-  Mic,
-  ArrowRight,
-  ChevronRight,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { BrowserFrame } from "./browser-frame";
-import { ScrollReveal } from "./scroll-reveal";
-import { CountUp } from "./count-up";
-import { GradientButton } from "./gradient-button";
-import { AvatarStack } from "./avatar-stack";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Clock3,
+  MessageCircleMore,
+  MessageSquareText,
+  Mic,
+  Sparkles,
+  Star,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { getLandingCopy } from "./copy";
+import { LogoMark } from "./logo-mark";
+import { cn } from "@/lib/utils";
 
 interface LandingContentProps {
   isLoggedIn: boolean;
 }
 
-const FEATURES = [
-  {
-    key: "practice",
-    icon: Timer,
-    image: "/images/landing/practice-session.jpg",
-  },
-  {
-    key: "transcription",
-    icon: Mic,
-    image: "/images/landing/practice-session.jpg",
-  },
-  {
-    key: "analysis",
-    icon: BarChart3,
-    image: "/images/landing/feedback.jpg",
-  },
-  {
-    key: "coach",
-    icon: MessageCircle,
-    image: "/images/landing/ai-coach.jpg",
-  },
+const socialAvatars = [
+  { label: "AL", gradient: "from-[#EAC3A3] to-[#C88B67]" },
+  { label: "JM", gradient: "from-[#A2C5FF] to-[#4D86F7]" },
+  { label: "RS", gradient: "from-[#F8D39B] to-[#E89A42]" },
+  { label: "NP", gradient: "from-[#BFD8FF] to-[#89AFFF]" },
 ] as const;
 
-const FEATURE_KEYS = ["solo_practice", "transcription", "ai_analysis", "growth"] as const;
+const socialIcons = {
+  twitter: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M18.9 2H22l-6.77 7.73L23 22h-6.1l-4.78-6.25L6.65 22H3.54l7.24-8.27L1.5 2h6.25l4.32 5.72L18.9 2Z" />
+    </svg>
+  ),
+  discord: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M19.74 5.33A17.52 17.52 0 0 0 15.4 4l-.2.4c1.64.4 2.4.98 2.4.98a8.15 8.15 0 0 0-2.56-.8 8.63 8.63 0 0 0-6.08 0 10.13 10.13 0 0 0-2.56.8s.8-.62 2.61-1.02L8.8 4a17.35 17.35 0 0 0-4.36 1.35C1.7 9.44.96 13.43 1.2 17.36a17.73 17.73 0 0 0 5.33 2.68l.43-.7c-1.01-.38-1.4-.75-1.4-.75.31.2.61.38.9.53 2.17 1.08 4.52 1.38 6.92.88 1.15-.23 2.25-.64 3.25-1.21 0 0-.42.4-1.49.78l.42.71a17.65 17.65 0 0 0 5.35-2.68c.28-4.55-.48-8.5-3.17-12.03ZM8.95 14.95c-1.04 0-1.88-.93-1.88-2.08 0-1.15.83-2.08 1.88-2.08 1.05 0 1.9.94 1.88 2.08 0 1.15-.83 2.08-1.88 2.08Zm6.1 0c-1.04 0-1.88-.93-1.88-2.08 0-1.15.83-2.08 1.88-2.08 1.05 0 1.9.94 1.88 2.08 0 1.15-.83 2.08-1.88 2.08Z" />
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M21.58 7.19a2.92 2.92 0 0 0-2.05-2.06C17.73 4.63 12 4.63 12 4.63s-5.73 0-7.53.5A2.92 2.92 0 0 0 2.42 7.2 30.62 30.62 0 0 0 2 12a30.62 30.62 0 0 0 .42 4.81 2.92 2.92 0 0 0 2.05 2.06c1.8.5 7.53.5 7.53.5s5.73 0 7.53-.5a2.92 2.92 0 0 0 2.05-2.06A30.62 30.62 0 0 0 22 12a30.62 30.62 0 0 0-.42-4.81ZM10.09 15.01V8.99L15.27 12l-5.18 3.01Z" />
+    </svg>
+  ),
+  instagram: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.9A3.85 3.85 0 0 0 3.9 7.75v8.5A3.85 3.85 0 0 0 7.75 20.1h8.5a3.85 3.85 0 0 0 3.85-3.85v-8.5A3.85 3.85 0 0 0 16.25 3.9h-8.5Zm8.87 1.42a1.06 1.06 0 1 1 0 2.12 1.06 1.06 0 0 1 0-2.12ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.9a3.1 3.1 0 1 0 0 6.2 3.1 3.1 0 0 0 0-6.2Z" />
+    </svg>
+  ),
+} as const;
 
-const HOW_IT_WORKS_ICONS = [BookOpen, Mic, BarChart3, MessageCircle];
+function StatIcon({
+  type,
+  className,
+}: {
+  type: "users" | "message" | "star" | "clock";
+  className?: string;
+}) {
+  const iconClassName = cn("h-6 w-6 text-[#4D86F7]", className);
 
-const TESTIMONIALS = [
-  { initials: "MA", name: "testimonials.0" },
-  { initials: "TH", name: "testimonials.1" },
-  { initials: "DP", name: "testimonials.2" },
-];
+  if (type === "users") return <Users className={iconClassName} />;
+  if (type === "message") return <MessageCircleMore className={iconClassName} />;
+  if (type === "star") return <Star className={iconClassName} />;
+  return <Clock3 className={iconClassName} />;
+}
 
-const TESTIMONIAL_META = [
-  {
-    name: "Minh Anh Nguyen",
-    title: "Top Speaker, National Schools Debating Championship",
-  },
-  { name: "Thanh Ha Tran", title: "Runner-up, Truong Teen 2025" },
-  {
-    name: "Duc Phong Le",
-    title: "Captain, THPT Chuyen Le Hong Phong Debate Team",
-  },
-];
+function FeatureIcon({
+  type,
+  className,
+}: {
+  type: "mic" | "book" | "users" | "chart" | "message" | "trophy";
+  className?: string;
+}) {
+  const iconClassName = cn("h-7 w-7 text-[#4D86F7]", className);
+
+  if (type === "mic") return <Mic className={iconClassName} />;
+  if (type === "book") return <BookOpen className={iconClassName} />;
+  if (type === "users") return <Users className={iconClassName} />;
+  if (type === "chart") return <BarChart3 className={iconClassName} />;
+  if (type === "message") return <MessageSquareText className={iconClassName} />;
+  return <Trophy className={iconClassName} />;
+}
+
+function StepIcon({
+  type,
+}: {
+  type: "book" | "users" | "chart";
+}) {
+  if (type === "book") return <BookOpen className="h-10 w-10 text-[#4D86F7]" />;
+  if (type === "users") return <Users className="h-10 w-10 text-[#4D86F7]" />;
+  return <BarChart3 className="h-10 w-10 text-[#4D86F7]" />;
+}
+
+function PrimaryButton({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-14 items-center gap-2 rounded-[16px] bg-[#4D86F7] px-7 text-sm font-semibold text-white shadow-[0_24px_40px_-24px_rgba(77,134,247,0.92)] transition-all hover:-translate-y-0.5 hover:bg-[#3E78EC]"
+    >
+      {label}
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  );
+}
+
+function SecondaryButton({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="inline-flex h-14 items-center rounded-[16px] border border-[#DEE8F8] bg-white px-7 text-sm font-semibold text-[#3E78EC] shadow-[0_16px_32px_-24px_rgba(11,20,36,0.25)] transition-all hover:-translate-y-0.5 hover:border-[#C8DAF7]"
+    >
+      {label}
+    </a>
+  );
+}
+
+function SocialProof({
+  prefix,
+  count,
+  suffix,
+}: {
+  prefix: string;
+  count: string;
+  suffix: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex items-center">
+        {socialAvatars.map((avatar, index) => (
+          <div
+            key={avatar.label}
+            className={cn(
+              "relative flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-white text-[10px] font-bold text-white shadow-sm",
+              index > 0 && "-ml-2.5"
+            )}
+          >
+            <div
+              className={cn(
+                "absolute inset-0 rounded-full bg-gradient-to-br",
+                avatar.gradient
+              )}
+            />
+            <span className="relative z-10">{avatar.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5 text-[#F5B942]">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Star
+              key={index}
+              className="h-4 w-4 fill-current stroke-current"
+            />
+          ))}
+        </div>
+        <p className="text-sm text-[#718096]">
+          {prefix} <span className="font-semibold text-[#4D86F7]">{count}</span>{" "}
+          {suffix}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialAvatar({
+  initials,
+}: {
+  initials: string;
+}) {
+  return (
+    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#D7E5FF] to-[#87AFFF] text-sm font-bold text-[#214EA8]">
+      {initials}
+    </div>
+  );
+}
 
 export function LandingContent({ isLoggedIn }: LandingContentProps) {
-  const t = useTranslations("landing");
-  const [activeFeature, setActiveFeature] = useState(0);
+  const locale = useLocale();
+  const copy = getLandingCopy(locale);
 
   return (
-    <>
-      {/* Hero Section */}
-      <section className="relative pt-28 pb-12 md:pt-40 md:pb-24 px-6 overflow-hidden">
-        {/* Radial gradient background */}
-        <div
-          className="absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(ellipse at 30% 50%, rgba(47,79,221,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(79,70,229,0.06) 0%, transparent 50%)",
-          }}
-        />
-
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
-            {/* Announcement Pill */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Link
-                href="/chat"
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-sm text-primary hover:bg-primary/10 transition-colors"
-              >
-                <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] text-white text-xs font-medium">
-                  {t("hero.announcement_badge")}
-                </span>
-                <span>{t("hero.announcement")}</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </motion.div>
-
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-on-surface"
-            >
-              {t.rich("hero.headline_rich", {
-                gradient: (chunks) => (
-                  <span className="bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent">
-                    {chunks}
-                  </span>
-                ),
-              })}
-            </motion.h1>
-
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg text-on-surface-variant leading-relaxed max-w-xl font-medium"
-            >
-              {t("hero.subheadline")}
-            </motion.p>
-
-            {/* CTA + Social Proof */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-wrap items-center gap-6 pt-4"
-            >
-              <GradientButton
-                href={isLoggedIn ? "/practice" : "/auth/signup"}
-              >
-                {isLoggedIn ? t("hero.cta_logged_in") : t("hero.cta")}
-              </GradientButton>
-              <AvatarStack label={t("hero.social_proof")} />
-            </motion.div>
-          </div>
-
-          {/* Hero Screenshot */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative hidden lg:block"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/10 to-[#4f46e5]/10 rounded-2xl blur-3xl" />
-            <BrowserFrame
-              src="/images/landing/dashboard.jpg"
-              alt="DebateLab Dashboard"
-              width={700}
-              height={450}
-              className="relative"
-            />
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features — Tabbed Showcase */}
-      <section
-        id="features"
-        className="py-24 md:py-32 bg-surface-container-lowest px-6 overflow-hidden"
-      >
-        <div className="max-w-7xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-on-surface tracking-tight">
-                {t("features.headline")}
-              </h2>
-              <p className="text-on-surface-variant text-xl font-medium">
-                {t("features.subheadline")}
-              </p>
+    <div className="bg-[#F7FAFE] text-[#0B1424]">
+      <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
+        <div className="mx-auto grid max-w-[1280px] items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
+          <div className="order-2 max-w-[560px] lg:order-1">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#EEF4FF] px-4 py-2 text-sm font-medium text-[#5C78AA]">
+              <Sparkles className="h-4 w-4 text-[#4D86F7]" />
+              {copy.hero.badge}
             </div>
-          </ScrollReveal>
 
-          <ScrollReveal delay={0.15}>
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-              {/* Tab list */}
-              <div className="space-y-3">
-                {FEATURES.map((feat, i) => {
-                  const Icon = feat.icon;
-                  const isActive = activeFeature === i;
-                  return (
-                    <button
-                      key={feat.key}
-                      onClick={() => setActiveFeature(i)}
-                      className={`w-full text-left p-5 rounded-xl border-l-[3px] transition-all duration-200 ${
-                        isActive
-                          ? "border-l-primary bg-primary/5"
-                          : "border-l-transparent hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div
-                          className={`p-2.5 rounded-xl ${
-                            isActive
-                              ? "bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3
-                            className={`font-bold text-lg ${
-                              isActive
-                                ? "text-on-surface"
-                                : "text-on-surface-variant"
-                            }`}
-                          >
-                            {t(`features.${FEATURE_KEYS[i]}.title`)}
-                          </h3>
-                          <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-                            {t(`features.${FEATURE_KEYS[i]}.description`)}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+            <h1 className="mt-7 text-[3.2rem] font-bold leading-[0.98] tracking-[-0.05em] text-[#0B1424] sm:text-[4.4rem]">
+              {copy.hero.line1}
+              <br />
+              <span className="text-[#4D86F7]">{copy.hero.line2}</span>
+            </h1>
 
-              {/* Screenshot */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#2f4fdd]/5 to-[#4f46e5]/5 rounded-2xl blur-2xl" />
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeFeature}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <BrowserFrame
-                      src={FEATURES[activeFeature].image}
-                      alt={`Feature: ${FEATURES[activeFeature].key}`}
-                      width={600}
-                      height={400}
-                      className="relative"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-primary/5 via-transparent to-indigo-500/5">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { target: 500, suffix: "+", label: t("stats.debaters") },
-              { target: 10000, suffix: "+", label: t("stats.sessions") },
-              {
-                target: 23,
-                suffix: "%",
-                prefix: "+",
-                label: t("stats.improvement"),
-              },
-              {
-                target: 4.9,
-                suffix: "/5",
-                label: t("stats.rating"),
-                decimals: true,
-              },
-            ].map((stat, i) => (
-              <ScrollReveal key={i} delay={i * 0.1}>
-                <div>
-                  <div className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent">
-                    <CountUp
-                      target={stat.target}
-                      suffix={stat.suffix}
-                      prefix={stat.prefix}
-                      decimals={stat.decimals}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2 font-medium">
-                    {stat.label}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Course Preview Section */}
-      <section className="py-24 md:py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-on-surface tracking-tight">
-                {t("courses.headline")}
-              </h2>
-              <p className="text-on-surface-variant text-xl font-medium max-w-2xl mx-auto">
-                {t("courses.subheadline")}
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {(
-              [
-                { key: "foundations", icon: BookOpen, color: "primary" },
-                { key: "speaking", icon: MessageCircle, color: "tertiary" },
-              ] as const
-            ).map((course, i) => (
-              <ScrollReveal key={course.key} delay={i * 0.15}>
-                <div className="relative rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden group">
-                  {/* Gradient top border */}
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5]" />
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-${course.color}-container/40 mb-5`}
-                  >
-                    <course.icon
-                      className={`h-6 w-6 text-${course.color}`}
-                    />
-                  </div>
-                  <h3 className="text-xl font-extrabold text-on-surface mb-2">
-                    {t(`courses.${course.key}.title`)}
-                  </h3>
-                  <p className="text-sm text-on-surface-variant mb-4 leading-relaxed">
-                    {t(`courses.${course.key}.description`)}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs text-on-surface-variant">
-                    <span
-                      className={`rounded-full bg-${course.color}/10 px-3 py-1 font-semibold text-${course.color}`}
-                    >
-                      {t(`courses.${course.key}.modules`)}
-                    </span>
-                    <span className="rounded-full bg-surface-container px-3 py-1">
-                      {t(`courses.${course.key}.lessons`)}
-                    </span>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-
-          <ScrollReveal delay={0.3}>
-            <div className="text-center mt-10">
-              <Link
-                href={isLoggedIn ? "/courses" : "/auth/signup"}
-                className="inline-flex items-center gap-2 text-primary font-bold hover:underline"
-              >
-                {isLoggedIn
-                  ? t("courses.browse")
-                  : t("courses.signup_to_access")}{" "}
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-24 md:py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-on-surface tracking-tight">
-                {t("howItWorks.headline")}
-              </h2>
-            </div>
-          </ScrollReveal>
-
-          <div className="relative hidden lg:flex items-start justify-between">
-            {/* Connecting line — runs through circle centers */}
-            <div className="absolute top-[52px] left-[60px] right-[60px] border-t-2 border-dashed border-primary/20 z-0" />
-
-            {(["step1", "step2", "step3", "step4"] as const).map(
-              (step, i) => {
-                const Icon = HOW_IT_WORKS_ICONS[i];
-                return (
-                  <ScrollReveal key={step} delay={i * 0.15} className="relative z-10 flex flex-col items-center text-center w-1/4">
-                    <Icon className="w-5 h-5 text-muted-foreground mb-3" />
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white flex items-center justify-center text-lg font-bold mb-4 shadow-lg shadow-primary/20">
-                      {i + 1}
-                    </div>
-                    <h3 className="text-lg font-extrabold text-on-surface mb-2">
-                      {t(`howItWorks.${step}.title`)}
-                    </h3>
-                    <p className="text-sm text-on-surface-variant leading-relaxed font-medium px-2">
-                      {t(`howItWorks.${step}.description`)}
-                    </p>
-                  </ScrollReveal>
-                );
-              }
-            )}
-          </div>
-
-          {/* Mobile: stacked layout without connecting line */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 lg:hidden">
-            {(["step1", "step2", "step3", "step4"] as const).map(
-              (step, i) => {
-                const Icon = HOW_IT_WORKS_ICONS[i];
-                return (
-                  <ScrollReveal key={step} delay={i * 0.1}>
-                    <div className="flex flex-col items-center text-center space-y-4">
-                      <Icon className="w-5 h-5 text-muted-foreground" />
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-primary/20">
-                        {i + 1}
-                      </div>
-                      <h3 className="text-lg font-extrabold text-on-surface">
-                        {t(`howItWorks.${step}.title`)}
-                      </h3>
-                      <p className="text-sm text-on-surface-variant leading-relaxed font-medium">
-                        {t(`howItWorks.${step}.description`)}
-                      </p>
-                    </div>
-                  </ScrollReveal>
-                );
-              }
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-24 px-6 relative">
-        <div className="max-w-7xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-on-surface tracking-tight">
-                {t("testimonials.headline")}
-              </h2>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {TESTIMONIALS.map((testimonial, i) => (
-              <ScrollReveal key={i} delay={i * 0.1}>
-                <div className="bg-surface-container-lowest rounded-2xl p-8 border border-outline-variant/10 soft-shadow hover:shadow-lg transition-all duration-300 flex flex-col h-full">
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-5">
-                    {[...Array(5)].map((_, j) => (
-                      <Star
-                        key={j}
-                        className="h-4 w-4 fill-primary text-primary"
-                      />
-                    ))}
-                  </div>
-                  {/* Quote */}
-                  <p className="text-on-surface font-medium leading-relaxed italic flex-1 text-[15px]">
-                    &ldquo;{t(`${testimonial.name}.quote`)}&rdquo;
-                  </p>
-                  {/* Author */}
-                  <div className="flex items-center gap-3 mt-6 pt-6 border-t border-outline-variant/10">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2f4fdd] to-[#4f46e5] flex items-center justify-center text-white text-sm font-bold">
-                      {testimonial.initials}
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm text-on-surface">
-                        {TESTIMONIAL_META[i].name}
-                      </div>
-                      <div className="text-xs text-on-surface-variant">
-                        {TESTIMONIAL_META[i].title}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-24 md:py-32 px-6">
-        <ScrollReveal>
-          <div className="max-w-7xl mx-auto bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] rounded-[3rem] p-12 md:p-24 text-center space-y-10 relative overflow-hidden shadow-2xl shadow-primary/30">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-            <h2 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white max-w-3xl mx-auto tracking-tight relative z-10">
-              {t("finalCta.headline")}
-            </h2>
-            <p className="text-white/80 text-xl max-w-xl mx-auto font-medium relative z-10">
-              {t("finalCta.subheadline")}
+            <p className="mt-7 max-w-[500px] text-[1.15rem] leading-8 text-[#61718C]">
+              {copy.hero.description}
             </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center relative z-10">
-              <Link
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <PrimaryButton
                 href={isLoggedIn ? "/dashboard" : "/auth/signup"}
-                className="bg-white text-[#2f4fdd] px-12 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]"
-              >
-                {isLoggedIn ? t("finalCta.cta_logged_in") : t("finalCta.cta")}
-              </Link>
-              <Link
-                href={isLoggedIn ? "/history" : "/auth/login"}
-                className="text-white border-2 border-white/30 px-12 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-colors"
-              >
-                {isLoggedIn
-                  ? t("finalCta.secondary")
-                  : t("finalCta.secondary_logged_out")}
-              </Link>
+                label={isLoggedIn ? copy.hero.primaryCtaLoggedIn : copy.hero.primaryCta}
+              />
+              <SecondaryButton href="#features" label={copy.hero.secondaryCta} />
             </div>
-            <div className="relative z-10 flex justify-center">
-              <AvatarStack label={t("hero.social_proof")} variant="on-dark" />
+
+            <div className="mt-10">
+              <SocialProof
+                prefix={copy.hero.lovedByPrefix}
+                count={copy.hero.lovedByCount}
+                suffix={copy.hero.lovedBySuffix}
+              />
             </div>
           </div>
-        </ScrollReveal>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-12 space-y-4">
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight">
-                {t("faq.title")}
-              </h2>
+          <div className="order-1 lg:order-2">
+            <div className="relative mx-auto max-w-[760px]">
+              <Image
+                src="/images/landing/hero-reference.png"
+                alt="Two debaters standing at podiums in a clean blue illustration"
+                width={1536}
+                height={1024}
+                priority
+                className="h-auto w-full object-contain"
+                sizes="(max-width: 1024px) 100vw, 56vw"
+              />
             </div>
-          </ScrollReveal>
-
-          <ScrollReveal delay={0.15}>
-            <Accordion className="space-y-3">
-              {(["q1", "q2", "q3"] as const).map((q) => (
-                <AccordionItem
-                  key={q}
-                  className="border border-outline-variant/10 rounded-xl px-6 bg-surface-container-lowest"
-                >
-                  <AccordionTrigger className="text-left font-bold text-on-surface hover:no-underline py-5">
-                    {t(`faq.${q}`)}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-on-surface-variant leading-relaxed pb-5">
-                    {t(`faq.${q.replace("q", "a")}`)}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </ScrollReveal>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-20 bg-surface-container-lowest px-6 border-t border-outline-variant/10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
-          <div className="space-y-4">
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-[#2f4fdd] to-[#4f46e5] bg-clip-text text-transparent tracking-tight">
-              DebateLab
-            </span>
-            <p className="text-sm font-medium text-on-surface-variant max-w-xs">
-              {t("footer.tagline")}
+      <section className="px-6 pb-18 md:px-8">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="grid overflow-hidden rounded-[28px] border border-[#E3ECF8] bg-white shadow-[0_30px_60px_-40px_rgba(11,20,36,0.28)] md:grid-cols-2 xl:grid-cols-4">
+            {copy.stats.map((item, index) => (
+              <div
+                key={`${item.value}-${item.label}`}
+                className={cn(
+                  "flex items-center gap-5 px-8 py-8",
+                  index < copy.stats.length - 1 &&
+                    "border-b border-[#EEF3FA] xl:border-b-0 xl:border-r"
+                )}
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#F1F6FD]">
+                  <StatIcon type={item.icon} />
+                </div>
+                <div>
+                  <p className="text-[2rem] font-bold tracking-[-0.03em] text-[#0B1424]">
+                    {item.value}
+                  </p>
+                  <p className="text-sm text-[#718096]">{item.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="px-6 py-10 md:px-8 md:py-14">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="mx-auto max-w-[760px] text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+              {copy.features.eyebrow}
             </p>
-            {/* Social links */}
-            <div className="flex gap-3 pt-2">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                </svg>
-              </a>
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-            </div>
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+              {copy.features.title}
+            </h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 md:gap-16">
-            <div className="flex flex-col gap-4">
-              <span className="text-xs font-extrabold text-on-surface uppercase tracking-widest">
-                {t("footer.product")}
-              </span>
-              <Link
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="/courses"
+
+          <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {copy.features.items.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-[24px] border border-[#E3ECF8] bg-white p-8 shadow-[0_22px_48px_-42px_rgba(11,20,36,0.35)]"
               >
-                {t("footer.courses")}
-              </Link>
-              <Link
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="/practice"
+                <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#F1F6FD]">
+                  <FeatureIcon type={item.icon} />
+                </div>
+                <h3 className="mt-6 text-[1.55rem] font-semibold tracking-[-0.03em] text-[#0B1424]">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-base leading-7 text-[#718096]">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="px-6 py-18 md:px-8 md:py-20">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="mx-auto max-w-[760px] text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+              {copy.steps.eyebrow}
+            </p>
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+              {copy.steps.title}
+            </h2>
+          </div>
+
+          <div className="relative mt-16 grid gap-12 lg:grid-cols-3 lg:gap-8">
+            <div className="absolute left-[17%] right-[17%] top-[82px] hidden border-t border-dashed border-[#CFE0FB] lg:block" />
+
+            {copy.steps.items.map((item, index) => (
+              <div key={item.title} className="relative text-center">
+                <div className="absolute left-[18%] top-9 z-10 hidden h-9 w-9 items-center justify-center rounded-full bg-[#4D86F7] text-sm font-semibold text-white lg:flex">
+                  {index + 1}
+                </div>
+                <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-[#DEE8F8] bg-[linear-gradient(180deg,#F5F9FF_0%,#EAF2FF_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                  <StepIcon type={item.icon} />
+                </div>
+                <h3 className="mt-7 text-[1.6rem] font-semibold tracking-[-0.03em] text-[#0B1424]">
+                  {item.title}
+                </h3>
+                <p className="mx-auto mt-3 max-w-[320px] text-base leading-7 text-[#718096]">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-14 md:px-8 md:py-18">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="mx-auto max-w-[760px] text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+              {copy.testimonials.eyebrow}
+            </p>
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+              {copy.testimonials.title}
+            </h2>
+          </div>
+
+          <div className="mt-16 grid gap-5 lg:grid-cols-3">
+            {copy.testimonials.items.map((item) => (
+              <div
+                key={item.name}
+                className="rounded-[24px] border border-[#E3ECF8] bg-white p-8 shadow-[0_22px_48px_-42px_rgba(11,20,36,0.35)]"
               >
-                {t("footer.practice")}
-              </Link>
-              <Link
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="/history"
-              >
-                {t("footer.history")}
-              </Link>
-            </div>
-            <div className="flex flex-col gap-4">
-              <span className="text-xs font-extrabold text-on-surface uppercase tracking-widest">
-                {t("footer.legal")}
-              </span>
-              <a
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="#"
-              >
-                {t("footer.privacy")}
-              </a>
-              <a
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-                href="#"
-              >
-                {t("footer.terms")}
-              </a>
+                <div className="flex items-center gap-1 text-[#F5B942]">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className="h-4 w-4 fill-current stroke-current"
+                    />
+                  ))}
+                </div>
+
+                <p className="mt-6 min-h-[136px] text-[1.02rem] leading-8 text-[#415069]">
+                  &ldquo;{item.quote}&rdquo;
+                </p>
+
+                <div className="mt-8 flex items-center gap-3">
+                  <TestimonialAvatar initials={item.initials} />
+                  <div>
+                    <p className="text-base font-semibold text-[#0B1424]">
+                      {item.name}
+                    </p>
+                    <p className="text-sm text-[#718096]">{item.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center gap-2.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#4D86F7]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="px-6 py-14 md:px-8 md:py-18">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="overflow-hidden rounded-[34px] border border-[#E3ECF8] bg-[linear-gradient(180deg,#F2F7FF_0%,#ECF3FF_100%)] px-8 py-10 shadow-[0_24px_56px_-44px_rgba(11,20,36,0.38)] md:px-12 md:py-12">
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="max-w-[560px]">
+                <h2 className="text-[2.4rem] font-bold leading-[1.15] tracking-[-0.04em] text-[#0B1424] sm:text-[3rem]">
+                  {copy.cta.title}
+                </h2>
+                <p className="mt-5 text-[1.05rem] leading-8 text-[#718096]">
+                  {copy.cta.description}
+                </p>
+                <div className="mt-8">
+                  <PrimaryButton
+                    href={isLoggedIn ? "/dashboard" : "/auth/signup"}
+                    label={isLoggedIn ? copy.cta.buttonLoggedIn : copy.cta.button}
+                  />
+                </div>
+              </div>
+
+              <div className="mx-auto w-full max-w-[360px] lg:mr-0">
+                <Image
+                  src="/images/landing/trophy-reference.png"
+                  alt="Blue trophy standing on a podium with confetti"
+                  width={1365}
+                  height={1024}
+                  className="h-auto w-full object-contain"
+                  sizes="(max-width: 1024px) 280px, 360px"
+                />
+              </div>
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-outline-variant/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm font-semibold text-on-surface-variant">
-            {t("footer.copyright", { year: new Date().getFullYear() })}
-          </p>
-          <p className="text-sm text-on-surface-variant">
-            {t("footer.made_with_love")}
-          </p>
+      </section>
+
+      <footer
+        id="about"
+        className="px-6 pb-10 pt-8 md:px-8"
+      >
+        <div className="mx-auto max-w-[1280px]">
+          <div
+            id="resources"
+            className="grid gap-10 border-t border-[#E4EDF8] pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_1.1fr]"
+          >
+            <div>
+              <LogoMark
+                className="gap-2.5"
+                bubbleClassName="h-9 w-9"
+                textClassName="text-[1.55rem]"
+              />
+              <p className="mt-5 max-w-[300px] text-[0.98rem] leading-7 text-[#718096]">
+                {copy.footer.brandDescription}
+              </p>
+              <div className="mt-6 flex items-center gap-3 text-[#718096]">
+                {Object.values(socialIcons).map((icon, index) => (
+                  <a
+                    key={index}
+                    href="#"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#718096] shadow-[0_10px_24px_-18px_rgba(11,20,36,0.3)] transition-colors hover:text-[#4D86F7]"
+                  >
+                    {icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#0B1424]">
+                {copy.footer.product.title}
+              </p>
+              <div className="mt-5 flex flex-col gap-3.5">
+                {copy.footer.product.links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#0B1424]">
+                {copy.footer.resources.title}
+              </p>
+              <div className="mt-5 flex flex-col gap-3.5">
+                {copy.footer.resources.links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#0B1424]">
+                {copy.footer.company.title}
+              </p>
+              <div className="mt-5 flex flex-col gap-3.5">
+                {copy.footer.company.links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#0B1424]">
+                {copy.footer.newsletter.title}
+              </p>
+              <p className="mt-5 max-w-[260px] text-[0.98rem] leading-7 text-[#718096]">
+                {copy.footer.newsletter.description}
+              </p>
+              <form className="mt-5 flex gap-3">
+                <input
+                  type="email"
+                  placeholder={copy.footer.newsletter.placeholder}
+                  className="h-12 min-w-0 flex-1 rounded-[14px] border border-[#DEE8F8] bg-white px-4 text-sm text-[#162033] outline-none placeholder:text-[#A1ADC0] focus:border-[#A9C6FB]"
+                />
+                <button
+                  type="submit"
+                  className="h-12 rounded-[14px] bg-[#4D86F7] px-5 text-sm font-semibold text-white"
+                >
+                  {copy.footer.newsletter.button}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="mt-10 border-t border-[#E4EDF8] pt-6 text-center text-sm text-[#8A96A8]">
+            {copy.footer.copyright}
+          </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
