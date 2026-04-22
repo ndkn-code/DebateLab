@@ -267,3 +267,124 @@ export function buildAnalysisPrompt(params: AnalysisPromptParams): string {
 
   return buildDebateAnalysisPrompt(params);
 }
+
+interface DuelJudgmentPromptParams {
+  motion: string;
+  topicCategory: string;
+  participants: {
+    proposition: { participantId: string | null; displayName: string };
+    opposition: { participantId: string | null; displayName: string };
+  };
+  speeches: Array<{
+    roundNumber: number;
+    speechType: "opening" | "rebuttal";
+    side: "proposition" | "opposition";
+    label: string;
+    transcript: string;
+    durationSeconds: number;
+    qualityFlags?: string[];
+  }>;
+}
+
+function duelJudgmentJsonSchema(): string {
+  return `{
+  "winnerSide": "<proposition or opposition>",
+  "winnerParticipantId": "<participant id string or null>",
+  "confidence": <number 0.0-1.0>,
+  "decisionSummary": "<2-3 sentence explanation of why this side wins>",
+  "comparativeBallot": {
+    "caseQuality": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" },
+    "logic": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" },
+    "rebuttal": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" },
+    "weighing": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" },
+    "evidence": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" },
+    "delivery": { "winnerSide": "<proposition|opposition|tie>", "reason": "<short reason>" }
+  },
+  "participantFeedback": {
+    "proposition": {
+      "summary": "<1-2 sentence summary>",
+      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+      "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"]
+    },
+    "opposition": {
+      "summary": "<1-2 sentence summary>",
+      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+      "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"]
+    }
+  },
+  "roundBreakdown": [
+    {
+      "roundNumber": <number>,
+      "label": "<round label>",
+      "winnerSide": "<proposition|opposition|tie>",
+      "reason": "<short reason>"
+    }
+  ],
+  "summary": "<1 paragraph overall verdict summary>",
+  "qualityWarnings": ["<warning 1>", "<warning 2>"],
+  "model": "<filled by API if missing>",
+  "judgedAt": "<ISO datetime string>"
+}`;
+}
+
+export function buildDuelJudgmentPrompt(
+  params: DuelJudgmentPromptParams
+): string {
+  const speechBlock = params.speeches
+    .map(
+      (speech) => `### Round ${speech.roundNumber}: ${speech.label}
+- Side: ${speech.side}
+- Type: ${speech.speechType}
+- Duration: ${speech.durationSeconds} seconds
+- Quality flags: ${speech.qualityFlags?.join(", ") || "none"}
+
+"""
+${speech.transcript}
+"""`
+    )
+    .join("\n\n");
+
+  return `You are a rigorous AI debate judge evaluating a 1v1 in-person high school debate. You must decide the winner comparatively after the full debate is complete.
+
+## Motion
+- Motion: "${params.motion}"
+- Category: "${params.topicCategory}"
+
+## Participants
+- Proposition: ${params.participants.proposition.displayName} (id: ${params.participants.proposition.participantId ?? "unknown"})
+- Opposition: ${params.participants.opposition.displayName} (id: ${params.participants.opposition.participantId ?? "unknown"})
+
+## Format
+- Shared prep
+- Proposition opening
+- Opposition opening
+- Rebuttal prep
+- Proposition rebuttal
+- Opposition rebuttal
+
+## Evaluation Standard
+Judge comparatively, not absolutely.
+
+Prioritize:
+1. Burden fulfillment and case quality
+2. Logic, mechanism, and warrant depth
+3. Rebuttal and clash
+4. Weighing and impact comparison
+5. Evidence quality
+6. Delivery clarity
+
+Important judging rules:
+- Do NOT coach during the debate; judge only the completed debate
+- Do NOT reward polished language over reasoning
+- If a speech is too short or obviously incomplete, reduce confidence and mention it in qualityWarnings
+- Decide who wins overall, even if some categories are tied
+- Round breakdown should explain who won each major speech comparison
+
+## Debate Transcript
+${speechBlock}
+
+Return a JSON object with this exact structure:
+${duelJudgmentJsonSchema()}
+
+Be specific, comparative, and decisive.`;
+}

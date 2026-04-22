@@ -28,7 +28,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
           <Gift className="h-5 w-5 text-amber-500" />
         </div>
-        <h2 className="text-lg font-semibold text-on-surface">Referrals & Orbs</h2>
+        <h2 className="text-lg font-semibold text-on-surface">Referrals & Credits</h2>
       </div>
 
       {/* Stats grid */}
@@ -43,7 +43,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
         </div>
         <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-3 text-center">
           <p className="text-lg font-bold text-amber-500">+{stats.totalOrbsEarned}</p>
-          <p className="mt-0.5 text-xs text-on-surface-variant">Orbs earned</p>
+          <p className="mt-0.5 text-xs text-on-surface-variant">Credits earned</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
                   }`}
                 >
                   {u.status === "credited"
-                    ? "+3 Orbs"
+                    ? "+300 Credits"
                     : u.status === "pending"
                       ? "Pending"
                       : u.status}

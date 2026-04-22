@@ -182,8 +182,55 @@ export interface OrbTransaction {
   id: string;
   user_id: string;
   amount: number;
-  type: "signup_bonus" | "referral_reward" | "referral_bonus" | "practice_quick" | "practice_full" | "admin_grant";
+  type:
+    | "signup_bonus"
+    | "referral_reward"
+    | "referral_bonus"
+    | "practice_quick"
+    | "practice_full"
+    | "practice_speaking"
+    | "practice_debate"
+    | "duel_entry"
+    | "admin_grant";
   reference_id: string | null;
   balance_after: number;
   created_at: string;
+}
+
+export interface DebateDuelRow {
+  id: string;
+  share_code: string;
+  creator_id: string;
+  topic_title: string;
+  topic_category: string;
+  topic_description: string | null;
+  prep_time_seconds: number;
+  opening_time_seconds: number;
+  rebuttal_time_seconds: number;
+  entry_cost: number;
+  side_assignment_mode: "random" | "choose";
+  creator_side_preference: "proposition" | "opposition" | null;
+  status:
+    | "lobby"
+    | "in_progress"
+    | "judging"
+    | "completed"
+    | "expired"
+    | "cancelled";
+  current_phase:
+    | "lobby"
+    | "prep"
+    | "proposition-opening"
+    | "opposition-opening"
+    | "rebuttal-prep"
+    | "proposition-rebuttal"
+    | "opposition-rebuttal"
+    | "judging"
+    | "completed";
+  phase_started_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
 }

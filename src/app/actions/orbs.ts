@@ -1,15 +1,21 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { PracticeTrack } from "@/types/feedback";
 
-export async function deductOrbsAction(mode: "quick" | "full") {
+const CREDIT_COSTS: Record<PracticeTrack, number> = {
+  speaking: 100,
+  debate: 200,
+};
+
+export async function deductOrbsAction(practiceTrack: PracticeTrack) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, newBalance: 0, error: "Not authenticated" };
 
-  const cost = mode === "quick" ? 1 : 2;
+  const cost = CREDIT_COSTS[practiceTrack];
 
   // Check balance
   const { data: profile } = await supabase
@@ -20,11 +26,12 @@ export async function deductOrbsAction(mode: "quick" | "full") {
 
   const balance = profile?.orb_balance ?? 0;
   if (balance < cost) {
-    return { success: false, newBalance: balance, error: "Insufficient Orbs" };
+    return { success: false, newBalance: balance, error: "Insufficient Credits" };
   }
 
   // Atomic deduction
-  const type = mode === "quick" ? "practice_quick" : "practice_full";
+  const type =
+    practiceTrack === "speaking" ? "practice_speaking" : "practice_debate";
   const { data, error } = await supabase.rpc("adjust_orb_balance", {
     p_user_id: user.id,
     p_amount: -cost,

@@ -1,5 +1,20 @@
 export type { DebateTopic, DebateSession, DebateRound, AiDifficulty, PracticeTrack } from "./debate";
 export type { DebateScore, DebateArgumentBreakdown } from "./feedback";
+export type {
+  DebateDuelStatus,
+  DebateDuelPhase,
+  DebateDuelSide,
+  DebateDuelSideAssignmentMode,
+  DebateDuelSpeechType,
+  DebateDuelConfig,
+  DebateDuelParticipant,
+  DebateDuelSpeech,
+  DebateDuelComparativeCriterion,
+  DebateDuelParticipantFeedback,
+  DebateDuelRoundBreakdown,
+  DebateDuelJudgment,
+  DebateDuelRoomView,
+} from "./debate-duel";
 export type { MarkdownRendererProps, CoursePathItem, CoursePathSection } from "./content";
 export type {
   Profile,

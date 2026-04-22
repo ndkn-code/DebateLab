@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import type { PracticeTrack } from "@/types/feedback";
 
-const ORB_COSTS = {
-  quick: 1,
-  full: 2,
+const CREDIT_COSTS: Record<PracticeTrack, number> = {
+  speaking: 100,
+  debate: 200,
 } as const;
 
 export async function getOrbBalance(userId: string): Promise<number> {
@@ -17,17 +18,17 @@ export async function getOrbBalance(userId: string): Promise<number> {
 
 export async function hasEnoughOrbs(
   userId: string,
-  mode: "quick" | "full"
+  practiceTrack: PracticeTrack
 ): Promise<boolean> {
   const balance = await getOrbBalance(userId);
-  return balance >= ORB_COSTS[mode];
+  return balance >= CREDIT_COSTS[practiceTrack];
 }
 
 export async function deductOrbs(
   userId: string,
-  mode: "quick" | "full"
+  practiceTrack: PracticeTrack
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-  const cost = ORB_COSTS[mode];
+  const cost = CREDIT_COSTS[practiceTrack];
   const supabase = await createClient();
 
   // Check balance first
@@ -36,12 +37,13 @@ export async function deductOrbs(
     return {
       success: false,
       newBalance: balance,
-      error: "Insufficient Orbs",
+      error: "Insufficient Credits",
     };
   }
 
   // Atomic deduction via Postgres function
-  const type = mode === "quick" ? "practice_quick" : "practice_full";
+  const type =
+    practiceTrack === "speaking" ? "practice_speaking" : "practice_debate";
   const { data, error } = await supabase.rpc("adjust_orb_balance", {
     p_user_id: userId,
     p_amount: -cost,
@@ -55,6 +57,6 @@ export async function deductOrbs(
   return { success: true, newBalance: data as number };
 }
 
-export function getOrbCost(mode: "quick" | "full"): number {
-  return ORB_COSTS[mode];
+export function getOrbCost(practiceTrack: PracticeTrack): number {
+  return CREDIT_COSTS[practiceTrack];
 }

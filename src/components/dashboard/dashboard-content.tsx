@@ -233,7 +233,7 @@ function HeroWeekWidget({
   ).length;
 
   return (
-    <div className="rounded-[1.4rem] border border-outline-variant/10 bg-surface-container-lowest p-4">
+    <div className="p-4">
       <div className="flex items-start gap-3">
         <div className="-ml-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center">
           <LottieAnimation
@@ -287,7 +287,7 @@ function HeroGoalWidget({
   const t = useTranslations("dashboard.home");
 
   return (
-    <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
+    <div className="p-4">
       <div className="flex items-center gap-3">
         <Clock3 className="h-5 w-5 shrink-0 text-primary" />
         <div>
@@ -374,7 +374,7 @@ function RecentActivityCard({
   const tProfile = useTranslations("dashboard.profile");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
       <div className="mb-4 flex min-h-[40px] items-center justify-between gap-3">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("recent_practice")}
@@ -467,7 +467,7 @@ function NextStepsCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
       <div className="mb-4 min-h-[40px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("next_steps_title")}
@@ -545,7 +545,7 @@ function ProgressCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
       <div className="mb-4 min-h-[40px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("progress_title")}
@@ -602,7 +602,7 @@ function MobileSupportCards({
 
   return (
     <div className="grid gap-4 lg:hidden">
-      <div className="rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="rounded-[1.5rem] border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Sparkles className="h-5 w-5" />
@@ -697,13 +697,13 @@ export function DashboardContent({
                 label={t("topbar_streak")}
                 value={topBar.currentStreak}
               />
-              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
+              <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
               <UtilityChip
                 icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
                 label={t("topbar_orbs")}
                 value={topBar.orbBalance.toLocaleString()}
               />
-              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
+              <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
               <UtilityChip
                 icon={<Star className="h-5 w-5 text-primary" />}
                 label=""
@@ -726,7 +726,7 @@ export function DashboardContent({
             ) : null}
 
             <div className="space-y-4">
-              <section className="rounded-[2rem] border border-outline-variant/12 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
+              <section className="rounded-[2rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
                 <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
                   <div className="min-w-0">
                     <p className="text-[1.05rem] font-medium text-on-surface">
@@ -736,13 +736,15 @@ export function DashboardContent({
                     <h1 className="mt-3 max-w-2xl text-[2.6rem] font-bold tracking-[-0.05em] text-on-surface sm:text-[3.25rem]">
                       {t("hero_title")}
                     </h1>
-                    <p className="mt-4 max-w-2xl text-[1.2rem] leading-8 text-on-surface-variant">
-                      {t("hero_subtitle")}
-                    </p>
 
-                    <div className="mt-5 grid gap-4 md:grid-cols-2">
-                      <HeroWeekWidget weeklyStats={hero.weeklyStats} />
-                      <HeroGoalWidget {...hero.todayGoal} />
+                    <div className="mt-6 rounded-[1.6rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
+                      <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+                        <HeroWeekWidget weeklyStats={hero.weeklyStats} />
+                        <div className="hidden bg-outline-variant/35 md:block" />
+                        <div className="border-t border-outline-variant/20 md:border-t-0">
+                          <HeroGoalWidget {...hero.todayGoal} />
+                        </div>
+                      </div>
                     </div>
                   </div>
 

@@ -113,10 +113,10 @@ export function PathRevealStep({
               </div>
               <div>
                 <p className="text-sm font-medium text-on-surface">
-                  You start with 5 free Orbs
+                  You start with 1,250 free Credits
                 </p>
                 <p className="mt-0.5 text-xs text-on-surface-variant">
-                  Each practice costs 1-2 Orbs. Invite friends to earn more!
+                  Speaking practice costs 100 Credits. Debate practice costs 200 Credits.
                 </p>
               </div>
             </div>

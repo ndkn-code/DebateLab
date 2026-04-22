@@ -65,7 +65,7 @@ export function SkillSnapshotCard({
   const values = snapshot.metrics.map((metric) => metric.value);
 
   return (
-    <section className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest shadow-[0_28px_80px_-52px_rgba(22,39,91,0.45)]">
+    <section className="rounded-[1.75rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_28px_80px_-52px_rgba(22,39,91,0.45)]">
       <div className="grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6">
         <div>
           <div className="mb-3 flex items-center gap-2">
@@ -105,7 +105,7 @@ export function SkillSnapshotCard({
                       key={step}
                       points={polygonPoints(Array(5).fill(ringValue))}
                       fill={step % 2 === 0 ? "rgba(169,198,251,0.12)" : "transparent"}
-                      stroke="rgba(77,134,247,0.16)"
+                      stroke="rgba(65,80,105,0.18)"
                       strokeWidth="1"
                     />
                   );
@@ -120,7 +120,7 @@ export function SkillSnapshotCard({
                       y1={CHART_CENTER}
                       x2={start.x}
                       y2={start.y}
-                      stroke="rgba(77,134,247,0.18)"
+                      stroke="rgba(65,80,105,0.18)"
                       strokeWidth="1"
                     />
                   );
@@ -154,7 +154,7 @@ export function SkillSnapshotCard({
                       x={position.x}
                       y={position.y}
                       textAnchor={position.textAnchor}
-                      className="fill-[#415069] text-[11px] font-medium"
+                      className="fill-[#415069] text-[12.5px] font-medium"
                     >
                       {t(`skill_labels.${metric.key}`)}
                     </text>
@@ -165,8 +165,8 @@ export function SkillSnapshotCard({
           )}
         </div>
 
-        <div className="flex flex-col md:border-l md:border-outline-variant/10 md:pl-6 md:pt-8">
-          <div className="divide-y divide-outline-variant/10">
+        <div className="flex flex-col md:border-l md:border-outline-variant/20 md:pl-6 md:pt-8">
+          <div className="divide-y divide-outline-variant/18">
             {snapshot.metrics.map((metric) => (
               <div
                 key={metric.key}
@@ -190,7 +190,7 @@ export function SkillSnapshotCard({
             ))}
           </div>
 
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/10 pt-5">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/18 pt-5">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-on-surface">
                 {t("overall_score")}
@@ -204,10 +204,10 @@ export function SkillSnapshotCard({
               </span>
             </div>
 
-            <Link href="/profile">
+            <Link href="/profile" className="ml-auto">
               <Button
                 variant="outline"
-                className="rounded-xl border-outline-variant/20 bg-surface-container-lowest"
+                className="rounded-xl border-primary/20 bg-[#EEF4FF] text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.08)] hover:bg-primary hover:text-on-primary"
               >
                 {t("view_details")}
               </Button>

@@ -36,7 +36,7 @@ export function OutOfOrbsModal({
       try {
         await navigator.share({
           title: "Join me on DebateLab!",
-          text: "Practice debate with AI feedback. Use my invite link to get bonus Orbs!",
+          text: "Practice debate with AI feedback. Use my invite link to get bonus Credits!",
           url: referralLink,
         });
       } catch {
@@ -73,10 +73,10 @@ export function OutOfOrbsModal({
 
             {/* Title */}
             <h3 className="text-center text-lg font-bold text-on-surface">
-              Not enough Orbs
+              Not enough Credits
             </h3>
             <p className="mt-2 text-center text-sm text-on-surface-variant">
-              You need {orbCost} Orb{orbCost > 1 ? "s" : ""} to start this practice.
+              You need {orbCost} Credits to start this practice.
               You have <OrbBalance balance={orbBalance} size="sm" className="inline-flex align-middle mx-0.5" />.
             </p>
 
@@ -84,10 +84,10 @@ export function OutOfOrbsModal({
             <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-on-surface">
                 <Gift className="h-4 w-4 text-primary" />
-                Invite a friend, get 3 Orbs
+                Invite a friend, get 300 Credits
               </div>
               <p className="mt-1 text-xs text-on-surface-variant">
-                Both you and your friend earn 3 bonus Orbs when they complete their first practice.
+                Both you and your friend earn 300 bonus Credits when they complete their first practice.
               </p>
 
               {/* Copy link */}

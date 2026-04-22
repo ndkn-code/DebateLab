@@ -64,7 +64,7 @@ function LoginContent() {
         <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
           <Gift className="h-4 w-4 shrink-0 text-primary" />
           <p className="text-sm text-on-surface">
-            Invited by <span className="font-semibold">{referrerName}</span> — you&apos;ll both earn bonus Orbs!
+            Invited by <span className="font-semibold">{referrerName}</span> — you&apos;ll both earn bonus Credits!
           </p>
         </div>
       )}

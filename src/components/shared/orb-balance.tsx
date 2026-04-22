@@ -15,7 +15,7 @@ export function OrbBalance({
   showLabel = false,
   className,
 }: OrbBalanceProps) {
-  const isLow = balance <= 2;
+  const isLow = balance <= 200;
 
   return (
     <div
@@ -51,7 +51,7 @@ export function OrbBalance({
         {balance}
       </span>
       {showLabel && (
-        <span className="text-xs text-on-surface-variant">Orbs</span>
+        <span className="text-xs text-on-surface-variant">Credits</span>
       )}
     </div>
   );

@@ -12,7 +12,6 @@ import {
   Check,
   Loader2,
   Globe,
-  Volume2,
   Gift,
   Copy,
 } from "lucide-react";
@@ -433,14 +432,14 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-on-surface">Referrals</h2>
-            <p className="text-sm text-on-surface-variant">Invite friends and earn Orbs</p>
+            <p className="text-sm text-on-surface-variant">Invite friends and earn Credits</p>
           </div>
         </div>
 
         <div className="space-y-4">
-          {/* Current Orb balance */}
+          {/* Current credit balance */}
           <div className="flex items-center justify-between rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-            <span className="text-sm text-on-surface-variant">Your Orb balance</span>
+            <span className="text-sm text-on-surface-variant">Your credit balance</span>
             <OrbBalance balance={profile?.orb_balance ?? 0} size="md" showLabel />
           </div>
 
@@ -477,7 +476,7 @@ export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
                 </Button>
               </div>
               <p className="mt-1.5 text-xs text-on-surface-variant">
-                Both you and your friend earn 3 bonus Orbs when they complete their first practice
+                Both you and your friend earn 300 bonus Credits when they complete their first practice
               </p>
             </div>
           )}

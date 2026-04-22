@@ -96,7 +96,7 @@ function NavContent({
         )}
       </div>
 
-      {/* Orb Balance */}
+      {/* Credit Balance */}
       {profile?.orb_balance !== undefined && (
         <div
           className={cn(
@@ -106,7 +106,7 @@ function NavContent({
         >
           <OrbBalance balance={profile.orb_balance} size="sm" />
           {!collapsed && (
-            <span className="text-xs text-on-surface-variant">Orbs</span>
+            <span className="text-xs text-on-surface-variant">Credits</span>
           )}
         </div>
       )}

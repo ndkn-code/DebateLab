@@ -371,7 +371,7 @@ export default function FeedbackPage() {
                     Challenge a friend to beat your score!
                   </h3>
                   <p className="mt-1 text-sm text-on-surface-variant">
-                    You scored {feedback.totalScore}/100. Share your invite link and both earn 3 bonus Orbs.
+                    You scored {feedback.totalScore}/100. Share your invite link and both earn 300 bonus Credits.
                   </p>
                   <button
                     onClick={async () => {

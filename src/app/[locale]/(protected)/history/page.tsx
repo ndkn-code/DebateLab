@@ -61,12 +61,37 @@ async function fetchSessions(): Promise<DebateSession[]> {
   return storage.getSessions();
 }
 
+interface DuelHistoryItem {
+  id: string;
+  shareCode: string;
+  topicTitle: string;
+  role: "proposition" | "opposition" | null;
+  winnerSide: "proposition" | "opposition" | null;
+  summary: string;
+  createdAt: string;
+  href: string;
+}
+
+async function fetchDuelHistory(): Promise<DuelHistoryItem[]> {
+  const response = await fetch("/api/debate-duels/history", {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    return [];
+  }
+  return (await response.json()) as DuelHistoryItem[];
+}
+
 export default function HistoryPage() {
   const t = useTranslations("dashboard.history");
   const router = useRouter();
   const { data: sessions = [], mutate, isLoading } = useSupabaseQuery(
     "history-sessions",
     fetchSessions
+  );
+  const { data: duelHistory = [] } = useSupabaseQuery(
+    "history-duels",
+    fetchDuelHistory
   );
   const [sort, setSort] = useState<SortOption>("newest");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -304,6 +329,72 @@ export default function HistoryPage() {
             ))}
           </div>
         </motion.div>
+
+        {duelHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-on-surface">
+                  1v1 Debate Duels
+                </h2>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Judged head-to-head results are kept separate from solo practice.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {duelHistory.map((duel) => (
+                <button
+                  key={duel.id}
+                  onClick={() => router.push(duel.href)}
+                  className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-left transition-all hover:border-outline-variant/30 soft-shadow"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-medium text-on-surface">
+                        {duel.topicTitle}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
+                          1v1 Debate
+                        </span>
+                        {duel.role && (
+                          <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
+                            {duel.role === "proposition" ? "Proposition" : "Opposition"}
+                          </span>
+                        )}
+                        {duel.winnerSide && (
+                          <span
+                            className={cn(
+                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                              duel.winnerSide === duel.role
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : "bg-rose-500/10 text-rose-400"
+                            )}
+                          >
+                            {duel.winnerSide === duel.role ? "You won" : "You lost"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-on-surface-variant">
+                      {formatDate(duel.createdAt)}
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">
+                    {duel.summary}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Session List */}
         {filtered.length === 0 ? (

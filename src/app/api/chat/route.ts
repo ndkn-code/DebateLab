@@ -3,6 +3,7 @@ import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
+import { getDebateDuelResult } from "@/lib/api/debate-duels";
 
 export const maxDuration = 60;
 
@@ -113,6 +114,21 @@ export async function POST(req: NextRequest) {
     } else if (context === "practice-feedback") {
       const track = contextId === "speaking" ? "speaking" : "debate";
       systemPrompt += `\n\nThe student came here from the ${track} feedback screen. Continue the conversation in ${track} coaching mode unless they clearly ask for something else.`;
+    } else if (context === "duel-review" && contextId) {
+      const duel = await getDebateDuelResult(contextId, user.id);
+      if (duel?.judgment) {
+        systemPrompt += `\n\nThe student came here from a judged 1v1 debate duel.
+
+Motion: "${duel.topicTitle}"
+Winner side: ${duel.judgment.winnerSide}
+Decision summary: ${duel.judgment.decisionSummary}
+Overall summary: ${duel.judgment.summary}
+
+Proposition summary: ${duel.judgment.participantFeedback.proposition.summary}
+Opposition summary: ${duel.judgment.participantFeedback.opposition.summary}
+
+When helping, reference this judged duel and keep your advice comparative and debate-specific.`;
+      }
     }
 
     const chatModel =

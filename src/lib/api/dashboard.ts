@@ -781,7 +781,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     progress,
     sidebarCards: {
       dailyGoal: todayGoal,
-      inviteOrbs: 3,
+      inviteOrbs: 300,
       referralCode: profile?.referral_code ?? null,
     },
     courseContinuation,
