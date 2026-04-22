@@ -332,6 +332,8 @@
       "explore_courses": "Explore structured debate lessons",
       "continue": "Continue",
       "recent_practice": "Recent Practice",
+      "recent_practice_subtitle": "See how your latest speaking and debate runs are stacking up.",
+      "quick_practice": "Quick Practice",
       "view_all": "View all",
       "first_debate": "Complete your first debate!",
       "practice_get_feedback": "Practice and get AI-powered feedback",
@@ -346,6 +348,35 @@
       "ask_ai_coach": "Ask your AI Coach",
       "ask_ai_coach_subtitle": "Get instant help with debate techniques",
       "ask_placeholder": "Ask anything about debate...",
+      "launchpad_eyebrow": "Practice Launcher",
+      "launchpad_title": "Choose the kind of session you want right now",
+      "launchpad_subtitle": "Jump straight into speaking or debate with a preset starting point, then pick your topic inside the practice studio.",
+      "launchpad_open": "Open setup",
+      "launchpad_full_cost": "2 Orbs",
+      "launchpad_options": {
+        "speaking": {
+          "title": "Speaking Practice",
+          "description": "One clean speech with feedback on clarity, structure, confidence, and understandable English."
+        },
+        "debate_quick": {
+          "title": "Quick Debate",
+          "description": "A faster debate round when you want argument depth without committing to the full five-round flow."
+        },
+        "debate_full": {
+          "title": "Full Round",
+          "description": "Run the full Trường Teen-style debate flow with the AI opponent and stronger clash practice."
+        }
+      },
+      "weekly_chart_subtitle": "A tighter view of how often you showed up this week.",
+      "weekly_chart_empty_subtitle": "This card will fill out as soon as you log your first session this week.",
+      "weekly_chart_empty_note": "No sessions yet this week. Start a speaking or debate run to bring this chart to life.",
+      "weekly_active_days_label": "Active days",
+      "weekly_sessions_label": "Sessions this week",
+      "weekly_best_day_label": "Best day",
+      "referral_remaining": "remaining",
+      "referral_subtitle": "Invite friends to earn 3 Orbs each",
+      "referral_copy": "Copy invite link",
+      "referral_copied": "Copied!",
       "suggestion_rebuttal": "How to structure a rebuttal?",
       "suggestion_wsdc": "Explain WSDC format",
       "suggestion_review": "Review my last debate",
@@ -430,6 +461,19 @@
         "fill_blank": "Fill Blank",
         "drag_order": "Drag Order",
         "flashcard": "Flashcard"
+      },
+      "practice": {
+        "title_fallback": "Practice Session",
+        "start_now": "Start practice now",
+        "preview_brief": "Review practice brief",
+        "completed": "Practice completed",
+        "mark_complete": "Mark as Complete",
+        "saving": "Saving...",
+        "summary_title": "Practice Brief",
+        "summary_description": "Review the setup before jumping into the full practice studio.",
+        "focus_area": "Focus area",
+        "launch_note": "This opens the main practice studio with this topic prefilled, so you can keep learning flow inside the course but practice in the full DebateLab experience.",
+        "coach_prep": "Ask AI Coach to prep this"
       }
     },
     "practice": {
@@ -506,6 +550,56 @@
       "suggestion_rebuttals": "Help me practice rebuttals",
       "suggestion_review": "Review my last debate performance",
       "suggestion_impromptu": "Tips for impromptu speaking",
+      "quick_actions": {
+        "debate_stance": {
+          "label": "Strengthen my stance",
+          "prompt": "Help me strengthen my stance on this motion."
+        },
+        "weighing": {
+          "label": "Give me weighing",
+          "prompt": "Give me the key weighing and comparison I should use in this debate."
+        },
+        "clearer_english": {
+          "label": "Make this clearer",
+          "prompt": "Help me say this more clearly in simple English."
+        },
+        "stronger_opening": {
+          "label": "Stronger opening",
+          "prompt": "Give me a stronger opening statement for this topic."
+        },
+        "rebuild_argument": {
+          "label": "Rebuild this argument",
+          "prompt": "Rebuild this argument so the mechanism, weighing, and impact are much stronger."
+        },
+        "test_assumptions": {
+          "label": "Test assumptions",
+          "prompt": "Test the assumptions in this case and show me the weakest links."
+        },
+        "speech_structure": {
+          "label": "Structure my speech",
+          "prompt": "Help me structure this speech into a clear opening, body, and closing."
+        },
+        "sound_confident": {
+          "label": "Sound more confident",
+          "prompt": "Help me make this speech sound more confident and natural."
+        },
+        "lesson_key_idea": {
+          "label": "Key idea first",
+          "prompt": "Summarize the most important idea from this course lesson before I practice."
+        },
+        "lesson_examples": {
+          "label": "Give examples",
+          "prompt": "Give me concrete examples I can use from this course lesson."
+        },
+        "lesson_quiz": {
+          "label": "Quiz me on this",
+          "prompt": "Quiz me on the key concepts from this course lesson before I practice."
+        },
+        "lesson_drill": {
+          "label": "Turn into a drill",
+          "prompt": "Turn this course lesson into a short practice drill for me."
+        }
+      },
       "input_placeholder": "Ask your AI Coach anything...",
       "new_conversation": "New conversation",
       "conversations": "Conversations",

@@ -4,17 +4,12 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { MessageCircle, Send } from "lucide-react";
+import { CoachQuickActions } from "@/components/chat/coach-quick-actions";
 
 export function AiCoachWidget() {
   const router = useRouter();
   const t = useTranslations("dashboard.home");
   const [input, setInput] = useState("");
-
-  const QUICK_PROMPTS = [
-    t("suggestion_rebuttal"),
-    t("suggestion_wsdc"),
-    t("suggestion_review"),
-  ];
 
   const handleSubmit = (message: string) => {
     if (!message.trim()) return;
@@ -62,17 +57,7 @@ export function AiCoachWidget() {
         </div>
 
         {/* Quick prompts */}
-        <div className="flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((prompt) => (
-            <button
-              key={prompt}
-              onClick={() => handleSubmit(prompt)}
-              className="rounded-lg bg-surface-container px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
+        <CoachQuickActions variant="general" onSelect={handleSubmit} compact />
       </div>
     </div>
   );

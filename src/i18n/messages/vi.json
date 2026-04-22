@@ -332,6 +332,8 @@
       "explore_courses": "Khám phá các bài học debate có cấu trúc",
       "continue": "Tiếp tục",
       "recent_practice": "Luyện Tập Gần Đây",
+      "recent_practice_subtitle": "Xem nhanh các phiên luyện nói và debate gần nhất của bạn.",
+      "quick_practice": "Luyện Nhanh",
       "view_all": "Xem tất cả",
       "first_debate": "Hoàn thành debate đầu tiên!",
       "practice_get_feedback": "Luyện tập và nhận feedback từ AI",
@@ -346,6 +348,35 @@
       "ask_ai_coach": "Hỏi AI Coach",
       "ask_ai_coach_subtitle": "Được trợ giúp ngay về kỹ thuật debate",
       "ask_placeholder": "Hỏi bất cứ gì về debate...",
+      "launchpad_eyebrow": "Bắt đầu luyện",
+      "launchpad_title": "Chọn đúng kiểu phiên bạn muốn ngay lúc này",
+      "launchpad_subtitle": "Vào thẳng luyện nói hoặc debate với cấu hình khởi đầu sẵn có, rồi chọn topic trong studio luyện tập.",
+      "launchpad_open": "Mở cấu hình",
+      "launchpad_full_cost": "2 Orbs",
+      "launchpad_options": {
+        "speaking": {
+          "title": "Luyện Nói",
+          "description": "Một bài nói gọn với feedback về độ rõ, cấu trúc, sự tự tin và tiếng Anh dễ hiểu."
+        },
+        "debate_quick": {
+          "title": "Debate Nhanh",
+          "description": "Một vòng debate ngắn khi bạn muốn đào sâu lập luận mà chưa cần chạy đủ năm lượt."
+        },
+        "debate_full": {
+          "title": "Full Round",
+          "description": "Chạy trọn flow debate kiểu Trường Teen với AI đối thủ và phần clash sâu hơn."
+        }
+      },
+      "weekly_chart_subtitle": "Một góc nhìn gọn hơn về mức độ đều đặn của bạn trong tuần này.",
+      "weekly_chart_empty_subtitle": "Thẻ này sẽ đầy lên ngay khi bạn có phiên luyện đầu tiên trong tuần.",
+      "weekly_chart_empty_note": "Tuần này bạn chưa có phiên nào. Bắt đầu một phiên luyện nói hoặc debate để làm đầy biểu đồ.",
+      "weekly_active_days_label": "Ngày có hoạt động",
+      "weekly_sessions_label": "Phiên trong tuần",
+      "weekly_best_day_label": "Ngày tốt nhất",
+      "referral_remaining": "còn lại",
+      "referral_subtitle": "Mời bạn bè để nhận 3 Orbs mỗi lượt",
+      "referral_copy": "Sao chép link mời",
+      "referral_copied": "Đã sao chép!",
       "suggestion_rebuttal": "Cách cấu trúc phản biện?",
       "suggestion_wsdc": "Giải thích format WSDC",
       "suggestion_review": "Review bài debate vừa rồi",
@@ -430,6 +461,19 @@
         "fill_blank": "Điền chỗ trống",
         "drag_order": "Sắp xếp",
         "flashcard": "Flashcard"
+      },
+      "practice": {
+        "title_fallback": "Phiên luyện tập",
+        "start_now": "Bắt đầu luyện ngay",
+        "preview_brief": "Xem brief luyện tập",
+        "completed": "Đã hoàn thành phần luyện tập",
+        "mark_complete": "Đánh dấu hoàn thành",
+        "saving": "Đang lưu...",
+        "summary_title": "Brief luyện tập",
+        "summary_description": "Xem nhanh cấu hình trước khi mở studio luyện tập đầy đủ.",
+        "focus_area": "Trọng tâm luyện",
+        "launch_note": "Thao tác này sẽ mở studio luyện tập chính của DebateLab với topic đã được điền sẵn, để flow học trong khóa vẫn liền mạch nhưng phần luyện diễn ra trong trải nghiệm đầy đủ.",
+        "coach_prep": "Nhờ AI Coach chuẩn bị giúp"
       }
     },
     "practice": {
@@ -506,6 +550,56 @@
       "suggestion_rebuttals": "Giúp mình luyện phản biện",
       "suggestion_review": "Review bài debate vừa rồi",
       "suggestion_impromptu": "Mẹo nói ứng biến",
+      "quick_actions": {
+        "debate_stance": {
+          "label": "Củng cố stance",
+          "prompt": "Giúp mình củng cố stance cho motion này."
+        },
+        "weighing": {
+          "label": "Cho mình weighing",
+          "prompt": "Cho mình weighing và comparison quan trọng nhất nên dùng trong debate này."
+        },
+        "clearer_english": {
+          "label": "Nói rõ hơn",
+          "prompt": "Giúp mình diễn đạt ý này bằng tiếng Anh đơn giản và rõ hơn."
+        },
+        "stronger_opening": {
+          "label": "Mở bài mạnh hơn",
+          "prompt": "Cho mình một opening statement mạnh hơn cho topic này."
+        },
+        "rebuild_argument": {
+          "label": "Xây lại luận điểm",
+          "prompt": "Xây lại luận điểm này để phần cơ chế, weighing và impact chắc hơn."
+        },
+        "test_assumptions": {
+          "label": "Test assumption",
+          "prompt": "Giúp mình test các assumption trong case này và chỉ ra mắt xích yếu nhất."
+        },
+        "speech_structure": {
+          "label": "Sắp speech giúp mình",
+          "prompt": "Giúp mình sắp speech này thành opening, body và closing rõ ràng."
+        },
+        "sound_confident": {
+          "label": "Tự tin hơn",
+          "prompt": "Giúp mình làm bài nói này nghe tự tin và tự nhiên hơn."
+        },
+        "lesson_key_idea": {
+          "label": "Ý chính là gì",
+          "prompt": "Tóm tắt ý quan trọng nhất của bài học này trước khi mình vào phần luyện."
+        },
+        "lesson_examples": {
+          "label": "Cho ví dụ luôn",
+          "prompt": "Cho mình vài ví dụ cụ thể có thể dùng từ bài học này."
+        },
+        "lesson_quiz": {
+          "label": "Quiz mình đi",
+          "prompt": "Quiz mình về các ý chính của bài học này trước khi luyện."
+        },
+        "lesson_drill": {
+          "label": "Biến thành drill",
+          "prompt": "Biến bài học này thành một bài drill ngắn để mình luyện."
+        }
+      },
       "input_placeholder": "Hỏi AI Coach bất cứ gì...",
       "new_conversation": "Cuộc hội thoại mới",
       "conversations": "Hội thoại",

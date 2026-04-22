@@ -258,6 +258,8 @@ export function ChatShell({
         onSendMessage={sendMessage}
         onOpenSidebar={() => setSidebarOpen(true)}
         hasConversation={!!activeConversationId}
+        context={context}
+        contextId={contextId}
       />
     </div>
   );

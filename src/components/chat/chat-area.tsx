@@ -4,9 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Send, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CoachQuickActions } from "./coach-quick-actions";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
+import type { PracticeTrack } from "@/types";
 
 interface ChatAreaProps {
   messages: ChatMessageLocal[];
@@ -14,6 +16,8 @@ interface ChatAreaProps {
   onSendMessage: (text: string) => void;
   onOpenSidebar: () => void;
   hasConversation: boolean;
+  context?: string;
+  contextId?: string;
 }
 
 export function ChatArea({
@@ -22,20 +26,13 @@ export function ChatArea({
   onSendMessage,
   onOpenSidebar,
   hasConversation,
+  context,
+  contextId,
 }: ChatAreaProps) {
   const t = useTranslations("dashboard.chat");
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const STARTER_PROMPTS = [
-    t("suggestion_opening"),
-    t("suggestion_wsdc"),
-    t("suggestion_fallacies"),
-    t("suggestion_rebuttals"),
-    t("suggestion_review"),
-    t("suggestion_impromptu"),
-  ];
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -100,7 +97,11 @@ export function ChatArea({
       {/* Messages Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-6 sm:px-4">
         {showWelcome ? (
-          <WelcomeScreen onPromptClick={handleSubmit} t={t} starterPrompts={STARTER_PROMPTS} />
+          <WelcomeScreen
+            onPromptClick={handleSubmit}
+            t={t}
+            actionVariant={getCoachQuickActionVariant(context, contextId)}
+          />
         ) : (
           <div className="mx-auto max-w-3xl space-y-4">
             {messages.map((msg, i) => {
@@ -156,14 +157,29 @@ export function ChatArea({
   );
 }
 
+function getCoachQuickActionVariant(
+  context?: string,
+  contextId?: string
+): "general" | "course" | PracticeTrack {
+  if (context === "course") {
+    return "course";
+  }
+
+  if (context === "practice-feedback") {
+    return contextId === "speaking" ? "speaking" : "debate";
+  }
+
+  return "general";
+}
+
 function WelcomeScreen({
   onPromptClick,
   t,
-  starterPrompts,
+  actionVariant,
 }: {
   onPromptClick: (text: string) => void;
   t: ReturnType<typeof useTranslations>;
-  starterPrompts: string[];
+  actionVariant: "general" | "course" | PracticeTrack;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">
@@ -176,17 +192,11 @@ function WelcomeScreen({
       <p className="mb-8 max-w-md text-center text-sm text-on-surface-variant">
         {t("welcome_subtitle")}
       </p>
-      <div className="grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-        {starterPrompts.map((prompt) => (
-          <button
-            key={prompt}
-            onClick={() => onPromptClick(prompt)}
-            className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-left text-sm text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-on-surface"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
+      <CoachQuickActions
+        variant={actionVariant}
+        onSelect={onPromptClick}
+        className="max-w-2xl justify-center"
+      />
     </div>
   );
 }

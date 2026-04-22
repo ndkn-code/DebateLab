@@ -25,6 +25,7 @@ export interface RecentSession {
   topic_category: string;
   side: string;
   mode: string;
+  practice_track: "speaking" | "debate";
   total_score: number | null;
   overall_band: string | null;
   duration_seconds: number;
@@ -95,7 +96,7 @@ export async function getDashboardData(
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, category, side, mode, total_score, overall_band, duration_seconds, created_at"
+          "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -134,6 +135,7 @@ export async function getDashboardData(
       topic_category: s.category,
       side: s.side,
       mode: s.mode,
+      practice_track: s.feedback?.practiceTrack === "speaking" ? "speaking" : "debate",
       total_score: s.total_score,
       overall_band: s.overall_band,
       duration_seconds: s.duration_seconds,

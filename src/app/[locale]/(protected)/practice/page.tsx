@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shuffle } from "lucide-react";
@@ -9,20 +10,63 @@ import { CategoryTabs } from "@/components/practice/category-tabs";
 import { TopicCard } from "@/components/practice/topic-card";
 import { SessionConfig } from "@/components/practice/session-config";
 import { topics, CATEGORIES } from "@/lib/topics";
+import { resolvePracticeTopic, readPracticePrefill } from "@/lib/practice-prefill";
+import { useSessionStore } from "@/store/session-store";
 import type { DebateTopic } from "@/types";
 
 export default function PracticePage() {
   const t = useTranslations("dashboard.practice");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [selectedTopic, setSelectedTopic] = useState<DebateTopic | null>(null);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const appliedPrefillRef = useRef<string | null>(null);
+  const initialPrefill = useMemo(
+    () => readPracticePrefill(searchParams),
+    [searchParams]
+  );
+  const initialTopic = useMemo(
+    () =>
+      initialPrefill?.topicTitle
+        ? resolvePracticeTopic({
+            topicTitle: initialPrefill.topicTitle,
+            topicCategory: initialPrefill.topicCategory,
+            topicDescription: initialPrefill.topicDescription,
+            practiceTrack: initialPrefill.practiceTrack,
+            mode: initialPrefill.mode,
+            aiDifficulty: initialPrefill.aiDifficulty,
+            side: initialPrefill.side,
+          })
+        : null,
+    [initialPrefill]
+  );
+  const [activeCategory, setActiveCategory] = useState(
+    () => initialTopic?.category ?? "All"
+  );
+  const [selectedTopic, setSelectedTopic] = useState<DebateTopic | null>(
+    () => initialTopic
+  );
+  const [highlightId, setHighlightId] = useState<string | null>(
+    () => initialTopic?.id ?? null
+  );
+  const { setPracticeTrack, setMode, setAiDifficulty, setSide } =
+    useSessionStore();
 
   const filteredTopics = useMemo(
-    () =>
-      activeCategory === "All"
-        ? topics
-        : topics.filter((t) => t.category === activeCategory),
-    [activeCategory]
+    () => {
+      const visibleTopics =
+        activeCategory === "All"
+          ? topics
+          : topics.filter((topic) => topic.category === activeCategory);
+
+      if (
+        selectedTopic &&
+        !visibleTopics.some((topic) => topic.id === selectedTopic.id) &&
+        (activeCategory === "All" || selectedTopic.category === activeCategory)
+      ) {
+        return [selectedTopic, ...visibleTopics];
+      }
+
+      return visibleTopics;
+    },
+    [activeCategory, selectedTopic]
   );
 
   const handleSurprise = useCallback(() => {
@@ -39,6 +83,46 @@ export default function PracticePage() {
   const handleSelectTopic = useCallback((topic: DebateTopic) => {
     setSelectedTopic((prev) => (prev?.id === topic.id ? null : topic));
   }, []);
+
+  useEffect(() => {
+    if (!initialTopic) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setHighlightId((current) => (current === initialTopic.id ? null : current));
+    }, 1500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialTopic]);
+
+  useEffect(() => {
+    const prefillKey = searchParams.toString();
+    if (!prefillKey || appliedPrefillRef.current === prefillKey) {
+      return;
+    }
+
+    if (!initialPrefill) {
+      return;
+    }
+
+    appliedPrefillRef.current = prefillKey;
+    const practiceTrack = initialPrefill.practiceTrack ?? "debate";
+    setPracticeTrack(practiceTrack);
+    setAiDifficulty(initialPrefill.aiDifficulty ?? "medium");
+    setSide(initialPrefill.side ?? "random");
+
+    if (practiceTrack === "debate") {
+      setMode(initialPrefill.mode ?? "quick");
+    }
+  }, [
+    initialPrefill,
+    setAiDifficulty,
+    setMode,
+    setPracticeTrack,
+    setSide,
+    searchParams,
+  ]);
 
   return (
     <div className="min-h-screen bg-background">
