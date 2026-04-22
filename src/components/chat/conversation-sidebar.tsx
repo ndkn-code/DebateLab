@@ -2,14 +2,17 @@
 
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, MessageCircle, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  BookOpen,
+  MessageCircle,
+  MessagesSquare,
+  Plus,
+  Sparkles,
+  Trash2,
+  Trophy,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { deleteConversationAction } from "@/app/[locale]/(protected)/chat/actions";
 import type { ConversationWithPreview } from "@/lib/api/chat";
@@ -34,20 +37,37 @@ function SidebarContent({
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("dashboard.chat");
 
+  const getContextMeta = (contextType?: string | null) => {
+    switch (contextType) {
+      case "course":
+        return { label: t("context.course_help"), icon: BookOpen };
+      case "practice-feedback":
+        return { label: t("context.session_review"), icon: Sparkles };
+      case "duel-review":
+        return { label: t("context.duel_review"), icon: Trophy };
+      default:
+        return { label: t("context.general_coaching"), icon: MessagesSquare };
+    }
+  };
+
   const formatDate = (iso: string) => {
-    const d = new Date(iso);
+    const date = new Date(iso);
     const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
+    const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return t("today");
     if (diffDays === 1) return t("yesterday");
     if (diffDays < 7) return t("days_ago", { count: diffDays });
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDelete = (event: React.MouseEvent, id: string) => {
+    event.stopPropagation();
     startTransition(async () => {
       await deleteConversationAction(id);
       onDelete(id);
@@ -55,59 +75,88 @@ function SidebarContent({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* New Chat Button */}
-      <div className="p-3">
+    <div className="flex h-full flex-col bg-surface">
+      <div className="border-b border-outline-variant/10 p-4">
         <Button
           onClick={onNewChat}
-          className="w-full gap-2 bg-primary text-on-primary"
-          size="sm"
+          className="h-11 w-full gap-2 rounded-2xl bg-primary text-on-primary"
         >
           <Plus className="h-4 w-4" />
           {t("new_chat")}
         </Button>
       </div>
 
-      {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto px-2 pb-3">
+      <div className="flex-1 overflow-y-auto px-3 py-4">
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
             <MessageCircle className="mb-3 h-8 w-8 text-primary/30" />
-            <p className="text-sm text-on-surface-variant">
-              {t("sidebar_empty")}
-            </p>
+            <p className="text-sm text-on-surface-variant">{t("sidebar_empty")}</p>
           </div>
         ) : (
-          <div className="space-y-0.5">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => onSelect(conv.id)}
-                className={cn(
-                  "group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-colors",
-                  activeId === conv.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-on-surface hover:bg-surface-container"
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {conv.title || t("new_conversation")}
-                  </p>
-                  <p className="text-[10px] text-on-surface-variant">
-                    {formatDate(conv.updated_at || conv.created_at)}
-                  </p>
-                </div>
-                <button
-                  onClick={(e) => handleDelete(e, conv.id)}
-                  disabled={isPending}
-                  className="shrink-0 rounded-lg p-1 opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
-                  aria-label="Delete conversation"
+          <div className="space-y-2">
+            {conversations.map((conversation) => {
+              const contextMeta = getContextMeta(conversation.context_type);
+              const ContextIcon = contextMeta.icon;
+
+              return (
+                <div
+                  key={conversation.id}
+                  className={cn(
+                    "group rounded-2xl border px-3 py-3 transition-colors",
+                    activeId === conversation.id
+                      ? "border-primary/18 bg-primary/5 text-on-surface"
+                      : "border-outline-variant/10 bg-surface-container-low/45 text-on-surface hover:border-primary/12 hover:bg-surface-container-low"
+                  )}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </button>
-            ))}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onSelect(conversation.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(conversation.id);
+                      }
+                    }}
+                    className="flex min-w-0 cursor-pointer items-start gap-3"
+                  >
+                    <div
+                      className={cn(
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                        activeId === conversation.id ? "bg-primary/12" : "bg-surface"
+                      )}
+                    >
+                      <ContextIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-semibold">
+                          {conversation.title || t("new_conversation")}
+                        </p>
+                        <span className="shrink-0 text-[11px] text-on-surface-variant">
+                          {formatDate(conversation.updated_at || conversation.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary/80">
+                        {contextMeta.label}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-on-surface-variant">
+                        {conversation.preview || t("preview_fallback")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(event) => handleDelete(event, conversation.id)}
+                    disabled={isPending}
+                    className="mt-2 rounded-lg p-1 text-on-surface-variant opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
+                    aria-label={t("delete_conversation")}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -117,19 +166,18 @@ function SidebarContent({
 
 export function ConversationSidebar(props: ConversationSidebarProps) {
   const { open, onOpenChange, ...rest } = props;
+  const t = useTranslations("dashboard.chat");
 
   return (
     <>
-      {/* Desktop sidebar */}
       <div className="hidden w-[280px] shrink-0 border-r border-outline-variant/10 bg-surface-container-lowest lg:block">
         <SidebarContent {...rest} />
       </div>
 
-      {/* Mobile sheet */}
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="left" className="w-[280px] p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>Conversations</SheetTitle>
+            <SheetTitle>{t("conversations")}</SheetTitle>
           </SheetHeader>
           <SidebarContent {...rest} />
         </SheetContent>

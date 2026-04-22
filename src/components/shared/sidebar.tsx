@@ -15,6 +15,7 @@ import {
   Menu,
   Shield,
   Scale,
+  Swords,
 } from "lucide-react";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -41,6 +42,7 @@ import type { DashboardNavItem } from "@/lib/api/dashboard";
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
   { href: "/practice", key: "practice", icon: Scale },
+  { href: "/debates/new", key: "duel", icon: Swords },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
 ] as const;
@@ -116,7 +118,9 @@ function NavContent({
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            (item.key === "duel"
+              ? pathname.startsWith("/debates")
+              : item.href !== "/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
           const label = t(item.key);
 
@@ -207,16 +211,14 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
+    { key: "duel", href: "/debates/new", status: "live" },
     {
       key: "courses",
       href: profile?.role === "admin" ? "/courses" : undefined,
       status: profile?.role === "admin" ? "live" : "coming-soon",
     },
-    { key: "coach", href: "/chat?context=dashboard-home", status: "live" },
-    { key: "feedback", status: "coming-soon" },
+    { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
-    { key: "bookmarks", status: "coming-soon" },
-    { key: "analytics", status: "coming-soon" },
   ];
 
   const handleSignOut = async () => {

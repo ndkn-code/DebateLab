@@ -20,7 +20,35 @@ export async function getConversations(
   if (error) {
     return [];
   }
-  return (data ?? []) as ConversationWithPreview[];
+
+  const conversations = (data ?? []) as ConversationWithPreview[];
+  if (conversations.length === 0) {
+    return conversations;
+  }
+
+  const conversationIds = conversations.map((conversation) => conversation.id);
+  const { data: messages } = await supabase
+    .from("chat_messages")
+    .select("conversation_id, content, created_at")
+    .in("conversation_id", conversationIds)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const previewByConversation = new Map<string, string>();
+  for (const message of messages ?? []) {
+    if (previewByConversation.has(message.conversation_id)) continue;
+    const normalized = message.content.replace(/\s+/g, " ").trim();
+    if (!normalized) continue;
+    previewByConversation.set(
+      message.conversation_id,
+      normalized.length > 88 ? `${normalized.slice(0, 85)}...` : normalized
+    );
+  }
+
+  return conversations.map((conversation) => ({
+    ...conversation,
+    preview: previewByConversation.get(conversation.id),
+  }));
 }
 
 export async function getConversation(

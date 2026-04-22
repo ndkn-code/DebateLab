@@ -1,6 +1,16 @@
 export type { DebateTopic, DebateSession, DebateRound, AiDifficulty, PracticeTrack } from "./debate";
 export type { DebateScore, DebateArgumentBreakdown } from "./feedback";
 export type {
+  CoachIntentMode,
+  CoachSkillMetric,
+  CoachTrendSummary,
+  CoachWeaknessPattern,
+  CoachRecentSession,
+  CoachRecommendation,
+  CoachProfile,
+  CoachContextEnvelope,
+} from "./coach";
+export type {
   DebateDuelStatus,
   DebateDuelPhase,
   DebateDuelSide,

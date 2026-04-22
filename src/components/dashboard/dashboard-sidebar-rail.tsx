@@ -2,18 +2,16 @@
 
 import { useState } from "react";
 import {
-  BarChart3,
-  BookMarked,
   BookOpen,
   ChevronRight,
   Clock3,
   HelpCircle,
   Home,
-  MessageSquareText,
   Scale,
   Settings,
   Sparkles,
   Gift,
+  Swords,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -25,12 +23,10 @@ import type { DashboardNavItem } from "@/lib/api/dashboard";
 const NAV_ICONS = {
   dashboard: Home,
   practice: Scale,
+  duel: Swords,
   courses: BookOpen,
   coach: Sparkles,
-  feedback: MessageSquareText,
   history: Clock3,
-  bookmarks: BookMarked,
-  analytics: BarChart3,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -48,6 +44,10 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
+  const liveNavItems = navItems.filter(
+    (item): item is DashboardNavItem & { href: string } =>
+      item.status !== "coming-soon" && typeof item.href === "string"
+  );
 
   const isActiveItem = (item: DashboardNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -60,6 +60,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "practice") {
       return pathname.startsWith("/practice");
+    }
+
+    if (item.key === "duel") {
+      return pathname.startsWith("/debates");
     }
 
     if (item.key === "courses") {
@@ -86,50 +90,31 @@ export function DashboardSidebarRail({
       />
 
       <nav className="mt-8 space-y-1.5">
-        {navItems.map((item) => {
+        {liveNavItems.map((item) => {
           const Icon = NAV_ICONS[item.key];
           const isActive = isActiveItem(item);
-          const isDisabled = item.status === "coming-soon";
-
-          if (item.href && !isDisabled) {
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={cn(
-                  "group flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-                )}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-5 w-5" />
-                  {tNav(item.key)}
-                </span>
-                <span
-                  className={cn(
-                    "h-6 w-1 rounded-full bg-primary transition-opacity",
-                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
-                  )}
-                />
-              </Link>
-            );
-          }
-
           return (
-            <div
+            <Link
               key={item.key}
-              className="flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm text-on-surface-variant"
+              href={item.href}
+              className={cn(
+                "group flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium transition-all",
+                isActive
+                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+              )}
             >
               <span className="flex items-center gap-3">
-                <Icon className="h-5 w-5 opacity-70" />
+                <Icon className="h-5 w-5" />
                 {tNav(item.key)}
               </span>
-              <span className="whitespace-nowrap rounded-full border border-outline-variant/15 bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none">
-                {t("coming_soon")}
-              </span>
-            </div>
+              <span
+                className={cn(
+                  "h-6 w-1 rounded-full bg-primary transition-opacity",
+                  isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
+                )}
+              />
+            </Link>
           );
         })}
       </nav>

@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
 import type { DebateScore, PracticeTrack } from "@/types/feedback";
+import {
+  computeSkillSnapshot as computeSharedSkillSnapshot,
+  roundToTenth,
+  type SkillMetric as DashboardSharedSkillMetric,
+} from "@/lib/analytics/skill-snapshot";
 
 const USER_TIMEZONE = "America/New_York";
 const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
@@ -9,12 +14,10 @@ const DAYS_IN_WEEK = 7;
 type DashboardNavKey =
   | "dashboard"
   | "practice"
+  | "duel"
   | "courses"
   | "coach"
-  | "feedback"
-  | "history"
-  | "bookmarks"
-  | "analytics";
+  | "history";
 
 type DashboardActionKey =
   | "speaking"
@@ -112,8 +115,8 @@ export interface DashboardNavItem {
 }
 
 export interface DashboardSkillMetric {
-  key: DashboardSkillKey;
-  value: number;
+  key: DashboardSharedSkillMetric["key"];
+  value: DashboardSharedSkillMetric["value"];
 }
 
 export interface DashboardSkillSnapshot {
@@ -267,15 +270,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function roundToTenth(value: number) {
-  return Math.round(value * 10) / 10;
-}
-
-function normalizeToFive(value: number, max: number) {
-  if (!Number.isFinite(value) || max <= 0) return 0;
-  return roundToTenth((value / max) * 5);
-}
-
 function getPracticeTrack(feedback: DebateScore | null): PracticeTrack {
   return feedback?.practiceTrack === "speaking" ? "speaking" : "debate";
 }
@@ -336,67 +330,7 @@ function buildGoalSummary(
 }
 
 function computeSkillSnapshot(scoredSessions: SessionScoreRow[]): DashboardSkillSnapshot {
-  const sessionsWithFeedback = scoredSessions.filter(
-    (session) => session.feedback?.content && session.feedback?.language
-  );
-
-  if (sessionsWithFeedback.length === 0) {
-    return {
-      metrics: [
-        { key: "clarity", value: 0 },
-        { key: "logic", value: 0 },
-        { key: "rebuttal", value: 0 },
-        { key: "evidence", value: 0 },
-        { key: "delivery", value: 0 },
-      ],
-      overallScore: null,
-      weakestSkill: null,
-      strongestSkill: null,
-      sourceSessions: 0,
-    };
-  }
-
-  let clarityTotal = 0;
-  let logicTotal = 0;
-  let rebuttalTotal = 0;
-  let evidenceTotal = 0;
-  let deliveryTotal = 0;
-
-  for (const session of sessionsWithFeedback) {
-    const feedback = session.feedback!;
-    clarityTotal += normalizeToFive(feedback.content.claimClarity, 10);
-    logicTotal += normalizeToFive(feedback.content.logicCoherence, 10);
-    rebuttalTotal += normalizeToFive(feedback.content.counterArgument, 10);
-    evidenceTotal += normalizeToFive(feedback.content.evidenceSupport, 10);
-
-    const deliveryAverage =
-      normalizeToFive(feedback.language.vocabulary, 8) +
-      normalizeToFive(feedback.language.grammar, 9) +
-      normalizeToFive(feedback.language.fluency, 8);
-    deliveryTotal += roundToTenth(deliveryAverage / 3);
-  }
-
-  const count = sessionsWithFeedback.length;
-  const metrics: DashboardSkillMetric[] = [
-    { key: "clarity", value: roundToTenth(clarityTotal / count) },
-    { key: "logic", value: roundToTenth(logicTotal / count) },
-    { key: "rebuttal", value: roundToTenth(rebuttalTotal / count) },
-    { key: "evidence", value: roundToTenth(evidenceTotal / count) },
-    { key: "delivery", value: roundToTenth(deliveryTotal / count) },
-  ];
-
-  const sorted = [...metrics].sort((left, right) => left.value - right.value);
-  const overallScore = roundToTenth(
-    metrics.reduce((sum, metric) => sum + metric.value, 0) / metrics.length
-  );
-
-  return {
-    metrics,
-    overallScore,
-    weakestSkill: sorted[0]?.key ?? null,
-    strongestSkill: sorted[sorted.length - 1]?.key ?? null,
-    sourceSessions: count,
-  };
+  return computeSharedSkillSnapshot(scoredSessions) as DashboardSkillSnapshot;
 }
 
 function computePeriodDelta(currentValue: number, previousValue: number) {
@@ -710,16 +644,14 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
+    { key: "duel", href: "/debates/new", status: "live" },
     {
       key: "courses",
       href: isAdmin ? "/courses" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
-    { key: "coach", href: "/chat?context=dashboard-home", status: "live" },
-    { key: "feedback", status: "coming-soon" },
+    { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
-    { key: "bookmarks", status: "coming-soon" },
-    { key: "analytics", status: "coming-soon" },
   ];
 
   const quickActions: DashboardQuickAction[] = [
@@ -745,7 +677,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
     {
       key: "coach",
-      href: "/chat?context=dashboard-home",
+      href: "/chat?context=coach-home",
       status: "live",
       descriptionKey: "action_coach_desc",
     },

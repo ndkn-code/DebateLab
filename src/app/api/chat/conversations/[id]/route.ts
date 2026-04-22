@@ -19,7 +19,7 @@ export async function GET(
     // Verify ownership
     const { data: conversation } = await supabase
       .from("chat_conversations")
-      .select("id")
+      .select("id, user_id, title, context_type, context_id, created_at, updated_at")
       .eq("id", id)
       .eq("user_id", user.id)
       .single();

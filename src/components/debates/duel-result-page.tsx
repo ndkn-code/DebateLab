@@ -236,7 +236,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
                   <Link
                     href={`/chat?message=${encodeURIComponent(
                       `Help me review my 1v1 debate duel on "${room.topicTitle}".`
-                    )}&context=duel-review&contextId=${encodeURIComponent(room.shareCode)}`}
+                    )}&context=duel-review&contextId=${room.id}`}
                   >
                     <Button
                       variant="outline"

@@ -54,6 +54,7 @@ export default function FeedbackPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [referralCode, setReferralCode] = useState<string>("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -151,8 +152,9 @@ export default function FeedbackPage() {
       // Save session
       if (!hasSaved.current) {
         hasSaved.current = true;
+        const sessionId = crypto.randomUUID();
         const sessionData = {
-          id: crypto.randomUUID(),
+          id: sessionId,
           date: new Date().toISOString(),
           topic: selectedTopic,
           side: resolvedSide,
@@ -170,6 +172,7 @@ export default function FeedbackPage() {
               : undefined,
           rounds: isFullRound ? rounds : undefined,
         };
+        setSavedSessionId(sessionId);
 
         // Save to Supabase if authenticated, otherwise localStorage
         const supabase = createClient();
@@ -441,7 +444,7 @@ export default function FeedbackPage() {
               <Link
                 href={`/chat?message=${encodeURIComponent(
                   coachPrompt
-                )}&context=practice-feedback&contextId=${feedbackPracticeTrack}`}
+                )}${savedSessionId ? `&context=practice-feedback&contextId=${savedSessionId}` : ""}`}
               >
                 <Button
                   variant="outline"

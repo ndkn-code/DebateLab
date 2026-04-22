@@ -3,7 +3,10 @@ import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
-import { getDebateDuelResult } from "@/lib/api/debate-duels";
+import {
+  getCoachContextEnvelope,
+  getCoachProfile,
+} from "@/lib/api/coach-profile";
 
 export const maxDuration = 60;
 
@@ -66,6 +69,18 @@ interface ChatRequest {
   contextId?: string;
 }
 
+function isUuid(value?: string | null): value is string {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+function normalizeContextType(context?: string) {
+  if (!context) return undefined;
+  return context === "dashboard-home" ? "coach-home" : context;
+}
+
 function getGroq() {
   return new Groq({
     apiKey: process.env.GROQ_API_KEY!,
@@ -92,42 +107,44 @@ export async function POST(req: NextRequest) {
     }
 
     const body: ChatRequest = await req.json();
-    const { message, context, contextId } = body;
+    const normalizedContext = normalizeContextType(body.context);
+    const { message, contextId } = body;
     let { conversationId } = body;
 
     if (!message?.trim()) {
       return new Response("Message is required", { status: 400 });
     }
 
-    // Build system prompt with optional context
     let systemPrompt = SYSTEM_PROMPT;
-    if (context === "course" && contextId) {
-      const { data: course } = await supabase
-        .from("courses")
-        .select("title, description")
-        .eq("id", contextId)
-        .single();
 
-      if (course) {
-        systemPrompt += `\n\nThe student is currently studying the course: "${course.title}". Course description: ${course.description}. Tailor your answers to be relevant to this course content when appropriate.`;
-      }
-    } else if (context === "practice-feedback") {
-      const track = contextId === "speaking" ? "speaking" : "debate";
-      systemPrompt += `\n\nThe student came here from the ${track} feedback screen. Continue the conversation in ${track} coaching mode unless they clearly ask for something else.`;
-    } else if (context === "duel-review" && contextId) {
-      const duel = await getDebateDuelResult(contextId, user.id);
-      if (duel?.judgment) {
-        systemPrompt += `\n\nThe student came here from a judged 1v1 debate duel.
+    try {
+      const coachProfile = await getCoachProfile(user.id);
+      const envelope = await getCoachContextEnvelope({
+        userId: user.id,
+        profile: coachProfile,
+        contextType: normalizedContext,
+        contextId,
+        message,
+      });
 
-Motion: "${duel.topicTitle}"
-Winner side: ${duel.judgment.winnerSide}
-Decision summary: ${duel.judgment.decisionSummary}
-Overall summary: ${duel.judgment.summary}
+      systemPrompt += `\n\nPERSONAL COACHING CONTEXT
+This is a debate-first coaching conversation. The following summary belongs to the authenticated user and should guide your advice.
 
-Proposition summary: ${duel.judgment.participantFeedback.proposition.summary}
-Opposition summary: ${duel.judgment.participantFeedback.opposition.summary}
+Coaching mode: ${envelope.mode}
+Focus title: ${envelope.focusTitle}
+Focus summary: ${envelope.focusSummary}
 
-When helping, reference this judged duel and keep your advice comparative and debate-specific.`;
+${envelope.promptContext}
+
+RULES FOR THIS CONTEXT:
+- Use the profile and attached context to make advice specific to this user.
+- Do not dump all of the profile back unless the user asks for a progress summary.
+- If you review a session, point to concrete strengths, weaknesses, and the missing debate layers.
+- If you compare sessions, describe the trend and the repeated pattern across them.
+- If context is missing or thin, say that briefly and coach from the available evidence only.`;
+    } catch (coachError) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("Coach context build failed:", coachError);
       }
     }
 
@@ -135,13 +152,24 @@ When helping, reference this judged duel and keep your advice comparative and de
       process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
 
     // Create or load conversation
-    if (!conversationId) {
+    if (conversationId) {
+      const { data: existingConversation } = await supabase
+        .from("chat_conversations")
+        .select("id")
+        .eq("id", conversationId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!existingConversation) {
+        return new Response("Conversation not found", { status: 404 });
+      }
+    } else {
       const insertData: Record<string, string> = {
         user_id: user.id,
         title: "New conversation",
       };
-      if (context) insertData.context_type = context;
-      if (contextId) insertData.context_id = contextId;
+      if (normalizedContext) insertData.context_type = normalizedContext;
+      if (isUuid(contextId)) insertData.context_id = contextId;
 
       const { data: conv, error } = await supabase
         .from("chat_conversations")

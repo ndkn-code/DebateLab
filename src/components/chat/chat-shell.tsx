@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import posthog from "posthog-js";
 import { ConversationSidebar } from "./conversation-sidebar";
 import { ChatArea } from "./chat-area";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
+import type { CoachContextEnvelope, CoachProfile } from "@/types";
 
 export interface ChatMessageLocal {
   id: string;
@@ -20,6 +22,8 @@ interface ChatShellProps {
   initialConversationId?: string;
   context?: string;
   contextId?: string;
+  initialCoachProfile: CoachProfile;
+  initialCoachEnvelope: CoachContextEnvelope;
 }
 
 export function ChatShell({
@@ -28,15 +32,70 @@ export function ChatShell({
   initialConversationId,
   context,
   contextId,
+  initialCoachProfile,
+  initialCoachEnvelope,
 }: ChatShellProps) {
+  const t = useTranslations("dashboard.chat");
+  const initialContextType = context ?? "coach-home";
   const [conversations, setConversations] = useState(initialConversations);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     initialConversationId ?? null
   );
+  const [activeContextType, setActiveContextType] = useState(initialContextType);
+  const [activeContextId, setActiveContextId] = useState<string | null>(
+    contextId ?? null
+  );
   const [messages, setMessages] = useState<ChatMessageLocal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialMessageSent, setInitialMessageSent] = useState(false);
+  const [coachProfile, setCoachProfile] = useState(initialCoachProfile);
+  const [coachEnvelope, setCoachEnvelope] = useState(initialCoachEnvelope);
+
+  const refreshCoachView = useCallback(
+    async ({
+      nextContextType,
+      nextContextId,
+      nextMessage,
+    }: {
+      nextContextType?: string | null;
+      nextContextId?: string | null;
+      nextMessage?: string;
+    }) => {
+      setIsInsightsLoading(true);
+
+      try {
+        const params = new URLSearchParams();
+        const resolvedContextType = nextContextType ?? "coach-home";
+        params.set("contextType", resolvedContextType);
+        if (nextContextId) {
+          params.set("contextId", nextContextId);
+        }
+        if (nextMessage) {
+          params.set("message", nextMessage);
+        }
+
+        const coachProfileUrl = `/api/chat/coach-profile?${params.toString()}`;
+        const res = await fetch(coachProfileUrl);
+        if (!res.ok) {
+          throw new Error("Failed to load coach profile");
+        }
+
+        const data = (await res.json()) as {
+          profile: CoachProfile;
+          envelope: CoachContextEnvelope;
+        };
+        setCoachProfile(data.profile);
+        setCoachEnvelope(data.envelope);
+      } catch {
+        // Keep current coach view on failure
+      } finally {
+        setIsInsightsLoading(false);
+      }
+    },
+    []
+  );
 
   // Load messages when switching conversations
   const loadConversation = useCallback(async (conversationId: string) => {
@@ -58,20 +117,38 @@ export function ChatShell({
             created_at: m.created_at,
           }))
         );
+
+        const nextContextType = data.conversation.context_type ?? "coach-home";
+        const nextContextId = data.conversation.context_id ?? null;
+        setActiveContextType(nextContextType);
+        setActiveContextId(nextContextId);
+        void refreshCoachView({
+          nextContextType,
+          nextContextId,
+        });
       }
     } catch {
       // Failed to load, keep empty
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshCoachView]);
 
   // Start new conversation
   const handleNewChat = useCallback(() => {
     setActiveConversationId(null);
     setMessages([]);
     setSidebarOpen(false);
-  }, []);
+    setActiveContextType(initialContextType);
+    setActiveContextId(contextId ?? null);
+    setCoachProfile(initialCoachProfile);
+    setCoachEnvelope(initialCoachEnvelope);
+  }, [
+    contextId,
+    initialCoachEnvelope,
+    initialCoachProfile,
+    initialContextType,
+  ]);
 
   // Handle conversation deletion from sidebar
   const handleDeleteConversation = useCallback(
@@ -89,16 +166,23 @@ export function ChatShell({
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim()) return;
+      const trimmedText = text.trim();
 
       // Add user message to UI
       const userMsg: ChatMessageLocal = {
         id: `temp-${Date.now()}`,
         role: "user",
-        content: text.trim(),
+        content: trimmedText,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
-      posthog.capture("chat_message_sent", { message_length: text.trim().length });
+      posthog.capture("chat_message_sent", { message_length: trimmedText.length });
+
+      void refreshCoachView({
+        nextContextType: activeContextType,
+        nextContextId: activeContextId,
+        nextMessage: trimmedText,
+      });
 
       // Add placeholder assistant message
       const assistantMsg: ChatMessageLocal = {
@@ -115,10 +199,10 @@ export function ChatShell({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: text.trim(),
+            message: trimmedText,
             conversationId: activeConversationId,
-            context,
-            contextId,
+            context: activeContextType,
+            contextId: activeContextId,
           }),
         });
 
@@ -181,6 +265,7 @@ export function ChatShell({
                           ? {
                               ...c,
                               updated_at: new Date().toISOString(),
+                              preview: trimmedText,
                             }
                           : c
                       );
@@ -190,9 +275,12 @@ export function ChatShell({
                       {
                         id: newConversationId!,
                         user_id: "",
-                        title: text.trim().slice(0, 40),
+                        title: trimmedText.slice(0, 40),
+                        context_type: activeContextType,
+                        context_id: activeContextId,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
+                        preview: trimmedText,
                       },
                       ...prev,
                     ];
@@ -213,7 +301,7 @@ export function ChatShell({
           if (last && last.role === "assistant" && !last.content) {
             updated[updated.length - 1] = {
               ...last,
-              content: "Sorry, I encountered an error. Please try again.",
+              content: t("error_message"),
             };
           }
           return updated;
@@ -222,7 +310,7 @@ export function ChatShell({
         setIsLoading(false);
       }
     },
-    [activeConversationId, context, contextId]
+    [activeContextId, activeContextType, activeConversationId, refreshCoachView, t]
   );
 
   // Auto-send initial message from URL param
@@ -258,8 +346,9 @@ export function ChatShell({
         onSendMessage={sendMessage}
         onOpenSidebar={() => setSidebarOpen(true)}
         hasConversation={!!activeConversationId}
-        context={context}
-        contextId={contextId}
+        coachProfile={coachProfile}
+        coachEnvelope={coachEnvelope}
+        isInsightsLoading={isInsightsLoading}
       />
     </div>
   );
