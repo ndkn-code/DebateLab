@@ -3,13 +3,8 @@
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
-  BookOpen,
-  MessageCircle,
-  MessagesSquare,
   Plus,
-  Sparkles,
   Trash2,
-  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -37,19 +32,6 @@ function SidebarContent({
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("dashboard.chat");
 
-  const getContextMeta = (contextType?: string | null) => {
-    switch (contextType) {
-      case "course":
-        return { label: t("context.course_help"), icon: BookOpen };
-      case "practice-feedback":
-        return { label: t("context.session_review"), icon: Sparkles };
-      case "duel-review":
-        return { label: t("context.duel_review"), icon: Trophy };
-      default:
-        return { label: t("context.general_coaching"), icon: MessagesSquare };
-    }
-  };
-
   const formatDate = (iso: string) => {
     const date = new Date(iso);
     const now = new Date();
@@ -76,10 +58,10 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <div className="border-b border-outline-variant/10 p-4">
+      <div className="border-b border-outline-variant/12 p-4">
         <Button
           onClick={onNewChat}
-          className="h-11 w-full gap-2 rounded-2xl bg-primary text-on-primary"
+          className="h-12 w-full gap-2 rounded-[18px] bg-primary text-on-primary shadow-[0_10px_24px_rgba(77,134,247,0.22)]"
         >
           <Plus className="h-4 w-4" />
           {t("new_chat")}
@@ -88,24 +70,20 @@ function SidebarContent({
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-            <MessageCircle className="mb-3 h-8 w-8 text-primary/30" />
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
             <p className="text-sm text-on-surface-variant">{t("sidebar_empty")}</p>
           </div>
         ) : (
           <div className="space-y-2">
             {conversations.map((conversation) => {
-              const contextMeta = getContextMeta(conversation.context_type);
-              const ContextIcon = contextMeta.icon;
-
               return (
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group rounded-2xl border px-3 py-3 transition-colors",
+                    "group rounded-[18px] border px-3 py-3 transition-colors",
                     activeId === conversation.id
                       ? "border-primary/18 bg-primary/5 text-on-surface"
-                      : "border-outline-variant/10 bg-surface-container-low/45 text-on-surface hover:border-primary/12 hover:bg-surface-container-low"
+                      : "border-outline-variant/12 bg-transparent text-on-surface hover:border-outline-variant/18 hover:bg-surface-container-low/55"
                   )}
                 >
                   <div
@@ -120,14 +98,6 @@ function SidebarContent({
                     }}
                     className="flex min-w-0 cursor-pointer items-start gap-3"
                   >
-                    <div
-                      className={cn(
-                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                        activeId === conversation.id ? "bg-primary/12" : "bg-surface"
-                      )}
-                    >
-                      <ContextIcon className="h-4 w-4 text-primary" />
-                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
                         <p className="truncate text-sm font-semibold">
@@ -137,9 +107,6 @@ function SidebarContent({
                           {formatDate(conversation.updated_at || conversation.created_at)}
                         </span>
                       </div>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary/80">
-                        {contextMeta.label}
-                      </p>
                       <p className="mt-1 line-clamp-2 text-xs leading-5 text-on-surface-variant">
                         {conversation.preview || t("preview_fallback")}
                       </p>
@@ -170,12 +137,12 @@ export function ConversationSidebar(props: ConversationSidebarProps) {
 
   return (
     <>
-      <div className="hidden w-[280px] shrink-0 border-r border-outline-variant/10 bg-surface-container-lowest lg:block">
+      <div className="hidden w-[260px] shrink-0 border-r border-outline-variant/12 bg-surface lg:block">
         <SidebarContent {...rest} />
       </div>
 
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[280px] p-0">
+        <SheetContent side="left" className="w-[260px] p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>{t("conversations")}</SheetTitle>
           </SheetHeader>
