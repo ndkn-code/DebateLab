@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   Menu,
   Shield,
-  Gift,
 } from "lucide-react";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -198,7 +197,9 @@ function NavContent({
 export function Sidebar({ profile, userEmail }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const tc = useTranslations('common');
+  const isDashboardHome = pathname === "/dashboard";
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -211,31 +212,33 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden md:flex flex-col h-screen sticky top-0 border-r border-outline-variant/10 bg-surface-container-lowest transition-all duration-200",
-          collapsed ? "w-16" : "w-60"
-        )}
-      >
-        <NavContent
-          collapsed={collapsed}
-          profile={profile}
-          userEmail={userEmail}
-          onSignOut={handleSignOut}
-        />
-        {/* Collapse toggle */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container"
+      {!isDashboardHome ? (
+        <aside
+          className={cn(
+            "hidden md:flex flex-col h-screen sticky top-0 border-r border-outline-variant/10 bg-surface-container-lowest transition-all duration-200",
+            collapsed ? "w-16" : "w-60"
+          )}
         >
-          <ChevronLeft
-            className={cn(
-              "h-3.5 w-3.5 transition-transform",
-              collapsed && "rotate-180"
-            )}
+          <NavContent
+            collapsed={collapsed}
+            profile={profile}
+            userEmail={userEmail}
+            onSignOut={handleSignOut}
           />
-        </button>
-      </aside>
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container"
+          >
+            <ChevronLeft
+              className={cn(
+                "h-3.5 w-3.5 transition-transform",
+                collapsed && "rotate-180"
+              )}
+            />
+          </button>
+        </aside>
+      ) : null}
 
       {/* Mobile top bar + sheet */}
       <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">

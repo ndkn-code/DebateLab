@@ -84,7 +84,6 @@
       }
     },
     "testimonials": {
-      "headline": "Debater Nói Gì?",
       "0": {
         "quote": "DebateLab cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!"
       },
@@ -93,7 +92,8 @@
       },
       "2": {
         "quote": "AI Coach giải thích WSDC format dễ hiểu hơn hẳn đọc sách. Cả team mình giờ dùng DebateLab để warm-up trước giải."
-      }
+      },
+      "headline": "Debater Nói Gì?"
     },
     "stats": {
       "debaters": "Debater đang luyện",
@@ -281,7 +281,13 @@
       "history": "Lịch sử",
       "profile": "Hồ sơ",
       "settings": "Cài đặt",
-      "switchToAdmin": "Chuyển sang Quản trị"
+      "switchToAdmin": "Chuyển sang Quản trị",
+      "speaking": "Luyện Nói",
+      "debate": "Debate",
+      "coach": "AI Coach",
+      "feedback": "Feedback",
+      "bookmarks": "Đánh dấu",
+      "analytics": "Phân tích"
     },
     "home": {
       "greeting_morning": "Chào buổi sáng",
@@ -400,6 +406,91 @@
         "fri": "T6",
         "sat": "T7",
         "sun": "CN"
+      },
+      "topbar_streak": "Chuỗi ngày",
+      "topbar_streak_value": "Chuỗi {count} ngày",
+      "topbar_orbs": "Orbs",
+      "topbar_level": "Level",
+      "hero_title": "Hôm nay mình làm một ngày debate thật chất nhé.",
+      "hero_subtitle": "Giữ chuỗi luyện tập và tiếp tục nâng cấp kỹ năng lập luận của bạn.",
+      "streak_widget_note": "Giữ nhịp này nhé!",
+      "today_practice_title": "Thời Gian Luyện Hôm Nay",
+      "today_practice_note": "Vào nhịp và chạm mục tiêu trong ngày.",
+      "goal_minutes": "Mục tiêu: {count} phút",
+      "skill_snapshot_title": "Ảnh Chụp Kỹ Năng",
+      "skill_snapshot_hint": "Biểu đồ này được tổng hợp từ toàn bộ các phiên có chấm điểm, nên phản ánh form dài hạn chứ không chỉ riêng tuần này.",
+      "skill_snapshot_empty_title": "Cần thêm vài phiên có chấm điểm để mở khóa biểu đồ kỹ năng",
+      "skill_snapshot_empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc debate có feedback, rồi biểu đồ này sẽ bắt đầu phản ánh thế mạnh dài hạn của bạn.",
+      "overall_score": "Điểm Tổng Quan",
+      "view_details": "Xem chi tiết",
+      "today_goal_title": "Mục Tiêu Hôm Nay",
+      "today_goal_subtitle": "Thời gian luyện tập",
+      "goal_complete": "Tốt lắm! Bạn đã đạt mục tiêu hôm nay.",
+      "goal_keep_going": "Cố thêm chút nữa là chốt được mục tiêu rồi.",
+      "invite_friend_title": "Mời bạn bè",
+      "invite_friend_reward": "Nhận {count} Orbs",
+      "invite_friend_cta": "Sao chép link mời",
+      "help_support": "Trợ giúp & Hỗ trợ",
+      "action_speaking_title": "Bắt Đầu Luyện Nói",
+      "action_debate_title": "Bắt Đầu Debate",
+      "action_course_title": "Tiếp Tục Khóa Học",
+      "action_coach_title": "Hỏi AI Coach",
+      "action_speaking_desc": "Luyện bài nói và cải thiện cách trình bày.",
+      "action_debate_desc": "Debate với AI hoặc đối thủ thật.",
+      "action_course_desc": "Quay lại đúng chỗ bạn đang học dở.",
+      "action_course_coming_soon_desc": "Quyền truy cập khóa học cho học sinh sẽ sớm mở.",
+      "action_coach_desc": "Nhận feedback và cải thiện nhanh hơn.",
+      "recent_activity_title": "Luyện Tập & Feedback Gần Đây",
+      "recent_activity_subtitle": "Quay lại các phiên luyện và dấu mốc học gần nhất của bạn.",
+      "empty_recent_activity": "Hoàn thành phiên đầu tiên rồi hoạt động gần đây sẽ hiện ở đây.",
+      "track_speaking": "Luyện Nói",
+      "track_debate": "Debate",
+      "next_steps_title": "Bước Tiếp Theo",
+      "next_steps_subtitle": "Giữ đà tiến bộ bằng một bước rõ ràng ở mỗi lần mở app.",
+      "review": "Xem lại",
+      "open_setup": "Mở cấu hình",
+      "join_now": "Tham gia",
+      "next_step_continue_course": "Tiếp tục khóa học",
+      "next_step_skill_title": "Tăng lực cho {skill}",
+      "next_step_skill_title_generic": "Đánh vào điểm yếu",
+      "next_step_underused_speaking": "Kéo luyện nói trở lại nhịp",
+      "next_step_underused_debate": "Kéo debate trở lại nhịp",
+      "next_step_review_feedback": "Xem lại feedback gần nhất",
+      "next_step_live_match": "Vào live debate",
+      "next_step_skill_desc": "Điểm dài hạn hiện tại: {score}",
+      "next_step_underused_speaking_desc": "Một phiên luyện nói sẽ cân bằng lại nhịp luyện gần đây của bạn.",
+      "next_step_underused_debate_desc": "Một phiên debate sẽ cân bằng lại nhịp luyện gần đây của bạn.",
+      "next_step_live_match_desc": "Ghép live debate vẫn chưa được mở ở phiên bản này.",
+      "progress_title": "Tiến Độ Của Bạn",
+      "progress_subtitle": "Góc nhìn gọn về các chỉ số đáng chú ý nhất lúc này.",
+      "delta_none": "Chưa có kỳ trước",
+      "delta_vs_last_week": "so với tuần trước",
+      "settings_label": "Cài đặt",
+      "coming_soon": "Sắp ra mắt",
+      "skill_labels": {
+        "clarity": "Độ rõ",
+        "logic": "Logic",
+        "rebuttal": "Phản biện",
+        "evidence": "Dẫn chứng",
+        "delivery": "Trình bày"
+      },
+      "progress_metrics": {
+        "total-sessions": {
+          "title": "Tổng Phiên",
+          "subtitle": "Tất cả phiên đã hoàn thành"
+        },
+        "strong-rate": {
+          "title": "Tỷ Lệ Phiên Tốt",
+          "subtitle": "Từ mức Competent trở lên"
+        },
+        "average-score": {
+          "title": "Điểm Lập Luận TB",
+          "subtitle": "Form có chấm điểm gần đây"
+        },
+        "practice-time": {
+          "title": "Thời Gian Luyện (7N)",
+          "subtitle": "Trong 7 ngày gần nhất"
+        }
       }
     },
     "courses": {

@@ -4,7 +4,11 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { PracticeTrack } from "@/types";
 
-type CoachQuickActionVariant = "general" | "course" | PracticeTrack;
+export type CoachQuickActionVariant =
+  | "general"
+  | "dashboard"
+  | "course"
+  | PracticeTrack;
 
 interface CoachQuickActionsProps {
   variant?: CoachQuickActionVariant;
@@ -19,6 +23,12 @@ const ACTIONS_BY_VARIANT = {
     "weighing",
     "clearer_english",
     "stronger_opening",
+  ],
+  dashboard: [
+    "speech_structure",
+    "debate_stance",
+    "weighing",
+    "clearer_english",
   ],
   debate: [
     "debate_stance",

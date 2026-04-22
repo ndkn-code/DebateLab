@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
-import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 
 export const metadata = {
   title: "Dashboard",
@@ -35,15 +34,11 @@ export default async function DashboardPage() {
   const showWelcome = prefs.first_dashboard_visit === true;
 
   return (
-    <>
-      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-        <WelcomeBanner
-          displayName={displayName}
-          userId={user.id}
-          show={showWelcome}
-        />
-      </div>
-      <DashboardContent data={data} displayName={displayName} />
-    </>
+    <DashboardContent
+      data={data}
+      displayName={displayName}
+      userId={user.id}
+      showWelcome={showWelcome}
+    />
   );
 }

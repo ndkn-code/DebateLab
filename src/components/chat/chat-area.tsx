@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Send, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CoachQuickActions } from "./coach-quick-actions";
+import {
+  CoachQuickActions,
+  type CoachQuickActionVariant,
+} from "./coach-quick-actions";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
-import type { PracticeTrack } from "@/types";
 
 interface ChatAreaProps {
   messages: ChatMessageLocal[];
@@ -160,7 +162,11 @@ export function ChatArea({
 function getCoachQuickActionVariant(
   context?: string,
   contextId?: string
-): "general" | "course" | PracticeTrack {
+): CoachQuickActionVariant {
+  if (context === "dashboard-home") {
+    return "dashboard";
+  }
+
   if (context === "course") {
     return "course";
   }
@@ -179,7 +185,7 @@ function WelcomeScreen({
 }: {
   onPromptClick: (text: string) => void;
   t: ReturnType<typeof useTranslations>;
-  actionVariant: "general" | "course" | PracticeTrack;
+  actionVariant: CoachQuickActionVariant;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">

@@ -84,7 +84,6 @@
       }
     },
     "testimonials": {
-      "headline": "What Debaters Say",
       "0": {
         "quote": "DebateLab finally gave us the Truong Teen experience at home. The AI structure analysis helped me jump from regionals to the national finals!"
       },
@@ -93,7 +92,8 @@
       },
       "2": {
         "quote": "The AI Coach explains WSDC format way better than textbooks. Our whole team now uses DebateLab to warm up before tournaments."
-      }
+      },
+      "headline": "What Debaters Say"
     },
     "stats": {
       "debaters": "Active debaters",
@@ -281,7 +281,13 @@
       "history": "History",
       "profile": "Profile",
       "settings": "Settings",
-      "switchToAdmin": "Switch to Administration"
+      "switchToAdmin": "Switch to Administration",
+      "speaking": "Speaking Practice",
+      "debate": "Debate Practice",
+      "coach": "AI Coach",
+      "feedback": "Feedback",
+      "bookmarks": "Bookmarks",
+      "analytics": "Analytics"
     },
     "home": {
       "greeting_morning": "Good morning",
@@ -400,6 +406,91 @@
         "fri": "Fri",
         "sat": "Sat",
         "sun": "Sun"
+      },
+      "topbar_streak": "Day Streak",
+      "topbar_streak_value": "{count} day streak",
+      "topbar_orbs": "Orbs",
+      "topbar_level": "Level",
+      "hero_title": "Let's make today a great debate day.",
+      "hero_subtitle": "Keep your streak alive and continue improving your argument skills.",
+      "streak_widget_note": "Keep it going!",
+      "today_practice_title": "Today's Practice Time",
+      "today_practice_note": "Show up and hit your daily goal.",
+      "goal_minutes": "Goal: {count} min",
+      "skill_snapshot_title": "Skill Snapshot",
+      "skill_snapshot_hint": "Built from your lifetime scored sessions, so it reflects your long-term profile instead of only this week.",
+      "skill_snapshot_empty_title": "Skill snapshot unlocks after a few scored rounds",
+      "skill_snapshot_empty_body": "Complete some speaking or debate sessions with feedback, and this radar will start reflecting your long-term strengths.",
+      "overall_score": "Overall Score",
+      "view_details": "View details",
+      "today_goal_title": "Today's Goal",
+      "today_goal_subtitle": "Practice time",
+      "goal_complete": "Great job! You met your goal.",
+      "goal_keep_going": "Keep going. A few more minutes will lock it in.",
+      "invite_friend_title": "Invite a friend",
+      "invite_friend_reward": "Earn {count} Orbs",
+      "invite_friend_cta": "Copy invite link",
+      "help_support": "Help & Support",
+      "action_speaking_title": "Start Speaking",
+      "action_debate_title": "Start Debate",
+      "action_course_title": "Continue Course",
+      "action_coach_title": "Ask AI Coach",
+      "action_speaking_desc": "Practice speeches and improve delivery.",
+      "action_debate_desc": "Debate AI or real opponents.",
+      "action_course_desc": "Pick up where you left off.",
+      "action_course_coming_soon_desc": "Course access is coming soon for students.",
+      "action_coach_desc": "Get feedback and improve faster.",
+      "recent_activity_title": "Recent Practice & Feedback",
+      "recent_activity_subtitle": "Jump back into your latest sessions and learning moments.",
+      "empty_recent_activity": "Finish your first session and your recent activity will appear here.",
+      "track_speaking": "Speaking Practice",
+      "track_debate": "Debate Practice",
+      "next_steps_title": "Next Steps",
+      "next_steps_subtitle": "Keep your momentum going with one clear move at a time.",
+      "review": "Review",
+      "open_setup": "Open setup",
+      "join_now": "Join now",
+      "next_step_continue_course": "Continue your course",
+      "next_step_skill_title": "Strengthen {skill}",
+      "next_step_skill_title_generic": "Target a weak spot",
+      "next_step_underused_speaking": "Bring speaking back into the mix",
+      "next_step_underused_debate": "Bring debate back into the mix",
+      "next_step_review_feedback": "Review your latest feedback",
+      "next_step_live_match": "Join a live debate",
+      "next_step_skill_desc": "Current lifetime score: {score}",
+      "next_step_underused_speaking_desc": "A speaking round will rebalance your recent practice mix.",
+      "next_step_underused_debate_desc": "A debate round will rebalance your recent practice mix.",
+      "next_step_live_match_desc": "Live matchmaking is not available yet.",
+      "progress_title": "Your Progress",
+      "progress_subtitle": "A compact view of the metrics that matter right now.",
+      "delta_none": "No prior period",
+      "delta_vs_last_week": "vs last week",
+      "settings_label": "Settings",
+      "coming_soon": "Coming soon",
+      "skill_labels": {
+        "clarity": "Clarity",
+        "logic": "Logic",
+        "rebuttal": "Rebuttal",
+        "evidence": "Evidence",
+        "delivery": "Delivery"
+      },
+      "progress_metrics": {
+        "total-sessions": {
+          "title": "Total Sessions",
+          "subtitle": "Lifetime completed"
+        },
+        "strong-rate": {
+          "title": "Strong Session Rate",
+          "subtitle": "Competent or above"
+        },
+        "average-score": {
+          "title": "Avg. Argument Score",
+          "subtitle": "Recent scored form"
+        },
+        "practice-time": {
+          "title": "Practice Time (7D)",
+          "subtitle": "Last 7 days"
+        }
       }
     },
     "courses": {
@@ -1065,8 +1156,7 @@
       "unenroll": "Unenroll",
       "restrictedAccess": "This course is available by invitation only.",
       "premiumRequired": "Premium subscription required.",
-      "unlockAfterPurchase": "Available after purchase"
-      ,
+      "unlockAfterPurchase": "Available after purchase",
       "backToEditor": "Back to Editor",
       "adminPreview": "Admin Preview",
       "previewDraft": "Draft",
