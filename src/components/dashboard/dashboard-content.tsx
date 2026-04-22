@@ -24,7 +24,6 @@ import { Link } from "@/i18n/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { OrbBalance } from "@/components/shared/orb-balance";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { cn } from "@/lib/utils";
 import type {
@@ -60,6 +59,14 @@ const TASK_ICONS = {
   "review-feedback": MessageSquareText,
   "live-match": Scale,
 } as const;
+const PROGRESS_ICONS = {
+  "total-sessions": Trophy,
+  "strong-rate": Target,
+  "average-score": MessageSquareText,
+  "practice-time": Clock3,
+} as const;
+const PANEL_ROW_CLASS =
+  "grid min-h-[92px] items-center gap-3 rounded-[1.45rem] bg-[#F5F3FF] px-4 py-4";
 
 function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
@@ -196,15 +203,17 @@ function UtilityChip({
   children?: ReactNode;
 }) {
   return (
-    <div className="inline-flex items-center gap-3 rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-lowest px-3.5 py-2 shadow-[0_20px_60px_-52px_rgba(22,39,91,0.42)]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-container-low text-primary">
+    <div className="inline-flex items-center gap-3 px-3 py-1.5">
+      <div className="flex h-9 w-9 items-center justify-center text-primary">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-on-surface-variant">
-          {label}
-        </p>
-        {value ? <p className="text-sm font-semibold text-on-surface">{value}</p> : null}
+        {value ? (
+          <p className="text-[1.1rem] font-semibold leading-none text-on-surface">
+            {value}
+          </p>
+        ) : null}
+        <p className="mt-1 text-xs text-on-surface-variant">{label}</p>
         {children}
       </div>
     </div>
@@ -266,9 +275,10 @@ function HeroGoalWidget({
   progressPercent,
 }: DashboardHomeData["hero"]["todayGoal"]) {
   const t = useTranslations("dashboard.home");
+  const metGoal = practicedMinutes >= goalMinutes;
 
   return (
-    <div className="rounded-[1.4rem] border border-outline-variant/10 bg-surface-container-lowest p-4">
+    <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Clock3 className="h-5 w-5" />
@@ -277,11 +287,13 @@ function HeroGoalWidget({
           <p className="text-lg font-semibold text-on-surface">
             {t("today_practice_title")}
           </p>
-          <p className="text-sm text-on-surface-variant">{t("today_practice_note")}</p>
+          <p className="text-sm text-on-surface-variant">
+            {t("today_practice_note")}
+          </p>
         </div>
       </div>
 
-      <div className="mt-4 flex items-end justify-between gap-3">
+      <div className="mt-5 flex items-end justify-between gap-3">
         <p className="text-[2rem] font-semibold leading-none text-on-surface">
           {practicedMinutes}
           <span className="ml-1 text-sm font-medium text-on-surface-variant">
@@ -293,10 +305,18 @@ function HeroGoalWidget({
         </span>
       </div>
 
+      <p className="mt-2 text-sm text-on-surface-variant">
+        {t("today_goal_subtitle")}
+      </p>
+
       <Progress
         value={progressPercent}
         className="mt-4 h-2.5 bg-surface-container-high"
       />
+
+      <p className="mt-4 text-sm text-on-surface-variant">
+        {metGoal ? t("goal_complete") : t("goal_keep_going")}
+      </p>
     </div>
   );
 }
@@ -356,8 +376,8 @@ function RecentActivityCard({
   const tProfile = useTranslations("dashboard.profile");
 
   return (
-    <section className="rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-5 flex min-h-[70px] items-start justify-between gap-3">
         <div>
           <h2 className="text-[1.15rem] font-semibold text-on-surface">
             {t("recent_activity_title")}
@@ -379,11 +399,11 @@ function RecentActivityCard({
           {t("empty_recent_activity")}
         </Link>
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid flex-1 auto-rows-fr gap-3">
           {items.map((item) => {
             const Icon = RECENT_ICONS[item.kind];
             const body = (
-              <div className="flex items-center gap-3 rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-low px-3.5 py-3">
+              <div className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}>
                 <div
                   className={cn(
                     "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
@@ -394,7 +414,7 @@ function RecentActivityCard({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-on-surface">
+                  <p className="truncate text-[1.02rem] font-medium text-on-surface">
                     {item.title}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
@@ -454,8 +474,8 @@ function NextStepsCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-4">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-5 min-h-[70px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("next_steps_title")}
         </h2>
@@ -464,7 +484,7 @@ function NextStepsCard({
         </p>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="grid flex-1 auto-rows-fr gap-3">
         {tasks.map((task) => {
           const Icon = TASK_ICONS[task.key];
           const ctaLabel =
@@ -479,13 +499,13 @@ function NextStepsCard({
                     : t("open_setup");
 
           const body = (
-            <div className="flex items-center gap-3 rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-low px-3.5 py-3">
+            <div className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-on-surface">
+                <p className="text-[1.02rem] font-medium text-on-surface">
                   {getTaskTitle(task, t)}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-on-surface-variant">
@@ -495,7 +515,7 @@ function NextStepsCard({
 
               <div className="shrink-0">
                 {task.progressLabel ? (
-                  <span className="mr-2 rounded-full border border-outline-variant/15 bg-surface-container-high px-2 py-1 text-xs font-medium text-on-surface-variant">
+                  <span className="mr-2 rounded-full bg-white/65 px-2.5 py-1 text-xs font-medium text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]">
                     {task.progressLabel}
                   </span>
                 ) : null}
@@ -504,8 +524,8 @@ function NextStepsCard({
                   className={cn(
                     "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
                     task.status === "coming-soon"
-                      ? "border border-outline-variant/15 bg-surface-container-high text-on-surface-variant"
-                      : "bg-primary/10 text-primary"
+                      ? "bg-white/65 text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]"
+                      : "bg-white/70 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
                   )}
                 >
                   {ctaLabel}
@@ -535,8 +555,8 @@ function ProgressCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-4">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-5 min-h-[70px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("progress_title")}
         </h2>
@@ -545,15 +565,20 @@ function ProgressCard({
         </p>
       </div>
 
-      <div className="space-y-3">
-        {metrics.map((metric) => (
-          <div
-            key={metric.key}
-            className="rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-low px-4 py-3"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-on-surface">
+      <div className="grid flex-1 auto-rows-fr gap-3">
+        {metrics.map((metric) => {
+          const Icon = PROGRESS_ICONS[metric.key];
+
+          return (
+            <div
+              key={metric.key}
+              className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[1.02rem] font-medium text-on-surface">
                   {t(`progress_metrics.${metric.key}.title`)}
                 </p>
                 <p className="mt-1 text-xs text-on-surface-variant">
@@ -561,29 +586,27 @@ function ProgressCard({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-semibold text-on-surface">
+                <p className="text-[1.05rem] font-semibold text-on-surface">
                   {metric.displayValue}
                 </p>
-                <p className={cn("text-xs", deltaClass(metric.delta))}>
+                <p className={cn("mt-1 text-xs", deltaClass(metric.delta))}>
                   {metric.delta == null
                     ? t("delta_none")
                     : `${deltaPrefix(metric.delta)}${metric.delta} ${t("delta_vs_last_week")}`}
                 </p>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
 }
 
 function MobileSupportCards({
-  dailyGoal,
   referralCode,
   inviteReward,
 }: {
-  dailyGoal: DashboardHomeData["sidebarCards"]["dailyGoal"];
   referralCode: string | null;
   inviteReward: number;
 }) {
@@ -592,34 +615,6 @@ function MobileSupportCards({
 
   return (
     <div className="grid gap-4 lg:hidden">
-      <div className="rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Target className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-on-surface">
-              {t("today_goal_title")}
-            </p>
-            <p className="text-sm text-on-surface-variant">
-              {t("goal_minutes", { count: dailyGoal.goalMinutes })}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <p className="text-2xl font-semibold text-on-surface">
-            {dailyGoal.practicedMinutes} / {dailyGoal.goalMinutes}
-            <span className="ml-1 text-sm font-medium text-on-surface-variant">
-              {t("min")}
-            </span>
-          </p>
-          <Progress
-            value={dailyGoal.progressPercent}
-            className="mt-3 h-2.5 bg-surface-container-high"
-          />
-        </div>
-      </div>
-
       <div className="rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -708,27 +703,25 @@ export function DashboardContent({
       <div className="grid min-h-screen lg:grid-cols-[280px_minmax(0,1fr)]">
         <DashboardSidebarRail
           navItems={data.nav}
-          dailyGoal={data.sidebarCards.dailyGoal}
           referralCode={data.sidebarCards.referralCode}
           inviteReward={data.sidebarCards.inviteOrbs}
         />
 
         <main className="min-w-0 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
           <div className="mx-auto max-w-[1400px]">
-            <div className="mb-5 flex flex-wrap items-center justify-end gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-end gap-1 text-on-surface">
               <UtilityChip
                 icon={<Flame className="h-5 w-5 text-[#F97316]" />}
                 label={t("topbar_streak")}
-                value={t("topbar_streak_value", { count: topBar.currentStreak })}
+                value={topBar.currentStreak}
               />
+              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
               <UtilityChip
                 icon={<Sparkles className="h-5 w-5 text-[#F59E0B]" />}
                 label={t("topbar_orbs")}
-              >
-                <div className="mt-0.5">
-                  <OrbBalance balance={topBar.orbBalance} size="md" showLabel />
-                </div>
-              </UtilityChip>
+                value={topBar.orbBalance.toLocaleString()}
+              />
+              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
               <UtilityChip
                 icon={<Star className="h-5 w-5 text-primary" />}
                 label={t("topbar_level")}
@@ -744,16 +737,18 @@ export function DashboardContent({
                   />
                 </div>
               </UtilityChip>
+              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
 
               <button
                 type="button"
                 disabled
-                className="inline-flex h-[58px] w-[58px] items-center justify-center rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-lowest text-on-surface-variant shadow-[0_20px_60px_-52px_rgba(22,39,91,0.42)] disabled:cursor-not-allowed"
+                className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant disabled:cursor-not-allowed"
               >
                 <Bell className="h-5 w-5" />
               </button>
+              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
 
-              <div className="inline-flex items-center gap-3 rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-lowest px-3.5 py-2 shadow-[0_20px_60px_-52px_rgba(22,39,91,0.42)]">
+              <div className="inline-flex items-center gap-3 px-3 py-1.5">
                 <Avatar size="sm">
                   {profile?.avatar_url ? (
                     <AvatarImage src={profile.avatar_url} alt={displayName} />
@@ -777,7 +772,7 @@ export function DashboardContent({
 
             <div className="space-y-5">
               <section className="rounded-[2rem] border border-outline-variant/12 bg-gradient-to-br from-[#F6F9FF] via-surface-container-lowest to-[#FBFCFF] p-5 shadow-[0_28px_90px_-60px_rgba(22,39,91,0.38)] md:p-6">
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
                   <div className="min-w-0">
                     <p className="text-[1.05rem] font-medium text-on-surface">
                       {t(getTimeGreetingKey())}, {displayName}!{" "}
@@ -806,14 +801,13 @@ export function DashboardContent({
                 ))}
               </section>
 
-              <section className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-start">
+              <section className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
                 <RecentActivityCard items={data.recentActivity} />
                 <NextStepsCard tasks={data.nextSteps} />
                 <ProgressCard metrics={data.progress} />
               </section>
 
               <MobileSupportCards
-                dailyGoal={data.sidebarCards.dailyGoal}
                 referralCode={data.sidebarCards.referralCode}
                 inviteReward={data.sidebarCards.inviteOrbs}
               />

@@ -20,18 +20,21 @@ const SKILL_COLORS = {
   delivery: "bg-[#8B5CF6]",
 } as const;
 
+const CHART_SIZE = 300;
+const CHART_CENTER = CHART_SIZE / 2;
+const CHART_MAX_RADIUS = 98;
 const LABEL_POSITIONS = [
-  { x: 110, y: 16, textAnchor: "middle" as const },
-  { x: 210, y: 88, textAnchor: "start" as const },
-  { x: 172, y: 202, textAnchor: "start" as const },
-  { x: 48, y: 202, textAnchor: "end" as const },
-  { x: 12, y: 88, textAnchor: "end" as const },
+  { x: CHART_CENTER, y: 18, textAnchor: "middle" as const },
+  { x: 268, y: 114, textAnchor: "start" as const },
+  { x: 228, y: 258, textAnchor: "start" as const },
+  { x: 72, y: 258, textAnchor: "end" as const },
+  { x: 32, y: 114, textAnchor: "end" as const },
 ];
 
 function pointForValue(index: number, value: number) {
-  const centerX = 110;
-  const centerY = 110;
-  const radius = 72 * (value / 5);
+  const centerX = CHART_CENTER;
+  const centerY = CHART_CENTER;
+  const radius = CHART_MAX_RADIUS * (value / 5);
   const angle = -Math.PI / 2 + (index * (Math.PI * 2)) / 5;
 
   return {
@@ -59,7 +62,7 @@ export function SkillSnapshotCard({
 
   return (
     <section className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest shadow-[0_28px_80px_-52px_rgba(22,39,91,0.45)]">
-      <div className="grid gap-6 p-5 md:grid-cols-[260px_minmax(0,1fr)] md:p-6">
+      <div className="grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6">
         <div>
           <div className="mb-3 flex items-center gap-2">
             <h2 className="text-lg font-semibold text-on-surface">
@@ -86,8 +89,8 @@ export function SkillSnapshotCard({
             </div>
           ) : (
             <svg
-              viewBox="0 0 220 220"
-              className="mx-auto block h-[220px] w-[220px]"
+              viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
+              className="mx-auto block h-[280px] w-full max-w-[320px]"
               aria-hidden="true"
             >
               {[1, 2, 3, 4].map((step) => {
@@ -108,8 +111,8 @@ export function SkillSnapshotCard({
                 return (
                   <line
                     key={index}
-                    x1="110"
-                    y1="110"
+                    x1={CHART_CENTER}
+                    y1={CHART_CENTER}
                     x2={start.x}
                     y2={start.y}
                     stroke="rgba(77,134,247,0.18)"
@@ -146,7 +149,7 @@ export function SkillSnapshotCard({
                     x={position.x}
                     y={position.y}
                     textAnchor={position.textAnchor}
-                    className="fill-[#51617f] text-[12px] font-medium"
+                    className="fill-[#51617f] text-[11px] font-medium"
                   >
                     {t(`skill_labels.${metric.key}`)}
                   </text>
@@ -156,29 +159,32 @@ export function SkillSnapshotCard({
           )}
         </div>
 
-        <div className="flex flex-col">
-          <div className="space-y-4">
+        <div className="flex flex-col md:border-l md:border-outline-variant/10 md:pl-6">
+          <div className="divide-y divide-outline-variant/10">
             {snapshot.metrics.map((metric) => (
               <div
                 key={metric.key}
-                className="flex items-center justify-between gap-4 rounded-[1.1rem] border border-outline-variant/10 bg-surface-container-low px-4 py-3"
+                className="flex items-center justify-between gap-4 py-4 first:pt-1"
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${SKILL_COLORS[metric.key]}`}
+                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${SKILL_COLORS[metric.key]}`}
                   />
-                  <span className="text-sm font-medium text-on-surface">
+                  <span className="text-[0.95rem] font-medium text-on-surface">
                     {t(`skill_labels.${metric.key}`)}
                   </span>
                 </div>
-                <span className="text-base font-semibold text-on-surface">
-                  {metric.value.toFixed(1)} <span className="text-sm text-on-surface-variant">/ 5</span>
-                </span>
+                <p className="shrink-0 text-right">
+                  <span className="text-[1.05rem] font-semibold text-on-surface">
+                    {metric.value.toFixed(1)}
+                  </span>
+                  <span className="ml-1 text-sm text-on-surface-variant">/ 5</span>
+                </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-outline-variant/10 bg-surface-container-low px-4 py-3">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/10 pt-5">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-on-surface">
                 {t("overall_score")}

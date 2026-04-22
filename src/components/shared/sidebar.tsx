@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
-  Mic,
   MessageCircle,
   Clock,
   Settings,
@@ -15,6 +14,7 @@ import {
   ChevronLeft,
   Menu,
   Shield,
+  Scale,
 } from "lucide-react";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -35,10 +35,12 @@ import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
+import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
+import type { DashboardNavItem } from "@/lib/api/dashboard";
 
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/practice", key: "practice", icon: Mic },
+  { href: "/practice", key: "practice", icon: Scale },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
 ] as const;
@@ -200,6 +202,22 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const pathname = usePathname();
   const tc = useTranslations('common');
   const isDashboardHome = pathname === "/dashboard";
+  const useDashboardRail =
+    !isDashboardHome && !pathname.startsWith("/dashboard/admin");
+  const dashboardNavItems: DashboardNavItem[] = [
+    { key: "dashboard", href: "/dashboard", status: "live" },
+    { key: "practice", href: "/practice", status: "live" },
+    {
+      key: "courses",
+      href: profile?.role === "admin" ? "/courses" : undefined,
+      status: profile?.role === "admin" ? "live" : "coming-soon",
+    },
+    { key: "coach", href: "/chat?context=dashboard-home", status: "live" },
+    { key: "feedback", status: "coming-soon" },
+    { key: "history", href: "/history", status: "live" },
+    { key: "bookmarks", status: "coming-soon" },
+    { key: "analytics", status: "coming-soon" },
+  ];
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -213,6 +231,13 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       {!isDashboardHome ? (
+        useDashboardRail ? (
+          <DashboardSidebarRail
+            navItems={dashboardNavItems}
+            referralCode={profile?.referral_code ?? null}
+            inviteReward={3}
+          />
+        ) : (
         <aside
           className={cn(
             "hidden md:flex flex-col h-screen sticky top-0 border-r border-outline-variant/10 bg-surface-container-lowest transition-all duration-200",
@@ -238,6 +263,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             />
           </button>
         </aside>
+        )
       ) : null}
 
       {/* Mobile top bar + sheet */}

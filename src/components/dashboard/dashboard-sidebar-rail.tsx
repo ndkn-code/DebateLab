@@ -10,25 +10,21 @@ import {
   HelpCircle,
   Home,
   MessageSquareText,
-  Mic,
   Scale,
   Settings,
   Sparkles,
-  Target,
   Gift,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { DashboardGoalSummary, DashboardNavItem } from "@/lib/api/dashboard";
+import type { DashboardNavItem } from "@/lib/api/dashboard";
 
 const NAV_ICONS = {
   dashboard: Home,
-  speaking: Mic,
-  debate: Scale,
+  practice: Scale,
   courses: BookOpen,
   coach: Sparkles,
   feedback: MessageSquareText,
@@ -39,20 +35,47 @@ const NAV_ICONS = {
 
 interface DashboardSidebarRailProps {
   navItems: DashboardNavItem[];
-  dailyGoal: DashboardGoalSummary;
   referralCode: string | null;
   inviteReward: number;
 }
 
 export function DashboardSidebarRail({
   navItems,
-  dailyGoal,
   referralCode,
   inviteReward,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
   const [copied, setCopied] = useState(false);
+  const pathname = usePathname();
+
+  const isActiveItem = (item: DashboardNavItem) => {
+    if (!item.href || item.status === "coming-soon") {
+      return false;
+    }
+
+    if (item.key === "dashboard") {
+      return pathname === "/dashboard";
+    }
+
+    if (item.key === "practice") {
+      return pathname.startsWith("/practice");
+    }
+
+    if (item.key === "courses") {
+      return pathname.startsWith("/courses") || pathname.startsWith("/dashboard/courses");
+    }
+
+    if (item.key === "coach") {
+      return pathname.startsWith("/chat");
+    }
+
+    if (item.key === "history") {
+      return pathname.startsWith("/history");
+    }
+
+    return pathname === item.href;
+  };
 
   return (
     <aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-outline-variant/10 bg-surface-container-lowest px-5 py-6 lg:flex lg:flex-col">
@@ -65,7 +88,7 @@ export function DashboardSidebarRail({
       <nav className="mt-8 space-y-1.5">
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.key];
-          const isActive = item.key === "dashboard";
+          const isActive = isActiveItem(item);
           const isDisabled = item.status === "coming-soon";
 
           if (item.href && !isDisabled) {
@@ -112,33 +135,6 @@ export function DashboardSidebarRail({
       </nav>
 
       <div className="mt-8 space-y-4">
-        <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
-          <div className="flex items-center gap-2 text-primary">
-            <Target className="h-5 w-5" />
-            <span className="text-sm font-semibold">{t("today_goal_title")}</span>
-          </div>
-
-          <p className="mt-4 text-[1.9rem] font-semibold leading-none text-on-surface">
-            {dailyGoal.practicedMinutes} / {dailyGoal.goalMinutes}
-            <span className="ml-1 text-sm font-medium text-on-surface-variant">
-              {t("min")}
-            </span>
-          </p>
-
-          <p className="mt-2 text-sm text-on-surface-variant">
-            {t("today_goal_subtitle")}
-          </p>
-
-          <Progress
-            value={dailyGoal.progressPercent}
-            className="mt-4 h-2.5 bg-surface-container-high"
-          />
-
-          <p className="mt-4 text-sm text-on-surface-variant">
-            {dailyGoal.metGoal ? t("goal_complete") : t("goal_keep_going")}
-          </p>
-        </div>
-
         <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">

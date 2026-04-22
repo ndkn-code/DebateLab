@@ -8,8 +8,7 @@ const DAYS_IN_WEEK = 7;
 
 type DashboardNavKey =
   | "dashboard"
-  | "speaking"
-  | "debate"
+  | "practice"
   | "courses"
   | "coach"
   | "feedback"
@@ -801,8 +800,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
 
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
-    { key: "speaking", href: "/practice?track=speaking", status: "live" },
-    { key: "debate", href: "/practice?track=debate", status: "live" },
+    { key: "practice", href: "/practice", status: "live" },
     {
       key: "courses",
       href: isAdmin ? "/courses" : undefined,
