@@ -202,8 +202,8 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
-        <div className="grid gap-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:items-start">
+        <div className="grid min-w-0 gap-5">
           <StreakCard
             streak={streak}
             longestStreak={longestStreak}
@@ -213,10 +213,12 @@ export function DashboardContent({ data, displayName }: DashboardContentProps) {
           <RecentPracticePanel recentSessions={data.recentSessions} />
         </div>
 
-        <DashboardFocusPanel
-          enrollments={data.enrollments}
-          isAdmin={isAdmin}
-        />
+        <div className="min-w-0">
+          <DashboardFocusPanel
+            enrollments={data.enrollments}
+            isAdmin={isAdmin}
+          />
+        </div>
       </div>
     </div>
   );

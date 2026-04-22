@@ -43,7 +43,7 @@ export function StreakCard({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[2rem] border border-amber-500/15 bg-gradient-to-br from-[#fff6e9] via-surface-container-lowest to-[#fffdf8] soft-shadow",
+        "relative min-w-0 overflow-hidden rounded-[2rem] border border-amber-500/15 bg-gradient-to-br from-[#fff6e9] via-surface-container-lowest to-[#fffdf8] soft-shadow",
         compact ? "p-5" : "p-6 sm:p-7"
       )}
     >
@@ -53,13 +53,13 @@ export function StreakCard({
       <div className="relative">
         <div
           className={cn(
-            "flex gap-5",
+            "flex gap-5 min-w-0",
             compact
               ? "items-start justify-between"
               : "flex-col sm:flex-row sm:items-start sm:justify-between"
           )}
         >
-          <div className="max-w-xl">
+          <div className={cn("min-w-0", compact ? "flex-1" : "max-w-xl")}>
             <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5" />
               {t("streak_title")}
@@ -98,7 +98,7 @@ export function StreakCard({
 
           <div
             className={cn(
-              "flex items-center justify-center border border-white/70 bg-white/75 shadow-sm backdrop-blur-sm",
+              "shrink-0 flex items-center justify-center border border-white/70 bg-white/75 shadow-sm backdrop-blur-sm",
               compact
                 ? "h-16 w-16 rounded-[1.25rem] sm:h-20 sm:w-20"
                 : "h-20 w-20 rounded-[1.5rem] sm:h-24 sm:w-24"
@@ -122,7 +122,12 @@ export function StreakCard({
           </div>
         </div>
 
-        <div className={cn("grid gap-3 sm:grid-cols-2", compact ? "mt-4" : "mt-6")}>
+        <div
+          className={cn(
+            "grid gap-3 min-w-0",
+            compact ? "mt-4 grid-cols-2" : "mt-6 sm:grid-cols-2"
+          )}
+        >
           <div
             className={cn(
               "rounded-[1.25rem] border border-white/70 bg-white/75 backdrop-blur-sm",
@@ -177,19 +182,19 @@ export function StreakCard({
             </div>
           </div>
 
-          <div className={cn("grid grid-cols-7", compact ? "gap-1.5" : "gap-2")}>
+          <div className={cn("grid min-w-0 grid-cols-7", compact ? "gap-1" : "gap-2")}>
             {weeklyStats.map((entry, index) => {
               const isActive =
                 entry.practice_minutes > 0 || entry.sessions_completed > 0;
               const isToday = entry.date === today;
 
               return (
-                <div key={entry.date} className="flex flex-col items-center gap-2">
+                <div key={entry.date} className="flex min-w-0 flex-col items-center gap-1.5">
                   <div
                     className={cn(
                       "flex items-center justify-center rounded-full border text-sm transition-colors",
                       compact
-                        ? "h-9 w-9 sm:h-10 sm:w-10"
+                        ? "h-8 w-8"
                         : "h-11 w-11 sm:h-12 sm:w-12",
                       isActive
                         ? "border-primary bg-primary text-on-primary shadow-[0_12px_24px_-16px_rgba(47,79,221,0.65)]"
@@ -206,7 +211,7 @@ export function StreakCard({
                   </div>
                   <span
                     className={cn(
-                      compact ? "text-[11px] font-medium" : "text-xs font-medium",
+                      compact ? "text-[10px] font-medium leading-none" : "text-xs font-medium",
                       isToday ? "text-on-surface" : "text-on-surface-variant"
                     )}
                   >
