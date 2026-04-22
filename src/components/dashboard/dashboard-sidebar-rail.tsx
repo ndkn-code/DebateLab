@@ -126,7 +126,7 @@ export function DashboardSidebarRail({
                 <Icon className="h-5 w-5 opacity-70" />
                 {tNav(item.key)}
               </span>
-              <span className="rounded-full border border-outline-variant/15 bg-surface-container-low px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
+              <span className="whitespace-nowrap rounded-full border border-outline-variant/15 bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none">
                 {t("coming_soon")}
               </span>
             </div>

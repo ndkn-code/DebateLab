@@ -175,7 +175,7 @@ export function ActivityPlayerWrapper({
   const totalCourseActivities = allModules.reduce((sum, m) => sum + m.activities.length, 0);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#fbf8ff]">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Top progress bar */}
       <TopProgressBar
         activities={siblings}

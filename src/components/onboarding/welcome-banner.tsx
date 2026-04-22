@@ -31,7 +31,7 @@ export function WelcomeBanner({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.3 },
-          colors: ["#2f4fdd", "#6366f1", "#a78bfa", "#f59e0b", "#10b981"],
+          colors: ["#4D86F7", "#A9C6FB", "#3E78EC", "#F5B942", "#34C759"],
         });
       }, 300);
       return () => clearTimeout(timer);
@@ -66,11 +66,11 @@ export function WelcomeBanner({
           transition={{ duration: 0.3 }}
           className="mb-6 overflow-hidden"
         >
-          <div className="relative rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
+          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-[#EEF4FF] to-background p-6">
             {/* Dismiss */}
             <button
               onClick={handleDismiss}
-              className="absolute right-3 top-3 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="absolute right-3 top-3 rounded-lg p-1 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             >
               <X className="h-4 w-4" />
             </button>
@@ -84,13 +84,13 @@ export function WelcomeBanner({
                 <h3 className="text-lg font-bold text-on-surface">
                   {t("welcome_banner", { name: displayName })}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-on-surface-variant">
                   {t("welcome_banner_subtitle")}
                 </p>
               </div>
 
               <Link href="/practice" className="shrink-0">
-                <Button className="gap-2 rounded-xl bg-primary text-white">
+                <Button className="gap-2 rounded-xl bg-primary text-on-primary hover:bg-primary-dim">
                   <Mic className="h-4 w-4" />
                   {t("start_practice")}
                   <ArrowRight className="h-4 w-4" />

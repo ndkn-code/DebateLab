@@ -90,7 +90,7 @@ function NavContent({
           D
         </div>
         {!collapsed && (
-          <span className="text-lg font-extrabold text-primary tracking-tight">
+          <span className="text-lg font-extrabold text-on-surface tracking-tight">
             DebateLab
           </span>
         )}
@@ -100,7 +100,7 @@ function NavContent({
       {profile?.orb_balance !== undefined && (
         <div
           className={cn(
-            "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2",
+            "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-[#F5B942]/20 bg-[#FFF8E8] px-3 py-2",
             collapsed && "justify-center px-2"
           )}
         >
@@ -129,7 +129,7 @@ function NavContent({
                 "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all min-h-[44px]",
                 collapsed && "justify-center px-0",
                 isActive
-                  ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
+                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
                   : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
               )}
               title={collapsed ? label : undefined}

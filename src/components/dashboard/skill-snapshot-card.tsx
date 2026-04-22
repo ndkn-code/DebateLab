@@ -13,23 +13,27 @@ import {
 import type { DashboardSkillSnapshot } from "@/lib/api/dashboard";
 
 const SKILL_COLORS = {
-  clarity: "bg-primary",
-  logic: "bg-[#4E72F5]",
-  rebuttal: "bg-[#F59E0B]",
-  evidence: "bg-[#22C55E]",
-  delivery: "bg-[#8B5CF6]",
+  clarity: "bg-[#3E78EC]",
+  logic: "bg-[#4D86F7]",
+  rebuttal: "bg-[#F5B942]",
+  evidence: "bg-[#34C759]",
+  delivery: "bg-[#7B61FF]",
 } as const;
 
-const CHART_SIZE = 300;
+const CHART_SIZE = 360;
 const CHART_CENTER = CHART_SIZE / 2;
-const CHART_MAX_RADIUS = 98;
-const LABEL_POSITIONS = [
-  { x: CHART_CENTER, y: 18, textAnchor: "middle" as const },
-  { x: 268, y: 114, textAnchor: "start" as const },
-  { x: 228, y: 258, textAnchor: "start" as const },
-  { x: 72, y: 258, textAnchor: "end" as const },
-  { x: 32, y: 114, textAnchor: "end" as const },
-];
+const CHART_MAX_RADIUS = 118;
+
+function labelPositionForIndex(index: number) {
+  const radius = CHART_MAX_RADIUS + 30;
+  const angle = -Math.PI / 2 + (index * (Math.PI * 2)) / 5;
+  const x = CHART_CENTER + Math.cos(angle) * radius;
+  const y = CHART_CENTER + Math.sin(angle) * radius;
+
+  if (index === 0) return { x, y, textAnchor: "middle" as const };
+  if (index === 1 || index === 2) return { x, y, textAnchor: "start" as const };
+  return { x, y, textAnchor: "end" as const };
+}
 
 function pointForValue(index: number, value: number) {
   const centerX = CHART_CENTER;
@@ -88,78 +92,80 @@ export function SkillSnapshotCard({
               </p>
             </div>
           ) : (
-            <svg
-              viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
-              className="mx-auto block h-[280px] w-full max-w-[320px]"
-              aria-hidden="true"
-            >
-              {[1, 2, 3, 4].map((step) => {
-                const ringValue = (5 / 4) * step;
-                return (
-                  <polygon
-                    key={step}
-                    points={polygonPoints(Array(5).fill(ringValue))}
-                    fill={step % 2 === 0 ? "rgba(77,134,247,0.04)" : "transparent"}
-                    stroke="rgba(77,134,247,0.14)"
-                    strokeWidth="1"
-                  />
-                );
-              })}
+            <div className="mt-5">
+              <svg
+                viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
+                className="mx-auto block h-[336px] w-full max-w-[380px]"
+                aria-hidden="true"
+              >
+                {[1, 2, 3, 4].map((step) => {
+                  const ringValue = (5 / 4) * step;
+                  return (
+                    <polygon
+                      key={step}
+                      points={polygonPoints(Array(5).fill(ringValue))}
+                      fill={step % 2 === 0 ? "rgba(169,198,251,0.12)" : "transparent"}
+                      stroke="rgba(77,134,247,0.16)"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
 
-              {values.map((_, index) => {
-                const start = pointForValue(index, 5);
-                return (
-                  <line
-                    key={index}
-                    x1={CHART_CENTER}
-                    y1={CHART_CENTER}
-                    x2={start.x}
-                    y2={start.y}
-                    stroke="rgba(77,134,247,0.18)"
-                    strokeWidth="1"
-                  />
-                );
-              })}
+                {values.map((_, index) => {
+                  const start = pointForValue(index, 5);
+                  return (
+                    <line
+                      key={index}
+                      x1={CHART_CENTER}
+                      y1={CHART_CENTER}
+                      x2={start.x}
+                      y2={start.y}
+                      stroke="rgba(77,134,247,0.18)"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
 
-              <polygon
-                points={polygonPoints(values)}
-                fill="rgba(77,134,247,0.18)"
-                stroke="rgba(47,79,221,0.95)"
-                strokeWidth="2"
-              />
+                <polygon
+                  points={polygonPoints(values)}
+                  fill="rgba(77,134,247,0.16)"
+                  stroke="rgba(62,120,236,0.95)"
+                  strokeWidth="2"
+                />
 
-              {snapshot.metrics.map((metric, index) => {
-                const point = pointForValue(index, metric.value);
-                return (
-                  <circle
-                    key={metric.key}
-                    cx={point.x}
-                    cy={point.y}
-                    r="3.2"
-                    fill="rgba(47,79,221,1)"
-                  />
-                );
-              })}
+                {snapshot.metrics.map((metric, index) => {
+                  const point = pointForValue(index, metric.value);
+                  return (
+                    <circle
+                      key={metric.key}
+                      cx={point.x}
+                      cy={point.y}
+                      r="3.6"
+                      fill="rgba(62,120,236,1)"
+                    />
+                  );
+                })}
 
-              {snapshot.metrics.map((metric, index) => {
-                const position = LABEL_POSITIONS[index];
-                return (
-                  <text
-                    key={`${metric.key}-label`}
-                    x={position.x}
-                    y={position.y}
-                    textAnchor={position.textAnchor}
-                    className="fill-[#51617f] text-[11px] font-medium"
-                  >
-                    {t(`skill_labels.${metric.key}`)}
-                  </text>
-                );
-              })}
-            </svg>
+                {snapshot.metrics.map((metric, index) => {
+                  const position = labelPositionForIndex(index);
+                  return (
+                    <text
+                      key={`${metric.key}-label`}
+                      x={position.x}
+                      y={position.y}
+                      textAnchor={position.textAnchor}
+                      className="fill-[#415069] text-[11px] font-medium"
+                    >
+                      {t(`skill_labels.${metric.key}`)}
+                    </text>
+                  );
+                })}
+              </svg>
+            </div>
           )}
         </div>
 
-        <div className="flex flex-col md:border-l md:border-outline-variant/10 md:pl-6">
+        <div className="flex flex-col md:border-l md:border-outline-variant/10 md:pl-6 md:pt-8">
           <div className="divide-y divide-outline-variant/10">
             {snapshot.metrics.map((metric) => (
               <div

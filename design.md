@@ -149,6 +149,76 @@ Use for:
 
 ## Component Guidance
 
+## Icon System
+
+### Icon Direction
+DebateLab icons should feel:
+- clean
+- simple
+- readable at small sizes
+- slightly refined, but not illustrative
+- consistent with the calm, trustworthy product tone
+
+Icons should support the interface, not compete with it.
+
+### Core Rules
+- icons should use a transparent background by default
+- do not bake icons into colored tiles or cards
+- containers, pills, or tinted circles should be added by the UI when needed, not by the icon asset itself
+- avoid gradients inside icons
+- avoid overly decorative shadows, glow, blur, or 3D effects
+- use a flat, crisp look first
+- keep silhouettes clear enough to understand at a glance
+
+### Style Rules
+- prefer simple geometric construction
+- use rounded corners and soft line endings where appropriate
+- keep icons visually calm and uncluttered
+- avoid too many micro-details
+- if extra detail is added, it must improve recognition, not ornament
+- icons should still read clearly at small dashboard sizes
+
+### Color Rules
+- default icon colors should come from the approved palette only
+- primary icon color: `#4D86F7`
+- darker emphasis / stroke: `#3E78EC`
+- supporting light fill: `#A9C6FB`
+- optional neutral support: `#DEE8F8` or `#F1F6FD`
+
+Do not:
+- use unapproved saturated colors
+- use purple-first icon styling
+- use gradient fills
+- use white-on-white shapes with weak contrast
+
+### Background and Contrast
+- icons must work on white and near-white surfaces
+- shapes should maintain enough contrast against `#FFFFFF`, `#F7FAFE`, and `#F1F6FD`
+- if a shape disappears on light surfaces, darken the fill or stroke rather than adding decorative effects
+
+### Product Usage
+For product UI:
+- use simple SVG icons with transparent backgrounds
+- keep them optimized for speed and clarity
+- default sizes should be designed to scale well at `16`, `20`, `24`, and `32` px
+- icons for navigation, cards, and metrics should feel like one family
+
+### Detail Balance
+The target is:
+- more polished than a generic line icon
+- less detailed than an illustration
+
+Good icons should feel:
+- product-grade
+- instantly readable
+- calm and modern
+
+They should not feel:
+- cartoonish
+- noisy
+- over-rendered
+- like mini illustrations dropped into UI
+
 ### Buttons
 - Primary button: `#4D86F7` background, white text
 - Primary hover: slightly darker blue or subtle gradient depth

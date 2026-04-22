@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
-  Bell,
   BookOpen,
   ChevronRight,
   Clock3,
@@ -21,8 +20,8 @@ import {
   Users2,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { cn } from "@/lib/utils";
@@ -36,6 +35,7 @@ import type {
 } from "@/lib/api/dashboard";
 import { DashboardSidebarRail } from "./dashboard-sidebar-rail";
 import { SkillSnapshotCard } from "./skill-snapshot-card";
+import fireAnimation from "../../../public/lottie/fire.json";
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 const ACTION_ICONS = {
@@ -66,7 +66,7 @@ const PROGRESS_ICONS = {
   "practice-time": Clock3,
 } as const;
 const PANEL_ROW_CLASS =
-  "grid min-h-[92px] items-center gap-3 rounded-[1.45rem] bg-[#F5F3FF] px-4 py-4";
+  "grid h-[86px] items-center gap-3 rounded-[1.35rem] bg-surface-container px-4 py-3";
 
 function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
@@ -109,13 +109,13 @@ function deltaPrefix(delta: number | null) {
 function getActionTone(key: DashboardQuickAction["key"]) {
   switch (key) {
     case "speaking":
-      return "from-[#3B82F6] to-[#2563EB] text-white";
+      return "from-[#A9C6FB] to-[#4D86F7] text-white";
     case "debate":
-      return "from-[#7C5CFA] to-[#5B43D9] text-white";
+      return "from-[#D9E8FF] to-[#A9C6FB] text-[#3E78EC]";
     case "course":
-      return "from-[#34C759] to-[#249B55] text-white";
+      return "from-[#E8F7EC] to-[#CFF2DA] text-[#249B55]";
     case "coach":
-      return "from-[#8B5CF6] to-[#6D49D7] text-white";
+      return "from-[#EEF4FF] to-[#DCEAFF] text-[#4D86F7]";
     default:
       return "from-primary to-primary";
   }
@@ -126,14 +126,14 @@ function getRecentIconTone(kind: DashboardRecentItem["kind"]) {
     case "speaking":
       return "bg-primary/10 text-primary";
     case "debate":
-      return "bg-[#7C5CFA]/10 text-[#7C5CFA]";
+      return "bg-[#EEF4FF] text-[#3E78EC]";
     case "course":
     case "lesson":
       return "bg-[#34C759]/10 text-[#249B55]";
     case "level":
-      return "bg-[#F59E0B]/10 text-[#F59E0B]";
+      return "bg-[#F5B942]/10 text-[#F5B942]";
     case "streak":
-      return "bg-[#FB7185]/10 text-[#F43F5E]";
+      return "bg-[#FFF4DE] text-[#F5B942]";
     default:
       return "bg-primary/10 text-primary";
   }
@@ -213,7 +213,9 @@ function UtilityChip({
             {value}
           </p>
         ) : null}
-        <p className="mt-1 text-xs text-on-surface-variant">{label}</p>
+        {label ? (
+          <p className="mt-1 text-xs text-on-surface-variant">{label}</p>
+        ) : null}
         {children}
       </div>
     </div>
@@ -226,16 +228,23 @@ function HeroWeekWidget({
   weeklyStats: DailyStatEntry[];
 }) {
   const t = useTranslations("dashboard.home");
+  const activeDays = weeklyStats.filter(
+    (entry) => entry.practice_minutes > 0 || entry.sessions_completed > 0
+  ).length;
 
   return (
     <div className="rounded-[1.4rem] border border-outline-variant/10 bg-surface-container-lowest p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF4E6] text-[#F59E0B]">
-          <Flame className="h-5 w-5" />
+      <div className="flex items-start gap-3">
+        <div className="-ml-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center">
+          <LottieAnimation
+            animationData={fireAnimation}
+            className="h-7 w-7"
+            loop
+          />
         </div>
         <div>
-          <p className="text-lg font-semibold text-on-surface">
-            {t("streak_title")}
+          <p className="text-[1.05rem] font-semibold text-on-surface">
+            {activeDays} {t("topbar_streak")}
           </p>
           <p className="text-sm text-on-surface-variant">{t("streak_widget_note")}</p>
         </div>
@@ -245,9 +254,13 @@ function HeroWeekWidget({
         {weeklyStats.map((entry, index) => {
           const isActive =
             entry.practice_minutes > 0 || entry.sessions_completed > 0;
+          const dayLabel = t(`days_labels.${DAY_KEYS[index]}`).slice(0, 1);
 
           return (
             <div key={entry.date} className="flex flex-col items-center gap-1.5">
+              <span className="text-[11px] font-medium text-on-surface-variant">
+                {dayLabel}
+              </span>
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold",
@@ -258,9 +271,6 @@ function HeroWeekWidget({
               >
                 {isActive ? "•" : ""}
               </div>
-              <span className="text-[11px] text-on-surface-variant">
-                {t(`days_labels.${DAY_KEYS[index]}`)}
-              </span>
             </div>
           );
         })}
@@ -275,48 +285,36 @@ function HeroGoalWidget({
   progressPercent,
 }: DashboardHomeData["hero"]["todayGoal"]) {
   const t = useTranslations("dashboard.home");
-  const metGoal = practicedMinutes >= goalMinutes;
 
   return (
     <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Clock3 className="h-5 w-5" />
-        </div>
+        <Clock3 className="h-5 w-5 shrink-0 text-primary" />
         <div>
           <p className="text-lg font-semibold text-on-surface">
             {t("today_practice_title")}
           </p>
-          <p className="text-sm text-on-surface-variant">
-            {t("today_practice_note")}
-          </p>
         </div>
       </div>
 
-      <div className="mt-5 flex items-end justify-between gap-3">
+      <div className="mt-5 flex items-end gap-3">
         <p className="text-[2rem] font-semibold leading-none text-on-surface">
           {practicedMinutes}
           <span className="ml-1 text-sm font-medium text-on-surface-variant">
             {t("min")}
           </span>
         </p>
-        <span className="text-sm text-on-surface-variant">
-          {t("goal_minutes", { count: goalMinutes })}
-        </span>
       </div>
 
-      <p className="mt-2 text-sm text-on-surface-variant">
-        {t("today_goal_subtitle")}
-      </p>
-
-      <Progress
-        value={progressPercent}
-        className="mt-4 h-2.5 bg-surface-container-high"
-      />
-
-      <p className="mt-4 text-sm text-on-surface-variant">
-        {metGoal ? t("goal_complete") : t("goal_keep_going")}
-      </p>
+      <div className="mt-5 flex items-center gap-3">
+        <span className="shrink-0 text-sm text-on-surface-variant">
+          {t("goal_minutes", { count: goalMinutes })}
+        </span>
+        <Progress
+          value={progressPercent}
+          className="h-2.5 flex-1 bg-surface-container-high"
+        />
+      </div>
     </div>
   );
 }
@@ -376,16 +374,11 @@ function RecentActivityCard({
   const tProfile = useTranslations("dashboard.profile");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-5 flex min-h-[70px] items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[1.15rem] font-semibold text-on-surface">
-            {t("recent_activity_title")}
-          </h2>
-          <p className="text-sm text-on-surface-variant">
-            {t("recent_activity_subtitle")}
-          </p>
-        </div>
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+      <div className="mb-4 flex min-h-[40px] items-center justify-between gap-3">
+        <h2 className="text-[1.15rem] font-semibold text-on-surface">
+          {t("recent_practice")}
+        </h2>
         <Link
           href="/history"
           className="rounded-xl border border-outline-variant/15 bg-surface-container-low px-3 py-2 text-sm font-medium text-primary"
@@ -399,7 +392,7 @@ function RecentActivityCard({
           {t("empty_recent_activity")}
         </Link>
       ) : (
-        <div className="grid flex-1 auto-rows-fr gap-3">
+        <div className="flex flex-1 flex-col gap-2.5">
           {items.map((item) => {
             const Icon = RECENT_ICONS[item.kind];
             const body = (
@@ -414,40 +407,40 @@ function RecentActivityCard({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[1.02rem] font-medium text-on-surface">
+                  <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
                     {item.title}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
-                    <span>
-                      {item.kind === "speaking"
-                        ? t("track_speaking")
-                        : item.kind === "debate"
-                          ? t("track_debate")
-                          : item.subtitle}
-                    </span>
-                    {item.statusLabel ? (
-                      <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-medium text-on-surface-variant">
-                        {item.statusLabel}
-                      </span>
-                    ) : null}
-                    {item.progressPercent != null ? (
-                      <span className="font-medium text-primary">
-                        {item.progressPercent}%
-                      </span>
-                    ) : null}
-                  </div>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">
+                    {item.kind === "speaking"
+                      ? t("track_speaking")
+                      : item.kind === "debate"
+                        ? t("track_debate")
+                        : item.subtitle}
+                  </p>
                 </div>
 
                 <div className="shrink-0 text-right">
                   {item.scoreOutOfFive != null ? (
                     <p className="inline-flex items-center gap-1 text-sm font-semibold text-on-surface">
                       {item.scoreOutOfFive.toFixed(1)}
-                      <Star className="h-4 w-4 fill-[#F59E0B] text-[#F59E0B]" />
+                      <Star className="h-4 w-4 fill-[#F5B942] text-[#F5B942]" />
                     </p>
                   ) : null}
-                  <p className="mt-1 text-xs text-on-surface-variant">
-                    {formatRelativeTime(item.createdAt, tProfile)}
-                  </p>
+                  <div className="mt-0.5 flex items-center justify-end gap-2">
+                    {item.statusLabel ? (
+                      <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-medium text-on-surface-variant">
+                        {item.statusLabel}
+                      </span>
+                    ) : null}
+                    {item.progressPercent != null ? (
+                      <span className="text-xs font-medium text-primary">
+                        {item.progressPercent}%
+                      </span>
+                    ) : null}
+                    <p className="text-xs text-on-surface-variant">
+                      {formatRelativeTime(item.createdAt, tProfile)}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
@@ -474,17 +467,14 @@ function NextStepsCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-5 min-h-[70px]">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+      <div className="mb-4 min-h-[40px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("next_steps_title")}
         </h2>
-        <p className="text-sm text-on-surface-variant">
-          {t("next_steps_subtitle")}
-        </p>
       </div>
 
-      <div className="grid flex-1 auto-rows-fr gap-3">
+      <div className="flex flex-1 flex-col gap-2.5">
         {tasks.map((task) => {
           const Icon = TASK_ICONS[task.key];
           const ctaLabel =
@@ -505,10 +495,10 @@ function NextStepsCard({
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[1.02rem] font-medium text-on-surface">
+                <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
                   {getTaskTitle(task, t)}
                 </p>
-                <p className="mt-1 text-xs leading-5 text-on-surface-variant">
+                <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-on-surface-variant">
                   {getTaskDescription(task, t)}
                 </p>
               </div>
@@ -555,17 +545,14 @@ function ProgressCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-5 min-h-[70px]">
+    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/12 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
+      <div className="mb-4 min-h-[40px]">
         <h2 className="text-[1.15rem] font-semibold text-on-surface">
           {t("progress_title")}
         </h2>
-        <p className="text-sm text-on-surface-variant">
-          {t("progress_subtitle")}
-        </p>
       </div>
 
-      <div className="grid flex-1 auto-rows-fr gap-3">
+      <div className="flex flex-1 flex-col gap-2.5">
         {metrics.map((metric) => {
           const Icon = PROGRESS_ICONS[metric.key];
 
@@ -578,15 +565,15 @@ function ProgressCard({
                 <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[1.02rem] font-medium text-on-surface">
+                <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
                   {t(`progress_metrics.${metric.key}.title`)}
                 </p>
-                <p className="mt-1 text-xs text-on-surface-variant">
+                <p className="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">
                   {t(`progress_metrics.${metric.key}.subtitle`)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[1.05rem] font-semibold text-on-surface">
+                <p className="text-[1.12rem] font-semibold text-on-surface">
                   {metric.displayValue}
                 </p>
                 <p className={cn("mt-1 text-xs", deltaClass(metric.delta))}>
@@ -684,17 +671,6 @@ export function DashboardContent({
   const t = useTranslations("dashboard.home");
   const topBar = data.topBar;
   const hero = data.hero;
-  const profile = data.profile;
-  const initials = useMemo(
-    () =>
-      displayName
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-    [displayName]
-  );
 
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
@@ -711,20 +687,26 @@ export function DashboardContent({
           <div className="mx-auto max-w-[1400px]">
             <div className="mb-5 flex flex-wrap items-center justify-end gap-1 text-on-surface">
               <UtilityChip
-                icon={<Flame className="h-5 w-5 text-[#F97316]" />}
+                icon={
+                  <LottieAnimation
+                    animationData={fireAnimation}
+                    className="h-7 w-7"
+                    loop
+                  />
+                }
                 label={t("topbar_streak")}
                 value={topBar.currentStreak}
               />
               <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
               <UtilityChip
-                icon={<Sparkles className="h-5 w-5 text-[#F59E0B]" />}
+                icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
                 label={t("topbar_orbs")}
                 value={topBar.orbBalance.toLocaleString()}
               />
               <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
               <UtilityChip
                 icon={<Star className="h-5 w-5 text-primary" />}
-                label={t("topbar_level")}
+                label=""
                 value={t("level", { level: topBar.level })}
               >
                 <div className="mt-1 flex items-center gap-2">
@@ -737,42 +719,15 @@ export function DashboardContent({
                   />
                 </div>
               </UtilityChip>
-              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
-
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant disabled:cursor-not-allowed"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-              <div className="hidden h-10 w-px bg-outline-variant/20 sm:block" />
-
-              <div className="inline-flex items-center gap-3 px-3 py-1.5">
-                <Avatar size="sm">
-                  {profile?.avatar_url ? (
-                    <AvatarImage src={profile.avatar_url} alt={displayName} />
-                  ) : null}
-                  <AvatarFallback className="bg-primary-container text-on-primary-container text-xs font-bold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-on-surface">{displayName}</p>
-                  <p className="text-xs text-on-surface-variant">
-                    {profile?.role ?? t("student")}
-                  </p>
-                </div>
-              </div>
             </div>
 
             {showWelcome ? (
               <WelcomeBanner displayName={displayName} userId={userId} show />
             ) : null}
 
-            <div className="space-y-5">
-              <section className="rounded-[2rem] border border-outline-variant/12 bg-gradient-to-br from-[#F6F9FF] via-surface-container-lowest to-[#FBFCFF] p-5 shadow-[0_28px_90px_-60px_rgba(22,39,91,0.38)] md:p-6">
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
+            <div className="space-y-4">
+              <section className="rounded-[2rem] border border-outline-variant/12 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
                   <div className="min-w-0">
                     <p className="text-[1.05rem] font-medium text-on-surface">
                       {t(getTimeGreetingKey())}, {displayName}!{" "}
@@ -785,7 +740,7 @@ export function DashboardContent({
                       {t("hero_subtitle")}
                     </p>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
                       <HeroWeekWidget weeklyStats={hero.weeklyStats} />
                       <HeroGoalWidget {...hero.todayGoal} />
                     </div>
@@ -795,13 +750,13 @@ export function DashboardContent({
                 </div>
               </section>
 
-              <section className="grid gap-4 xl:grid-cols-4">
+              <section className="grid gap-3 xl:grid-cols-4">
                 {data.quickActions.map((action) => (
                   <QuickActionCard key={action.key} action={action} />
                 ))}
               </section>
 
-              <section className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
+              <section className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
                 <RecentActivityCard items={data.recentActivity} />
                 <NextStepsCard tasks={data.nextSteps} />
                 <ProgressCard metrics={data.progress} />

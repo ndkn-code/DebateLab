@@ -98,16 +98,6 @@ export interface RecentSession {
   created_at: string;
 }
 
-type ActivityLogRow = {
-  id: string;
-  activity_type: string;
-  reference_id: string | null;
-  reference_type: string | null;
-  xp_earned: number;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-};
-
 export interface DailyStatEntry {
   date: string;
   sessions_completed: number;
@@ -482,10 +472,9 @@ function buildProgressMetrics(
 }
 
 function buildRecentActivity(
-  recentSessions: SessionScoreRow[],
-  activityLog: ActivityLogRow[]
+  recentSessions: SessionScoreRow[]
 ): DashboardRecentItem[] {
-  const sessionItems: DashboardRecentItem[] = recentSessions.slice(0, 4).map((session) => {
+  return recentSessions.slice(0, 4).map((session) => {
     const practiceTrack = getPracticeTrack(session.feedback);
     return {
       id: `session-${session.id}`,
@@ -500,77 +489,6 @@ function buildRecentActivity(
       progressPercent: null,
     };
   });
-
-  const activityItems: DashboardRecentItem[] = activityLog
-    .filter((entry) =>
-      ["course_started", "lesson_completed", "course_completed", "level_up"].includes(
-        entry.activity_type
-      )
-    )
-    .slice(0, 4)
-    .map((entry) => {
-      const metadata = entry.metadata ?? {};
-
-      if (entry.activity_type === "lesson_completed") {
-        return {
-          id: `activity-${entry.id}`,
-          kind: "lesson",
-          title:
-            typeof metadata.lesson_title === "string"
-              ? metadata.lesson_title
-              : "Completed a lesson",
-          subtitle:
-            typeof metadata.course_title === "string"
-              ? metadata.course_title
-              : "Course progress updated",
-          createdAt: entry.created_at,
-        };
-      }
-
-      if (entry.activity_type === "course_completed") {
-        return {
-          id: `activity-${entry.id}`,
-          kind: "course",
-          title:
-            typeof metadata.course_title === "string"
-              ? metadata.course_title
-              : "Completed a course",
-          subtitle: "Course milestone",
-          createdAt: entry.created_at,
-        };
-      }
-
-      if (entry.activity_type === "level_up") {
-        return {
-          id: `activity-${entry.id}`,
-          kind: "level",
-          title:
-            typeof metadata.level === "number"
-              ? `Reached Level ${metadata.level}`
-              : "Level up",
-          subtitle: "Profile milestone",
-          createdAt: entry.created_at,
-        };
-      }
-
-      return {
-        id: `activity-${entry.id}`,
-        kind: "course",
-        title:
-          typeof metadata.course_title === "string"
-            ? metadata.course_title
-            : "Started a course",
-        subtitle: "Course activity",
-        createdAt: entry.created_at,
-      };
-    });
-
-  return [...sessionItems, ...activityItems]
-    .sort(
-      (left, right) =>
-        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-    )
-    .slice(0, 4);
 }
 
 function buildNextSteps(
@@ -673,7 +591,6 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     recentSessionsRes,
     scoredSessionsRes,
     statsRes,
-    activityLogRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -718,13 +635,6 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
       .gte("date", trailing14Dates[0])
       .lte("date", trailing14Dates[trailing14Dates.length - 1])
       .order("date"),
-
-    supabase
-      .from("activity_log")
-      .select("id, activity_type, reference_id, reference_type, xp_earned, metadata, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(8),
   ]);
 
   const profile = profileRes.data as Profile | null;
@@ -747,7 +657,6 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   });
   const recentSessions = (recentSessionsRes.data ?? []) as SessionScoreRow[];
   const scoredSessions = (scoredSessionsRes.data ?? []) as SessionScoreRow[];
-  const activityLog = (activityLogRes.data ?? []) as ActivityLogRow[];
 
   const statsByDate = new Map<string, DailyStatEntry>();
   for (const date of trailing14Dates) {
@@ -842,7 +751,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
   ];
 
-  const recentActivity = buildRecentActivity(recentSessions, activityLog);
+  const recentActivity = buildRecentActivity(recentSessions);
   const nextSteps = buildNextSteps(
     skillSnapshot,
     recentSessions,
