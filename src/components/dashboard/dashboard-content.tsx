@@ -33,7 +33,6 @@ import type {
   DashboardTask,
   DailyStatEntry,
 } from "@/lib/api/dashboard";
-import { DashboardSidebarRail } from "./dashboard-sidebar-rail";
 import { SkillSnapshotCard } from "./skill-snapshot-card";
 import fireAnimation from "../../../public/lottie/fire.json";
 
@@ -675,102 +674,92 @@ export function DashboardContent({
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="grid min-h-screen lg:grid-cols-[280px_minmax(0,1fr)]">
-        <DashboardSidebarRail
-          navItems={data.nav}
-          referralCode={data.sidebarCards.referralCode}
-          inviteReward={data.sidebarCards.inviteOrbs}
-        />
-
-        <main className="min-w-0 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-          <div className="mx-auto max-w-[1400px]">
-            <div className="mb-5 flex flex-wrap items-center justify-end gap-1 text-on-surface">
-              <UtilityChip
-                icon={
-                  <LottieAnimation
-                    animationData={fireAnimation}
-                    className="h-7 w-7"
-                    loop
-                  />
-                }
-                label={t("topbar_streak")}
-                value={topBar.currentStreak}
+    <div className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">
+      <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
+        <div className="mb-5 flex flex-wrap items-center justify-end gap-1 text-on-surface">
+          <UtilityChip
+            icon={
+              <LottieAnimation
+                animationData={fireAnimation}
+                className="h-7 w-7"
+                loop
               />
-              <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
-              <UtilityChip
-                icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
-                label={t("topbar_orbs")}
-                value={topBar.orbBalance.toLocaleString()}
+            }
+            label={t("topbar_streak")}
+            value={topBar.currentStreak}
+          />
+          <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
+          <UtilityChip
+            icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
+            label={t("topbar_orbs")}
+            value={topBar.orbBalance.toLocaleString()}
+          />
+          <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
+          <UtilityChip
+            icon={<Star className="h-5 w-5 text-primary" />}
+            label=""
+            value={t("level", { level: topBar.level })}
+          >
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-xs text-on-surface-variant">
+                {currentXpInLevel} / {topBar.xpGoal} XP
+              </span>
+              <Progress
+                value={(currentXpInLevel / topBar.xpGoal) * 100}
+                className="h-1.5 w-20 bg-surface-container-high"
               />
-              <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
-              <UtilityChip
-                icon={<Star className="h-5 w-5 text-primary" />}
-                label=""
-                value={t("level", { level: topBar.level })}
-              >
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-on-surface-variant">
-                    {currentXpInLevel} / {topBar.xpGoal} XP
-                  </span>
-                  <Progress
-                    value={(currentXpInLevel / topBar.xpGoal) * 100}
-                    className="h-1.5 w-20 bg-surface-container-high"
-                  />
-                </div>
-              </UtilityChip>
             </div>
+          </UtilityChip>
+        </div>
 
-            {showWelcome ? (
-              <WelcomeBanner displayName={displayName} userId={userId} show />
-            ) : null}
+        {showWelcome ? (
+          <WelcomeBanner displayName={displayName} userId={userId} show />
+        ) : null}
 
-            <div className="space-y-4">
-              <section className="rounded-[2rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
-                  <div className="min-w-0">
-                    <p className="text-[1.05rem] font-medium text-on-surface">
-                      {t(getTimeGreetingKey())}, {displayName}!{" "}
-                      <span aria-hidden="true">👋</span>
-                    </p>
-                    <h1 className="mt-3 max-w-2xl text-[2.6rem] font-bold tracking-[-0.05em] text-on-surface sm:text-[3.25rem]">
-                      {t("hero_title")}
-                    </h1>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+          <section className="rounded-[2rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
+              <div className="min-w-0">
+                <p className="text-[1.05rem] font-medium text-on-surface">
+                  {t(getTimeGreetingKey())}, {displayName}!{" "}
+                  <span aria-hidden="true">👋</span>
+                </p>
+                <h1 className="mt-3 max-w-2xl text-[2.6rem] font-bold tracking-[-0.05em] text-on-surface sm:text-[3.25rem]">
+                  {t("hero_title")}
+                </h1>
 
-                    <div className="mt-6 rounded-[1.6rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
-                      <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-                        <HeroWeekWidget weeklyStats={hero.weeklyStats} />
-                        <div className="hidden bg-outline-variant/35 md:block" />
-                        <div className="border-t border-outline-variant/20 md:border-t-0">
-                          <HeroGoalWidget {...hero.todayGoal} />
-                        </div>
-                      </div>
+                <div className="mt-6 rounded-[1.6rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
+                  <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+                    <HeroWeekWidget weeklyStats={hero.weeklyStats} />
+                    <div className="hidden bg-outline-variant/35 md:block" />
+                    <div className="border-t border-outline-variant/20 md:border-t-0">
+                      <HeroGoalWidget {...hero.todayGoal} />
                     </div>
                   </div>
-
-                  <SkillSnapshotCard snapshot={data.skillSnapshot} />
                 </div>
-              </section>
+              </div>
 
-              <section className="grid gap-3 xl:grid-cols-4">
-                {data.quickActions.map((action) => (
-                  <QuickActionCard key={action.key} action={action} />
-                ))}
-              </section>
-
-              <section className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
-                <RecentActivityCard items={data.recentActivity} />
-                <NextStepsCard tasks={data.nextSteps} />
-                <ProgressCard metrics={data.progress} />
-              </section>
-
-              <MobileSupportCards
-                referralCode={data.sidebarCards.referralCode}
-                inviteReward={data.sidebarCards.inviteOrbs}
-              />
+              <SkillSnapshotCard snapshot={data.skillSnapshot} />
             </div>
-          </div>
-        </main>
+          </section>
+
+          <section className="grid gap-3 xl:grid-cols-4">
+            {data.quickActions.map((action) => (
+              <QuickActionCard key={action.key} action={action} />
+            ))}
+          </section>
+
+          <section className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
+            <RecentActivityCard items={data.recentActivity} />
+            <NextStepsCard tasks={data.nextSteps} />
+            <ProgressCard metrics={data.progress} />
+          </section>
+
+          <MobileSupportCards
+            referralCode={data.sidebarCards.referralCode}
+            inviteReward={data.sidebarCards.inviteOrbs}
+          />
+        </div>
       </div>
     </div>
   );
