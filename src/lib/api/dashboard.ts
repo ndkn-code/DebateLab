@@ -17,7 +17,8 @@ type DashboardNavKey =
   | "duel"
   | "courses"
   | "coach"
-  | "history";
+  | "history"
+  | "analytics";
 
 type DashboardActionKey =
   | "speaking"
@@ -652,6 +653,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
+    { key: "analytics", href: "/profile", status: "live" },
   ];
 
   const quickActions: DashboardQuickAction[] = [

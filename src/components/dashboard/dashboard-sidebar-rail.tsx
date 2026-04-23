@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   BookOpen,
+  ChartColumnBig,
   ChevronRight,
   Clock3,
   HelpCircle,
@@ -27,6 +28,7 @@ const NAV_ICONS = {
   courses: BookOpen,
   coach: Sparkles,
   history: Clock3,
+  analytics: ChartColumnBig,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -76,6 +78,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "history") {
       return pathname.startsWith("/history");
+    }
+
+    if (item.key === "analytics") {
+      return pathname.startsWith("/profile");
     }
 
     return pathname === item.href;

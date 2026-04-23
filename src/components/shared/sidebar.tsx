@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
+  BarChart3,
   LayoutDashboard,
   MessageCircle,
   Clock,
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { href: "/debates/new", key: "duel", icon: Swords },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
+  { href: "/profile", key: "analytics", icon: BarChart3 },
 ] as const;
 
 interface SidebarProps {
@@ -205,9 +207,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const tc = useTranslations('common');
-  const isDashboardHome = pathname === "/dashboard";
-  const useDashboardRail =
-    !isDashboardHome && !pathname.startsWith("/dashboard/admin");
+  const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
@@ -219,6 +219,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
     },
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
+    { key: "analytics", href: "/profile", status: "live" },
   ];
 
   const handleSignOut = async () => {
@@ -232,14 +233,13 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      {!isDashboardHome ? (
-        useDashboardRail ? (
-          <DashboardSidebarRail
-            navItems={dashboardNavItems}
-            referralCode={profile?.referral_code ?? null}
-            inviteReward={3}
-          />
-        ) : (
+      {useDashboardRail ? (
+        <DashboardSidebarRail
+          navItems={dashboardNavItems}
+          referralCode={profile?.referral_code ?? null}
+          inviteReward={3}
+        />
+      ) : (
         <aside
           className={cn(
             "hidden md:flex flex-col h-screen sticky top-0 border-r border-outline-variant/10 bg-surface-container-lowest transition-all duration-200",
@@ -265,8 +265,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             />
           </button>
         </aside>
-        )
-      ) : null}
+      )}
 
       {/* Mobile top bar + sheet */}
       <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">
