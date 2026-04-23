@@ -1,62 +1,27 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProfileContent } from "@/components/profile/profile-content";
-import { getReferralStats } from "@/lib/api/referrals";
+import { getAnalyticsPageData, normalizeRangePreset } from "@/lib/api/analytics-page";
+import { AnalyticsPage } from "@/components/analytics/analytics-page";
 
-export const metadata = { title: "Profile — DebateLab" };
+export const metadata = { title: "Analytics — DebateLab" };
 
-export default async function ProfilePage() {
+interface ProfilePageProps {
+  searchParams: Promise<{ range?: string }>;
+}
+
+export default async function ProfilePage({ searchParams }: ProfilePageProps) {
+  const params = await searchParams;
+  const range = normalizeRangePreset(params.range);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/auth/login");
-
-  const [profileRes, achievementsRes, userAchievementsRes, skillsRes, activityRes, referralStats] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("achievements").select("*").order("sort_order"),
-      supabase
-        .from("user_achievements")
-        .select("achievement_id, unlocked_at")
-        .eq("user_id", user.id),
-      supabase.rpc("get_skill_breakdown", { p_user_id: user.id }),
-      supabase
-        .from("activity_log")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      getReferralStats(user.id),
-    ]);
-
-  const unlockedMap = new Map<string, string>();
-  for (const ua of userAchievementsRes.data ?? []) {
-    unlockedMap.set(ua.achievement_id, ua.unlocked_at);
+  if (!user) {
+    redirect("/auth/login");
   }
 
-  const achievements = (achievementsRes.data ?? []).map((a) => ({
-    ...a,
-    unlocked: unlockedMap.has(a.id),
-    unlocked_at: unlockedMap.get(a.id) ?? null,
-  }));
+  const data = await getAnalyticsPageData(user.id, range);
 
-  return (
-    <ProfileContent
-      profile={profileRes.data}
-      achievements={achievements}
-      skills={
-        skillsRes.data ?? {
-          content: 0,
-          structure: 0,
-          language: 0,
-          persuasion: 0,
-          total_sessions: 0,
-        }
-      }
-      activity={activityRes.data ?? []}
-      referralStats={referralStats}
-    />
-  );
+  return <AnalyticsPage data={data} />;
 }

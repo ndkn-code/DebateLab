@@ -1,6 +1,16 @@
 export type { DebateTopic, DebateSession, DebateRound, AiDifficulty, PracticeTrack } from "./debate";
 export type { DebateScore, DebateArgumentBreakdown } from "./feedback";
 export type {
+  AnalyticsRangePreset,
+  AnalyticsHero,
+  AnalyticsSkillMetric,
+  AnalyticsSkillSnapshot,
+  AnalyticsTrendPoint,
+  AnalyticsInsightCard,
+  AnalyticsRecentSession,
+  AnalyticsPageData,
+} from "./analytics";
+export type {
   CoachIntentMode,
   CoachSkillMetric,
   CoachTrendSummary,
@@ -40,3 +50,4 @@ export type {
   ChatConversation,
   ChatMessage,
 } from "./database";
+export type { SkillMetricKey } from "@/lib/analytics/skill-snapshot";

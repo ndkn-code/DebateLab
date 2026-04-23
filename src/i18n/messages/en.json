@@ -1213,5 +1213,69 @@
       "previewSavedVersion": "This preview reflects the saved version of the course. Save changes in the editor to refresh it.",
       "previewNoTracking": "Progress, enrollment, and completion tracking are hidden in preview mode. Open an activity to check the learner experience."
     }
+  },
+  "analyticsPage": {
+    "title": "Analytics",
+    "subtitle": "Track your progress and grow your debate skills.",
+    "range_7d": "7d",
+    "range_30d": "30d",
+    "range_90d": "90d",
+    "default_title": "Rising Debater",
+    "level": "Level {level}",
+    "xp_total": "{count} XP total",
+    "xp_progress": "{current} / {total} XP",
+    "hero_streak": "Day Streak",
+    "hero_sessions": "Sessions",
+    "hero_practice_time": "Practice Time",
+    "skill_snapshot_title": "Skill Snapshot",
+    "skill_snapshot_subtitle": "Built from your scored history, not just this week.",
+    "lifetime": "Lifetime",
+    "skills": {
+      "clarity": "Clarity",
+      "logic": "Logic",
+      "rebuttal": "Rebuttal",
+      "evidence": "Evidence",
+      "delivery": "Delivery"
+    },
+    "cards": {
+      "practice_minutes": {
+        "title": "Practice Minutes",
+        "unit": "mins",
+        "delta": "{sign}{count}% vs previous range",
+        "no_delta": "Need more history to compare"
+      },
+      "mix": {
+        "title": "Speaking vs Debate Mix",
+        "debate": "Debate",
+        "speaking": "Speaking",
+        "breakdown": "{debate} debate sessions • {speaking} speaking sessions"
+      },
+      "average_score": {
+        "title": "Recent Average Score",
+        "delta": "{sign}{count} pts vs previous range",
+        "no_delta": "Scored sessions will unlock this trend"
+      },
+      "strongest_focus": {
+        "title": "Strongest / Focus Next",
+        "strongest": "Strongest",
+        "focus_next": "Focus Next"
+      }
+    },
+    "recent_sessions_title": "Recent Sessions",
+    "recent_sessions_subtitle": "Review your latest solo rounds and judged duels.",
+    "recent_speaking_badge": "Speaking Practice",
+    "recent_debate_badge": "Debate Practice",
+    "recent_duel_badge": "1v1 Duel",
+    "recent_won": "You won",
+    "recent_lost": "You lost",
+    "recent_completed": "Completed",
+    "review": "Review",
+    "view_all": "View all",
+    "minutes_short": "{count} min",
+    "duration_unknown": "Time unavailable",
+    "confidence": "{count}% confidence",
+    "empty_title": "Your analytics are warming up",
+    "empty_body": "Finish a few speaking or debate sessions and this page will start showing your progress, strongest skills, and next focus.",
+    "start_practicing": "Start practicing"
   }
 }

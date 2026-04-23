@@ -1213,5 +1213,69 @@
       "previewSavedVersion": "Bản xem trước này phản ánh phiên bản đã lưu của khóa học. Hãy lưu thay đổi trong trình chỉnh sửa để cập nhật.",
       "previewNoTracking": "Chế độ xem trước không ghi nhận tiến độ, đăng ký hay hoàn thành. Hãy mở một hoạt động để kiểm tra trải nghiệm của học viên."
     }
+  },
+  "analyticsPage": {
+    "title": "Phân tích",
+    "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng debate của bạn.",
+    "range_7d": "7 ngày",
+    "range_30d": "30 ngày",
+    "range_90d": "90 ngày",
+    "default_title": "Debater đang lên",
+    "level": "Cấp {level}",
+    "xp_total": "Tổng {count} XP",
+    "xp_progress": "{current} / {total} XP",
+    "hero_streak": "Chuỗi ngày",
+    "hero_sessions": "Phiên luyện",
+    "hero_practice_time": "Thời gian luyện",
+    "skill_snapshot_title": "Hồ sơ kỹ năng",
+    "skill_snapshot_subtitle": "Được tính từ lịch sử các phiên có chấm điểm, không chỉ tuần này.",
+    "lifetime": "Trọn thời gian",
+    "skills": {
+      "clarity": "Độ rõ",
+      "logic": "Logic",
+      "rebuttal": "Phản biện",
+      "evidence": "Bằng chứng",
+      "delivery": "Trình bày"
+    },
+    "cards": {
+      "practice_minutes": {
+        "title": "Phút luyện tập",
+        "unit": "phút",
+        "delta": "{sign}{count}% so với kỳ trước",
+        "no_delta": "Cần thêm lịch sử để so sánh"
+      },
+      "mix": {
+        "title": "Tỷ lệ Speaking vs Debate",
+        "debate": "Debate",
+        "speaking": "Speaking",
+        "breakdown": "{debate} phiên debate • {speaking} phiên speaking"
+      },
+      "average_score": {
+        "title": "Điểm trung bình gần đây",
+        "delta": "{sign}{count} điểm so với kỳ trước",
+        "no_delta": "Hoàn thành thêm phiên có điểm để mở trend này"
+      },
+      "strongest_focus": {
+        "title": "Mạnh nhất / Cần tập trung",
+        "strongest": "Mạnh nhất",
+        "focus_next": "Tập trung tiếp"
+      }
+    },
+    "recent_sessions_title": "Phiên gần đây",
+    "recent_sessions_subtitle": "Xem lại các phiên solo và duel có AI chấm gần nhất.",
+    "recent_speaking_badge": "Speaking Practice",
+    "recent_debate_badge": "Debate Practice",
+    "recent_duel_badge": "Duel 1v1",
+    "recent_won": "Bạn thắng",
+    "recent_lost": "Bạn thua",
+    "recent_completed": "Hoàn thành",
+    "review": "Xem lại",
+    "view_all": "Xem tất cả",
+    "minutes_short": "{count} phút",
+    "duration_unknown": "Chưa có thời lượng",
+    "confidence": "Độ tin cậy {count}%",
+    "empty_title": "Trang phân tích đang chờ dữ liệu",
+    "empty_body": "Hoàn thành thêm vài phiên speaking hoặc debate để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
+    "start_practicing": "Bắt đầu luyện tập"
   }
 }
