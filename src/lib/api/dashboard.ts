@@ -668,7 +668,11 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
-    { key: "duel", href: "/debates/new", status: "live" },
+    {
+      key: "duel",
+      href: isAdmin ? "/debates/new" : undefined,
+      status: isAdmin ? "live" : "coming-soon",
+    },
     {
       key: "courses",
       href: isAdmin ? "/courses" : undefined,

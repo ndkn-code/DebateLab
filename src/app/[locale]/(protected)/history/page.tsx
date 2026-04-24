@@ -360,11 +360,11 @@ function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
       debateAverage < speakingAverage - 4)
   ) {
     return {
-      tag: "Duel",
-      title: "Try a 1v1 Debate",
-      body: "Challenge real-time responses and improve rebuttals under pressure.",
-      duration: "18 min",
-      href: "/debates/new",
+      tag: "Debate",
+      title: "Constructive Case Builder",
+      body: "Strengthen your opening arguments with clearer claims and weighing.",
+      duration: "15 min",
+      href: "/practice?track=debate",
     };
   }
 

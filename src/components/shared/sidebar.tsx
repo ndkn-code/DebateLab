@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   ChevronLeft,
+  Lock,
   Menu,
   Shield,
   Scale,
@@ -73,6 +74,7 @@ function NavContent({
   const t = useTranslations('dashboard.nav');
   const tc = useTranslations('common');
   const ts = useTranslations('dashboard.home');
+  const isAdmin = profile?.role === "admin";
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
   const initials = displayName
@@ -126,6 +128,39 @@ function NavContent({
               : item.href !== "/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
           const label = t(item.key);
+          const isUnavailable = item.key === "duel" && !isAdmin;
+          const content = (
+            <>
+              <Icon className="h-5 w-5 shrink-0" />
+              {!collapsed && (
+                <>
+                  <span>{label}</span>
+                  {isUnavailable ? (
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <Lock className="h-3 w-3" />
+                      {ts("coming_soon")}
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </>
+          );
+
+          if (isUnavailable) {
+            return (
+              <div
+                key={item.href}
+                aria-disabled="true"
+                className={cn(
+                  "flex min-h-[44px] cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-on-surface-variant/65 opacity-75",
+                  collapsed && "justify-center px-0"
+                )}
+                title={collapsed ? `${label} - ${ts("coming_soon")}` : undefined}
+              >
+                {content}
+              </div>
+            );
+          }
 
           return (
             <Link
@@ -141,8 +176,7 @@ function NavContent({
               )}
               title={collapsed ? label : undefined}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{label}</span>}
+              {content}
             </Link>
           );
         })}
@@ -213,7 +247,11 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
-    { key: "duel", href: "/debates/new", status: "live" },
+    {
+      key: "duel",
+      href: isAdmin ? "/debates/new" : undefined,
+      status: isAdmin ? "live" : "coming-soon",
+    },
     {
       key: "courses",
       href: isAdmin ? "/courses" : undefined,

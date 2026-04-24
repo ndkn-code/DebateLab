@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth/admin";
 import { DuelResultPage } from "@/components/debates/duel-result-page";
 
 export const metadata = {
@@ -18,6 +19,10 @@ export default async function DebateDuelResultRoute({
 
   if (!user) {
     redirect("/auth/login");
+  }
+
+  if (!(await isAdminUser(supabase, user.id))) {
+    redirect("/dashboard");
   }
 
   const { shareCode } = await params;

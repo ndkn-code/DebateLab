@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { joinDebateDuelRoom } from "@/lib/api/debate-duels";
+import { isAdminUser } from "@/lib/auth/admin";
 
 export async function POST(
   _req: NextRequest,
@@ -14,6 +15,13 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!(await isAdminUser(supabase, user.id))) {
+      return NextResponse.json(
+        { error: "1v1 Debate is coming soon." },
+        { status: 403 }
+      );
     }
 
     const { shareCode } = await context.params;
