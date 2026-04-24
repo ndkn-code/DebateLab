@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useLocale, useTranslations } from "next-intl";
-import useSWR from "swr";
+import { motion } from "framer-motion";
+import useSWR, { mutate as mutateSWR } from "swr";
 import { Link } from "@/i18n/navigation";
 import {
   ArrowRight,
@@ -26,9 +34,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
+import { PageTransition } from "@/components/shared/page-motion";
 import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
-import { storage, supabaseStorage } from "@/lib/storage";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import fireAnimation from "../../../public/lottie/fire.json";
 import type {
@@ -36,16 +43,10 @@ import type {
   AnalyticsPageData,
   AnalyticsRangePreset,
   AnalyticsRecentSession,
-  DebateSession,
 } from "@/types";
 
 const RANGE_PRESETS: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
-
-const RANGE_DAYS: Record<AnalyticsRangePreset, number> = {
-  "7d": 7,
-  "30d": 30,
-  "90d": 90,
-};
+const ANALYTICS_DEDUPE_INTERVAL = 5 * 60 * 1000;
 
 const CHART_SIZE = 330;
 const CHART_CENTER = CHART_SIZE / 2;
@@ -83,15 +84,6 @@ function formatDate(iso: string, locale: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(iso));
-}
-
-function getAnalyticsDateKey(date: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(date));
 }
 
 function findInsight<T extends AnalyticsInsightCard["key"]>(
@@ -134,89 +126,23 @@ function polygonPoints(values: number[]) {
     .join(" ");
 }
 
-function buildPracticeSeriesFromSessions(
-  range: AnalyticsRangePreset,
-  sessions: DebateSession[]
-) {
-  const labels = ["M", "T", "W", "T", "F", "S", "S"];
-  const totalDays = RANGE_DAYS[range];
-  const keys = Array.from({ length: totalDays }, (_, index) => {
-    const current = new Date();
-    current.setDate(current.getDate() - (totalDays - 1 - index));
-    return getAnalyticsDateKey(current.toISOString());
-  });
+function getAnalyticsSummaryKey(range: AnalyticsRangePreset) {
+  return `/api/analytics/summary?range=${range}`;
+}
 
-  const byDate = new Map<string, number>();
-
-  sessions.forEach((session) => {
-    const key = getAnalyticsDateKey(session.date);
-    const minutes = Math.max(1, Math.round(session.duration / 60));
-    byDate.set(key, (byDate.get(key) ?? 0) + minutes);
-  });
-
-  if (range === "7d") {
-    return keys.map((key, index) => ({
-      label: labels[index] ?? "",
-      value: byDate.get(key) ?? 0,
-    }));
+async function fetchAnalyticsSummary(key: string): Promise<AnalyticsPageData> {
+  const response = await fetch(key, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error("Unable to load analytics summary.");
   }
 
-  const sums = Array.from({ length: 7 }, () => 0);
-  const counts = Array.from({ length: 7 }, () => 0);
-
-  keys.forEach((key) => {
-    const date = new Date(`${key}T00:00:00Z`);
-    const weekday = date.getUTCDay();
-    const mondayFirstIndex = weekday === 0 ? 6 : weekday - 1;
-    sums[mondayFirstIndex] += byDate.get(key) ?? 0;
-    counts[mondayFirstIndex] += 1;
-  });
-
-  return labels.map((label, index) => ({
-    label,
-    value: counts[index] > 0 ? Math.round(sums[index] / counts[index]) : 0,
-  }));
+  return response.json();
 }
 
-function mapLocalRecentSession(session: DebateSession): AnalyticsRecentSession {
-  return {
-    id: session.id,
-    kind: "practice",
-    topicTitle: session.topic.title,
-    topicCategory: session.topic.category,
-    practiceTrack: session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate",
-    mode: session.mode,
-    side: session.side,
-    score: session.feedback?.totalScore ?? null,
-    resultLabel: session.feedback?.overallBand ?? null,
-    confidencePercent: null,
-    durationMinutes: Math.max(1, Math.round(session.duration / 60)),
-    createdAt: session.date,
-    href: `/history/${session.id}`,
-  };
-}
-
-function getRangeStart(range: AnalyticsRangePreset) {
-  const start = new Date();
-  start.setDate(start.getDate() - (RANGE_DAYS[range] - 1));
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
-function filterSessionsForRange(range: AnalyticsRangePreset, sessions: DebateSession[]) {
-  const start = getRangeStart(range).getTime();
-  return sessions.filter((session) => new Date(session.date).getTime() >= start);
-}
-
-function buildScoreSeriesFromSessions(sessions: DebateSession[]) {
-  return [...sessions]
-    .filter((session) => session.feedback?.totalScore != null)
-    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
-    .slice(-6)
-    .map((session, index) => ({
-      label: `${index + 1}`,
-      value: session.feedback?.totalScore ?? 0,
-    }));
+function replaceRangeInUrl(range: AnalyticsRangePreset) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("range", range);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 function getAnalyticsScoreMeta(score: number | null) {
@@ -599,25 +525,65 @@ function DonutRing({
   );
 }
 
-function RangeLinks({ currentRange }: { currentRange: AnalyticsRangePreset }) {
+function RangeControl({
+  currentRange,
+  isPending,
+  onRangeChange,
+  onRangePrefetch,
+}: {
+  currentRange: AnalyticsRangePreset;
+  isPending: boolean;
+  onRangeChange: (range: AnalyticsRangePreset) => void;
+  onRangePrefetch: (range: AnalyticsRangePreset) => void;
+}) {
   const t = useTranslations("analyticsPage");
 
   return (
-    <div className="inline-flex rounded-full border border-outline-variant/20 bg-surface p-1 shadow-sm">
-      {RANGE_PRESETS.map((preset) => (
-        <Link
-          key={preset}
-          href={`/profile?range=${preset}`}
-          className={cn(
-            "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-            currentRange === preset
-              ? "bg-primary text-on-primary"
-              : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-          )}
-        >
-          {t(`range_${preset}`)}
-        </Link>
-      ))}
+    <div className="flex flex-wrap items-center gap-3">
+      <div
+        className="inline-flex rounded-full border border-outline-variant/20 bg-surface p-1 shadow-sm"
+        role="tablist"
+        aria-label={t("range_label")}
+      >
+        {RANGE_PRESETS.map((preset) => {
+          const active = currentRange === preset;
+          return (
+            <button
+              key={preset}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onRangeChange(preset)}
+              onMouseEnter={() => onRangePrefetch(preset)}
+              onFocus={() => onRangePrefetch(preset)}
+              className={cn(
+                "relative h-10 min-w-[4.35rem] overflow-hidden rounded-full px-4 text-sm font-medium transition-colors",
+                active
+                  ? "text-on-primary"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+              )}
+            >
+              {active ? (
+                <motion.span
+                  layoutId="analytics-range-thumb"
+                  className="absolute inset-0 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative z-10">{t(`range_${preset}`)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <span
+        className={cn(
+          "text-xs font-medium text-on-surface-variant transition-opacity",
+          isPending ? "opacity-100" : "opacity-0"
+        )}
+        aria-live="polite"
+      >
+        {t("loading_range")}
+      </span>
     </div>
   );
 }
@@ -660,9 +626,10 @@ function AnalyticsSkillSnapshotCard({
   overallScore,
   note,
   sourceSessions,
+  confidence,
 }: AnalyticsPageData["skillSnapshot"]) {
   const t = useTranslations("analyticsPage");
-  const values = metrics.map((metric) => metric.value);
+  const values = metrics.map((metric) => (metric.coverage > 0 ? metric.value : 0));
 
   return (
     <section className="rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6 lg:pb-4">
@@ -672,6 +639,9 @@ function AnalyticsSkillSnapshotCard({
             {t("skill_snapshot_title")}
           </h2>
         </div>
+        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {t("confidence", { count: confidence })}
+        </span>
       </div>
 
       {sourceSessions === 0 ? (
@@ -772,9 +742,11 @@ function AnalyticsSkillSnapshotCard({
                   </div>
                   <p className="shrink-0 text-right">
                     <span className="text-[1.06rem] font-semibold text-on-surface">
-                      {Math.round(metric.value)}
+                      {metric.coverage > 0 ? Math.round(metric.value) : "—"}
                     </span>
-                    <span className="ml-1 text-sm text-on-surface-variant">/100</span>
+                    {metric.coverage > 0 ? (
+                      <span className="ml-1 text-sm text-on-surface-variant">/100</span>
+                    ) : null}
                   </p>
                 </div>
               ))}
@@ -907,28 +879,51 @@ function RecentSessionCard({
   );
 }
 
-export function AnalyticsPage({ data }: { data: AnalyticsPageData }) {
+export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }) {
   const t = useTranslations("analyticsPage");
-  const { data: clientSessions = [] } = useSWR(
-    "analytics-sessions",
-    async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        return storage.getSessions();
-      }
-
-      return supabaseStorage.getSessions(user.id);
-    },
+  const [selectedRange, setSelectedRange] = useState(initialData.range);
+  const prefetchedRangesRef = useRef(new Set<AnalyticsRangePreset>([initialData.range]));
+  const analyticsKey = getAnalyticsSummaryKey(selectedRange);
+  const { data: fetchedData, isValidating } = useSWR<AnalyticsPageData>(
+    analyticsKey,
+    fetchAnalyticsSummary,
     {
+      fallbackData: selectedRange === initialData.range ? initialData : undefined,
+      keepPreviousData: true,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 30000,
+      dedupingInterval: ANALYTICS_DEDUPE_INTERVAL,
     }
   );
+  const data = fetchedData ?? initialData;
+  const isPending = data.range !== selectedRange || isValidating;
+  const prefetchRange = useCallback((range: AnalyticsRangePreset) => {
+    if (prefetchedRangesRef.current.has(range)) return;
+    prefetchedRangesRef.current.add(range);
+    const key = getAnalyticsSummaryKey(range);
+    mutateSWR(key, fetchAnalyticsSummary(key), {
+      populateCache: true,
+      revalidate: false,
+    });
+  }, []);
+  const handleRangeChange = useCallback(
+    (range: AnalyticsRangePreset) => {
+      if (range === selectedRange) return;
+      setSelectedRange(range);
+      replaceRangeInUrl(range);
+      prefetchRange(range);
+    },
+    [prefetchRange, selectedRange]
+  );
+
+  useEffect(() => {
+    for (const range of RANGE_PRESETS) {
+      if (range !== initialData.range) {
+        prefetchRange(range);
+      }
+    }
+  }, [initialData.range, prefetchRange]);
+
   const practiceMinutesCard = useMemo(
     () => findInsight(data.insights, "practice-minutes"),
     [data.insights]
@@ -945,115 +940,13 @@ export function AnalyticsPage({ data }: { data: AnalyticsPageData }) {
     () => findInsight(data.insights, "strongest-focus"),
     [data.insights]
   );
-  const localPracticeSeries = useMemo(
-    () => buildPracticeSeriesFromSessions(data.range, clientSessions),
-    [data.range, clientSessions]
-  );
-  const localRangeSessions = useMemo(
-    () => filterSessionsForRange(data.range, clientSessions),
-    [data.range, clientSessions]
-  );
-  const practiceMinutesDisplay = useMemo(() => {
-    const hasServerData =
-      practiceMinutesCard.totalMinutes > 0 ||
-      practiceMinutesCard.series.some((entry) => entry.value > 0);
-    const hasServerBars = practiceMinutesCard.series.some((entry) => entry.value > 0);
-    const hasFallbackBars = localPracticeSeries.some((entry) => entry.value > 0);
-    const fallbackTotal = localPracticeSeries.reduce(
-      (total, entry) => total + entry.value,
-      0
-    );
-
-    if ((!hasServerBars && hasFallbackBars) || (!hasServerData && fallbackTotal > 0)) {
-      return {
-        ...practiceMinutesCard,
-        totalMinutes: Math.max(practiceMinutesCard.totalMinutes, fallbackTotal),
-        deltaPercent: practiceMinutesCard.deltaPercent,
-        series: localPracticeSeries,
-      };
-    }
-
-    if (hasServerData && !hasServerBars && practiceMinutesCard.totalMinutes > 0) {
-      const weekday = new Date().getDay();
-      const mondayFirstIndex = weekday === 0 ? 6 : weekday - 1;
-      return {
-        ...practiceMinutesCard,
-        series: practiceMinutesCard.series.map((entry, index) => ({
-          ...entry,
-          value: index === mondayFirstIndex ? practiceMinutesCard.totalMinutes : 0,
-        })),
-      };
-    }
-
-    if (hasServerData) {
-      return practiceMinutesCard;
-    }
-
-    return {
-      ...practiceMinutesCard,
-      totalMinutes: fallbackTotal,
-      deltaPercent: null,
-      series: localPracticeSeries,
-    };
-  }, [localPracticeSeries, practiceMinutesCard]);
-  const mixDisplay = useMemo(() => {
-    const hasServerMix = mixCard.debateCount + mixCard.speakingCount > 0;
-    if (hasServerMix) return mixCard;
-
-    const speakingCount = localRangeSessions.filter(
-      (session) =>
-        session.practiceTrack === "speaking" ||
-        session.feedback?.practiceTrack === "speaking"
-    ).length;
-    const debateCount = localRangeSessions.length - speakingCount;
-    const total = debateCount + speakingCount;
-
-    return {
-      ...mixCard,
-      speakingCount,
-      debateCount,
-      speakingPercent: total > 0 ? Math.round((speakingCount / total) * 100) : 0,
-      debatePercent: total > 0 ? Math.round((debateCount / total) * 100) : 0,
-    };
-  }, [localRangeSessions, mixCard]);
-  const averageScoreDisplay = useMemo(() => {
-    const hasServerAverage =
-      averageCard.averageScore != null || averageCard.series.some((entry) => entry.value > 0);
-    if (hasServerAverage) return averageCard;
-
-    const series = buildScoreSeriesFromSessions(localRangeSessions);
-    const averageScore =
-      series.length > 0
-        ? series.reduce((total, entry) => total + entry.value, 0) / series.length
-        : null;
-
-    return {
-      ...averageCard,
-      averageScore,
-      deltaPoints: null,
-      sessionsAnalyzed: series.length,
-      series,
-    };
-  }, [averageCard, localRangeSessions]);
-  const recentSessionsDisplay = useMemo(() => {
-    const merged = [...data.recentSessions];
-    const seen = new Set(merged.map((session) => `${session.kind}-${session.id}`));
-
-    clientSessions.map(mapLocalRecentSession).forEach((session) => {
-      const key = `${session.kind}-${session.id}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(session);
-      }
-    });
-
-    return merged.sort(
-      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-    );
-  }, [clientSessions, data.recentSessions]);
+  const practiceMinutesDisplay = practiceMinutesCard;
+  const mixDisplay = mixCard;
+  const averageScoreDisplay = averageCard;
+  const recentSessionsDisplay = data.recentSessions;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">
+    <PageTransition className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">
       <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -1064,7 +957,12 @@ export function AnalyticsPage({ data }: { data: AnalyticsPageData }) {
               {t("subtitle")}
             </p>
           </div>
-          <RangeLinks currentRange={data.range} />
+          <RangeControl
+            currentRange={selectedRange}
+            isPending={isPending}
+            onRangeChange={handleRangeChange}
+            onRangePrefetch={prefetchRange}
+          />
         </div>
 
         <div className="mt-6 grid min-h-0 flex-1 grid-rows-[auto_auto_minmax(0,1fr)] gap-4">
@@ -1380,6 +1278,6 @@ export function AnalyticsPage({ data }: { data: AnalyticsPageData }) {
           </section>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

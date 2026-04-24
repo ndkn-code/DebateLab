@@ -22,6 +22,8 @@ export interface AnalyticsHero {
 export interface AnalyticsSkillMetric {
   key: SkillMetricKey;
   value: number;
+  effectiveSessions: number;
+  coverage: number;
 }
 
 export interface AnalyticsSkillSnapshot {
@@ -30,6 +32,8 @@ export interface AnalyticsSkillSnapshot {
   strongestSkill: SkillMetricKey | null;
   weakestSkill: SkillMetricKey | null;
   sourceSessions: number;
+  confidence: number;
+  trackBreakdown: Record<PracticeTrack, number>;
   note: string;
 }
 

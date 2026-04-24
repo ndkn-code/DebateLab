@@ -12,6 +12,8 @@ export type CoachIntentMode =
 export interface CoachSkillMetric {
   key: SkillMetricKey;
   value: number;
+  effectiveSessions: number;
+  coverage: number;
 }
 
 export interface CoachTrendSummary {
@@ -78,6 +80,8 @@ export interface CoachProfile {
     strongestSkill: SkillMetricKey | null;
     weakestSkill: SkillMetricKey | null;
     sourceSessions: number;
+    confidence: number;
+    trackBreakdown: Record<PracticeTrack, number>;
   };
   recentTrend: CoachTrendSummary;
   weaknessPatterns: CoachWeaknessPattern[];

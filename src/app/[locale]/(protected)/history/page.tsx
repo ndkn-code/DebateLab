@@ -21,6 +21,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageTransition } from "@/components/shared/page-motion";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseQuery } from "@/hooks/use-supabase-query";
@@ -601,7 +602,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface">
+    <PageTransition className="min-h-screen bg-background text-on-surface">
       <div className="mx-auto max-w-[1360px] px-4 py-8 sm:px-8 lg:px-10">
         <motion.header
           initial={{ opacity: 0, y: 10 }}
@@ -801,7 +802,7 @@ export default function HistoryPage() {
           </aside>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
 

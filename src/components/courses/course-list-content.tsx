@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CourseCard } from "@/components/courses/course-card";
+import { PageTransition } from "@/components/shared/page-motion";
 import {
   CourseArtwork,
   resolveCourseArtworkVariant,
@@ -309,7 +310,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
     .slice(0, 4);
 
   return (
-    <div className="min-h-[calc(100dvh-3.5rem)] bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+    <PageTransition className="min-h-[calc(100dvh-3.5rem)] bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto max-w-[1240px]">
         <header className="mb-5">
           <h1 className="text-[2.45rem] font-semibold tracking-[-0.045em] text-[#14244a] sm:text-[2.8rem]">
@@ -381,6 +382,6 @@ export function CourseListContent({ library }: CourseListContentProps) {
           <RecommendationPanel course={library.recommendedCourse} />
         ) : null}
       </div>
-    </div>
+    </PageTransition>
   );
 }

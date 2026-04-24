@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   computeSkillSnapshot,
   roundToTenth,
+  type SkillFeedbackSource,
   type SkillMetricKey,
 } from "@/lib/analytics/skill-snapshot";
 import type {
@@ -51,6 +52,7 @@ type SoloSessionRow = {
 type DuelParticipantRow = {
   duel_id: string;
   role: DebateDuelSide | null;
+  joined_at?: string;
 };
 
 type DuelRow = {
@@ -160,15 +162,28 @@ function buildStatusLine(
 
 function buildSkillNote(
   strongestSkill: SkillMetricKey | null,
-  sourceSessions: number
+  sourceSessions: number,
+  confidence: number,
+  trackBreakdown: Record<PracticeTrack, number>
 ) {
   if (sourceSessions === 0 || !strongestSkill) {
     return "Complete a few scored rounds in this range to unlock your skill profile.";
   }
 
+  if (confidence < 45) {
+    return "This snapshot is still warming up. Add a few more scored rounds before treating recommendations as firm.";
+  }
+
+  const trackLabel =
+    trackBreakdown.speaking > 0 && trackBreakdown.debate > 0
+      ? "mixed practice"
+      : trackBreakdown.speaking > 0
+        ? "speaking practice"
+        : "debate practice";
+
   return `${titleCaseSkill(
     strongestSkill
-  )} is your strongest skill in this range right now.`;
+  )} is your strongest skill in this range based on your ${trackLabel}.`;
 }
 
 function buildPracticeSeries(range: AnalyticsRangePreset, dailyStats: DailyStatRow[]) {
@@ -229,18 +244,27 @@ function roundMinutesFromSeconds(totalSeconds: number | null) {
   return Math.max(1, Math.round(totalSeconds / 60));
 }
 
-function mapSkillSnapshot(rows: { feedback: DebateScore | null }[]) {
+function mapSkillSnapshot(rows: SkillFeedbackSource[]) {
   const snapshot = computeSkillSnapshot(rows);
   return {
     metrics: snapshot.metrics.map((metric) => ({
       key: metric.key,
       value: metric.value,
+      effectiveSessions: metric.effectiveSessions,
+      coverage: metric.coverage,
     })),
     overallScore: snapshot.overallScore,
     strongestSkill: snapshot.strongestSkill,
     weakestSkill: snapshot.weakestSkill,
     sourceSessions: snapshot.sourceSessions,
-    note: buildSkillNote(snapshot.strongestSkill, snapshot.sourceSessions),
+    confidence: snapshot.confidence,
+    trackBreakdown: snapshot.trackBreakdown,
+    note: buildSkillNote(
+      snapshot.strongestSkill,
+      snapshot.sourceSessions,
+      snapshot.confidence,
+      snapshot.trackBreakdown
+    ),
   };
 }
 
@@ -344,9 +368,17 @@ export async function getAnalyticsPageData(
     previousStartIso,
   } = getRangeWindow(range);
   const supabase = await createClient();
+  const soloSessionSelect =
+    "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at";
 
-  const [profileRes, dailyStatsRes, soloSessionsRes, duelParticipantsRes] =
-    await Promise.all([
+  const [
+    profileRes,
+    dailyStatsRes,
+    rangeSoloSessionsRes,
+    recentSoloSessionsRes,
+    rangeDuelParticipantsRes,
+    recentDuelParticipantsRes,
+  ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
       supabase
         .from("daily_stats")
@@ -356,29 +388,55 @@ export async function getAnalyticsPageData(
         .order("date", { ascending: true }),
       supabase
         .from("debate_sessions")
-        .select(
-          "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
-        )
+        .select(soloSessionSelect)
+        .eq("user_id", userId)
+        .gte("created_at", previousStartIso)
+        .order("created_at", { ascending: false })
+        .limit(240),
+      supabase
+        .from("debate_sessions")
+        .select(soloSessionSelect)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(120),
+        .limit(MAX_RECENT_SESSIONS),
       supabase
         .from("debate_duel_participants")
-        .select("duel_id, role")
+        .select("duel_id, role, joined_at")
+        .eq("user_id", userId)
+        .gte("joined_at", previousStartIso)
+        .order("joined_at", { ascending: false })
+        .limit(80),
+      supabase
+        .from("debate_duel_participants")
+        .select("duel_id, role, joined_at")
         .eq("user_id", userId)
         .order("joined_at", { ascending: false })
-        .limit(24),
+        .limit(12),
     ]);
 
   const profile = (profileRes.data as Profile | null) ?? null;
   const dailyStats = (dailyStatsRes.data ?? []) as DailyStatRow[];
-  const soloSessions = ((soloSessionsRes.data ?? []) as SoloSessionRow[]).map(
-    (session) => ({
+  const mapSoloSession = (session: SoloSessionRow) => ({
       ...session,
       feedback: (session.feedback as DebateScore | null) ?? null,
-    })
+    });
+  const rangeSoloSessions = ((rangeSoloSessionsRes.data ?? []) as SoloSessionRow[]).map(
+    mapSoloSession
   );
-  const duelParticipants = (duelParticipantsRes.data ?? []) as DuelParticipantRow[];
+  const recentSoloSessions = ((recentSoloSessionsRes.data ?? []) as SoloSessionRow[]).map(
+    mapSoloSession
+  );
+  const duelParticipants = [
+    ...((rangeDuelParticipantsRes.data ?? []) as DuelParticipantRow[]),
+    ...((recentDuelParticipantsRes.data ?? []) as DuelParticipantRow[]),
+  ].filter((participant, index, list) => {
+    return (
+      participant.duel_id &&
+      list.findIndex((item) => item.duel_id === participant.duel_id) === index
+    );
+  });
+  const recentDuelParticipants = (recentDuelParticipantsRes.data ??
+    []) as DuelParticipantRow[];
 
   const currentDailyStats = dailyStats.filter(
     (entry) => entry.date >= currentStartDate
@@ -394,10 +452,10 @@ export async function getAnalyticsPageData(
     previousDailyStats.map((entry) => entry.minutes_studied ?? 0)
   );
 
-  const currentSoloSessions = soloSessions.filter(
+  const currentSoloSessions = rangeSoloSessions.filter(
     (session) => new Date(session.created_at).getTime() >= new Date(currentStartIso).getTime()
   );
-  const previousSoloSessions = soloSessions.filter((session) => {
+  const previousSoloSessions = rangeSoloSessions.filter((session) => {
     const timestamp = new Date(session.created_at).getTime();
     return (
       timestamp >= new Date(previousStartIso).getTime() &&
@@ -405,11 +463,7 @@ export async function getAnalyticsPageData(
     );
   });
 
-  const rangeSkillSnapshot = mapSkillSnapshot(
-    currentSoloSessions.map((session) => ({
-      feedback: session.feedback,
-    }))
-  );
+  const rangeSkillSnapshot = mapSkillSnapshot(currentSoloSessions);
 
   const currentScoredSoloSessions = currentSoloSessions.filter(
     (session) => session.total_score != null
@@ -552,8 +606,8 @@ export async function getAnalyticsPageData(
     skillSnapshot: rangeSkillSnapshot,
     insights,
     recentSessions: buildRecentSessions({
-      soloSessions,
-      duelParticipants,
+      soloSessions: recentSoloSessions,
+      duelParticipants: recentDuelParticipants,
       duels: duelRows,
       duelJudgments,
       duelSpeeches,

@@ -35,6 +35,7 @@ type SessionRow = {
   total_score: number | null;
   overall_band: string | null;
   transcript: string;
+  duration_seconds: number | null;
   created_at: string;
 };
 
@@ -450,7 +451,7 @@ function buildProfileSummary(profile: CoachProfile) {
       profile.skillSnapshot.overallScore != null
         ? `${Math.round(profile.skillSnapshot.overallScore)}/100`
         : "n/a"
-    }`,
+    }, confidence ${profile.skillSnapshot.confidence}%`,
     `Trend: ${profile.recentTrend.summary}`,
     profile.weaknessPatterns.length > 0
       ? `Repeated weaknesses: ${profile.weaknessPatterns
@@ -496,7 +497,7 @@ async function getSessionById(userId: string, sessionId: string) {
   const { data } = await supabase
     .from("debate_sessions")
     .select(
-      "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, created_at"
+      "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
     )
     .eq("user_id", userId)
     .eq("id", sessionId)
@@ -682,16 +683,16 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, created_at"
+          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
         )
         .eq("user_id", userId)
-        .not("feedback", "is", null)
+        .not("total_score", "is", null)
         .order("created_at", { ascending: false })
         .limit(MAX_SCORED_SESSIONS),
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, created_at"
+          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -813,6 +814,8 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       strongestSkill: skillSnapshot.strongestSkill,
       weakestSkill: skillSnapshot.weakestSkill,
       sourceSessions: skillSnapshot.sourceSessions,
+      confidence: skillSnapshot.confidence,
+      trackBreakdown: skillSnapshot.trackBreakdown,
     },
     weaknessPatterns,
     recentSessions: mappedRecentSessions,
@@ -847,6 +850,8 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       strongestSkill: skillSnapshot.strongestSkill,
       weakestSkill: skillSnapshot.weakestSkill,
       sourceSessions: skillSnapshot.sourceSessions,
+      confidence: skillSnapshot.confidence,
+      trackBreakdown: skillSnapshot.trackBreakdown,
     },
     recentTrend,
     weaknessPatterns,

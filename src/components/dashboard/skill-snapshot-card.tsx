@@ -55,7 +55,9 @@ export function SkillSnapshotCard({
   snapshot: DashboardSkillSnapshot;
 }) {
   const t = useTranslations("dashboard.home");
-  const values = snapshot.metrics.map((metric) => metric.value);
+  const values = snapshot.metrics.map((metric) =>
+    metric.coverage > 0 ? metric.value : 0
+  );
 
   return (
     <section className="rounded-[1.75rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_28px_80px_-52px_rgba(22,39,91,0.45)]">
@@ -73,6 +75,9 @@ export function SkillSnapshotCard({
                 <TooltipContent>{t("skill_snapshot_hint")}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {snapshot.confidence}%
+            </span>
           </div>
 
           {snapshot.sourceSessions === 0 ? (
@@ -127,7 +132,10 @@ export function SkillSnapshotCard({
                 />
 
                 {snapshot.metrics.map((metric, index) => {
-                  const point = pointForValue(index, metric.value);
+                  const point = pointForValue(
+                    index,
+                    metric.coverage > 0 ? metric.value : 0
+                  );
                   return (
                     <circle
                       key={metric.key}
@@ -175,9 +183,11 @@ export function SkillSnapshotCard({
                 </div>
                 <p className="shrink-0 text-right">
                   <span className="text-[1.05rem] font-semibold text-on-surface">
-                    {Math.round(metric.value)}
+                    {metric.coverage > 0 ? Math.round(metric.value) : "—"}
                   </span>
-                  <span className="ml-1 text-sm text-on-surface-variant">/100</span>
+                  {metric.coverage > 0 ? (
+                    <span className="ml-1 text-sm text-on-surface-variant">/100</span>
+                  ) : null}
                 </p>
               </div>
             ))}

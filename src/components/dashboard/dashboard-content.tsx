@@ -23,6 +23,7 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
+import { PageTransition } from "@/components/shared/page-motion";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { cn } from "@/lib/utils";
 import type {
@@ -700,7 +701,7 @@ export function DashboardContent({
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
   return (
-    <div className="h-screen overflow-hidden bg-background px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
+    <PageTransition className="h-screen overflow-hidden bg-background px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
       <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
         <div className="mb-3 flex flex-wrap items-center justify-end gap-1 text-on-surface">
           <UtilityChip
@@ -787,6 +788,6 @@ export function DashboardContent({
           />
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

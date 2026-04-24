@@ -120,6 +120,8 @@ export interface DashboardNavItem {
 export interface DashboardSkillMetric {
   key: DashboardSharedSkillMetric["key"];
   value: DashboardSharedSkillMetric["value"];
+  effectiveSessions: DashboardSharedSkillMetric["effectiveSessions"];
+  coverage: DashboardSharedSkillMetric["coverage"];
 }
 
 export interface DashboardSkillSnapshot {
@@ -128,6 +130,8 @@ export interface DashboardSkillSnapshot {
   weakestSkill: DashboardSkillKey | null;
   strongestSkill: DashboardSkillKey | null;
   sourceSessions: number;
+  confidence: number;
+  trackBreakdown: Record<PracticeTrack, number>;
 }
 
 export interface DashboardQuickAction {

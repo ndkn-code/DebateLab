@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import posthog from "posthog-js";
 import { ConversationSidebar } from "./conversation-sidebar";
 import { ChatArea } from "./chat-area";
+import { PageTransition } from "@/components/shared/page-motion";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
 import type { CoachContextEnvelope, CoachProfile } from "@/types";
@@ -330,7 +331,7 @@ export function ChatShell({
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden md:h-screen">
+    <PageTransition className="flex h-[calc(100vh-3.5rem)] overflow-hidden md:h-screen">
       <ConversationSidebar
         conversations={conversations}
         activeId={activeConversationId}
@@ -350,6 +351,6 @@ export function ChatShell({
         coachEnvelope={coachEnvelope}
         isInsightsLoading={isInsightsLoading}
       />
-    </div>
+    </PageTransition>
   );
 }

@@ -28,6 +28,7 @@ import {
 } from "@/components/practice/practice-topic-display";
 import { SessionConfig } from "@/components/practice/session-config";
 import { TopicCard } from "@/components/practice/topic-card";
+import { PageTransition } from "@/components/shared/page-motion";
 import { topics, CATEGORIES } from "@/lib/topics";
 import { resolvePracticeTopic, readPracticePrefill } from "@/lib/practice-prefill";
 import { normalizeSettingsPreferences } from "@/lib/settings";
@@ -340,7 +341,7 @@ export default function PracticePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-7 sm:px-6 xl:px-8">
+    <PageTransition className="min-h-screen bg-background px-4 py-7 sm:px-6 xl:px-8">
       <div
         className={cn(
           "relative mx-auto flex max-w-[1440px] flex-col gap-7",
@@ -538,6 +539,6 @@ export default function PracticePage() {
           ) : null}
         </AnimatePresence>
       </div>
-    </div>
+    </PageTransition>
   );
 }
