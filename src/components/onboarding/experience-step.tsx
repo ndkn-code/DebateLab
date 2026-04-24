@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { BookOpen, Medal, Sprout } from "lucide-react";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 
@@ -12,6 +13,11 @@ const LEVEL_EMOJIS: Record<string, string> = {
   intermediate: "\u{1F4D6}",
   experienced: "\u{1F3C5}",
 };
+const LEVEL_ICONS = {
+  beginner: Sprout,
+  intermediate: BookOpen,
+  experienced: Medal,
+} as const;
 
 interface ExperienceStepProps {
   onSelect: (level: string) => void;
@@ -53,7 +59,7 @@ export function ExperienceStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-center text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-6 text-center text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("experience.headline")}
       </motion.h2>
@@ -68,6 +74,7 @@ export function ExperienceStep({
           >
             <SelectionCard
               emoji={LEVEL_EMOJIS[id]}
+              icon={LEVEL_ICONS[id as keyof typeof LEVEL_ICONS]}
               title={t("experience.options." + id + ".title")}
               selected={localSelected === id}
               disabled={localSelected !== null}

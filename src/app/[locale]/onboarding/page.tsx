@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import posthog from "posthog-js";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { ChevronLeft } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
-import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
+import { OnboardingShell } from "@/components/onboarding/onboarding-primitives";
 import { WelcomeStep } from "@/components/onboarding/welcome-step";
 import { GoalStep } from "@/components/onboarding/goal-step";
 import { ExperienceStep } from "@/components/onboarding/experience-step";
@@ -31,26 +30,12 @@ const STEP_NAMES = [
   "path-reveal",
 ];
 
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 60 : -60,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -60 : 60,
-    opacity: 0,
-  }),
-};
-
 export default function OnboardingPage() {
   const t = useTranslations("onboarding");
   const store = useOnboardingStore();
   const currentStep = store.currentStep;
   const [direction, setDirection] = useState(1);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -162,58 +147,57 @@ export default function OnboardingPage() {
   };
 
   const isWelcome = store.currentStep === 0;
+  const isFinalReveal = store.currentStep === 8;
+  const slideVariants = {
+    enter: (stepDirection: number) => ({
+      x: prefersReducedMotion ? 0 : stepDirection > 0 ? 42 : -42,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (stepDirection: number) => ({
+      x: prefersReducedMotion ? 0 : stepDirection > 0 ? -42 : 42,
+      opacity: 0,
+    }),
+  };
 
   return (
-    <div
-      className={`flex min-h-[100dvh] flex-col transition-colors duration-500 ${
-        isWelcome ? "bg-[#fbf8ff]" : "bg-background"
-      }`}
+    <OnboardingShell
+      currentStep={store.currentStep}
+      totalSteps={TOTAL_STEPS}
+      backLabel={t("back")}
+      stepLabel={`${store.currentStep + 1} / ${TOTAL_STEPS}`}
+      onBack={handleBack}
+      showBack={store.currentStep > 0 && store.currentStep < 8}
+      hideChrome={isWelcome || isFinalReveal}
+      contentClassName={
+        isWelcome
+          ? "p-0"
+          : isFinalReveal
+            ? "items-center"
+            : "items-start pt-8 md:items-center md:pt-7"
+      }
     >
-      {/* Progress bar — hidden on welcome screen */}
-      {store.currentStep > 0 && (
-        <OnboardingProgress
-          currentStep={store.currentStep}
-          totalSteps={TOTAL_STEPS}
-        />
-      )}
-
-      {/* Back button */}
-      {store.currentStep > 0 && store.currentStep < 8 && (
-        <div className="px-4 pt-4">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-1 rounded-lg p-2 text-gray-400 transition-colors hover:text-gray-600"
+      <div className="w-full max-w-lg">
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={store.currentStep}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              duration: prefersReducedMotion ? 0.12 : 0.24,
+              ease: "easeOut",
+            }}
           >
-            <ChevronLeft className="h-5 w-5" />
-            <span className="text-sm">{t("back")}</span>
-          </button>
-        </div>
-      )}
-
-      {/* Step content */}
-      <div
-        className={`flex flex-1 items-center px-4 py-8 ${
-          isWelcome
-            ? "justify-center"
-            : "justify-start pt-8 md:justify-center md:pt-0"
-        }`}
-      >
-        <div className="w-full max-w-lg">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={store.currentStep}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeOut" }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </div>
+    </OnboardingShell>
   );
 }

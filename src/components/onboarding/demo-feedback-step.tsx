@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 
 interface DemoFeedback {
   score: number;
@@ -72,7 +73,7 @@ export function DemoFeedbackStep({
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ repeat: Infinity, duration: 1.5 }}
-          className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10"
+          className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-container"
         >
           <Sparkles className="h-10 w-10 text-primary" />
         </motion.div>
@@ -95,70 +96,72 @@ export function DemoFeedbackStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-6 text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("demo_feedback.headline")}
       </motion.h2>
 
-      {/* Score */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="mx-auto mb-6 h-28 w-28"
+        className="mb-6"
       >
-        <div className="relative h-full w-full">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
-            <circle
-              cx="50"
-              cy="50"
-              r={radius}
-              fill="none"
-              stroke="#e5e7eb"
-              strokeWidth="6"
-            />
-            <motion.circle
-              cx="50"
-              cy="50"
-              r={radius}
-              fill="none"
-              stroke="#2f4fdd"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{
-                strokeDashoffset: circumference * (1 - scoreProgress),
-              }}
-              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-3xl font-bold text-on-surface"
-            >
-              {feedback.score}
-            </motion.span>
-            <span className="text-xs text-gray-400">/100</span>
+        <OnboardingPreviewCard className="mx-auto w-fit p-5">
+          <div className="relative h-28 w-28">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r={radius}
+                fill="none"
+                stroke="var(--color-outline-variant)"
+                strokeWidth="6"
+              />
+              <motion.circle
+                cx="50"
+                cy="50"
+                r={radius}
+                fill="none"
+                stroke="var(--color-primary)"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{
+                  strokeDashoffset: circumference * (1 - scoreProgress),
+                }}
+                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                className="text-3xl font-bold text-on-surface"
+              >
+                {feedback.score}
+              </motion.span>
+              <span className="text-xs text-on-surface-variant">/100</span>
+            </div>
           </div>
-        </div>
+        </OnboardingPreviewCard>
       </motion.div>
 
-      {/* Feedback cards */}
       <div className="mb-6 space-y-3 text-left">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6 }}
-          className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4"
+          className="flex items-start gap-3 rounded-[1.25rem] border border-secondary/20 bg-secondary-container p-4"
         >
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary-dim" />
           <div>
-            <p className="text-sm font-semibold text-emerald-600">{t("demo_feedback.strength")}</p>
-            <p className="text-base text-gray-600">{feedback.strength}</p>
+            <p className="text-sm font-semibold text-secondary-dim">
+              {t("demo_feedback.strength")}
+            </p>
+            <p className="text-base text-on-surface">{feedback.strength}</p>
           </div>
         </motion.div>
 
@@ -166,12 +169,14 @@ export function DemoFeedbackStep({
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.8 }}
-          className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4"
+          className="flex items-start gap-3 rounded-[1.25rem] border border-tertiary/20 bg-tertiary-container p-4"
         >
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-tertiary-dim" />
           <div>
-            <p className="text-sm font-semibold text-amber-600">{t("demo_feedback.improvement")}</p>
-            <p className="text-base text-gray-600">{feedback.improvement}</p>
+            <p className="text-sm font-semibold text-tertiary-dim">
+              {t("demo_feedback.improvement")}
+            </p>
+            <p className="text-base text-on-surface">{feedback.improvement}</p>
           </div>
         </motion.div>
       </div>
@@ -180,7 +185,7 @@ export function DemoFeedbackStep({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mb-8 text-base font-medium text-primary"
+        className="mb-8 text-base font-semibold text-primary"
       >
         {feedback.encouragement}
       </motion.p>
@@ -192,7 +197,7 @@ export function DemoFeedbackStep({
       >
         <Button
           onClick={onNext}
-          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+          className="h-12 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
           size="lg"
         >
           {t("demo_feedback.cta")}

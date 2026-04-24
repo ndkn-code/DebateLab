@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { Mic, MicOff, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 
 interface DemoSpeakStepProps {
@@ -100,18 +101,18 @@ export function DemoSpeakStep({
   if (micError) {
     return (
       <div className="text-center">
-        <div className="mb-6 flex h-16 w-16 mx-auto items-center justify-center rounded-2xl bg-red-100">
-          <MicOff className="h-8 w-8 text-red-500" />
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-error-container">
+          <MicOff className="h-8 w-8 text-on-error-container" />
         </div>
-        <h2 className="mb-2 text-2xl md:text-3xl font-bold text-on-surface">
+        <h2 className="mb-2 text-2xl font-bold text-on-surface md:text-3xl">
           {t("demo_speak.mic_error")}
         </h2>
-        <p className="mb-6 text-base text-gray-500">
+        <p className="mb-6 text-base text-on-surface-variant">
           {t("demo_speak.mic_error")}
         </p>
         <button
           onClick={onSkip}
-          className="text-base font-medium text-primary hover:underline"
+          className="text-base font-medium text-primary transition-colors hover:text-primary-dim hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
         >
           {t("demo_speak.skip")}
         </button>
@@ -121,91 +122,97 @@ export function DemoSpeakStep({
 
   return (
     <div className="text-center">
-      {/* Topic banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <p className="text-lg md:text-xl font-medium text-gray-600">{topic}</p>
-        <span
-          className={`mt-2 inline-block rounded-full px-4 py-1 text-sm font-bold ${
-            position === "FOR"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-rose-100 text-rose-700"
-          }`}
-        >
-          {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
-        </span>
-      </motion.div>
-
-      {/* Timer ring */}
-      <div className="relative mx-auto mb-6 h-36 w-36">
-        <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
-          <circle
-            cx="60"
-            cy="60"
-            r={radius}
-            fill="none"
-            stroke="#e5e7eb"
-            strokeWidth="6"
-          />
-          <motion.circle
-            cx="60"
-            cy="60"
-            r={radius}
-            fill="none"
-            stroke={timeLeft <= 5 ? "#ef4444" : "#2f4fdd"}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 0.5, ease: "linear" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <OnboardingPreviewCard className="text-left">
+          <p className="text-lg font-semibold leading-7 text-on-surface md:text-xl">
+            {topic}
+          </p>
           <span
-            className={`text-4xl font-bold ${
-              timeLeft <= 5 ? "text-red-500" : "text-on-surface"
+            className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+              position === "FOR"
+                ? "bg-secondary-container text-on-secondary-container"
+                : "bg-error-container text-on-error-container"
             }`}
           >
-            {timeLeft}
+            {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
           </span>
-          <span className="text-xs text-gray-400">{t("demo_speak.time_remaining", { seconds: timeLeft })}</span>
-        </div>
-      </div>
+        </OnboardingPreviewCard>
+      </motion.div>
 
-      {/* Mic indicator */}
+      <OnboardingPreviewCard className="mb-6">
+        <div className="relative mx-auto h-36 w-36">
+          <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke="var(--color-outline-variant)"
+              strokeWidth="6"
+            />
+            <motion.circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke={timeLeft <= 5 ? "var(--color-error)" : "var(--color-primary)"}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              animate={{ strokeDashoffset }}
+              transition={{ duration: 0.5, ease: "linear" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className={`text-4xl font-bold ${
+                timeLeft <= 5 ? "text-error" : "text-on-surface"
+              }`}
+            >
+              {timeLeft}
+            </span>
+            <span className="text-xs text-on-surface-variant">
+              {t("demo_speak.time_remaining", { seconds: timeLeft })}
+            </span>
+          </div>
+        </div>
+      </OnboardingPreviewCard>
+
       {isRecording && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="mb-4 flex items-center justify-center gap-2"
         >
-          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          <span className="text-sm text-gray-500">{t("demo_speak.recording")}</span>
+          <span className="h-2 w-2 animate-pulse rounded-full bg-error" />
+          <span className="text-sm font-medium text-on-surface-variant">
+            {t("demo_speak.recording")}
+          </span>
         </motion.div>
       )}
 
-      {/* Transcript */}
       {hasStarted && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mb-6 min-h-[80px] rounded-2xl border border-gray-200 bg-white p-4 text-left"
+          className="mb-6 min-h-[92px] rounded-[1.35rem] border border-outline-variant/60 bg-surface p-4 text-left shadow-[0_18px_44px_-38px_rgba(11,20,36,0.42)]"
         >
           {speech.transcript || speech.interimTranscript ? (
             <p className="text-base text-on-surface">
               {speech.transcript}
               {speech.interimTranscript && (
-                <span className="text-gray-400">
+                <span className="text-on-surface-variant">
                   {" "}
                   {speech.interimTranscript}
                 </span>
               )}
             </p>
           ) : (
-            <p className="text-base text-gray-400 italic">
+            <p className="text-base italic text-on-surface-variant">
               {t("demo_speak.speak_placeholder")}
             </p>
           )}
@@ -216,7 +223,7 @@ export function DemoSpeakStep({
       {!hasStarted ? (
         <Button
           onClick={startRecording}
-          className="gap-2 rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+          className="h-12 gap-2 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
           size="lg"
         >
           <Mic className="h-5 w-5" />
@@ -225,7 +232,7 @@ export function DemoSpeakStep({
       ) : (
         <Button
           onClick={handleDone}
-          className="gap-2 rounded-xl bg-red-500 px-8 py-3 text-lg font-semibold text-white hover:bg-red-600"
+          className="h-12 gap-2 rounded-2xl bg-error px-8 text-lg font-semibold text-on-error hover:bg-error-dim"
           size="lg"
         >
           <Square className="h-4 w-4" />
@@ -236,7 +243,7 @@ export function DemoSpeakStep({
       <div className="mt-4">
         <button
           onClick={onSkip}
-          className="text-base text-gray-400 hover:text-gray-600"
+          className="text-base font-medium text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
         >
           {t("demo_speak.skip")}
         </button>

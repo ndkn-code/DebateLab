@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 
 interface DemoIntroStepProps {
   topic: string;
@@ -22,7 +23,7 @@ export function DemoIntroStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-2 text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("demo_intro.headline")}
       </motion.h2>
@@ -31,28 +32,31 @@ export function DemoIntroStep({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mb-8 text-base md:text-lg text-gray-500"
+        className="mb-8 text-base text-on-surface-variant md:text-lg"
       >
         {t("demo_intro.subheadline")}
       </motion.p>
 
-      {/* Topic card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="mb-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-md"
+        className="mb-8"
       >
-        <p className="mb-4 text-xl md:text-2xl font-semibold text-on-surface">{topic}</p>
-        <span
-          className={`inline-block rounded-full px-4 py-1.5 text-sm font-bold ${
-            position === "FOR"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-rose-100 text-rose-700"
-          }`}
-        >
-          {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
-        </span>
+        <OnboardingPreviewCard>
+          <p className="mb-4 text-xl font-semibold leading-8 text-on-surface md:text-2xl">
+            {topic}
+          </p>
+          <span
+            className={`inline-flex rounded-full px-4 py-1.5 text-sm font-bold ${
+              position === "FOR"
+                ? "bg-secondary-container text-on-secondary-container"
+                : "bg-error-container text-on-error-container"
+            }`}
+          >
+            {position === "FOR" ? t("demo_intro.for") : t("demo_intro.against")}
+          </span>
+        </OnboardingPreviewCard>
       </motion.div>
 
       <motion.div
@@ -62,7 +66,7 @@ export function DemoIntroStep({
       >
         <Button
           onClick={onNext}
-          className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+          className="h-12 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
           size="lg"
         >
           {t("demo_intro.cta")}

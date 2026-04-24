@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Flame } from "lucide-react";
 import { PillSelector } from "./pill-selector";
 import { ReactiveResponse } from "./reactive-response";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 
@@ -67,7 +68,7 @@ export function CommitmentStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-2 text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("commitment.headline")}
       </motion.h2>
@@ -76,35 +77,40 @@ export function CommitmentStep({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mb-8 text-base md:text-lg text-gray-500"
+        className="mb-7 text-base text-on-surface-variant md:text-lg"
       >
         {t("commitment.subheadline")}
       </motion.p>
 
-      {/* Streak visualization */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.15 }}
-        className="mb-8 flex items-center justify-center gap-2"
+        className="mb-7"
       >
-        {dayLabels.map((day, i) => (
-          <div key={day} className="flex flex-col items-center gap-1">
-            {i < 5 ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                <LottieAnimation
-                  animationData={fireAnimation}
-                  className="w-8 h-8"
-                />
+        <OnboardingPreviewCard>
+          <div className="flex items-center justify-center gap-2">
+            {dayLabels.map((day, i) => (
+              <div key={day} className="flex flex-col items-center gap-1">
+                {i < 5 ? (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container">
+                    <LottieAnimation
+                      animationData={fireAnimation}
+                      className="h-8 w-8"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container">
+                    <Flame className="h-5 w-5 text-on-surface-variant/40" />
+                  </div>
+                )}
+                <span className="text-[10px] font-medium text-on-surface-variant/75">
+                  {day}
+                </span>
               </div>
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
-                <Flame className="h-5 w-5 text-gray-300" />
-              </div>
-            )}
-            <span className="text-[10px] text-gray-400">{day}</span>
+            ))}
           </div>
-        ))}
+        </OnboardingPreviewCard>
       </motion.div>
 
       <motion.div

@@ -14,9 +14,9 @@ export function OnboardingProgress({
   const percent = ((currentStep + 1) / totalSteps) * 100;
 
   return (
-    <div className="h-1 w-full bg-gray-200">
+    <div className="h-1.5 w-full bg-outline-variant/50">
       <motion.div
-        className="h-full bg-primary"
+        className="h-full rounded-full bg-primary"
         initial={{ width: 0 }}
         animate={{ width: `${percent}%` }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}

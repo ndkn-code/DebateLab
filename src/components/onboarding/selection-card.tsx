@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import type { ElementType } from "react";
+import { OnboardingChoiceCard } from "./onboarding-primitives";
 
 interface SelectionCardProps {
-  emoji: string;
+  emoji?: string;
+  icon?: ElementType;
   title: string;
   description?: string;
   selected: boolean;
@@ -15,6 +15,7 @@ interface SelectionCardProps {
 
 export function SelectionCard({
   emoji,
+  icon,
   title,
   description,
   selected,
@@ -22,38 +23,14 @@ export function SelectionCard({
   onClick,
 }: SelectionCardProps) {
   return (
-    <motion.button
-      whileHover={!disabled ? { scale: 1.02 } : undefined}
-      whileTap={!disabled ? { scale: 0.98 } : undefined}
-      onClick={!disabled ? onClick : undefined}
-      animate={{
-        opacity: disabled && !selected ? 0.5 : 1,
-      }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        "relative flex w-full items-center gap-4 rounded-2xl border-2 bg-white py-4 px-5 text-left transition-colors",
-        selected
-          ? "border-primary bg-primary/5"
-          : "border-gray-200 hover:border-primary/40 hover:shadow-md",
-        disabled && !selected && "pointer-events-none"
-      )}
-    >
-      <span className="text-3xl">{emoji}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-lg md:text-xl font-semibold text-on-surface">{title}</p>
-        {description && (
-          <p className="text-sm text-gray-500">{description}</p>
-        )}
-      </div>
-      {selected && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary"
-        >
-          <Check className="h-3.5 w-3.5 text-white" />
-        </motion.div>
-      )}
-    </motion.button>
+    <OnboardingChoiceCard
+      emoji={emoji}
+      icon={icon}
+      title={title}
+      description={description}
+      selected={selected}
+      disabled={disabled}
+      onClick={onClick}
+    />
   );
 }

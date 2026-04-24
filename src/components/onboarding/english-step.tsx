@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { Flame, MessageCircle, Smile, Sparkles } from "lucide-react";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 
@@ -13,6 +14,12 @@ const LEVEL_EMOJIS: Record<string, string> = {
   good: "\u{1F60A}",
   high: "\u{1F525}",
 };
+const LEVEL_ICONS = {
+  low: MessageCircle,
+  okay: Smile,
+  good: Sparkles,
+  high: Flame,
+} as const;
 
 interface EnglishStepProps {
   onSelect: (confidence: string) => void;
@@ -54,7 +61,7 @@ export function EnglishStep({
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-center text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-6 text-center text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("english.headline")}
       </motion.h2>
@@ -69,6 +76,7 @@ export function EnglishStep({
           >
             <SelectionCard
               emoji={LEVEL_EMOJIS[id]}
+              icon={LEVEL_ICONS[id as keyof typeof LEVEL_ICONS]}
               title={t("english.options." + id + ".title")}
               selected={localSelected === id}
               disabled={localSelected !== null}

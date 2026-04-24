@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Mic, Sparkles } from "lucide-react";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Button } from "@/components/ui/button";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 import { completeOnboarding } from "@/app/[locale]/onboarding/actions";
 
 interface PathRevealStepProps {
@@ -81,7 +82,7 @@ export function PathRevealStep({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mb-2 text-3xl md:text-4xl font-bold text-on-surface"
+            className="mb-6 text-3xl font-bold text-on-surface md:text-4xl"
           >
             {t("path_reveal.headline")}
           </motion.h2>
@@ -90,27 +91,26 @@ export function PathRevealStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mb-8 flex items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+            className="mb-5"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <Mic className="h-6 w-6 text-primary" />
-            </div>
-            <p className="text-base md:text-lg text-gray-600">
-              {t("path_reveal.ready_to_practice")}
-            </p>
+            <OnboardingPreviewCard icon={Mic}>
+              <p className="text-base font-medium leading-7 text-on-surface md:text-lg">
+                {t("path_reveal.ready_to_practice")}
+              </p>
+            </OnboardingPreviewCard>
           </motion.div>
 
-          {/* Orb Introduction */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-left"
+            className="mb-6"
           >
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-              </div>
+            <OnboardingPreviewCard
+              icon={Sparkles}
+              iconClassName="bg-tertiary-container text-tertiary"
+              className="text-left"
+            >
               <div>
                 <p className="text-sm font-medium text-on-surface">
                   You start with 1,250 free Credits
@@ -119,11 +119,11 @@ export function PathRevealStep({
                   Speaking practice costs 100 Credits. Debate practice costs 200 Credits.
                 </p>
               </div>
-            </div>
+            </OnboardingPreviewCard>
           </motion.div>
 
           {error && (
-            <p className="mb-4 text-sm text-red-500">Error: {error}</p>
+            <p className="mb-4 text-sm font-medium text-error">Error: {error}</p>
           )}
 
           <motion.div
@@ -134,7 +134,7 @@ export function PathRevealStep({
             <Button
               onClick={handleFinish}
               disabled={isPending}
-              className="rounded-xl bg-primary px-8 py-3 text-lg font-semibold text-white"
+              className="h-12 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
               size="lg"
             >
               {t("path_reveal.cta")}
@@ -150,7 +150,7 @@ export function PathRevealStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: isFadingOut ? 0 : 1 }}
             transition={{ duration: isFadingOut ? 0.8 : 0.4, ease: "easeInOut" }}
-            className="fixed inset-0 z-[200] bg-[#fbf8ff] flex flex-col items-center justify-center"
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background"
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
@@ -168,7 +168,7 @@ export function PathRevealStep({
               {rocketAnimation && (
                 <LottieAnimation
                   animationData={rocketAnimation}
-                  className="w-64 h-64 md:w-80 md:h-80"
+                  className="h-64 w-64 md:h-80 md:w-80"
                   loop={false}
                 />
               )}
@@ -185,7 +185,7 @@ export function PathRevealStep({
                   ? { duration: 0.6, ease: "easeInOut" }
                   : { delay: 0.5, duration: 0.5 }
               }
-              className="text-2xl md:text-3xl font-bold mt-4 bg-gradient-to-r from-[#2f4fdd] to-[#7c3aed] bg-clip-text text-transparent"
+              className="mt-4 text-2xl font-bold text-primary md:text-3xl"
             >
               {t("path_reveal.lets_go")}
             </motion.p>

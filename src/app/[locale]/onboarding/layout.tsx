@@ -30,9 +30,5 @@ export default async function OnboardingLayout({
     redirect("/dashboard");
   }
 
-  return (
-    <div className="min-h-[100dvh] bg-[#fbf8ff]">
-      {children}
-    </div>
-  );
+  return <div className="min-h-[100dvh] bg-background">{children}</div>;
 }

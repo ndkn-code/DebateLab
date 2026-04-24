@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { BookOpenText, Brain, Compass, GraduationCap, Trophy } from "lucide-react";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 
@@ -14,6 +15,13 @@ const GOAL_EMOJIS: Record<string, string> = {
   interview: "\u{1F393}",
   explore: "\u{1F3AF}",
 };
+const GOAL_ICONS = {
+  compete: Trophy,
+  english: BookOpenText,
+  critical: Brain,
+  interview: GraduationCap,
+  explore: Compass,
+} as const;
 
 interface GoalStepProps {
   onSelect: (goal: string) => void;
@@ -52,7 +60,7 @@ export function GoalStep({ onSelect, onNext }: GoalStepProps) {
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-center text-3xl md:text-4xl font-bold text-on-surface"
+        className="mb-6 text-center text-3xl font-bold text-on-surface md:text-4xl"
       >
         {t("goal.headline")}
       </motion.h2>
@@ -67,6 +75,7 @@ export function GoalStep({ onSelect, onNext }: GoalStepProps) {
           >
             <SelectionCard
               emoji={GOAL_EMOJIS[id]}
+              icon={GOAL_ICONS[id as keyof typeof GOAL_ICONS]}
               title={t("goal.options." + id + ".title")}
               selected={localSelected === id}
               disabled={localSelected !== null}

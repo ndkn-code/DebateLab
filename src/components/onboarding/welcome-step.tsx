@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { Button } from "@/components/ui/button";
+import { OnboardingPreviewCard } from "./onboarding-primitives";
 import welcomeAnimation from "../../../public/lottie/welcome.json";
 
 interface WelcomeStepProps {
@@ -37,30 +38,39 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-dvh">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-10">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
       >
-        <Lottie
-          lottieRef={lottieRef}
-          animationData={welcomeAnimation}
-          loop={false}
-          autoplay={true}
-          className="w-80 h-80 md:w-[28rem] md:h-[28rem]"
-        />
+        <OnboardingPreviewCard className="mx-auto flex w-full max-w-[27rem] flex-col items-center p-5 sm:p-7">
+          <div className="rounded-[2rem] bg-primary-container p-3">
+            <Lottie
+              lottieRef={lottieRef}
+              animationData={welcomeAnimation}
+              loop={false}
+              autoplay={true}
+              className="h-72 w-72 md:h-[24rem] md:w-[24rem]"
+            />
+          </div>
+          <div className="mt-5 grid w-full grid-cols-3 gap-2">
+            <div className="h-2 rounded-full bg-primary" />
+            <div className="h-2 rounded-full bg-secondary" />
+            <div className="h-2 rounded-full bg-tertiary" />
+          </div>
+        </OnboardingPreviewCard>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+        transition={{ delay: 0.35, duration: 0.24, ease: "easeOut" }}
       >
         <Button
           onClick={onNext}
           size="lg"
-          className="mt-6 px-12 py-3 text-lg rounded-xl bg-primary text-white font-semibold"
+          className="mt-6 h-12 rounded-2xl bg-primary px-12 text-lg font-semibold text-on-primary shadow-[0_18px_34px_-24px_rgba(77,134,247,0.9)] hover:bg-primary-dim"
         >
           {t("welcome.cta")}
         </Button>
