@@ -281,14 +281,14 @@ function buildTrendSummary(sessions: SessionRow[]) {
   const recentAverage =
     recent.length > 0
       ? roundToTenth(
-          recent.reduce((sum, session) => sum + ((session.total_score ?? 0) / 20), 0) /
+          recent.reduce((sum, session) => sum + (session.total_score ?? 0), 0) /
             recent.length
         )
       : null;
   const previousAverage =
     previous.length > 0
       ? roundToTenth(
-          previous.reduce((sum, session) => sum + ((session.total_score ?? 0) / 20), 0) /
+          previous.reduce((sum, session) => sum + (session.total_score ?? 0), 0) /
             previous.length
         )
       : null;
@@ -298,14 +298,14 @@ function buildTrendSummary(sessions: SessionRow[]) {
       : null;
 
   let direction: "up" | "down" | "flat" = "flat";
-  if (delta != null && delta >= 0.2) direction = "up";
-  if (delta != null && delta <= -0.2) direction = "down";
+  if (delta != null && delta >= 2) direction = "up";
+  if (delta != null && delta <= -2) direction = "down";
 
   let summary = "You need a few more scored debates before trend analysis becomes reliable.";
   if (recentAverage != null && previousAverage == null) {
-    summary = `Your recent scored sessions are averaging ${recentAverage.toFixed(
-      1
-    )}/5. Keep building that baseline.`;
+    summary = `Your recent scored sessions are averaging ${Math.round(
+      recentAverage
+    )}/100. Keep building that baseline.`;
   } else if (recentAverage != null && delta != null) {
     if (direction === "up") {
       summary = `Your last ${recent.length} scored sessions are trending up by ${Math.abs(
@@ -316,9 +316,9 @@ function buildTrendSummary(sessions: SessionRow[]) {
         delta
       ).toFixed(1)} points, so this is a good moment to tighten fundamentals.`;
     } else {
-      summary = `Your recent performance is stable around ${recentAverage.toFixed(
-        1
-      )}/5.`;
+      summary = `Your recent performance is stable around ${Math.round(
+        recentAverage
+      )}/100.`;
     }
   }
 
@@ -448,7 +448,7 @@ function buildProfileSummary(profile: CoachProfile) {
     `Practice mix: speaking ${profile.practiceMix.speaking}, debate ${profile.practiceMix.debate}, underused track ${profile.practiceMix.underusedTrack}`,
     `Skill snapshot: strongest ${strongest ?? "n/a"}, weakest ${weakest ?? "n/a"}, overall ${
       profile.skillSnapshot.overallScore != null
-        ? `${profile.skillSnapshot.overallScore.toFixed(1)}/5`
+        ? `${Math.round(profile.skillSnapshot.overallScore)}/100`
         : "n/a"
     }`,
     `Trend: ${profile.recentTrend.summary}`,

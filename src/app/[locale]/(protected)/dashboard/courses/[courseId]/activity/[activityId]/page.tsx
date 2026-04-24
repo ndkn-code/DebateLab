@@ -16,13 +16,44 @@ export default async function ActivityPlayerPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  // Courses are admin-only for now
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "admin") redirect("/dashboard");
+  if (!profile) redirect("/dashboard");
+  const isAdmin = profile.role === "admin";
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("slug, title, is_published")
+    .eq("id", courseId)
+    .single();
+
+  if (!course) {
+    redirect(previewMode && isAdmin ? `/dashboard/admin/courses/${courseId}` : "/courses");
+  }
+
+  if (previewMode && !isAdmin) {
+    redirect(`/courses/${course.slug}`);
+  }
+
+  if (!previewMode && !course.is_published && !isAdmin) {
+    redirect("/courses");
+  }
+
+  if (!previewMode && !isAdmin) {
+    const { data: enrollment } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("course_id", courseId)
+      .maybeSingle();
+
+    if (!enrollment) {
+      redirect(`/courses/${course.slug}`);
+    }
+  }
 
   // Fetch the activity
   const { data: activity } = await supabase
@@ -31,7 +62,11 @@ export default async function ActivityPlayerPage({
     .eq("id", activityId)
     .single();
 
-  const courseOverviewHref = `/dashboard/courses/${courseId}${previewMode ? "?preview=1" : ""}`;
+  const courseOverviewHref = previewMode
+    ? `/dashboard/courses/${courseId}?preview=1`
+    : isAdmin
+      ? `/dashboard/courses/${courseId}`
+      : `/courses/${course.slug}`;
 
   if (!activity) redirect(courseOverviewHref);
 
@@ -43,13 +78,6 @@ export default async function ActivityPlayerPage({
     .single();
 
   if (!moduleData) redirect(courseOverviewHref);
-
-  // Fetch course title
-  const { data: course } = await supabase
-    .from("courses")
-    .select("title")
-    .eq("id", courseId)
-    .single();
 
   // Fetch ALL modules with their activities for this course
   const { data: allModulesRaw } = await supabase
@@ -98,7 +126,7 @@ export default async function ActivityPlayerPage({
     <ActivityPlayerWrapper
       activity={activity}
       courseId={courseId}
-      courseTitle={course?.title ?? "Course"}
+      courseTitle={course.title ?? "Course"}
       currentModule={currentModule}
       allModules={allModules}
       completedActivityIds={completedActivityIds}

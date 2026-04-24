@@ -1,563 +1,842 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import type React from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import {
-  User,
-  Mail,
-  Lock,
-  Settings2,
-  LogOut,
-  Check,
+  BellRing,
+  Camera,
+  Clock3,
+  Eye,
+  EyeOff,
+  Globe2,
   Loader2,
-  Globe,
-  Gift,
-  Copy,
+  Lock,
+  LogOut,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
-import { OrbBalance } from "@/components/shared/orb-balance";
-import { VoiceSettings } from "@/components/settings/voice-settings";
-import { DEFAULT_VOICE } from "@/lib/tts-voices";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { showToast } from "@/components/shared/toast";
-import { LanguageToggle } from "@/components/ui/language-toggle";
+import { VoiceSettings } from "@/components/settings/voice-settings";
+import { changePassword, saveSettings } from "@/app/[locale]/(protected)/settings/actions";
 import {
-  updateProfile,
-  updatePreferences,
-  changePassword,
-} from "@/app/[locale]/(protected)/settings/actions";
+  AI_DIFFICULTY_OPTIONS,
+  PREP_TIME_OPTIONS,
+  SETTINGS_DRAFT_STORAGE_KEY,
+  SPEECH_TIME_OPTIONS,
+  type SettingsDraft,
+  type SettingsDraftSnapshot,
+  type SettingsLocale,
+  buildSavedSettingsDraft,
+  buildSettingsDraft,
+} from "@/lib/settings";
 import { createClient } from "@/lib/supabase/client";
-import { usePostHog } from "posthog-js/react";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
-
-const AVATAR_PRESETS = [
-  "🎤", "🏆", "📚", "💡", "🎯", "⚡", "🌟", "🔥",
-];
-
-const PREP_TIME_VALUES = [
-  { minutes: 5, value: 300 },
-  { minutes: 7, value: 420 },
-  { minutes: 10, value: 600 },
-  { minutes: 15, value: 900 },
-];
-
-const SPEECH_TIME_VALUES = [
-  { minutes: 3, value: 180 },
-  { minutes: 5, value: 300 },
-  { minutes: 7, value: 420 },
-  { minutes: 8, value: 480 },
-];
 
 interface SettingsContentProps {
   profile: Profile | null;
   userEmail: string;
+  currentLocale: SettingsLocale;
 }
 
-export function SettingsContent({ profile, userEmail }: SettingsContentProps) {
-  const router = useRouter();
-  const t = useTranslations('settings');
-  const posthog = usePostHog();
-  const [isPending, startTransition] = useTransition();
+function readStoredSnapshot() {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-  // Profile state
-  const [displayName, setDisplayName] = useState(
-    profile?.display_name ?? ""
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw) as SettingsDraftSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+function isRenderableAvatar(avatarUrl: string) {
+  return (
+    avatarUrl.startsWith("http://") ||
+    avatarUrl.startsWith("https://") ||
+    avatarUrl.startsWith("/") ||
+    avatarUrl.startsWith("data:image/")
   );
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
+}
 
-  // Password state
+function formatInitials(name: string) {
+  const tokens = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (tokens.length === 0) {
+    return "DL";
+  }
+
+  return tokens.map((token) => token[0]?.toUpperCase() ?? "").join("");
+}
+
+function SettingsCard(props: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { icon, title, description, className, children } = props;
+
+  return (
+    <section
+      className={cn(
+        "rounded-[28px] border border-[#dbe5fb] bg-white/90 p-5 shadow-[0_18px_48px_-38px_rgba(34,67,138,0.5)] backdrop-blur",
+        className
+      )}
+    >
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf3ff] text-primary">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-[#172554]">{title}</h2>
+          <p className="mt-1 text-sm text-[#64748b]">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SettingLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-2 block text-sm font-medium text-[#1e3a5f]">
+      {children}
+    </label>
+  );
+}
+
+function ToggleRow(props: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const { title, description, checked, onCheckedChange } = props;
+
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-[#172554]">{title}</p>
+        <p className="mt-1 text-sm text-[#64748b]">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+function PasswordField(props: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const { label, value, onChange, placeholder } = props;
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-[#64748b]">
+        {label}
+      </label>
+      <div className="flex h-10 items-center rounded-2xl border border-[#d8e3f8] bg-white pr-2 text-[#172554] transition-colors focus-within:border-primary">
+        <input
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-full w-full bg-transparent px-3 text-xs text-[#172554] outline-none placeholder:text-[#94a3b8]"
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#64748b] transition hover:bg-[#edf3ff] hover:text-primary"
+          aria-label={visible ? "Hide password" : "Show password"}
+        >
+          {visible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+async function fileToAvatarDataUrl(file: File) {
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.src = imageUrl;
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = reject;
+    });
+
+    const size = Math.min(image.width, image.height);
+    const sourceX = Math.max(0, (image.width - size) / 2);
+    const sourceY = Math.max(0, (image.height - size) / 2);
+    const outputSize = 320;
+    const canvas = document.createElement("canvas");
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Unable to process avatar image");
+    }
+
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      size,
+      size,
+      0,
+      0,
+      outputSize,
+      outputSize
+    );
+
+    return canvas.toDataURL("image/jpeg", 0.86);
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
+function AvatarPreview(props: {
+  avatarUrl: string;
+  displayName: string;
+  sizeClassName?: string;
+  textClassName?: string;
+}) {
+  const {
+    avatarUrl,
+    displayName,
+    sizeClassName = "h-20 w-20",
+    textClassName = "text-xl",
+  } = props;
+  const initials = formatInitials(displayName);
+
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-[26px] border border-white/80 bg-[#edf3ff] shadow-inner",
+        sizeClassName
+      )}
+    >
+      {isRenderableAvatar(avatarUrl) ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt={displayName || "Profile avatar"}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_#4d86f7,_#1d4ed8)] font-semibold text-white">
+          <span className={textClassName}>{initials}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SettingsContent({
+  profile,
+  userEmail,
+  currentLocale,
+}: SettingsContentProps) {
+  const t = useTranslations("settings");
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale() as SettingsLocale;
+  const [isSaving, startSavingTransition] = useTransition();
+  const [isLocalePending, startLocaleTransition] = useTransition();
+  const [isPasswordPending, startPasswordTransition] = useTransition();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Preferences state
-  const prefs = (profile?.preferences ?? {}) as Record<string, unknown>;
-  const [defaultPrepTime, setDefaultPrepTime] = useState(
-    (prefs.default_prep_time as number) ?? 420
-  );
-  const [defaultSpeechTime, setDefaultSpeechTime] = useState(
-    (prefs.default_speech_time as number) ?? 420
-  );
-  const [defaultDifficulty, setDefaultDifficulty] = useState(
-    (prefs.default_ai_difficulty as string) ?? "medium"
-  );
-  const [ttsVoice, setTtsVoice] = useState(
-    (prefs.tts_voice as string) ?? DEFAULT_VOICE
+  const serverSavedDraft = useMemo(
+    () =>
+      buildSavedSettingsDraft({
+        displayName: profile?.display_name,
+        avatarUrl: profile?.avatar_url,
+        preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
+        currentLocale,
+      }),
+    [currentLocale, profile]
   );
 
-  // Referral state
-  const [refCodeInput, setRefCodeInput] = useState("");
-  const [refCopied, setRefCopied] = useState(false);
-  const [refApplying, setRefApplying] = useState(false);
-  const [refError, setRefError] = useState<string | null>(null);
-  const [refSuccess, setRefSuccess] = useState<string | null>(null);
+  const serverDraft = useMemo(
+    () =>
+      buildSettingsDraft({
+        displayName: profile?.display_name,
+        avatarUrl: profile?.avatar_url,
+        preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
+        currentLocale,
+      }),
+    [currentLocale, profile]
+  );
 
-  const DIFFICULTY_OPTIONS = [
-    { label: t('difficulty_easy'), value: "easy" },
-    { label: t('difficulty_medium'), value: "medium" },
-    { label: t('difficulty_hard'), value: "hard" },
-  ];
+  const userId = profile?.id ?? "";
+  const savedSignature = useMemo(
+    () => JSON.stringify(serverSavedDraft),
+    [serverSavedDraft]
+  );
+  const [localSavedDraft, setLocalSavedDraft] = useState<SettingsDraft | null>(
+    null
+  );
+  const [draft, setDraft] = useState<SettingsDraft>(() => {
+    const snapshot = readStoredSnapshot();
 
-  const handleSaveProfile = () => {
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("display_name", displayName);
-        formData.set("avatar_url", avatarUrl);
-        await updateProfile(formData);
-        showToast(t('toast.profile_updated'), "success");
-      } catch {
-        showToast(t('toast.profile_error'), "error");
-      }
-    });
-  };
+    if (
+      snapshot &&
+      snapshot.userId === userId &&
+      JSON.stringify(snapshot.saved) === savedSignature
+    ) {
+      return {
+        ...snapshot.draft,
+        analyticsCookiesEnabled: serverDraft.analyticsCookiesEnabled,
+      };
+    }
 
-  const handleSavePreferences = () => {
-    startTransition(async () => {
-      try {
-        await updatePreferences({
-          default_prep_time: defaultPrepTime,
-          default_speech_time: defaultSpeechTime,
-          default_ai_difficulty: defaultDifficulty,
-          tts_voice: ttsVoice,
-        });
-        showToast(t('toast.preferences_saved'), "success");
-      } catch {
-        showToast(t('toast.preferences_error'), "error");
-      }
-    });
-  };
+    return serverDraft;
+  });
 
-  const handleChangePassword = () => {
-    if (newPassword.length < 6) {
-      showToast(t('toast.password_short'), "warning");
+  const effectiveSavedDraft =
+    localSavedDraft &&
+    JSON.stringify(localSavedDraft) !== savedSignature
+      ? localSavedDraft
+      : serverSavedDraft;
+  const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
+  const savedDraftSignature = useMemo(
+    () => JSON.stringify(effectiveSavedDraft),
+    [effectiveSavedDraft]
+  );
+  const isDirty = draftSignature !== savedDraftSignature;
+
+  useEffect(() => {
+    if (!userId || typeof window === "undefined") {
       return;
     }
-    if (newPassword !== confirmPassword) {
-      showToast(t('toast.password_mismatch'), "warning");
+
+    const snapshot: SettingsDraftSnapshot = {
+      userId,
+      draft,
+      saved: effectiveSavedDraft,
+    };
+
+    window.localStorage.setItem(
+      SETTINGS_DRAFT_STORAGE_KEY,
+      JSON.stringify(snapshot)
+    );
+  }, [draft, effectiveSavedDraft, userId]);
+
+  function updateDraft<K extends keyof SettingsDraft>(
+    key: K,
+    value: SettingsDraft[K]
+  ) {
+    setDraft((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function handleLocaleChange(nextLocale: SettingsLocale) {
+    updateDraft("preferredLocale", nextLocale);
+    if (nextLocale === locale) {
       return;
     }
-    startTransition(async () => {
+
+    startLocaleTransition(() => {
+      router.replace(pathname, { locale: nextLocale });
+    });
+  }
+
+  async function handleAvatarFileChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      showToast(t("toast.avatar_invalid"), "warning");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      showToast(t("toast.avatar_too_large"), "warning");
+      return;
+    }
+
+    setIsAvatarProcessing(true);
+    try {
+      const avatarUrl = await fileToAvatarDataUrl(file);
+      updateDraft("avatarUrl", avatarUrl);
+    } catch {
+      showToast(t("toast.avatar_invalid"), "error");
+    } finally {
+      setIsAvatarProcessing(false);
+    }
+  }
+
+  function handleSave() {
+    startSavingTransition(async () => {
       try {
-        const formData = new FormData();
-        formData.set("new_password", newPassword);
-        formData.set("confirm_password", confirmPassword);
-        await changePassword(formData);
-        setNewPassword("");
-        setConfirmPassword("");
-        showToast(t('toast.password_updated'), "success");
-      } catch (err) {
+        const result = await saveSettings(draft);
+        setLocalSavedDraft(result.saved);
+        setDraft(result.saved);
+        router.refresh();
+        showToast(t("toast.saved"), "success");
+      } catch (error) {
         showToast(
-          err instanceof Error ? err.message : t('toast.password_error'),
+          error instanceof Error ? error.message : t("toast.save_error"),
           "error"
         );
       }
     });
-  };
+  }
 
-  const handleSignOut = async () => {
+  function handlePasswordChange() {
+    if (!currentPassword.trim()) {
+      showToast(t("toast.current_password_required"), "warning");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showToast(t("toast.password_short"), "warning");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showToast(t("toast.password_mismatch"), "warning");
+      return;
+    }
+
+    startPasswordTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("current_password", currentPassword);
+        formData.set("new_password", newPassword);
+        formData.set("confirm_password", confirmPassword);
+        await changePassword(formData);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        showToast(t("toast.password_updated"), "success");
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : t("toast.password_error"),
+          "error"
+        );
+      }
+    });
+  }
+
+  async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
-  };
+  }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:py-8">
-      <h1 className="mb-8 text-2xl font-bold text-on-surface sm:text-3xl">
-        {t('headline')}
-      </h1>
-
-      {/* Profile Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
-            <User className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-lg font-semibold text-on-surface">{t('profile')}</h2>
-        </div>
-
-        <div className="space-y-4">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
-              {t('display_name')}
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t('your_name')}
-              className="w-full rounded-xl border border-outline-variant/20 bg-surface px-4 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary/40"
-            />
+            <h1 className="text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">
+              {t("headline")}
+            </h1>
+            <p className="mt-2 text-sm text-[#64748b] sm:text-base">
+              {t("subtitle")}
+            </p>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
-              {t('avatar')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {AVATAR_PRESETS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => setAvatarUrl(emoji)}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border-2 text-lg transition-colors ${
-                    avatarUrl === emoji
-                      ? "border-primary bg-primary/10"
-                      : "border-outline-variant/20 hover:border-primary/30"
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
+          <div className="flex items-center gap-3 self-start">
+            <div className="hidden rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[#64748b] shadow-sm sm:block">
+              {isDirty ? t("status.unsaved") : t("status.saved")}
             </div>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              className="gap-2 rounded-2xl bg-primary px-5 text-white shadow-[0_18px_35px_-28px_rgba(44,108,246,0.9)]"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {t("save_changes")}
+            </Button>
           </div>
-
-          <Button
-            onClick={handleSaveProfile}
-            disabled={isPending}
-            className="gap-2 bg-primary text-on-primary"
-            size="sm"
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            {t('save_profile')}
-          </Button>
-        </div>
-      </section>
-
-      {/* Account Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-tertiary-container/40">
-            <Mail className="h-5 w-5 text-tertiary" />
-          </div>
-          <h2 className="text-lg font-semibold text-on-surface">{t('account')}</h2>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
-              {t('email')}
-            </label>
-            <input
-              type="email"
-              value={userEmail}
-              readOnly
-              className="w-full rounded-xl border border-outline-variant/10 bg-surface-container px-4 py-2.5 text-sm text-on-surface-variant"
-            />
-          </div>
-
-          <div className="border-t border-outline-variant/10 pt-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Lock className="h-4 w-4 text-on-surface-variant" />
-              <span className="text-sm font-medium text-on-surface">
-                {t('change_password')}
-              </span>
-            </div>
-            <div className="space-y-3">
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder={t('new_password')}
-                className="w-full rounded-xl border border-outline-variant/20 bg-surface px-4 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary/40"
+        <section className="mb-5 rounded-[30px] border border-[#dbe5fb] bg-white/95 p-5 shadow-[0_25px_60px_-45px_rgba(29,78,216,0.55)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="relative shrink-0">
+              <AvatarPreview
+                avatarUrl={draft.avatarUrl}
+                displayName={draft.displayName}
+                sizeClassName="h-24 w-24"
+                textClassName="text-2xl"
               />
               <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder={t('confirm_password')}
-                className="w-full rounded-xl border border-outline-variant/20 bg-surface px-4 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary/40"
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                onChange={handleAvatarFileChange}
+                className="sr-only"
               />
-              <Button
-                onClick={handleChangePassword}
-                disabled={isPending || !newPassword}
-                variant="outline"
-                className="gap-2 border-outline-variant/20"
-                size="sm"
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isAvatarProcessing}
+                aria-label={t("avatar_upload")}
+                className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-[0_12px_28px_-18px_rgba(44,108,246,0.9)] transition hover:bg-primary/90 disabled:opacity-70"
               >
-                {isPending ? (
+                {isAvatarProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Lock className="h-4 w-4" />
+                  <Camera className="h-4 w-4" />
                 )}
-                {t('update_password')}
-              </Button>
+              </button>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Preferences Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-container/40">
-            <Settings2 className="h-5 w-5 text-secondary" />
-          </div>
-          <h2 className="text-lg font-semibold text-on-surface">
-            {t('practice_defaults')}
-          </h2>
-        </div>
-
-        <div className="space-y-5">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-on-surface-variant">
-              {t('default_prep_time')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {PREP_TIME_VALUES.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDefaultPrepTime(opt.value)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    defaultPrepTime === opt.value
-                      ? "bg-primary/15 text-primary"
-                      : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  {opt.minutes} {t('minutes_short')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-on-surface-variant">
-              {t('default_speech_time')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {SPEECH_TIME_VALUES.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDefaultSpeechTime(opt.value)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    defaultSpeechTime === opt.value
-                      ? "bg-primary/15 text-primary"
-                      : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  {opt.minutes} {t('minutes_short')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-on-surface-variant">
-              {t('default_difficulty')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {DIFFICULTY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDefaultDifficulty(opt.value)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    defaultDifficulty === opt.value
-                      ? "bg-primary/15 text-primary"
-                      : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSavePreferences}
-            disabled={isPending}
-            className="gap-2 bg-primary text-on-primary"
-            size="sm"
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            {t('save_preferences')}
-          </Button>
-        </div>
-      </section>
-
-      {/* Voice Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <VoiceSettings
-          currentVoice={ttsVoice}
-          onVoiceChange={(voiceId) => {
-            const previousVoice = ttsVoice;
-            setTtsVoice(voiceId);
-            posthog?.capture('tts_voice_changed', {
-              new_voice: voiceId,
-              previous_voice: previousVoice,
-            });
-          }}
-        />
-        <div className="mt-4">
-          <Button
-            onClick={handleSavePreferences}
-            disabled={isPending}
-            className="gap-2 bg-primary text-on-primary"
-            size="sm"
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            {t('save_preferences')}
-          </Button>
-        </div>
-      </section>
-
-      {/* Language Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/40">
-            <Globe className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-on-surface">{t('language')}</h2>
-            <p className="text-sm text-on-surface-variant">{t('language_description')}</p>
-          </div>
-        </div>
-        <LanguageToggle />
-      </section>
-
-      {/* Referral Section */}
-      <section className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-            <Gift className="h-5 w-5 text-amber-500" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-on-surface">Referrals</h2>
-            <p className="text-sm text-on-surface-variant">Invite friends and earn Credits</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* Current credit balance */}
-          <div className="flex items-center justify-between rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-            <span className="text-sm text-on-surface-variant">Your credit balance</span>
-            <OrbBalance balance={profile?.orb_balance ?? 0} size="md" showLabel />
-          </div>
-
-          {/* Your referral code */}
-          {profile?.referral_code && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
-                Your invite link
-              </label>
-              <div className="flex gap-2">
+            <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#edf3ff] px-3 py-1 text-xs font-medium text-primary">
+                    {t(`languages.${draft.preferredLocale}`)}
+                  </span>
+                </div>
+                <SettingLabel>{t("fields.display_name")}</SettingLabel>
                 <input
                   type="text"
+                  value={draft.displayName}
+                  onChange={(event) =>
+                    updateDraft("displayName", event.target.value)
+                  }
+                  placeholder={t("fields.display_name_placeholder")}
+                  className="h-11 w-full max-w-xl rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-medium text-[#172554] outline-none transition-colors focus:border-primary"
+                />
+                <p className="mt-2 truncate text-sm text-[#64748b]">{userEmail}</p>
+                <p className="mt-2 max-w-2xl text-sm text-[#64748b]">
+                  {t("hero_summary")}
+                </p>
+              </div>
+
+              <div className="hidden rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] lg:block lg:max-w-xs">
+                {isDirty ? t("status.unsaved") : t("status.saved")}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-5 xl:grid-cols-3">
+          <SettingsCard
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title={t("cards.account.title")}
+            description={t("cards.account.description")}
+          >
+            <div className="space-y-4">
+              <div>
+                <SettingLabel>{t("fields.email")}</SettingLabel>
+                <input
+                  type="email"
+                  value={userEmail}
                   readOnly
-                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/join/${profile.referral_code}`}
-                  className="flex-1 rounded-xl border border-outline-variant/10 bg-surface-container px-4 py-2.5 text-sm text-on-surface-variant"
+                  className="h-11 w-full rounded-2xl border border-[#dbe5fb] bg-[#f4f7fd] px-4 text-sm text-[#64748b] outline-none"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 gap-1.5 border-outline-variant/20"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/join/${profile.referral_code}`
-                    );
-                    setRefCopied(true);
-                    setTimeout(() => setRefCopied(false), 2000);
-                  }}
-                >
-                  {refCopied ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
               </div>
-              <p className="mt-1.5 text-xs text-on-surface-variant">
-                Both you and your friend earn 300 bonus Credits when they complete their first practice
-              </p>
-            </div>
-          )}
 
-          {/* Enter referral code (only if not already referred) */}
-          {!profile?.referred_by && (
-            <div className="border-t border-outline-variant/10 pt-4">
-              <label className="mb-1.5 block text-sm font-medium text-on-surface-variant">
-                Have a referral code?
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={refCodeInput}
-                  onChange={(e) => {
-                    setRefCodeInput(e.target.value.toUpperCase());
-                    setRefError(null);
-                  }}
-                  placeholder="e.g. K7X2MN"
-                  maxLength={6}
-                  className="flex-1 rounded-xl border border-outline-variant/20 bg-surface px-4 py-2.5 text-sm text-on-surface uppercase tracking-widest outline-none transition-colors focus:border-primary/40"
-                />
-                <Button
-                  onClick={async () => {
-                    if (refCodeInput.length !== 6) {
-                      setRefError("Code must be 6 characters");
-                      return;
-                    }
-                    setRefApplying(true);
-                    setRefError(null);
-                    try {
-                      const res = await fetch("/api/referral/apply", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ code: refCodeInput }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) {
-                        setRefError(data.error || "Failed to apply code");
-                      } else {
-                        setRefSuccess(`Linked! Referred by ${data.referrerName}`);
-                        setRefCodeInput("");
-                      }
-                    } catch {
-                      setRefError("Failed to apply code");
-                    }
-                    setRefApplying(false);
-                  }}
-                  disabled={refApplying || refCodeInput.length !== 6}
-                  className="gap-2 bg-primary text-on-primary"
-                  size="sm"
-                >
-                  {refApplying ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Apply"
-                  )}
-                </Button>
+              <div className="rounded-[22px] border border-[#edf2fb] bg-[#fbfdff] p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#172554]">
+                    {t("change_password")}
+                  </h3>
+                  <p className="mt-1 text-xs text-[#64748b]">
+                    {t("change_password_description")}
+                  </p>
+                </div>
+                <div className="mt-3 space-y-2.5">
+                  <PasswordField
+                    label={t("fields.current_password")}
+                    value={currentPassword}
+                    onChange={setCurrentPassword}
+                    placeholder={t("fields.current_password")}
+                  />
+                  <PasswordField
+                    label={t("new_password")}
+                    value={newPassword}
+                    onChange={setNewPassword}
+                    placeholder={t("new_password")}
+                  />
+                  <PasswordField
+                    label={t("confirm_password")}
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    placeholder={t("confirm_password")}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handlePasswordChange}
+                    disabled={isPasswordPending}
+                    className="mt-1 h-10 gap-2 rounded-2xl bg-primary px-4 text-xs text-white hover:bg-primary/90"
+                  >
+                    {isPasswordPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    {t("update_password")}
+                  </Button>
+                </div>
               </div>
-              {refError && (
-                <p className="mt-1.5 text-xs text-red-500">{refError}</p>
-              )}
-              {refSuccess && (
-                <p className="mt-1.5 text-xs text-emerald-500">{refSuccess}</p>
-              )}
             </div>
-          )}
+          </SettingsCard>
+
+          <SettingsCard
+            icon={<Clock3 className="h-5 w-5" />}
+            title={t("cards.practice.title")}
+            description={t("cards.practice.description")}
+          >
+            <div className="space-y-4">
+              <div>
+                <SettingLabel>{t("fields.default_prep_time")}</SettingLabel>
+                <Select
+                  value={String(draft.defaultPrepTime)}
+                  onChange={(event) =>
+                    updateDraft("defaultPrepTime", Number(event.target.value))
+                  }
+                >
+                  {PREP_TIME_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {t("time_option", {
+                        count: Math.round(option / 60),
+                      })}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <SettingLabel>{t("fields.default_speech_time")}</SettingLabel>
+                <Select
+                  value={String(draft.defaultSpeechTime)}
+                  onChange={(event) =>
+                    updateDraft("defaultSpeechTime", Number(event.target.value))
+                  }
+                >
+                  {SPEECH_TIME_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {t("time_option", {
+                        count: Math.round(option / 60),
+                      })}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <SettingLabel>{t("fields.default_difficulty")}</SettingLabel>
+                <Select
+                  value={draft.defaultDifficulty}
+                  onChange={(event) =>
+                    updateDraft(
+                      "defaultDifficulty",
+                      event.target.value as SettingsDraft["defaultDifficulty"]
+                    )
+                  }
+                >
+                  {AI_DIFFICULTY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {t(`difficulty.${option}`)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            icon={<Globe2 className="h-5 w-5" />}
+            title={t("cards.language.title")}
+            description={t("cards.language.description")}
+          >
+            <div className="space-y-4">
+              <div>
+                <SettingLabel>{t("fields.app_language")}</SettingLabel>
+                <Select
+                  value={draft.preferredLocale}
+                  onChange={(event) =>
+                    handleLocaleChange(event.target.value as SettingsLocale)
+                  }
+                  disabled={isLocalePending}
+                >
+                  <option value="en">{t("languages.en")}</option>
+                  <option value="vi">{t("languages.vi")}</option>
+                </Select>
+              </div>
+              <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b]">
+                {isLocalePending
+                  ? t("language_switching")
+                  : t("language_hint")}
+              </div>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            icon={<Sparkles className="h-5 w-5" />}
+            title={t("cards.voice.title")}
+            description={t("cards.voice.description")}
+            className="xl:col-span-2"
+          >
+            <VoiceSettings
+              currentVoice={draft.ttsVoice}
+              onVoiceChange={(voiceId) => updateDraft("ttsVoice", voiceId)}
+            />
+          </SettingsCard>
+
+          <SettingsCard
+            icon={<SlidersHorizontal className="h-5 w-5" />}
+            title={t("cards.preferences.title")}
+            description={t("cards.preferences.description")}
+            className="xl:col-span-2"
+          >
+            <div className="space-y-3">
+              <ToggleRow
+                title={t("toggles.detailed_feedback.title")}
+                description={t("toggles.detailed_feedback.description")}
+                checked={draft.detailedFeedback}
+                onCheckedChange={(checked) =>
+                  updateDraft("detailedFeedback", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.highlight_weak_areas.title")}
+                description={t("toggles.highlight_weak_areas.description")}
+                checked={draft.highlightWeakAreas}
+                onCheckedChange={(checked) =>
+                  updateDraft("highlightWeakAreas", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.explain_like_im_learning.title")}
+                description={t("toggles.explain_like_im_learning.description")}
+                checked={draft.explainLikeImLearning}
+                onCheckedChange={(checked) =>
+                  updateDraft("explainLikeImLearning", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.advanced_terminology.title")}
+                description={t("toggles.advanced_terminology.description")}
+                checked={draft.advancedTerminology}
+                onCheckedChange={(checked) =>
+                  updateDraft("advancedTerminology", checked)
+                }
+              />
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            icon={<BellRing className="h-5 w-5" />}
+            title={t("cards.notifications.title")}
+            description={t("cards.notifications.description")}
+          >
+            <div className="space-y-3">
+              <ToggleRow
+                title={t("toggles.practice_reminders.title")}
+                description={t("toggles.practice_reminders.description")}
+                checked={draft.practiceReminders}
+                onCheckedChange={(checked) =>
+                  updateDraft("practiceReminders", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.streak_reminders.title")}
+                description={t("toggles.streak_reminders.description")}
+                checked={draft.streakReminders}
+                onCheckedChange={(checked) =>
+                  updateDraft("streakReminders", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.achievement_updates.title")}
+                description={t("toggles.achievement_updates.description")}
+                checked={draft.achievementUpdates}
+                onCheckedChange={(checked) =>
+                  updateDraft("achievementUpdates", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.email_notifications.title")}
+                description={t("toggles.email_notifications.description")}
+                checked={draft.emailNotifications}
+                onCheckedChange={(checked) =>
+                  updateDraft("emailNotifications", checked)
+                }
+              />
+            </div>
+          </SettingsCard>
         </div>
-      </section>
 
-      {/* Sign Out */}
-      <section className="rounded-2xl border border-red-500/10 bg-surface-container-lowest p-6">
-        <Button
-          onClick={handleSignOut}
-          variant="outline"
-          className="gap-2 border-red-500/20 text-red-500 hover:bg-red-500/10"
-        >
-          <LogOut className="h-4 w-4" />
-          {t('sign_out')}
-        </Button>
-      </section>
+        <section className="mt-5 rounded-[28px] border border-red-200 bg-red-50/65 p-5 shadow-[0_18px_48px_-38px_rgba(220,38,38,0.3)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-500">
+                <LogOut className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-red-600">
+                  {t("sign_out")}
+                </h2>
+                <p className="mt-1 text-sm text-red-500/90">
+                  {t("sign_out_description")}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSignOut}
+              className="rounded-2xl border-red-300 bg-white text-red-500 hover:bg-red-50"
+            >
+              {t("sign_out")}
+            </Button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

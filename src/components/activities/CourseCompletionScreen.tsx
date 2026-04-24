@@ -28,6 +28,7 @@ export function CourseCompletionScreen({
 }: Props) {
   const t = useTranslations("courses.player");
   const [displayXP, setDisplayXP] = useState(0);
+  const primaryHref = courseOverviewHref ?? "/courses";
 
   useEffect(() => {
     const burst = () => {
@@ -138,7 +139,7 @@ export function CourseCompletionScreen({
           ) : (
             <>
               <Link
-                href="/dashboard/courses"
+                href={primaryHref}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
               >
                 {t("exploreMore")} →

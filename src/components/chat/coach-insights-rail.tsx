@@ -84,7 +84,7 @@ export function CoachBrief({
           label={t("coach.recent_trend")}
           value={
             profile.recentTrend.averageScore != null
-              ? `${profile.recentTrend.averageScore.toFixed(1)} / 5`
+              ? `${Math.round(profile.recentTrend.averageScore)} /100`
               : t("coach.no_scored_trend")
           }
           description={profile.brief.trendSummary}
@@ -178,7 +178,7 @@ export function CoachInsightsRail({
                   <span>{skillLabel(metric.key)}</span>
                 </div>
                 <span className="text-sm font-semibold text-on-surface">
-                  {metric.value.toFixed(1)} / 5
+                  {Math.round(metric.value)} /100
                 </span>
               </div>
               <div className="h-2 rounded-full bg-[#DEE8F8]">
@@ -187,7 +187,7 @@ export function CoachInsightsRail({
                     "h-full rounded-full",
                     SKILL_COLORS[metric.key]
                   )}
-                  style={{ width: `${Math.max(12, metric.value * 20)}%` }}
+                  style={{ width: `${Math.max(12, metric.value)}%` }}
                 />
               </div>
             </div>
@@ -201,7 +201,7 @@ export function CoachInsightsRail({
             </div>
             <div className="mt-1 text-lg font-semibold text-on-surface">
               {profile.skillSnapshot.overallScore != null
-                ? `${profile.skillSnapshot.overallScore.toFixed(1)} / 5`
+                ? `${Math.round(profile.skillSnapshot.overallScore)} /100`
                 : t("coach.not_enough_data")}
             </div>
           </div>
@@ -344,7 +344,7 @@ export function CoachInsightsRail({
                   <div className="text-right text-xs text-on-surface-variant">
                     <div className="font-semibold text-on-surface">
                       {session.totalScore != null
-                        ? `${(session.totalScore / 20).toFixed(1)} / 5`
+                        ? `${Math.round(session.totalScore)} /100`
                         : t("coach.unscored")}
                     </div>
                   </div>

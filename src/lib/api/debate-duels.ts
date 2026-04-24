@@ -96,6 +96,7 @@ export interface DebateDuelHistoryItem {
   role: DebateDuelSide | null;
   winnerSide: DebateDuelSide | null;
   summary: string;
+  durationSeconds: number | null;
   createdAt: string;
   href: string;
 }
@@ -749,11 +750,30 @@ export async function getDebateDuelHistory(
       duels.map((duel) => duel.id)
     );
 
+  const completedDuelIds = duels.map((duel) => duel.id);
+  const { data: speeches, error: speechError } = await supabase
+    .from("debate_duel_speeches")
+    .select("duel_id, duration_seconds")
+    .in("duel_id", completedDuelIds);
+
+  if (speechError) {
+    throw new Error(speechError.message);
+  }
+
   const judgmentByDuel = new Map(
     ((judgments ?? []) as DuelJudgmentRow[]).map((judgment) => [
       judgment.duel_id,
       judgment,
     ])
+  );
+  const durationByDuel = new Map<string, number>();
+  ((speeches ?? []) as Pick<DuelSpeechRow, "duel_id" | "duration_seconds">[]).forEach(
+    (speech) => {
+      durationByDuel.set(
+        speech.duel_id,
+        (durationByDuel.get(speech.duel_id) ?? 0) + speech.duration_seconds
+      );
+    }
   );
   const roleByDuel = new Map(
     (participantRows as { duel_id: string; role: DebateDuelSide | null }[]).map(
@@ -761,16 +781,23 @@ export async function getDebateDuelHistory(
     )
   );
 
-  return (duels as DuelRow[]).map((duel) => ({
-    id: duel.id,
-    shareCode: duel.share_code,
-    topicTitle: duel.topic_title,
-    role: roleByDuel.get(duel.id) ?? null,
-    winnerSide: judgmentByDuel.get(duel.id)?.winner_side ?? null,
-    summary:
-      judgmentByDuel.get(duel.id)?.summary ||
-      "AI judged this duel after the final rebuttal.",
-    createdAt: duel.created_at,
-    href: `/debates/${duel.share_code}/result`,
-  }));
+  return (duels as DuelRow[]).map((duel) => {
+    const speechSeconds = durationByDuel.get(duel.id) ?? 0;
+    const prepSeconds =
+      duel.prep_time_seconds + Math.max(30, Math.min(duel.prep_time_seconds, 60));
+
+    return {
+      id: duel.id,
+      shareCode: duel.share_code,
+      topicTitle: duel.topic_title,
+      role: roleByDuel.get(duel.id) ?? null,
+      winnerSide: judgmentByDuel.get(duel.id)?.winner_side ?? null,
+      summary:
+        judgmentByDuel.get(duel.id)?.summary ||
+        "AI judged this duel after the final rebuttal.",
+      durationSeconds: speechSeconds > 0 ? prepSeconds + speechSeconds : null,
+      createdAt: duel.created_at,
+      href: `/debates/${duel.share_code}/result`,
+    };
+  });
 }

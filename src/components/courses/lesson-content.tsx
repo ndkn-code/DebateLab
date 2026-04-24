@@ -113,7 +113,7 @@ export function LessonContent({ lesson, courseSlug }: LessonContentProps) {
       <div className="flex items-center justify-between rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow">
         {lesson.prev_lesson ? (
           <Link
-            href={`/courses/${courseSlug}/lessons/${lesson.prev_lesson.slug}`}
+            href={`/courses/${courseSlug}?lesson=${encodeURIComponent(lesson.prev_lesson.slug)}`}
           >
             <Button
               variant="outline"
@@ -130,7 +130,7 @@ export function LessonContent({ lesson, courseSlug }: LessonContentProps) {
 
         {lesson.next_lesson ? (
           <Link
-            href={`/courses/${courseSlug}/lessons/${lesson.next_lesson.slug}`}
+            href={`/courses/${courseSlug}?lesson=${encodeURIComponent(lesson.next_lesson.slug)}`}
           >
             <Button className="gap-2 bg-primary text-on-primary">
               <span className="hidden sm:inline">{lesson.next_lesson.title}</span>

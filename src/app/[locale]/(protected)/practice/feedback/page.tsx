@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import { RotateCcw, Plus, History, Sparkles, Gift, Copy, Check } from "lucide-react";
@@ -9,17 +10,16 @@ import { LottieAnimation } from "@/components/ui/lottie-animation";
 import confettiAnimation from "../../../../../../public/lottie/confetti.json";
 import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
-import { ScoreHero } from "@/components/feedback/score-hero";
-import { CategoryCards } from "@/components/feedback/category-cards";
-import { FeedbackSections } from "@/components/feedback/feedback-sections";
-import { DebateTimeline } from "@/components/feedback/debate-timeline";
+import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/referrals";
+import type { DebateSession } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 
 export default function FeedbackPage() {
   const router = useRouter();
+  const t = useTranslations("sessionResult");
   const {
     selectedTopic,
     side,
@@ -55,6 +55,10 @@ export default function FeedbackPage() {
   const [referralCode, setReferralCode] = useState<string>("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
+  const [resultDate, setResultDate] = useState(() => new Date().toISOString());
+  const [resultDuration, setResultDuration] = useState(() =>
+    sessionStartTime ? Math.max(0, Math.round((Date.now() - sessionStartTime) / 1000)) : 0
+  );
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -142,6 +146,7 @@ export default function FeedbackPage() {
       }
 
       const normalizedFeedback = normalizeFeedback(data);
+      setResultDuration(actualDuration);
 
       setLocalFeedback(normalizedFeedback);
       setFeedback(normalizedFeedback);
@@ -173,6 +178,7 @@ export default function FeedbackPage() {
           rounds: isFullRound ? rounds : undefined,
         };
         setSavedSessionId(sessionId);
+        setResultDate(sessionData.date);
 
         // Save to Supabase if authenticated, otherwise localStorage
         const supabase = createClient();
@@ -181,7 +187,9 @@ export default function FeedbackPage() {
           supabaseStorage.saveSession(sessionData, authData.user.id);
           // Qualify referral if this is user's first real practice
           const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
-          qualifyReferralAction(wordCount).catch(() => {});
+          qualifyReferralAction(wordCount).catch((error) => {
+            console.error("Failed to qualify referral", error);
+          });
         } else {
           storage.saveSession(sessionData);
         }
@@ -226,6 +234,9 @@ export default function FeedbackPage() {
     // If we already have feedback (e.g. from store), skip API call
     if (storeFeedback) {
       setLocalFeedback(normalizeFeedback(storeFeedback));
+      if (resultDuration === 0 && sessionStartTime) {
+        setResultDuration(Math.max(0, Math.round((Date.now() - sessionStartTime) / 1000)));
+      }
       setLoading(false);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
@@ -236,7 +247,15 @@ export default function FeedbackPage() {
 
     // Fetch referral code for share card
     getReferralCodeAction().then(setReferralCode).catch(() => {});
-  }, [selectedTopic, storeFeedback, fetchFeedback, normalizeFeedback, router]);
+  }, [
+    selectedTopic,
+    storeFeedback,
+    fetchFeedback,
+    normalizeFeedback,
+    resultDuration,
+    router,
+    sessionStartTime,
+  ]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -268,18 +287,51 @@ export default function FeedbackPage() {
     router.push("/practice");
   };
 
-  if (!selectedTopic) return null;
-
   const feedbackPracticeTrack = feedback?.practiceTrack ?? practiceTrack;
   const isSpeakingTrack = feedbackPracticeTrack === "speaking";
-  const sessionBadgeLabel = isSpeakingTrack
-    ? "Speaking Practice"
-    : isFullRound
-      ? "Full Round Debate"
-      : "Quick Debate Practice";
+  const selectedTopicTitle = selectedTopic?.title ?? "this topic";
   const coachPrompt = isSpeakingTrack
-    ? `I just finished a speaking practice on "${selectedTopic.title}" (${resolvedSide} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
-    : `I just finished a debate on "${selectedTopic.title}" (${resolvedSide} side, ${mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
+    ? `I just finished a speaking practice on "${selectedTopicTitle}" (${resolvedSide} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
+    : `I just finished a debate on "${selectedTopicTitle}" (${resolvedSide} side, ${mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
+  const resultSession = useMemo<DebateSession | null>(() => {
+    if (!feedback || !selectedTopic) return null;
+
+    return {
+      id: savedSessionId ?? "current-session",
+      date: resultDate,
+      topic: selectedTopic,
+      side: resolvedSide,
+      practiceTrack,
+      mode,
+      prepTime,
+      speechTime,
+      transcript,
+      feedback,
+      duration: resultDuration,
+      aiDifficulty:
+        practiceTrack === "debate" && mode === "full"
+          ? aiDifficulty
+          : undefined,
+      rounds: isFullRound ? rounds : undefined,
+    };
+  }, [
+    aiDifficulty,
+    feedback,
+    isFullRound,
+    mode,
+    practiceTrack,
+    prepTime,
+    resolvedSide,
+    resultDate,
+    resultDuration,
+    rounds,
+    savedSessionId,
+    selectedTopic,
+    speechTime,
+    transcript,
+  ]);
+
+  if (!selectedTopic) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,7 +344,7 @@ export default function FeedbackPage() {
           />
         </div>
       )}
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <div className="py-2">
         {/* Loading */}
         {loading && !error && <LoadingState />}
 
@@ -308,153 +360,135 @@ export default function FeedbackPage() {
                 className="gap-2 bg-primary text-white"
               >
                 <RotateCcw className="h-4 w-4" />
-                Try Again
+                {t("tryAgain")}
               </Button>
               <Button
                 onClick={handleNewTopic}
                 variant="outline"
                 className="border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
               >
-                Back to Topics
+                {t("backToTopics")}
               </Button>
             </div>
           </div>
         )}
 
         {/* Results */}
-        {!loading && !error && feedback && (
+        {!loading && !error && resultSession && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            {/* Full Round badge */}
-            <div className="flex items-center justify-center gap-2">
-              <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-                {sessionBadgeLabel}
-              </span>
-              <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs text-on-surface-variant">
-                {isSpeakingTrack ? "Speaking" : "Debate"}
-              </span>
-              {isFullRound && (
-                <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs capitalize text-on-surface-variant">
-                  {aiDifficulty} AI
-                </span>
-              )}
-            </div>
-
-            {/* Score Hero */}
-            <ScoreHero feedback={feedback} />
-
-            {/* Category Cards */}
-            <div>
-              <h2 className="mb-4 text-lg font-semibold text-on-surface">
-                Category Breakdown
-              </h2>
-              <CategoryCards feedback={feedback} />
-            </div>
-
-            {/* Debate Timeline (Full Round only) */}
-            {isFullRound && rounds.length > 0 && (
-              <DebateTimeline rounds={rounds} />
-            )}
-
-            {/* Feedback Sections */}
-            <FeedbackSections feedback={feedback} transcript={transcript} />
-
-            {/* Referral Challenge Card */}
-            {referralCode && (
-              <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 mb-3">
-                    <Gift className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-base font-bold text-on-surface">
-                    Challenge a friend to beat your score!
-                  </h3>
-                  <p className="mt-1 text-sm text-on-surface-variant">
-                    You scored {feedback.totalScore}/100. Share your invite link and both earn 300 bonus Credits.
-                  </p>
-                  <button
-                    onClick={async () => {
-                      const link = `${window.location.origin}/join/${referralCode}`;
-                      const shareText = `I scored ${feedback.totalScore}/100 on DebateLab! Can you beat me? ${link}`;
-                      if (navigator.share) {
-                        try {
-                          await navigator.share({ title: "DebateLab Challenge", text: shareText });
-                        } catch { /* cancelled */ }
-                      } else {
-                        await navigator.clipboard.writeText(shareText);
-                        setLinkCopied(true);
-                        setTimeout(() => setLinkCopied(false), 2000);
-                      }
-                    }}
-                    className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
+            <SessionResultDashboard
+              session={resultSession}
+              backHref="/practice"
+              backLabel={t("backToPractice")}
+              shareUrl={savedSessionId ? `/history/${savedSessionId}` : null}
+              actionBar={
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={handleRetrySameTopic}
+                    className="min-h-[44px] rounded-2xl bg-primary px-5 text-white hover:bg-primary-dim"
                   >
-                    {linkCopied ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Share Challenge
-                      </>
-                    )}
-                  </button>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {t("actions.practiceAgain")}
+                  </Button>
+                  <Button
+                    onClick={handleNewTopic}
+                    variant="outline"
+                    className="min-h-[44px] rounded-2xl border-outline-variant/20 bg-surface px-5 text-on-surface"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t("actions.newTopic")}
+                  </Button>
+                  <Link href="/history">
+                    <Button
+                      variant="outline"
+                      className="min-h-[44px] rounded-2xl border-outline-variant/20 bg-surface px-5 text-on-surface"
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      {t("actions.viewHistory")}
+                    </Button>
+                  </Link>
+                  <Link
+                    href={`/chat?message=${encodeURIComponent(
+                      coachPrompt
+                    )}${savedSessionId ? `&context=practice-feedback&contextId=${savedSessionId}` : ""}`}
+                  >
+                    <Button
+                      variant="outline"
+                      className="min-h-[44px] rounded-2xl border-primary/25 bg-primary/5 px-5 text-primary hover:bg-primary/10"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {t("actions.askCoach")}
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-            )}
+              }
+              afterPanel={
+                <>
+                  {referralCode && feedback && (
+                    <div className="mx-auto max-w-7xl rounded-[28px] border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
+                          <Gift className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="text-base font-bold text-on-surface">
+                          {t("referral.title")}
+                        </h3>
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          {t("referral.body", { score: feedback.totalScore })}
+                        </p>
+                        <button
+                          onClick={async () => {
+                            const link = `${window.location.origin}/join/${referralCode}`;
+                            const shareText = t("referral.shareText", {
+                              score: feedback.totalScore,
+                              link,
+                            });
+                            if (navigator.share) {
+                              try {
+                                await navigator.share({
+                                  title: t("referral.shareTitle"),
+                                  text: shareText,
+                                });
+                              } catch {
+                                // Ignore cancelled shares.
+                              }
+                            } else {
+                              await navigator.clipboard.writeText(shareText);
+                              setLinkCopied(true);
+                              setTimeout(() => setLinkCopied(false), 2000);
+                            }
+                          }}
+                          className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
+                        >
+                          {linkCopied ? (
+                            <>
+                              <Check className="h-4 w-4" />
+                              {t("referral.copied")}
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" />
+                              {t("referral.cta")}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-            {/* Model indicator */}
-            {modelUsed && (
-              <p className="text-center text-xs text-outline-variant">
-                Analyzed with {modelUsed}
-              </p>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3 border-t border-outline-variant/10 pt-8 sm:flex-row sm:justify-center">
-              <Button
-                onClick={handleRetrySameTopic}
-                className="gap-2 bg-primary text-white hover:bg-primary-dim"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Try Same Topic
-              </Button>
-              <Button
-                onClick={handleNewTopic}
-                variant="outline"
-                className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-              >
-                <Plus className="h-4 w-4" />
-                New Topic
-              </Button>
-              <Link href="/history">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface sm:w-auto"
-                >
-                  <History className="h-4 w-4" />
-                  View History
-                </Button>
-              </Link>
-              <Link
-                href={`/chat?message=${encodeURIComponent(
-                  coachPrompt
-                )}${savedSessionId ? `&context=practice-feedback&contextId=${savedSessionId}` : ""}`}
-              >
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 sm:w-auto"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Discuss with AI Coach
-                </Button>
-              </Link>
-            </div>
+                  {modelUsed && (
+                    <p className="text-center text-xs text-outline-variant">
+                      {t("modelUsed", { model: modelUsed })}
+                    </p>
+                  )}
+                </>
+              }
+            />
           </motion.div>
         )}
       </div>

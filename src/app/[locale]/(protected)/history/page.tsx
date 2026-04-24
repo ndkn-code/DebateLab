@@ -1,22 +1,26 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { useMemo, useState, type ComponentType } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import {
-  Trophy,
-  Target,
-  BarChart3,
-  FolderOpen,
-  Trash2,
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  Globe2,
+  Mic,
+  Scale,
   Search,
-  ArrowUpDown,
-  Mic2,
+  ShieldCheck,
+  Star,
+  Swords,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MiniScoreRing } from "@/components/shared/mini-score-ring";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseQuery } from "@/hooks/use-supabase-query";
@@ -24,42 +28,9 @@ import { cn } from "@/lib/utils";
 import type { DebateSession } from "@/types";
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest";
-
-const CATEGORY_FILTERS = [
-  "All",
-  "Education & School Life",
-  "Technology & Social Media",
-  "Society & Culture",
-  "Environment & Sustainability",
-  "Ethics & Philosophy",
-  "Vietnam-Specific Issues",
-] as const;
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-async function fetchSessions(): Promise<DebateSession[]> {
-  const supabase = createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (authData.user) {
-    return supabaseStorage.getSessions(authData.user.id);
-  }
-  return storage.getSessions();
-}
+type FilterOption = "all" | "practice" | "duel";
+type HistoryKind = "practice" | "duel";
+type RecommendationTrack = "Speaking" | "Debate" | "Duel";
 
 interface DuelHistoryItem {
   id: string;
@@ -68,458 +39,811 @@ interface DuelHistoryItem {
   role: "proposition" | "opposition" | null;
   winnerSide: "proposition" | "opposition" | null;
   summary: string;
+  durationSeconds: number | null;
   createdAt: string;
   href: string;
+}
+
+interface HistoryData {
+  sessions: DebateSession[];
+  allowMockMetrics: boolean;
+}
+
+interface HistoryItem {
+  id: string;
+  kind: HistoryKind;
+  title: string;
+  tag: "Debate" | "Speaking" | "Duel";
+  detail: string;
+  date: string;
+  durationSeconds: number | null;
+  href: string;
+  score: number | null;
+  status: "Proficient" | "Competent" | null;
+  note: "Excellent" | "Very Good" | "Good" | "Solid" | null;
+  icon: ComponentType<{ className?: string }>;
+  iconClassName: string;
+  iconWrapClassName: string;
+}
+
+interface RecommendedPractice {
+  tag: RecommendationTrack;
+  title: string;
+  body: string;
+  duration: string;
+  href: string;
+}
+
+const FILTERS: Array<{
+  value: FilterOption;
+  label: string;
+  icon: ComponentType<{ className?: string }> | null;
+}> = [
+  { value: "all", label: "All", icon: null },
+  { value: "practice", label: "Practice", icon: Scale },
+  { value: "duel", label: "Duel", icon: Swords },
+];
+
+const DEMO_METRICS_EMAIL = "ndkn.work@gmail.com";
+
+async function fetchHistoryData(): Promise<HistoryData> {
+  const supabase = createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const allowMockMetrics =
+    authData.user?.email?.toLowerCase() === DEMO_METRICS_EMAIL;
+
+  if (authData.user) {
+    return {
+      sessions: await supabaseStorage.getSessions(authData.user.id),
+      allowMockMetrics,
+    };
+  }
+
+  return { sessions: storage.getSessions(), allowMockMetrics: false };
 }
 
 async function fetchDuelHistory(): Promise<DuelHistoryItem[]> {
   const response = await fetch("/api/debate-duels/history", {
     credentials: "include",
   });
+
   if (!response.ok) {
     return [];
   }
+
   return (await response.json()) as DuelHistoryItem[];
 }
 
-export default function HistoryPage() {
-  const t = useTranslations("dashboard.history");
-  const router = useRouter();
-  const { data: sessions = [], mutate, isLoading } = useSupabaseQuery(
-    "history-sessions",
-    fetchSessions
-  );
-  const { data: duelHistory = [] } = useSupabaseQuery(
-    "history-duels",
-    fetchDuelHistory
-  );
-  const [sort, setSort] = useState<SortOption>("newest");
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [search, setSearch] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
-  const CATEGORY_SHORT = useMemo<Record<string, string>>(
-    () => ({
-      "All": t("category_all"),
-      "Education & School Life": t("category_education"),
-      "Technology & Social Media": t("category_technology"),
-      "Society & Culture": t("category_society"),
-      "Environment & Sustainability": t("category_environment"),
-      "Ethics & Philosophy": t("category_ethics"),
-      "Vietnam-Specific Issues": t("category_vietnam"),
-    }),
-    [t]
-  );
+function formatDuration(seconds: number | null) {
+  if (!seconds || seconds <= 0) {
+    return "Not recorded";
+  }
 
-  const getTrackLabel = useCallback(
-    (practiceTrack: DebateSession["practiceTrack"] | undefined) =>
-      practiceTrack === "speaking" ? t("speaking") : t("debate"),
-    [t]
-  );
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return `${minutes} min`;
+}
 
-  const getModeLabel = useCallback(
-    (session: DebateSession) => {
-      const practiceTrack =
-        session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
-      if (practiceTrack === "speaking") {
-        return t("single_speech");
-      }
-      return session.mode === "full" ? t("full") : t("quick");
-    },
-    [t]
-  );
+function getScoreMeta(score: number) {
+  if (score >= 80) {
+    return {
+      stroke: "#00a66f",
+      status: "Proficient" as const,
+      note:
+        score >= 90
+          ? ("Excellent" as const)
+          : ("Very Good" as const),
+      badgeClassName: "bg-[#eaf8f4] text-[#00a66f]",
+    };
+  }
 
-  const handleDelete = useCallback(async () => {
-    if (!deleteId) return;
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData.user) {
-      await supabaseStorage.deleteSession(deleteId, authData.user.id);
-    } else {
-      storage.deleteSession(deleteId);
+  return {
+    stroke: "#1478ff",
+    status: "Competent" as const,
+    note: score >= 74 ? ("Good" as const) : ("Solid" as const),
+    badgeClassName: "bg-[#edf5ff] text-[#1478ff]",
+  };
+}
+
+function getSessionIcon(session: DebateSession) {
+  const title = session.topic.title.toLowerCase();
+  const category = session.topic.category.toLowerCase();
+
+  if (session.practiceTrack === "speaking") {
+    if (title.includes("agree") || category.includes("public")) {
+      return {
+        icon: UsersRound,
+        iconClassName: "text-[#7b45f6]",
+        iconWrapClassName: "bg-[#f2ecff]",
+      };
     }
-    setDeleteId(null);
-    mutate();
-  }, [deleteId, mutate]);
-
-  // Compute stats
-  const stats = useMemo(() => {
-    const scored = sessions.filter((s) => s.feedback);
-    const scores = scored.map((s) => s.feedback!.totalScore);
-    const avg =
-      scores.length > 0
-        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-        : 0;
-    const best = scores.length > 0 ? Math.max(...scores) : 0;
-
-    // Most practiced category
-    const catCount: Record<string, number> = {};
-    sessions.forEach((s) => {
-      catCount[s.topic.category] = (catCount[s.topic.category] || 0) + 1;
-    });
-    const topCat =
-      Object.entries(catCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "\u2014";
 
     return {
-      total: sessions.length,
-      avg,
-      best,
-      topCategory: CATEGORY_SHORT[topCat] ?? topCat,
+      icon: Mic,
+      iconClassName: "text-[#1478ff]",
+      iconWrapClassName: "bg-[#eaf2ff]",
     };
-  }, [sessions, CATEGORY_SHORT]);
+  }
 
-  // Filter & sort
-  const filtered = useMemo(() => {
-    let list = [...sessions];
+  if (
+    title.includes("climate") ||
+    category.includes("environment") ||
+    category.includes("sustainability")
+  ) {
+    return {
+      icon: Globe2,
+      iconClassName: "text-[#12b8a6]",
+      iconWrapClassName: "bg-[#e7fbf8]",
+    };
+  }
 
-    if (categoryFilter !== "All") {
-      list = list.filter((s) => s.topic.category === categoryFilter);
-    }
+  return {
+    icon: Building2,
+    iconClassName: "text-[#7b45f6]",
+    iconWrapClassName: "bg-[#f1e9ff]",
+  };
+}
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((s) => s.topic.title.toLowerCase().includes(q));
-    }
+function getPracticeDetail(session: DebateSession) {
+  if (session.practiceTrack === "speaking") {
+    return session.topic.category.includes("Public")
+      ? "Public Speaking"
+      : "Persuasive Speech";
+  }
 
-    switch (sort) {
-      case "oldest":
-        list.sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        break;
-      case "highest":
-        list.sort(
-          (a, b) =>
-            (b.feedback?.totalScore ?? 0) - (a.feedback?.totalScore ?? 0)
-        );
-        break;
-      case "lowest":
-        list.sort(
-          (a, b) =>
-            (a.feedback?.totalScore ?? 0) - (b.feedback?.totalScore ?? 0)
-        );
-        break;
-      default: // newest
-        list.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-    }
+  if (session.mode === "full") {
+    return "1v1 Debate";
+  }
 
-    return list;
-  }, [sessions, categoryFilter, search, sort]);
+  const roundFocus = session.side === "opposition" ? "Rebuttal" : "Constructive";
+  return `${session.topic.category || "Policy Debate"} • ${roundFocus}`;
+}
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-          <div className="mb-8 space-y-2">
-            <div className="h-8 w-48 animate-pulse rounded bg-surface-container-high" />
-            <div className="h-4 w-72 animate-pulse rounded bg-surface-container-high/60" />
-          </div>
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl border border-outline-variant/10 bg-surface-container-low" />
-            ))}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl border border-outline-variant/10 bg-surface-container-low" />
-            ))}
+function getNullableScore(rawScore: number | null | undefined) {
+  return typeof rawScore === "number"
+    ? Math.max(0, Math.min(100, rawScore))
+    : null;
+}
+
+function hasScore(item: HistoryItem): item is HistoryItem & { score: number } {
+  return item.score !== null;
+}
+
+function sessionToHistoryItem(
+  session: DebateSession,
+  allowMockMetrics: boolean
+): HistoryItem {
+  const realScore = getNullableScore(session.feedback?.totalScore);
+  const score = realScore ?? (allowMockMetrics ? 76 : null);
+  const scoreMeta = score === null ? null : getScoreMeta(score);
+  const iconMeta = getSessionIcon(session);
+  const realDuration =
+    typeof session.duration === "number" && session.duration > 0
+      ? session.duration
+      : null;
+
+  return {
+    id: session.id,
+    kind: "practice",
+    title: session.topic.title,
+    tag: session.practiceTrack === "speaking" ? "Speaking" : "Debate",
+    detail: getPracticeDetail(session),
+    date: session.date,
+    durationSeconds:
+      realDuration ?? (allowMockMetrics ? session.speechTime || 15 * 60 : null),
+    href: `/history/${session.id}`,
+    score,
+    status: scoreMeta?.status ?? null,
+    note: scoreMeta?.note ?? null,
+    icon: iconMeta.icon,
+    iconClassName: iconMeta.iconClassName,
+    iconWrapClassName: iconMeta.iconWrapClassName,
+  };
+}
+
+function duelToHistoryItem(
+  duel: DuelHistoryItem,
+  allowMockMetrics: boolean
+): HistoryItem {
+  const score = allowMockMetrics
+    ? duel.winnerSide && duel.role
+      ? duel.winnerSide === duel.role
+        ? 88
+        : 72
+      : 82
+    : null;
+  const scoreMeta = score === null ? null : getScoreMeta(score);
+
+  return {
+    id: duel.id,
+    kind: "duel",
+    title: duel.topicTitle,
+    tag: "Duel",
+    detail: "1v1 Debate",
+    date: duel.createdAt,
+    durationSeconds:
+      duel.durationSeconds ?? (allowMockMetrics ? 21 * 60 : null),
+    href: duel.href,
+    score,
+    status: scoreMeta?.status ?? null,
+    note: scoreMeta?.note ?? null,
+    icon: Swords,
+    iconClassName: "text-[#ff9b00]",
+    iconWrapClassName: "bg-[#fff4e2]",
+  };
+}
+
+function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
+  if (items.length === 0) {
+    return {
+      tag: "Speaking",
+      title: "Rebuttals That Stick",
+      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
+      duration: "15 min",
+      href: "/practice?track=speaking",
+    };
+  }
+
+  const recent = [...items]
+    .sort(
+      (left, right) =>
+        new Date(right.date).getTime() - new Date(left.date).getTime()
+    )
+    .slice(0, 8);
+  const speaking = recent.filter((item) => item.tag === "Speaking");
+  const debate = recent.filter(
+    (item) => item.tag === "Debate" || item.tag === "Duel"
+  );
+  const avg = (list: HistoryItem[]) => {
+    const scoredItems = list.filter(hasScore);
+    return scoredItems.length
+      ? scoredItems.reduce((sum, item) => sum + item.score, 0) / scoredItems.length
+      : null;
+  };
+  const weakest = [...recent]
+    .filter(hasScore)
+    .sort((left, right) => left.score - right.score)[0];
+  const speakingAverage = avg(speaking);
+  const debateAverage = avg(debate);
+
+  if (weakest && weakest.score < 76 && weakest.tag === "Speaking") {
+    return {
+      tag: "Speaking",
+      title: "Confident Delivery Sprint",
+      body: "Practice pacing, clarity, and emphasis with a short guided speaking round.",
+      duration: "12 min",
+      href: "/practice?track=speaking",
+    };
+  }
+
+  if (
+    weakest &&
+    weakest.score < 78 &&
+    (weakest.detail.toLowerCase().includes("rebuttal") || weakest.tag === "Duel")
+  ) {
+    return {
+      tag: "Speaking",
+      title: "Rebuttals That Stick",
+      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
+      duration: "15 min",
+      href: "/practice?track=speaking",
+    };
+  }
+
+  if (
+    debate.length > speaking.length + 1 ||
+    (speakingAverage !== null &&
+      debateAverage !== null &&
+      speakingAverage < debateAverage - 4)
+  ) {
+    return {
+      tag: "Speaking",
+      title: "Rebuttals That Stick",
+      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
+      duration: "15 min",
+      href: "/practice?track=speaking",
+    };
+  }
+
+  if (
+    weakest?.tag === "Duel" ||
+    (debateAverage !== null &&
+      speakingAverage !== null &&
+      debateAverage < speakingAverage - 4)
+  ) {
+    return {
+      tag: "Duel",
+      title: "Try a 1v1 Debate",
+      body: "Challenge real-time responses and improve rebuttals under pressure.",
+      duration: "18 min",
+      href: "/debates/new",
+    };
+  }
+
+  return {
+    tag: "Debate",
+    title: "Constructive Case Builder",
+    body: "Strengthen your opening arguments with clearer claims and weighing.",
+    duration: "15 min",
+    href: "/practice?track=debate",
+  };
+}
+
+function ScoreRing({ score }: { score: number | null }) {
+  const scoreMeta = score === null ? null : getScoreMeta(score);
+  const size = 70;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth * 2) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset =
+    score === null ? circumference : circumference * (1 - score / 100);
+
+  return (
+    <div className="flex w-[76px] shrink-0 flex-col items-center justify-center">
+      <div className="relative flex h-[66px] w-[66px] items-center justify-center">
+        <svg className="h-[66px] w-[66px] -rotate-90" viewBox="0 0 70 70">
+          <circle
+            cx="35"
+            cy="35"
+            r={radius}
+            fill="none"
+            stroke="#e4edf7"
+            strokeWidth={strokeWidth}
+          />
+          {scoreMeta ? (
+            <circle
+              cx="35"
+              cy="35"
+              r={radius}
+              fill="none"
+              stroke={scoreMeta.stroke}
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              strokeWidth={strokeWidth}
+            />
+          ) : null}
+        </svg>
+        <div className="absolute text-center">
+          <div
+            className={cn(
+              "font-semibold leading-none tracking-normal text-on-surface",
+              score === null ? "text-sm" : "text-lg"
+            )}
+          >
+            {score ?? "N/A"}
           </div>
         </div>
       </div>
+      <span className="mt-0.5 text-xs font-medium text-on-surface-variant">
+        Score
+      </span>
+    </div>
+  );
+}
+
+function SessionRow({
+  item,
+  index,
+  onReview,
+}: {
+  item: HistoryItem;
+  index: number;
+  onReview: (href: string) => void;
+}) {
+  const Icon = item.icon;
+  const scoreMeta = item.score === null ? null : getScoreMeta(item.score);
+  const StatusIcon = item.status === "Proficient" ? BadgeCheck : ShieldCheck;
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.025 }}
+      className="grid min-h-[112px] items-center gap-4 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest px-4 py-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:grid-cols-[64px_minmax(0,1fr)_76px_124px_112px_112px]"
+    >
+      <div
+        className={cn(
+          "flex h-16 w-16 items-center justify-center rounded-[1.25rem]",
+          item.iconWrapClassName
+        )}
+      >
+        <Icon className={cn("h-8 w-8 stroke-[2.25]", item.iconClassName)} />
+      </div>
+
+      <div className="min-w-0">
+        <h2 className="line-clamp-2 text-base font-semibold leading-6 tracking-normal text-on-surface">
+          {item.title}
+        </h2>
+        <div className="mt-2 flex flex-wrap items-center gap-2.5">
+          <span
+            className={cn(
+              "inline-flex h-6 items-center rounded-lg px-2 text-xs font-semibold",
+              item.tag === "Duel"
+                ? "bg-[#fff4e2] text-[#ff9b00]"
+                : item.tag === "Speaking"
+                  ? "bg-[#e9f3ff] text-[#1478ff]"
+                  : "bg-[#f1e9ff] text-[#8a34ff]"
+            )}
+          >
+            {item.tag}
+          </span>
+          <span className="min-w-0 text-sm font-medium leading-5 text-on-surface-variant">
+            {item.detail}
+          </span>
+        </div>
+      </div>
+
+      <ScoreRing score={item.score} />
+
+      <div className="flex min-w-0 flex-col gap-2">
+        <span
+          className={cn(
+            "inline-flex h-8 w-fit max-w-full items-center gap-1.5 truncate rounded-full px-2.5 text-xs font-semibold",
+            scoreMeta?.badgeClassName ??
+              "bg-surface-container text-on-surface-variant"
+          )}
+        >
+          <StatusIcon className="h-4 w-4 shrink-0" />
+          {item.status ?? "Unscored"}
+        </span>
+        <span className="pl-2 text-sm font-medium text-on-surface-variant">
+          {item.note ?? "No feedback yet"}
+        </span>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-3 text-sm font-medium text-on-surface-variant">
+        <span className="inline-flex items-center gap-2">
+          <Clock className="h-4 w-4 shrink-0 text-primary" />
+          {formatDuration(item.durationSeconds)}
+        </span>
+        <span className="inline-flex items-center gap-2 whitespace-nowrap">
+          <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
+          {formatDate(item.date)}
+        </span>
+      </div>
+
+      <Button
+        type="button"
+        onClick={() => onReview(item.href)}
+        className="h-11 min-w-0 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-none hover:bg-primary-dim"
+      >
+        Review
+        <ArrowRight className="ml-1 h-4 w-4" />
+      </Button>
+    </motion.article>
+  );
+}
+
+export default function HistoryPage() {
+  const router = useRouter();
+  const { data: historyData, isLoading: sessionsLoading } = useSupabaseQuery(
+    "history-sessions",
+    fetchHistoryData
+  );
+  const { data: duelHistory = [], isLoading: duelsLoading } = useSupabaseQuery(
+    "history-duels",
+    fetchDuelHistory
+  );
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterOption>("all");
+  const [sort, setSort] = useState<SortOption>("newest");
+  const [visibleCount, setVisibleCount] = useState(5);
+
+  const historyItems = useMemo(() => {
+    const sessions = historyData?.sessions ?? [];
+    const allowMockMetrics = historyData?.allowMockMetrics ?? false;
+    const practiceItems = sessions.map((session) =>
+      sessionToHistoryItem(session, allowMockMetrics)
     );
+    const duelItems = duelHistory.map((duel) =>
+      duelToHistoryItem(duel, allowMockMetrics)
+    );
+
+    return [...practiceItems, ...duelItems];
+  }, [historyData, duelHistory]);
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    let items = [...historyItems];
+
+    if (activeFilter === "practice") {
+      items = items.filter((item) => item.kind === "practice");
+    } else if (activeFilter === "duel") {
+      items = items.filter((item) => item.kind === "duel");
+    }
+
+    if (query) {
+      items = items.filter((item) =>
+        [item.title, item.tag, item.detail, item.status, item.note]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+
+    items.sort((left, right) => {
+      const leftTime = new Date(left.date).getTime();
+      const rightTime = new Date(right.date).getTime();
+      const newestFirst = rightTime - leftTime;
+
+      if (sort === "highest" || sort === "lowest") {
+        if (left.score === null && right.score === null) return newestFirst;
+        if (left.score === null) return 1;
+        if (right.score === null) return -1;
+        return sort === "highest"
+          ? right.score - left.score
+          : left.score - right.score;
+      }
+
+      return sort === "oldest" ? leftTime - rightTime : rightTime - leftTime;
+    });
+
+    return items;
+  }, [activeFilter, historyItems, search, sort]);
+
+  const visibleItems = filteredItems.slice(0, visibleCount);
+  const recommendedPractice = useMemo(
+    () => getRecommendedPractice(historyItems),
+    [historyItems]
+  );
+  const isLoading = sessionsLoading || duelsLoading;
+
+  if (isLoading) {
+    return <HistoryPageSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-on-surface">{t("page_headline")}</h1>
-          <p className="mt-2 text-on-surface-variant">
-            {t("page_subtitle")}
-          </p>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <motion.div
+    <div className="min-h-screen bg-background text-on-surface">
+      <div className="mx-auto max-w-[1360px] px-4 py-8 sm:px-8 lg:px-10">
+        <motion.header
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
+          className="flex items-center"
         >
-          <div className="rounded-xl border border-outline-variant/10 bg-primary-container/30 p-4">
-            <Target className="mb-2 h-5 w-5 text-primary" />
-            <p className="text-2xl font-bold text-on-surface">{stats.total}</p>
-            <p className="text-xs text-on-surface-variant">{t("total_sessions")}</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-tertiary-container/30 p-4">
-            <BarChart3 className="mb-2 h-5 w-5 text-tertiary" />
-            <p className="text-2xl font-bold text-on-surface">{stats.avg}</p>
-            <p className="text-xs text-on-surface-variant">{t("average_score")}</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-secondary-container/30 p-4">
-            <Trophy className="mb-2 h-5 w-5 text-secondary" />
-            <p className="text-2xl font-bold text-on-surface">{stats.best}</p>
-            <p className="text-xs text-on-surface-variant">{t("best_score")}</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant/10 bg-[#fff9e5] p-4">
-            <FolderOpen className="mb-2 h-5 w-5 text-[#b28b00]" />
-            <p className="truncate text-lg font-bold text-on-surface">
-              {stats.topCategory}
+          <div>
+            <h1 className="text-[2.35rem] font-bold leading-none tracking-[-0.05em] text-on-surface md:text-[2.6rem]">
+              History
+            </h1>
+            <p className="mt-3 text-sm font-medium leading-6 text-on-surface-variant sm:text-base">
+              Review your rounds and see how you&apos;re improving.
             </p>
-            <p className="text-xs text-on-surface-variant">{t("most_practiced")}</p>
           </div>
-        </motion.div>
+        </motion.header>
 
-        {/* Filter/Sort Bar */}
-        <motion.div
+        <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-6 space-y-3"
+          transition={{ delay: 0.04 }}
+          className="mb-6 mt-9 xl:pr-[332px]"
         >
-          {/* Search + Sort */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <label className="relative w-full lg:w-[320px]">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <input
-                type="text"
-                placeholder={t("search_placeholder")}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-4 text-sm text-on-surface placeholder-outline-variant outline-none transition-colors focus:border-primary/50"
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setVisibleCount(5);
+                }}
+                placeholder="Search topics or sessions..."
+                className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-4 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/75 focus:border-primary"
               />
+            </label>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {FILTERS.map((filter) => {
+                const Icon = filter.icon;
+                const active = activeFilter === filter.value;
+
+                return (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter(filter.value);
+                      setVisibleCount(5);
+                    }}
+                    className={cn(
+                      "inline-flex h-12 min-w-[86px] items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition-colors",
+                      active
+                        ? "border-primary bg-primary text-on-primary shadow-[0_12px_26px_-18px_rgba(77,134,247,0.9)]"
+                        : "border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-primary-fixed"
+                    )}
+                  >
+                    {Icon ? (
+                      <Icon
+                        className={cn(
+                          "h-4 w-4 shrink-0 stroke-[2.25]",
+                          active ? "text-on-primary" : "text-primary"
+                        )}
+                      />
+                    ) : null}
+                    <span>{filter.label}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="relative">
-              <ArrowUpDown className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+
+            <div className="relative w-full lg:ml-auto lg:w-[220px]">
+              <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as SortOption)}
-                className="w-full appearance-none rounded-lg border border-outline-variant/20 bg-surface-container-lowest py-2 pl-9 pr-8 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 sm:w-44"
+                onChange={(event) => {
+                  setSort(event.target.value as SortOption);
+                  setVisibleCount(5);
+                }}
+                className="h-12 w-full appearance-none rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-12 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary"
               >
-                <option value="newest">{t("sort_newest")}</option>
-                <option value="oldest">{t("sort_oldest")}</option>
-                <option value="highest">{t("sort_highest")}</option>
-                <option value="lowest">{t("sort_lowest")}</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="highest">Highest score</option>
+                <option value="lowest">Lowest score</option>
               </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             </div>
           </div>
+        </motion.section>
 
-          {/* Category filter tabs */}
-          <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4">
-            {CATEGORY_FILTERS.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={cn(
-                  "shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors min-h-[44px] flex items-center",
-                  categoryFilter === cat
-                    ? "bg-primary/15 text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-                )}
-              >
-                {CATEGORY_SHORT[cat]}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {duelHistory.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="mb-8 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-on-surface">
-                  1v1 Debate Duels
-                </h2>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Judged head-to-head results are kept separate from solo practice.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {duelHistory.map((duel) => (
-                <button
-                  key={duel.id}
-                  onClick={() => router.push(duel.href)}
-                  className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-left transition-all hover:border-outline-variant/30 soft-shadow"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-medium text-on-surface">
-                        {duel.topicTitle}
-                      </h3>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                          1v1 Debate
-                        </span>
-                        {duel.role && (
-                          <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                            {duel.role === "proposition" ? "Proposition" : "Opposition"}
-                          </span>
-                        )}
-                        {duel.winnerSide && (
-                          <span
-                            className={cn(
-                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                              duel.winnerSide === duel.role
-                                ? "bg-emerald-500/10 text-emerald-400"
-                                : "bg-rose-500/10 text-rose-400"
-                            )}
-                          >
-                            {duel.winnerSide === duel.role ? "You won" : "You lost"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-on-surface-variant">
-                      {formatDate(duel.createdAt)}
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">
-                    {duel.summary}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Session List */}
-        {filtered.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-20"
-          >
-            <Mic2 className="mb-4 h-12 w-12 text-outline-variant" />
-            <h3 className="text-lg font-semibold text-on-surface-variant">
-              {sessions.length === 0
-                ? t("empty")
-                : t("no_match")}
-            </h3>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              {sessions.length === 0
-                ? t("empty_subtitle")
-                : t("no_match_subtitle")}
-            </p>
-            {sessions.length === 0 && (
-              <Link href="/practice" className="mt-6">
-                <Button className="gap-2 bg-primary text-white">
-                  {t("start_practicing")}
-                </Button>
-              </Link>
-            )}
-          </motion.div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {filtered.map((session, i) => (
-              <motion.div
-                key={session.id}
-                initial={{ opacity: 0, y: 15 }}
+        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <main className="min-w-0">
+            {visibleItems.length === 0 ? (
+              <motion.section
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="group relative"
+                className="rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest px-6 py-16 text-center shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]"
               >
-                <button
-                  onClick={() => router.push(`/history/${session.id}`)}
-                  className="w-full rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4 text-left transition-all hover:border-outline-variant/30 soft-shadow"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Score ring */}
-                    <div className="shrink-0 pt-0.5">
-                      {session.feedback ? (
-                        <MiniScoreRing score={session.feedback.totalScore} />
-                      ) : (
-                        <div className="flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant text-xs text-on-surface-variant">
-                          N/A
-                        </div>
-                      )}
-                    </div>
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-container">
+                  <Clock className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="mt-5 text-2xl font-semibold text-on-surface">
+                  No practice history yet
+                </h2>
+                <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-on-surface-variant">
+                  Complete a practice round or duel, then come back here to
+                  review your scores and progress.
+                </p>
+                <Link href="/practice" className="mt-7 inline-flex">
+                  <Button className="h-12 rounded-2xl bg-primary px-7 text-sm font-semibold text-on-primary hover:bg-primary-dim">
+                    Start Practice
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              </motion.section>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {visibleItems.map((item, index) => (
+                  <SessionRow
+                    key={`${item.kind}-${item.id}`}
+                    item={item}
+                    index={index}
+                    onReview={(href) => router.push(href)}
+                  />
+                ))}
+              </div>
+            )}
 
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-medium text-on-surface">
-                        {session.topic.title}
-                      </h3>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={cn(
-                            "rounded px-1.5 py-0.5 text-[10px] font-semibold",
-                            session.side === "proposition"
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-rose-500/10 text-rose-400"
-                          )}
-                        >
-                          {session.side === "proposition" ? t("for") : t("against")}
-                        </span>
-                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                          {getTrackLabel(
-                            session.practiceTrack ?? session.feedback?.practiceTrack
-                          )}
-                        </span>
-                        <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] text-on-surface-variant">
-                          {getModeLabel(session)}
-                        </span>
-                        {session.feedback && (
-                          <span
-                            className={cn(
-                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                              session.feedback.totalScore >= 75
-                                ? "bg-emerald-500/10 text-emerald-400"
-                                : session.feedback.totalScore >= 40
-                                  ? "bg-amber-500/10 text-amber-400"
-                                  : "bg-red-500/10 text-red-400"
-                            )}
-                          >
-                            {session.feedback.overallBand}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-3 text-[11px] text-on-surface-variant">
-                        <span>{formatDate(session.date)}</span>
-                        <span>{formatTime(session.date)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
+            {filteredItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setVisibleCount((count) =>
+                    Math.min(filteredItems.length, count + 5)
+                  )
+                }
+                disabled={visibleCount >= filteredItems.length}
+                className="mt-5 flex h-14 w-full items-center justify-center gap-4 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest text-sm font-semibold text-primary shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] transition-colors hover:border-primary-fixed disabled:cursor-default disabled:opacity-75"
+              >
+                <ChevronDown className="h-5 w-5" />
+                Load more sessions
+              </button>
+            )}
+          </main>
 
-                {/* Delete button - hover reveal */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteId(session.id);
-                  }}
-                  aria-label={`Delete session: ${session.topic.title}`}
-                  className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        )}
+          <aside>
+            <section className="rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-tertiary-container">
+                  <Star className="h-5 w-5 fill-[#895bff] text-[#895bff]" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold leading-6 text-on-surface">
+                    Next Recommended Practice
+                  </h2>
+                  <p className="mt-0.5 text-sm font-medium text-on-surface-variant">
+                    Keep building your skills!
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-[1.25rem] bg-surface-container px-5 py-5">
+                <Image
+                  src="/icons/target-goal-icon.svg"
+                  alt=""
+                  width={220}
+                  height={170}
+                  className="mx-auto h-[170px] w-full object-contain"
+                  priority
+                />
+              </div>
+
+              <span className="mt-5 inline-flex h-7 items-center rounded-lg bg-primary-container px-2.5 text-xs font-semibold text-primary">
+                {recommendedPractice.tag}
+              </span>
+
+              <h3 className="mt-4 text-xl font-semibold leading-7 tracking-normal text-on-surface">
+                {recommendedPractice.title}
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-6 text-on-surface-variant">
+                {recommendedPractice.body}
+              </p>
+
+              <div className="mt-7 flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+                <Clock className="h-5 w-5 text-primary" />
+                {recommendedPractice.duration}
+              </div>
+
+              <Link
+                href={recommendedPractice.href}
+                className="mt-7 inline-flex h-12 w-full items-center justify-center gap-4 rounded-2xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim"
+              >
+                Start Practice
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </section>
+          </aside>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        open={deleteId !== null}
-        title={t("delete_title")}
-        description={t("delete_description")}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteId(null)}
-      />
+function HistoryPageSkeleton() {
+  return (
+    <div className="min-h-screen bg-background px-4 py-8 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-[1360px] animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-primary-container" />
+          <div>
+            <div className="h-11 w-72 rounded-lg bg-outline-variant/60" />
+            <div className="mt-3 h-5 w-[380px] max-w-full rounded bg-outline-variant/50" />
+          </div>
+        </div>
+
+        <div className="mb-6 mt-9 xl:pr-[332px]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:w-[320px]" />
+            <div className="flex gap-2.5">
+              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-12 w-[104px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
+            </div>
+            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:ml-auto lg:w-[220px]" />
+          </div>
+        </div>
+
+        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <main className="flex flex-col gap-2.5">
+            {[...Array(5)].map((_, index) => (
+              <div
+                key={index}
+                className="h-[112px] rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest"
+              />
+            ))}
+            <div className="mt-2.5 h-14 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest" />
+          </main>
+          <aside>
+            <div className="h-[548px] rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest" />
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }

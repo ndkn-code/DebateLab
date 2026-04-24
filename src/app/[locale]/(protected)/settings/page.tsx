@@ -1,13 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
+import type { SettingsLocale } from "@/lib/settings";
 import { SettingsContent } from "@/components/settings/settings-content";
 
 export const metadata = {
   title: "Settings",
 };
 
-export default async function SettingsPage() {
+type SettingsPageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function SettingsPage({ params }: SettingsPageProps) {
+  const { locale } = await params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,6 +31,7 @@ export default async function SettingsPage() {
     <SettingsContent
       profile={profile as Profile | null}
       userEmail={user.email ?? ""}
+      currentLocale={locale as SettingsLocale}
     />
   );
 }

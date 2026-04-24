@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Gift, Copy, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "@/components/shared/orb-balance";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 interface ReferralStatsData {
   referralCode: string;
@@ -95,7 +96,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
                   }`}
                 >
                   {u.status === "credited"
-                    ? "+300 Credits"
+                    ? `+${REFERRAL_REWARD_CREDITS} Credits`
                     : u.status === "pending"
                       ? "Pending"
                       : u.status}

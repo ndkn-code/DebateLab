@@ -88,7 +88,9 @@ export function buildCoursePathSections(
           typeKey: lesson.type,
           typeLabel: labels.lessonTypeLabels[lesson.type],
           durationMinutes: lesson.duration_minutes,
-          href: isEnrolled ? `/courses/${course.slug}/lessons/${lesson.slug}` : null,
+          href: isEnrolled
+            ? `/courses/${course.slug}?lesson=${encodeURIComponent(lesson.slug)}`
+            : null,
           completed: lesson.progress?.status === "completed",
           active: false,
           locked: !isEnrolled,

@@ -39,6 +39,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
@@ -208,14 +209,15 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const pathname = usePathname();
   const tc = useTranslations('common');
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
+  const isAdmin = profile?.role === "admin";
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
     { key: "duel", href: "/debates/new", status: "live" },
     {
       key: "courses",
-      href: profile?.role === "admin" ? "/courses" : undefined,
-      status: profile?.role === "admin" ? "live" : "coming-soon",
+      href: isAdmin ? "/courses" : undefined,
+      status: isAdmin ? "live" : "coming-soon",
     },
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
@@ -237,7 +239,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
         <DashboardSidebarRail
           navItems={dashboardNavItems}
           referralCode={profile?.referral_code ?? null}
-          inviteReward={3}
+          inviteReward={REFERRAL_REWARD_CREDITS}
         />
       ) : (
         <aside

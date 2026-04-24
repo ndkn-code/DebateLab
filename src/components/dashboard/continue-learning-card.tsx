@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   BookOpen,
-  Eye,
   Mic2,
   Scale,
   Sparkles,
@@ -30,7 +29,6 @@ const CATEGORY_META = {
 
 interface ContinueLearningCardProps {
   enrollments: EnrollmentWithCourse[];
-  isAdmin: boolean;
   compact?: boolean;
 }
 
@@ -44,7 +42,6 @@ function getCategoryLabel(
 
 export function ContinueLearningCard({
   enrollments,
-  isAdmin,
   compact = false,
 }: ContinueLearningCardProps) {
   const t = useTranslations("dashboard.home");
@@ -75,17 +72,15 @@ export function ContinueLearningCard({
               {t("start_first_course")}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-on-surface-variant">
-              {isAdmin ? t("course_empty_admin_note") : t("course_empty_student_note")}
+              {t("course_empty_student_note")}
             </p>
           </div>
 
-          {isAdmin ? (
-            <Link href="/dashboard/admin/courses">
-              <Button className="w-full bg-primary text-on-primary sm:w-auto">
-                {t("browse_admin_courses")}
-              </Button>
-            </Link>
-          ) : null}
+          <Link href="/courses">
+            <Button className="w-full bg-primary text-on-primary sm:w-auto">
+              {t("browse_courses")}
+            </Button>
+          </Link>
         </div>
       </section>
     );
@@ -171,18 +166,12 @@ export function ContinueLearningCard({
               </div>
 
               <div className="mt-4 flex flex-col gap-3">
-                {isAdmin ? (
-                  <Link href={`/dashboard/courses/${featuredCourse.course_id}`}>
-                    <Button className="w-full gap-2 bg-primary text-on-primary sm:w-auto">
-                      <Eye className="h-4 w-4" />
-                      {t("open_course")}
-                    </Button>
-                  </Link>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-outline-variant/20 bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
-                    {t("course_access_limited")}
-                  </div>
-                )}
+                <Link href="/courses">
+                  <Button className="w-full gap-2 bg-primary text-on-primary sm:w-auto">
+                    <ArrowRight className="h-4 w-4" />
+                    {t("open_course")}
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -300,18 +289,12 @@ export function ContinueLearningCard({
             </div>
 
             <div className="mt-6 flex flex-col gap-3">
-              {isAdmin ? (
-                <Link href={`/dashboard/courses/${featuredCourse.course_id}`}>
-                  <Button className="w-full gap-2 bg-primary text-on-primary">
-                    <Eye className="h-4 w-4" />
-                    {t("open_course")}
-                  </Button>
-                </Link>
-              ) : (
-                <div className="rounded-xl border border-dashed border-outline-variant/20 bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
-                  {t("course_access_limited")}
-                </div>
-              )}
+              <Link href="/courses">
+                <Button className="w-full gap-2 bg-primary text-on-primary">
+                  <ArrowRight className="h-4 w-4" />
+                  {t("open_course")}
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -357,16 +340,14 @@ export function ContinueLearningCard({
         </div>
       )}
 
-      {isAdmin ? (
-        <div className="mt-4 flex justify-end">
-          <Link
-            href="/dashboard/admin/courses"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            {t("see_all")} <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      ) : null}
+      <div className="mt-4 flex justify-end">
+        <Link
+          href="/courses"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          {t("see_all")} <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </section>
   );
 }

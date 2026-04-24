@@ -22,13 +22,11 @@ export interface AnalyticsHero {
 export interface AnalyticsSkillMetric {
   key: SkillMetricKey;
   value: number;
-  scoreOutOf100: number;
 }
 
 export interface AnalyticsSkillSnapshot {
   metrics: AnalyticsSkillMetric[];
   overallScore: number | null;
-  overallScoreOutOf100: number | null;
   strongestSkill: SkillMetricKey | null;
   weakestSkill: SkillMetricKey | null;
   sourceSessions: number;

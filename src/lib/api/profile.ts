@@ -63,7 +63,7 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(10),
+        .limit(30),
     ]);
 
   const unlockedMap = new Map<string, string>();
@@ -82,6 +82,29 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
     unlocked_at: unlockedMap.get(a.id) ?? null,
   }));
 
+  const rawActivity = (activityRes.data as ActivityLogRow[]) ?? [];
+  const debateSessionIds = rawActivity
+    .filter(
+      (item) =>
+        item.reference_type === "debate_session" &&
+        item.activity_type === "debate_completed" &&
+        typeof item.reference_id === "string"
+    )
+    .map((item) => item.reference_id as string);
+
+  let activeSessionIds = new Set<string>();
+  if (debateSessionIds.length > 0) {
+    const { data: remainingSessions } = await supabase
+      .from("debate_sessions")
+      .select("id")
+      .eq("user_id", userId)
+      .in("id", debateSessionIds);
+
+    activeSessionIds = new Set(
+      (remainingSessions ?? []).map((session) => session.id)
+    );
+  }
+
   const defaultSkills: SkillBreakdown = {
     content: 0,
     structure: 0,
@@ -94,6 +117,17 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
     profile: (profileRes.data as Profile) ?? null,
     achievements,
     skills: (skillsRes.data as SkillBreakdown) ?? defaultSkills,
-    activity: (activityRes.data as ActivityLogRow[]) ?? [],
+    activity: rawActivity
+      .filter((item) => {
+        if (
+          item.reference_type === "debate_session" &&
+          item.activity_type === "debate_completed"
+        ) {
+          return !!item.reference_id && activeSessionIds.has(item.reference_id);
+        }
+
+        return true;
+      })
+      .slice(0, 10),
   };
 }

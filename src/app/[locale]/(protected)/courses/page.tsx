@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCourses } from "@/lib/api/courses";
+import { getCourseLibraryData } from "@/lib/api/courses";
 import { CourseListContent } from "@/components/courses/course-list-content";
+import { ensureDevelopmentLibraryCourses } from "@/lib/seed/ensure-development-library-courses";
 
 export const metadata = {
   title: "Courses",
@@ -15,15 +16,16 @@ export default async function CoursesPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Courses are admin-only for now
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "admin") redirect("/dashboard");
 
-  const { courses, enrollments } = await getCourses(user.id);
+  if (profile?.role !== "admin") redirect("/dashboard");
 
-  return <CourseListContent courses={courses} enrollments={enrollments} />;
+  await ensureDevelopmentLibraryCourses(user.id);
+  const library = await getCourseLibraryData(user.id);
+
+  return <CourseListContent library={library} />;
 }

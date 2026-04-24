@@ -9,12 +9,10 @@ import type { EnrollmentWithCourse } from "@/lib/api/dashboard";
 
 interface DashboardFocusPanelProps {
   enrollments: EnrollmentWithCourse[];
-  isAdmin: boolean;
 }
 
 export function DashboardFocusPanel({
   enrollments,
-  isAdmin,
 }: DashboardFocusPanelProps) {
   const t = useTranslations("dashboard.home");
 
@@ -65,11 +63,7 @@ export function DashboardFocusPanel({
       </TabsContent>
 
       <TabsContent value="courses" className="mt-0">
-        <ContinueLearningCard
-          enrollments={enrollments}
-          isAdmin={isAdmin}
-          compact
-        />
+        <ContinueLearningCard enrollments={enrollments} compact />
       </TabsContent>
 
       <TabsContent value="coach" className="mt-0">

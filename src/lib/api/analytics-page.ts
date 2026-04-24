@@ -27,7 +27,6 @@ const RANGE_DAYS: Record<AnalyticsRangePreset, number> = {
 const USER_TIMEZONE = "America/New_York";
 const XP_PER_LEVEL = 500;
 const MAX_RECENT_SESSIONS = 6;
-const MAX_LIFETIME_SKILL_SESSIONS = 250;
 
 type DailyStatRow = {
   date: string;
@@ -39,7 +38,7 @@ type DailyStatRow = {
 type SoloSessionRow = {
   id: string;
   topic_title: string;
-  topic_category: string;
+  category: string;
   side: DebateDuelSide;
   mode: "quick" | "full";
   feedback: DebateScore | null;
@@ -164,12 +163,12 @@ function buildSkillNote(
   sourceSessions: number
 ) {
   if (sourceSessions === 0 || !strongestSkill) {
-    return "Complete a few scored rounds to unlock your long-term skill profile.";
+    return "Complete a few scored rounds in this range to unlock your skill profile.";
   }
 
   return `${titleCaseSkill(
     strongestSkill
-  )} is your strongest lifetime skill right now.`;
+  )} is your strongest skill in this range right now.`;
 }
 
 function buildPracticeSeries(range: AnalyticsRangePreset, dailyStats: DailyStatRow[]) {
@@ -178,26 +177,30 @@ function buildPracticeSeries(range: AnalyticsRangePreset, dailyStats: DailyStatR
   const byDate = new Map(
     dailyStats.map((entry) => [entry.date, entry.minutes_studied ?? 0])
   );
+  const labels = ["M", "T", "W", "T", "F", "S", "S"];
 
   if (range === "7d") {
-    const labels = ["M", "T", "W", "T", "F", "S", "S"];
     return keys.map((key, index) => ({
       label: labels[index] ?? "",
       value: byDate.get(key) ?? 0,
     }));
   }
 
-  const bucketCount = 6;
-  const bucketSize = Math.ceil(keys.length / bucketCount);
-  const buckets = Array.from({ length: bucketCount }, (_, index) => {
-    const slice = keys.slice(index * bucketSize, (index + 1) * bucketSize);
-    return {
-      label: `P${index + 1}`,
-      value: sum(slice.map((key) => byDate.get(key) ?? 0)),
-    };
+  const sums = Array.from({ length: 7 }, () => 0);
+  const counts = Array.from({ length: 7 }, () => 0);
+
+  keys.forEach((key) => {
+    const date = new Date(`${key}T00:00:00Z`);
+    const weekday = date.getUTCDay();
+    const mondayFirstIndex = weekday === 0 ? 6 : weekday - 1;
+    sums[mondayFirstIndex] += byDate.get(key) ?? 0;
+    counts[mondayFirstIndex] += 1;
   });
 
-  return buckets;
+  return labels.map((label, index) => ({
+    label,
+    value: counts[index] > 0 ? Math.round(sums[index] / counts[index]) : 0,
+  }));
 }
 
 function buildScoreSeries(sessions: SoloSessionRow[]) {
@@ -226,17 +229,14 @@ function roundMinutesFromSeconds(totalSeconds: number | null) {
   return Math.max(1, Math.round(totalSeconds / 60));
 }
 
-function mapLifetimeSkillSnapshot(rows: { feedback: DebateScore | null }[]) {
+function mapSkillSnapshot(rows: { feedback: DebateScore | null }[]) {
   const snapshot = computeSkillSnapshot(rows);
   return {
     metrics: snapshot.metrics.map((metric) => ({
       key: metric.key,
       value: metric.value,
-      scoreOutOf100: Math.round(metric.value * 20),
     })),
     overallScore: snapshot.overallScore,
-    overallScoreOutOf100:
-      snapshot.overallScore != null ? Math.round(snapshot.overallScore * 20) : null,
     strongestSkill: snapshot.strongestSkill,
     weakestSkill: snapshot.weakestSkill,
     sourceSessions: snapshot.sourceSessions,
@@ -249,7 +249,7 @@ function mapSoloRecentSession(session: SoloSessionRow): AnalyticsRecentSession {
     id: session.id,
     kind: "practice",
     topicTitle: session.topic_title,
-    topicCategory: session.topic_category,
+    topicCategory: session.category,
     practiceTrack: inferPracticeTrack(session.feedback),
     mode: session.mode,
     side: session.side,
@@ -345,16 +345,9 @@ export async function getAnalyticsPageData(
   } = getRangeWindow(range);
   const supabase = await createClient();
 
-  const [profileRes, skillSessionsRes, dailyStatsRes, soloSessionsRes, duelParticipantsRes] =
+  const [profileRes, dailyStatsRes, soloSessionsRes, duelParticipantsRes] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase
-        .from("debate_sessions")
-        .select("feedback")
-        .eq("user_id", userId)
-        .not("feedback", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(MAX_LIFETIME_SKILL_SESSIONS),
       supabase
         .from("daily_stats")
         .select("date, minutes_studied, sessions_completed, average_score")
@@ -364,12 +357,11 @@ export async function getAnalyticsPageData(
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, topic_category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
+          "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
         )
         .eq("user_id", userId)
-        .gte("created_at", previousStartIso)
         .order("created_at", { ascending: false })
-        .limit(90),
+        .limit(120),
       supabase
         .from("debate_duel_participants")
         .select("duel_id, role")
@@ -387,12 +379,6 @@ export async function getAnalyticsPageData(
     })
   );
   const duelParticipants = (duelParticipantsRes.data ?? []) as DuelParticipantRow[];
-
-  const lifetimeSkillSnapshot = mapLifetimeSkillSnapshot(
-    ((skillSessionsRes.data ?? []) as { feedback: DebateScore | null }[]).map((row) => ({
-      feedback: (row.feedback as DebateScore | null) ?? null,
-    }))
-  );
 
   const currentDailyStats = dailyStats.filter(
     (entry) => entry.date >= currentStartDate
@@ -419,6 +405,12 @@ export async function getAnalyticsPageData(
     );
   });
 
+  const rangeSkillSnapshot = mapSkillSnapshot(
+    currentSoloSessions.map((session) => ({
+      feedback: session.feedback,
+    }))
+  );
+
   const currentScoredSoloSessions = currentSoloSessions.filter(
     (session) => session.total_score != null
   );
@@ -438,7 +430,6 @@ export async function getAnalyticsPageData(
         .select("id, share_code, topic_title, topic_category, completed_at, created_at")
         .in("id", duelIds)
         .eq("status", "completed")
-        .gte("completed_at", currentStartIso)
         .order("completed_at", { ascending: false }),
       supabase
         .from("debate_duel_judgments")
@@ -461,7 +452,10 @@ export async function getAnalyticsPageData(
   const currentSpeakingSoloCount = currentSoloSessions.filter(
     (session) => inferPracticeTrack(session.feedback) === "speaking"
   ).length;
-  const currentDuelCount = duelRows.length;
+  const currentDuelCount = duelRows.filter((duel) => {
+    const completedAt = duel.completed_at ?? duel.created_at;
+    return new Date(completedAt).getTime() >= new Date(currentStartIso).getTime();
+  }).length;
   const debateMixCount = currentDebateSoloCount + currentDuelCount;
   const totalMixCount = debateMixCount + currentSpeakingSoloCount;
 
@@ -514,19 +508,19 @@ export async function getAnalyticsPageData(
     },
     {
       key: "strongest-focus",
-      strongestSkill: lifetimeSkillSnapshot.strongestSkill,
+      strongestSkill: rangeSkillSnapshot.strongestSkill,
       strongestScore:
-        lifetimeSkillSnapshot.strongestSkill != null
-          ? lifetimeSkillSnapshot.metrics.find(
-              (metric) => metric.key === lifetimeSkillSnapshot.strongestSkill
-            )?.scoreOutOf100 ?? null
+        rangeSkillSnapshot.strongestSkill != null
+          ? rangeSkillSnapshot.metrics.find(
+              (metric) => metric.key === rangeSkillSnapshot.strongestSkill
+            )?.value ?? null
           : null,
-      focusSkill: lifetimeSkillSnapshot.weakestSkill,
+      focusSkill: rangeSkillSnapshot.weakestSkill,
       focusScore:
-        lifetimeSkillSnapshot.weakestSkill != null
-          ? lifetimeSkillSnapshot.metrics.find(
-              (metric) => metric.key === lifetimeSkillSnapshot.weakestSkill
-            )?.scoreOutOf100 ?? null
+        rangeSkillSnapshot.weakestSkill != null
+          ? rangeSkillSnapshot.metrics.find(
+              (metric) => metric.key === rangeSkillSnapshot.weakestSkill
+            )?.value ?? null
           : null,
     },
   ];
@@ -548,17 +542,17 @@ export async function getAnalyticsPageData(
       xpProgressPercent: Math.min(100, Math.round((xpInLevel / xpToNextLevel) * 100)),
       statusLine: buildStatusLine(
         profile?.total_sessions_completed ?? 0,
-        lifetimeSkillSnapshot.strongestSkill,
-        lifetimeSkillSnapshot.weakestSkill
+        rangeSkillSnapshot.strongestSkill,
+        rangeSkillSnapshot.weakestSkill
       ),
       streak: profile?.streak_current ?? 0,
       totalSessions: profile?.total_sessions_completed ?? 0,
       totalPracticeMinutes: profile?.total_practice_minutes ?? 0,
     },
-    skillSnapshot: lifetimeSkillSnapshot,
+    skillSnapshot: rangeSkillSnapshot,
     insights,
     recentSessions: buildRecentSessions({
-      soloSessions: currentSoloSessions,
+      soloSessions,
       duelParticipants,
       duels: duelRows,
       duelJudgments,

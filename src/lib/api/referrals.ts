@@ -70,24 +70,17 @@ export async function qualifyReferral(
 
   const supabase = await createClient();
 
-  // Find pending referral for this referee
-  const { data: referral } = await supabase
-    .from("referrals")
-    .select("id")
-    .eq("referee_id", refereeId)
-    .eq("status", "pending")
-    .maybeSingle();
+  const { error: creditError } = await supabase.rpc(
+    "qualify_and_credit_referral",
+    {
+      p_referee_id: refereeId,
+      p_transcript_word_count: transcriptWordCount,
+    }
+  );
 
-  if (!referral) return;
-
-  // Mark as qualified
-  await supabase
-    .from("referrals")
-    .update({ status: "qualified", qualified_at: new Date().toISOString() })
-    .eq("id", referral.id);
-
-  // Credit both users via Postgres function
-  await supabase.rpc("credit_referral", { p_referral_id: referral.id });
+  if (creditError) {
+    throw new Error(`Unable to qualify referral: ${creditError.message}`);
+  }
 }
 
 export interface ReferralStats {

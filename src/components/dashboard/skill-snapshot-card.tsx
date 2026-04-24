@@ -10,19 +10,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
 import type { DashboardSkillSnapshot } from "@/lib/api/dashboard";
 
-const SKILL_COLORS = {
-  clarity: "bg-[#3E78EC]",
-  logic: "bg-[#4D86F7]",
-  rebuttal: "bg-[#F5B942]",
-  evidence: "bg-[#34C759]",
-  delivery: "bg-[#7B61FF]",
-} as const;
-
-const CHART_SIZE = 360;
+const CHART_SIZE = 396;
 const CHART_CENTER = CHART_SIZE / 2;
-const CHART_MAX_RADIUS = 118;
+const CHART_MAX_RADIUS = 130;
 
 function labelPositionForIndex(index: number) {
   const radius = CHART_MAX_RADIUS + 30;
@@ -38,7 +31,7 @@ function labelPositionForIndex(index: number) {
 function pointForValue(index: number, value: number) {
   const centerX = CHART_CENTER;
   const centerY = CHART_CENTER;
-  const radius = CHART_MAX_RADIUS * (value / 5);
+  const radius = CHART_MAX_RADIUS * (value / 100);
   const angle = -Math.PI / 2 + (index * (Math.PI * 2)) / 5;
 
   return {
@@ -95,11 +88,11 @@ export function SkillSnapshotCard({
             <div className="mt-5">
               <svg
                 viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
-                className="mx-auto block h-[336px] w-full max-w-[380px]"
+                className="mx-auto block h-[370px] w-full max-w-[418px]"
                 aria-hidden="true"
               >
                 {[1, 2, 3, 4].map((step) => {
-                  const ringValue = (5 / 4) * step;
+                  const ringValue = 25 * step;
                   return (
                     <polygon
                       key={step}
@@ -112,7 +105,7 @@ export function SkillSnapshotCard({
                 })}
 
                 {values.map((_, index) => {
-                  const start = pointForValue(index, 5);
+                  const start = pointForValue(index, 100);
                   return (
                     <line
                       key={index}
@@ -174,7 +167,7 @@ export function SkillSnapshotCard({
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${SKILL_COLORS[metric.key]}`}
+                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${SKILL_UI_META[metric.key].dotClassName}`}
                   />
                   <span className="text-[0.95rem] font-medium text-on-surface">
                     {t(`skill_labels.${metric.key}`)}
@@ -182,29 +175,29 @@ export function SkillSnapshotCard({
                 </div>
                 <p className="shrink-0 text-right">
                   <span className="text-[1.05rem] font-semibold text-on-surface">
-                    {metric.value.toFixed(1)}
+                    {Math.round(metric.value)}
                   </span>
-                  <span className="ml-1 text-sm text-on-surface-variant">/ 5</span>
+                  <span className="ml-1 text-sm text-on-surface-variant">/100</span>
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/18 pt-5">
-            <div className="flex items-center gap-3">
+          <div className="mt-auto border-t border-outline-variant/18 pt-4">
+            <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-medium text-on-surface">
                 {t("overall_score")}
               </span>
-              <span className="inline-flex items-center gap-2 text-primary">
+              <span className="inline-flex items-center gap-1.5 text-primary">
                 <Star className="h-4 w-4 fill-current" />
                 <span className="text-xl font-semibold">
-                  {snapshot.overallScore?.toFixed(1) ?? "—"}
+                  {snapshot.overallScore != null ? Math.round(snapshot.overallScore) : "—"}
                 </span>
-                <span className="text-sm text-on-surface-variant">/ 5</span>
+                <span className="text-sm text-on-surface-variant">/100</span>
               </span>
             </div>
 
-            <Link href="/profile" className="ml-auto">
+            <Link href="/profile" className="mt-3 flex justify-end">
               <Button
                 variant="outline"
                 className="rounded-xl border-primary/20 bg-[#EEF4FF] text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.08)] hover:bg-primary hover:text-on-primary"

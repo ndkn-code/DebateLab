@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, Gift, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "./orb-balance";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 interface OutOfOrbsModalProps {
   open: boolean;
@@ -84,10 +85,10 @@ export function OutOfOrbsModal({
             <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-on-surface">
                 <Gift className="h-4 w-4 text-primary" />
-                Invite a friend, get 300 Credits
+                Invite a friend, get {REFERRAL_REWARD_CREDITS} Credits
               </div>
               <p className="mt-1 text-xs text-on-surface-variant">
-                Both you and your friend earn 300 bonus Credits when they complete their first practice.
+                Both you and your friend earn {REFERRAL_REWARD_CREDITS} bonus Credits when they complete their first practice.
               </p>
 
               {/* Copy link */}

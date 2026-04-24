@@ -1,3 +1,5 @@
+import type { SettingsPreferences } from "@/lib/settings";
+
 export interface Profile {
   id: string;
   email: string | null;
@@ -12,7 +14,7 @@ export interface Profile {
   xp: number;
   level: number;
   onboarding_completed: boolean;
-  preferences: Record<string, unknown>;
+  preferences: SettingsPreferences;
   selected_title: string | null;
   unlocked_titles: string[];
   banner_color: string;

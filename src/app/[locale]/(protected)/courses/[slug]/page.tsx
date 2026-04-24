@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCourseBySlug } from "@/lib/api/courses";
+import { getCourseBySlug, getCourseReaderBySlug } from "@/lib/api/courses";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
 
 export async function generateMetadata({
@@ -15,10 +15,16 @@ export async function generateMetadata({
 
 export default async function CourseDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lesson?: string | string[] }>;
 }) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const lessonSlug = Array.isArray(resolvedSearchParams.lesson)
+    ? resolvedSearchParams.lesson[0]
+    : resolvedSearchParams.lesson;
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,15 +32,15 @@ export default async function CourseDetailPage({
 
   if (!user) redirect("/auth/login");
 
-  // Courses are admin-only for now
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "admin") redirect("/dashboard");
 
-  const course = await getCourseBySlug(slug, user.id);
+  if (profile?.role !== "admin") redirect("/dashboard");
+
+  const course = await getCourseReaderBySlug(slug, user.id, lessonSlug);
   if (!course) notFound();
 
   return <CourseDetailContent course={course} />;

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Mic2, CheckCircle2 } from "lucide-react";
+import { Compass, Mic2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { buildPracticeHref, type PracticeMode, type PracticeSide } from "@/lib/practice-prefill";
+import {
+  buildPracticeHref,
+  type PracticeMode,
+  type PracticeSide,
+} from "@/lib/practice-prefill";
 import { cn } from "@/lib/utils";
-import { markLessonCompleteAction } from "@/app/actions/enrollment";
 import type { LessonWithContext } from "@/lib/api/courses";
 import type { AiDifficulty, PracticeTrack } from "@/types";
 
@@ -59,19 +62,11 @@ const DIFFICULTY_COLORS = {
   hard: "bg-rose-500/10 text-rose-500 border-rose-500/20",
 };
 
-export function PracticeRenderer({ lesson, courseSlug }: PracticeRendererProps) {
+export function PracticeRenderer({ lesson }: PracticeRendererProps) {
   const t = useTranslations("dashboard.courses");
   const tPractice = useTranslations("dashboard.practice");
-  const [isPending, startTransition] = useTransition();
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [completed, setCompleted] = useState(
-    lesson.progress?.status === "completed"
-  );
-
-  const config = useMemo(
-    () => normalizePracticeConfig(lesson),
-    [lesson]
-  );
+  const config = useMemo(() => normalizePracticeConfig(lesson), [lesson]);
   const practiceHref = useMemo(
     () =>
       buildPracticeHref({
@@ -93,94 +88,86 @@ export function PracticeRenderer({ lesson, courseSlug }: PracticeRendererProps) 
     coachPrompt
   )}&context=course&contextId=${lesson.course.id}`;
 
-  const handleComplete = () => {
-    startTransition(async () => {
-      await markLessonCompleteAction(
-        lesson.id,
-        lesson.course.id,
-        undefined,
-        undefined,
-        courseSlug
-      );
-      setCompleted(true);
-    });
-  };
-
   return (
-    <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 sm:p-8 soft-shadow">
-      {/* Practice config */}
-      <div className="mb-6 flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/30">
-          <Mic2 className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-on-surface">
-            {config.topicTitle || t("practice.title_fallback")}
-          </h3>
-          {config.description && (
-            <p className="mt-1 text-sm text-on-surface-variant">
-              {config.description}
+    <div className="space-y-6">
+      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)] sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Mic2 className="h-6 w-6" />
+            </div>
+            <h3 className="mt-4 text-2xl font-semibold text-on-surface">
+              {config.topicTitle || t("practice.title_fallback")}
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+              {config.description ??
+                t("reader.practice_description_fallback")}
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Config details */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Badge variant="outline" className="text-xs px-2.5 py-0.5">
-          {config.practiceTrack === "speaking"
-            ? tPractice("speaking_practice")
-            : tPractice("debate_practice")}
-        </Badge>
-        <Badge variant="outline" className="text-xs px-2.5 py-0.5">
-          {getModeLabel(config.practiceTrack, config.mode, tPractice)}
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn(
-            "text-xs px-2.5 py-0.5",
-            DIFFICULTY_COLORS[config.difficulty]
-          )}
-        >
-          {tPractice(config.difficulty)}
-        </Badge>
-        <Badge variant="outline" className="text-xs px-2.5 py-0.5">
-          {getSideLabel(config.side, tPractice)}
-        </Badge>
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-col items-center gap-4">
-        <Link href={practiceHref}>
-          <Button size="lg" className="gap-2 bg-primary text-on-primary">
-            <Mic2 className="h-4 w-4" />
-            {t("practice.start_now")}
-          </Button>
-        </Link>
-
-        <Button
-          variant="outline"
-          onClick={() => setSummaryOpen(true)}
-          className="border-outline-variant/20 text-on-surface"
-        >
-          {t("practice.preview_brief")}
-        </Button>
-
-        {completed ? (
-          <div className="flex items-center gap-2 text-emerald-600">
-            <CheckCircle2 className="h-5 w-5" />
-            <span className="font-medium">{t("practice.completed")}</span>
           </div>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={handleComplete}
-            disabled={isPending}
-            className="border-outline-variant/20 text-on-surface-variant"
-          >
-            {isPending ? t("practice.saving") : t("practice.mark_complete")}
-          </Button>
-        )}
+
+          <div className="grid gap-3 rounded-[1.75rem] border border-outline-variant/15 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 lg:min-w-[320px]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Compass className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  {t("reader.practice_setup_title")}
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  {t("reader.practice_setup_description")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-xs px-2.5 py-0.5">
+                {config.practiceTrack === "speaking"
+                  ? tPractice("speaking_practice")
+                  : tPractice("debate_practice")}
+              </Badge>
+              <Badge variant="outline" className="text-xs px-2.5 py-0.5">
+                {getModeLabel(config.practiceTrack, config.mode, tPractice)}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-xs px-2.5 py-0.5",
+                  DIFFICULTY_COLORS[config.difficulty]
+                )}
+              >
+                {tPractice(config.difficulty)}
+              </Badge>
+              <Badge variant="outline" className="text-xs px-2.5 py-0.5">
+                {getSideLabel(config.side, tPractice)}
+              </Badge>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-1">
+              <Link href={practiceHref}>
+                <Button size="lg" className="w-full gap-2 bg-primary text-on-primary">
+                  <Mic2 className="h-4 w-4" />
+                  {t("practice.start_now")}
+                </Button>
+              </Link>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setSummaryOpen(true)}
+                  className="flex-1 border-outline-variant/20 text-on-surface"
+                >
+                  {t("practice.preview_brief")}
+                </Button>
+                <Link href={coachHref} className="flex-1">
+                  <Button variant="outline" className="w-full border-outline-variant/20">
+                    <Sparkles className="h-4 w-4" />
+                    {t("practice.coach_prep")}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
@@ -262,8 +249,7 @@ function normalizePracticeConfig(lesson: LessonWithContext): NormalizedPracticeC
     (lesson.course.category === "public-speaking" ? "speaking" : "debate");
 
   return {
-    topicTitle:
-      nestedConfig?.topic_title ?? content.topic ?? lesson.title,
+    topicTitle: nestedConfig?.topic_title ?? content.topic ?? lesson.title,
     topicCategory: nestedConfig?.topic_category,
     description: nestedConfig?.description ?? content.description,
     mode: nestedConfig?.suggested_mode ?? toMode(content.mode),

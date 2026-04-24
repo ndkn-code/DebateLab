@@ -1,0 +1,1 @@
+export const REFERRAL_REWARD_CREDITS = 600;

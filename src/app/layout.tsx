@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
+import { ANALYTICS_COOKIE_NAME, isAnalyticsEnabled } from "@/lib/settings";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -53,11 +55,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const analyticsEnabled = isAnalyticsEnabled(
+    cookieStore.get(ANALYTICS_COOKIE_NAME)?.value
+  );
+
   return (
     <html className="scroll-smooth" suppressHydrationWarning>
       <body
@@ -65,8 +72,12 @@ export default function RootLayout({
       >
         {children}
         <Toaster position="top-right" richColors />
-        <SpeedInsights />
-        <Analytics />
+        {analyticsEnabled ? (
+          <>
+            <SpeedInsights />
+            <Analytics />
+          </>
+        ) : null}
       </body>
     </html>
   );

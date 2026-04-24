@@ -22,7 +22,7 @@ export default async function ProtectedLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, role, onboarding_completed, orb_balance, referral_code")
+    .select("id, display_name, avatar_url, role, onboarding_completed, orb_balance, referral_code, xp, level, selected_title")
     .eq("id", user.id)
     .single();
 

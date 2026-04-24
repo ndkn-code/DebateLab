@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
 import type { DebateScore, PracticeTrack } from "@/types/feedback";
+import { normalizeCourseCategory } from "@/lib/api/courses";
 import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,
   type SkillMetric as DashboardSharedSkillMetric,
 } from "@/lib/analytics/skill-snapshot";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 const USER_TIMEZONE = "America/New_York";
 const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
@@ -154,7 +156,7 @@ export interface DashboardRecentItem {
   subtitle: string;
   createdAt: string;
   href?: string;
-  scoreOutOfFive?: number | null;
+  scoreOutOf100?: number | null;
   statusLabel?: string | null;
   progressPercent?: number | null;
 }
@@ -313,7 +315,7 @@ function getAverageArgumentScore(sessions: SessionScoreRow[]) {
   const average =
     scored.reduce((sum, session) => sum + (session.total_score ?? 0), 0) /
     scored.length;
-  return roundToTenth(average / 20);
+  return roundToTenth(average);
 }
 
 function buildGoalSummary(
@@ -394,7 +396,7 @@ function buildProgressMetrics(
     {
       key: "average-score",
       value: currentAverageScore,
-      displayValue: `${currentAverageScore.toFixed(1)} / 5`,
+      displayValue: `${Math.round(currentAverageScore)} /100`,
       delta: computePeriodDelta(currentAverageScore, previousAverageScore),
     },
     {
@@ -418,8 +420,7 @@ function buildRecentActivity(
       subtitle: practiceTrack === "speaking" ? "Speaking Practice" : "Debate Practice",
       createdAt: session.created_at,
       href: `/history/${session.id}`,
-      scoreOutOfFive:
-        session.total_score != null ? roundToTenth(session.total_score / 20) : null,
+      scoreOutOf100: session.total_score != null ? Math.round(session.total_score) : null,
       statusLabel: session.overall_band,
       progressPercent: null,
     };
@@ -429,12 +430,11 @@ function buildRecentActivity(
 function buildNextSteps(
   skillSnapshot: DashboardSkillSnapshot,
   recentSessions: SessionScoreRow[],
-  courseContinuation: DashboardCourseContinuation | null,
-  isAdmin: boolean
+  courseContinuation: DashboardCourseContinuation | null
 ): DashboardTask[] {
   const tasks: DashboardTask[] = [];
 
-  if (isAdmin && courseContinuation) {
+  if (courseContinuation) {
     tasks.push({
       key: "continue-course",
       href: courseContinuation.href,
@@ -461,7 +461,7 @@ function buildNextSteps(
       titleKey: `skill_${skillSnapshot.weakestSkill}`,
       description:
         weakestSkill && weakestSkill.value > 0
-          ? `${weakestSkill.value.toFixed(1)} / 5`
+          ? `${Math.round(weakestSkill.value)} /100`
           : "Focus area",
       skillKey: skillSnapshot.weakestSkill,
       track: targetTrack,
@@ -519,6 +519,10 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   const weekDates = getCurrentWeekDates();
   const trailing14Dates = getTrailingDates(14);
   const today = getTodayDateString();
+  const skillSnapshotStartDate = new Date();
+  skillSnapshotStartDate.setDate(skillSnapshotStartDate.getDate() - 29);
+  skillSnapshotStartDate.setHours(0, 0, 0, 0);
+  const skillSnapshotStartIso = skillSnapshotStartDate.toISOString();
 
   const [
     profileRes,
@@ -537,13 +541,9 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
 
     supabase
       .from("enrollments")
-      .select(
-        "id, course_id, status, progress_pct, courses(title, category, thumbnail_url)"
-      )
+      .select("*, courses(title, category, thumbnail_url)")
       .eq("user_id", userId)
-      .eq("status", "active")
-      .order("progress_pct", { ascending: false })
-      .limit(3),
+      .eq("status", "active"),
 
     supabase
       .from("debate_sessions")
@@ -561,6 +561,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
       )
       .eq("user_id", userId)
       .not("total_score", "is", null)
+      .gte("created_at", skillSnapshotStartIso)
       .order("created_at", { ascending: false }),
 
     supabase
@@ -573,23 +574,36 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   ]);
 
   const profile = profileRes.data as Profile | null;
-  const enrollments: EnrollmentRow[] = (enrollmentsRes.data ?? []).map((entry) => {
-    const course = Array.isArray(entry.courses) ? entry.courses[0] : entry.courses;
+  const isAdmin = profile?.role === "admin";
+  const enrollments: EnrollmentRow[] = (enrollmentsRes.data ?? [])
+    .map((entry) => {
+      const course = Array.isArray(entry.courses) ? entry.courses[0] : entry.courses;
+      const progressPercent =
+        typeof entry.progress_percent === "number"
+          ? entry.progress_percent
+          : typeof entry.progress_pct === "number"
+            ? entry.progress_pct
+            : 0;
 
-    return {
-      id: entry.id,
-      course_id: entry.course_id,
-      status: entry.status,
-      progress_pct: entry.progress_pct,
-      courses: course
-        ? {
-            title: course.title,
-            category: course.category,
-            thumbnail_url: course.thumbnail_url ?? null,
-          }
-        : null,
-    };
-  });
+      return {
+        id: entry.id,
+        course_id: entry.course_id,
+        status: entry.status,
+        progress_pct: progressPercent,
+        courses: course
+          ? {
+              title: course.title,
+              category: normalizeCourseCategory(course.category),
+              thumbnail_url: course.thumbnail_url ?? null,
+            }
+          : null,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.progress_pct - left.progress_pct ||
+        (left.courses?.title ?? "").localeCompare(right.courses?.title ?? "")
+    );
   const recentSessions = (recentSessionsRes.data ?? []) as SessionScoreRow[];
   const scoredSessions = (scoredSessionsRes.data ?? []) as SessionScoreRow[];
 
@@ -629,7 +643,6 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
   const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
 
-  const isAdmin = profile?.role === "admin";
   const featuredEnrollment = enrollments[0];
   const courseContinuation =
     isAdmin && featuredEnrollment
@@ -638,7 +651,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
           title: featuredEnrollment.courses?.title ?? "Continue course",
           category: featuredEnrollment.courses?.category ?? "debate",
           progressPercent: featuredEnrollment.progress_pct,
-          href: `/dashboard/courses/${featuredEnrollment.course_id}`,
+          href: "/courses",
         }
       : null;
 
@@ -671,11 +684,13 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
     {
       key: "course",
-      href: courseContinuation?.href,
-      status: courseContinuation ? "live" : "coming-soon",
-      descriptionKey: courseContinuation
+      href: isAdmin ? "/courses" : undefined,
+      status: isAdmin ? "live" : "coming-soon",
+      descriptionKey: !isAdmin
+        ? "action_course_coming_soon_desc"
+        : courseContinuation
         ? "action_course_desc"
-        : "action_course_coming_soon_desc",
+        : "action_course_browse_desc",
     },
     {
       key: "coach",
@@ -689,8 +704,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   const nextSteps = buildNextSteps(
     skillSnapshot,
     recentSessions,
-    courseContinuation,
-    isAdmin
+    courseContinuation
   );
 
   return {
@@ -715,7 +729,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     progress,
     sidebarCards: {
       dailyGoal: todayGoal,
-      inviteOrbs: 300,
+      inviteOrbs: REFERRAL_REWARD_CREDITS,
       referralCode: profile?.referral_code ?? null,
     },
     courseContinuation,

@@ -17,7 +17,6 @@ export async function enrollAction(courseId: string) {
         user_id: user.id,
         course_id: courseId,
         status: "active",
-        progress_pct: 0,
       },
       { onConflict: "user_id,course_id" }
     );
@@ -52,7 +51,6 @@ export async function enrollInCourse(courseId: string) {
     course_id: courseId,
     user_id: user.id,
     status: "active",
-    progress_pct: 0,
   });
 
   revalidatePath("/courses");

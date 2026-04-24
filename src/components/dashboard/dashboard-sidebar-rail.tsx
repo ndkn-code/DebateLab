@@ -8,6 +8,7 @@ import {
   Clock3,
   HelpCircle,
   Home,
+  Lock,
   Scale,
   Settings,
   Sparkles,
@@ -46,10 +47,6 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
-  const liveNavItems = navItems.filter(
-    (item): item is DashboardNavItem & { href: string } =>
-      item.status !== "coming-soon" && typeof item.href === "string"
-  );
 
   const isActiveItem = (item: DashboardNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -96,13 +93,50 @@ export function DashboardSidebarRail({
       />
 
       <nav className="mt-8 space-y-1.5">
-        {liveNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = NAV_ICONS[item.key];
+          const href = item.href;
+          const isUnavailable = item.status === "coming-soon" || !href;
           const isActive = isActiveItem(item);
+
+          const content = (
+            <>
+              <span className="flex items-center gap-3">
+                <Icon className="h-5 w-5" />
+                {tNav(item.key)}
+              </span>
+              {isUnavailable ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <Lock className="h-3 w-3" />
+                  {t("coming_soon")}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "h-6 w-1 rounded-full bg-primary transition-opacity",
+                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
+                  )}
+                />
+              )}
+            </>
+          );
+
+          if (isUnavailable) {
+            return (
+              <div
+                key={item.key}
+                aria-disabled="true"
+                className="flex cursor-not-allowed items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium text-on-surface-variant/70 opacity-75"
+              >
+                {content}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.key}
-              href={item.href}
+              href={href}
               className={cn(
                 "group flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium transition-all",
                 isActive
@@ -110,16 +144,7 @@ export function DashboardSidebarRail({
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               )}
             >
-              <span className="flex items-center gap-3">
-                <Icon className="h-5 w-5" />
-                {tNav(item.key)}
-              </span>
-              <span
-                className={cn(
-                  "h-6 w-1 rounded-full bg-primary transition-opacity",
-                  isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
-                )}
-              />
+              {content}
             </Link>
           );
         })}

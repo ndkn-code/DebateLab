@@ -4,10 +4,10 @@ import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
   BookOpen,
+  Check,
   ChevronRight,
   Clock3,
   Copy,
-  Flame,
   HelpCircle,
   MessageSquareText,
   Mic,
@@ -43,14 +43,6 @@ const ACTION_ICONS = {
   course: BookOpen,
   coach: Sparkles,
 } as const;
-const RECENT_ICONS = {
-  speaking: Mic,
-  debate: Users2,
-  course: BookOpen,
-  lesson: BookOpen,
-  level: Trophy,
-  streak: Flame,
-} as const;
 const TASK_ICONS = {
   "continue-course": BookOpen,
   "weakest-skill": Target,
@@ -65,7 +57,7 @@ const PROGRESS_ICONS = {
   "practice-time": Clock3,
 } as const;
 const PANEL_ROW_CLASS =
-  "grid h-[86px] items-center gap-3 rounded-[1.35rem] bg-surface-container px-4 py-3";
+  "grid h-[64px] items-center gap-3 rounded-[1rem] bg-surface-container px-3.5 py-2";
 
 function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
@@ -120,22 +112,53 @@ function getActionTone(key: DashboardQuickAction["key"]) {
   }
 }
 
-function getRecentIconTone(kind: DashboardRecentItem["kind"]) {
-  switch (kind) {
+function getRecentKindLabel(
+  item: DashboardRecentItem,
+  t: ReturnType<typeof useTranslations>
+) {
+  switch (item.kind) {
     case "speaking":
-      return "bg-primary/10 text-primary";
+      return t("track_speaking");
     case "debate":
-      return "bg-[#EEF4FF] text-[#3E78EC]";
+      return t("track_debate");
     case "course":
     case "lesson":
-      return "bg-[#34C759]/10 text-[#249B55]";
     case "level":
-      return "bg-[#F5B942]/10 text-[#F5B942]";
     case "streak":
-      return "bg-[#FFF4DE] text-[#F5B942]";
+      return item.subtitle;
     default:
-      return "bg-primary/10 text-primary";
+      return item.subtitle;
   }
+}
+
+function getRecentKindTone(kind: DashboardRecentItem["kind"]) {
+  switch (kind) {
+    case "speaking":
+      return "bg-[#eef4ff] text-[#3d70df]";
+    case "debate":
+      return "bg-[#f4f0ff] text-[#7352dd]";
+    case "course":
+    case "lesson":
+      return "bg-[#ebf8ef] text-[#3e9a5c]";
+    case "level":
+      return "bg-[#fff5e8] text-[#d68a2b]";
+    case "streak":
+      return "bg-[#ecf8f5] text-[#2f8d79]";
+    default:
+      return "bg-[#eef4ff] text-[#3d70df]";
+  }
+}
+
+function getScoreTone(score: number) {
+  if (score >= 75) {
+    return "bg-[#edf8ef] text-[#4aa05f]";
+  }
+
+  if (score >= 40) {
+    return "bg-[#fff6e8] text-[#da9b2d]";
+  }
+
+  return "bg-[#fff0f0] text-[#dd666b]";
 }
 
 function getTaskTitle(
@@ -232,7 +255,7 @@ function HeroWeekWidget({
   ).length;
 
   return (
-    <div className="p-4">
+    <div className="p-5">
       <div className="flex items-start gap-3">
         <div className="-ml-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center">
           <LottieAnimation
@@ -249,7 +272,7 @@ function HeroWeekWidget({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2">
+      <div className="mt-5 grid grid-cols-7 gap-2">
         {weeklyStats.map((entry, index) => {
           const isActive =
             entry.practice_minutes > 0 || entry.sessions_completed > 0;
@@ -268,7 +291,7 @@ function HeroWeekWidget({
                     : "border-outline-variant/20 bg-surface-container-low text-on-surface-variant"
                 )}
               >
-                {isActive ? "•" : ""}
+                {isActive ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : ""}
               </div>
             </div>
           );
@@ -286,7 +309,7 @@ function HeroGoalWidget({
   const t = useTranslations("dashboard.home");
 
   return (
-    <div className="p-4">
+    <div className="p-5">
       <div className="flex items-center gap-3">
         <Clock3 className="h-5 w-5 shrink-0 text-primary" />
         <div>
@@ -296,7 +319,7 @@ function HeroGoalWidget({
         </div>
       </div>
 
-      <div className="mt-5 flex items-end gap-3">
+      <div className="mt-6 flex items-end gap-3">
         <p className="text-[2rem] font-semibold leading-none text-on-surface">
           {practicedMinutes}
           <span className="ml-1 text-sm font-medium text-on-surface-variant">
@@ -305,7 +328,7 @@ function HeroGoalWidget({
         </p>
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-6 flex items-center gap-3">
         <span className="shrink-0 text-sm text-on-surface-variant">
           {t("goal_minutes", { count: goalMinutes })}
         </span>
@@ -327,18 +350,18 @@ function QuickActionCard({
   const Icon = ACTION_ICONS[action.key];
 
   const content = (
-    <div className="group flex h-full items-center gap-4 rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-lowest px-5 py-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/15">
+    <div className="group flex h-full items-center gap-3 rounded-[1.35rem] border border-outline-variant/12 bg-surface-container-lowest px-4 py-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/15">
       <div
-        className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br ${getActionTone(
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.1rem] bg-gradient-to-br ${getActionTone(
           action.key
         )}`}
       >
-        <Icon className="h-7 w-7" />
+        <Icon className="h-5 w-5" />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-[1.1rem] font-semibold text-on-surface">
+          <p className="text-[1rem] font-semibold text-on-surface">
             {t(`action_${action.key}_title`)}
           </p>
           {action.status === "coming-soon" ? (
@@ -348,7 +371,7 @@ function QuickActionCard({
           ) : null}
         </div>
 
-        <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+        <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-on-surface-variant">
           {t(action.descriptionKey)}
         </p>
       </div>
@@ -373,14 +396,14 @@ function RecentActivityCard({
   const tProfile = useTranslations("dashboard.profile");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
-      <div className="mb-4 flex min-h-[40px] items-center justify-between gap-3">
-        <h2 className="text-[1.15rem] font-semibold text-on-surface">
+    <section className="flex min-h-0 flex-col rounded-[1.55rem] border border-outline-variant/20 bg-surface-container-lowest p-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-2 flex min-h-[32px] items-center justify-between gap-3">
+        <h2 className="text-[1.05rem] font-semibold text-on-surface">
           {t("recent_practice")}
         </h2>
         <Link
           href="/history"
-          className="rounded-xl border border-outline-variant/15 bg-surface-container-low px-3 py-2 text-sm font-medium text-primary"
+          className="rounded-xl border border-outline-variant/15 bg-surface-container-low px-3 py-1.5 text-xs font-medium text-primary"
         >
           {t("view_all")}
         </Link>
@@ -391,55 +414,58 @@ function RecentActivityCard({
           {t("empty_recent_activity")}
         </Link>
       ) : (
-        <div className="flex flex-1 flex-col gap-2.5">
+        <div className="flex flex-col gap-1.5">
           {items.map((item) => {
-            const Icon = RECENT_ICONS[item.kind];
-            const body = (
-              <div className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}>
-                <div
+            const metricPill =
+              item.scoreOutOf100 != null ? (
+                <span
                   className={cn(
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
-                    getRecentIconTone(item.kind)
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                    getScoreTone(item.scoreOutOf100)
                   )}
                 >
-                  <Icon className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
-                    {item.title}
-                  </p>
-                  <p className="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">
-                    {item.kind === "speaking"
-                      ? t("track_speaking")
-                      : item.kind === "debate"
-                        ? t("track_debate")
-                        : item.subtitle}
-                  </p>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  {item.scoreOutOfFive != null ? (
-                    <p className="inline-flex items-center gap-1 text-sm font-semibold text-on-surface">
-                      {item.scoreOutOfFive.toFixed(1)}
-                      <Star className="h-4 w-4 fill-[#F5B942] text-[#F5B942]" />
-                    </p>
-                  ) : null}
-                  <div className="mt-0.5 flex items-center justify-end gap-2">
-                    {item.statusLabel ? (
-                      <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-medium text-on-surface-variant">
-                        {item.statusLabel}
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  {item.scoreOutOf100}
+                  <span className="font-medium opacity-75">/100</span>
+                </span>
+              ) : item.progressPercent != null ? (
+                <span className="inline-flex shrink-0 rounded-full bg-[#eef4ff] px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                  {item.progressPercent}%
+                </span>
+              ) : null;
+            const body = (
+              <div className="group min-h-[60px] rounded-[13px] border border-[#e3ebf8] bg-surface-container-lowest px-3 py-2 transition-all hover:border-[#c9d8f7] hover:shadow-[0_12px_22px_-24px_rgba(22,39,91,0.22)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-[3px] text-[10px] font-semibold leading-none",
+                          getRecentKindTone(item.kind)
+                        )}
+                      >
+                        {getRecentKindLabel(item, t)}
                       </span>
-                    ) : null}
-                    {item.progressPercent != null ? (
-                      <span className="text-xs font-medium text-primary">
-                        {item.progressPercent}%
-                      </span>
-                    ) : null}
-                    <p className="text-xs text-on-surface-variant">
-                      {formatRelativeTime(item.createdAt, tProfile)}
+                      {item.statusLabel ? (
+                        <span className="rounded-full bg-[#f4f7ff] px-2.5 py-[3px] text-[10px] font-semibold leading-none text-[#6f809e]">
+                          {item.statusLabel}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-1 line-clamp-1 text-[0.9rem] font-semibold leading-snug text-on-surface">
+                      {item.title}
                     </p>
                   </div>
+
+                  {metricPill}
+                </div>
+
+                <div className="mt-1 flex justify-end text-[11px] text-on-surface-variant">
+                  <span className="inline-flex shrink-0 items-center gap-1">
+                    <Clock3 className="h-3 w-3" />
+                    {formatRelativeTime(item.createdAt, tProfile)}
+                  </span>
                 </div>
               </div>
             );
@@ -466,14 +492,14 @@ function NextStepsCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
-      <div className="mb-4 min-h-[40px]">
-        <h2 className="text-[1.15rem] font-semibold text-on-surface">
+    <section className="flex min-h-0 flex-col rounded-[1.55rem] border border-outline-variant/20 bg-surface-container-lowest p-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-2 min-h-[32px]">
+        <h2 className="text-[1.05rem] font-semibold text-on-surface">
           {t("next_steps_title")}
         </h2>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5">
+      <div className="flex flex-col gap-1.5">
         {tasks.map((task) => {
           const Icon = TASK_ICONS[task.key];
           const ctaLabel =
@@ -489,29 +515,29 @@ function NextStepsCard({
 
           const body = (
             <div className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}>
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
+                <p className="line-clamp-1 text-[0.92rem] font-medium leading-5 text-on-surface">
                   {getTaskTitle(task, t)}
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-on-surface-variant">
+                <p className="mt-0.5 line-clamp-1 text-[11px] leading-4 text-on-surface-variant">
                   {getTaskDescription(task, t)}
                 </p>
               </div>
 
               <div className="shrink-0">
                 {task.progressLabel ? (
-                  <span className="mr-2 rounded-full bg-white/65 px-2.5 py-1 text-xs font-medium text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]">
+                  <span className="mr-2 rounded-full bg-white/65 px-2 py-0.5 text-[11px] font-medium text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]">
                     {task.progressLabel}
                   </span>
                 ) : null}
 
                 <span
                   className={cn(
-                    "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
+                    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium",
                     task.status === "coming-soon"
                       ? "bg-white/65 text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]"
                       : "bg-white/70 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
@@ -544,14 +570,14 @@ function ProgressCard({
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex h-full flex-col rounded-[1.75rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] xl:min-h-[470px]">
-      <div className="mb-4 min-h-[40px]">
-        <h2 className="text-[1.15rem] font-semibold text-on-surface">
+    <section className="flex min-h-0 flex-col rounded-[1.55rem] border border-outline-variant/20 bg-surface-container-lowest p-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className="mb-2 min-h-[32px]">
+        <h2 className="text-[1.05rem] font-semibold text-on-surface">
           {t("progress_title")}
         </h2>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5">
+      <div className="flex flex-col gap-1.5">
         {metrics.map((metric) => {
           const Icon = PROGRESS_ICONS[metric.key];
 
@@ -560,22 +586,22 @@ function ProgressCard({
               key={metric.key}
               className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="line-clamp-1 text-[1rem] font-medium leading-6 text-on-surface">
+                <p className="line-clamp-1 text-[0.92rem] font-medium leading-5 text-on-surface">
                   {t(`progress_metrics.${metric.key}.title`)}
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">
+                <p className="mt-0.5 line-clamp-1 text-[11px] text-on-surface-variant">
                   {t(`progress_metrics.${metric.key}.subtitle`)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[1.12rem] font-semibold text-on-surface">
+                <p className="text-[1rem] font-semibold text-on-surface">
                   {metric.displayValue}
                 </p>
-                <p className={cn("mt-1 text-xs", deltaClass(metric.delta))}>
+                <p className={cn("mt-0.5 text-[11px]", deltaClass(metric.delta))}>
                   {metric.delta == null
                     ? t("delta_none")
                     : `${deltaPrefix(metric.delta)}${metric.delta} ${t("delta_vs_last_week")}`}
@@ -674,9 +700,9 @@ export function DashboardContent({
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">
+    <div className="h-screen overflow-hidden bg-background px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
       <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
-        <div className="mb-5 flex flex-wrap items-center justify-end gap-1 text-on-surface">
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-1 text-on-surface">
           <UtilityChip
             icon={
               <LottieAnimation
@@ -716,9 +742,9 @@ export function DashboardContent({
           <WelcomeBanner displayName={displayName} userId={userId} show />
         ) : null}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-          <section className="rounded-[2rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-5 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)] md:p-6">
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+          <section className="rounded-[1.7rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-4 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
               <div className="min-w-0">
                 <p className="text-[1.05rem] font-medium text-on-surface">
                   {t(getTimeGreetingKey())}, {displayName}!{" "}
@@ -728,7 +754,7 @@ export function DashboardContent({
                   {t("hero_title")}
                 </h1>
 
-                <div className="mt-6 rounded-[1.6rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
+                <div className="mt-6 rounded-[1.45rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
                   <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
                     <HeroWeekWidget weeklyStats={hero.weeklyStats} />
                     <div className="hidden bg-outline-variant/35 md:block" />
@@ -749,7 +775,7 @@ export function DashboardContent({
             ))}
           </section>
 
-          <section className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-stretch">
+          <section className="grid min-h-0 shrink-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-start">
             <RecentActivityCard items={data.recentActivity} />
             <NextStepsCard tasks={data.nextSteps} />
             <ProgressCard metrics={data.progress} />

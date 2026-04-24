@@ -311,15 +311,16 @@
       "sessions_completed": "Sessions completed",
       "xp_progress": "XP progress",
       "continue_course": "Continue Course",
-      "continue_learning_subtitle": "Pick up where you left off in the admin course experience and spot weak points in the learner flow.",
+      "continue_learning_subtitle": "Return to your active course, keep your streak going, and move one lesson closer to completion.",
       "active_courses": "{count} active courses",
       "course_progress_label": "Course progress",
       "open_course": "Open Course",
-      "course_preview_note": "This opens the current admin-only course flow, so you can inspect the learner-facing experience before wider rollout.",
+      "course_preview_note": "Keep moving through your structured lessons and jump back into the next step from your course library.",
       "browse_admin_courses": "Browse Course Admin",
+      "browse_courses": "Browse Courses",
       "course_empty_admin_note": "Once you enroll in or set up a course, it will appear here as your main continuation card.",
-      "course_empty_student_note": "Course learning will show up here once course access is opened beyond admin accounts.",
-      "course_access_limited": "Course continuation is still limited to admin accounts right now.",
+      "course_empty_student_note": "Once you enroll in a course, it will show up here as your main continuation card.",
+      "course_access_limited": "Open your course library to choose the best next step.",
       "single_active_course": "You only have one active course at the moment, so it stays front and center here.",
       "streak_messages": {
         "zero": "Start your streak today and turn your next practice into momentum.",
@@ -391,7 +392,7 @@
       "weekly_sessions_label": "Sessions this week",
       "weekly_best_day_label": "Best day",
       "referral_remaining": "remaining",
-      "referral_subtitle": "Invite friends to earn 300 Credits each",
+      "referral_subtitle": "Invite friends to earn 600 Credits each",
       "referral_copy": "Copy invite link",
       "referral_copy_short": "Copy invite",
       "referral_copied": "Copied!",
@@ -431,14 +432,16 @@
       "invite_friend_title": "Invite a friend",
       "invite_friend_reward": "Earn {count} Credits",
       "invite_friend_cta": "Copy invite link",
+      "sidebar_title_hint": "Keep practicing to reach Champion tier!",
       "help_support": "Help & Support",
       "action_speaking_title": "Start Speaking",
       "action_debate_title": "Start Debate",
-      "action_course_title": "Continue Course",
+      "action_course_title": "My Courses",
       "action_coach_title": "Ask AI Coach",
       "action_speaking_desc": "Practice speeches and improve delivery.",
       "action_debate_desc": "Debate AI or real opponents.",
-      "action_course_desc": "Pick up where you left off.",
+      "action_course_desc": "Jump back into your structured learning path.",
+      "action_course_browse_desc": "Browse structured courses and start your next lesson.",
       "action_course_coming_soon_desc": "Course access is coming soon for students.",
       "action_coach_desc": "Get feedback and improve faster.",
       "recent_activity_title": "Recent Practice & Feedback",
@@ -496,7 +499,7 @@
     },
     "courses": {
       "page_headline": "Courses",
-      "page_subtitle": "Structured lessons to build your debate and speaking skills.",
+      "page_subtitle": "Follow structured learning paths to build confidence and win more debates.",
       "tab_all": "All Courses",
       "tab_debate": "Debate",
       "tab_speaking": "Public Speaking",
@@ -504,11 +507,74 @@
       "empty_subtitle": "Check back soon for new content!",
       "start": "Start Course",
       "continue": "Continue",
+      "review": "Review Course",
       "completed": "Completed",
       "progress": "Progress",
       "lessons_count": "{count} Lessons",
       "modules_count": "{count} Modules",
+      "modules_label": "modules",
+      "estimated_hours": "{hours}h total",
+      "estimated_minutes": "Est. {minutes} min",
       "description_fallback": "No description available yet.",
+      "mock_badge": "Mock Course",
+      "mock_cta": "Coming Soon",
+      "mock_note": "Placeholder course for previewing the library layout.",
+      "status": {
+        "in_progress": "In Progress",
+        "not_started": "Not Started",
+        "completed": "Completed"
+      },
+      "sections": {
+        "browse": "Browse Your Library"
+      },
+      "hero": {
+        "next_up": "Next Up",
+        "complete": "complete",
+        "continue_learning": "Continue Learning",
+        "progress_summary": "{completed}/{total} lessons complete",
+        "completed_title": "Course Complete",
+        "completed_description": "You finished this learning path. Revisit any lesson or choose another course to keep the momentum going."
+      },
+      "recommendation": {
+        "title": "Recommended Next for You",
+        "why_course": "Why this course?",
+        "reasons": {
+          "debate": {
+            "beginner": {
+              "one": "Build a reliable foundation for clear, logical arguments.",
+              "two": "Learn the core habits that make rebuttals easier later.",
+              "three": "Move from instinctive speaking to structured debate rounds."
+            },
+            "intermediate": {
+              "one": "Strengthen clash, comparison, and impact framing.",
+              "two": "Practice turning solid arguments into persuasive rounds.",
+              "three": "Sharpen the judgment calls that decide close debates."
+            },
+            "advanced": {
+              "one": "Refine strategy, weighing, and late-round decision making.",
+              "two": "Stress-test advanced techniques against tougher scenarios.",
+              "three": "Train the details that separate strong debaters from standout ones."
+            }
+          },
+          "public-speaking": {
+            "beginner": {
+              "one": "Build comfort with voice, pacing, and stage presence.",
+              "two": "Improve clarity so your ideas land the first time.",
+              "three": "Grow confidence that carries back into debate rounds."
+            },
+            "intermediate": {
+              "one": "Turn solid delivery into memorable, persuasive speaking.",
+              "two": "Practice transitions, emphasis, and stronger audience control.",
+              "three": "Develop the polish that makes your arguments feel effortless."
+            },
+            "advanced": {
+              "one": "Refine high-stakes delivery for competitions and presentations.",
+              "two": "Push beyond confidence into precision and command.",
+              "three": "Train advanced speaking habits that elevate every round."
+            }
+          }
+        }
+      },
       "detail": {
         "back": "All Courses",
         "completed": "Completed",
@@ -577,11 +643,94 @@
         "focus_area": "Focus area",
         "launch_note": "This opens the main practice studio with this topic prefilled, so you can keep learning flow inside the course but practice in the full DebateLab experience.",
         "coach_prep": "Ask AI Coach to prep this"
+      },
+      "reader": {
+        "preview_badge": "Preview",
+        "preview_title": "Preview Mode",
+        "preview_description": "You can explore the lesson reader layout here, but enrolling unlocks the full lesson path, progress tracking, and next-step navigation.",
+        "lesson_count": "{count} lessons",
+        "current_focus": "Current Focus",
+        "keep_momentum": "Keep the momentum going",
+        "current_focus_description": "You're on lesson {lesson} of {total}. Finish this step to unlock the next part of the course path.",
+        "course_complete_description": "You have cleared the active lesson path in this course. Revisit any lesson or jump back to your course library.",
+        "whats_next": "What's Next",
+        "lesson_number": "Lesson {current} of {total}",
+        "stepper_description": "Move step by step through the course and keep your place with stable lesson URLs.",
+        "lesson_kicker": "Lesson {lesson}",
+        "empty_title": "No published lessons yet",
+        "empty_state": "This course does not have any published lessons available right now.",
+        "view_next_lesson": "Open next lesson",
+        "course_complete_title": "Course Path Complete",
+        "lesson_outline": "Lesson Outline",
+        "need_help": "Need help?",
+        "need_help_description": "Ask AI Coach for a summary, an example, or a clearer explanation of the lesson you're on.",
+        "ask_ai_coach": "Ask AI Coach",
+        "progress_actions": "Progress Actions",
+        "ready_for_next": "Nice work. This lesson is complete, so you can move straight into the next one.",
+        "complete_quiz_to_continue": "Finish the quiz above to unlock the next lesson in the sequence.",
+        "mark_complete_prompt": "When you're ready, mark lesson {lesson} as complete to keep the course moving.",
+        "continue_to_lesson": "Continue to Lesson {lesson}",
+        "next_locked": "Complete this lesson first",
+        "back_to_library": "Back to course library",
+        "article_summary_fallback": "Read through the lesson carefully and focus on how each section supports clearer, stronger arguments.",
+        "video_summary_fallback": "Watch how the framework is explained in action, then bring that structure back into your own speaking.",
+        "practice_summary_fallback": "Use this guided practice to turn the lesson into spoken argument-building and live response work.",
+        "quiz_summary": "{count} questions to check your understanding before you move on.",
+        "article_key_idea": "Key Idea",
+        "article_example": "Example",
+        "article_common_mistake": "Common Mistake",
+        "article_try_this": "Try This",
+        "article_full_notes": "Read Full Lesson Notes",
+        "article_full_notes_description": "Open the complete written lesson when you want the full explanation and supporting detail.",
+        "article_common_mistake_fallback": "Watch out for jumping from a claim straight to evidence without explaining the reasoning in between.",
+        "article_try_this_fallback": "Restate the idea in your own words, then turn it into one claim, one reason, and one impact.",
+        "article_example_claim_label": "Claim",
+        "article_example_reason_label": "Reasoning",
+        "article_example_impact_label": "Impact",
+        "article_in_this_lesson": "In This Lesson",
+        "article_outline_fallback": "Read through the lesson carefully, then use the course actions below to mark your progress and move on.",
+        "article_reading_title": "Guided Reading",
+        "article_reading_description": "Take your time with the examples, definitions, and reasoning below.",
+        "video_panel_title": "Lesson Video",
+        "video_panel_description": "Watch the full explanation, then use the notes below to lock in the key structure.",
+        "video_missing_title": "Video coming soon",
+        "video_missing_description": "This lesson does not have an embeddable video yet, but the rest of the course reader is ready.",
+        "video_why_matters": "Why This Matters",
+        "video_why_matters_fallback": "Use this lesson to hear how the framework sounds in a real explanation, then bring that structure into your own speeches.",
+        "video_watch_for": "Watch For",
+        "video_watch_for_fallback": "Notice how the speaker introduces the claim, builds the reasoning, and explains the impact before moving on.",
+        "quiz_empty": "No quiz questions available yet.",
+        "quiz_result_great": "Great job!",
+        "quiz_result_good": "Nice progress.",
+        "quiz_result_retry": "Keep building.",
+        "quiz_result_summary": "You answered {correct} out of {total} questions correctly.",
+        "quiz_completed": "Quiz completed",
+        "quiz_kicker": "Knowledge Check",
+        "quiz_question_progress": "Question {current} of {total}",
+        "quiz_explanation_label": "Why this works:",
+        "quiz_check_answer": "Check answer",
+        "quiz_finish": "Finish quiz",
+        "quiz_next_question": "Next question",
+        "practice_setup_title": "Session Setup",
+        "practice_setup_description": "Launch the full practice studio with this lesson already prepared.",
+        "practice_description_fallback": "Use this guided practice to turn the lesson into spoken argument-building and live response work."
       }
     },
     "practice": {
+      "page_eyebrow": "Practice Studio",
       "page_headline": "Choose Your Practice",
-      "page_subtitle": "Select a topic, choose speaking or debate, configure your session, and start practicing.",
+      "page_subtitle": "Pick a topic, choose how you want to practice, configure your session, and start improving.",
+      "credits_label": "Credits",
+      "how_it_works": "How it works",
+      "how_it_works_title": "How practice sessions work",
+      "how_it_works_description": "Choose a motion, tune your settings, and launch a solo practice round with instant AI support built in.",
+      "how_it_works_step_kicker": "Step {step}",
+      "how_it_works_step_1_title": "Choose a motion that feels worth arguing.",
+      "how_it_works_step_1_body": "Browse by category, sort by popularity or difficulty, and save topics you want to come back to later.",
+      "how_it_works_step_2_title": "Set the type of round you want right now.",
+      "how_it_works_step_2_body": "Switch between speaking practice and debate practice, then adjust side, prep time, speech time, hints, and AI difficulty.",
+      "how_it_works_step_3_title": "Start the round and keep building momentum.",
+      "how_it_works_step_3_body": "We charge Credits only when your session begins, and you can still tweak the setup right before you start.",
       "tab_all": "All",
       "tab_education": "Education & School Life",
       "tab_technology": "Technology & Social Media",
@@ -589,18 +738,39 @@
       "tab_environment": "Environment & Sustainability",
       "tab_ethics": "Ethics & Philosophy",
       "tab_vietnam": "Vietnam-Specific Issues",
+      "browse_topics": "Browse Topics",
+      "topic_count": "{count} topics",
+      "sort_popular": "Most Popular",
+      "sort_newest_practice": "Newest",
+      "sort_easiest": "Easiest First",
+      "sort_hardest": "Hardest First",
+      "show_saved": "Show saved topics",
+      "load_more_topics": "Load more topics",
       "difficulty_beginner": "Beginner",
       "difficulty_intermediate": "Intermediate",
       "difficulty_advanced": "Advanced",
+      "card_easy": "Easy",
+      "card_medium": "Medium",
+      "card_hard": "Hard",
       "surprise_me": "Surprise Me",
       "no_topics": "No topics found in this category",
+      "no_topics_body": "Try another category or switch off saved-only mode to explore more motions.",
+      "saved_empty_title": "No saved topics yet",
+      "saved_empty_body": "Bookmark topics from the grid to build a shortlist for later practice sessions.",
+      "saved_empty_panel_title": "Pick a topic to begin",
+      "saved_empty_panel_body": "Turn off the saved-only filter or bookmark a topic from the catalog to reopen your practice setup.",
       "session_config": "Session Configuration",
+      "selected_motion": "Your Selected Motion",
       "practice_track": "Practice Track",
+      "debate_mode": "Debate Mode",
+      "solo_debate": "Solo Debate",
+      "one_vs_one_debate": "1v1 Debate",
       "speaking_practice": "Speaking Practice",
       "debate_practice": "Debate Practice",
       "speaking_desc": "Focus on clarity, confidence, and understandable English in a single speech.",
       "debate_desc": "Focus on stance, clash, comparison, and impact in debate rounds.",
       "mode": "Mode",
+      "session_mode": "Session Mode",
       "single_speech": "Single Speech",
       "single_speech_desc": "One prep + speech flow with speaking-focused feedback.",
       "quick_practice": "Quick Practice",
@@ -616,13 +786,22 @@
       "hard_desc": "Expert AI — championship-level rebuttals",
       "your_side": "Your Side",
       "random": "Random",
+      "side_affirmative": "Affirmative",
+      "side_negative": "Negative",
+      "selected_side_summary": "Current side: {side}",
       "for": "For",
       "against": "Against",
       "prep_time": "Prep Time",
       "speech_time": "Speech Time",
       "ai_hints": "AI Hints during prep",
       "ai_hints_desc": "Shows brainstorm hints during preparation time",
+      "session_cost": "Session Cost",
+      "session_cost_description": "Speaking practice costs 100 Credits. Debate practice costs 200 Credits.",
       "begin_session": "Begin Session",
+      "starting": "Starting...",
+      "settings_note": "You can change settings anytime before starting.",
+      "save_topic": "Save topic",
+      "remove_bookmark": "Remove saved topic",
       "recording": "Recording...",
       "speak_placeholder": "Start speaking... your words will appear here",
       "audioCheck": {
@@ -761,7 +940,7 @@
     },
     "history": {
       "page_headline": "Practice History",
-      "page_subtitle": "Review your past speaking and debate sessions and track improvement",
+      "page_subtitle": "Review your past speaking and debate sessions. Every practice makes you better.",
       "empty": "No practice sessions yet",
       "empty_subtitle": "Start your first session and your history will appear here!",
       "start_practicing": "Start Practicing",
@@ -771,7 +950,15 @@
       "average_score": "Average Score",
       "best_score": "Best Score",
       "most_practiced": "Most Practiced",
-      "search_placeholder": "Search topics...",
+      "export_history": "Export History",
+      "search_placeholder": "Search topics or keywords...",
+      "filters": "Filters",
+      "filter_more": "More",
+      "sessions_this_month": "+ {count} this month",
+      "score_delta": "{sign} {count} pts vs last month",
+      "achieved_on": "Achieved on {date}",
+      "sessions_count": "{count} sessions",
+      "not_available": "Not available",
       "sort_newest": "Newest First",
       "sort_oldest": "Oldest First",
       "sort_highest": "Highest Score",
@@ -780,6 +967,43 @@
       "against": "AGAINST",
       "speaking": "Speaking",
       "debate": "Debate",
+      "duel": "Duel",
+      "speaking_practice": "Speaking Practice",
+      "debate_practice": "Debate Practice",
+      "quick_practice": "Quick Practice",
+      "solo_debate": "Solo Debate",
+      "one_v_one_debate": "1v1 Debate",
+      "affirmative": "Affirmative",
+      "negative": "Negative",
+      "new_badge": "New",
+      "review": "Review",
+      "options_label": "Session options",
+      "score_fallback": "Judged",
+      "great_job": "Great job!",
+      "excellent": "Excellent!",
+      "great": "Great",
+      "good": "Good",
+      "keep_going": "Keep going",
+      "judged": "Judged",
+      "duel_won": "You won",
+      "duel_lost": "You lost",
+      "progress_title": "Your Progress",
+      "view_full_report": "View full report",
+      "progress_headline": "You're improving!",
+      "progress_body": "Your average score is up {count} points this month.",
+      "no_score_trend": "Score trends appear after a few reviewed sessions.",
+      "strongest_recent_area": "Strongest Recent Area",
+      "logic_reasoning": "Logic & Reasoning",
+      "structure_strategy": "Structure & Strategy",
+      "language_delivery": "Language & Delivery",
+      "persuasion_weighing": "Persuasion & Weighing",
+      "avg_score": "Avg score",
+      "points_delta": "{sign} {count} pts",
+      "strong_area_hint": "Keep using strong logical frameworks!",
+      "suggested_next_move": "Suggested Next Move",
+      "try_1v1_debate": "Try a 1v1 Debate",
+      "suggested_next_move_body": "Challenge real-time responses and improve rebuttals.",
+      "start_1v1_debate": "Start 1v1 Debate",
       "single_speech": "Single Speech",
       "full": "Full",
       "quick": "Quick",
@@ -858,45 +1082,158 @@
     "skill_chart": "Skill Chart"
   },
   "settings": {
-    "headline": "Settings",
-    "profile": "Profile",
-    "display_name": "Display Name",
-    "your_name": "Your name",
+  "headline": "Settings",
+  "subtitle": "Manage your account, preferences, and practice experience.",
+  "fallback_name": "Debate Lab Member",
+  "hero_summary": "Update how your profile appears, keep your practice defaults dialed in, and shape how Debate Lab feels every time you come back.",
+  "avatar_upload": "Upload profile photo",
+  "save_changes": "Save Changes",
+    "status": {
+      "unsaved": "Unsaved changes",
+      "saved": "All changes saved"
+    },
+    "cards": {
+      "profile": {
+        "title": "Profile",
+        "description": "Update how your name and avatar appear across Debate Lab."
+      },
+    "account": {
+      "title": "Account & Security",
+      "description": "Review your sign-in email and update your password with confidence."
+    },
+      "practice": {
+        "title": "Practice Defaults",
+        "description": "Set the timers and challenge level used for new solo sessions."
+      },
+      "language": {
+        "title": "Language",
+        "description": "Choose the app language you want to use right now and save for later."
+      },
+      "voice": {
+        "title": "AI Voice",
+        "description": "Pick the voice used by the AI during practice and rebuttal playback."
+      },
+      "preferences": {
+        "title": "Preferences",
+        "description": "Shape the way feedback is explained after each practice round."
+      },
+      "notifications": {
+        "title": "Notifications & Reminders",
+        "description": "Stay on track with gentle reminders and milestone updates."
+      },
+      "privacy": {
+        "title": "Privacy & Data",
+        "description": "Control analytics, exports, and your saved solo practice history."
+      }
+    },
+    "fields": {
+      "display_name": "Display Name",
+    "display_name_placeholder": "Enter the name you want shown in Debate Lab",
     "avatar": "Avatar",
-    "save_profile": "Save Profile",
-    "account": "Account",
     "email": "Email",
-    "change_password": "Change Password",
-    "new_password": "New password",
-    "confirm_password": "Confirm new password",
-    "update_password": "Update Password",
-    "practice_defaults": "Practice Defaults",
+    "current_password": "Current password",
     "default_prep_time": "Default Prep Time",
     "default_speech_time": "Default Speech Time",
     "default_difficulty": "Default AI Difficulty",
-    "difficulty_easy": "Easy",
-    "difficulty_medium": "Medium",
-    "difficulty_hard": "Hard",
-    "minutes_short": "min",
-    "save_preferences": "Save Preferences",
-    "language": "Language",
-    "language_description": "Choose display language",
-    "voice": {
-      "title": "AI Voice",
-      "description": "Choose the voice for your AI debate opponent",
-      "female": "Female",
-      "male": "Male"
+    "app_language": "App Language"
+  },
+  "change_password": "Change Password",
+  "change_password_description": "Confirm your current password, then choose a new one for this device.",
+    "new_password": "New password",
+    "confirm_password": "Confirm new password",
+    "update_password": "Update Password",
+    "time_option": "{count, plural, one {# minute} other {# minutes}}",
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "languages": {
+      "en": "English (English)",
+      "vi": "Vietnamese (Tiếng Việt)"
+    },
+    "language_switching": "Switching language...",
+    "language_hint": "Language changes apply immediately, and saving this page remembers your preferred locale.",
+    "toggles": {
+      "detailed_feedback": {
+        "title": "Show detailed feedback",
+        "description": "Get richer coaching notes and deeper breakdowns after sessions."
+      },
+      "highlight_weak_areas": {
+        "title": "Highlight my weak areas",
+        "description": "Point out the patterns I should fix first in upcoming rounds."
+      },
+      "explain_like_im_learning": {
+        "title": "Explain like I am learning",
+        "description": "Prefer simpler explanations, clearer examples, and gentler language."
+      },
+      "advanced_terminology": {
+        "title": "Use advanced terminology",
+        "description": "Include more formal debate language and sharper technical phrasing."
+      },
+      "practice_reminders": {
+        "title": "Practice reminders",
+        "description": "Receive nudges to start another round and keep your momentum going."
+      },
+      "streak_reminders": {
+        "title": "Daily streak reminders",
+        "description": "Get reminded before your current practice streak goes cold."
+      },
+      "achievement_updates": {
+        "title": "Achievements & updates",
+        "description": "Hear about new milestones, feature launches, and progress moments."
+      },
+      "email_notifications": {
+        "title": "Email notifications",
+        "description": "Allow important reminders and product updates to be sent by email."
+      },
+      "analytics": {
+        "title": "Analytics cookies",
+        "description": "Allow product analytics so we can understand usage and improve the app."
+      }
+    },
+    "privacy": {
+      "download": {
+        "title": "Download My Data",
+        "description": "Export your profile, preferences, practice history, duel summary, course progress, and chat history as JSON."
+      },
+      "clear_history": {
+        "title": "Clear Practice History",
+        "description": "Delete your saved solo practice sessions and refresh visible analytics without touching duel results.",
+        "confirm_title": "Clear solo practice history?",
+        "confirm_description": "This removes your saved solo practice sessions from history and refreshes related settings and analytics views. Duel records stay intact.",
+        "confirm_action": "Clear History"
+      }
     },
     "sign_out": "Sign Out",
-    "toast": {
-      "profile_updated": "Profile updated!",
-      "profile_error": "Failed to update profile",
-      "preferences_saved": "Preferences saved!",
-      "preferences_error": "Failed to save preferences",
-      "password_short": "Password must be at least 6 characters",
-      "password_mismatch": "Passwords do not match",
-      "password_updated": "Password updated!",
-      "password_error": "Failed to change password"
+    "sign_out_description": "Sign out of your account on this device.",
+    "voice": {
+      "title": "AI Voice",
+      "description": "Choose the voice used for rebuttals, coaching playback, and spoken prompts.",
+      "female": "Female",
+      "male": "Male",
+      "more_voices": "More voices",
+      "more_voices_description": "Keep the featured voices handy, or choose from the full catalog here.",
+      "preview_button": "Preview",
+      "selected_label": "Selected voice",
+      "accents": {
+        "american": "American",
+        "british": "British",
+        "irish": "Irish"
+      }
+    },
+  "toast": {
+    "saved": "Settings saved.",
+    "save_error": "Unable to save your settings right now.",
+    "avatar_invalid": "Choose a valid image file for your avatar.",
+    "avatar_too_large": "Choose an avatar image smaller than 8 MB.",
+    "current_password_required": "Enter your current password before updating it.",
+    "password_short": "Password must be at least 6 characters.",
+    "password_mismatch": "Passwords do not match.",
+      "password_updated": "Password updated.",
+      "password_error": "Unable to update your password right now.",
+      "history_cleared": "{count, plural, =0 {Solo practice history was already empty.} one {Cleared # solo practice session.} other {Cleared # solo practice sessions.}}",
+      "history_error": "Unable to clear solo practice history right now."
     }
   },
   "achievements": {
@@ -1214,6 +1551,118 @@
       "previewNoTracking": "Progress, enrollment, and completion tracking are hidden in preview mode. Open an activity to check the learner experience."
     }
   },
+  "sessionResult": {
+    "backToPractice": "Back to Practice",
+    "backToHistory": "Back to History",
+    "backToTopics": "Back to Topics",
+    "tryAgain": "Try Again",
+    "share": "Share Result",
+    "shareCopied": "Copied!",
+    "shareTitle": "DebateLab Session Result",
+    "shareText": "I scored {score}/100 on \"{topic}\" in DebateLab.",
+    "scoreLabel": "Your score",
+    "eyebrow": "Session Result",
+    "noFeedback": "No feedback is available for this session yet.",
+    "notFoundTitle": "Session Not Found",
+    "notFoundBody": "This session may have been deleted or no longer exists.",
+    "cards": {
+      "side": "Your side",
+      "track": "Track",
+      "mode": "Mode",
+      "category": "Category",
+      "difficulty": "AI Difficulty"
+    },
+    "sides": {
+      "proposition": "For",
+      "opposition": "Against"
+    },
+    "tracks": {
+      "speaking": "Speaking Practice",
+      "debate": "Debate Practice"
+    },
+    "modes": {
+      "singleSpeech": "Single Speech",
+      "quick": "Quick Practice",
+      "full": "Full Round"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "bands": {
+      "novice": "Novice",
+      "developing": "Developing",
+      "competent": "Competent",
+      "proficient": "Proficient",
+      "expert": "Expert"
+    },
+    "encouragement": {
+      "novice": "Good first step.",
+      "developing": "You're building momentum.",
+      "competent": "Solid progress.",
+      "proficient": "Great job.",
+      "expert": "Outstanding work."
+    },
+    "insights": {
+      "strongest": "Strongest Area",
+      "needsWork": "Needs the Most Work",
+      "nextFocus": "Next Focus",
+      "focusCta": "Focus this next time"
+    },
+    "skillBreakdown": "Your Skills Breakdown",
+    "skillDescriptions": {
+      "clarity": "Make your main point easy to follow from the first sentence.",
+      "logic": "Link each claim to a clear chain of reasoning and impact.",
+      "rebuttal": "Directly answer the other side and show why your case still stands.",
+      "evidence": "Use examples, mechanisms, and proof that make your case concrete.",
+      "delivery": "Sound steady, precise, and easy for the judge to track."
+      },
+      "detail": {
+        "heading": "Detailed Feedback",
+        "strengths": "What You Did Well",
+        "improvements": "What to Improve",
+      "modelAnswer": "Model Answer",
+      "strongerRebuild": "Stronger Rebuild",
+      "showTranscript": "Show transcript",
+      "hideTranscript": "Hide transcript",
+      "showTimeline": "Show round timeline",
+      "hideTimeline": "Hide round timeline",
+      "transcript": "Review Transcript",
+      "timeline": "Review Round Timeline",
+      "emptyStrengths": "Strengths will appear here after analysis.",
+      "emptyImprovements": "Improvement notes will appear here after analysis.",
+      "emptyTranscript": "No transcript was recorded for this session."
+    },
+    "fallbacks": {
+      "strongest": "This skill is leading your session right now.",
+      "needsWork": "This is the clearest area to tighten next.",
+      "focus": "Use the next round to make this skill more convincing."
+    },
+    "actions": {
+      "practiceAgain": "Practice Again",
+      "newTopic": "New Topic",
+      "viewHistory": "View History",
+      "askCoach": "Ask AI Coach",
+      "retryTopic": "Retry This Topic",
+      "deleteSession": "Delete Session"
+    },
+    "referral": {
+      "title": "Challenge a friend to beat your score!",
+      "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
+      "shareTitle": "DebateLab Challenge",
+      "shareText": "I scored {score}/100 on DebateLab! Can you beat me? {link}",
+      "cta": "Share Challenge",
+      "copied": "Copied!"
+    },
+    "modelUsed": "Analyzed with {model}",
+    "duration": {
+      "seconds": "{count}s",
+      "minutes": "{count} min",
+      "hours": "{count} hr",
+      "hoursMinutes": "{hours} hr {minutes} min"
+    }
+  },
   "analyticsPage": {
     "title": "Analytics",
     "subtitle": "Track your progress and grow your debate skills.",
@@ -1229,6 +1678,7 @@
     "hero_practice_time": "Practice Time",
     "skill_snapshot_title": "Skill Snapshot",
     "skill_snapshot_subtitle": "Built from your scored history, not just this week.",
+    "overall_score": "Overall Score",
     "lifetime": "Lifetime",
     "skills": {
       "clarity": "Clarity",
@@ -1239,7 +1689,7 @@
     },
     "cards": {
       "practice_minutes": {
-        "title": "Practice Minutes",
+        "title": "Weekly Practice Minutes",
         "unit": "mins",
         "delta": "{sign}{count}% vs previous range",
         "no_delta": "Need more history to compare"
@@ -1248,7 +1698,8 @@
         "title": "Speaking vs Debate Mix",
         "debate": "Debate",
         "speaking": "Speaking",
-        "breakdown": "{debate} debate sessions • {speaking} speaking sessions"
+        "breakdown": "{debate} debate sessions • {speaking} speaking sessions",
+        "view_breakdown": "View breakdown"
       },
       "average_score": {
         "title": "Recent Average Score",

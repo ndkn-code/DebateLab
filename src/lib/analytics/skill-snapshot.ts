@@ -28,9 +28,9 @@ export function roundToTenth(value: number) {
   return Math.round(value * 10) / 10;
 }
 
-export function normalizeToFive(value: number, max: number) {
+export function normalizeToHundred(value: number, max: number) {
   if (!Number.isFinite(value) || max <= 0) return 0;
-  return roundToTenth((value / max) * 5);
+  return roundToTenth((value / max) * 100);
 }
 
 export function computeSkillSnapshot(
@@ -64,15 +64,15 @@ export function computeSkillSnapshot(
 
   for (const session of sessionsWithFeedback) {
     const feedback = session.feedback!;
-    clarityTotal += normalizeToFive(feedback.content.claimClarity, 10);
-    logicTotal += normalizeToFive(feedback.content.logicCoherence, 10);
-    rebuttalTotal += normalizeToFive(feedback.content.counterArgument, 10);
-    evidenceTotal += normalizeToFive(feedback.content.evidenceSupport, 10);
+    clarityTotal += normalizeToHundred(feedback.content.claimClarity, 10);
+    logicTotal += normalizeToHundred(feedback.content.logicCoherence, 10);
+    rebuttalTotal += normalizeToHundred(feedback.content.counterArgument, 10);
+    evidenceTotal += normalizeToHundred(feedback.content.evidenceSupport, 10);
 
     const deliveryAverage =
-      normalizeToFive(feedback.language.vocabulary, 8) +
-      normalizeToFive(feedback.language.grammar, 9) +
-      normalizeToFive(feedback.language.fluency, 8);
+      normalizeToHundred(feedback.language.vocabulary, 8) +
+      normalizeToHundred(feedback.language.grammar, 9) +
+      normalizeToHundred(feedback.language.fluency, 8);
     deliveryTotal += roundToTenth(deliveryAverage / 3);
   }
 

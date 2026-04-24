@@ -1,66 +1,173 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import type { ElementType, ReactNode } from "react";
+import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  X,
   ArrowRight,
-  Clock,
+  Bookmark,
+  BookmarkCheck,
+  CircleHelp,
+  Clock3,
   Mic2,
-  Lightbulb,
-  Zap,
-  Layers,
-  Shuffle,
-  ThumbsUp,
-  ThumbsDown,
-  Bot,
-  MessageSquareText,
   Scale,
+  Sparkles,
+  Swords,
   Users,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useSessionStore } from "@/store/session-store";
-import { OrbBalance } from "@/components/shared/orb-balance";
+import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
-import { deductOrbsAction, getOrbBalanceAction } from "@/app/actions/orbs";
-import { createClient } from "@/lib/supabase/client";
+import { deductOrbsAction } from "@/app/actions/orbs";
+import { useSessionStore } from "@/store/session-store";
+import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
 
 interface SessionConfigProps {
   topic: DebateTopic;
-  onClose: () => void;
+  isBookmarked: boolean;
+  onToggleBookmark: (topicId: string) => void;
+  orbBalance: number | null;
+  referralCode: string;
+  onBalanceChange: (balance: number) => void;
+  layout?: "desktop" | "mobile";
 }
 
-function OptionButton({
+function FieldLabel({
+  icon: Icon,
+  label,
+}: {
+  icon: ElementType;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-[0.88rem] font-semibold text-on-surface">
+      <Icon className="h-[15px] w-[15px] text-primary" />
+      <span>{label}</span>
+      <CircleHelp className="h-[13px] w-[13px] text-[#91a0be]" />
+    </div>
+  );
+}
+
+function SegmentButton({
   active,
-  onClick,
+  disabled = false,
+  icon: Icon,
   children,
+  onClick,
 }: {
   active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  disabled?: boolean;
+  icon: ElementType;
+  children: ReactNode;
+  onClick?: () => void;
 }) {
   return (
     <button
+      type="button"
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        "min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium transition-all",
+        "inline-flex min-h-[45px] items-center justify-center gap-2 rounded-[14px] border px-3 py-2.5 text-[0.9rem] font-medium transition-all",
         active
-          ? "border-primary/50 bg-primary/10 text-primary"
-          : "border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:border-outline-variant hover:text-on-surface"
+          ? "border-primary/45 bg-primary/[0.03] text-primary"
+          : "border-[#e5ebf7] bg-[#f8fbff] text-[#617292]",
+        !active && !disabled && "hover:border-[#cddbf8] hover:bg-white hover:text-on-surface",
+        disabled &&
+          "cursor-not-allowed border-[#ebf0fa] bg-[#f8fbff] text-[#a0acc3]"
       )}
     >
-      {children}
+      <Icon className="h-[15px] w-[15px]" />
+      <span>{children}</span>
     </button>
   );
 }
 
-export function SessionConfig({ topic, onClose }: SessionConfigProps) {
+function ConfigSection({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: ElementType;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <FieldLabel icon={icon} label={label} />
+      {children}
+    </section>
+  );
+}
+
+function SelectRow({
+  label,
+  icon,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  icon: ElementType;
+  value: string;
+  onChange: (next: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <FieldLabel icon={icon} label={label} />
+      <div className="w-[170px] shrink-0">
+        <Select
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          className="h-[42px] rounded-[14px] border-[#e5ebf7] bg-white px-3.5 py-2 text-[0.9rem] text-[#475875]"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function CreditPill({
+  amount,
+  label,
+}: {
+  amount: string;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f7ff] px-3 py-2 text-[0.95rem] font-semibold text-[#263654]">
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f5b942] text-white">
+        <Sparkles className="h-[11px] w-[11px]" />
+      </span>
+      <span>
+        {amount} {label}
+      </span>
+    </span>
+  );
+}
+
+export function SessionConfig({
+  topic,
+  isBookmarked,
+  onToggleBookmark,
+  orbBalance,
+  referralCode,
+  onBalanceChange,
+  layout = "desktop",
+}: SessionConfigProps) {
   const router = useRouter();
   const t = useTranslations("dashboard.practice");
+  const [showOrbModal, setShowOrbModal] = useState(false);
+  const [isDeducting, setIsDeducting] = useState(false);
   const {
     side,
     practiceTrack,
@@ -80,41 +187,10 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
     startSession,
   } = useSessionStore();
 
-  const [orbBalance, setOrbBalance] = useState<number | null>(null);
-  const [referralCode, setReferralCode] = useState("");
-  const [showOrbModal, setShowOrbModal] = useState(false);
-  const [isDeducting, setIsDeducting] = useState(false);
-  const [debateMode, setDebateMode] = useState<"solo" | "duel">("solo");
-
-  useEffect(() => {
-    const load = async () => {
-      const balance = await getOrbBalanceAction();
-      setOrbBalance(balance);
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("referral_code")
-          .eq("id", user.id)
-          .single();
-        setReferralCode(data?.referral_code ?? "");
-      }
-    };
-    load();
-  }, []);
-
   const orbCost = practiceTrack === "debate" ? 200 : 100;
+  const isDesktop = layout === "desktop";
 
   const handleBegin = async () => {
-    if (practiceTrack === "debate" && debateMode === "duel") {
-      const searchParams = new URLSearchParams({
-        topic: topic.title,
-      });
-      router.push(`/debates/new?${searchParams.toString()}`);
-      return;
-    }
-
     if (orbBalance !== null && orbBalance < orbCost) {
       setShowOrbModal(true);
       return;
@@ -125,362 +201,188 @@ export function SessionConfig({ topic, onClose }: SessionConfigProps) {
     setIsDeducting(false);
 
     if (!result.success) {
-      setOrbBalance(result.newBalance);
+      onBalanceChange(result.newBalance);
       setShowOrbModal(true);
       return;
     }
 
-    setOrbBalance(result.newBalance);
+    onBalanceChange(result.newBalance);
     setTopic(topic);
     startSession();
     router.push("/practice/session");
   };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-outline-variant/10 bg-surface-container-lowest/95 backdrop-blur-xl lg:absolute lg:inset-auto lg:right-0 lg:top-0 lg:h-full lg:w-[400px] lg:rounded-l-2xl lg:rounded-t-none lg:border-l lg:border-t-0"
+    <>
+      <div
+        className={cn(
+          "rounded-[22px] border border-[#e4ebf8] bg-white px-7 py-6 shadow-[0_18px_38px_-34px_rgba(41,79,144,0.38)]",
+          isDesktop && "xl:sticky xl:top-6"
+        )}
       >
-        <div className="p-6">
-          {/* Header */}
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex-1 pr-4">
-              <h3 className="text-lg font-bold text-on-surface">
-                {t("session_config")}
-              </h3>
-              <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
-                {topic.title}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Close session configuration"
-              className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Practice Track */}
-          <div className="mb-6">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-              <Scale className="h-4 w-4 text-primary" />
-              {t("practice_track")}
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <OptionButton
-                active={practiceTrack === "speaking"}
-                onClick={() => setPracticeTrack("speaking")}
-              >
-                <MessageSquareText className="mr-1.5 inline h-3.5 w-3.5" />
-                {t("speaking_practice")}
-              </OptionButton>
-              <OptionButton
-                active={practiceTrack === "debate"}
-                onClick={() => setPracticeTrack("debate")}
-              >
-                <Scale className="mr-1.5 inline h-3.5 w-3.5" />
-                {t("debate_practice")}
-              </OptionButton>
-            </div>
-            <p className="mt-1.5 text-xs text-on-surface-variant">
-              {practiceTrack === "speaking"
-                ? t("speaking_desc")
-                : t("debate_desc")}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[0.92rem] font-medium text-[#627394]">
+              {t("selected_motion")}
             </p>
+            <h2 className="mt-3 text-[1.55rem] font-semibold leading-[1.16] text-on-surface">
+              {topic.title}
+            </h2>
           </div>
 
-          {practiceTrack === "debate" && (
-            <div className="mb-6">
-              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                <Users className="h-4 w-4 text-primary" />
-                Debate mode
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <OptionButton
-                  active={debateMode === "solo"}
-                  onClick={() => setDebateMode("solo")}
-                >
-                  <Scale className="mr-1.5 inline h-3.5 w-3.5" />
-                  Solo Debate
-                </OptionButton>
-                <OptionButton
-                  active={debateMode === "duel"}
-                  onClick={() => setDebateMode("duel")}
-                >
-                  <Users className="mr-1.5 inline h-3.5 w-3.5" />
-                  1v1 Debate
-                </OptionButton>
-              </div>
-              <p className="mt-1.5 text-xs text-on-surface-variant">
-                {debateMode === "solo"
-                  ? "Practice against AI or run the full solo round."
-                  : "Create a shared room and debate a real opponent on two devices."}
-              </p>
-            </div>
-          )}
+          <button
+            type="button"
+            aria-label={isBookmarked ? t("remove_bookmark") : t("save_topic")}
+            onClick={() => onToggleBookmark(topic.id)}
+            className="shrink-0 pt-1 text-[#7b8caa] transition-colors hover:text-primary"
+          >
+            {isBookmarked ? (
+              <BookmarkCheck className="h-[22px] w-[22px]" />
+            ) : (
+              <Bookmark className="h-[22px] w-[22px]" />
+            )}
+          </button>
+        </div>
 
-          {/* Mode */}
-          {practiceTrack === "debate" && debateMode === "solo" ? (
-            <div className="mb-6">
-              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                <Layers className="h-4 w-4 text-primary" />
-                {t("mode")}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <OptionButton
-                  active={mode === "quick"}
+        <div className="mt-5 border-t border-[#e7edf8] pt-5">
+          <div className="space-y-5">
+            <ConfigSection label={t("practice_track")} icon={Mic2}>
+              <div className="grid grid-cols-2 gap-3">
+                <SegmentButton
+                  active={practiceTrack === "speaking"}
+                  icon={Mic2}
+                  onClick={() => setPracticeTrack("speaking")}
+                >
+                  {t("speaking_practice")}
+                </SegmentButton>
+                <SegmentButton
+                  active={practiceTrack === "debate"}
+                  icon={Scale}
+                  onClick={() => setPracticeTrack("debate")}
+                >
+                  {t("debate_practice")}
+                </SegmentButton>
+              </div>
+            </ConfigSection>
+
+            <ConfigSection label={t("debate_mode")} icon={Users}>
+              <div className="grid grid-cols-2 gap-3">
+                <SegmentButton active icon={Users}>
+                  {t("solo_debate")}
+                </SegmentButton>
+                <SegmentButton active={false} disabled icon={Swords}>
+                  {t("one_vs_one_debate")}
+                </SegmentButton>
+              </div>
+            </ConfigSection>
+
+            <ConfigSection label={t("session_mode")} icon={Zap}>
+              <div className="grid grid-cols-2 gap-3">
+                <SegmentButton
+                  active={mode === "quick" || practiceTrack === "speaking"}
+                  icon={Zap}
                   onClick={() => setMode("quick")}
                 >
-                  <Zap className="mr-1.5 inline h-3.5 w-3.5" />
                   {t("quick_practice")}
-                </OptionButton>
-                <OptionButton
-                  active={mode === "full"}
-                  onClick={() => setMode("full")}
+                </SegmentButton>
+                <SegmentButton
+                  active={practiceTrack === "debate" && mode === "full"}
+                  disabled={practiceTrack === "speaking"}
+                  icon={Sparkles}
+                  onClick={
+                    practiceTrack === "debate"
+                      ? () => setMode("full")
+                      : undefined
+                  }
                 >
-                  <Layers className="mr-1.5 inline h-3.5 w-3.5" />
                   {t("full_round")}
-                </OptionButton>
+                </SegmentButton>
               </div>
-              <p className="mt-1.5 text-xs text-on-surface-variant">
-                {mode === "quick"
-                  ? t("quick_desc")
-                  : t("full_desc")}
-              </p>
+            </ConfigSection>
+
+            <SelectRow
+              label={t("ai_difficulty")}
+              icon={Sparkles}
+              value={aiDifficulty}
+              onChange={(next) => setAiDifficulty(next as typeof aiDifficulty)}
+              options={[
+                { value: "easy", label: t("easy") },
+                { value: "medium", label: t("medium") },
+                { value: "hard", label: t("hard") },
+              ]}
+            />
+
+            <SelectRow
+              label={t("your_side")}
+              icon={Scale}
+              value={side}
+              onChange={(next) => setSide(next as typeof side)}
+              options={[
+                { value: "random", label: t("random") },
+                { value: "proposition", label: t("side_affirmative") },
+                { value: "opposition", label: t("side_negative") },
+              ]}
+            />
+
+            <SelectRow
+              label={t("prep_time")}
+              icon={Clock3}
+              value={String(prepTime)}
+              onChange={(next) => setPrepTime(Number(next))}
+              options={[
+                { value: "60", label: "1 minute" },
+                { value: "120", label: "2 minutes" },
+                { value: "180", label: "3 minutes" },
+              ]}
+            />
+
+            <SelectRow
+              label={t("speech_time")}
+              icon={Clock3}
+              value={String(speechTime)}
+              onChange={(next) => setSpeechTime(Number(next))}
+              options={[
+                { value: "120", label: "2 minutes" },
+                { value: "180", label: "3 minutes" },
+                { value: "240", label: "4 minutes" },
+              ]}
+            />
+
+            <div className="flex items-center justify-between gap-4">
+              <FieldLabel icon={Sparkles} label={t("ai_hints")} />
+              <Switch checked={aiHints} onCheckedChange={setAiHints} />
             </div>
-          ) : practiceTrack === "debate" && debateMode === "duel" ? (
-            <div className="mb-6 rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-              <p className="text-sm font-medium text-on-surface">
-                Duel room setup
-              </p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                Choose the motion here, then confirm side assignment and 1v1 timers on the next screen.
-              </p>
-            </div>
-          ) : (
-            <div className="mb-6 rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-              <p className="text-sm font-medium text-on-surface">
-                {t("single_speech")}
-              </p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                {t("single_speech_desc")}
-              </p>
-            </div>
-          )}
+          </div>
+        </div>
 
-          {/* AI Difficulty — only for Full Round */}
-          {practiceTrack === "debate" && debateMode === "solo" && mode === "full" && (
-            <div className="mb-6">
-              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                <Bot className="h-4 w-4 text-primary" />
-                {t("ai_difficulty")}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <OptionButton
-                  active={aiDifficulty === "easy"}
-                  onClick={() => setAiDifficulty("easy")}
-                >
-                  {t("easy")}
-                </OptionButton>
-                <OptionButton
-                  active={aiDifficulty === "medium"}
-                  onClick={() => setAiDifficulty("medium")}
-                >
-                  {t("medium")}
-                </OptionButton>
-                <OptionButton
-                  active={aiDifficulty === "hard"}
-                  onClick={() => setAiDifficulty("hard")}
-                >
-                  {t("hard")}
-                </OptionButton>
-              </div>
-              <p className="mt-1.5 text-xs text-on-surface-variant">
-                {aiDifficulty === "easy"
-                  ? t("easy_desc")
-                  : aiDifficulty === "medium"
-                    ? t("medium_desc")
-                    : t("hard_desc")}
-              </p>
-            </div>
-          )}
+        <div className="mt-6 border-t border-[#e7edf8] pt-5">
+          <div className="flex items-center justify-between gap-4">
+            <FieldLabel icon={Sparkles} label={t("session_cost")} />
+            <CreditPill amount={String(orbCost)} label={t("credits_label")} />
+          </div>
 
-          {!(practiceTrack === "debate" && debateMode === "duel") ? (
-            <>
-              {/* Side */}
-              <div className="mb-6">
-                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                  <Shuffle className="h-4 w-4 text-primary" />
-                  {t("your_side")}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <OptionButton
-                    active={side === "random"}
-                    onClick={() => setSide("random")}
-                  >
-                    <Shuffle className="mr-1 inline h-3.5 w-3.5" />
-                    {t("random")}
-                  </OptionButton>
-                  <OptionButton
-                    active={side === "proposition"}
-                    onClick={() => setSide("proposition")}
-                  >
-                    <ThumbsUp className="mr-1 inline h-3.5 w-3.5" />
-                    {t("for")}
-                  </OptionButton>
-                  <OptionButton
-                    active={side === "opposition"}
-                    onClick={() => setSide("opposition")}
-                  >
-                    <ThumbsDown className="mr-1 inline h-3.5 w-3.5" />
-                    {t("against")}
-                  </OptionButton>
-                </div>
-              </div>
-
-              {/* Prep Time */}
-              <div className="mb-6">
-                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                  <Clock className="h-4 w-4 text-primary" />
-                  {t("prep_time")}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[60, 120, 180].map((val) => (
-                    <OptionButton
-                      key={val}
-                      active={prepTime === val}
-                      onClick={() => setPrepTime(val)}
-                    >
-                      {val / 60} min
-                    </OptionButton>
-                  ))}
-                </div>
-              </div>
-
-              {/* Speech Time */}
-              <div className="mb-6">
-                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-on-surface">
-                  <Mic2 className="h-4 w-4 text-primary" />
-                  {t("speech_time")}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[120, 180, 240].map((val) => (
-                    <OptionButton
-                      key={val}
-                      active={speechTime === val}
-                      onClick={() => setSpeechTime(val)}
-                    >
-                      {val / 60} min
-                    </OptionButton>
-                  ))}
-                </div>
-              </div>
-
-              {/* AI Hints */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm font-medium text-on-surface">
-                    <Lightbulb className="h-4 w-4 text-primary" />
-                    {t("ai_hints")}
-                  </label>
-                  <button
-                    role="switch"
-                    aria-checked={aiHints}
-                    aria-label="Toggle AI hints during preparation"
-                    onClick={() => setAiHints(!aiHints)}
-                    className={cn(
-                      "relative h-6 w-11 rounded-full transition-colors",
-                      aiHints ? "bg-primary" : "bg-outline-variant"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform",
-                        aiHints && "translate-x-5"
-                      )}
-                    />
-                  </button>
-                </div>
-                <p className="mt-1.5 text-xs text-on-surface-variant">
-                  {t("ai_hints_desc")}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="mb-8 rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-              <p className="text-sm font-medium text-on-surface">
-                Duel setup continues on the next screen
-              </p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                You’ll confirm side assignment and 1v1 timers when the room is created.
-              </p>
-            </div>
-          )}
-
-          {/* Credit Cost Indicator */}
-          {orbBalance !== null && debateMode === "solo" && (
-            <div className="mb-3 flex items-center justify-between rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-2.5">
-              <span className="text-sm text-on-surface-variant">Session cost</span>
-              <OrbBalance balance={orbCost} size="sm" showLabel />
-            </div>
-          )}
-
-          {practiceTrack === "debate" && debateMode === "duel" && (
-            <div className="mb-3 rounded-xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-on-surface-variant">Duel entry cost</span>
-                <span className="font-medium text-on-surface">200 Credits each</span>
-              </div>
-              <p className="mt-1.5 text-xs text-on-surface-variant">
-                Credits are charged only when both debaters are ready and the duel starts.
-              </p>
-            </div>
-          )}
-
-          {/* Begin Button */}
           <Button
             onClick={handleBegin}
             disabled={isDeducting}
-            className="w-full gap-2 bg-primary py-6 text-base font-semibold text-on-primary hover:bg-primary/90"
+            className="mt-5 h-[50px] w-full rounded-[0.95rem] bg-primary text-[1.02rem] font-semibold text-on-primary hover:bg-primary/92"
           >
-            {isDeducting ? (
-              "Starting..."
-            ) : practiceTrack === "debate" && debateMode === "duel" ? (
-              <>
-                Create duel room
-                <ArrowRight className="h-5 w-5" />
-              </>
-            ) : (
-              <>
-                {t("begin_session")}
-                <ArrowRight className="h-5 w-5" />
-              </>
-            )}
+            {isDeducting ? t("starting") : t("begin_session")}
+            <ArrowRight className="ml-2 h-[18px] w-[18px]" />
           </Button>
 
-          {/* Current balance */}
-          {orbBalance !== null && (
-            <div className="mt-2 flex items-center justify-center gap-1 text-xs text-on-surface-variant">
-              <span>Your balance:</span>
-              <OrbBalance balance={orbBalance} size="sm" />
-            </div>
-          )}
+          <p className="mt-4 text-center text-[13px] text-[#7d8ba8]">
+            {t("settings_note")}
+          </p>
         </div>
+      </div>
 
-        {/* Out of Orbs Modal */}
-        <OutOfOrbsModal
-          open={showOrbModal}
-          onClose={() => setShowOrbModal(false)}
-          referralCode={referralCode}
-          orbBalance={orbBalance ?? 0}
-          orbCost={orbCost}
-        />
-      </motion.div>
-    </AnimatePresence>
+      <OutOfOrbsModal
+        open={showOrbModal}
+        onClose={() => setShowOrbModal(false)}
+        referralCode={referralCode}
+        orbBalance={orbBalance ?? 0}
+        orbCost={orbCost}
+      />
+    </>
   );
 }
