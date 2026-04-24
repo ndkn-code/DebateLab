@@ -7,6 +7,9 @@ export type SkillMetricKey =
   | "evidence"
   | "delivery";
 
+type TopicDifficulty = "beginner" | "intermediate" | "advanced";
+type AiDifficulty = "easy" | "medium" | "hard";
+
 const SKILL_KEYS: SkillMetricKey[] = [
   "clarity",
   "logic",
@@ -32,6 +35,34 @@ const TRACK_SKILL_WEIGHTS: Record<PracticeTrack, Record<SkillMetricKey, number>>
   },
 };
 
+const TOPIC_DIFFICULTY_LEVEL: Record<TopicDifficulty, number> = {
+  beginner: -1,
+  intermediate: 0,
+  advanced: 1,
+};
+
+const AI_DIFFICULTY_LEVEL: Record<AiDifficulty, number> = {
+  easy: -1,
+  medium: 0,
+  hard: 1,
+};
+
+const TOPIC_CHALLENGE_IMPACT: Record<SkillMetricKey, number> = {
+  clarity: 0.14,
+  logic: 0.18,
+  rebuttal: 0.14,
+  evidence: 0.18,
+  delivery: 0.06,
+};
+
+const AI_CHALLENGE_IMPACT: Record<SkillMetricKey, number> = {
+  clarity: 0.06,
+  logic: 0.14,
+  rebuttal: 0.2,
+  evidence: 0.12,
+  delivery: 0.04,
+};
+
 const MAX_TRACK_WEIGHT_BY_SKILL = SKILL_KEYS.reduce(
   (summary, skill) => {
     summary[skill] = Math.max(
@@ -49,6 +80,8 @@ const LOW_COVERAGE_THRESHOLD = 25;
 
 export interface SkillMetric {
   key: SkillMetricKey;
+  rawValue: number;
+  challengeAdjustedValue: number;
   value: number;
   effectiveSessions: number;
   coverage: number;
@@ -62,6 +95,10 @@ export interface SkillSnapshot {
   sourceSessions: number;
   confidence: number;
   trackBreakdown: Record<PracticeTrack, number>;
+  difficultyBreakdown: {
+    topic: Record<TopicDifficulty, number>;
+    ai: Record<AiDifficulty | "none", number>;
+  };
 }
 
 export interface SkillFeedbackSource {
@@ -75,6 +112,10 @@ export interface SkillFeedbackSource {
   duration_seconds?: number | null;
   durationSeconds?: number | null;
   duration?: number | null;
+  topic_difficulty?: string | null;
+  topicDifficulty?: string | null;
+  ai_difficulty?: string | null;
+  aiDifficulty?: string | null;
 }
 
 export function roundToTenth(value: number) {
@@ -90,6 +131,8 @@ function emptySkillSnapshot(): SkillSnapshot {
   return {
     metrics: SKILL_KEYS.map((key) => ({
       key,
+      rawValue: 0,
+      challengeAdjustedValue: 0,
       value: 0,
       effectiveSessions: 0,
       coverage: 0,
@@ -100,6 +143,10 @@ function emptySkillSnapshot(): SkillSnapshot {
     sourceSessions: 0,
     confidence: 0,
     trackBreakdown: { speaking: 0, debate: 0 },
+    difficultyBreakdown: {
+      topic: { beginner: 0, intermediate: 0, advanced: 0 },
+      ai: { easy: 0, medium: 0, hard: 0, none: 0 },
+    },
   };
 }
 
@@ -115,6 +162,66 @@ function normalizeOptional(value: unknown, max: number) {
 
 function inferTrack(feedback: DebateScore): PracticeTrack {
   return feedback.practiceTrack === "speaking" ? "speaking" : "debate";
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function logit(value: number) {
+  return Math.log(value / (1 - value));
+}
+
+function sigmoid(value: number) {
+  return 1 / (1 + Math.exp(-value));
+}
+
+function normalizeTopicDifficulty(value: unknown): TopicDifficulty {
+  return value === "beginner" || value === "advanced" ? value : "intermediate";
+}
+
+function normalizeAiDifficulty(value: unknown): AiDifficulty | "none" {
+  if (value === "easy" || value === "medium" || value === "hard") {
+    return value;
+  }
+
+  return "none";
+}
+
+function getTopicDifficulty(session: SkillFeedbackSource) {
+  return normalizeTopicDifficulty(
+    session.topic_difficulty ?? session.topicDifficulty
+  );
+}
+
+function getAiDifficulty(session: SkillFeedbackSource) {
+  return normalizeAiDifficulty(session.ai_difficulty ?? session.aiDifficulty);
+}
+
+function getAiDifficultyLevel(track: PracticeTrack, session: SkillFeedbackSource) {
+  if (track !== "debate" || session.mode !== "full") return 0;
+
+  const difficulty = getAiDifficulty(session);
+  return difficulty === "none" ? 0 : AI_DIFFICULTY_LEVEL[difficulty];
+}
+
+function getChallengeAdjustment(
+  track: PracticeTrack,
+  skill: SkillMetricKey,
+  session: SkillFeedbackSource
+) {
+  const topicLevel = TOPIC_DIFFICULTY_LEVEL[getTopicDifficulty(session)];
+  const aiLevel = getAiDifficultyLevel(track, session);
+
+  return (
+    topicLevel * TOPIC_CHALLENGE_IMPACT[skill] +
+    aiLevel * AI_CHALLENGE_IMPACT[skill]
+  );
+}
+
+function applyChallengeAdjustment(score: number, adjustment: number) {
+  const normalizedScore = clamp(score / 100, 0.01, 0.99);
+  return roundToTenth(sigmoid(logit(normalizedScore) + adjustment) * 100);
 }
 
 function getSessionTimestamp(session: SkillFeedbackSource) {
@@ -154,6 +261,16 @@ function getSessionQualityWeight(session: SkillFeedbackSource) {
   }
 
   return 1;
+}
+
+function getChallengeEvidenceWeight(
+  track: PracticeTrack,
+  session: SkillFeedbackSource
+) {
+  const topicLevel = TOPIC_DIFFICULTY_LEVEL[getTopicDifficulty(session)];
+  const aiLevel = getAiDifficultyLevel(track, session);
+
+  return clamp(1 + topicLevel * 0.05 + aiLevel * 0.05, 0.9, 1.12);
 }
 
 function getSkillScores(feedback: DebateScore) {
@@ -240,29 +357,52 @@ export function computeSkillSnapshot(
 
   const totals = SKILL_KEYS.reduce(
     (summary, key) => {
-      summary[key] = { weightedScore: 0, weightedDenominator: 0, support: 0 };
+      summary[key] = {
+        weightedScore: 0,
+        weightedRawScore: 0,
+        weightedDenominator: 0,
+        support: 0,
+      };
       return summary;
     },
     {} as Record<
       SkillMetricKey,
-      { weightedScore: number; weightedDenominator: number; support: number }
+      {
+        weightedScore: number;
+        weightedRawScore: number;
+        weightedDenominator: number;
+        support: number;
+      }
     >
   );
   const trackBreakdown: Record<PracticeTrack, number> = {
     speaking: 0,
     debate: 0,
   };
+  const difficultyBreakdown: SkillSnapshot["difficultyBreakdown"] = {
+    topic: { beginner: 0, intermediate: 0, advanced: 0 },
+    ai: { easy: 0, medium: 0, hard: 0, none: 0 },
+  };
   let totalEffectiveSessions = 0;
 
   for (const session of sessionsWithFeedback) {
     const feedback = session.feedback!;
     const track = inferTrack(feedback);
+    const topicDifficulty = getTopicDifficulty(session);
+    const aiDifficulty = getAiDifficulty(session);
     const recencyWeight = getRecencyWeight(session);
     const sessionQualityWeight = getSessionQualityWeight(session);
-    const sessionWeight = recencyWeight * sessionQualityWeight;
+    const sessionWeight =
+      recencyWeight *
+      sessionQualityWeight *
+      getChallengeEvidenceWeight(track, session);
     const skillScores = getSkillScores(feedback);
 
     trackBreakdown[track] += 1;
+    difficultyBreakdown.topic[topicDifficulty] += 1;
+    difficultyBreakdown.ai[
+      track === "debate" && session.mode === "full" ? aiDifficulty : "none"
+    ] += 1;
     totalEffectiveSessions += sessionWeight;
 
     for (const skill of SKILL_KEYS) {
@@ -271,12 +411,17 @@ export function computeSkillSnapshot(
 
       const trackWeight = TRACK_SKILL_WEIGHTS[track][skill];
       const contributionWeight = sessionWeight * trackWeight;
+      const adjustedSkillScore = applyChallengeAdjustment(
+        skillScore,
+        getChallengeAdjustment(track, skill, session)
+      );
       const applicability =
         MAX_TRACK_WEIGHT_BY_SKILL[skill] > 0
           ? trackWeight / MAX_TRACK_WEIGHT_BY_SKILL[skill]
           : 0;
 
-      totals[skill].weightedScore += skillScore * contributionWeight;
+      totals[skill].weightedScore += adjustedSkillScore * contributionWeight;
+      totals[skill].weightedRawScore += skillScore * contributionWeight;
       totals[skill].weightedDenominator += contributionWeight;
       totals[skill].support += sessionWeight * applicability;
     }
@@ -284,12 +429,19 @@ export function computeSkillSnapshot(
 
   const metrics: SkillMetric[] = SKILL_KEYS.map((key) => {
     const summary = totals[key];
+    const challengeAdjustedValue =
+      summary.weightedDenominator > 0
+        ? roundToTenth(summary.weightedScore / summary.weightedDenominator)
+        : 0;
+
     return {
       key,
-      value:
+      rawValue:
         summary.weightedDenominator > 0
-          ? roundToTenth(summary.weightedScore / summary.weightedDenominator)
+          ? roundToTenth(summary.weightedRawScore / summary.weightedDenominator)
           : 0,
+      challengeAdjustedValue,
+      value: challengeAdjustedValue,
       effectiveSessions: roundToTenth(summary.support),
       coverage: Math.round(
         Math.min(
@@ -336,5 +488,6 @@ export function computeSkillSnapshot(
       )
     ),
     trackBreakdown,
+    difficultyBreakdown,
   };
 }

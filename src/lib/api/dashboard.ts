@@ -6,6 +6,7 @@ import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,
   type SkillMetric as DashboardSharedSkillMetric,
+  type SkillSnapshot as DashboardSharedSkillSnapshot,
 } from "@/lib/analytics/skill-snapshot";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
@@ -60,8 +61,10 @@ type SessionScoreRow = {
   id: string;
   topic_title: string;
   category: string | null;
+  topic_difficulty: string | null;
   side: string;
   mode: string;
+  ai_difficulty: string | null;
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
@@ -119,6 +122,8 @@ export interface DashboardNavItem {
 
 export interface DashboardSkillMetric {
   key: DashboardSharedSkillMetric["key"];
+  rawValue: DashboardSharedSkillMetric["rawValue"];
+  challengeAdjustedValue: DashboardSharedSkillMetric["challengeAdjustedValue"];
   value: DashboardSharedSkillMetric["value"];
   effectiveSessions: DashboardSharedSkillMetric["effectiveSessions"];
   coverage: DashboardSharedSkillMetric["coverage"];
@@ -132,6 +137,7 @@ export interface DashboardSkillSnapshot {
   sourceSessions: number;
   confidence: number;
   trackBreakdown: Record<PracticeTrack, number>;
+  difficultyBreakdown: DashboardSharedSkillSnapshot["difficultyBreakdown"];
 }
 
 export interface DashboardQuickAction {
@@ -552,7 +558,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
+        "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -561,7 +567,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at"
+        "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
       .eq("user_id", userId)
       .not("total_score", "is", null)

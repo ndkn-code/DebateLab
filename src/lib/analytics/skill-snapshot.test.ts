@@ -69,6 +69,8 @@ function source(params: {
   mode?: "quick" | "full";
   duration?: number;
   totalScore?: number | null;
+  topicDifficulty?: "beginner" | "intermediate" | "advanced";
+  aiDifficulty?: "easy" | "medium" | "hard";
 }): SkillFeedbackSource {
   return {
     feedback: params.feedback,
@@ -76,6 +78,8 @@ function source(params: {
     mode: params.mode ?? "full",
     duration_seconds: params.duration ?? 900,
     total_score: params.totalScore === undefined ? 80 : params.totalScore,
+    topic_difficulty: params.topicDifficulty,
+    ai_difficulty: params.aiDifficulty,
   };
 }
 
@@ -85,6 +89,10 @@ function metricValue(snapshot: ReturnType<typeof computeSkillSnapshot>, key: str
 
 function metricCoverage(snapshot: ReturnType<typeof computeSkillSnapshot>, key: string) {
   return snapshot.metrics.find((metric) => metric.key === key)?.coverage ?? null;
+}
+
+function metricRawValue(snapshot: ReturnType<typeof computeSkillSnapshot>, key: string) {
+  return snapshot.metrics.find((metric) => metric.key === key)?.rawValue ?? null;
 }
 
 {
@@ -186,6 +194,73 @@ function metricCoverage(snapshot: ReturnType<typeof computeSkillSnapshot>, key: 
   ]);
 
   assert.equal(snapshot.trackBreakdown.debate, 1);
+}
+
+{
+  const beginner = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "speaking", clarity: 8 }),
+      topicDifficulty: "beginner",
+    }),
+  ]);
+  const advanced = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "speaking", clarity: 8 }),
+      topicDifficulty: "advanced",
+    }),
+  ]);
+
+  assert.equal(metricRawValue(beginner, "clarity"), metricRawValue(advanced, "clarity"));
+  assert.ok(
+    (metricValue(advanced, "clarity") ?? 0) >
+      (metricValue(beginner, "clarity") ?? 0)
+  );
+  assert.equal(advanced.difficultyBreakdown.topic.advanced, 1);
+}
+
+{
+  const easyAi = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "debate", rebuttal: 8 }),
+      aiDifficulty: "easy",
+    }),
+  ]);
+  const hardAi = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "debate", rebuttal: 8 }),
+      aiDifficulty: "hard",
+    }),
+  ]);
+
+  assert.ok(
+    (metricValue(hardAi, "rebuttal") ?? 0) >
+      (metricValue(easyAi, "rebuttal") ?? 0)
+  );
+  assert.ok(hardAi.confidence > easyAi.confidence);
+  assert.equal(hardAi.difficultyBreakdown.ai.hard, 1);
+}
+
+{
+  const quickEasy = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "debate", rebuttal: 8 }),
+      mode: "quick",
+      aiDifficulty: "easy",
+    }),
+  ]);
+  const quickHard = computeSkillSnapshot([
+    source({
+      feedback: score({ track: "debate", rebuttal: 8 }),
+      mode: "quick",
+      aiDifficulty: "hard",
+    }),
+  ]);
+
+  assert.equal(
+    metricValue(quickEasy, "rebuttal"),
+    metricValue(quickHard, "rebuttal")
+  );
+  assert.equal(quickHard.difficultyBreakdown.ai.none, 1);
 }
 
 console.log("skill-snapshot tests passed");

@@ -29,8 +29,10 @@ type SessionRow = {
   id: string;
   topic_title: string;
   category: string | null;
+  topic_difficulty: string | null;
   side: string;
   mode: string;
+  ai_difficulty: string | null;
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
@@ -683,7 +685,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+          "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
         )
         .eq("user_id", userId)
         .not("total_score", "is", null)
@@ -692,7 +694,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       supabase
         .from("debate_sessions")
         .select(
-          "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+          "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -816,6 +818,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       sourceSessions: skillSnapshot.sourceSessions,
       confidence: skillSnapshot.confidence,
       trackBreakdown: skillSnapshot.trackBreakdown,
+      difficultyBreakdown: skillSnapshot.difficultyBreakdown,
     },
     weaknessPatterns,
     recentSessions: mappedRecentSessions,
@@ -852,6 +855,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       sourceSessions: skillSnapshot.sourceSessions,
       confidence: skillSnapshot.confidence,
       trackBreakdown: skillSnapshot.trackBreakdown,
+      difficultyBreakdown: skillSnapshot.difficultyBreakdown,
     },
     recentTrend,
     weaknessPatterns,

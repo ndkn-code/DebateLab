@@ -420,7 +420,7 @@
       "today_practice_note": "Vào nhịp và chạm mục tiêu trong ngày.",
       "goal_minutes": "Mục tiêu: {count} phút",
       "skill_snapshot_title": "Ảnh Chụp Kỹ Năng",
-      "skill_snapshot_hint": "Biểu đồ này được tổng hợp từ toàn bộ các phiên có chấm điểm, nên phản ánh form dài hạn chứ không chỉ riêng tuần này.",
+      "skill_snapshot_hint": "Được tính từ các phiên luyện tập có chấm điểm gần đây và đã điều chỉnh theo độ khó chủ đề lẫn AI.",
       "skill_snapshot_empty_title": "Cần thêm vài phiên có chấm điểm để mở khóa biểu đồ kỹ năng",
       "skill_snapshot_empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc debate có feedback, rồi biểu đồ này sẽ bắt đầu phản ánh thế mạnh dài hạn của bạn.",
       "overall_score": "Điểm Tổng Quan",

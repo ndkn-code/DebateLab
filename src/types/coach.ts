@@ -11,6 +11,8 @@ export type CoachIntentMode =
 
 export interface CoachSkillMetric {
   key: SkillMetricKey;
+  rawValue: number;
+  challengeAdjustedValue: number;
   value: number;
   effectiveSessions: number;
   coverage: number;
@@ -82,6 +84,10 @@ export interface CoachProfile {
     sourceSessions: number;
     confidence: number;
     trackBreakdown: Record<PracticeTrack, number>;
+    difficultyBreakdown: {
+      topic: Record<"beginner" | "intermediate" | "advanced", number>;
+      ai: Record<"easy" | "medium" | "hard" | "none", number>;
+    };
   };
   recentTrend: CoachTrendSummary;
   weaknessPatterns: CoachWeaknessPattern[];

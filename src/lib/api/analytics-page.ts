@@ -40,8 +40,10 @@ type SoloSessionRow = {
   id: string;
   topic_title: string;
   category: string;
+  topic_difficulty: string | null;
   side: DebateDuelSide;
   mode: "quick" | "full";
+  ai_difficulty: string | null;
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
@@ -249,6 +251,8 @@ function mapSkillSnapshot(rows: SkillFeedbackSource[]) {
   return {
     metrics: snapshot.metrics.map((metric) => ({
       key: metric.key,
+      rawValue: metric.rawValue,
+      challengeAdjustedValue: metric.challengeAdjustedValue,
       value: metric.value,
       effectiveSessions: metric.effectiveSessions,
       coverage: metric.coverage,
@@ -259,6 +263,7 @@ function mapSkillSnapshot(rows: SkillFeedbackSource[]) {
     sourceSessions: snapshot.sourceSessions,
     confidence: snapshot.confidence,
     trackBreakdown: snapshot.trackBreakdown,
+    difficultyBreakdown: snapshot.difficultyBreakdown,
     note: buildSkillNote(
       snapshot.strongestSkill,
       snapshot.sourceSessions,
@@ -369,7 +374,7 @@ export async function getAnalyticsPageData(
   } = getRangeWindow(range);
   const supabase = await createClient();
   const soloSessionSelect =
-    "id, topic_title, category, side, mode, feedback, total_score, overall_band, duration_seconds, created_at";
+    "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at";
 
   const [
     profileRes,

@@ -420,7 +420,7 @@
       "today_practice_note": "Show up and hit your daily goal.",
       "goal_minutes": "Goal: {count} min",
       "skill_snapshot_title": "Skill Snapshot",
-      "skill_snapshot_hint": "Built from your lifetime scored sessions, so it reflects your long-term profile instead of only this week.",
+      "skill_snapshot_hint": "Built from recent scored practice and adjusted for topic and AI difficulty.",
       "skill_snapshot_empty_title": "Skill snapshot unlocks after a few scored rounds",
       "skill_snapshot_empty_body": "Complete some speaking or debate sessions with feedback, and this radar will start reflecting your long-term strengths.",
       "overall_score": "Overall Score",

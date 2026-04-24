@@ -21,6 +21,8 @@ export interface AnalyticsHero {
 
 export interface AnalyticsSkillMetric {
   key: SkillMetricKey;
+  rawValue: number;
+  challengeAdjustedValue: number;
   value: number;
   effectiveSessions: number;
   coverage: number;
@@ -34,6 +36,10 @@ export interface AnalyticsSkillSnapshot {
   sourceSessions: number;
   confidence: number;
   trackBreakdown: Record<PracticeTrack, number>;
+  difficultyBreakdown: {
+    topic: Record<"beginner" | "intermediate" | "advanced", number>;
+    ai: Record<"easy" | "medium" | "hard" | "none", number>;
+  };
   note: string;
 }
 
