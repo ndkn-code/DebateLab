@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DuelLobbySetupView } from "@/components/debates/duel-setup-flow";
 import { cn } from "@/lib/utils";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import {
@@ -414,6 +415,10 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
         </div>
       </div>
     );
+  }
+
+  if (room.status === "lobby") {
+    return <DuelLobbySetupView room={room} mutate={mutate} />;
   }
 
   return (

@@ -36,7 +36,7 @@ export function Navbar() {
             History
           </Link>
           <Link href="/practice">
-            <Button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
+            <Button className="bg-primary text-on-primary hover:bg-primary-dim">
               Start Practicing
             </Button>
           </Link>
@@ -73,7 +73,7 @@ export function Navbar() {
               History
             </Link>
             <Link href="/practice" onClick={() => setMobileOpen(false)}>
-              <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+              <Button className="w-full bg-primary text-on-primary hover:bg-primary-dim">
                 Start Practicing
               </Button>
             </Link>

@@ -30,6 +30,12 @@ export async function POST(
     if (rawMessage.includes("INSUFFICIENT_CREDITS")) {
       message = "Both debaters need at least 200 Credits to start this duel.";
       status = 400;
+    } else if (rawMessage.includes("FORBIDDEN")) {
+      message = "You are not allowed to start as another user.";
+      status = 403;
+    } else if (rawMessage.includes("DUEL_CREATOR_REQUIRED")) {
+      message = "Only the room creator can start this duel.";
+      status = 403;
     } else if (rawMessage.includes("DUEL_NOT_READY")) {
       message = "Both debaters need to mark ready before the duel can start.";
       status = 400;

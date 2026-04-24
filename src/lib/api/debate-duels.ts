@@ -23,6 +23,7 @@ type DuelRow = {
   creator_id: string;
   topic_title: string;
   topic_category: string;
+  topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
   prep_time_seconds: number;
   opening_time_seconds: number;
@@ -81,6 +82,7 @@ type DuelJudgmentRow = {
 export interface CreateDebateDuelInput {
   topicTitle: string;
   topicCategory: string;
+  topicDifficulty: "beginner" | "intermediate" | "advanced";
   topicDescription?: string;
   prepTimeSeconds: number;
   openingTimeSeconds: number;
@@ -127,7 +129,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: duel, error: duelError } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("share_code", normalizedCode)
     .maybeSingle();
@@ -225,6 +227,7 @@ function toRoomView(params: {
     shareCode: duel.share_code,
     topicTitle: duel.topic_title,
     topicCategory: duel.topic_category,
+    topicDifficulty: duel.topic_difficulty,
     topicDescription: duel.topic_description,
     status: isExpired ? "expired" : duel.status,
     currentPhase: duel.current_phase,
@@ -271,7 +274,7 @@ async function getDuelById(duelId: string) {
   const { data, error } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("id", duelId)
     .single();
@@ -346,6 +349,7 @@ export async function createDebateDuelRoom(
       creator_id: userId,
       topic_title: input.topicTitle,
       topic_category: input.topicCategory,
+      topic_difficulty: input.topicDifficulty,
       topic_description: input.topicDescription ?? null,
       prep_time_seconds: input.prepTimeSeconds,
       opening_time_seconds: input.openingTimeSeconds,
@@ -383,33 +387,9 @@ export async function createDebateDuelRoom(
 
 export async function joinDebateDuelRoom(shareCode: string, userId: string) {
   const supabase = await createClient();
-  const room = await getDebateDuelRoom(shareCode, userId);
-  if (!room) throw new Error("Duel room not found");
-  if (room.status !== "lobby") throw new Error("This duel has already started");
-  if (room.viewer.isParticipant) return room;
-  if (room.participants.length >= 2) {
-    throw new Error("This duel room is already full");
-  }
-
-  const joinRole =
-    room.sideAssignmentMode === "choose" && room.creatorSidePreference
-      ? room.creatorSidePreference === "proposition"
-        ? "opposition"
-        : "proposition"
-      : null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url")
-    .eq("id", userId)
-    .single();
-
-  const { error } = await supabase.from("debate_duel_participants").insert({
-    duel_id: room.id,
-    user_id: userId,
-    role: joinRole,
-    display_name_snapshot: profile?.display_name || "Debater",
-    avatar_url_snapshot: profile?.avatar_url ?? null,
+  const { error } = await supabase.rpc("join_debate_duel", {
+    p_share_code: normalizeShareCode(shareCode),
+    p_actor_user_id: userId,
   });
 
   if (error) {
@@ -425,18 +405,11 @@ export async function setDebateDuelReady(
   ready: boolean
 ) {
   const supabase = await createClient();
-  const room = await getDebateDuelRoom(shareCode, userId);
-  if (!room?.viewer.participantId) {
-    throw new Error("Join the duel before marking ready");
-  }
-
-  const { error } = await supabase
-    .from("debate_duel_participants")
-    .update({
-      ready_at: ready ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", room.viewer.participantId);
+  const { error } = await supabase.rpc("set_debate_duel_ready", {
+    p_share_code: normalizeShareCode(shareCode),
+    p_actor_user_id: userId,
+    p_ready: ready,
+  });
 
   if (error) {
     throw new Error(error.message);
@@ -729,7 +702,7 @@ export async function getDebateDuelHistory(
   const { data: duels } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .in("id", duelIds)
     .eq("status", "completed")

@@ -58,7 +58,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
           {!isLoggedIn ? (
             <Link
               href="/auth/signup"
-              className="inline-flex h-12 items-center rounded-[14px] bg-[#4D86F7] px-6 text-sm font-semibold text-white shadow-[0_18px_30px_-18px_rgba(77,134,247,0.8)] transition-transform hover:-translate-y-0.5"
+              className="btn-3d-primary inline-flex h-12 items-center rounded-[14px] bg-primary px-6 text-sm font-semibold text-on-primary hover:bg-primary-dim"
             >
               {copy.nav.signup}
             </Link>
@@ -107,7 +107,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
             {!isLoggedIn ? (
               <Link
                 href="/auth/signup"
-                className="inline-flex h-11 items-center rounded-[14px] bg-[#4D86F7] px-5 text-sm font-semibold text-white"
+                className="btn-3d-primary inline-flex h-11 items-center rounded-[14px] bg-primary px-5 text-sm font-semibold text-on-primary hover:bg-primary-dim"
                 onClick={() => setMobileOpen(false)}
               >
                 {copy.nav.signup}

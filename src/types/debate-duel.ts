@@ -20,6 +20,7 @@ export type DebateDuelPhase =
 export type DebateDuelSide = "proposition" | "opposition";
 export type DebateDuelSideAssignmentMode = "random" | "choose";
 export type DebateDuelSpeechType = "opening" | "rebuttal";
+export type DebateDuelTopicDifficulty = "beginner" | "intermediate" | "advanced";
 
 export interface DebateDuelConfig {
   prepTimeSeconds: number;
@@ -100,6 +101,7 @@ export interface DebateDuelRoomView {
   shareCode: string;
   topicTitle: string;
   topicCategory: string;
+  topicDifficulty: DebateDuelTopicDifficulty;
   topicDescription: string | null;
   status: DebateDuelStatus;
   currentPhase: DebateDuelPhase;

@@ -21,8 +21,29 @@ export async function POST(
 
     return NextResponse.json(room);
   } catch (error) {
-    const message =
+    const rawMessage =
       error instanceof Error ? error.message : "Failed to join duel.";
-    return NextResponse.json({ error: message }, { status: 400 });
+
+    let message = rawMessage;
+    let status = 400;
+
+    if (rawMessage.includes("FORBIDDEN")) {
+      message = "You are not allowed to join as another user.";
+      status = 403;
+    } else if (rawMessage.includes("DUEL_NOT_FOUND")) {
+      message = "Duel room not found.";
+      status = 404;
+    } else if (rawMessage.includes("DUEL_ROOM_FULL")) {
+      message = "This duel room is already full.";
+      status = 409;
+    } else if (rawMessage.includes("DUEL_ALREADY_STARTED")) {
+      message = "This duel has already started.";
+      status = 409;
+    } else if (rawMessage.includes("DUEL_EXPIRED")) {
+      message = "This duel room has expired.";
+      status = 410;
+    }
+
+    return NextResponse.json({ error: message }, { status });
   }
 }

@@ -86,7 +86,7 @@ export function Hero() {
           <Link href="/practice">
             <Button
               size="lg"
-              className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 px-8 text-white hover:from-blue-600 hover:to-purple-700"
+              className="gap-2 bg-primary px-8 text-on-primary hover:bg-primary-dim"
             >
               Start Practicing
               <ArrowRight className="h-4 w-4" />

@@ -33,8 +33,13 @@ async function fetchRoom(url: string): Promise<DebateDuelRoomView> {
   return payload;
 }
 
-export function useDebateDuelRoom(shareCode: string, mode: "room" | "result" = "room") {
-  const key = `/api/debate-duels/${shareCode}${mode === "result" ? "/result" : ""}`;
+export function useDebateDuelRoom(
+  shareCode: string | null,
+  mode: "room" | "result" = "room"
+) {
+  const key = shareCode
+    ? `/api/debate-duels/${shareCode}${mode === "result" ? "/result" : ""}`
+    : null;
   const swr = useSWR(key, fetchRoom, {
     refreshInterval: DUEL_POLL_INTERVAL_MS,
     revalidateOnFocus: false,
@@ -42,6 +47,8 @@ export function useDebateDuelRoom(shareCode: string, mode: "room" | "result" = "
   });
 
   useEffect(() => {
+    if (!shareCode) return;
+
     const supabase = createClient();
     const channel = supabase
       .channel(`debate-duel-${shareCode}`)

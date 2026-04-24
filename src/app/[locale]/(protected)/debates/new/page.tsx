@@ -9,7 +9,7 @@ export const metadata = {
 export default async function NewDebateDuelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ topic?: string }>;
+  searchParams: Promise<{ room?: string; topic?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -22,5 +22,10 @@ export default async function NewDebateDuelPage({
 
   const params = await searchParams;
 
-  return <DuelCreatePage initialTopicTitle={params.topic} />;
+  return (
+    <DuelCreatePage
+      initialTopicTitle={params.topic}
+      initialRoomShareCode={params.room}
+    />
+  );
 }

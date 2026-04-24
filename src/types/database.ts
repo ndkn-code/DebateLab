@@ -205,6 +205,7 @@ export interface DebateDuelRow {
   creator_id: string;
   topic_title: string;
   topic_category: string;
+  topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
   prep_time_seconds: number;
   opening_time_seconds: number;

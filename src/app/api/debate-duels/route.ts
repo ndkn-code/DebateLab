@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createDebateDuelRoom } from "@/lib/api/debate-duels";
+import { createDebateDuelRoom, getDebateDuelRoom } from "@/lib/api/debate-duels";
+
+function boundedSeconds(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +27,7 @@ export async function POST(req: NextRequest) {
       topicTitle?: string;
       topicCategory?: string;
       topicDescription?: string;
+      topicDifficulty?: "beginner" | "intermediate" | "advanced";
       prepTimeSeconds?: number;
       openingTimeSeconds?: number;
       rebuttalTimeSeconds?: number;
@@ -31,18 +42,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const topicDifficulty =
+      body.topicDifficulty === "intermediate" ||
+      body.topicDifficulty === "advanced"
+        ? body.topicDifficulty
+        : "beginner";
+    const sideAssignmentMode =
+      body.sideAssignmentMode === "choose" ? "choose" : "random";
+    const creatorSidePreference =
+      body.creatorSidePreference === "opposition"
+        ? "opposition"
+        : "proposition";
+
     const shareCode = await createDebateDuelRoom(user.id, {
       topicTitle: body.topicTitle.trim(),
       topicCategory: body.topicCategory?.trim() || "Open",
+      topicDifficulty,
       topicDescription: body.topicDescription?.trim() || undefined,
-      prepTimeSeconds: body.prepTimeSeconds ?? 120,
-      openingTimeSeconds: body.openingTimeSeconds ?? 180,
-      rebuttalTimeSeconds: body.rebuttalTimeSeconds ?? 120,
-      sideAssignmentMode: body.sideAssignmentMode ?? "random",
-      creatorSidePreference: body.creatorSidePreference ?? null,
+      prepTimeSeconds: boundedSeconds(body.prepTimeSeconds, 120, 60, 180),
+      openingTimeSeconds: boundedSeconds(body.openingTimeSeconds, 180, 120, 240),
+      rebuttalTimeSeconds: boundedSeconds(body.rebuttalTimeSeconds, 120, 60, 120),
+      sideAssignmentMode,
+      creatorSidePreference:
+        sideAssignmentMode === "choose" ? creatorSidePreference : null,
     });
 
-    return NextResponse.json({ shareCode });
+    const room = await getDebateDuelRoom(shareCode, user.id);
+
+    return NextResponse.json({ shareCode, room });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to create duel.";

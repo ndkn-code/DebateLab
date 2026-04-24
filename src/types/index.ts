@@ -26,6 +26,7 @@ export type {
   DebateDuelSide,
   DebateDuelSideAssignmentMode,
   DebateDuelSpeechType,
+  DebateDuelTopicDifficulty,
   DebateDuelConfig,
   DebateDuelParticipant,
   DebateDuelSpeech,

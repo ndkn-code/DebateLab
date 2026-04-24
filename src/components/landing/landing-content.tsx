@@ -11,7 +11,6 @@ import {
   MessageCircleMore,
   MessageSquareText,
   Mic,
-  Sparkles,
   Star,
   Trophy,
   Users,
@@ -106,7 +105,7 @@ function PrimaryButton({
   return (
     <Link
       href={href}
-      className="inline-flex h-14 items-center gap-2 rounded-[16px] bg-[#4D86F7] px-7 text-sm font-semibold text-white shadow-[0_24px_40px_-24px_rgba(77,134,247,0.92)] transition-all hover:-translate-y-0.5 hover:bg-[#3E78EC]"
+      className="btn-3d-primary inline-flex h-14 items-center gap-2 rounded-[16px] bg-primary px-7 text-sm font-semibold text-on-primary hover:bg-primary-dim"
     >
       {label}
       <ArrowRight className="h-4 w-4" />
@@ -201,12 +200,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
         <div className="mx-auto grid max-w-[1280px] items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
           <div className="order-2 max-w-[560px] lg:order-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#EEF4FF] px-4 py-2 text-sm font-medium text-[#5C78AA]">
-              <Sparkles className="h-4 w-4 text-[#4D86F7]" />
-              {copy.hero.badge}
-            </div>
-
-            <h1 className="mt-7 text-[3.2rem] font-bold leading-[0.98] tracking-[-0.05em] text-[#0B1424] sm:text-[4.4rem]">
+            <h1 className="mt-[4.25rem] text-[3.2rem] font-bold leading-[0.98] tracking-[-0.05em] text-[#0B1424] sm:text-[4.4rem]">
               {copy.hero.line1}
               <br />
               <span className="text-[#4D86F7]">{copy.hero.line2}</span>
@@ -234,14 +228,14 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
           </div>
 
           <div className="order-1 lg:order-2">
-            <div className="relative mx-auto max-w-[760px]">
+            <div className="relative mx-auto max-w-[874px]">
               <Image
                 src="/images/landing/hero-reference.png"
                 alt="Two debaters standing at podiums in a clean blue illustration"
                 width={1536}
                 height={1024}
                 priority
-                className="h-auto w-full object-contain"
+                className="h-auto w-full object-contain lg:scale-[1.15]"
                 sizes="(max-width: 1024px) 100vw, 56vw"
               />
             </div>
@@ -397,7 +391,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       <section id="pricing" className="px-6 py-14 md:px-8 md:py-18">
         <div className="mx-auto max-w-[1280px]">
           <div className="overflow-hidden rounded-[34px] border border-[#E3ECF8] bg-[linear-gradient(180deg,#F2F7FF_0%,#ECF3FF_100%)] px-8 py-10 shadow-[0_24px_56px_-44px_rgba(11,20,36,0.38)] md:px-12 md:py-12">
-            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_476px]">
               <div className="max-w-[560px]">
                 <h2 className="text-[2.4rem] font-bold leading-[1.15] tracking-[-0.04em] text-[#0B1424] sm:text-[3rem]">
                   {copy.cta.title}
@@ -413,14 +407,14 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 </div>
               </div>
 
-              <div className="mx-auto w-full max-w-[360px] lg:mr-0">
+              <div className="mx-auto w-full max-w-[476px] lg:-ml-14 lg:mr-0">
                 <Image
                   src="/images/landing/trophy-reference.png"
                   alt="Blue trophy standing on a podium with confetti"
                   width={1365}
                   height={1024}
                   className="h-auto w-full object-contain"
-                  sizes="(max-width: 1024px) 280px, 360px"
+                  sizes="(max-width: 1024px) 370px, 476px"
                 />
               </div>
             </div>
@@ -525,7 +519,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 />
                 <button
                   type="submit"
-                  className="h-12 rounded-[14px] bg-[#4D86F7] px-5 text-sm font-semibold text-white"
+                  className="btn-3d-primary h-12 rounded-[14px] bg-primary px-5 text-sm font-semibold text-on-primary hover:bg-primary-dim"
                 >
                   {copy.footer.newsletter.button}
                 </button>
