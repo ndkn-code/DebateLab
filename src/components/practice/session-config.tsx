@@ -2,6 +2,7 @@
 
 import type { ElementType, ReactNode } from "react";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -20,8 +21,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DurationControl } from "@/components/shared/duration-control";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
 import { deductOrbsAction } from "@/app/actions/orbs";
+import {
+  SOLO_PREP_DURATION,
+  SOLO_SPEECH_DURATION,
+} from "@/lib/practice-durations";
 import { useSessionStore } from "@/store/session-store";
 import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
@@ -49,6 +55,43 @@ function FieldLabel({
       <span>{label}</span>
       <CircleHelp className="h-[13px] w-[13px] text-[#91a0be]" />
     </div>
+  );
+}
+
+function BeginSessionTransition({ show }: { show: boolean }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-[100] overflow-hidden bg-primary"
+          aria-hidden="true"
+        >
+          <motion.div
+            initial={{ scale: 2.4, opacity: 0.35 }}
+            animate={{ scale: 0.72, opacity: 0.95 }}
+            exit={{ scale: 0.32, opacity: 0 }}
+            transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute left-1/2 top-1/2 h-[150vmax] w-[150vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.32)_0%,rgba(255,255,255,0.12)_20%,rgba(255,255,255,0)_52%)]"
+          />
+          <motion.div
+            initial={{ scale: 0.2, opacity: 0 }}
+            animate={{ scale: 1.35, opacity: [0, 0.5, 0] }}
+            transition={{ duration: 0.76, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute left-1/2 top-1/2 h-[34vmax] w-[34vmax] -translate-x-1/2 -translate-y-1/2 rounded-full border border-on-primary/35"
+          />
+          <motion.div
+            initial={{ scale: 1.05, opacity: 0.55, rotate: 0 }}
+            animate={{ scale: 0.72, opacity: 0, rotate: 18 }}
+            transition={{ duration: 0.74, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-[-8%] bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.16)_48%,transparent_56%)]"
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -168,6 +211,7 @@ export function SessionConfig({
   const t = useTranslations("dashboard.practice");
   const [showOrbModal, setShowOrbModal] = useState(false);
   const [isDeducting, setIsDeducting] = useState(false);
+  const [showBeginTransition, setShowBeginTransition] = useState(false);
   const {
     side,
     practiceTrack,
@@ -209,7 +253,10 @@ export function SessionConfig({
     onBalanceChange(result.newBalance);
     setTopic(topic);
     startSession();
-    router.push("/practice/session");
+    setShowBeginTransition(true);
+    window.setTimeout(() => {
+      router.push("/practice/session");
+    }, 700);
   };
 
   return (
@@ -247,7 +294,7 @@ export function SessionConfig({
         <div className="mt-5 border-t border-[#e7edf8] pt-5">
           <div className="space-y-5">
             <ConfigSection label={t("practice_track")} icon={Mic2}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <SegmentButton
                   active={practiceTrack === "speaking"}
                   icon={Mic2}
@@ -266,7 +313,7 @@ export function SessionConfig({
             </ConfigSection>
 
             <ConfigSection label={t("debate_mode")} icon={Users}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <SegmentButton active icon={Users}>
                   {t("solo_debate")}
                 </SegmentButton>
@@ -277,7 +324,7 @@ export function SessionConfig({
             </ConfigSection>
 
             <ConfigSection label={t("session_mode")} icon={Zap}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <SegmentButton
                   active={mode === "quick" || practiceTrack === "speaking"}
                   icon={Zap}
@@ -324,28 +371,24 @@ export function SessionConfig({
               ]}
             />
 
-            <SelectRow
+            <DurationControl
               label={t("prep_time")}
-              icon={Clock3}
-              value={String(prepTime)}
-              onChange={(next) => setPrepTime(Number(next))}
-              options={[
-                { value: "60", label: "1 minute" },
-                { value: "120", label: "2 minutes" },
-                { value: "180", label: "3 minutes" },
-              ]}
+              icon={<Clock3 className="h-4 w-4" />}
+              value={prepTime}
+              config={SOLO_PREP_DURATION}
+              onChange={setPrepTime}
+              helper={t("prep_time_helper")}
+              compact
             />
 
-            <SelectRow
+            <DurationControl
               label={t("speech_time")}
-              icon={Clock3}
-              value={String(speechTime)}
-              onChange={(next) => setSpeechTime(Number(next))}
-              options={[
-                { value: "120", label: "2 minutes" },
-                { value: "180", label: "3 minutes" },
-                { value: "240", label: "4 minutes" },
-              ]}
+              icon={<Clock3 className="h-4 w-4" />}
+              value={speechTime}
+              config={SOLO_SPEECH_DURATION}
+              onChange={setSpeechTime}
+              helper={t("speech_time_helper")}
+              compact
             />
 
             <div className="flex items-center justify-between gap-4">
@@ -363,10 +406,12 @@ export function SessionConfig({
 
           <Button
             onClick={handleBegin}
-            disabled={isDeducting}
+            disabled={isDeducting || showBeginTransition}
             className="mt-5 h-[50px] w-full rounded-[0.95rem] bg-primary text-[1.02rem] font-semibold text-on-primary hover:bg-primary/92"
           >
-            {isDeducting ? t("starting") : t("begin_session")}
+            {isDeducting || showBeginTransition
+              ? t("starting")
+              : t("begin_session")}
             <ArrowRight className="ml-2 h-[18px] w-[18px]" />
           </Button>
 
@@ -383,6 +428,7 @@ export function SessionConfig({
         orbBalance={orbBalance ?? 0}
         orbCost={orbCost}
       />
+      <BeginSessionTransition show={showBeginTransition} />
     </>
   );
 }

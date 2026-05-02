@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, Check, RefreshCw } from 'lucide-react';
+import { Volume2, Check, RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { usePostHog } from 'posthog-js/react';
@@ -49,77 +49,106 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-1 flex-col items-center justify-center gap-6 text-center p-8"
-    >
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-        <Volume2 className="h-8 w-8 text-primary" />
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-1 flex-col items-center justify-center px-6 text-center"
+      >
+        <div className="flex h-36 w-36 items-center justify-center rounded-full bg-primary-container/80">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-container">
+            <Volume2 className="h-12 w-12 text-primary" />
+          </div>
+        </div>
 
-      <div>
-        <h3 className="text-xl font-semibold text-on-surface mb-2">
+        <h2 className="mt-8 text-[2rem] font-bold tracking-normal text-on-surface">
           {t('audioCheck.title')}
-        </h3>
-        <p className="text-muted-foreground text-on-surface-variant">
+        </h2>
+        <p className="mt-5 max-w-[520px] text-base font-medium leading-8 text-on-surface-variant">
           {t('audioCheck.description')}
         </p>
+
+        <AnimatePresence mode="wait">
+          {status === 'idle' && (
+            <motion.div key="test" className="mt-8" exit={{ opacity: 0 }}>
+              <Button onClick={playTestSound} size="lg" className="h-14 gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary">
+                <Volume2 className="h-5 w-5" />
+                {t('audioCheck.playTest')}
+              </Button>
+              <p className="mt-6 text-sm font-medium text-on-surface-variant">
+                You&apos;ll hear a short sample tone
+              </p>
+            </motion.div>
+          )}
+          {status === 'playing' && (
+            <motion.div
+              key="playing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-8 flex items-center gap-3 text-primary"
+            >
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="h-2.5 w-2.5 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.55, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.15 }}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold">{t('audioCheck.playing')}</span>
+            </motion.div>
+          )}
+          {status === 'passed' && (
+            <motion.div
+              key="passed"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-8 flex flex-col items-center gap-4"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container">
+                <Check className="h-6 w-6 text-secondary-dim" />
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" onClick={() => setStatus('idle')} className="h-12 gap-2 rounded-2xl border-outline-variant/70 bg-surface">
+                  <RefreshCw className="h-4 w-4" />
+                  {t('audioCheck.tryAgain')}
+                </Button>
+                <Button onClick={handleConfirm} size="lg" className="h-12 gap-2 rounded-2xl bg-primary px-7 text-on-primary">
+                  {t('audioCheck.confirm')}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      <div className="border-t border-outline-variant/60 bg-surface-container-lowest/80 px-8 py-5">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between">
+          <span className="inline-flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/70 bg-surface">
+              <ArrowLeft className="h-5 w-5" />
+            </span>
+            Exit Practice
+          </span>
+          <div className="flex items-center gap-5">
+            <span className="h-1.5 w-11 rounded-full bg-primary" />
+            <span className="h-1.5 w-11 rounded-full bg-outline-variant" />
+            <span className="h-1.5 w-11 rounded-full bg-outline-variant" />
+            <span className="h-1.5 w-11 rounded-full bg-outline-variant" />
+          </div>
+          <span className="inline-flex items-center gap-3 text-sm font-medium text-on-surface-variant">
+            Next: Microphone Check
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/70 bg-surface">
+              <ArrowRight className="h-5 w-5 text-primary" />
+            </span>
+          </span>
+        </div>
       </div>
-
-      <AnimatePresence mode="wait">
-        {status === 'idle' && (
-          <motion.div key="test" exit={{ opacity: 0 }}>
-            <Button onClick={playTestSound} size="lg" className="gap-2 bg-primary text-on-primary">
-              <Volume2 className="h-4 w-4" />
-              {t('audioCheck.playTest')}
-            </Button>
-          </motion.div>
-        )}
-        {status === 'playing' && (
-          <motion.div
-            key="playing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center gap-2 text-primary"
-          >
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="h-2 w-2 rounded-full bg-primary"
-                  animate={{ scale: [1, 1.5, 1] }}
-                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.15 }}
-                />
-              ))}
-            </div>
-            <span className="text-sm font-medium">{t('audioCheck.playing')}</span>
-          </motion.div>
-        )}
-        {status === 'passed' && (
-          <motion.div
-            key="passed"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <Check className="h-5 w-5 text-green-600" />
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setStatus('idle')}>
-                <RefreshCw className="mr-1 h-3 w-3" />
-                {t('audioCheck.tryAgain')}
-              </Button>
-              <Button onClick={handleConfirm} size="lg" className="bg-primary text-on-primary">
-                {t('audioCheck.confirm')}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

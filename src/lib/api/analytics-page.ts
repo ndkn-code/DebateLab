@@ -374,7 +374,7 @@ export async function getAnalyticsPageData(
   } = getRangeWindow(range);
   const supabase = await createClient();
   const soloSessionSelect =
-    "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at";
+    "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at";
 
   const [
     profileRes,

@@ -188,12 +188,12 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-8">
+    <div className="flex flex-1 items-center justify-center px-6 py-8">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-md rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow"
+        className="w-full max-w-xl"
       >
         <AnimatePresence mode="wait">
           {/* Requesting Permission */}
@@ -203,10 +203,10 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-4"
+              className="flex flex-col items-center gap-6 py-4 text-center"
             >
               <motion.div
-                className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
+                className="flex h-28 w-28 items-center justify-center rounded-full bg-primary-container"
                 animate={{
                   boxShadow: [
                     "0 0 0 0px rgba(47,79,221,0.2)",
@@ -215,14 +215,14 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
-                <Mic className="h-10 w-10 text-primary" />
+                <Mic className="h-12 w-12 text-primary" />
               </motion.div>
 
-              <div className="text-center">
-                <h2 className="text-lg font-semibold text-on-surface">
+              <div>
+                <h2 className="text-[2rem] font-bold tracking-normal text-on-surface">
                   Microphone Access Required
                 </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
+                <p className="mt-4 text-base font-medium text-on-surface-variant">
                   Please allow microphone access when prompted by your browser.
                 </p>
               </div>
@@ -251,12 +251,12 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-4"
+              className="flex flex-col items-center gap-6 py-4 text-center"
             >
               <motion.div
                 className={cn(
-                  "flex h-20 w-20 items-center justify-center rounded-full transition-colors",
-                  audioDetected ? "bg-emerald-500/10" : "bg-primary/10"
+                  "flex h-32 w-32 items-center justify-center rounded-full transition-colors",
+                  audioDetected ? "bg-secondary-container/80" : "bg-primary-container"
                 )}
                 animate={
                   audioDetected
@@ -278,20 +278,20 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", damping: 15 }}
                   >
-                    <Check className="h-10 w-10 text-emerald-500" />
+                    <Check className="h-14 w-14 text-secondary-dim" />
                   </motion.div>
                 ) : (
-                  <Mic className="h-10 w-10 text-primary" />
+                  <Mic className="h-14 w-14 text-primary" />
                 )}
               </motion.div>
 
-              <div className="text-center">
-                <h2 className="text-lg font-semibold text-on-surface">
+              <div>
+                <h2 className="text-[2rem] font-bold tracking-normal text-on-surface">
                   {audioDetected
                     ? "Microphone is working!"
                     : "Test Your Microphone"}
                 </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
+                <p className="mt-4 text-base font-medium text-on-surface-variant">
                   {audioDetected
                     ? "Audio input detected. You're ready to begin."
                     : "Speak something to test your microphone..."}
@@ -299,13 +299,13 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               </div>
 
               {/* Audio level bars */}
-              <div className="flex h-12 items-end justify-center gap-1">
+              <div className="flex h-14 items-end justify-center gap-2">
                 {levels.map((level, i) => (
                   <motion.div
                     key={i}
                     className={cn(
-                      "w-2 rounded-full transition-colors",
-                      audioDetected ? "bg-emerald-500" : "bg-primary"
+                      "w-3 rounded-full transition-colors",
+                      audioDetected ? "bg-secondary" : "bg-primary"
                     )}
                     style={{
                       height: `${Math.max(4, level * 48)}px`,
@@ -321,15 +321,15 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                   onClick={handleStart}
                   disabled={!audioDetected}
                   className={cn(
-                    "w-full gap-2 py-6 text-base font-semibold",
+                    "h-14 w-full max-w-[340px] gap-3 rounded-2xl text-base font-semibold",
                     audioDetected
                       ? "bg-primary text-on-primary hover:bg-primary/90"
                       : "cursor-not-allowed bg-primary/40 text-on-primary/60"
                   )}
                 >
                   Start Session
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
 
                 {!audioDetected && (
                   <button
@@ -350,7 +350,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-4"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -407,7 +407,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-4"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -449,7 +449,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-5 py-4"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />

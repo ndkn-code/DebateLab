@@ -1,65 +1,123 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { SkipForward, Lightbulb, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { CountdownTimer } from "./countdown-timer";
+import {
+  Clock3,
+  FileText,
+  Lightbulb,
+  ListChecks,
+  MessageCircle,
+  Search,
+} from "lucide-react";
+import {
+  MAX_NOTES_LENGTH,
+  appendPlainTextBlockToRichNotes,
+  PhasePill,
+  PracticePanel,
+  PracticeTimerDial,
+  PrimaryActionButton,
+  QuickNotesEditor,
+} from "./practice-session-ui";
+import { MotionInfoPanel } from "./motion-info-panel";
 import type { DebateTopic, PracticeTrack } from "@/types";
+import { cn } from "@/lib/utils";
 
-const MAX_NOTES_LENGTH = 1000;
+const TOPIC_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "be",
+  "completely",
+  "does",
+  "for",
+  "good",
+  "harm",
+  "more",
+  "should",
+  "than",
+  "the",
+  "to",
+]);
 
-interface HintCard {
-  title: string;
-  body: string[];
-}
-
-function buildHintCards(
+function getSuggestedPoints(
   topic: DebateTopic,
-  side: "proposition" | "opposition",
-  practiceTrack: PracticeTrack
-): { title: string; summary: string; cards: HintCard[] } | null {
-  const rawHints =
+  side: "proposition" | "opposition"
+) {
+  const points =
     side === "proposition"
       ? topic.suggestedPoints?.proposition
       : topic.suggestedPoints?.opposition;
 
-  if (!rawHints || rawHints.length === 0) return null;
+  return points?.filter(Boolean) ?? [];
+}
 
-  if (practiceTrack === "speaking") {
-    return {
-      title: "Speaking Hints",
-      summary:
-        "Use these as simple talking points. Focus on one clear message, one concrete example, and one clean ending.",
-      cards: rawHints.slice(0, 3).map((hint, index) => ({
-        title: `Idea ${index + 1}`,
-        body: [
-          hint,
-          "Explain it in clear English with one concrete example or mini-scenario.",
-          "Finish by restating why this point matters to your listener.",
-        ],
-      })),
-    };
+function extractTopicTerms(title: string) {
+  const words = title
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-zA-Z-]/g, "").toLowerCase())
+    .filter((word) => word.length > 3 && !TOPIC_STOP_WORDS.has(word));
+
+  return Array.from(new Set(words)).slice(0, 4);
+}
+
+function buildStarterBlock(
+  kind: "terms" | "arguments" | "counterpoints" | "evidence",
+  topic: DebateTopic,
+  side: "proposition" | "opposition"
+) {
+  const ownPoints = getSuggestedPoints(topic, side);
+  const opposingSide = side === "proposition" ? "opposition" : "proposition";
+  const opposingPoints = getSuggestedPoints(topic, opposingSide);
+
+  if (kind === "terms") {
+    const terms = extractTopicTerms(topic.title);
+    const starterTerms = terms.length > 0 ? terms : ["Key term", "Impact", "Scope"];
+
+    return [
+      "Key terms:",
+      ...starterTerms.map((term) => `- ${term}: `),
+    ].join("\n");
   }
 
-  const otherSide = side === "proposition" ? "opposition" : "proposition";
+  if (kind === "arguments") {
+    const points =
+      ownPoints.length > 0
+        ? ownPoints.slice(0, 4)
+        : [
+            "Main claim:",
+            "Why it matters:",
+            "Best example:",
+            "Closing line:",
+          ];
 
-  return {
-    title: "Case Blueprint",
-    summary:
-      side === "proposition"
-        ? "Win this debate by proving the motion creates bigger benefits than the best harms the opposition can defend."
-        : "Win this debate by proving the motion fails to solve the problem or creates larger harms than the proposition can justify.",
-    cards: rawHints.slice(0, 3).map((hint, index) => ({
-      title: `Argument ${index + 1}`,
-      body: [
-        `Name: ${hint}`,
-        "Mechanism: explain why this claim actually happens in the real world.",
-        `Comparison: show why this matters more than the best ${otherSide} response.`,
-        "Impact: tell the judge who is affected, why it matters, and how it links back to the motion.",
-      ],
-    })),
-  };
+    return ["Main arguments:", ...points.map((point) => `- ${point}`)].join(
+      "\n"
+    );
+  }
+
+  if (kind === "counterpoints") {
+    const points =
+      opposingPoints.length > 0
+        ? opposingPoints.slice(0, 4)
+        : [
+            "What the other side will say:",
+            "Why that claim is too broad:",
+            "Example that weakens it:",
+          ];
+
+    return [
+      "Counterpoints to answer:",
+      ...points.map((point) => `- ${point}`),
+    ].join("\n");
+  }
+
+  return [
+    "Evidence to add:",
+    "- Example:",
+    "- Statistic or trend:",
+    "- Real-world group affected:",
+    "- Source or context:",
+  ].join("\n");
 }
 
 interface PrepPhaseProps {
@@ -79,132 +137,105 @@ interface PrepPhaseProps {
 export function PrepPhase({
   topic,
   side,
-  practiceTrack,
-  aiHintsEnabled,
   timeLeft,
   totalTime,
   progress,
-  isRunning,
   prepNotes,
   onNotesChange,
   onSkip,
 }: PrepPhaseProps) {
-  const [showHints, setShowHints] = useState(false);
-  const hintContent = buildHintCards(topic, side, practiceTrack);
+  const helperActions = [
+    { label: "Define key terms", icon: Search, kind: "terms" },
+    { label: "List main arguments", icon: ListChecks, kind: "arguments" },
+    {
+      label: "Anticipate counterpoints",
+      icon: MessageCircle,
+      kind: "counterpoints",
+    },
+    { label: "Add evidence", icon: FileText, kind: "evidence" },
+  ] as const;
+
+  function appendStarterBlock(kind: (typeof helperActions)[number]["kind"]) {
+    const block = buildStarterBlock(kind, topic, side);
+    onNotesChange(
+      appendPlainTextBlockToRichNotes(prepNotes, block, MAX_NOTES_LENGTH)
+    );
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center gap-6 px-4 py-6">
-      {/* Phase Label */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
-        <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-          Preparation Phase
-        </span>
-      </motion.div>
+    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-5 py-6 sm:px-6 lg:px-8">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <MotionInfoPanel topic={topic} side={side} className="min-h-[330px]" />
 
-      {/* Timer */}
-      <CountdownTimer
-        timeLeft={timeLeft}
-        totalTime={totalTime}
-        progress={progress}
-        isRunning={isRunning}
-      />
+        <PracticePanel className="overflow-hidden bg-gradient-to-b from-white via-white to-primary-container/35 p-5 shadow-[0_22px_72px_-54px_rgba(22,39,91,0.55)]">
+          <div className="flex h-full min-h-[330px] flex-col items-center justify-center">
+            <PhasePill icon={<Clock3 className="h-4 w-4" />}>
+              Preparation Phase
+            </PhasePill>
 
-      {/* Notepad */}
-      <div className="w-full">
-        <div className="mb-2 flex items-center justify-between">
-          <label htmlFor="prep-notes" className="text-sm font-medium text-on-surface-variant">
-            Quick Notes
-          </label>
-          <span className="text-xs text-outline">
-            {prepNotes.length}/{MAX_NOTES_LENGTH}
-          </span>
-        </div>
-        <textarea
-          id="prep-notes"
-          value={prepNotes}
-          onChange={(e) => {
-            if (e.target.value.length <= MAX_NOTES_LENGTH) {
-              onNotesChange(e.target.value);
-            }
-          }}
-          placeholder="Jot down your key arguments..."
-          rows={4}
-          aria-label="Preparation notes"
-          className="w-full resize-none rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface placeholder-outline-variant outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
-        />
+            <div className="mt-5">
+              <PracticeTimerDial
+                timeLeft={timeLeft}
+                totalTime={totalTime}
+                progress={progress}
+                tone="blue"
+                size="md"
+              />
+            </div>
+
+            <div className="mt-5 w-full rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_18px_45px_-38px_rgba(22,39,91,0.45)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-container">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-sm font-medium leading-6 text-on-surface-variant">
+                  Use this time to plan a strong opening and organize your key points.
+                </p>
+              </div>
+            </div>
+          </div>
+        </PracticePanel>
       </div>
 
-      {/* AI Hints */}
-      {aiHintsEnabled && hintContent && (
-        <div className="w-full">
-          <button
-            onClick={() => setShowHints(!showHints)}
-            className="flex w-full items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant transition-colors hover:border-outline-variant/30 hover:text-on-surface-variant"
-          >
-            <Lightbulb className="h-4 w-4 text-amber-400" />
-            <span className="flex-1 text-left font-medium">
-              {showHints ? `Hide ${hintContent.title}` : `Show ${hintContent.title}`}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${showHints ? "rotate-180" : ""}`}
-            />
-          </button>
-          <AnimatePresence>
-            {showHints && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-2 space-y-2 rounded-xl border border-amber-500/10 bg-amber-500/5 p-4">
-                  <div className="rounded-lg border border-amber-500/10 bg-surface-container-lowest/60 p-3 text-sm text-on-surface-variant">
-                    {hintContent.summary}
-                  </div>
-                  {hintContent.cards.map((card, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.15 }}
-                      className="rounded-lg border border-amber-500/10 bg-surface-container-lowest/60 p-3"
-                    >
-                      <p className="text-sm font-medium text-on-surface">
-                        {card.title}
-                      </p>
-                      <div className="mt-2 space-y-2">
-                        {card.body.map((line, lineIndex) => (
-                          <div key={lineIndex} className="flex gap-3 text-sm">
-                            <span className="shrink-0 text-amber-400/60">
-                              {lineIndex + 1}.
-                            </span>
-                            <span className="text-on-surface-variant">{line}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+      <div className="flex min-w-0 flex-col gap-5">
+        <QuickNotesEditor
+          value={prepNotes}
+          onChange={onNotesChange}
+          minHeightClassName="min-h-[300px]"
+          className="p-6 sm:p-8"
+          footer={
+            <div>
+              <p className="mb-3 text-sm font-medium text-on-surface-variant">
+                Need a starting point?
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {helperActions.map(({ label, icon: Icon, kind }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => appendStarterBlock(kind)}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant/70 bg-surface-container px-3 text-sm font-medium text-on-surface-variant transition-colors hover:border-primary-fixed hover:bg-surface hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span className="truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          }
+        />
 
-      {/* Skip Button */}
-      <Button
-        onClick={onSkip}
-        variant="ghost"
-        className="gap-2 text-on-surface-variant hover:text-on-surface"
-      >
-        Skip to Speaking
-        <SkipForward className="h-4 w-4" />
-      </Button>
+        <div className="flex justify-center pt-1">
+          <PrimaryActionButton
+            onClick={onSkip}
+            className={cn(
+              "h-14 w-full max-w-[560px] rounded-lg text-base shadow-[0_18px_32px_-18px_rgba(37,99,235,0.85)]"
+            )}
+          >
+            Skip to Speaking
+          </PrimaryActionButton>
+        </div>
+      </div>
     </div>
   );
 }

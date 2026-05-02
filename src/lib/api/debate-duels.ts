@@ -7,8 +7,13 @@ import {
   DUEL_XP_REWARD,
   getNextDuelPhase,
 } from "@/lib/debate-duels/shared";
+import {
+  computeSkillSnapshot,
+  type SkillFeedbackSource,
+} from "@/lib/analytics/skill-snapshot";
 import type {
   DebateDuelJudgment,
+  DebateDuelMatchmakingTicket,
   DebateDuelParticipant,
   DebateDuelPhase,
   DebateDuelRoomView,
@@ -25,6 +30,11 @@ type DuelRow = {
   topic_category: string;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
+  duel_kind: "custom" | "matchmaking";
+  rated: boolean;
+  integrity_status: "clean" | "warned" | "suspicious" | "no_contest";
+  rating_processed_at: string | null;
+  rating_excluded_reason: string | null;
   prep_time_seconds: number;
   opening_time_seconds: number;
   rebuttal_time_seconds: number;
@@ -79,6 +89,25 @@ type DuelJudgmentRow = {
   created_at: string;
 };
 
+type DuelMatchmakingTicketRow = {
+  id: string;
+  user_id: string;
+  status: DebateDuelMatchmakingTicket["status"];
+  topic_category: string;
+  topic_difficulty: DebateDuelMatchmakingTicket["topicDifficulty"];
+  prep_time_seconds: number;
+  opening_time_seconds: number;
+  rebuttal_time_seconds: number;
+  matched_duel_id: string | null;
+  matched_ticket_id: string | null;
+  expires_at: string;
+  matched_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  debate_duels?: { share_code: string } | { share_code: string }[] | null;
+};
+
 export interface CreateDebateDuelInput {
   topicTitle: string;
   topicCategory: string;
@@ -129,7 +158,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: duel, error: duelError } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("share_code", normalizedCode)
     .maybeSingle();
@@ -229,6 +258,9 @@ function toRoomView(params: {
     topicCategory: duel.topic_category,
     topicDifficulty: duel.topic_difficulty,
     topicDescription: duel.topic_description,
+    duelKind: duel.duel_kind ?? "custom",
+    rated: duel.rated ?? false,
+    integrityStatus: duel.integrity_status ?? "clean",
     status: isExpired ? "expired" : duel.status,
     currentPhase: duel.current_phase,
     sideAssignmentMode: duel.side_assignment_mode,
@@ -264,7 +296,8 @@ function toRoomView(params: {
     canStart:
       !isExpired &&
       duel.status === "lobby" &&
-      duel.creator_id === userId &&
+      (duel.creator_id === userId ||
+        (duel.duel_kind === "matchmaking" && !!viewerParticipant)) &&
       everyoneReady,
   } satisfies DebateDuelRoomView;
 }
@@ -274,7 +307,7 @@ async function getDuelById(duelId: string) {
   const { data, error } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("id", duelId)
     .single();
@@ -356,6 +389,8 @@ export async function createDebateDuelRoom(
       rebuttal_time_seconds: input.rebuttalTimeSeconds,
       entry_cost: DUEL_ENTRY_COST,
       side_assignment_mode: input.sideAssignmentMode,
+      duel_kind: "custom",
+      rated: false,
       creator_side_preference:
         input.sideAssignmentMode === "choose"
           ? input.creatorSidePreference ?? "proposition"
@@ -430,6 +465,359 @@ export async function startDebateDuelRoom(shareCode: string, userId: string) {
   }
 
   return getDebateDuelRoom(shareCode, userId);
+}
+
+export interface EnterDebateDuelMatchmakingInput {
+  topicCategory: string;
+  topicDifficulty: "beginner" | "intermediate" | "advanced";
+  topicTitle: string;
+  topicDescription?: string | null;
+  prepTimeSeconds: number;
+  openingTimeSeconds: number;
+  rebuttalTimeSeconds: number;
+}
+
+export interface DebateDuelIntegrityResult {
+  warningCount: number;
+  showWarning: boolean;
+  message: string | null;
+  integrityStatus: DebateDuelRoomView["integrityStatus"];
+}
+
+function mapMatchmakingTicket(
+  row: DuelMatchmakingTicketRow,
+  shareCode: string | null
+): DebateDuelMatchmakingTicket {
+  const expired =
+    row.status === "queued" && new Date(row.expires_at).getTime() <= Date.now();
+
+  return {
+    id: row.id,
+    status: expired ? "expired" : row.status,
+    topicCategory: row.topic_category,
+    topicDifficulty: row.topic_difficulty,
+    config: {
+      prepTimeSeconds: row.prep_time_seconds,
+      openingTimeSeconds: row.opening_time_seconds,
+      rebuttalTimeSeconds: row.rebuttal_time_seconds,
+      entryCost: DUEL_ENTRY_COST,
+    },
+    matchedDuelId: row.matched_duel_id,
+    matchedTicketId: row.matched_ticket_id,
+    shareCode,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
+    matchedAt: row.matched_at,
+    cancelledAt: row.cancelled_at,
+  };
+}
+
+async function getShareCodeForDuel(duelId: string | null) {
+  if (!duelId) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("debate_duels")
+    .select("share_code")
+    .eq("id", duelId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data?.share_code ?? null;
+}
+
+async function fetchMatchmakingTicketById(ticketId: string, userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("debate_duel_matchmaking_tickets")
+    .select(
+      "id, user_id, status, topic_category, topic_difficulty, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+    )
+    .eq("id", ticketId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) return null;
+  const row = data as DuelMatchmakingTicketRow;
+  const shareCode = await getShareCodeForDuel(row.matched_duel_id);
+  return mapMatchmakingTicket(row, shareCode);
+}
+
+export async function getCurrentDebateDuelMatchmakingTicket(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("debate_duel_matchmaking_tickets")
+    .select(
+      "id, user_id, status, topic_category, topic_difficulty, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+    )
+    .eq("user_id", userId)
+    .in("status", ["queued", "matched"])
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) return null;
+  const row = data as DuelMatchmakingTicketRow;
+  const shareCode = await getShareCodeForDuel(row.matched_duel_id);
+  return mapMatchmakingTicket(row, shareCode);
+}
+
+async function seedDuelMmrProfile(userId: string) {
+  const supabase = await createClient();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 29);
+  startDate.setHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from("debate_sessions")
+    .select(
+      "feedback, total_score, created_at, mode, duration_seconds, topic_difficulty, ai_difficulty"
+    )
+    .eq("user_id", userId)
+    .not("total_score", "is", null)
+    .gte("created_at", startDate.toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const snapshot = computeSkillSnapshot((data ?? []) as SkillFeedbackSource[]);
+  const hasUsableSnapshot =
+    snapshot.overallScore != null && snapshot.confidence >= 0.2;
+  const seedRating = hasUsableSnapshot
+    ? Math.min(1200, Math.max(800, 1000 + (snapshot.overallScore! - 50) * 8))
+    : 1000;
+  const seedSnapshot = {
+    overallScore: snapshot.overallScore,
+    confidence: snapshot.confidence,
+    sourceSessions: snapshot.sourceSessions,
+    trackBreakdown: snapshot.trackBreakdown,
+    difficultyBreakdown: snapshot.difficultyBreakdown,
+  };
+
+  const { error: seedError } = await supabase.rpc("ensure_duel_mmr_profile", {
+    p_user_id: userId,
+    p_seed_rating: seedRating,
+    p_seed_source: hasUsableSnapshot ? "skill_snapshot" : "default",
+    p_seed_snapshot: seedSnapshot,
+  });
+
+  if (seedError) {
+    throw new Error(seedError.message);
+  }
+}
+
+export async function enterDebateDuelMatchmaking(
+  userId: string,
+  input: EnterDebateDuelMatchmakingInput
+) {
+  await seedDuelMmrProfile(userId);
+
+  const supabase = await createClient();
+  const { data: ticketId, error } = await supabase.rpc(
+    "enter_debate_duel_matchmaking",
+    {
+      p_actor_user_id: userId,
+      p_topic_category: input.topicCategory,
+      p_topic_difficulty: input.topicDifficulty,
+      p_topic_title: input.topicTitle,
+      p_topic_description: input.topicDescription ?? "",
+      p_prep_time_seconds: input.prepTimeSeconds,
+      p_opening_time_seconds: input.openingTimeSeconds,
+      p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
+    }
+  );
+
+  if (error || !ticketId) {
+    throw new Error(error?.message || "Failed to enter matchmaking.");
+  }
+
+  return fetchMatchmakingTicketById(String(ticketId), userId);
+}
+
+export async function cancelDebateDuelMatchmaking(
+  ticketId: string,
+  userId: string
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_debate_duel_matchmaking", {
+    p_ticket_id: ticketId,
+    p_actor_user_id: userId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return fetchMatchmakingTicketById(ticketId, userId);
+}
+
+function classifyIntegrityEvent(input: {
+  actionType: string;
+  metadata?: Record<string, unknown>;
+  source: "client" | "server";
+}) {
+  const actionType = input.actionType.toUpperCase();
+  const clientWarningTypes = new Set([
+    "TAB_SWITCH",
+    "WINDOW_BLUR",
+    "COPY_PASTE",
+    "KEYBOARD_SHORTCUT",
+    "RIGHT_CLICK",
+  ]);
+  const technicalTypes = new Set(["WINDOW_FOCUS", "RECONNECT", "DISCONNECT"]);
+
+  if (input.source === "server") {
+    if (
+      actionType === "EMPTY_TRANSCRIPT" ||
+      actionType === "SHORT_TRANSCRIPT" ||
+      actionType === "SPEECH_TIMING_ANOMALY"
+    ) {
+      return {
+        severity: "critical" as const,
+        isSuspicious: true,
+        reason:
+          actionType === "EMPTY_TRANSCRIPT"
+            ? "No transcript was captured for an active speech."
+            : actionType === "SHORT_TRANSCRIPT"
+              ? "Speech transcript was unusually short."
+              : "Speech timing did not match the active round.",
+      };
+    }
+  }
+
+  if (clientWarningTypes.has(actionType)) {
+    return {
+      severity: "warning" as const,
+      isSuspicious: true,
+      reason: "This action can weaken fair-play confidence in matchmaking.",
+    };
+  }
+
+  return {
+    severity: technicalTypes.has(actionType) ? ("info" as const) : ("info" as const),
+    isSuspicious: false,
+    reason: null,
+  };
+}
+
+export async function recordDebateDuelIntegrityEvent(input: {
+  shareCode: string;
+  userId: string;
+  actionType: string;
+  metadata?: Record<string, unknown>;
+  source?: "client" | "server";
+}): Promise<DebateDuelIntegrityResult> {
+  const source = input.source ?? "client";
+  const room = await getDebateDuelRoom(input.shareCode, input.userId);
+  if (!room || !room.viewer.participantId) {
+    throw new Error("Duel participant required.");
+  }
+
+  if (room.duelKind !== "matchmaking") {
+    return {
+      warningCount: 0,
+      showWarning: false,
+      message: null,
+      integrityStatus: room.integrityStatus,
+    };
+  }
+
+  const classification = classifyIntegrityEvent({
+    actionType: input.actionType,
+    metadata: input.metadata,
+    source,
+  });
+  const supabase = await createClient();
+
+  const { error: insertError } = await supabase
+    .from("debate_duel_integrity_events")
+    .insert({
+      duel_id: room.id,
+      participant_id: room.viewer.participantId,
+      user_id: input.userId,
+      action_type: input.actionType.toUpperCase(),
+      action_data: input.metadata ?? {},
+      severity: classification.severity,
+      is_suspicious: classification.isSuspicious,
+      suspicious_reason: classification.reason,
+    });
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  const recentWindow = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: suspiciousRows, error: suspiciousError } = await supabase
+    .from("debate_duel_integrity_events")
+    .select("id, severity")
+    .eq("duel_id", room.id)
+    .eq("user_id", input.userId)
+    .eq("is_suspicious", true)
+    .gte("created_at", recentWindow);
+
+  if (suspiciousError) {
+    throw new Error(suspiciousError.message);
+  }
+
+  const suspiciousCount = suspiciousRows?.length ?? 0;
+  const criticalCount =
+    suspiciousRows?.filter((row) => row.severity === "critical").length ?? 0;
+  const nextStatus =
+    source === "server" && criticalCount >= 2
+      ? "no_contest"
+      : suspiciousCount >= 4
+        ? "suspicious"
+        : suspiciousCount >= 2
+          ? "warned"
+          : room.integrityStatus;
+
+  if (nextStatus !== room.integrityStatus) {
+    const { error: duelError } = await supabase
+      .from("debate_duels")
+      .update({
+        integrity_status: nextStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room.id);
+
+    if (duelError) {
+      throw new Error(duelError.message);
+    }
+  }
+
+  return {
+    warningCount: suspiciousCount,
+    showWarning: classification.isSuspicious && suspiciousCount >= 2,
+    message:
+      classification.isSuspicious && suspiciousCount >= 2
+        ? "Fair-play warning: repeated tab, paste, shortcut, or speech-quality issues can exclude this match from hidden skill matching."
+        : null,
+    integrityStatus: nextStatus,
+  };
+}
+
+async function processDebateDuelRating(duelId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("process_debate_duel_rating", {
+    p_duel_id: duelId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 async function finalizeDuelAnalytics(duelId: string, totalSeconds: number) {
@@ -551,6 +939,14 @@ async function judgeAndFinalizeDebateDuel(
     })
     .eq("duel_id", duelId);
 
+  try {
+    await processDebateDuelRating(duelId);
+  } catch (ratingError) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("Duel hidden MMR processing failed:", ratingError);
+    }
+  }
+
   return judgment;
 }
 
@@ -638,6 +1034,40 @@ export async function submitDebateDuelSpeech(params: {
     throw new Error(speechError.message);
   }
 
+  if (room.duelKind === "matchmaking") {
+    const wordCount = params.transcript
+      .replace("[No transcript captured]", "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+    const actionType =
+      wordCount === 0
+        ? "EMPTY_TRANSCRIPT"
+        : wordCount < 20
+          ? "SHORT_TRANSCRIPT"
+          : null;
+
+    if (actionType) {
+      try {
+        await recordDebateDuelIntegrityEvent({
+          shareCode: params.shareCode,
+          userId: params.userId,
+          actionType,
+          metadata: {
+            roundNumber: params.roundNumber,
+            wordCount,
+            durationSeconds: params.durationSeconds,
+          },
+          source: "server",
+        });
+      } catch (integrityError) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("Duel integrity logging failed:", integrityError);
+        }
+      }
+    }
+  }
+
   const nextPhase = getNextDuelPhase(room.currentPhase);
   const nextStatus = nextPhase === "judging" ? "judging" : "in_progress";
   const { error: duelError } = await supabase
@@ -702,7 +1132,7 @@ export async function getDebateDuelHistory(
   const { data: duels } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .in("id", duelIds)
     .eq("status", "completed")

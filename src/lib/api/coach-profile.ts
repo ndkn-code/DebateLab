@@ -497,10 +497,10 @@ async function getCourseSummary(userId: string, courseId: string) {
 async function getSessionById(userId: string, sessionId: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("debate_sessions")
-    .select(
-      "id, topic_title, category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
-    )
+      .from("debate_sessions")
+      .select(
+        "id, topic_title, category:topic_category, side, mode, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+      )
     .eq("user_id", userId)
     .eq("id", sessionId)
     .maybeSingle();
@@ -683,19 +683,19 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
         .lte("date", today)
         .order("date"),
       supabase
-        .from("debate_sessions")
-        .select(
-          "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
-        )
+      .from("debate_sessions")
+      .select(
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+      )
         .eq("user_id", userId)
         .not("total_score", "is", null)
         .order("created_at", { ascending: false })
         .limit(MAX_SCORED_SESSIONS),
       supabase
-        .from("debate_sessions")
-        .select(
-          "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
-        )
+      .from("debate_sessions")
+      .select(
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+      )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(MAX_RECENT_SESSIONS),

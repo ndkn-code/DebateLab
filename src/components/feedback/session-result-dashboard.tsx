@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import { buildSessionResultViewModel } from "@/lib/results/session-result";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,8 @@ interface SessionResultDashboardProps {
   shareUrl?: string | null;
   actionBar?: React.ReactNode;
   afterPanel?: React.ReactNode;
+  defaultShowTranscript?: boolean;
+  defaultShowTimeline?: boolean;
 }
 
 const BAND_STYLES = {
@@ -197,6 +200,8 @@ export function SessionResultDashboard({
   shareUrl,
   actionBar,
   afterPanel,
+  defaultShowTranscript = false,
+  defaultShowTimeline = false,
 }: SessionResultDashboardProps) {
   const t = useTranslations("sessionResult");
   const tSkills = useTranslations("analyticsPage.skills");
@@ -206,8 +211,8 @@ export function SessionResultDashboard({
   const locale = useLocale();
   const [displayScore, setDisplayScore] = useState(0);
   const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(defaultShowTranscript);
+  const [showTimeline, setShowTimeline] = useState(defaultShowTimeline);
   const viewModel = useMemo(() => buildSessionResultViewModel(session), [session]);
 
   useEffect(() => {
@@ -256,6 +261,35 @@ export function SessionResultDashboard({
   const strongestMetric = viewModel.strongest.metric;
   const weakestMetric = viewModel.weakest.metric;
   const focusMetric = viewModel.focus.metric;
+  const caseworkItems = [
+    {
+      label: t("casework.caseSummary"),
+      value: viewModel.feedback.caseSummary,
+      icon: Scale,
+    },
+    {
+      label: t("casework.stance"),
+      value: viewModel.feedback.stanceFeedback,
+      icon: Target,
+    },
+    {
+      label: t("casework.weighing"),
+      value: viewModel.feedback.weighingFeedback,
+      icon: Trophy,
+    },
+    {
+      label: t("casework.clash"),
+      value: viewModel.feedback.clashFeedback,
+      icon: MessageCircle,
+    },
+  ].filter(
+    (item): item is { label: string; value: string; icon: LucideIcon } =>
+      Boolean(item.value)
+  );
+  const argumentBreakdowns = viewModel.feedback.argumentBreakdowns ?? [];
+  const hasCasework =
+    viewModel.practiceTrack === "debate" &&
+    (caseworkItems.length > 0 || argumentBreakdowns.length > 0);
 
   const handleShare = async () => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -636,6 +670,92 @@ export function SessionResultDashboard({
         </div>
       </div>
 
+      {hasCasework && (
+        <div className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-[#071159]">
+                {t("casework.heading")}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                {t("casework.subheading")}
+              </p>
+            </div>
+          </div>
+
+          {caseworkItems.length > 0 && (
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {caseworkItems.map(({ label, value, icon: Icon }) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-4"
+                >
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+                    <Icon className="h-4 w-4 text-primary" />
+                    {label}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {argumentBreakdowns.length > 0 && (
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              {argumentBreakdowns.map((argument, index) => (
+                <article
+                  key={`${argument.name}-${index}`}
+                  className="rounded-xl border border-[#E6ECF8] bg-white p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-primary">
+                        {t("casework.argument", { number: index + 1 })}
+                      </p>
+                      <h3 className="mt-1 text-base font-bold leading-6 text-[#071159]">
+                        {argument.name}
+                      </h3>
+                    </div>
+                    <span className="rounded-md bg-[#EAF1FF] px-2.5 py-1 text-xs font-bold text-primary">
+                      {t("casework.rebuild")}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                    {argument.summary}
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg bg-[#F4FCF7] p-3 ring-1 ring-[#CDEED9]">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1A9153]">
+                        {t("casework.worked")}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                        {argument.whatWorked}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-[#FFF8F2] p-3 ring-1 ring-[#FFD7B3]">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#C96A18]">
+                        {t("casework.missing")}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                        {argument.missingLayer}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-4 rounded-lg bg-[#F1F6FD] p-4 text-sm leading-6 text-[#29406F]">
+                    <span className="font-bold text-[#071159]">
+                      {t("casework.betterVersion")}:{" "}
+                    </span>
+                    {argument.betterVersion}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
         <h2 className="text-base font-bold text-[#071159]">
           {t("detail.heading")}
@@ -713,9 +833,16 @@ export function SessionResultDashboard({
             <h3 className="text-base font-semibold text-[#071159]">
               {t("detail.transcript")}
             </h3>
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#30427A]">
-              {viewModel.transcript || t("detail.emptyTranscript")}
-            </p>
+            <AnnotatedTranscript
+              transcript={viewModel.transcript || ""}
+              annotations={viewModel.feedback.transcriptAnnotations}
+              emptyLabel={t("detail.emptyTranscript")}
+              suggestionLabel={t("annotations.suggestion")}
+              unmatchedLabel={t("annotations.unmatched")}
+              roundLabel={(roundNumber) =>
+                t("annotations.round", { round: roundNumber })
+              }
+            />
           </div>
         )}
 

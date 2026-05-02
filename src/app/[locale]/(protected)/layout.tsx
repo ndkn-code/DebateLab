@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/shared/sidebar";
-import { GlobalOverlays } from "@/components/shared/global-overlays";
-import { SessionHeartbeatProvider } from "@/components/shared/SessionHeartbeatProvider";
+import { ProtectedShell } from "./protected-shell";
 import type { Profile } from "@/types/database";
 
 export default async function ProtectedLayout({
@@ -32,14 +30,12 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background md:flex-row">
-      <Sidebar
-        profile={profile as Profile | null}
-        userEmail={user.email ?? null}
-      />
-      <main className="flex-1 min-w-0">{children}</main>
-      <GlobalOverlays />
-      <SessionHeartbeatProvider userId={user.id} />
-    </div>
+    <ProtectedShell
+      profile={profile as Profile | null}
+      userEmail={user.email ?? null}
+      userId={user.id}
+    >
+      {children}
+    </ProtectedShell>
   );
 }

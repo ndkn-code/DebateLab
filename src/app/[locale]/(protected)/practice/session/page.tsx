@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence } from "framer-motion";
-import { Globe } from "lucide-react";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
 import { DEFAULT_VOICE } from "@/lib/tts-voices";
 import { createClient } from "@/lib/supabase/client";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
+import { usePracticeSessionDraft } from "@/hooks/use-practice-session-draft";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
 import { MicCheck } from "@/components/practice/mic-check";
 import { AudioCheck } from "@/components/practice/audio-check";
@@ -20,6 +20,7 @@ import { RoundProgress } from "@/components/practice/round-progress";
 import { TransitionOverlay } from "@/components/practice/transition-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { showToast } from "@/components/shared/toast";
+import type { AiHighlight } from "@/types";
 
 export default function SessionPage() {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function SessionPage() {
   const hasEndedRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
   const transitionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const { isRestoringDraft } = usePracticeSessionDraft();
 
   // Mic stream ref — obtained from mic check, reused throughout session
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -93,10 +95,10 @@ export default function SessionPage() {
 
   // Redirect if no topic
   useEffect(() => {
-    if (!selectedTopic) {
+    if (!isRestoringDraft && !selectedTopic) {
       router.replace("/practice");
     }
-  }, [selectedTopic, router]);
+  }, [isRestoringDraft, selectedTopic, router]);
 
   // Cleanup mic stream and timers on unmount
   useEffect(() => {
@@ -195,7 +197,15 @@ export default function SessionPage() {
     (stream: MediaStream) => {
       micStreamRef.current = stream;
       setMicStream(stream);
-      setPhase("prep");
+      setTransitionMessage("Let\u2019s go");
+      setTransitionSub("Your practice session is starting");
+      setShowTransition(true);
+
+      const tid = setTimeout(() => {
+        setPhase("prep");
+        setShowTransition(false);
+      }, 1200);
+      transitionTimersRef.current.push(tid);
     },
     [setPhase]
   );
@@ -388,8 +398,8 @@ export default function SessionPage() {
 
   /** Called when AI rebuttal completes */
   const handleAiRebuttalComplete = useCallback(
-    (rebuttalText: string) => {
-      saveAiRebuttal(currentRound, rebuttalText);
+    (rebuttalText: string, aiHighlights: AiHighlight[] = []) => {
+      saveAiRebuttal(currentRound, rebuttalText, aiHighlights);
 
       if (currentRound >= totalRounds) {
         const allTranscripts = getAllTranscripts();
@@ -441,6 +451,13 @@ export default function SessionPage() {
     ]
   );
 
+  const handleAiRebuttalGenerated = useCallback(
+    (rebuttalText: string, aiHighlights: AiHighlight[]) => {
+      saveAiRebuttal(currentRound, rebuttalText, aiHighlights);
+    },
+    [currentRound, saveAiRebuttal]
+  );
+
   const navigateToFeedback = useCallback(() => {
     stopMicStream();
     const tid1 = setTimeout(() => {
@@ -480,6 +497,10 @@ export default function SessionPage() {
     stopMicStream();
     router.push("/practice");
   }, [router, stopMicStream]);
+
+  if (isRestoringDraft) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   if (!selectedTopic) return null;
 
@@ -526,24 +547,13 @@ export default function SessionPage() {
         </div>
       )}
 
-      {/* English only note */}
-      {currentPhase === "speaking" && (
-        <div className="flex items-center justify-center gap-1.5 bg-surface-container-low px-4 py-1 text-[11px] text-on-surface-variant">
-          <Globe className="h-3 w-3" aria-hidden="true" />
-          English only — Transcription powered by Deepgram Nova-3
-        </div>
-      )}
-
-      {/* Show top bar for all phases except mic-check */}
-      {currentPhase !== "mic-check" && (
-        <SessionTopBar
-          topicTitle={selectedTopic.title}
-          side={resolvedSide}
-          practiceTrack={practiceTrack}
-          mode={mode}
-          phase={currentPhase}
-        />
-      )}
+      <SessionTopBar
+        topicTitle={selectedTopic.title}
+        side={resolvedSide}
+        practiceTrack={practiceTrack}
+        mode={mode}
+        phase={currentPhase}
+      />
 
       {/* Round Progress (Full Round only, after prep) */}
       {isFullRound &&
@@ -581,6 +591,8 @@ export default function SessionPage() {
 
       {currentPhase === "speaking" && (
         <SpeakingPhase
+          topic={selectedTopic}
+          side={resolvedSide}
           timeLeft={speechTimer.timeLeft}
           totalTime={speechTime}
           progress={speechTimer.progress}
@@ -589,6 +601,7 @@ export default function SessionPage() {
           transcript={speech.transcript}
           interimTranscript={speech.interimTranscript}
           prepNotes={prepNotes}
+          onNotesChange={setPrepNotes}
           audioStream={micStream}
           speechError={speech.error}
           onPause={handlePause}
@@ -608,7 +621,12 @@ export default function SessionPage() {
           difficulty={aiDifficulty}
           practiceTrack={practiceTrack}
           previousRounds={previousRoundsForAi}
+          prepNotes={prepNotes}
+          onNotesChange={setPrepNotes}
           onComplete={handleAiRebuttalComplete}
+          onGenerated={handleAiRebuttalGenerated}
+          initialResponse={currentRoundInfo.aiResponse}
+          initialHighlights={currentRoundInfo.aiHighlights}
           ttsVoice={ttsVoice}
         />
       )}

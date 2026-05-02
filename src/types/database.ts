@@ -120,6 +120,29 @@ export interface DebateSessionRow {
   created_at: string;
 }
 
+export interface PracticeSessionDraftRow {
+  id: string;
+  user_id: string;
+  topic_id: string | null;
+  topic_title: string;
+  topic_category: string;
+  topic_difficulty: "beginner" | "intermediate" | "advanced";
+  side: "proposition" | "opposition";
+  practice_track: "speaking" | "debate";
+  mode: "quick" | "full";
+  prep_time: number;
+  speech_time: number;
+  ai_difficulty: "easy" | "medium" | "hard" | null;
+  current_phase: string;
+  current_round: number;
+  prep_notes: string;
+  transcript: string;
+  rounds: Record<string, unknown>[] | null;
+  session_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ActivityLog {
   id: string;
   user_id: string;

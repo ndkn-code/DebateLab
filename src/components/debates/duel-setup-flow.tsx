@@ -196,6 +196,55 @@ export function DuelRoundTimeline({
   );
 }
 
+function DuelPreviewTimeline({
+  prepTimeSeconds,
+  openingTimeSeconds,
+  rebuttalTimeSeconds,
+}: {
+  prepTimeSeconds: number;
+  openingTimeSeconds: number;
+  rebuttalTimeSeconds: number;
+}) {
+  const items = [
+    ["Shared Prep", prepTimeSeconds],
+    ["Prop Opening", openingTimeSeconds],
+    ["Opp Opening", openingTimeSeconds],
+    ["Rebuttal Prep", Math.max(30, Math.min(prepTimeSeconds, 60))],
+    ["Prop Rebuttal", rebuttalTimeSeconds],
+    ["Opp Rebuttal", rebuttalTimeSeconds],
+  ] as const;
+
+  return (
+    <div className="grid grid-cols-6 gap-1.5">
+      {items.map(([label, seconds], index) => (
+        <div key={label} className="min-w-0 text-center">
+          <div className="flex items-center">
+            <div
+              className={cn(
+                "mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                index === 0
+                  ? "border-primary bg-primary text-on-primary shadow-[0_8px_18px_rgba(66,133,244,0.2)]"
+                  : "border-outline-variant/40 bg-surface text-on-surface"
+              )}
+            >
+              {index + 1}
+            </div>
+            {index < items.length - 1 && (
+              <div className="-ml-1 h-px flex-1 bg-outline-variant/35" />
+            )}
+          </div>
+          <div className="mt-3 text-[11px] font-semibold leading-tight text-on-surface">
+            {label}
+          </div>
+          <div className="mt-1 text-[11px] text-on-surface-variant">
+            {formatMinutes(seconds)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SeatCard({
   side,
   participant,
@@ -302,6 +351,7 @@ export function DuelLobbySetupView({
   const invitePath = `/${localeParam || "en"}/debates/${room.shareCode}`;
   const [inviteUrl, setInviteUrl] = useState(invitePath);
   const [pending, startTransition] = useTransition();
+  const isMatchmaking = room.duelKind === "matchmaking";
 
   useEffect(() => {
     setInviteUrl(`${window.location.origin}${invitePath}`);
@@ -406,19 +456,25 @@ export function DuelLobbySetupView({
           <div>
             <button
               type="button"
-              onClick={() => router.push("/debates/new")}
+              onClick={() => router.push(isMatchmaking ? "/debates" : "/debates/new")}
               className="inline-flex items-center gap-2 text-sm font-medium text-primary"
             >
               <ArrowLeft className="h-4 w-4" />
               1v1 Debate Arena
             </button>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-on-surface">
-              {startMode ? "Ready to start" : "Room created"}
+              {startMode
+                ? "Ready to start"
+                : isMatchmaking
+                  ? "Match found"
+                  : "Room created"}
             </h1>
             <p className="mt-3 text-sm text-on-surface-variant sm:text-base">
               {startMode
                 ? "Both debaters are ready. Review the round flow before the duel begins."
-                : "Share the code with your opponent and get both debaters ready."}
+                : isMatchmaking
+                  ? "Your opponent is here. Ready up when your setup feels good."
+                  : "Share the code with your opponent and get both debaters ready."}
             </p>
           </div>
           <DuelFlowStepper mode={startMode ? "start" : "invite"} />
@@ -525,9 +581,38 @@ export function DuelLobbySetupView({
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div
+                  className={cn(
+                    "grid gap-5",
+                    isMatchmaking
+                      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+                      : "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]"
+                  )}
+                >
                   <div className="rounded-[24px] border border-outline-variant/12 bg-surface-container-low p-5">
-                    <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-center">
+                    {isMatchmaking ? (
+                      <div className="grid gap-5 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-primary/10 text-primary">
+                          <Users className="h-9 w-9" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                            Hidden skill match
+                          </div>
+                          <h2 className="mt-3 text-2xl font-bold text-on-surface">
+                            Opponent matched
+                          </h2>
+                          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                            This beta duel is matched by invisible MMR. The rating
+                            stays internal while we monitor fairness and quality.
+                          </p>
+                          <div className="mt-4 inline-flex rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+                            Casual beta - hidden rating only
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-center">
                       <div>
                         <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
                           Share room code
@@ -564,6 +649,7 @@ export function DuelLobbySetupView({
                         </div>
                       </div>
                     </div>
+                    )}
                   </div>
 
                   <div className="rounded-[24px] border border-outline-variant/12 bg-surface p-5">
@@ -576,7 +662,15 @@ export function DuelLobbySetupView({
                           {[
                             ["Room configured", true, "Format, timers, and settings set"],
                             ["Side assignment selected", true, room.viewer.role ? `You are ${getSideLabel(room.viewer.role)}` : "Reveals when opponent joins"],
-                            ["Invite copied", copied, copied ? "Share link copied" : "Copy or scan the room code"],
+                            [
+                              isMatchmaking ? "Match found" : "Invite copied",
+                              isMatchmaking ? true : copied,
+                              isMatchmaking
+                                ? "Opponent assigned by matchmaking"
+                                : copied
+                                  ? "Share link copied"
+                                  : "Copy or scan the room code",
+                            ],
                             ["Opponent pending", bothJoined, bothJoined ? "Opponent joined" : "Waiting for opponent"],
                           ].map(([label, complete, detail]) => (
                             <div key={String(label)} className="flex gap-3">
@@ -666,9 +760,11 @@ export function DuelLobbySetupView({
                         runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, {
                           ready: false,
                         })
-                    : onEditSetup
+                    : isMatchmaking
+                      ? () => router.push("/debates")
+                      : onEditSetup
                 }
-                disabled={pending || (!startMode && !onEditSetup)}
+                disabled={pending || (!startMode && !isMatchmaking && !onEditSetup)}
                 className="h-12 rounded-2xl border-outline-variant/25 bg-surface text-primary"
               >
                 {startMode ? (
@@ -678,8 +774,12 @@ export function DuelLobbySetupView({
                   </>
                 ) : (
                   <>
-                    <Edit3 className="h-4 w-4" />
-                    Edit setup
+                    {isMatchmaking ? (
+                      <ArrowLeft className="h-4 w-4" />
+                    ) : (
+                      <Edit3 className="h-4 w-4" />
+                    )}
+                    {isMatchmaking ? "Back to arena" : "Edit setup"}
                   </>
                 )}
               </Button>
@@ -844,48 +944,37 @@ export function DuelPreviewSidebar({
   rebuttalTimeSeconds: number;
   entryCost?: number;
 }) {
-  const estimatedMinutes = Math.round(
-    (prepTimeSeconds + openingTimeSeconds * 2 + rebuttalTimeSeconds * 2) / 60
-  );
-
   return (
     <aside
       id="duel-preview"
-      className="space-y-4 rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)]"
+      className="space-y-6 rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-[0_24px_70px_-32px_rgba(11,20,66,0.24)]"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-on-surface">Duel preview</h2>
-        <div className="rounded-full bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
-          <Sparkles className="mr-1 inline h-3.5 w-3.5" />
-          Live preview
-        </div>
       </div>
 
-      <div className="rounded-[24px] border border-outline-variant/15 bg-surface-container-low p-4">
+      <div className="overflow-hidden rounded-[22px] border border-outline-variant/15 bg-surface-container-low">
         <Image
           src="/images/debates/duel-preview.png"
           width={320}
           height={220}
           alt=""
-          className="mx-auto h-32 w-full object-contain"
+          className="mx-auto h-40 w-full object-contain px-6 py-4"
         />
-        <div className="mt-3 rounded-[20px] border border-outline-variant/12 bg-surface p-4">
+        <div className="border-t border-outline-variant/15 bg-surface px-5 py-5">
           <div className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase text-primary">
             {topicCategory.split(" & ")[0]}
           </div>
-          <h3 className="mt-3 text-lg font-bold leading-snug text-on-surface">
+          <h3 className="mt-4 break-words text-2xl font-bold leading-tight text-on-surface">
             {topicTitle}
           </h3>
-          <div className="mt-2 text-sm text-on-surface-variant">
-            Structured 1v1 - ~{estimatedMinutes} min total
-          </div>
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-outline-variant/12 bg-surface-container-low p-4">
+      <div className="border-t border-outline-variant/15 pt-5">
         <div className="text-sm font-semibold text-on-surface">Round timeline</div>
-        <div className="mt-4">
-          <DuelRoundTimeline
+        <div className="mt-5">
+          <DuelPreviewTimeline
             prepTimeSeconds={prepTimeSeconds}
             openingTimeSeconds={openingTimeSeconds}
             rebuttalTimeSeconds={rebuttalTimeSeconds}
@@ -893,21 +982,21 @@ export function DuelPreviewSidebar({
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-outline-variant/12 bg-surface-container-low p-4">
-        <div className="grid gap-3 text-sm">
+      <div className="border-t border-outline-variant/15 pt-5">
+        <div className="grid gap-4 text-sm">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
               <Coins className="h-4 w-4 text-primary" />
               Entry cost
             </span>
-            <span className="font-semibold text-on-surface">{entryCost} Credits</span>
+            <span className="text-right font-semibold text-on-surface">{entryCost} Credits</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
               <Sparkles className="h-4 w-4 text-primary" />
               Skill matching
             </span>
-            <span className="font-semibold text-success">Balanced</span>
+            <span className="text-right font-semibold text-success">Balanced</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
@@ -916,10 +1005,17 @@ export function DuelPreviewSidebar({
             </span>
             <span className="font-semibold text-on-surface-variant">Locked</span>
           </div>
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-2 text-on-surface-variant">
+              <Lock className="h-4 w-4 text-primary" />
+              Late join
+            </span>
+            <span className="font-semibold text-on-surface-variant">Locked</span>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-success/20 bg-success/8 p-4">
+      <div className="rounded-[22px] border border-outline-variant/15 bg-surface-container-low p-5">
         <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-3">
           <div>
             <div className="text-sm font-semibold text-on-surface">
@@ -927,15 +1023,15 @@ export function DuelPreviewSidebar({
             </div>
             <div className="mt-3 space-y-2 text-sm text-on-surface-variant">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+                <CheckCircle2 className="h-4 w-4 text-primary" />
                 Format and timers set
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+                <CheckCircle2 className="h-4 w-4 text-primary" />
                 Side assignment selected
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+                <CheckCircle2 className="h-4 w-4 text-primary" />
                 Entry cost confirmed
               </div>
             </div>

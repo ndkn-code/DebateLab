@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts"
   },
   "dependencies": {

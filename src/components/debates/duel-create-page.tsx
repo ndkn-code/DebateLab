@@ -1,30 +1,30 @@
 "use client";
 
-import Image from "next/image";
-import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   Check,
   Clock3,
-  Gauge,
-  Lock,
-  Minus,
-  Plus,
+  Mail,
   Scale,
   ShieldCheck,
-  Sparkles,
+  SlidersHorizontal,
   Star,
   Users,
 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import { CATEGORIES, topics, type Category } from "@/lib/topics";
 import { DUEL_ENTRY_COST } from "@/lib/debate-duels/shared";
+import {
+  DUEL_OPENING_DURATION,
+  DUEL_PREP_DURATION,
+  DUEL_REBUTTAL_DURATION,
+} from "@/lib/practice-durations";
 import { cn } from "@/lib/utils";
 import type { DebateDuelRoomView, DebateDuelTopicDifficulty } from "@/types";
 import {
@@ -32,7 +32,6 @@ import {
   DuelLobbySetupView,
   DuelPreviewSidebar,
   formatDifficulty,
-  formatMinutes,
 } from "./duel-setup-flow";
 
 interface DuelCreatePageProps {
@@ -52,88 +51,18 @@ const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
 
 const categoryFilters: CategoryFilter[] = ["All", ...CATEGORIES];
 
-function clampTimer(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function TimerStepper({
-  label,
-  icon,
-  value,
-  min,
-  max,
-  step,
-  color,
-  onChange,
-}: {
-  label: string;
-  icon: ReactNode;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  color: "purple" | "green" | "orange";
-  onChange: (value: number) => void;
-}) {
-  const progress = ((value - min) / (max - min)) * 100;
-  const iconTone =
-    color === "purple"
-      ? "text-tertiary"
-      : color === "green"
-        ? "text-success"
-        : "text-warning";
-
-  return (
-    <div className="rounded-[22px] border border-outline-variant/15 bg-surface p-5">
-      <div className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
-        <span className={iconTone}>{icon}</span>
-        {label}
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-4">
-        <div className="text-3xl font-bold text-on-surface">
-          {formatMinutes(value).replace(" min", "")}
-          <span className="ml-1 text-base font-medium text-on-surface-variant">
-            min
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange(clampTimer(value - step, min, max))}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high"
-            aria-label={`Decrease ${label}`}
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(clampTimer(value + step, min, max))}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high"
-            aria-label={`Increase ${label}`}
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-      <div className="mt-5 h-2 rounded-full bg-surface-container-high">
-        <div
-          className={cn(
-            "h-full rounded-full transition-[width]",
-            color === "purple" && "bg-tertiary",
-            color === "green" && "bg-success",
-            color === "orange" && "bg-warning"
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function difficultyTone(difficulty: DebateDuelTopicDifficulty) {
-  if (difficulty === "beginner") return "bg-success/12 text-success";
-  if (difficulty === "intermediate") return "bg-warning/12 text-warning";
-  return "bg-error/12 text-error";
+  if (difficulty === "beginner") return "bg-[#edf8ef] text-[#4aa05f]";
+  if (difficulty === "intermediate") return "bg-[#fff6e8] text-[#da9b2d]";
+  return "bg-[#fff0f0] text-[#dd666b]";
+}
+
+function shortCategoryLabel(category: string) {
+  if (category === "Technology & Social Media") return "Technology";
+  if (category === "Society & Culture") return "Society";
+  if (category === "Education & School Life") return "Education";
+  if (category === "Environment & Sustainability") return "Environment";
+  return category;
 }
 
 export function DuelCreatePage({
@@ -191,10 +120,6 @@ export function DuelCreatePage({
       router.replace(`/debates/${activeRoom.shareCode}`);
     }
   }, [activeRoom, router]);
-
-  const estimatedMinutes = Math.round(
-    (prepTimeSeconds + openingTimeSeconds * 2 + rebuttalTimeSeconds * 2) / 60
-  );
 
   const handleCreate = () => {
     setError(null);
@@ -299,68 +224,72 @@ export function DuelCreatePage({
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
+    <PageTransition className="min-h-screen bg-[linear-gradient(180deg,#F7FAFE_0%,#EEF4FF_45%,#F7FAFE_100%)]">
+      <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mb-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
           <div>
             <button
               type="button"
-              onClick={() => router.push("/dashboard")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-primary"
+              onClick={() => router.push("/debates")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
             >
               <ArrowLeft className="h-4 w-4" />
               1v1 Debate Arena
             </button>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-on-surface">
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-on-surface sm:text-5xl">
               Create a duel room
             </h1>
             <p className="mt-3 text-sm text-on-surface-variant sm:text-base">
-              Set up your debate, configure the format, and invite your opponent.
+              Set up your debate, choose the format, and invite your opponent.
             </p>
           </div>
           <DuelFlowStepper mode="configure" />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)] lg:p-6">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <main className="rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-[0_24px_70px_-30px_rgba(11,20,66,0.22)] sm:p-7 lg:p-8">
             <section>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
+              <div className="flex items-start gap-4">
+                <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                   1
                 </div>
-                <h2 className="text-xl font-bold text-on-surface">
-                  Choose a motion
-                </h2>
+                <div>
+                  <h2 className="text-xl font-bold text-on-surface">
+                    Choose a motion
+                  </h2>
+                </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {categoryFilters.slice(0, 5).map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setCategoryFilter(category)}
-                    className={cn(
-                      "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                      categoryFilter === category
-                        ? "border-primary bg-primary text-on-primary"
-                        : "border-outline-variant/20 bg-surface text-on-surface-variant hover:bg-surface-container-low"
-                    )}
-                  >
-                    {category === "Technology & Social Media"
-                      ? "Technology"
-                      : category === "Society & Culture"
-                        ? "Society"
-                        : category === "Education & School Life"
-                          ? "Education"
-                          : category}
-                  </button>
-                ))}
+              <div className="mt-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-3">
+                  {categoryFilters.slice(0, 5).map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setCategoryFilter(category)}
+                      className={cn(
+                        "h-10 rounded-full border px-5 text-sm font-medium transition-colors",
+                        categoryFilter === category
+                          ? "border-primary bg-primary text-on-primary"
+                          : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container-low"
+                      )}
+                    >
+                      {category === "Technology & Social Media"
+                        ? "Technology"
+                        : category === "Society & Culture"
+                          ? "Society"
+                          : category === "Education & School Life"
+                            ? "Education"
+                            : category}
+                    </button>
+                  ))}
+                </div>
                 <select
                   value={difficultyFilter}
                   onChange={(event) =>
                     setDifficultyFilter(event.target.value as DifficultyFilter)
                   }
-                  className="h-10 rounded-full border border-outline-variant/20 bg-surface px-4 text-sm font-medium text-on-surface outline-none focus:border-primary/50"
+                  className="h-11 w-full rounded-2xl border border-outline-variant/30 bg-surface px-4 text-sm font-medium text-on-surface outline-none focus:border-primary/50 lg:w-[150px]"
                 >
                   {difficultyOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -370,7 +299,7 @@ export function DuelCreatePage({
                 </select>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {filteredTopics.slice(0, 4).map((topic) => {
                   const selected = topic.id === selectedTopic.id;
                   return (
@@ -379,53 +308,60 @@ export function DuelCreatePage({
                       type="button"
                       onClick={() => setTopicId(topic.id)}
                       className={cn(
-                        "group rounded-[22px] border bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(11,20,66,0.08)]",
+                        "group relative flex min-h-[174px] flex-col rounded-[14px] border bg-surface-container-lowest p-4 text-left transition-all duration-200 hover:-translate-y-0.5",
                         selected
-                          ? "border-primary bg-primary/6 shadow-[0_14px_30px_rgba(66,133,244,0.12)]"
-                          : "border-outline-variant/15"
+                          ? "border-primary shadow-[0_12px_24px_-22px_rgba(77,134,247,0.85)]"
+                          : "border-[#e3ebf8] hover:border-[#c9d8f7] hover:shadow-[0_12px_22px_-24px_rgba(22,39,91,0.22)]"
                       )}
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      {selected && (
+                        <span className="absolute right-4 top-4 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-primary text-on-primary">
+                          <Check className="h-[13px] w-[13px]" />
+                        </span>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-2 pr-8">
+                        <span className="rounded-full bg-[#eef4ff] px-2.5 py-[4px] text-[10px] font-semibold leading-none text-[#3d70df]">
+                          {shortCategoryLabel(topic.category)}
+                        </span>
                         <span
                           className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold",
+                            "rounded-full px-2.5 py-[4px] text-[10px] font-semibold leading-none",
                             difficultyTone(topic.difficulty)
                           )}
                         >
                           {formatDifficulty(topic.difficulty)}
                         </span>
-                        <Star
-                          className={cn(
-                            "h-5 w-5",
-                            selected ? "fill-primary text-primary" : "text-on-surface-variant"
-                          )}
-                        />
                       </div>
-                      <Image
-                        src="/images/debates/topic-backpack.png"
-                        width={120}
-                        height={120}
-                        alt=""
-                        className="mx-auto mt-3 h-24 w-24 object-contain"
-                      />
-                      <div className="mt-3 min-h-[48px] text-sm font-semibold leading-6 text-on-surface">
-                        {topic.title}
+
+                      <div className="mt-4 flex-1">
+                        <h3 className="line-clamp-4 break-words text-[0.98rem] font-semibold leading-[1.38] text-on-surface">
+                          {topic.title}
+                        </h3>
                       </div>
+
+                      {!selected && (
+                        <span className="mt-auto flex justify-end pt-4 text-[#7a89a8] transition-colors group-hover:text-primary">
+                          <Star className="h-[17px] w-[17px]" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </section>
 
-            <section className="mt-8">
+            <section className="mt-10 border-t border-outline-variant/15 pt-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                     2
                   </div>
-                  <h2 className="text-xl font-bold text-on-surface">
-                    Configure format & timers
-                  </h2>
+                  <div>
+                    <h2 className="text-xl font-bold text-on-surface">
+                      Configure format & timers
+                    </h2>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -434,102 +370,59 @@ export function DuelCreatePage({
                     setOpeningTimeSeconds(180);
                     setRebuttalTimeSeconds(120);
                   }}
-                  className="rounded-full border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-medium text-on-surface-variant"
+                  className="inline-flex h-11 items-center gap-2 rounded-2xl border border-outline-variant/25 bg-surface px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low"
                 >
+                  <SlidersHorizontal className="h-4 w-4 text-primary" />
                   Presets
                 </button>
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                <TimerStepper
+              <div className="mt-7 grid gap-5 lg:grid-cols-3">
+                <DurationControl
                   label="Prep time"
                   icon={<Clock3 className="h-4 w-4" />}
                   value={prepTimeSeconds}
-                  min={60}
-                  max={180}
-                  step={60}
-                  color="purple"
+                  config={DUEL_PREP_DURATION}
                   onChange={setPrepTimeSeconds}
                 />
-                <TimerStepper
+                <DurationControl
                   label="Opening speech"
                   icon={<Users className="h-4 w-4" />}
                   value={openingTimeSeconds}
-                  min={120}
-                  max={240}
-                  step={60}
-                  color="green"
+                  config={DUEL_OPENING_DURATION}
                   onChange={setOpeningTimeSeconds}
                 />
-                <TimerStepper
+                <DurationControl
                   label="Rebuttal speech"
                   icon={<ShieldCheck className="h-4 w-4" />}
                   value={rebuttalTimeSeconds}
-                  min={60}
-                  max={120}
-                  step={30}
-                  color="orange"
+                  config={DUEL_REBUTTAL_DURATION}
                   onChange={setRebuttalTimeSeconds}
                 />
               </div>
-
-              <div className="mt-5 grid gap-3 rounded-[22px] border border-outline-variant/15 bg-surface-container-low p-4 text-sm sm:grid-cols-4">
-                <div className="flex items-center gap-3">
-                  <Clock3 className="h-5 w-5 text-on-surface-variant" />
-                  <div>
-                    <div className="text-xs text-on-surface-variant">
-                      Estimated duel length
-                    </div>
-                    <div className="font-semibold text-on-surface">
-                      ~{estimatedMinutes} min
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <BookOpen className="h-5 w-5 text-on-surface-variant" />
-                  <div>
-                    <div className="text-xs text-on-surface-variant">Format</div>
-                    <div className="font-semibold text-on-surface">Structured 1v1</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Gauge className="h-5 w-5 text-on-surface-variant" />
-                  <div>
-                    <div className="text-xs text-on-surface-variant">
-                      Skill matching
-                    </div>
-                    <div className="font-semibold text-on-surface">Balanced</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-on-surface-variant" />
-                  <div>
-                    <div className="text-xs text-on-surface-variant">Late join</div>
-                    <div className="font-semibold text-on-surface">Locked</div>
-                  </div>
-                </div>
-              </div>
             </section>
 
-            <section className="mt-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
+            <section className="mt-10 border-t border-outline-variant/15 pt-8">
+              <div className="flex items-start gap-4">
+                <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                   3
                 </div>
-                <h2 className="text-xl font-bold text-on-surface">
-                  Side assignment
-                </h2>
+                <div>
+                  <h2 className="text-xl font-bold text-on-surface">
+                    Side assignment
+                  </h2>
+                </div>
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="mt-7 grid gap-5 lg:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setSideAssignmentMode("random")}
                   className={cn(
-                    "rounded-[22px] border p-5 text-left transition-all",
+                    "rounded-[20px] border p-5 text-left transition-all",
                     sideAssignmentMode === "random"
                       ? "border-primary bg-primary/6"
-                      : "border-outline-variant/15 bg-surface"
+                      : "border-outline-variant/25 bg-surface"
                   )}
                 >
                   <div className="flex items-center gap-4">
@@ -541,7 +434,7 @@ export function DuelCreatePage({
                         <span className="font-semibold text-on-surface">
                           Random sides
                         </span>
-                        <span className="rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success">
+                        <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
                           Recommended
                         </span>
                       </div>
@@ -561,10 +454,10 @@ export function DuelCreatePage({
                   type="button"
                   onClick={() => setSideAssignmentMode("choose")}
                   className={cn(
-                    "rounded-[22px] border p-5 text-left transition-all",
+                    "rounded-[20px] border p-5 text-left transition-all",
                     sideAssignmentMode === "choose"
                       ? "border-primary bg-primary/6"
-                      : "border-outline-variant/15 bg-surface"
+                      : "border-outline-variant/25 bg-surface"
                   )}
                 >
                   <div className="flex items-center gap-4">
@@ -626,7 +519,7 @@ export function DuelCreatePage({
                 }
                 className="h-12 rounded-2xl border-outline-variant/25 bg-surface text-primary"
               >
-                <Sparkles className="h-4 w-4" />
+                <Mail className="h-4 w-4" />
                 Preview invite
               </Button>
               <Button

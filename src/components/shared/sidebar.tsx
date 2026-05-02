@@ -45,7 +45,7 @@ import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
   { href: "/practice", key: "practice", icon: Scale },
-  { href: "/debates/new", key: "duel", icon: Swords },
+  { href: "/debates", key: "duel", icon: Swords },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
   { href: "/profile", key: "analytics", icon: BarChart3 },
@@ -249,7 +249,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
     { key: "practice", href: "/practice", status: "live" },
     {
       key: "duel",
-      href: isAdmin ? "/debates/new" : undefined,
+      href: isAdmin ? "/debates" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
     {

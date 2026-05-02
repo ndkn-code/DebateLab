@@ -558,7 +558,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -567,7 +567,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
       .eq("user_id", userId)
       .not("total_score", "is", null)
@@ -670,7 +670,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     { key: "practice", href: "/practice", status: "live" },
     {
       key: "duel",
-      href: isAdmin ? "/debates/new" : undefined,
+      href: isAdmin ? "/debates" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
     {

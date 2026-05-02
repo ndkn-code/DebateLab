@@ -43,12 +43,12 @@ const supabaseAdapter = {
       id: session.id,
       user_id: userId,
       topic_title: session.topic.title,
-      category: session.topic.category,
+      topic_category: session.topic.category,
       topic_difficulty: session.topic.difficulty ?? "intermediate",
       side: session.side,
       mode: session.mode,
-      prep_time_seconds: session.prepTime,
-      speech_time_seconds: session.speechTime,
+      prep_time: session.prepTime,
+      speech_time: session.speechTime,
       transcript: session.transcript,
       prep_notes: session.prepNotes ?? null,
       ai_difficulty: session.aiDifficulty ?? null,
@@ -166,7 +166,7 @@ const supabaseAdapter = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("debate_sessions")
-      .select("id, created_at, topic_title, category, topic_difficulty, side, mode, prep_time_seconds, speech_time_seconds, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
+      .select("id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(MAX_SESSIONS);
@@ -185,7 +185,7 @@ const supabaseAdapter = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("debate_sessions")
-      .select("id, created_at, topic_title, category, topic_difficulty, side, mode, prep_time_seconds, speech_time_seconds, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
+      .select("id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
       .eq("id", id)
       .eq("user_id", userId)
       .single();
@@ -224,7 +224,7 @@ function rowToSession(row: any): DebateSession {
     topic: {
       id: row.topic_id ?? row.id,
       title: row.topic_title,
-      category: row.category,
+      category: row.topic_category,
       difficulty: row.topic_difficulty ?? "intermediate",
     },
     side: row.side,
@@ -233,8 +233,8 @@ function rowToSession(row: any): DebateSession {
       row.feedback?.practiceTrack ??
       "debate",
     mode: row.mode,
-    prepTime: row.prep_time_seconds,
-    speechTime: row.speech_time_seconds,
+    prepTime: row.prep_time,
+    speechTime: row.speech_time,
     transcript: row.transcript,
     feedback: row.feedback,
     duration: row.duration_seconds,

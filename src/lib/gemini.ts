@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DebateScore } from "@/types/feedback";
 import type { DebateDuelJudgment, DebateRound, PracticeTrack } from "@/types";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import { normalizeTranscriptAnnotations } from "./feedback/annotations";
 import { getPostHogServer } from "./posthog-server";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -83,6 +84,9 @@ export async function analyzeDebate(params: {
   parsed.argumentBreakdowns = parsed.argumentBreakdowns ?? [];
   parsed.missingLayers = parsed.missingLayers ?? [];
   parsed.strongerRebuilds = parsed.strongerRebuilds ?? [];
+  parsed.transcriptAnnotations = normalizeTranscriptAnnotations(
+    parsed.transcriptAnnotations
+  );
 
   return parsed;
 }

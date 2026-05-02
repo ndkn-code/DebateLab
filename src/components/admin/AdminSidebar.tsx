@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, X } from "lucide-react";
+import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 const ADMIN_NAV = [
   { href: "/dashboard/admin/overview", key: "overview" as const, icon: BarChart3 },
   { href: "/dashboard/admin/courses", key: "courses" as const, icon: BookOpen },
+  { href: "/dashboard/admin/duels", key: "duels" as const, icon: Swords },
 ] as const;
 
 function NavLinks({ onNavClick }: { onNavClick?: () => void }) {

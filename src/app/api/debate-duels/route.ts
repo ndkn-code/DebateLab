@@ -2,16 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createDebateDuelRoom, getDebateDuelRoom } from "@/lib/api/debate-duels";
 import { isAdminUser } from "@/lib/auth/admin";
-
-function boundedSeconds(
-  value: number | undefined,
-  fallback: number,
-  min: number,
-  max: number
-) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-  return Math.min(max, Math.max(min, Math.round(value)));
-}
+import {
+  DUEL_OPENING_DURATION,
+  DUEL_PREP_DURATION,
+  DUEL_REBUTTAL_DURATION,
+  clampDurationSeconds,
+} from "@/lib/practice-durations";
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,9 +63,18 @@ export async function POST(req: NextRequest) {
       topicCategory: body.topicCategory?.trim() || "Open",
       topicDifficulty,
       topicDescription: body.topicDescription?.trim() || undefined,
-      prepTimeSeconds: boundedSeconds(body.prepTimeSeconds, 120, 60, 180),
-      openingTimeSeconds: boundedSeconds(body.openingTimeSeconds, 180, 120, 240),
-      rebuttalTimeSeconds: boundedSeconds(body.rebuttalTimeSeconds, 120, 60, 120),
+      prepTimeSeconds: clampDurationSeconds(
+        body.prepTimeSeconds,
+        DUEL_PREP_DURATION
+      ),
+      openingTimeSeconds: clampDurationSeconds(
+        body.openingTimeSeconds,
+        DUEL_OPENING_DURATION
+      ),
+      rebuttalTimeSeconds: clampDurationSeconds(
+        body.rebuttalTimeSeconds,
+        DUEL_REBUTTAL_DURATION
+      ),
       sideAssignmentMode,
       creatorSidePreference:
         sideAssignmentMode === "choose" ? creatorSidePreference : null,

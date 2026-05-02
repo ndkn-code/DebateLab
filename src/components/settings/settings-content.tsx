@@ -22,20 +22,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DurationControl } from "@/components/shared/duration-control";
 import { showToast } from "@/components/shared/toast";
 import { VoiceSettings } from "@/components/settings/voice-settings";
 import { changePassword, saveSettings } from "@/app/[locale]/(protected)/settings/actions";
 import {
   AI_DIFFICULTY_OPTIONS,
-  PREP_TIME_OPTIONS,
   SETTINGS_DRAFT_STORAGE_KEY,
-  SPEECH_TIME_OPTIONS,
   type SettingsDraft,
   type SettingsDraftSnapshot,
   type SettingsLocale,
   buildSavedSettingsDraft,
   buildSettingsDraft,
 } from "@/lib/settings";
+import {
+  SOLO_PREP_DURATION,
+  SOLO_SPEECH_DURATION,
+} from "@/lib/practice-durations";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
@@ -630,41 +633,23 @@ export function SettingsContent({
             description={t("cards.practice.description")}
           >
             <div className="space-y-4">
-              <div>
-                <SettingLabel>{t("fields.default_prep_time")}</SettingLabel>
-                <Select
-                  value={String(draft.defaultPrepTime)}
-                  onChange={(event) =>
-                    updateDraft("defaultPrepTime", Number(event.target.value))
-                  }
-                >
-                  {PREP_TIME_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {t("time_option", {
-                        count: Math.round(option / 60),
-                      })}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <DurationControl
+                label={t("fields.default_prep_time")}
+                value={draft.defaultPrepTime}
+                config={SOLO_PREP_DURATION}
+                onChange={(seconds) => updateDraft("defaultPrepTime", seconds)}
+                helper={t("duration_helper.prep")}
+                compact
+              />
 
-              <div>
-                <SettingLabel>{t("fields.default_speech_time")}</SettingLabel>
-                <Select
-                  value={String(draft.defaultSpeechTime)}
-                  onChange={(event) =>
-                    updateDraft("defaultSpeechTime", Number(event.target.value))
-                  }
-                >
-                  {SPEECH_TIME_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {t("time_option", {
-                        count: Math.round(option / 60),
-                      })}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <DurationControl
+                label={t("fields.default_speech_time")}
+                value={draft.defaultSpeechTime}
+                config={SOLO_SPEECH_DURATION}
+                onChange={(seconds) => updateDraft("defaultSpeechTime", seconds)}
+                helper={t("duration_helper.speech")}
+                compact
+              />
 
               <div>
                 <SettingLabel>{t("fields.default_difficulty")}</SettingLabel>

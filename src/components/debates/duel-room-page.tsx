@@ -31,6 +31,7 @@ import {
   getPhaseRemainingSeconds,
 } from "@/lib/debate-duels/shared";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
+import { useDuelIntegrityMonitor } from "@/hooks/use-duel-integrity-monitor";
 import type { DebateDuelParticipant, DebateDuelSide } from "@/types";
 
 interface DuelRoomPageProps {
@@ -62,6 +63,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const router = useRouter();
   const { data: room, error, mutate, isLoading } = useDebateDuelRoom(shareCode);
   const speech = useDeepgramTranscription();
+  useDuelIntegrityMonitor(room ?? null);
   const [notes, setNotes] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(0);

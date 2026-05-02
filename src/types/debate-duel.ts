@@ -21,6 +21,33 @@ export type DebateDuelSide = "proposition" | "opposition";
 export type DebateDuelSideAssignmentMode = "random" | "choose";
 export type DebateDuelSpeechType = "opening" | "rebuttal";
 export type DebateDuelTopicDifficulty = "beginner" | "intermediate" | "advanced";
+export type DebateDuelKind = "custom" | "matchmaking";
+export type DebateDuelIntegrityStatus =
+  | "clean"
+  | "warned"
+  | "suspicious"
+  | "no_contest";
+export type DebateDuelMatchmakingStatus =
+  | "queued"
+  | "matched"
+  | "cancelled"
+  | "expired";
+
+export interface DebateDuelMatchmakingTicket {
+  id: string;
+  status: DebateDuelMatchmakingStatus;
+  topicCategory: string;
+  topicDifficulty: DebateDuelTopicDifficulty;
+  config: DebateDuelConfig;
+  matchedDuelId: string | null;
+  matchedTicketId: string | null;
+  shareCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  matchedAt: string | null;
+  cancelledAt: string | null;
+}
 
 export interface DebateDuelConfig {
   prepTimeSeconds: number;
@@ -103,6 +130,9 @@ export interface DebateDuelRoomView {
   topicCategory: string;
   topicDifficulty: DebateDuelTopicDifficulty;
   topicDescription: string | null;
+  duelKind: DebateDuelKind;
+  rated: boolean;
+  integrityStatus: DebateDuelIntegrityStatus;
   status: DebateDuelStatus;
   currentPhase: DebateDuelPhase;
   sideAssignmentMode: DebateDuelSideAssignmentMode;

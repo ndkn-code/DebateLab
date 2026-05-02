@@ -1,6 +1,17 @@
 import { create } from "zustand";
-import type { DebateTopic, DebateRound, AiDifficulty, PracticeTrack } from "@/types";
+import type {
+  AiHighlight,
+  DebateTopic,
+  DebateRound,
+  AiDifficulty,
+  PracticeTrack,
+} from "@/types";
 import type { DebateScore } from "@/types/feedback";
+import {
+  SOLO_PREP_DURATION,
+  SOLO_SPEECH_DURATION,
+  clampDurationSeconds,
+} from "@/lib/practice-durations";
 
 export type Side = "proposition" | "opposition" | "random";
 export type Mode = "quick" | "full";
@@ -22,6 +33,23 @@ export const FULL_ROUND_STRUCTURE: Omit<DebateRound, "transcript" | "aiResponse"
   { roundNumber: 5, type: "user-speech", label: "Closing Statement" },
 ];
 
+interface SessionDraftSnapshot {
+  draftId: string;
+  selectedTopic: DebateTopic;
+  side: "proposition" | "opposition";
+  practiceTrack: PracticeTrack;
+  mode: Mode;
+  prepTime: number;
+  speechTime: number;
+  aiDifficulty: AiDifficulty;
+  currentPhase: Phase;
+  currentRound: number;
+  transcript: string;
+  prepNotes: string;
+  rounds: DebateRound[];
+  sessionStartTime: number | null;
+}
+
 interface SessionState {
   // Config
   selectedTopic: DebateTopic | null;
@@ -41,6 +69,7 @@ interface SessionState {
   sessionStartTime: number | null;
   audioBlob: Blob | null;
   audioUrl: string | null;
+  draftId: string | null;
 
   // Full Round data
   currentRound: number;
@@ -62,13 +91,15 @@ interface SessionState {
   setFeedback: (feedback: DebateScore) => void;
   setAudioBlob: (blob: Blob | null) => void;
   setAudioUrl: (url: string | null) => void;
+  setDraftId: (draftId: string | null) => void;
   startSession: () => void;
+  restoreSessionDraft: (draft: SessionDraftSnapshot) => void;
   resetSession: () => void;
 
   // Full Round actions
   setCurrentRound: (round: number) => void;
   saveRoundTranscript: (roundNumber: number, transcript: string, duration?: number) => void;
-  saveAiRebuttal: (roundNumber: number, aiResponse: string) => void;
+  saveAiRebuttal: (roundNumber: number, aiResponse: string, aiHighlights?: AiHighlight[]) => void;
   advanceToNextRound: () => void;
   getCurrentRoundInfo: () => DebateRound | undefined;
   getAllTranscripts: () => string;
@@ -79,8 +110,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   side: "random",
   practiceTrack: "debate",
   mode: "full",
-  prepTime: 180,
-  speechTime: 180,
+  prepTime: SOLO_PREP_DURATION.defaultSeconds,
+  speechTime: SOLO_SPEECH_DURATION.defaultSeconds,
   aiHints: true,
   aiDifficulty: "medium",
 
@@ -91,6 +122,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionStartTime: null,
   audioBlob: null,
   audioUrl: null,
+  draftId: null,
 
   currentRound: 1,
   rounds: [],
@@ -103,8 +135,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       mode: practiceTrack === "speaking" ? "quick" : state.mode,
     })),
   setMode: (mode) => set({ mode }),
-  setPrepTime: (time) => set({ prepTime: time }),
-  setSpeechTime: (time) => set({ speechTime: time }),
+  setPrepTime: (time) =>
+    set({ prepTime: clampDurationSeconds(time, SOLO_PREP_DURATION) }),
+  setSpeechTime: (time) =>
+    set({ speechTime: clampDurationSeconds(time, SOLO_SPEECH_DURATION) }),
   setAiHints: (on) => set({ aiHints: on }),
   setAiDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
   setPhase: (phase) => set({ currentPhase: phase }),
@@ -115,6 +149,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setFeedback: (feedback) => set({ feedback }),
   setAudioBlob: (blob) => set({ audioBlob: blob }),
   setAudioUrl: (url) => set({ audioUrl: url }),
+  setDraftId: (draftId) => set({ draftId }),
   startSession: () =>
     set((state) => {
       const resolvedSide =
@@ -138,11 +173,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         feedback: null,
         audioBlob: null,
         audioUrl: null,
+        draftId: null,
         side: resolvedSide,
         mode: resolvedMode,
         currentRound: 1,
         rounds,
       };
+    }),
+  restoreSessionDraft: (draft) =>
+    set({
+      selectedTopic: draft.selectedTopic,
+      side: draft.side,
+      practiceTrack: draft.practiceTrack,
+      mode: draft.mode,
+      prepTime: clampDurationSeconds(draft.prepTime, SOLO_PREP_DURATION),
+      speechTime: clampDurationSeconds(draft.speechTime, SOLO_SPEECH_DURATION),
+      aiDifficulty: draft.aiDifficulty,
+      currentPhase: draft.currentPhase,
+      currentRound: draft.currentRound,
+      transcript: draft.transcript,
+      prepNotes: draft.prepNotes,
+      rounds: draft.rounds,
+      sessionStartTime: draft.sessionStartTime,
+      draftId: draft.draftId,
+      feedback: null,
+      audioBlob: null,
+      audioUrl: null,
     }),
   resetSession: () =>
     set({
@@ -150,8 +206,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       side: "random",
       practiceTrack: "debate",
       mode: "full",
-      prepTime: 180,
-      speechTime: 180,
+      prepTime: SOLO_PREP_DURATION.defaultSeconds,
+      speechTime: SOLO_SPEECH_DURATION.defaultSeconds,
       aiHints: true,
       aiDifficulty: "medium",
       currentPhase: "idle",
@@ -161,6 +217,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       sessionStartTime: null,
       audioBlob: null,
       audioUrl: null,
+      draftId: null,
       currentRound: 1,
       rounds: [],
     }),
@@ -174,10 +231,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       ),
     })),
 
-  saveAiRebuttal: (roundNumber, aiResponse) =>
+  saveAiRebuttal: (roundNumber, aiResponse, aiHighlights) =>
     set((state) => ({
       rounds: state.rounds.map((r) =>
-        r.roundNumber === roundNumber ? { ...r, aiResponse } : r
+        r.roundNumber === roundNumber ? { ...r, aiResponse, aiHighlights } : r
       ),
     })),
 

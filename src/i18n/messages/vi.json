@@ -793,6 +793,8 @@
       "against": "Phản đối",
       "prep_time": "Thời Gian Chuẩn Bị",
       "speech_time": "Thời Gian Nói",
+      "prep_time_helper": "Chọn số phút bất kỳ từ 1 đến 10.",
+      "speech_time_helper": "Chọn số phút bất kỳ từ 2 đến 7.",
       "ai_hints": "Gợi ý AI khi chuẩn bị",
       "ai_hints_desc": "Hiện gợi ý brainstorm trong lúc chuẩn bị",
       "session_cost": "Chi Phí Phiên",
@@ -1143,6 +1145,10 @@
     "confirm_password": "Xác nhận mật khẩu mới",
     "update_password": "Cập nhật mật khẩu",
     "time_option": "{count, plural, one {# phút} other {# phút}}",
+    "duration_helper": {
+      "prep": "Chọn số phút bất kỳ từ 1 đến 10.",
+      "speech": "Chọn số phút bất kỳ từ 2 đến 7."
+    },
     "difficulty": {
       "easy": "Dễ",
       "medium": "Trung bình",
@@ -1321,10 +1327,11 @@
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",
     "backToDashboard": "Quay lại Dashboard",
-    "nav": {
-      "overview": "Tổng quan",
-      "courses": "Khóa học"
-    },
+      "nav": {
+        "overview": "Tổng quan",
+        "courses": "Khóa học",
+        "duels": "Đấu đối kháng"
+      },
     "comingSoon": "Sắp ra mắt",
     "unauthorized": "Bạn không có quyền truy cập trang này.",
     "overview": {
@@ -1611,6 +1618,24 @@
       "focusCta": "Ưu tiên phần này lần tới"
     },
     "skillBreakdown": "Chi tiết kỹ năng",
+    "casework": {
+      "heading": "Chẩn đoán case debate",
+      "subheading": "Phần này tập trung vào chất lượng lập luận, lớp reasoning còn thiếu, clash và cách xây lại luận điểm mạnh hơn.",
+      "caseSummary": "Case line",
+      "stance": "Stance",
+      "weighing": "Weighing",
+      "clash": "Clash",
+      "argument": "Luận điểm {number}",
+      "rebuild": "Xây lại",
+      "worked": "Điểm hiệu quả",
+      "missing": "Lớp còn thiếu",
+      "betterVersion": "Phiên bản tốt hơn"
+    },
+    "annotations": {
+      "suggestion": "Thử sửa như sau",
+      "unmatched": "Không tìm thấy quote",
+      "round": "Vòng {round}"
+    },
     "skillDescriptions": {
       "clarity": "Nêu ý chính thật rõ ngay từ những câu đầu tiên.",
       "logic": "Nối từng luận điểm bằng một chuỗi lý do và tác động rõ ràng.",

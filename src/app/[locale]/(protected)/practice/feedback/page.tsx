@@ -12,6 +12,10 @@ import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { storage, supabaseStorage } from "@/lib/storage";
+import {
+  clearLocalPracticeSessionDraft,
+  deletePracticeSessionDraft,
+} from "@/lib/practice-session-drafts";
 import { createClient } from "@/lib/supabase/client";
 import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/referrals";
 import type { DebateSession } from "@/types";
@@ -31,6 +35,9 @@ export default function FeedbackPage() {
     feedback: storeFeedback,
     sessionStartTime,
     rounds,
+    prepNotes,
+    draftId,
+    setDraftId,
     aiDifficulty,
     setFeedback,
     setPhase,
@@ -184,7 +191,14 @@ export default function FeedbackPage() {
         const supabase = createClient();
         const { data: authData } = await supabase.auth.getUser();
         if (authData.user) {
-          supabaseStorage.saveSession(sessionData, authData.user.id);
+          await supabaseStorage.saveSession(sessionData, authData.user.id);
+          if (draftId) {
+            await deletePracticeSessionDraft(draftId, authData.user.id).catch(
+              () => {}
+            );
+            setDraftId(null);
+          }
+          clearLocalPracticeSessionDraft();
           // Qualify referral if this is user's first real practice
           const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
           qualifyReferralAction(wordCount).catch((error) => {
@@ -192,6 +206,7 @@ export default function FeedbackPage() {
           });
         } else {
           storage.saveSession(sessionData);
+          clearLocalPracticeSessionDraft();
         }
       }
     } catch (err) {
@@ -220,7 +235,9 @@ export default function FeedbackPage() {
     setPhase,
     isFullRound,
     rounds,
+    draftId,
     aiDifficulty,
+    setDraftId,
     normalizeFeedback,
   ]);
 
@@ -308,6 +325,7 @@ export default function FeedbackPage() {
       transcript,
       feedback,
       duration: resultDuration,
+      prepNotes,
       aiDifficulty:
         practiceTrack === "debate" && mode === "full"
           ? aiDifficulty
@@ -329,6 +347,7 @@ export default function FeedbackPage() {
     selectedTopic,
     speechTime,
     transcript,
+    prepNotes,
   ]);
 
   if (!selectedTopic) return null;

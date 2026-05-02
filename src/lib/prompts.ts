@@ -69,6 +69,16 @@ function speakingJsonSchema(): string {
   "strengths": ["<specific speaking strength 1>", "<specific speaking strength 2>", "<specific speaking strength 3>"],
   "improvements": ["<specific speaking improvement 1>", "<specific speaking improvement 2>", "<specific speaking improvement 3>"],
   "sampleArguments": ["<a clearer supporting point they could have added 1>", "<a clearer supporting point 2>", "<a clearer supporting point 3>"],
+  "transcriptAnnotations": [
+    {
+      "quote": "<exact contiguous quote copied from the student transcript, 5-25 words, no ellipses>",
+      "roundNumber": null,
+      "tag": "<one of: stance, mechanism, evidence, logic, clash, weighing, impact, structure, delivery>",
+      "severity": "<one of: strength, improvement, warning>",
+      "feedback": "<specific comment about what this quoted moment shows>",
+      "suggestion": "<specific rewrite or next step for this exact moment>"
+    }
+  ],
   "detailedFeedback": {
     "contentFeedback": "<paragraph about how clearly they explained their ideas>",
     "structureFeedback": "<paragraph about opening, progression, and ending>",
@@ -126,6 +136,16 @@ function debateJsonSchema(): string {
   "weighingFeedback": "<1-2 sentence evaluation of comparison, prioritization, and impact calculus>",
   "clashFeedback": "<1-2 sentence evaluation of how well the student engaged opposition arguments or likely opposition responses>",
   "strongerRebuilds": ["<stronger rebuilt argument 1>", "<stronger rebuilt argument 2>", "<stronger rebuilt argument 3>"],
+  "transcriptAnnotations": [
+    {
+      "quote": "<exact contiguous quote copied from the student transcript, 5-25 words, no ellipses>",
+      "roundNumber": <student round number or null>,
+      "tag": "<one of: stance, mechanism, evidence, logic, clash, weighing, impact, structure, delivery>",
+      "severity": "<one of: strength, improvement, warning>",
+      "feedback": "<specific comment about what this quoted moment shows>",
+      "suggestion": "<specific rewrite or next step for this exact moment>"
+    }
+  ],
   "detailedFeedback": {
     "contentFeedback": "<paragraph about stance, mechanism, warrant depth, and evidence quality>",
     "structureFeedback": "<paragraph about framing, case line, progression, and closing weighing>",
@@ -179,6 +199,12 @@ Focus on speaking quality, not competitive debate strategy.
 - Reward clarity, confidence, and understandable English more than advanced vocabulary
 - Be supportive toward ESL mistakes if the meaning is still clear
 - Do not judge this like a formal competitive debate round
+
+## Required Feedback Behavior
+- Include 3-5 transcriptAnnotations that quote exact contiguous words from the student's transcript
+- Each annotation must explain where the issue or strength appears and how to fix or reuse it
+- Prefer comments on opening clarity, support for claims, organization, and delivery moments the student can actually find in their transcript
+- If a quote cannot be copied exactly from the transcript, choose a shorter exact quote instead of paraphrasing
 
 Return a JSON object with this exact structure:
 ${speakingJsonSchema()}
@@ -251,6 +277,11 @@ If the speech sounds polished but the reasoning is thin, score the reasoning low
 - Separate strong ideas from underdeveloped ones
 - In stronger rebuilds, rewrite arguments using the required debate structure
 - For full rounds, comment on consistency across rounds, not just isolated moments
+- Include 4-8 transcriptAnnotations that quote exact contiguous words from the student's transcript
+- Each annotation must connect the quote to a debate layer: stance, mechanism, evidence, logic, clash, weighing, impact, structure, or delivery
+- Include at least one annotation about reasoning depth or missing mechanism, and one about weighing or clash when the transcript gives you material
+- For full rounds, set roundNumber to the student's round number when the quote comes from a labeled student round; use null only when round location is unclear
+- If a quote cannot be copied exactly from the transcript, choose a shorter exact quote instead of paraphrasing
 
 Return a JSON object with this exact structure:
 ${debateJsonSchema()}

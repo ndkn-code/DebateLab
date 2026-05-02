@@ -32,7 +32,6 @@ function getStrokeColor(progress: number, timeLeft: number) {
 
 export function CountdownTimer({
   timeLeft,
-  totalTime,
   progress,
   isRunning,
 }: CountdownTimerProps) {
@@ -103,12 +102,6 @@ export function CountdownTimer({
         {formatTime(timeLeft)}
       </motion.div>
 
-      {/* Phase label */}
-      <div className="absolute bottom-12 text-xs font-medium uppercase tracking-widest text-on-surface-variant sm:bottom-14">
-        {timeLeft === 0
-          ? "Time's up"
-          : `${Math.ceil((timeLeft / totalTime) * 100)}% remaining`}
-      </div>
     </div>
   );
 }

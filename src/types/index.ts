@@ -1,5 +1,11 @@
-export type { DebateTopic, DebateSession, DebateRound, AiDifficulty, PracticeTrack } from "./debate";
-export type { DebateScore, DebateArgumentBreakdown } from "./feedback";
+export type { AiHighlight, AiHighlightType, DebateTopic, DebateSession, DebateRound, AiDifficulty, PracticeTrack } from "./debate";
+export type {
+  DebateScore,
+  DebateArgumentBreakdown,
+  TranscriptAnnotation,
+  TranscriptAnnotationSeverity,
+  TranscriptAnnotationTag,
+} from "./feedback";
 export type {
   AnalyticsRangePreset,
   AnalyticsHero,
@@ -27,6 +33,10 @@ export type {
   DebateDuelSideAssignmentMode,
   DebateDuelSpeechType,
   DebateDuelTopicDifficulty,
+  DebateDuelKind,
+  DebateDuelIntegrityStatus,
+  DebateDuelMatchmakingStatus,
+  DebateDuelMatchmakingTicket,
   DebateDuelConfig,
   DebateDuelParticipant,
   DebateDuelSpeech,
@@ -50,5 +60,6 @@ export type {
   DailyStats,
   ChatConversation,
   ChatMessage,
+  PracticeSessionDraftRow,
 } from "./database";
 export type { SkillMetricKey } from "@/lib/analytics/skill-snapshot";

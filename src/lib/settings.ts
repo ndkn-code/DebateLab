@@ -1,4 +1,9 @@
 import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import {
+  SOLO_PREP_DURATION,
+  SOLO_SPEECH_DURATION,
+  clampDurationSeconds,
+} from "@/lib/practice-durations";
 
 export const ANALYTICS_COOKIE_NAME = "debatelab_analytics_consent";
 export const ANALYTICS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -57,8 +62,8 @@ export interface AvatarPreset {
   colors: [string, string];
 }
 
-export const PREP_TIME_OPTIONS = [60, 120, 180, 300] as const;
-export const SPEECH_TIME_OPTIONS = [120, 180, 240, 300] as const;
+export const PREP_TIME_OPTIONS = SOLO_PREP_DURATION.presetSeconds;
+export const SPEECH_TIME_OPTIONS = SOLO_SPEECH_DURATION.presetSeconds;
 export const AI_DIFFICULTY_OPTIONS: SettingsDifficulty[] = [
   "easy",
   "medium",
@@ -137,22 +142,6 @@ function coerceDifficulty(value: unknown, fallback: SettingsDifficulty) {
   return AI_DIFFICULTY_OPTIONS.includes(value as SettingsDifficulty)
     ? (value as SettingsDifficulty)
     : fallback;
-}
-
-function coerceDuration(
-  value: unknown,
-  supported: readonly number[],
-  fallback: number
-) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return fallback;
-  }
-
-  return supported.includes(value)
-    ? value
-    : supported.reduce((closest, option) =>
-        Math.abs(option - value) < Math.abs(closest - value) ? option : closest
-      );
 }
 
 export function getAnalyticsCookieValue(enabled: boolean) {
@@ -251,12 +240,12 @@ export function normalizeSettingsPreferences(
   return {
     defaultPrepTime: coerceDuration(
       source.default_prep_time,
-      PREP_TIME_OPTIONS,
+      SOLO_PREP_DURATION,
       DEFAULT_SETTINGS.defaultPrepTime
     ),
     defaultSpeechTime: coerceDuration(
       source.default_speech_time,
-      SPEECH_TIME_OPTIONS,
+      SOLO_SPEECH_DURATION,
       DEFAULT_SETTINGS.defaultSpeechTime
     ),
     defaultDifficulty: coerceDifficulty(
@@ -308,6 +297,14 @@ export function normalizeSettingsPreferences(
       DEFAULT_SETTINGS.analyticsCookiesEnabled
     ),
   };
+}
+
+function coerceDuration(
+  value: unknown,
+  config: typeof SOLO_PREP_DURATION | typeof SOLO_SPEECH_DURATION,
+  fallback: number
+) {
+  return clampDurationSeconds(value, config, fallback);
 }
 
 export function buildSettingsDraft(input: {

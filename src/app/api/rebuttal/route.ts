@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
-import type { AiDifficulty, PracticeTrack } from "@/types";
+import type { AiDifficulty, AiHighlight, AiHighlightType, PracticeTrack } from "@/types";
 
 export const maxDuration = 30;
 
@@ -15,6 +15,11 @@ interface RebuttalRequest {
   difficulty: AiDifficulty;
   practiceTrack?: PracticeTrack;
   previousRounds?: { label: string; speaker: string; text: string }[];
+}
+
+interface StructuredRebuttalResponse {
+  rebuttal: string;
+  highlights?: AiHighlight[];
 }
 
 const difficultyPrompts: Record<AiDifficulty, string> = {
@@ -41,6 +46,61 @@ const difficultyPrompts: Record<AiDifficulty, string> = {
 - Be 120-180 words long
 - Force the student to think deeply and defend their position rigorously`,
 };
+
+function isHighlightType(value: unknown): value is AiHighlightType {
+  return (
+    value === "claim" ||
+    value === "evidence" ||
+    value === "impact" ||
+    value === "assumption"
+  );
+}
+
+function normalizeHighlights(raw: unknown): AiHighlight[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const candidate = item as Record<string, unknown>;
+      const quote = typeof candidate.quote === "string" ? candidate.quote.trim() : "";
+      if (!quote || !isHighlightType(candidate.type)) return null;
+
+      return {
+        type: candidate.type,
+        quote,
+        note:
+          typeof candidate.note === "string" && candidate.note.trim()
+            ? candidate.note.trim()
+            : undefined,
+      };
+    })
+    .filter(Boolean) as AiHighlight[];
+}
+
+function parseStructuredRebuttal(rawText: string): StructuredRebuttalResponse {
+  const trimmed = rawText.trim();
+  const jsonCandidate =
+    trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim() ??
+    trimmed.match(/\{[\s\S]*\}/)?.[0]?.trim() ??
+    trimmed;
+
+  try {
+    const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>;
+    const rebuttal =
+      typeof parsed.rebuttal === "string" ? parsed.rebuttal.trim() : "";
+    if (!rebuttal) {
+      return { rebuttal: trimmed, highlights: [] };
+    }
+
+    return {
+      rebuttal,
+      highlights: normalizeHighlights(parsed.highlights),
+    };
+  } catch {
+    return { rebuttal: trimmed, highlights: [] };
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -131,8 +191,21 @@ Rules:
 - Prioritize depth over fancy wording
 - Maintain your side (${aiSide}) consistently
 - Be respectful but firm
-- Write ONLY the rebuttal text, no meta-commentary or labels
-- This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner`;
+- This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner
+
+Return ONLY valid JSON in this exact shape:
+{
+  "rebuttal": "the spoken rebuttal text only",
+  "highlights": [
+    {
+      "type": "claim" | "evidence" | "impact" | "assumption",
+      "quote": "an exact quote copied from the rebuttal text",
+      "note": "short student-friendly reason this phrase matters"
+    }
+  ]
+}
+
+Highlight 3-5 exact quotes that a student should notice. Use only quote strings that appear verbatim in "rebuttal".`;
 
     const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -156,6 +229,7 @@ Rules:
     const latency = Date.now() - startTime;
 
     const text = result.response.text().trim();
+    const structuredResponse = parseStructuredRebuttal(text);
     const usage = result.response.usageMetadata;
 
     getPostHogServer().capture({
@@ -173,7 +247,7 @@ Rules:
       },
     });
 
-    return NextResponse.json({ rebuttal: text });
+    return NextResponse.json(structuredResponse);
   } catch (err) {
     if (process.env.NODE_ENV === 'development') console.error("Rebuttal API error:", err);
 

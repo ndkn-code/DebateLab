@@ -11,12 +11,15 @@ export function PageTransition({
   ...props
 }: PageTransitionProps) {
   const prefersReducedMotion = useReducedMotion();
+  const resolvedTransition =
+    transition ??
+    (prefersReducedMotion ? { duration: 0 } : { duration: 0.22, ease: "easeOut" });
 
   return (
     <motion.div
-      initial={prefersReducedMotion ? { opacity: 0 } : initial ?? { opacity: 0, y: 10 }}
-      animate={prefersReducedMotion ? { opacity: 1 } : animate ?? { opacity: 1, y: 0 }}
-      transition={transition ?? { duration: 0.22, ease: "easeOut" }}
+      initial={initial ?? { opacity: 0, y: 10 }}
+      animate={animate ?? { opacity: 1, y: 0 }}
+      transition={resolvedTransition}
       {...props}
     />
   );
@@ -37,7 +40,7 @@ export function StaggeredContainer({
       transition={
         transition ??
         (prefersReducedMotion
-          ? { duration: 0.12 }
+          ? { duration: 0 }
           : { duration: 0.18, staggerChildren: 0.035 })
       }
       {...props}
@@ -52,12 +55,15 @@ export function FadeInItem({
   ...props
 }: PageTransitionProps) {
   const prefersReducedMotion = useReducedMotion();
+  const resolvedTransition =
+    transition ??
+    (prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" });
 
   return (
     <motion.div
-      initial={prefersReducedMotion ? { opacity: 0 } : initial ?? { opacity: 0, y: 8 }}
-      animate={prefersReducedMotion ? { opacity: 1 } : animate ?? { opacity: 1, y: 0 }}
-      transition={transition ?? { duration: 0.2, ease: "easeOut" }}
+      initial={initial ?? { opacity: 0, y: 8 }}
+      animate={animate ?? { opacity: 1, y: 0 }}
+      transition={resolvedTransition}
       {...props}
     />
   );

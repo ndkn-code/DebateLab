@@ -793,6 +793,8 @@
       "against": "Against",
       "prep_time": "Prep Time",
       "speech_time": "Speech Time",
+      "prep_time_helper": "Choose any whole minute from 1 to 10.",
+      "speech_time_helper": "Choose any whole minute from 2 to 7.",
       "ai_hints": "AI Hints during prep",
       "ai_hints_desc": "Shows brainstorm hints during preparation time",
       "session_cost": "Session Cost",
@@ -1143,6 +1145,10 @@
     "confirm_password": "Confirm new password",
     "update_password": "Update Password",
     "time_option": "{count, plural, one {# minute} other {# minutes}}",
+    "duration_helper": {
+      "prep": "Choose any whole minute from 1 to 10.",
+      "speech": "Choose any whole minute from 2 to 7."
+    },
     "difficulty": {
       "easy": "Easy",
       "medium": "Medium",
@@ -1321,10 +1327,11 @@
     "title": "Administration",
     "switchToAdmin": "Switch to Administration",
     "backToDashboard": "Back to Dashboard",
-    "nav": {
-      "overview": "Overview",
-      "courses": "Courses"
-    },
+      "nav": {
+        "overview": "Overview",
+        "courses": "Courses",
+        "duels": "Duels"
+      },
     "comingSoon": "Coming soon",
     "unauthorized": "You don't have permission to access this page.",
     "overview": {
@@ -1611,6 +1618,24 @@
       "focusCta": "Focus this next time"
     },
     "skillBreakdown": "Your Skills Breakdown",
+    "casework": {
+      "heading": "Debate Case Diagnosis",
+      "subheading": "These notes focus on argument quality, missing reasoning layers, clash, and stronger rebuilds.",
+      "caseSummary": "Case line",
+      "stance": "Stance",
+      "weighing": "Weighing",
+      "clash": "Clash",
+      "argument": "Argument {number}",
+      "rebuild": "Rebuild",
+      "worked": "What worked",
+      "missing": "Missing layer",
+      "betterVersion": "Better version"
+    },
+    "annotations": {
+      "suggestion": "Try this",
+      "unmatched": "Quote not found",
+      "round": "Round {round}"
+    },
     "skillDescriptions": {
       "clarity": "Make your main point easy to follow from the first sentence.",
       "logic": "Link each claim to a clear chain of reasoning and impact.",

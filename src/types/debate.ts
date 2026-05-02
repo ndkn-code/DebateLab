@@ -15,12 +15,21 @@ export interface DebateTopic {
 export type AiDifficulty = "easy" | "medium" | "hard";
 export type { PracticeTrack } from "./feedback";
 
+export type AiHighlightType = "claim" | "evidence" | "impact" | "assumption";
+
+export interface AiHighlight {
+  type: AiHighlightType;
+  quote: string;
+  note?: string;
+}
+
 export interface DebateRound {
   roundNumber: number;
   type: "user-speech" | "ai-rebuttal";
   label: string;
   transcript?: string;
   aiResponse?: string;
+  aiHighlights?: AiHighlight[];
   duration?: number;
 }
 

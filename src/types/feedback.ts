@@ -8,6 +8,31 @@ export interface DebateArgumentBreakdown {
   betterVersion: string;
 }
 
+export type TranscriptAnnotationTag =
+  | "stance"
+  | "mechanism"
+  | "evidence"
+  | "logic"
+  | "clash"
+  | "weighing"
+  | "impact"
+  | "structure"
+  | "delivery";
+
+export type TranscriptAnnotationSeverity =
+  | "strength"
+  | "improvement"
+  | "warning";
+
+export interface TranscriptAnnotation {
+  quote: string;
+  roundNumber?: number;
+  tag: TranscriptAnnotationTag;
+  severity: TranscriptAnnotationSeverity;
+  feedback: string;
+  suggestion: string;
+}
+
 export interface DebateScore {
   content: {
     score: number;
@@ -52,6 +77,7 @@ export interface DebateScore {
   weighingFeedback?: string;
   clashFeedback?: string;
   strongerRebuilds?: string[];
+  transcriptAnnotations?: TranscriptAnnotation[];
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;

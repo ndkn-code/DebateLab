@@ -2,11 +2,28 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Bot, Loader2, AlertTriangle, RotateCcw, ArrowRight, Pause } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Loader2,
+  MessageSquareText,
+  Pause,
+  RotateCcw,
+  Volume2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTranslations } from "next-intl";
-import type { AiDifficulty, PracticeTrack } from "@/types";
+import {
+  ActionRail,
+  PhasePill,
+  PracticePanel,
+  PrimaryActionButton,
+  QuickNotesEditor,
+} from "./practice-session-ui";
+import { cn } from "@/lib/utils";
+import type { AiDifficulty, AiHighlight, PracticeTrack } from "@/types";
 
 interface AiRebuttalPhaseProps {
   topic: string;
@@ -16,8 +33,100 @@ interface AiRebuttalPhaseProps {
   difficulty: AiDifficulty;
   practiceTrack?: PracticeTrack;
   previousRounds?: { label: string; speaker: string; text: string }[];
-  onComplete: (rebuttal: string) => void;
+  prepNotes: string;
+  onNotesChange: (notes: string) => void;
+  onComplete: (rebuttal: string, highlights: AiHighlight[]) => void;
+  onGenerated?: (rebuttal: string, highlights: AiHighlight[]) => void;
+  initialResponse?: string;
+  initialHighlights?: AiHighlight[];
   ttsVoice?: string;
+}
+
+function getHighlightClass(type: AiHighlight["type"]) {
+  switch (type) {
+    case "claim":
+      return "bg-primary-container text-on-surface ring-primary/20";
+    case "evidence":
+      return "bg-secondary-container text-on-surface ring-secondary/20";
+    case "impact":
+      return "bg-warning/20 text-on-surface ring-warning/25";
+    case "assumption":
+      return "bg-error-container text-on-surface ring-error/20";
+  }
+}
+
+function HighlightedResponse({
+  text,
+  highlights,
+  isTyping,
+}: {
+  text: string;
+  highlights: AiHighlight[];
+  isTyping: boolean;
+}) {
+  if (!text) return null;
+
+  const segments: Array<{
+    text: string;
+    highlight?: AiHighlight;
+  }> = [];
+  const lowerText = text.toLowerCase();
+  let cursor = 0;
+  const orderedHighlights = highlights
+    .map((highlight) => ({
+      highlight,
+      index: lowerText.indexOf(highlight.quote.trim().toLowerCase()),
+    }))
+    .filter((item) => item.index >= 0)
+    .sort((left, right) => left.index - right.index);
+
+  orderedHighlights.forEach(({ highlight }) => {
+    const quote = highlight.quote.trim();
+    if (!quote) return;
+
+    const start = lowerText.indexOf(quote.toLowerCase(), cursor);
+    if (start === -1) return;
+
+    if (start > cursor) {
+      segments.push({ text: text.slice(cursor, start) });
+    }
+
+    const end = start + quote.length;
+    segments.push({ text: text.slice(start, end), highlight });
+    cursor = end;
+  });
+
+  if (cursor < text.length) {
+    segments.push({ text: text.slice(cursor) });
+  }
+
+  return (
+    <p className="font-serif text-[1.2rem] leading-9 text-on-surface">
+      {segments.map((segment, index) =>
+        segment.highlight ? (
+          <mark
+            key={`${segment.text}-${index}`}
+            title={segment.highlight.note}
+            className={cn(
+              "rounded-md px-1 py-0.5 ring-1",
+              getHighlightClass(segment.highlight.type)
+            )}
+          >
+            {segment.text}
+          </mark>
+        ) : (
+          <span key={`${segment.text}-${index}`}>{segment.text}</span>
+        )
+      )}
+      {isTyping && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="inline-block h-5 w-0.5 translate-y-0.5 bg-primary"
+        />
+      )}
+    </p>
+  );
 }
 
 export function AiRebuttalPhase({
@@ -28,15 +137,23 @@ export function AiRebuttalPhase({
   difficulty,
   practiceTrack = "debate",
   previousRounds,
+  prepNotes,
+  onNotesChange,
   onComplete,
+  onGenerated,
+  initialResponse = "",
+  initialHighlights = [],
   ttsVoice = 'aura-asteria-en',
 }: AiRebuttalPhaseProps) {
   const t = useTranslations('dashboard.practice');
-  const [status, setStatus] = useState<"loading" | "typing" | "done" | "error">("loading");
-  const [fullText, setFullText] = useState("");
-  const [displayedText, setDisplayedText] = useState("");
+  const [status, setStatus] = useState<"loading" | "typing" | "done" | "error">(
+    initialResponse ? "done" : "loading"
+  );
+  const [fullText, setFullText] = useState(initialResponse);
+  const [displayedText, setDisplayedText] = useState(initialResponse);
+  const [highlights, setHighlights] = useState<AiHighlight[]>(initialHighlights);
   const [error, setError] = useState<string | null>(null);
-  const hasFetched = useRef(false);
+  const hasFetched = useRef(Boolean(initialResponse));
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsTriggeredRef = useRef(false);
   const ttsWasLoadingRef = useRef(false);
@@ -59,6 +176,7 @@ export function AiRebuttalPhase({
     setError(null);
     setFullText("");
     setDisplayedText("");
+    setHighlights([]);
 
     try {
       const controller = new AbortController();
@@ -86,8 +204,16 @@ export function AiRebuttalPhase({
         throw new Error(data.error || `Server error (${res.status})`);
       }
 
-      const data = (await res.json()) as { rebuttal: string };
+      const data = (await res.json()) as {
+        rebuttal: string;
+        highlights?: AiHighlight[];
+      };
+      const responseHighlights = Array.isArray(data.highlights)
+        ? data.highlights
+        : [];
       setFullText(data.rebuttal);
+      setHighlights(responseHighlights);
+      onGenerated?.(data.rebuttal, responseHighlights);
       // Don't set status="typing" yet — wait for TTS audio to load first
       // so typewriter and audio start simultaneously
       ttsTriggeredRef.current = true;
@@ -100,7 +226,17 @@ export function AiRebuttalPhase({
       }
       setStatus("error");
     }
-  }, [topic, side, userTranscript, roundLabel, difficulty, practiceTrack, previousRounds]);
+  }, [
+    topic,
+    side,
+    userTranscript,
+    roundLabel,
+    difficulty,
+    practiceTrack,
+    previousRounds,
+    onGenerated,
+    ttsSpeak,
+  ]);
 
   // Fetch on mount
   useEffect(() => {
@@ -162,172 +298,212 @@ export function AiRebuttalPhase({
   };
 
   const handleContinue = () => {
-    onComplete(fullText);
+    onComplete(fullText, highlights);
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
-      {/* Phase label */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
-        <span className="rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-          {roundLabel}
-        </span>
-      </motion.div>
+    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-6 py-7 lg:px-8">
+      <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.85fr)]">
+        <PracticePanel className="p-7">
+          <div className="flex items-start justify-between gap-5 border-b border-outline-variant/70 pb-7">
+            <div className="flex items-center gap-5">
+              <motion.div
+                className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-primary-container"
+                animate={
+                  status === "loading"
+                    ? { scale: [1, 1.04, 1] }
+                    : status === "typing"
+                      ? {
+                          boxShadow: [
+                            "0 0 0 0px rgba(77,134,247,0.22)",
+                            "0 0 0 14px rgba(77,134,247,0)",
+                          ],
+                        }
+                      : {}
+                }
+                transition={
+                  status === "loading"
+                    ? { duration: 1.5, repeat: Infinity }
+                    : status === "typing"
+                      ? { duration: 1.5, repeat: Infinity }
+                      : {}
+                }
+              >
+                {status === "loading" ? (
+                  <Loader2 className="h-11 w-11 animate-spin text-primary" />
+                ) : (
+                  <Bot className="h-12 w-12 text-primary" />
+                )}
+              </motion.div>
 
-      {/* AI avatar */}
-      <div className="flex flex-col items-center gap-2">
-        <motion.div
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10"
-          animate={
-            status === "loading"
-              ? { scale: [1, 1.05, 1] }
-              : status === "typing"
-                ? {
-                    boxShadow: [
-                      "0 0 0 0px rgba(47,79,221,0.2)",
-                      "0 0 0 8px rgba(47,79,221,0)",
-                    ],
-                  }
-                : {}
-          }
-          transition={
-            status === "loading"
-              ? { duration: 1.5, repeat: Infinity }
-              : status === "typing"
-                ? { duration: 1.5, repeat: Infinity }
-                : {}
-          }
-        >
-          {status === "loading" ? (
-            <Loader2 className="h-7 w-7 animate-spin text-primary" />
-          ) : (
-            <Bot className="h-7 w-7 text-primary" />
-          )}
-        </motion.div>
-        <span className="text-xs font-medium text-on-surface-variant">
-          {status === "loading"
-            ? "AI is preparing a response..."
-            : status === "typing"
-              ? "AI is speaking..."
-              : status === "done"
-                ? "AI has finished"
-                : "Error"}
-        </span>
-      </div>
+              <div>
+                <PhasePill tone="ai">{roundLabel}</PhasePill>
+                <div className="mt-4 flex items-center gap-2 text-base font-semibold text-on-surface">
+                  {status === "done" ? (
+                    <CheckCircle2 className="h-5 w-5 text-secondary" />
+                  ) : status === "error" ? (
+                    <AlertTriangle className="h-5 w-5 text-error" />
+                  ) : (
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  )}
+                  {status === "loading"
+                    ? "AI is preparing a response..."
+                    : status === "typing"
+                      ? "AI is speaking..."
+                      : status === "done"
+                        ? "AI has finished"
+                        : "Error"}
+                </div>
+                <span className="mt-4 inline-flex rounded-xl bg-surface-container px-3 py-2 text-sm font-semibold capitalize text-on-surface-variant">
+                  {difficulty} difficulty
+                </span>
+              </div>
+            </div>
 
-      {/* Difficulty badge */}
-      <div className="flex justify-center">
-        <span className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] font-medium capitalize text-on-surface-variant">
-          {difficulty} difficulty
-        </span>
-      </div>
+            {(status === "typing" || status === "done") && (
+              <div className="flex flex-wrap justify-end gap-2">
+                {status === "typing" && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSkipAnimation}
+                    className="h-11 rounded-xl border-outline-variant/70 bg-surface text-primary"
+                  >
+                    Skip animation
+                  </Button>
+                )}
+                {ttsLoading && (
+                  <span className="inline-flex h-11 items-center gap-2 rounded-xl bg-surface-container px-3 text-sm font-medium text-on-surface-variant">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('tts.generating')}
+                  </span>
+                )}
+                {ttsPlaying && (
+                  <Button variant="outline" onClick={ttsStop} className="h-11 gap-2 rounded-xl border-outline-variant/70 bg-surface">
+                    <Pause className="h-4 w-4" />
+                    {t('tts.pause')}
+                  </Button>
+                )}
+                {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
+                  <Button variant="outline" onClick={ttsReplay} className="h-11 gap-2 rounded-xl border-outline-variant/70 bg-surface">
+                    <RotateCcw className="h-4 w-4" />
+                    {t('tts.replay')}
+                  </Button>
+                )}
+                {ttsError && !ttsLoading && (
+                  <Button
+                    variant="outline"
+                    onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }}
+                    className="h-11 gap-2 rounded-xl border-error/40 bg-error-container text-error"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Try audio again
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* Rebuttal text area */}
-      <div className="relative flex-1">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-on-surface-variant">
-            AI Response
-          </span>
-          {status === "typing" && (
-            <button
-              onClick={handleSkipAnimation}
-              className="text-xs text-primary hover:underline"
-            >
-              Skip animation
-            </button>
-          )}
-        </div>
-        <div className="h-56 overflow-y-auto rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-4 sm:h-64">
-          {status === "loading" ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
-                <p className="text-sm text-outline-variant">
-                  Generating {roundLabel.toLowerCase()}...
+          <div className="mt-6">
+            <div className="mb-4 flex items-center gap-3">
+              <MessageSquareText className="h-6 w-6 text-primary" />
+              <h2 className="text-xl font-semibold tracking-normal text-on-surface">
+                AI Response
+              </h2>
+            </div>
+            <div className="min-h-[420px] overflow-y-auto rounded-2xl border border-outline-variant/80 bg-surface p-6">
+              {status === "loading" ? (
+                <div className="flex h-[360px] items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-7 w-7 animate-spin text-primary/70" />
+                    <p className="text-sm font-medium text-on-surface-variant">
+                      Generating {roundLabel.toLowerCase()}...
+                    </p>
+                  </div>
+                </div>
+              ) : status === "error" ? (
+                <div className="flex h-[360px] flex-col items-center justify-center gap-3 text-center">
+                  <AlertTriangle className="h-8 w-8 text-error" />
+                  <p className="text-sm font-medium text-error">{error}</p>
+                </div>
+              ) : (
+                <HighlightedResponse
+                  text={displayedText}
+                  highlights={highlights}
+                  isTyping={status === "typing"}
+                />
+              )}
+            </div>
+
+            {highlights.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {highlights.map((highlight, index) => (
+                  <span
+                    key={`${highlight.type}-${index}`}
+                    className={cn(
+                      "inline-flex rounded-xl px-3 py-1.5 text-xs font-semibold capitalize ring-1",
+                      getHighlightClass(highlight.type)
+                    )}
+                  >
+                    {highlight.type}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </PracticePanel>
+
+        <div className="flex min-w-0 flex-col gap-6">
+          <QuickNotesEditor
+            value={prepNotes}
+            onChange={onNotesChange}
+            helper="Same notes from prep. Keep adding counterpoints while the AI debates."
+            minHeightClassName="min-h-[360px]"
+          />
+
+          <PracticePanel className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-warning/15">
+                <Volume2 className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold tracking-normal text-on-surface">
+                  Tip
+                </h3>
+                <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
+                  Highlighted phrases mark the AI&apos;s claim, evidence,
+                  impact, or assumption. Add your counter-rebuttal ideas in
+                  Quick Notes before continuing.
                 </p>
               </div>
             </div>
-          ) : status === "error" ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3">
-              <AlertTriangle className="h-6 w-6 text-red-400" />
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          ) : (
-            <p className="font-serif text-[15px] leading-relaxed text-on-surface">
-              {displayedText}
-              {status === "typing" && (
-                <motion.span
-                  animate={{ opacity: [1, 0] }}
-                  transition={{ duration: 0.5, repeat: Infinity }}
-                  className="inline-block h-5 w-0.5 translate-y-0.5 bg-primary"
-                />
-              )}
-            </p>
-          )}
+          </PracticePanel>
         </div>
       </div>
 
-      {/* TTS controls */}
-      {(status === "typing" || status === "done") && (
-        <div className="flex items-center justify-center gap-2">
-          {ttsLoading && (
-            <span className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {t('tts.generating')}
-            </span>
-          )}
-
-          {ttsPlaying && (
-            <Button variant="ghost" size="sm" onClick={ttsStop} className="gap-1">
-              <Pause className="h-3.5 w-3.5" />
-              {t('tts.pause')}
-            </Button>
-          )}
-
-          {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
-            <Button variant="ghost" size="sm" onClick={ttsReplay} className="gap-1">
-              <RotateCcw className="h-3.5 w-3.5" />
-              {t('tts.replay')}
-            </Button>
-          )}
-
-          {ttsError && !ttsLoading && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-destructive">{t('tts.error')}</span>
-              <Button variant="ghost" size="sm" onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }} className="gap-1 text-xs">
-                <RotateCcw className="h-3 w-3" />
-                Try again
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="sticky bottom-4 flex items-center justify-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest/95 p-3 backdrop-blur-xl">
+      <ActionRail className="sticky bottom-4">
+        <Button
+          type="button"
+          onClick={ttsStop}
+          disabled={!ttsPlaying}
+          variant="outline"
+          className="h-14 min-w-[160px] gap-3 rounded-2xl border-outline-variant/80 bg-surface text-base font-semibold text-on-surface hover:bg-surface-container disabled:opacity-50"
+        >
+          <Pause className="h-5 w-5" />
+          Pause
+        </Button>
         {status === "error" ? (
-          <Button
-            onClick={handleRetry}
-            className="gap-2 bg-primary text-white"
-          >
-            <RotateCcw className="h-4 w-4" />
+          <PrimaryActionButton onClick={handleRetry}>
             Try Again
-          </Button>
+          </PrimaryActionButton>
         ) : (
-          <Button
+          <PrimaryActionButton
             onClick={handleContinue}
             disabled={status !== "done"}
-            className="gap-2 bg-primary text-white disabled:opacity-50"
           >
-            <ArrowRight className="h-4 w-4" />
             {status === "done" ? "Continue to Next Round" : "Waiting..."}
-          </Button>
+          </PrimaryActionButton>
         )}
-      </div>
+      </ActionRail>
     </div>
   );
 }

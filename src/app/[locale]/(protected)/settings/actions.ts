@@ -10,14 +10,17 @@ import {
   type SettingsLocale,
   SUPPORTED_SETTINGS_LOCALES,
   AI_DIFFICULTY_OPTIONS,
-  PREP_TIME_OPTIONS,
-  SPEECH_TIME_OPTIONS,
   buildSavedSettingsDraft,
   draftToPreferences,
   getAnalyticsCookieValue,
   normalizeAvatarUrl,
 } from "@/lib/settings";
 import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import {
+  SOLO_PREP_DURATION,
+  SOLO_SPEECH_DURATION,
+  clampDurationSeconds,
+} from "@/lib/practice-durations";
 
 const USER_TIMEZONE = "America/New_York";
 const SETTINGS_REVALIDATE_PATHS = [
@@ -100,26 +103,16 @@ function getSupportedLocale(locale: string): SettingsLocale {
     : "vi";
 }
 
-function getClosestOption(value: number, supported: readonly number[]) {
-  if (!Number.isFinite(value)) {
-    return supported[0];
-  }
-
-  return supported.reduce((closest, option) =>
-    Math.abs(option - value) < Math.abs(closest - value) ? option : closest
-  );
-}
-
 function sanitizeDraft(input: SettingsDraft): SettingsDraft {
   const locale = getSupportedLocale(input.preferredLocale);
   const displayName = input.displayName.trim();
-  const defaultPrepTime = getClosestOption(
+  const defaultPrepTime = clampDurationSeconds(
     input.defaultPrepTime,
-    PREP_TIME_OPTIONS
+    SOLO_PREP_DURATION
   );
-  const defaultSpeechTime = getClosestOption(
+  const defaultSpeechTime = clampDurationSeconds(
     input.defaultSpeechTime,
-    SPEECH_TIME_OPTIONS
+    SOLO_SPEECH_DURATION
   );
   const defaultDifficulty = AI_DIFFICULTY_OPTIONS.includes(
     input.defaultDifficulty
