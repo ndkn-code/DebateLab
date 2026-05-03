@@ -45,6 +45,8 @@ interface SessionResultDashboardProps {
   afterPanel?: React.ReactNode;
   defaultShowTranscript?: boolean;
   defaultShowTimeline?: boolean;
+  showInlineReviewControls?: boolean;
+  className?: string;
 }
 
 const BAND_STYLES = {
@@ -202,6 +204,8 @@ export function SessionResultDashboard({
   afterPanel,
   defaultShowTranscript = false,
   defaultShowTimeline = false,
+  showInlineReviewControls = true,
+  className,
 }: SessionResultDashboardProps) {
   const t = useTranslations("sessionResult");
   const tSkills = useTranslations("analyticsPage.skills");
@@ -377,7 +381,12 @@ export function SessionResultDashboard({
   ];
 
   return (
-    <div className="mx-auto max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8">
+    <div
+      className={cn(
+        "mx-auto max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8",
+        className
+      )}
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {backHref && backLabel ? (
           <Link
@@ -794,41 +803,43 @@ export function SessionResultDashboard({
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#E6ECF8] pt-5">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setShowTranscript((value) => !value)}
-            className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-[#EAF1FF]"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            {showTranscript ? t("detail.hideTranscript") : t("detail.showTranscript")}
-            {showTranscript ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : (
-              <ChevronDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-
-          {viewModel.rounds.length > 0 && (
+        {showInlineReviewControls && (
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#E6ECF8] pt-5">
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setShowTimeline((value) => !value)}
+              onClick={() => setShowTranscript((value) => !value)}
               className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-[#EAF1FF]"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {showTimeline ? t("detail.hideTimeline") : t("detail.showTimeline")}
-              {showTimeline ? (
+              <FileText className="mr-2 h-4 w-4" />
+              {showTranscript ? t("detail.hideTranscript") : t("detail.showTranscript")}
+              {showTranscript ? (
                 <ChevronUp className="ml-2 h-4 w-4" />
               ) : (
                 <ChevronDown className="ml-2 h-4 w-4" />
               )}
             </Button>
-          )}
-        </div>
 
-        {showTranscript && (
+            {viewModel.rounds.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowTimeline((value) => !value)}
+                className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-[#EAF1FF]"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {showTimeline ? t("detail.hideTimeline") : t("detail.showTimeline")}
+                {showTimeline ? (
+                  <ChevronUp className="ml-2 h-4 w-4" />
+                ) : (
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {showInlineReviewControls && showTranscript && (
           <div className="mt-4 rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-5">
             <h3 className="text-base font-semibold text-[#071159]">
               {t("detail.transcript")}
@@ -842,11 +853,12 @@ export function SessionResultDashboard({
               roundLabel={(roundNumber) =>
                 t("annotations.round", { round: roundNumber })
               }
+              durationSeconds={session.duration || session.speechTime}
             />
           </div>
         )}
 
-        {showTimeline && viewModel.rounds.length > 0 && (
+        {showInlineReviewControls && showTimeline && viewModel.rounds.length > 0 && (
           <div className="mt-4 rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-5">
             <h3 className="mb-4 text-base font-semibold text-[#071159]">
               {t("detail.timeline")}

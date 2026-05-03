@@ -5,17 +5,24 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   ArrowLeft,
+  FileText,
+  LayoutDashboard,
   RotateCcw,
   Trash2,
   Sparkles,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionStore } from "@/store/session-store";
+import { cn } from "@/lib/utils";
 import type { DebateSession } from "@/types";
+
+type SessionDetailTab = "overall" | "transcript";
 
 export default function SessionDetailPage({
   params,
@@ -30,6 +37,7 @@ export default function SessionDetailPage({
   const [notFound, setNotFound] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<SessionDetailTab>("overall");
 
   const {
     setTopic,
@@ -138,48 +146,125 @@ export default function SessionDetailPage({
     practiceTrack === "speaking"
       ? `I just reviewed my speaking practice on "${session.topic.title}" (${session.side} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
       : `I just reviewed my debate on "${session.topic.title}" (${session.side} side, ${session.mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
+  const tabs: Array<{
+    id: SessionDetailTab;
+    label: string;
+    icon: LucideIcon;
+  }> = [
+    { id: "overall", label: "Overall", icon: LayoutDashboard },
+    { id: "transcript", label: "Transcript", icon: FileText },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       {feedback ? (
-        <SessionResultDashboard
-          session={sessionWithNormalizedFeedback}
-          backHref="/history"
-          backLabel={tResult("backToHistory")}
-          shareUrl={`/history/${session.id}`}
-          actionBar={
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={handleRetry}
-                className="min-h-[44px] rounded-2xl bg-primary px-5 text-white hover:bg-primary-dim"
+        <div className="mx-auto max-w-[1720px] px-4 py-5 sm:px-6 lg:px-8">
+          <div className="grid gap-5 lg:grid-cols-[178px_minmax(0,1fr)]">
+            <aside className="lg:sticky lg:top-5 lg:self-start">
+              <nav
+                aria-label="Session sections"
+                className="flex gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible"
               >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {tResult("actions.retryTopic")}
-              </Button>
-              <Link
-                href={`/chat?message=${encodeURIComponent(
-                  coachPrompt
-                )}&context=practice-feedback&contextId=${session.id}`}
-              >
-                <Button
-                  variant="outline"
-                  className="min-h-[44px] rounded-2xl border-primary/25 bg-primary/5 px-5 text-primary hover:bg-primary/10"
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {tResult("actions.askCoach")}
-                </Button>
-              </Link>
-              <Button
-                onClick={() => setShowDelete(true)}
-                variant="outline"
-                className="min-h-[44px] rounded-2xl border-red-500/30 bg-transparent px-5 text-red-400 hover:bg-red-500/10"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {tResult("actions.deleteSession")}
-              </Button>
-            </div>
-          }
-        />
+                {tabs.map(({ id: tabId, label, icon: Icon }) => {
+                  const isActive = activeTab === tabId;
+
+                  return (
+                    <button
+                      key={tabId}
+                      type="button"
+                      onClick={() => setActiveTab(tabId)}
+                      className={cn(
+                        "flex min-h-[48px] min-w-[132px] items-center gap-3 rounded-xl px-3 text-sm font-bold transition lg:min-w-0",
+                        isActive
+                          ? "bg-[#EAF1FF] text-[#3E78EC]"
+                          : "bg-white text-[#415069] hover:bg-[#F7FAFE] hover:text-[#0B1424]"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "h-4 w-4",
+                          isActive ? "text-[#4D86F7]" : "text-[#718096]"
+                        )}
+                      />
+                      {label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
+
+            <main className="min-w-0">
+              {activeTab === "overall" ? (
+                <SessionResultDashboard
+                  session={sessionWithNormalizedFeedback}
+                  backHref="/history"
+                  backLabel={tResult("backToHistory")}
+                  shareUrl={`/history/${session.id}`}
+                  showInlineReviewControls={false}
+                  className="max-w-none px-0 py-0"
+                  actionBar={
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        onClick={handleRetry}
+                        className="min-h-[44px] rounded-2xl bg-primary px-5 text-white hover:bg-primary-dim"
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        {tResult("actions.retryTopic")}
+                      </Button>
+                      <Link
+                        href={`/chat?message=${encodeURIComponent(
+                          coachPrompt
+                        )}&context=practice-feedback&contextId=${session.id}`}
+                      >
+                        <Button
+                          variant="outline"
+                          className="min-h-[44px] rounded-2xl border-primary/25 bg-primary/5 px-5 text-primary hover:bg-primary/10"
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          {tResult("actions.askCoach")}
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={() => setShowDelete(true)}
+                        variant="outline"
+                        className="min-h-[44px] rounded-2xl border-red-500/30 bg-transparent px-5 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {tResult("actions.deleteSession")}
+                      </Button>
+                    </div>
+                  }
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Link
+                      href="/history"
+                      className="inline-flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-[#0B185A] transition-colors hover:bg-white hover:text-primary"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      {tResult("backToHistory")}
+                    </Link>
+                    <div className="rounded-xl border border-[#DEE8F8] bg-white px-4 py-2 text-sm font-semibold text-[#415069]">
+                      {session.topic.title}
+                    </div>
+                  </div>
+                  <AnnotatedTranscript
+                    transcript={session.transcript || ""}
+                    annotations={feedback.transcriptAnnotations}
+                    emptyLabel={tResult("detail.emptyTranscript")}
+                    suggestionLabel={tResult("annotations.suggestion")}
+                    unmatchedLabel={tResult("annotations.unmatched")}
+                    roundLabel={(roundNumber) =>
+                      tResult("annotations.round", { round: roundNumber })
+                    }
+                    durationSeconds={session.duration || session.speechTime}
+                  />
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
       ) : (
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
           <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-8 text-center">

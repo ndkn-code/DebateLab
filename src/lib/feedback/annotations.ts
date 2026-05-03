@@ -7,6 +7,10 @@ export interface TranscriptAnnotationMatch extends TranscriptAnnotation {
   matchedText: string | null;
 }
 
+export type TranscriptAnnotationFilter =
+  | "all"
+  | TranscriptAnnotation["severity"];
+
 interface NormalizedTextMap {
   text: string;
   map: number[];
@@ -138,4 +142,39 @@ export function normalizeTranscriptAnnotations(
       };
     })
     .filter(Boolean) as TranscriptAnnotation[];
+}
+
+export function formatTranscriptTimestamp(seconds: number): string {
+  const normalizedSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(normalizedSeconds / 60);
+  const remainingSeconds = normalizedSeconds % 60;
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+export function estimateTranscriptTimestamp(
+  start: number | null,
+  transcriptLength: number,
+  durationSeconds?: number | null
+): string | null {
+  if (
+    typeof start !== "number" ||
+    start < 0 ||
+    transcriptLength <= 0 ||
+    !durationSeconds ||
+    durationSeconds <= 0
+  ) {
+    return null;
+  }
+
+  const ratio = Math.min(1, start / transcriptLength);
+  return formatTranscriptTimestamp(ratio * durationSeconds);
+}
+
+export function filterTranscriptAnnotationMatches(
+  matches: TranscriptAnnotationMatch[],
+  filter: TranscriptAnnotationFilter
+): TranscriptAnnotationMatch[] {
+  if (filter === "all") return matches;
+  return matches.filter((match) => match.severity === filter);
 }

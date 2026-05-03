@@ -7,6 +7,9 @@ import {
   minutesToSeconds,
 } from "./practice-durations";
 import {
+  estimateTranscriptTimestamp,
+  filterTranscriptAnnotationMatches,
+  formatTranscriptTimestamp,
   locateTranscriptAnnotations,
   normalizeTranscriptAnnotations,
 } from "./feedback/annotations";
@@ -66,5 +69,11 @@ const unmatched = locateTranscriptAnnotations(transcript, [
 ]);
 assert.equal(unmatched[0].start, null);
 assert.equal(unmatched[0].matchedText, null);
+assert.equal(formatTranscriptTimestamp(65.9), "1:05");
+assert.equal(estimateTranscriptTimestamp(60, 120, 180), "1:30");
+assert.equal(estimateTranscriptTimestamp(null, 120, 180), null);
+assert.equal(filterTranscriptAnnotationMatches(matches, "all").length, 2);
+assert.equal(filterTranscriptAnnotationMatches(matches, "strength").length, 1);
+assert.equal(filterTranscriptAnnotationMatches(matches, "warning").length, 0);
 
 console.log("practice-feedback-plan utilities passed");

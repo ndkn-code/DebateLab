@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DuelCreatePage } from "@/components/debates/duel-create-page";
 import { DuelMatchmakingPage } from "@/components/debates/duel-matchmaking-page";
+import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SessionConfig } from "@/components/practice/session-config";
@@ -11,7 +12,8 @@ import { SpeakingPhase } from "@/components/practice/speaking-phase";
 import type { DebateSession, DebateTopic } from "@/types";
 import { cn } from "@/lib/utils";
 
-type QaTab = "setup" | "prep" | "speaking" | "feedback" | "duels";
+type QaTab = "setup" | "prep" | "speaking" | "feedback" | "history" | "duels";
+type HistoryQaTab = "overall" | "transcript";
 
 const mockTopic: DebateTopic = {
   id: "dev-motion-phone-ban",
@@ -212,6 +214,7 @@ const tabs: Array<{ key: QaTab; label: string }> = [
   { key: "prep", label: "Prep layout" },
   { key: "speaking", label: "Speaking layout" },
   { key: "feedback", label: "Feedback" },
+  { key: "history", label: "History tabs" },
   { key: "duels", label: "Duel timers" },
 ];
 
@@ -223,8 +226,13 @@ export function DevPracticeQaPage() {
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const initialTab: QaTab = isQaTab(requestedTab) ? requestedTab : "setup";
+  const requestedHistoryTab = searchParams.get("historyTab");
+  const initialHistoryTab: HistoryQaTab =
+    requestedHistoryTab === "transcript" ? "transcript" : "overall";
   const defaultShowTranscript = searchParams.get("openTranscript") === "1";
   const [activeTab, setActiveTab] = useState<QaTab>(initialTab);
+  const [historyTab, setHistoryTab] =
+    useState<HistoryQaTab>(initialHistoryTab);
   const [prepNotes, setPrepNotes] = useState(
     "Define the clash: attention protection vs flexible educational phone use."
   );
@@ -335,6 +343,55 @@ export function DevPracticeQaPage() {
             backLabel="Back to Practice"
             defaultShowTranscript={defaultShowTranscript}
           />
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="mx-auto grid max-w-[1720px] gap-5 px-4 pb-12 sm:px-6 lg:grid-cols-[178px_minmax(0,1fr)] lg:px-8">
+          <aside className="lg:sticky lg:top-5 lg:self-start">
+            <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible">
+              {[
+                { id: "overall" as const, label: "Overall" },
+                { id: "transcript" as const, label: "Transcript" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setHistoryTab(tab.id)}
+                  className={cn(
+                    "min-h-[48px] min-w-[132px] rounded-xl px-3 text-left text-sm font-bold transition lg:min-w-0",
+                    historyTab === tab.id
+                      ? "bg-[#EAF1FF] text-[#3E78EC]"
+                      : "bg-white text-[#415069] hover:bg-[#F7FAFE]"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <main className="min-w-0">
+            {historyTab === "overall" ? (
+              <SessionResultDashboard
+                session={annotatedSession}
+                backHref="/history"
+                backLabel="Back to History"
+                showInlineReviewControls={false}
+                className="max-w-none px-0 py-0"
+              />
+            ) : (
+              <AnnotatedTranscript
+                transcript={annotatedSession.transcript}
+                annotations={annotatedSession.feedback?.transcriptAnnotations}
+                emptyLabel="No transcript was recorded for this session."
+                suggestionLabel="Try this"
+                unmatchedLabel="Quote not found"
+                roundLabel={(round) => `Round ${round}`}
+                durationSeconds={annotatedSession.duration}
+              />
+            )}
+          </main>
         </div>
       )}
 
