@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DuelCreatePage } from "@/components/debates/duel-create-page";
 import { DuelMatchmakingPage } from "@/components/debates/duel-matchmaking-page";
-import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
+import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
+import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
 import { PrepPhase } from "@/components/practice/prep-phase";
 import { SessionConfig } from "@/components/practice/session-config";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
@@ -231,8 +232,6 @@ export function DevPracticeQaPage() {
     requestedHistoryTab === "transcript" ? "transcript" : "overall";
   const defaultShowTranscript = searchParams.get("openTranscript") === "1";
   const [activeTab, setActiveTab] = useState<QaTab>(initialTab);
-  const [historyTab, setHistoryTab] =
-    useState<HistoryQaTab>(initialHistoryTab);
   const [prepNotes, setPrepNotes] = useState(
     "Define the clash: attention protection vs flexible educational phone use."
   );
@@ -321,11 +320,28 @@ export function DevPracticeQaPage() {
 
       {activeTab === "feedback" && (
         <div className="space-y-8 pb-12">
-          <SessionResultDashboard
-            session={annotatedSession}
-            backHref="/practice"
-            backLabel="Back to Practice"
-            defaultShowTranscript={defaultShowTranscript}
+          <SessionReviewShell
+            overall={
+              <SessionResultDashboard
+                session={annotatedSession}
+                backHref="/practice"
+                backLabel="Back to Practice"
+                showInlineReviewControls={false}
+                className="max-w-none px-0 py-0"
+              />
+            }
+            transcript={
+              <SessionTranscriptPanel
+                session={annotatedSession}
+                annotations={annotatedSession.feedback?.transcriptAnnotations}
+                backHref="/practice"
+                backLabel="Back to Practice"
+                emptyLabel="No transcript was recorded for this session."
+                suggestionLabel="Try this"
+                unmatchedLabel="Quote not found"
+                roundLabel={(round) => `Round ${round}`}
+              />
+            }
           />
           <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8">
             <div className="rounded-lg border border-[#DEE8F8] bg-white p-4">
@@ -342,57 +358,37 @@ export function DevPracticeQaPage() {
             backHref="/practice"
             backLabel="Back to Practice"
             defaultShowTranscript={defaultShowTranscript}
+            showInlineReviewControls={false}
           />
         </div>
       )}
 
       {activeTab === "history" && (
-        <div className="mx-auto grid max-w-[1720px] gap-5 px-4 pb-12 sm:px-6 lg:grid-cols-[178px_minmax(0,1fr)] lg:px-8">
-          <aside className="lg:sticky lg:top-5 lg:self-start">
-            <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible">
-              {[
-                { id: "overall" as const, label: "Overall" },
-                { id: "transcript" as const, label: "Transcript" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setHistoryTab(tab.id)}
-                  className={cn(
-                    "min-h-[48px] min-w-[132px] rounded-xl px-3 text-left text-sm font-bold transition lg:min-w-0",
-                    historyTab === tab.id
-                      ? "bg-[#EAF1FF] text-[#3E78EC]"
-                      : "bg-white text-[#415069] hover:bg-[#F7FAFE]"
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          <main className="min-w-0">
-            {historyTab === "overall" ? (
-              <SessionResultDashboard
-                session={annotatedSession}
-                backHref="/history"
-                backLabel="Back to History"
-                showInlineReviewControls={false}
-                className="max-w-none px-0 py-0"
-              />
-            ) : (
-              <AnnotatedTranscript
-                transcript={annotatedSession.transcript}
-                annotations={annotatedSession.feedback?.transcriptAnnotations}
-                emptyLabel="No transcript was recorded for this session."
-                suggestionLabel="Try this"
-                unmatchedLabel="Quote not found"
-                roundLabel={(round) => `Round ${round}`}
-                durationSeconds={annotatedSession.duration}
-              />
-            )}
-          </main>
-        </div>
+        <SessionReviewShell
+          initialTab={initialHistoryTab}
+          className="pb-12"
+          overall={
+            <SessionResultDashboard
+              session={annotatedSession}
+              backHref="/history"
+              backLabel="Back to History"
+              showInlineReviewControls={false}
+              className="max-w-none px-0 py-0"
+            />
+          }
+          transcript={
+            <SessionTranscriptPanel
+              session={annotatedSession}
+              annotations={annotatedSession.feedback?.transcriptAnnotations}
+              backHref="/history"
+              backLabel="Back to History"
+              emptyLabel="No transcript was recorded for this session."
+              suggestionLabel="Try this"
+              unmatchedLabel="Quote not found"
+              roundLabel={(round) => `Round ${round}`}
+            />
+          }
+        />
       )}
 
       {activeTab === "duels" && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Bookmark,
   CheckCircle2,
@@ -8,10 +8,12 @@ import {
   MoreVertical,
 } from "lucide-react";
 import {
+  buildTranscriptChunks,
   estimateTranscriptTimestamp,
   filterTranscriptAnnotationMatches,
-  formatTranscriptTimestamp,
+  getTranscriptAnnotationAccent,
   locateTranscriptAnnotations,
+  type TranscriptChunk,
   type TranscriptAnnotationFilter,
   type TranscriptAnnotationMatch,
 } from "@/lib/feedback/annotations";
@@ -46,14 +48,6 @@ interface AnnotatedTranscriptProps {
   speakerLabel?: string;
 }
 
-interface TranscriptChunk {
-  id: string;
-  start: number;
-  end: number;
-  text: string;
-  timestampLabel: string | null;
-}
-
 interface AnnotationConnector {
   id: string;
   path: string;
@@ -66,9 +60,11 @@ interface AnnotationConnector {
 
 const TAG_LABELS: Record<string, string> = {
   stance: "Stance",
+  clarity: "Clarity",
   mechanism: "Mechanism",
   evidence: "Evidence",
   logic: "Logic",
+  rebuttal: "Rebuttal",
   clash: "Clash",
   weighing: "Weighing",
   impact: "Impact",
@@ -100,6 +96,16 @@ const TAG_STYLES: Record<
   }
 > = {
   stance: {
+    accent: "#3E78EC",
+    accentRgb: "62,120,236",
+    mark: "bg-[#EEF4FF] text-[#2157C8] ring-[#A9C6FB]",
+    activeMark: "shadow-[0_0_0_3px_rgba(62,120,236,0.18)]",
+    card: "border-[#CFE0FF] bg-white",
+    badge: "bg-[#EEF4FF] text-[#2157C8]",
+    dot: "bg-[#3E78EC] text-white",
+    connector: "border-[#3E78EC]",
+  },
+  clarity: {
     accent: "#3E78EC",
     accentRgb: "62,120,236",
     mark: "bg-[#EEF4FF] text-[#2157C8] ring-[#A9C6FB]",
@@ -179,6 +185,16 @@ const TAG_STYLES: Record<
     dot: "bg-[#F5B942] text-[#0B1424]",
     connector: "border-[#F5B942]",
   },
+  rebuttal: {
+    accent: "#F5B942",
+    accentRgb: "245,185,66",
+    mark: "bg-[#FFF5E2] text-[#A05F00] ring-[#F9D889]",
+    activeMark: "shadow-[0_0_0_3px_rgba(245,185,66,0.24)]",
+    card: "border-[#F9D889] bg-white",
+    badge: "bg-[#FFF5E2] text-[#C57F00]",
+    dot: "bg-[#F5B942] text-[#0B1424]",
+    connector: "border-[#F5B942]",
+  },
   delivery: {
     accent: "#7B61FF",
     accentRgb: "123,97,255",
@@ -206,7 +222,13 @@ function getTagLabel(tag: string) {
 }
 
 function getTagStyle(tag: string) {
-  return TAG_STYLES[tag] ?? TAG_STYLES.logic;
+  if (TAG_STYLES[tag]) return TAG_STYLES[tag];
+
+  const accent = getTranscriptAnnotationAccent(tag);
+  return (
+    Object.values(TAG_STYLES).find((style) => style.accent === accent) ??
+    TAG_STYLES.logic
+  );
 }
 
 function getUsableDuration(
@@ -241,78 +263,6 @@ function buildDisplayAnnotations(
       };
     }
   );
-}
-
-function buildTranscriptChunks(
-  transcript: string,
-  durationSeconds?: number | null
-): TranscriptChunk[] {
-  const trimmed = transcript.trim();
-  if (!trimmed) return [];
-
-  const chunks: TranscriptChunk[] = [];
-  const sentenceRegex = /[^.!?\n]+[.!?]+(?:\s+|$)|[^\n]+(?:\n+|$)/g;
-  const matches = [...transcript.matchAll(sentenceRegex)];
-  const source =
-    matches.length > 0
-      ? matches.map((match) => ({
-          text: match[0],
-          index: match.index ?? 0,
-        }))
-      : [{ text: transcript, index: 0 }];
-
-  let groupStart = source[0]?.index ?? 0;
-  let groupText = "";
-  let groupCount = 0;
-
-  const pushGroup = () => {
-    const text = groupText;
-    const visibleText = text.trim();
-    if (!visibleText) return;
-    const leadingWhitespace = text.search(/\S/);
-    const start = groupStart + Math.max(0, leadingWhitespace);
-    const end = groupStart + text.length;
-    chunks.push({
-      id: `chunk-${start}-${end}`,
-      start,
-      end,
-      text: transcript.slice(start, end),
-      timestampLabel: estimateTranscriptTimestamp(
-        start,
-        transcript.length,
-        durationSeconds
-      ),
-    });
-    groupText = "";
-    groupCount = 0;
-  };
-
-  source.forEach((sentence) => {
-    if (!groupText) {
-      groupStart = sentence.index;
-    }
-
-    groupText += sentence.text;
-    groupCount += 1;
-
-    if (groupCount >= 1 || sentence.text.includes("\n")) {
-      pushGroup();
-    }
-  });
-
-  pushGroup();
-
-  return chunks.length > 0
-    ? chunks
-    : [
-        {
-          id: "chunk-all",
-          start: 0,
-          end: transcript.length,
-          text: transcript,
-          timestampLabel: durationSeconds ? formatTranscriptTimestamp(0) : null,
-        },
-      ];
 }
 
 function buildChunkSegments(
@@ -389,8 +339,8 @@ function buildConnectorPath(
   endX: number,
   endY: number
 ) {
-  const radius = 14;
-  const elbowX = Math.min(endX - 28, Math.max(startX + 44, endX - 70));
+  const radius = 12;
+  const elbowX = Math.max(startX + 24, Math.min(endX - 42, startX + 92));
   const direction = endY >= startY ? 1 : -1;
   const verticalDistance = Math.abs(endY - startY);
 
@@ -408,6 +358,17 @@ function buildConnectorPath(
   ].join(" ");
 }
 
+function isVerticallyVisible(
+  rect: DOMRect,
+  containerRect: DOMRect,
+  padding = 4
+) {
+  return (
+    rect.bottom >= containerRect.top + padding &&
+    rect.top <= containerRect.bottom - padding
+  );
+}
+
 export function AnnotatedTranscript({
   transcript,
   annotations,
@@ -420,12 +381,15 @@ export function AnnotatedTranscript({
 }: AnnotatedTranscriptProps) {
   const usableDuration = getUsableDuration(durationSeconds);
   const connectorRootRef = useRef<HTMLDivElement | null>(null);
+  const transcriptPaneRef = useRef<HTMLDivElement | null>(null);
+  const cardRailRef = useRef<HTMLDivElement | null>(null);
   const highlightRefs = useRef(new Map<string, HTMLButtonElement>());
   const markerRefs = useRef(new Map<string, HTMLSpanElement>());
   const cardRefs = useRef(new Map<string, HTMLElement>());
   const cardAnchorRefs = useRef(new Map<string, HTMLSpanElement>());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [connectors, setConnectors] = useState<AnnotationConnector[]>([]);
+  const [connectorBox, setConnectorBox] = useState({ width: 0, height: 0 });
   const [filter, setFilter] = useState<TranscriptAnnotationFilter>("all");
   const displayAnnotations = useMemo(
     () => buildDisplayAnnotations(transcript, annotations, usableDuration),
@@ -446,16 +410,33 @@ export function AnnotatedTranscript({
     [filteredAnnotations]
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    transcriptPaneRef.current?.scrollTo({ top: 0 });
+    cardRailRef.current?.scrollTo({ top: 0 });
+  }, [filter, transcript]);
+
+  useLayoutEffect(() => {
     const root = connectorRootRef.current;
     if (!root) return;
+    const transcriptPane = transcriptPaneRef.current;
+    const cardRail = cardRailRef.current;
 
     let animationFrame = 0;
+    let delayedFrame = 0;
 
     const updateConnectors = () => {
       window.cancelAnimationFrame(animationFrame);
       animationFrame = window.requestAnimationFrame(() => {
         const rootRect = root.getBoundingClientRect();
+        const nextBox = {
+          width: Math.ceil(rootRect.width),
+          height: Math.ceil(rootRect.height),
+        };
+        setConnectorBox((current) =>
+          current.width === nextBox.width && current.height === nextBox.height
+            ? current
+            : nextBox
+        );
         const nextConnectors = filteredAnnotations
           .filter(isLocatedAnnotation)
           .map((annotation) => {
@@ -469,15 +450,36 @@ export function AnnotatedTranscript({
             const markerRect = marker?.getBoundingClientRect();
             const cardRect = card.getBoundingClientRect();
             const cardAnchorRect = cardAnchor?.getBoundingClientRect();
+            const transcriptPaneRect =
+              transcriptPane?.getBoundingClientRect();
+            const cardRailRect = cardRail?.getBoundingClientRect();
             const tone = getTagStyle(annotation.tag);
             const clientRects = Array.from(highlight.getClientRects());
             const lastHighlightRect =
               clientRects.length > 0
                 ? clientRects[clientRects.length - 1]
                 : highlightRect;
+            const highlightAnchorRect = markerRect ?? lastHighlightRect;
+            const cardTargetRect = cardAnchorRect ?? cardRect;
+
+            if (
+              transcriptPaneRect &&
+              !isVerticallyVisible(highlightAnchorRect, transcriptPaneRect)
+            ) {
+              return null;
+            }
+
+            if (
+              cardRailRect &&
+              !isVerticallyVisible(cardTargetRect, cardRailRect)
+            ) {
+              return null;
+            }
+
             const startX =
               (markerRect ? markerRect.right : lastHighlightRect.right) -
-              rootRect.left;
+              rootRect.left +
+              2;
             const startY =
               (markerRect
                 ? markerRect.top + markerRect.height / 2
@@ -506,7 +508,14 @@ export function AnnotatedTranscript({
     };
 
     updateConnectors();
+    delayedFrame = window.setTimeout(updateConnectors, 80);
     window.addEventListener("resize", updateConnectors);
+    transcriptPane?.addEventListener("scroll", updateConnectors, {
+      passive: true,
+    });
+    cardRail?.addEventListener("scroll", updateConnectors, {
+      passive: true,
+    });
 
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
@@ -516,7 +525,10 @@ export function AnnotatedTranscript({
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(delayedFrame);
       window.removeEventListener("resize", updateConnectors);
+      transcriptPane?.removeEventListener("scroll", updateConnectors);
+      cardRail?.removeEventListener("scroll", updateConnectors);
       resizeObserver?.disconnect();
     };
   }, [filteredAnnotations, chunks]);
@@ -573,40 +585,13 @@ export function AnnotatedTranscript({
 
       <div
         ref={connectorRootRef}
-        className="relative mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_480px] xl:gap-8"
+        className="relative isolate mt-5 grid gap-5 xl:min-h-[620px] xl:max-h-[calc(100vh-230px)] xl:grid-cols-[minmax(0,1fr)_480px] xl:gap-8"
       >
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-20 hidden h-full w-full overflow-visible xl:block"
+        <div
+          ref={transcriptPaneRef}
+          className="relative z-10 min-h-[520px] overflow-y-auto rounded-xl border border-[#DEE8F8] bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
         >
-          {connectors.map((connector) => {
-            const isActive = activeId === connector.id;
-
-            return (
-              <g key={connector.id}>
-                <path
-                  d={connector.path}
-                  fill="none"
-                  stroke={connector.accent}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={isActive ? 2.4 : 2}
-                  opacity={isActive || !activeId ? 1 : 0.45}
-                />
-                <circle
-                  cx={connector.endX}
-                  cy={connector.endY}
-                  fill={connector.accent}
-                  opacity={isActive || !activeId ? 1 : 0.45}
-                  r={3.2}
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        <div className="relative z-10 rounded-xl border border-[#DEE8F8] bg-white px-4 py-5 sm:px-5">
-          <div className="space-y-6">
+          <div className="space-y-7">
             {chunks.map((chunk) => {
               const segments = buildChunkSegments(
                 transcript,
@@ -617,14 +602,12 @@ export function AnnotatedTranscript({
               return (
                 <div
                   key={chunk.id}
-                  className="min-w-0"
+                  className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] gap-4"
                 >
-                  {chunk.timestampLabel ? (
-                    <div className="mb-1.5 font-mono text-xs font-bold text-[#718096]">
-                      {chunk.timestampLabel}
-                    </div>
-                  ) : null}
-                  <p className="whitespace-pre-wrap text-[0.98rem] leading-8 text-[#30427A]">
+                  <div className="pt-1 font-mono text-xs font-bold text-[#718096]">
+                    {chunk.timestampLabel}
+                  </div>
+                  <p className="whitespace-pre-wrap text-[0.98rem] leading-7 text-[#30427A]">
                     {segments.map((segment) => {
                       if (segment.type === "text") {
                         return <span key={segment.key}>{segment.text}</span>;
@@ -662,7 +645,7 @@ export function AnnotatedTranscript({
                           onMouseEnter={() => setActiveId(segment.annotation.id)}
                           onFocus={() => setActiveId(segment.annotation.id)}
                           className={cn(
-                            "relative mx-0.5 mr-8 inline-block max-w-[calc(100%-2rem)] rounded px-1 py-0.5 text-left font-semibold leading-7 ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D86F7]",
+                            "relative mx-0.5 mr-9 inline-block max-w-[calc(100%-2.5rem)] rounded px-1 py-0.5 text-left font-semibold leading-7 ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D86F7]",
                             tone.mark,
                             isActive && tone.activeMark,
                             isFilteredOut && "opacity-35"
@@ -691,7 +674,7 @@ export function AnnotatedTranscript({
                               }
                             }}
                             className={cn(
-                              "absolute right-[-22px] top-1/2 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.68rem] leading-5",
+                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.68rem] leading-5 shadow-[0_0_0_3px_#FFFFFF]",
                               tone.dot
                             )}
                           >
@@ -707,7 +690,10 @@ export function AnnotatedTranscript({
           </div>
         </div>
 
-        <div className="relative z-10 space-y-4 xl:pl-28 xl:pr-1">
+        <div
+          ref={cardRailRef}
+          className="relative z-10 space-y-4 overflow-y-auto pr-1 xl:max-h-[calc(100vh-230px)] xl:pl-24"
+        >
           {filteredAnnotations.length > 0 ? (
             filteredAnnotations.map((annotation) => {
               const tone = getTagStyle(annotation.tag);
@@ -813,6 +799,54 @@ export function AnnotatedTranscript({
             </div>
           )}
         </div>
+
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-50 h-full w-full overflow-visible"
+          style={{
+            zIndex: 80,
+            overflow: "visible",
+            display: connectorBox.width >= 980 ? "block" : "none",
+          }}
+          viewBox={`0 0 ${Math.max(connectorBox.width, 1)} ${Math.max(
+            connectorBox.height,
+            1
+          )}`}
+          width={Math.max(connectorBox.width, 1)}
+          height={Math.max(connectorBox.height, 1)}
+        >
+          {connectors.map((connector) => {
+            const isActive = activeId === connector.id;
+
+            return (
+              <g key={connector.id}>
+                <path
+                  d={connector.path}
+                  fill="none"
+                  stroke={connector.accent}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={isActive ? 2.4 : 2}
+                  opacity={isActive || !activeId ? 1 : 0.45}
+                />
+                <circle
+                  cx={connector.startX}
+                  cy={connector.startY}
+                  fill={connector.accent}
+                  opacity={isActive || !activeId ? 1 : 0.45}
+                  r={3.2}
+                />
+                <circle
+                  cx={connector.endX}
+                  cy={connector.endY}
+                  fill={connector.accent}
+                  opacity={isActive || !activeId ? 1 : 0.45}
+                  r={3.2}
+                />
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </section>
   );

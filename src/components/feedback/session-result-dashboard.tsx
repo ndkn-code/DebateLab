@@ -463,14 +463,17 @@ export function SessionResultDashboard({
                 />
               </svg>
 
-              <div className="absolute flex flex-col items-center">
+              <div
+                className="absolute flex flex-col items-center"
+                aria-label={`${viewModel.feedback.totalScore} out of 100`}
+              >
                 <span className="text-sm font-medium text-[#33457E]">
                   {t("scoreLabel")}
                 </span>
                 <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-[#071159]">
                   {displayScore}
                 </span>
-                <span className="mt-2 text-lg text-[#33457E]">/100</span>
+                <span className="sr-only">out of 100</span>
               </div>
             </div>
 
@@ -567,7 +570,8 @@ export function SessionResultDashboard({
               </p>
               {strongestMetric && (
                 <span className="mt-4 inline-flex rounded-lg bg-[#EAF9EF] px-3 py-1.5 text-sm font-bold text-[#1A9153]">
-                  {strongestMetric.score} /100
+                  {strongestMetric.score}
+                  <span className="sr-only"> out of 100</span>
                 </span>
               )}
             </div>
@@ -591,7 +595,8 @@ export function SessionResultDashboard({
               </p>
               {weakestMetric && (
                 <span className="mt-4 inline-flex rounded-lg bg-[#FFF1E1] px-3 py-1.5 text-sm font-bold text-[#FF7A00]">
-                  {weakestMetric.score} /100
+                  {weakestMetric.score}
+                  <span className="sr-only"> out of 100</span>
                 </span>
               )}
             </div>
@@ -654,9 +659,7 @@ export function SessionResultDashboard({
                     )}
                   >
                     {metric.score}
-                    <span className="ml-1 text-sm font-medium text-[#465B91]">
-                      /100
-                    </span>
+                    <span className="sr-only"> out of 100</span>
                   </span>
                 </div>
 

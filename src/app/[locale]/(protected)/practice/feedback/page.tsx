@@ -10,7 +10,10 @@ import { LottieAnimation } from "@/components/ui/lottie-animation";
 import confettiAnimation from "../../../../../../public/lottie/confetti.json";
 import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
+import { ResultActionButton } from "@/components/feedback/result-action-button";
+import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
+import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
 import { storage, supabaseStorage } from "@/lib/storage";
 import {
   clearLocalPracticeSessionDraft,
@@ -92,10 +95,6 @@ export default function FeedbackPage() {
       ? Math.round((Date.now() - sessionStartTime) / 1000)
       : 0;
 
-    // Client-side timeout controller
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
     const speechType =
       practiceTrack === "speaking"
         ? "Speaking Practice"
@@ -109,7 +108,6 @@ export default function FeedbackPage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
         body: JSON.stringify({
           transcript,
           topic: selectedTopic.title,
@@ -122,8 +120,6 @@ export default function FeedbackPage() {
           rounds: isFullRound ? rounds : undefined,
         }),
       });
-
-      clearTimeout(timeoutId);
 
       if (!res.ok) {
         let errorMessage = `Server error (${res.status})`;
@@ -210,15 +206,9 @@ export default function FeedbackPage() {
         }
       }
     } catch (err) {
-      clearTimeout(timeoutId);
-
-      if (err instanceof DOMException && err.name === "AbortError") {
-        setError("Analysis timed out after 30 seconds. Please try again.");
-      } else {
-        setError(
-          err instanceof Error ? err.message : "Failed to analyze speech"
-        );
-      }
+      setError(
+        err instanceof Error ? err.message : "Failed to analyze speech"
+      );
     } finally {
       setLoading(false);
     }
@@ -278,9 +268,9 @@ export default function FeedbackPage() {
     setError(null);
     setLoading(true);
     hasCalledApi.current = false;
-    hasSaved.current = false;
+    hasSaved.current = Boolean(savedSessionId);
     fetchFeedback();
-  }, [fetchFeedback]);
+  }, [fetchFeedback, savedSessionId]);
 
   const handleRetrySameTopic = () => {
     const topic = selectedTopic;
@@ -400,112 +390,122 @@ export default function FeedbackPage() {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            <SessionResultDashboard
-              session={resultSession}
-              backHref="/practice"
-              backLabel={t("backToPractice")}
-              shareUrl={savedSessionId ? `/history/${savedSessionId}` : null}
-              actionBar={
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={handleRetrySameTopic}
-                    className="min-h-[44px] rounded-2xl bg-primary px-5 text-white hover:bg-primary-dim"
-                  >
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    {t("actions.practiceAgain")}
-                  </Button>
-                  <Button
-                    onClick={handleNewTopic}
-                    variant="outline"
-                    className="min-h-[44px] rounded-2xl border-outline-variant/20 bg-surface px-5 text-on-surface"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t("actions.newTopic")}
-                  </Button>
-                  <Link href="/history">
-                    <Button
-                      variant="outline"
-                      className="min-h-[44px] rounded-2xl border-outline-variant/20 bg-surface px-5 text-on-surface"
-                    >
-                      <History className="mr-2 h-4 w-4" />
-                      {t("actions.viewHistory")}
-                    </Button>
-                  </Link>
-                  <Link
-                    href={`/chat?message=${encodeURIComponent(
-                      coachPrompt
-                    )}${savedSessionId ? `&context=practice-feedback&contextId=${savedSessionId}` : ""}`}
-                  >
-                    <Button
-                      variant="outline"
-                      className="min-h-[44px] rounded-2xl border-primary/25 bg-primary/5 px-5 text-primary hover:bg-primary/10"
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      {t("actions.askCoach")}
-                    </Button>
-                  </Link>
-                </div>
-              }
-              afterPanel={
-                <>
-                  {referralCode && feedback && (
-                    <div className="mx-auto max-w-7xl rounded-[28px] border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
-                      <div className="flex flex-col items-center text-center">
-                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
-                          <Gift className="h-6 w-6 text-primary" />
-                        </div>
-                        <h3 className="text-base font-bold text-on-surface">
-                          {t("referral.title")}
-                        </h3>
-                        <p className="mt-1 text-sm text-on-surface-variant">
-                          {t("referral.body", { score: feedback.totalScore })}
-                        </p>
-                        <button
-                          onClick={async () => {
-                            const link = `${window.location.origin}/join/${referralCode}`;
-                            const shareText = t("referral.shareText", {
-                              score: feedback.totalScore,
-                              link,
-                            });
-                            if (navigator.share) {
-                              try {
-                                await navigator.share({
-                                  title: t("referral.shareTitle"),
-                                  text: shareText,
-                                });
-                              } catch {
-                                // Ignore cancelled shares.
-                              }
-                            } else {
-                              await navigator.clipboard.writeText(shareText);
-                              setLinkCopied(true);
-                              setTimeout(() => setLinkCopied(false), 2000);
-                            }
-                          }}
-                          className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
-                        >
-                          {linkCopied ? (
-                            <>
-                              <Check className="h-4 w-4" />
-                              {t("referral.copied")}
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-4 w-4" />
-                              {t("referral.cta")}
-                            </>
-                          )}
-                        </button>
-                      </div>
+            <SessionReviewShell
+              overall={
+                <SessionResultDashboard
+                  session={resultSession}
+                  backHref="/practice"
+                  backLabel={t("backToPractice")}
+                  shareUrl={savedSessionId ? `/history/${savedSessionId}` : null}
+                  showInlineReviewControls={false}
+                  className="max-w-none px-0 py-0"
+                  actionBar={
+                    <div className="flex flex-wrap gap-3">
+                      <ResultActionButton
+                        onClick={handleRetrySameTopic}
+                        tone="primary"
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        {t("actions.practiceAgain")}
+                      </ResultActionButton>
+                      <ResultActionButton onClick={handleNewTopic}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t("actions.newTopic")}
+                      </ResultActionButton>
+                      <Link href="/history">
+                        <ResultActionButton>
+                          <History className="mr-2 h-4 w-4" />
+                          {t("actions.viewHistory")}
+                        </ResultActionButton>
+                      </Link>
+                      <Link
+                        href={`/chat?message=${encodeURIComponent(
+                          coachPrompt
+                        )}${savedSessionId ? `&context=practice-feedback&contextId=${savedSessionId}` : ""}`}
+                      >
+                        <ResultActionButton tone="coach">
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          {t("actions.askCoach")}
+                        </ResultActionButton>
+                      </Link>
                     </div>
-                  )}
+                  }
+                  afterPanel={
+                    <>
+                      {referralCode && feedback && (
+                        <div className="mx-auto max-w-7xl rounded-[28px] border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
+                          <div className="flex flex-col items-center text-center">
+                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
+                              <Gift className="h-6 w-6 text-primary" />
+                            </div>
+                            <h3 className="text-base font-bold text-on-surface">
+                              {t("referral.title")}
+                            </h3>
+                            <p className="mt-1 text-sm text-on-surface-variant">
+                              {t("referral.body", { score: feedback.totalScore })}
+                            </p>
+                            <button
+                              onClick={async () => {
+                                const link = `${window.location.origin}/join/${referralCode}`;
+                                const shareText = t("referral.shareText", {
+                                  score: feedback.totalScore,
+                                  link,
+                                });
+                                if (navigator.share) {
+                                  try {
+                                    await navigator.share({
+                                      title: t("referral.shareTitle"),
+                                      text: shareText,
+                                    });
+                                  } catch {
+                                    // Ignore cancelled shares.
+                                  }
+                                } else {
+                                  await navigator.clipboard.writeText(shareText);
+                                  setLinkCopied(true);
+                                  setTimeout(() => setLinkCopied(false), 2000);
+                                }
+                              }}
+                              className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
+                            >
+                              {linkCopied ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  {t("referral.copied")}
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4" />
+                                  {t("referral.cta")}
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-                  {modelUsed && (
-                    <p className="text-center text-xs text-outline-variant">
-                      {t("modelUsed", { model: modelUsed })}
-                    </p>
-                  )}
-                </>
+                      {modelUsed && (
+                        <p className="text-center text-xs text-outline-variant">
+                          {t("modelUsed", { model: modelUsed })}
+                        </p>
+                      )}
+                    </>
+                  }
+                />
+              }
+              transcript={
+                <SessionTranscriptPanel
+                  session={resultSession}
+                  annotations={resultSession.feedback?.transcriptAnnotations}
+                  backHref="/practice"
+                  backLabel={t("backToPractice")}
+                  emptyLabel={t("detail.emptyTranscript")}
+                  suggestionLabel={t("annotations.suggestion")}
+                  unmatchedLabel={t("annotations.unmatched")}
+                  roundLabel={(roundNumber) =>
+                    t("annotations.round", { round: roundNumber })
+                  }
+                />
               }
             />
           </motion.div>

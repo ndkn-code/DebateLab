@@ -7,9 +7,11 @@ import {
   minutesToSeconds,
 } from "./practice-durations";
 import {
+  buildTranscriptChunks,
   estimateTranscriptTimestamp,
   filterTranscriptAnnotationMatches,
   formatTranscriptTimestamp,
+  getTranscriptAnnotationAccent,
   locateTranscriptAnnotations,
   normalizeTranscriptAnnotations,
 } from "./feedback/annotations";
@@ -75,5 +77,18 @@ assert.equal(estimateTranscriptTimestamp(null, 120, 180), null);
 assert.equal(filterTranscriptAnnotationMatches(matches, "all").length, 2);
 assert.equal(filterTranscriptAnnotationMatches(matches, "strength").length, 1);
 assert.equal(filterTranscriptAnnotationMatches(matches, "warning").length, 0);
+
+const chunkedTranscript =
+  "First, students lose attention when phones buzz. Teachers then restart explanations. This costs learning time. Second, a shared rule is fairer because every classroom has the same expectation. Finally, the policy protects deep work.";
+const chunks = buildTranscriptChunks(chunkedTranscript, 240);
+assert.equal(chunks.length, 2);
+assert.equal(chunks[0].timestampLabel, "0:00");
+assert.ok(chunks[0].text.includes("This costs learning time."));
+assert.equal(getTranscriptAnnotationAccent("evidence"), "#34C759");
+assert.equal(getTranscriptAnnotationAccent("clash"), "#F5B942");
+assert.notEqual(
+  getTranscriptAnnotationAccent("evidence"),
+  getTranscriptAnnotationAccent("clash")
+);
 
 console.log("practice-feedback-plan utilities passed");

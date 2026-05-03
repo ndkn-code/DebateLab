@@ -16,21 +16,28 @@ const TIPS = [
   "Transition phrases like 'Furthermore' and 'In contrast' make your speech flow smoothly.",
 ];
 
+const STAGES = [
+  "Reading your transcript",
+  "Checking argument structure",
+  "Linking feedback to exact quotes",
+  "Building your review dashboard",
+];
+
 export function LoadingState() {
   const [progress, setProgress] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
+  const [stageIndex, setStageIndex] = useState(0);
 
-  // Fake progress: 0→90% over ~8s
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 90) {
+        if (prev >= 96) {
           clearInterval(interval);
-          return 90;
+          return 96;
         }
-        return prev + Math.random() * 4;
+        return prev + Math.random() * 1.2 + 0.35;
       });
-    }, 300);
+    }, 450);
     return () => clearInterval(interval);
   }, []);
 
@@ -39,6 +46,13 @@ export function LoadingState() {
     const interval = setInterval(() => {
       setTipIndex((prev) => (prev + 1) % TIPS.length);
     }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStageIndex((prev) => Math.min(prev + 1, STAGES.length - 1));
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 
@@ -56,7 +70,7 @@ export function LoadingState() {
         Analyzing your debate performance...
       </h2>
       <p className="mb-8 text-sm text-on-surface-variant">
-        Our AI is reviewing your arguments, structure, and language
+        {STAGES[stageIndex]}...
       </p>
 
       {/* Progress bar */}

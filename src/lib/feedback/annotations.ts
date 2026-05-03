@@ -11,6 +11,32 @@ export type TranscriptAnnotationFilter =
   | "all"
   | TranscriptAnnotation["severity"];
 
+export interface TranscriptChunk {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
+  timestampLabel: string | null;
+}
+
+export const TRANSCRIPT_ANNOTATION_ACCENTS: Record<string, string> = {
+  stance: "#3E78EC",
+  clarity: "#3E78EC",
+  structure: "#3E78EC",
+  logic: "#4D86F7",
+  mechanism: "#4D86F7",
+  weighing: "#4D86F7",
+  rebuttal: "#F5B942",
+  clash: "#F5B942",
+  evidence: "#34C759",
+  impact: "#34C759",
+  delivery: "#7B61FF",
+};
+
+export function getTranscriptAnnotationAccent(tag: string) {
+  return TRANSCRIPT_ANNOTATION_ACCENTS[tag] ?? TRANSCRIPT_ANNOTATION_ACCENTS.logic;
+}
+
 interface NormalizedTextMap {
   text: string;
   map: number[];
@@ -177,4 +203,109 @@ export function filterTranscriptAnnotationMatches(
 ): TranscriptAnnotationMatch[] {
   if (filter === "all") return matches;
   return matches.filter((match) => match.severity === filter);
+}
+
+function createTranscriptChunk(
+  transcript: string,
+  start: number,
+  end: number,
+  durationSeconds?: number | null
+): TranscriptChunk | null {
+  const text = transcript.slice(start, end);
+  const firstVisible = text.search(/\S/);
+  if (firstVisible < 0) return null;
+
+  const normalizedStart = start + firstVisible;
+  let normalizedEnd = end;
+  while (normalizedEnd > normalizedStart && /\s/.test(transcript[normalizedEnd - 1])) {
+    normalizedEnd -= 1;
+  }
+
+  return {
+    id: `chunk-${normalizedStart}-${normalizedEnd}`,
+    start: normalizedStart,
+    end: normalizedEnd,
+    text: transcript.slice(normalizedStart, normalizedEnd),
+    timestampLabel: estimateTranscriptTimestamp(
+      normalizedStart,
+      transcript.length,
+      durationSeconds
+    ),
+  };
+}
+
+export function buildTranscriptChunks(
+  transcript: string,
+  durationSeconds?: number | null,
+  options?: {
+    maxSentences?: number;
+    maxCharacters?: number;
+  }
+): TranscriptChunk[] {
+  const trimmed = transcript.trim();
+  if (!trimmed) return [];
+
+  const maxSentences = options?.maxSentences ?? 3;
+  const maxCharacters = options?.maxCharacters ?? 520;
+  const chunks: TranscriptChunk[] = [];
+  const sentenceRegex = /[^.!?\n]+[.!?]+(?:[ \t]+|$)|[^\n]+(?:\n+|$)/g;
+  const matches = [...transcript.matchAll(sentenceRegex)];
+  const source =
+    matches.length > 0
+      ? matches.map((match) => ({
+          text: match[0],
+          index: match.index ?? 0,
+        }))
+      : [{ text: transcript, index: 0 }];
+
+  let groupStart = source[0]?.index ?? 0;
+  let groupEnd = groupStart;
+  let groupText = "";
+  let groupCount = 0;
+
+  const pushGroup = () => {
+    const chunk = createTranscriptChunk(
+      transcript,
+      groupStart,
+      groupEnd,
+      durationSeconds
+    );
+    if (chunk) chunks.push(chunk);
+    groupText = "";
+    groupCount = 0;
+  };
+
+  source.forEach((sentence) => {
+    if (!groupText) {
+      groupStart = sentence.index;
+    }
+
+    groupText += sentence.text;
+    groupEnd = sentence.index + sentence.text.length;
+    groupCount += 1;
+
+    const hasParagraphBreak = /\n{2,}/.test(sentence.text);
+    const hitSentenceLimit = groupCount >= maxSentences;
+    const hitCharacterLimit = groupText.trim().length >= maxCharacters;
+
+    if (hasParagraphBreak || hitSentenceLimit || hitCharacterLimit) {
+      pushGroup();
+    }
+  });
+
+  if (groupText) {
+    pushGroup();
+  }
+
+  return chunks.length > 0
+    ? chunks
+    : [
+        {
+          id: "chunk-all",
+          start: 0,
+          end: transcript.length,
+          text: transcript,
+          timestampLabel: durationSeconds ? formatTranscriptTimestamp(0) : null,
+        },
+      ];
 }

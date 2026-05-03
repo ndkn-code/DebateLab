@@ -10,9 +10,11 @@ export interface DebateArgumentBreakdown {
 
 export type TranscriptAnnotationTag =
   | "stance"
+  | "clarity"
   | "mechanism"
   | "evidence"
   | "logic"
+  | "rebuttal"
   | "clash"
   | "weighing"
   | "impact"

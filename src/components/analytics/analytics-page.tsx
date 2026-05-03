@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -43,10 +44,13 @@ import type {
   AnalyticsPageData,
   AnalyticsRangePreset,
   AnalyticsRecentSession,
+  DebateSession,
 } from "@/types";
 
 const RANGE_PRESETS: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
 const ANALYTICS_DEDUPE_INTERVAL = 5 * 60 * 1000;
+const LOCAL_SESSIONS_STORAGE_KEY = "debatelab_sessions";
+const LOCAL_SESSIONS_UPDATE_EVENT = "debatelab:sessions-updated";
 
 const CHART_SIZE = 330;
 const CHART_CENTER = CHART_SIZE / 2;
@@ -128,6 +132,80 @@ function polygonPoints(values: number[]) {
 
 function getAnalyticsSummaryKey(range: AnalyticsRangePreset) {
   return `/api/analytics/summary?range=${range}`;
+}
+
+function getLocalSessionDurationMinutes(session: DebateSession) {
+  if (!session.duration || session.duration <= 0) return null;
+  return Math.max(1, Math.round(session.duration / 60));
+}
+
+function getLocalSessionsSnapshot() {
+  if (typeof window === "undefined") return "[]";
+  return window.localStorage.getItem(LOCAL_SESSIONS_STORAGE_KEY) ?? "[]";
+}
+
+function subscribeToLocalSessions(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+
+  const handleStorageChange = (event: StorageEvent) => {
+    if (event.key === LOCAL_SESSIONS_STORAGE_KEY) {
+      onStoreChange();
+    }
+  };
+
+  window.addEventListener("storage", handleStorageChange);
+  window.addEventListener(LOCAL_SESSIONS_UPDATE_EVENT, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorageChange);
+    window.removeEventListener(LOCAL_SESSIONS_UPDATE_EVENT, onStoreChange);
+  };
+}
+
+function parseLocalRecentSessions(snapshot: string) {
+  try {
+    return (JSON.parse(snapshot) as DebateSession[]).map(mapLocalRecentSession);
+  } catch {
+    return [];
+  }
+}
+
+function mapLocalRecentSession(session: DebateSession): AnalyticsRecentSession {
+  const practiceTrack =
+    session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+
+  return {
+    id: session.id,
+    kind: "practice",
+    topicTitle: session.topic.title,
+    topicCategory: session.topic.category,
+    practiceTrack,
+    mode: session.mode,
+    side: session.side,
+    score: session.feedback?.totalScore ?? null,
+    resultLabel: session.feedback?.overallBand ?? null,
+    confidencePercent: null,
+    durationMinutes: getLocalSessionDurationMinutes(session),
+    createdAt: session.date,
+    href: `/history/${session.id}`,
+  };
+}
+
+function mergeRecentSessions(
+  remoteSessions: AnalyticsRecentSession[],
+  localSessions: AnalyticsRecentSession[]
+) {
+  return [...remoteSessions, ...localSessions]
+    .filter((session, index, sessions) => {
+      const firstMatchIndex = sessions.findIndex(
+        (candidate) => candidate.kind === session.kind && candidate.id === session.id
+      );
+      return firstMatchIndex === index;
+    })
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    );
 }
 
 async function fetchAnalyticsSummary(key: string): Promise<AnalyticsPageData> {
@@ -883,6 +961,11 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
   const t = useTranslations("analyticsPage");
   const [selectedRange, setSelectedRange] = useState(initialData.range);
   const prefetchedRangesRef = useRef(new Set<AnalyticsRangePreset>([initialData.range]));
+  const localSessionsSnapshot = useSyncExternalStore(
+    subscribeToLocalSessions,
+    getLocalSessionsSnapshot,
+    () => "[]"
+  );
   const analyticsKey = getAnalyticsSummaryKey(selectedRange);
   const { data: fetchedData, isValidating } = useSWR<AnalyticsPageData>(
     analyticsKey,
@@ -943,7 +1026,14 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
   const practiceMinutesDisplay = practiceMinutesCard;
   const mixDisplay = mixCard;
   const averageScoreDisplay = averageCard;
-  const recentSessionsDisplay = data.recentSessions;
+  const recentSessionsDisplay = useMemo(
+    () =>
+      mergeRecentSessions(
+        data.recentSessions,
+        parseLocalRecentSessions(localSessionsSnapshot)
+      ),
+    [data.recentSessions, localSessionsSnapshot]
+  );
 
   return (
     <PageTransition className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">

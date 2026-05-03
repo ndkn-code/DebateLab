@@ -3,8 +3,9 @@ import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 
-// Allow up to 30s for Vercel serverless functions
-export const maxDuration = 30;
+// Give Gemini enough room for annotation-heavy feedback while staying inside
+// the common Vercel serverless ceiling.
+export const maxDuration = 60;
 
 import type { DebateRound } from "@/types";
 import type { PracticeTrack } from "@/types";
@@ -83,9 +84,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Gemini with a 25-second timeout
+    // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("TIMEOUT")), 25000);
+      setTimeout(() => reject(new Error("TIMEOUT")), 55000);
     });
 
     try {
@@ -112,7 +113,10 @@ export async function POST(req: NextRequest) {
       if (err instanceof Error) {
         if (err.message === "TIMEOUT") {
           return NextResponse.json(
-            { error: "Analysis timed out. The AI service took too long to respond. Please try again." },
+            {
+              error:
+                "Analysis is taking longer than expected. Your transcript is safe, so please try again in a moment.",
+            },
             { status: 504 }
           );
         }

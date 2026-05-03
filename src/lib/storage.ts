@@ -5,6 +5,7 @@ import { useAchievementStore } from "@/stores/achievement-store";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
+const STORAGE_UPDATE_EVENT = "debatelab:sessions-updated";
 const MAX_SESSIONS = 50;
 
 // localStorage adapter (fallback)
@@ -18,6 +19,7 @@ const localAdapter = {
       STORAGE_KEY,
       JSON.stringify(sessions.slice(0, MAX_SESSIONS))
     );
+    window.dispatchEvent(new Event(STORAGE_UPDATE_EVENT));
   },
 
   getSessions(): DebateSession[] {

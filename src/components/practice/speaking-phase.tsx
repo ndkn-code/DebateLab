@@ -101,6 +101,11 @@ export function SpeakingPhase({
   const shouldShowNoSpeechWarning =
     showNoSpeechWarning && !speechError && !hasReceivedSpeech && isRecording && !isPaused;
 
+  const handleConfirmEnd = () => {
+    setShowEndConfirm(false);
+    onEnd();
+  };
+
   function getErrorMessage(error: string): string {
     switch (error) {
       case "not-allowed":
@@ -253,7 +258,12 @@ export function SpeakingPhase({
         </PracticePanel>
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-4 px-4">
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-4 px-4",
+          showEndConfirm && "invisible"
+        )}
+      >
         <PauseButton
           isPaused={isPaused}
           onClick={isPaused ? onResume : onPause}
@@ -267,20 +277,35 @@ export function SpeakingPhase({
           <Square className="h-5 w-5" />
           End Speech
         </Button>
+      </div>
 
-        <AnimatePresence>
-          {showEndConfirm && (
+      <AnimatePresence>
+        {showEndConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-on-surface/10 px-4 pb-4 backdrop-blur-[1px] sm:pb-6"
+            onClick={() => setShowEndConfirm(false)}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-x-4 bottom-4 z-30 mx-auto flex max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_20px_55px_-48px_rgba(22,39,91,0.7)] backdrop-blur-xl"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="end-speech-confirm-title"
+              onClick={(event) => event.stopPropagation()}
+              className="pointer-events-auto mx-auto flex w-full max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_20px_55px_-42px_rgba(22,39,91,0.75)] backdrop-blur-xl"
             >
               <div className="text-center">
-                <p className="mb-3 text-sm font-medium text-on-surface-variant">
+                <p
+                  id="end-speech-confirm-title"
+                  className="mb-3 text-sm font-medium text-on-surface-variant"
+                >
                   End your speech early?
                 </p>
-                <div className="flex gap-2">
+                <div className="flex justify-center gap-2">
                   <Button
                     onClick={() => setShowEndConfirm(false)}
                     variant="outline"
@@ -289,17 +314,17 @@ export function SpeakingPhase({
                     Cancel
                   </Button>
                   <Button
-                    onClick={onEnd}
-                    className="rounded-xl bg-error text-on-error hover:bg-error-dim"
+                    onClick={handleConfirmEnd}
+                    className="rounded-xl bg-primary text-on-primary shadow-[inset_0_-3px_0_rgba(12,57,146,0.22),0_12px_24px_-16px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
                   >
                     End Now
                   </Button>
                 </div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
