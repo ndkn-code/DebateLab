@@ -14,8 +14,6 @@ import {
   Mic2,
   Scale,
   Sparkles,
-  Swords,
-  Users,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -312,17 +310,6 @@ export function SessionConfig({
               </div>
             </ConfigSection>
 
-            <ConfigSection label={t("debate_mode")} icon={Users}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SegmentButton active icon={Users}>
-                  {t("solo_debate")}
-                </SegmentButton>
-                <SegmentButton active={false} disabled icon={Swords}>
-                  {t("one_vs_one_debate")}
-                </SegmentButton>
-              </div>
-            </ConfigSection>
-
             <ConfigSection label={t("session_mode")} icon={Zap}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <SegmentButton
@@ -377,7 +364,6 @@ export function SessionConfig({
               value={prepTime}
               config={SOLO_PREP_DURATION}
               onChange={setPrepTime}
-              helper={t("prep_time_helper")}
               compact
             />
 
@@ -387,7 +373,6 @@ export function SessionConfig({
               value={speechTime}
               config={SOLO_SPEECH_DURATION}
               onChange={setSpeechTime}
-              helper={t("speech_time_helper")}
               compact
             />
 
@@ -414,10 +399,6 @@ export function SessionConfig({
               : t("begin_session")}
             <ArrowRight className="ml-2 h-[18px] w-[18px]" />
           </Button>
-
-          <p className="mt-4 text-center text-[13px] text-[#7d8ba8]">
-            {t("settings_note")}
-          </p>
         </div>
       </div>
 

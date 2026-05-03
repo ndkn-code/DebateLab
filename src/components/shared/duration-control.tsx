@@ -53,19 +53,14 @@ export function DurationControl({
         className
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#162033]">
-            {icon ? <span className="text-[#4D86F7]">{icon}</span> : null}
-            <span>{label}</span>
-          </div>
-          {helper ? (
-            <p className="mt-1 text-xs leading-5 text-[#718096]">{helper}</p>
-          ) : null}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#162033]">
+          {icon ? <span className="text-[#4D86F7]">{icon}</span> : null}
+          <span>{label}</span>
         </div>
-        <span className="shrink-0 rounded-md bg-[#F1F6FD] px-2.5 py-1 text-xs font-semibold text-[#4D86F7]">
-          {formatDurationLabel(boundedValue)}
-        </span>
+        {helper ? (
+          <p className="mt-1 text-xs leading-5 text-[#718096]">{helper}</p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 items-center gap-2 sm:grid-cols-[40px_minmax(0,1fr)_40px]">
