@@ -215,7 +215,7 @@ export function PracticeTimerDial({
   totalTime: number;
   progress: number;
   tone?: "blue" | "red";
-  size?: "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl";
 }) {
   const svgNumber = (value: number) => Number(value.toFixed(4));
   const radius = 118;
@@ -237,7 +237,9 @@ export function PracticeTimerDial({
           ? "h-[390px] w-[390px]"
           : size === "lg"
             ? "h-[330px] w-[330px]"
-            : "h-[292px] w-[292px]"
+            : size === "md"
+              ? "h-[292px] w-[292px]"
+              : "h-[238px] w-[238px]"
       )}
     >
       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 280 280">
@@ -272,7 +274,12 @@ export function PracticeTimerDial({
         />
       </svg>
       <div className="relative text-center">
-        <div className="font-mono text-[4.65rem] font-bold leading-none tracking-normal text-on-surface">
+        <div
+          className={cn(
+            "font-mono font-bold leading-none tracking-normal text-on-surface",
+            size === "sm" ? "text-[3.55rem]" : "text-[4.65rem]"
+          )}
+        >
           {formatPracticeTime(timeLeft)}
         </div>
       </div>
@@ -288,6 +295,7 @@ export function QuickNotesEditor({
   minHeightClassName = "min-h-[290px]",
   className,
   footer,
+  compact = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -296,6 +304,7 @@ export function QuickNotesEditor({
   minHeightClassName?: string;
   className?: string;
   footer?: ReactNode;
+  compact?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -398,7 +407,12 @@ export function QuickNotesEditor({
 
   return (
     <PracticePanel className={cn("p-8", className)}>
-      <div className="mb-7 flex items-center justify-between gap-4">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-4",
+          compact ? "mb-4" : "mb-7"
+        )}
+      >
         <div>
           <h2 className="text-xl font-semibold tracking-normal text-on-surface">
             {label}
@@ -429,7 +443,12 @@ export function QuickNotesEditor({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface">
-        <div className="flex h-14 items-center gap-4 border-b border-outline-variant/70 px-5 text-on-surface-variant">
+        <div
+          className={cn(
+            "flex items-center gap-4 border-b border-outline-variant/70 px-5 text-on-surface-variant",
+            compact ? "h-11" : "h-14"
+          )}
+        >
           {toolbarItems.map(({ icon: Icon, label, action }) => (
             <button
               key={label}
@@ -479,7 +498,7 @@ export function QuickNotesEditor({
         </div>
       </div>
 
-      {footer ? <div className="mt-7">{footer}</div> : null}
+      {footer ? <div className={cn(compact ? "mt-4" : "mt-7")}>{footer}</div> : null}
     </PracticePanel>
   );
 }
@@ -521,7 +540,7 @@ export function PrimaryActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-14 min-w-[260px] gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary hover:bg-primary-dim",
+        "h-14 min-w-[260px] gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary shadow-[inset_0_-4px_0_rgba(12,57,146,0.22),0_16px_28px_-18px_rgba(77,134,247,0.95)] hover:bg-primary-dim",
         className
       )}
     >
@@ -534,16 +553,21 @@ export function PrimaryActionButton({
 export function PauseButton({
   isPaused,
   onClick,
+  className,
 }: {
   isPaused?: boolean;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <Button
       type="button"
       onClick={onClick}
       variant="outline"
-      className="h-14 min-w-[160px] gap-3 rounded-2xl border-outline-variant/80 bg-surface text-base font-semibold text-on-surface hover:bg-surface-container"
+      className={cn(
+        "h-14 min-w-[160px] gap-3 rounded-2xl border-[#D7E4F8] bg-white text-base font-semibold text-[#0B1424] shadow-[inset_0_-4px_0_rgba(184,202,232,0.45),0_16px_28px_-22px_rgba(22,39,91,0.55)] hover:bg-[#F7FAFE]",
+        className
+      )}
     >
       {isPaused ? <Minimize2 className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
       {isPaused ? "Resume" : "Pause"}

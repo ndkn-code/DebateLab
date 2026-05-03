@@ -10,7 +10,9 @@ const MAX_SESSIONS = 50;
 // localStorage adapter (fallback)
 const localAdapter = {
   saveSession(session: DebateSession): void {
-    const sessions = this.getSessions();
+    const sessions = this
+      .getSessions()
+      .filter((storedSession) => storedSession.id !== session.id);
     sessions.unshift(session);
     localStorage.setItem(
       STORAGE_KEY,
@@ -38,6 +40,7 @@ const localAdapter = {
 const supabaseAdapter = {
   async saveSession(session: DebateSession, userId: string): Promise<void> {
     const supabase = createClient();
+    localAdapter.saveSession(session);
 
     const row = {
       id: session.id,
@@ -61,8 +64,7 @@ const supabaseAdapter = {
 
     const { error } = await supabase.from("debate_sessions").insert(row);
     if (error) {
-      // Fall back to localStorage
-      localAdapter.saveSession(session);
+      console.warn("Failed to save debate session to Supabase", error.message);
       return;
     }
 
@@ -175,7 +177,20 @@ const supabaseAdapter = {
       return localAdapter.getSessions();
     }
 
-    return data.map(rowToSession);
+    const remoteSessions = data.map(rowToSession);
+    const localOnlySessions = localAdapter
+      .getSessions()
+      .filter(
+        (localSession) =>
+          !remoteSessions.some((remoteSession) => remoteSession.id === localSession.id)
+      );
+
+    return [...remoteSessions, ...localOnlySessions]
+      .sort(
+        (left, right) =>
+          new Date(right.date).getTime() - new Date(left.date).getTime()
+      )
+      .slice(0, MAX_SESSIONS);
   },
 
   async getSession(
@@ -190,7 +205,9 @@ const supabaseAdapter = {
       .eq("user_id", userId)
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      return localAdapter.getSession(id);
+    }
     return rowToSession(data);
   },
 
@@ -205,6 +222,7 @@ const supabaseAdapter = {
     if (error) {
       // deletion failed silently
     }
+    localAdapter.deleteSession(id);
   },
 };
 

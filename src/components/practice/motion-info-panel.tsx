@@ -39,75 +39,70 @@ export function MotionInfoPanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_42px_-36px_rgba(34,67,138,0.42)]",
+        "relative overflow-hidden rounded-lg border border-[#D9E6FA] bg-white shadow-[0_20px_58px_-46px_rgba(22,39,91,0.5)]",
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-2 rounded-md bg-[#EEF4FF] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#3E78EC]">
-          <BookOpenText className="h-3.5 w-3.5" />
-          Motion
-        </span>
-        <span
-          className={cn(
-            "inline-flex rounded-md px-3 py-1.5 text-xs font-bold",
-            side === "proposition"
-              ? "bg-[#EAF9EF] text-[#249B55]"
-              : "bg-[#FDECEC] text-[#D95C5C]"
-          )}
-        >
-          {sideLabel}
-        </span>
-        <span className="inline-flex rounded-md bg-[#F7FAFE] px-3 py-1.5 text-xs font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
-          {getDifficultyLabel(topic.difficulty)}
-        </span>
-      </div>
+      <div className="absolute inset-y-0 left-0 w-1.5 bg-[#4D86F7]" />
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex h-8 items-center gap-2 rounded-md bg-[#EEF4FF] px-3 text-xs font-bold uppercase tracking-[0.14em] text-[#3E78EC]">
+            <BookOpenText className="h-3.5 w-3.5" />
+            Motion
+          </span>
+          <span
+            className={cn(
+              "inline-flex h-8 items-center rounded-md px-3 text-xs font-bold",
+              side === "proposition"
+                ? "bg-[#EAF9EF] text-[#249B55]"
+                : "bg-[#FDECEC] text-[#D95C5C]"
+            )}
+          >
+            {sideLabel}
+          </span>
+          <span className="inline-flex h-8 items-center rounded-md bg-[#F7FAFE] px-3 text-xs font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+            {getDifficultyLabel(topic.difficulty)}
+          </span>
+          <span className="inline-flex h-8 min-w-0 max-w-full items-center truncate rounded-md bg-white px-3 text-xs font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+            {topic.category}
+          </span>
+        </div>
 
-      <h1 className="mt-4 text-[1.7rem] font-bold leading-tight tracking-normal text-[#0B1424] md:text-[2rem]">
-        {topic.title}
-      </h1>
+        <h1 className="mt-3 text-[1.55rem] font-bold leading-tight tracking-normal text-[#0B1424] md:text-[1.9rem]">
+          {topic.title}
+        </h1>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-        <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-[#162033]">
+        <div className="mt-4 rounded-md border border-[#DEE8F8] bg-[#F7FAFE] px-4 py-3">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#3E78EC]">
             <Scale className="h-4 w-4 text-[#4D86F7]" />
-            Info slide
+            Info
           </div>
-          <p className="mt-2 text-sm leading-6 text-[#415069]">
+          <p className="mt-1.5 text-sm leading-6 text-[#415069]">
             {topic.context ||
               "Use this motion to define the clash, choose your strongest burden, and explain why your side matters more."}
           </p>
         </div>
 
-        <div className="rounded-lg border border-[#DEE8F8] bg-white px-4 py-3 md:min-w-[190px]">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718096]">
-            Category
+        {points.length > 0 ? (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#162033]">
+              <Lightbulb className="h-4 w-4 text-[#4D86F7]" />
+              Argument anchors
+            </div>
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
+              {points.map((point) => (
+                <div
+                  key={point}
+                  className="flex min-h-[58px] gap-2 rounded-md border border-[#DEE8F8] bg-white px-3 py-2 text-sm leading-5 text-[#415069]"
+                >
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#34C759]" />
+                  <span className="line-clamp-2">{point}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-1 text-sm font-bold leading-5 text-[#162033]">
-            {topic.category}
-          </div>
-        </div>
+        ) : null}
       </div>
-
-      {points.length > 0 ? (
-        <div className="mt-4 rounded-lg border border-[#DEE8F8] bg-white p-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-[#162033]">
-            <Lightbulb className="h-4 w-4 text-[#4D86F7]" />
-            Argument anchors
-          </div>
-          <div className="mt-3 grid gap-2 md:grid-cols-3">
-            {points.map((point) => (
-              <div
-                key={point}
-                className="rounded-md border border-[#DEE8F8] bg-[#F7FAFE] px-3 py-2 text-sm leading-5 text-[#415069]"
-              >
-                <ShieldCheck className="mb-1 h-3.5 w-3.5 text-[#34C759]" />
-                {point}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

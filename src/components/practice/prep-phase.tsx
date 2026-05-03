@@ -19,7 +19,6 @@ import {
 } from "./practice-session-ui";
 import { MotionInfoPanel } from "./motion-info-panel";
 import type { DebateTopic, PracticeTrack } from "@/types";
-import { cn } from "@/lib/utils";
 
 const TOPIC_STOP_WORDS = new Set([
   "a",
@@ -163,28 +162,28 @@ export function PrepPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-5 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <MotionInfoPanel topic={topic} side={side} className="min-h-[330px]" />
+    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 px-5 py-4 sm:px-6 lg:px-8">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <MotionInfoPanel topic={topic} side={side} />
 
-        <PracticePanel className="overflow-hidden bg-gradient-to-b from-white via-white to-primary-container/35 p-5 shadow-[0_22px_72px_-54px_rgba(22,39,91,0.55)]">
-          <div className="flex h-full min-h-[330px] flex-col items-center justify-center">
+        <PracticePanel className="overflow-hidden bg-gradient-to-b from-white via-white to-primary-container/35 p-4 shadow-[0_22px_72px_-54px_rgba(22,39,91,0.55)]">
+          <div className="flex h-full flex-col items-center justify-center">
             <PhasePill icon={<Clock3 className="h-4 w-4" />}>
               Preparation Phase
             </PhasePill>
 
-            <div className="mt-5">
+            <div className="mt-3">
               <PracticeTimerDial
                 timeLeft={timeLeft}
                 totalTime={totalTime}
                 progress={progress}
                 tone="blue"
-                size="md"
+                size="sm"
               />
             </div>
 
-            <div className="mt-5 w-full rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_18px_45px_-38px_rgba(22,39,91,0.45)]">
-              <div className="flex items-center gap-3">
+            <div className="mt-3 w-full rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-[0_18px_45px_-38px_rgba(22,39,91,0.45)]">
+              <div className="flex items-center gap-2.5">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-container">
                   <Lightbulb className="h-5 w-5 text-primary" />
                 </div>
@@ -193,22 +192,30 @@ export function PrepPhase({
                 </p>
               </div>
             </div>
+
+            <PrimaryActionButton
+              onClick={onSkip}
+              className="mt-4 h-12 w-full min-w-0 rounded-lg text-sm shadow-[0_18px_32px_-18px_rgba(37,99,235,0.85)]"
+            >
+              Skip to Speaking
+            </PrimaryActionButton>
           </div>
         </PracticePanel>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex min-w-0 flex-col">
         <QuickNotesEditor
           value={prepNotes}
           onChange={onNotesChange}
-          minHeightClassName="min-h-[300px]"
-          className="p-6 sm:p-8"
+          minHeightClassName="min-h-[150px]"
+          className="p-5 sm:p-6"
+          compact
           footer={
             <div>
-              <p className="mb-3 text-sm font-medium text-on-surface-variant">
+              <p className="mb-2 text-sm font-medium text-on-surface-variant">
                 Need a starting point?
               </p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {helperActions.map(({ label, icon: Icon, kind }) => (
                   <button
                     key={label}
@@ -224,17 +231,6 @@ export function PrepPhase({
             </div>
           }
         />
-
-        <div className="flex justify-center pt-1">
-          <PrimaryActionButton
-            onClick={onSkip}
-            className={cn(
-              "h-14 w-full max-w-[560px] rounded-lg text-base shadow-[0_18px_32px_-18px_rgba(37,99,235,0.85)]"
-            )}
-          >
-            Skip to Speaking
-          </PrimaryActionButton>
-        </div>
       </div>
     </div>
   );

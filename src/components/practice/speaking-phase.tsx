@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { AudioVisualizer } from "./audio-visualizer";
 import { MotionInfoPanel } from "./motion-info-panel";
 import {
-  ActionRail,
   PauseButton,
   PhasePill,
   PracticePanel,
@@ -118,9 +117,9 @@ export function SpeakingPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-5 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <MotionInfoPanel topic={topic} side={side} className="min-h-[330px]" />
+    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-5 pb-24 pt-6 sm:px-6 lg:px-8">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <MotionInfoPanel topic={topic} side={side} />
 
         <PracticePanel className="flex min-h-[330px] flex-col items-center justify-center p-5">
           <PhasePill tone="red">Speaking Phase</PhasePill>
@@ -254,13 +253,16 @@ export function SpeakingPhase({
         </PracticePanel>
       </div>
 
-      <ActionRail className="sticky bottom-4">
-        <PauseButton isPaused={isPaused} onClick={isPaused ? onResume : onPause} />
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-4 px-4">
+        <PauseButton
+          isPaused={isPaused}
+          onClick={isPaused ? onResume : onPause}
+          className="pointer-events-auto"
+        />
         <Button
           onClick={() => setShowEndConfirm(true)}
           aria-label="End speech early"
-          variant="outline"
-          className="h-14 min-w-[220px] gap-3 rounded-2xl border-error/40 bg-error-container text-base font-semibold text-error hover:bg-error-container/80"
+          className="pointer-events-auto h-14 min-w-[220px] gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary shadow-[inset_0_-4px_0_rgba(12,57,146,0.22),0_16px_28px_-18px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
         >
           <Square className="h-5 w-5" />
           End Speech
@@ -272,7 +274,7 @@ export function SpeakingPhase({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 flex items-center justify-center rounded-[1.35rem] bg-surface-container-lowest/95 backdrop-blur-xl"
+              className="fixed inset-x-4 bottom-4 z-30 mx-auto flex max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_20px_55px_-48px_rgba(22,39,91,0.7)] backdrop-blur-xl"
             >
               <div className="text-center">
                 <p className="mb-3 text-sm font-medium text-on-surface-variant">
@@ -297,7 +299,7 @@ export function SpeakingPhase({
             </motion.div>
           )}
         </AnimatePresence>
-      </ActionRail>
+      </div>
     </div>
   );
 }
