@@ -2,6 +2,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DebateScore } from "@/types/feedback";
 import type { DebateDuelJudgment, DebateRound, PracticeTrack } from "@/types";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import { normalizeDebateDuelClashLinks } from "./debate-duels/clash-links";
+import {
+  normalizeDebateClashLinks,
+  normalizeDebateVerdict,
+} from "./feedback/debate-review";
 import { normalizeTranscriptAnnotations } from "./feedback/annotations";
 import { getPostHogServer } from "./posthog-server";
 
@@ -87,6 +92,8 @@ export async function analyzeDebate(params: {
   parsed.transcriptAnnotations = normalizeTranscriptAnnotations(
     parsed.transcriptAnnotations
   );
+  parsed.debateVerdict = normalizeDebateVerdict(parsed.debateVerdict) ?? undefined;
+  parsed.clashLinks = normalizeDebateClashLinks(parsed.clashLinks);
 
   return parsed;
 }
@@ -99,6 +106,7 @@ export async function judgeDebateDuel(params: {
     opposition: { participantId: string | null; displayName: string };
   };
   speeches: Array<{
+    id: string;
     roundNumber: number;
     speechType: "opening" | "rebuttal";
     side: "proposition" | "opposition";
@@ -165,6 +173,7 @@ export async function judgeDebateDuel(params: {
   parsed.judgedAt = parsed.judgedAt || new Date().toISOString();
   parsed.qualityWarnings = parsed.qualityWarnings ?? [];
   parsed.roundBreakdown = parsed.roundBreakdown ?? [];
+  parsed.clashLinks = normalizeDebateDuelClashLinks(parsed.clashLinks);
 
   return parsed;
 }

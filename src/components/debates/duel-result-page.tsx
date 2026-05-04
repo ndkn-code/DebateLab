@@ -3,27 +3,27 @@
 import { useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, RotateCcw, Scale, Sparkles, Trophy } from "lucide-react";
+import { DuelClashMap } from "@/components/debates/duel-clash-map";
+import { DuelTranscriptTab } from "@/components/debates/duel-transcript-tab";
+import {
+  SessionReviewShell,
+  type SessionReviewTab,
+} from "@/components/feedback/session-review-shell";
 import { Button } from "@/components/ui/button";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
+import type { DebateDuelRoomView } from "@/types";
 
 interface DuelResultPageProps {
   shareCode: string;
 }
 
+interface DuelResultContentProps {
+  room: DebateDuelRoomView;
+  initialTab?: SessionReviewTab;
+}
+
 export function DuelResultPage({ shareCode }: DuelResultPageProps) {
   const { data: room, error, isLoading } = useDebateDuelRoom(shareCode, "result");
-
-  const participantsByRole = useMemo(() => {
-    if (!room) return { proposition: null, opposition: null };
-    return {
-      proposition:
-        room.participants.find((participant) => participant.role === "proposition") ??
-        null,
-      opposition:
-        room.participants.find((participant) => participant.role === "opposition") ??
-        null,
-    };
-  }, [room]);
 
   if (isLoading) {
     return (
@@ -50,6 +50,39 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
     );
   }
 
+  return <DuelResultContent room={room} />;
+}
+
+export function DuelResultContent({
+  room,
+  initialTab = "overall",
+}: DuelResultContentProps) {
+  const participantsByRole = useMemo(() => {
+    return {
+      proposition:
+        room.participants.find((participant) => participant.role === "proposition") ??
+        null,
+      opposition:
+        room.participants.find((participant) => participant.role === "opposition") ??
+        null,
+    };
+  }, [room]);
+
+  if (!room.judgment) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+          <h1 className="text-2xl font-semibold text-on-surface">
+            Duel result unavailable
+          </h1>
+          <p className="mt-3 text-on-surface-variant">
+            We could not load the judged result for this duel.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const judgment = room.judgment;
   const winner =
     judgment.winnerSide === "proposition"
@@ -64,8 +97,12 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-8 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+      <SessionReviewShell
+        initialTab={initialTab}
+        transcript={<DuelTranscriptTab room={room} />}
+        clashMap={<DuelClashMap room={room} />}
+        overall={
+          <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-8 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
@@ -250,8 +287,9 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
               </div>
             </div>
           </div>
-        </section>
-      </div>
+          </section>
+        }
+      />
     </div>
   );
 }

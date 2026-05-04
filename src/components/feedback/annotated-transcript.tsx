@@ -46,6 +46,11 @@ interface AnnotatedTranscriptProps {
   roundLabel: (roundNumber: number) => string;
   durationSeconds?: number | null;
   speakerLabel?: string;
+  showSpeakerControl?: boolean;
+  speakerControlLabel?: string;
+  leadingControl?: React.ReactNode;
+  title?: string;
+  description?: string;
 }
 
 interface AnnotationConnector {
@@ -378,6 +383,11 @@ export function AnnotatedTranscript({
   roundLabel,
   durationSeconds,
   speakerLabel = "You",
+  showSpeakerControl = true,
+  speakerControlLabel = "Speaker",
+  leadingControl,
+  title = "Annotated Transcript",
+  description = "Review the exact moments where your argument can be strengthened.",
 }: AnnotatedTranscriptProps) {
   const usableDuration = getUsableDuration(durationSeconds);
   const connectorRootRef = useRef<HTMLDivElement | null>(null);
@@ -477,9 +487,10 @@ export function AnnotatedTranscript({
             }
 
             const startX =
-              (markerRect ? markerRect.right : lastHighlightRect.right) -
+              (transcriptPaneRect?.right ??
+                (markerRect ? markerRect.right : lastHighlightRect.right)) -
               rootRect.left +
-              2;
+              1;
             const startY =
               (markerRect
                 ? markerRect.top + markerRect.height / 2
@@ -546,21 +557,26 @@ export function AnnotatedTranscript({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-normal text-[#0B1424]">
-            Annotated Transcript
+            {title}
           </h2>
           <p className="mt-2 text-sm leading-6 text-[#718096]">
-            Review the exact moments where your argument can be strengthened.
+            {description}
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[180px_220px]">
-          <label className="block">
-            <span className="text-xs font-bold text-[#718096]">Speaker</span>
-            <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#162033]">
-              {speakerLabel}
-              <ChevronDown className="h-4 w-4 text-[#718096]" />
-            </div>
-          </label>
+        <div className="grid gap-3 sm:grid-cols-[minmax(180px,220px)_220px]">
+          {leadingControl ??
+            (showSpeakerControl ? (
+              <label className="block">
+                <span className="text-xs font-bold text-[#718096]">
+                  {speakerControlLabel}
+                </span>
+                <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#162033]">
+                  {speakerLabel}
+                  <ChevronDown className="h-4 w-4 text-[#718096]" />
+                </div>
+              </label>
+            ) : null)}
           <label className="block">
             <span className="text-xs font-bold text-[#718096]">View</span>
             <div className="relative mt-1">
@@ -585,11 +601,11 @@ export function AnnotatedTranscript({
 
       <div
         ref={connectorRootRef}
-        className="relative isolate mt-5 grid gap-5 xl:min-h-[620px] xl:max-h-[calc(100vh-230px)] xl:grid-cols-[minmax(0,1fr)_480px] xl:gap-8"
+        className="relative isolate mt-5 grid gap-5 xl:max-h-[calc(100vh-230px)] xl:grid-cols-[minmax(0,1fr)_96px_480px] xl:gap-0"
       >
         <div
           ref={transcriptPaneRef}
-          className="relative z-10 min-h-[520px] overflow-y-auto rounded-xl border border-[#DEE8F8] bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
+          className="relative z-10 min-h-[280px] overflow-y-auto rounded-xl border border-[#DEE8F8] bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
         >
           <div className="space-y-7">
             {chunks.map((chunk) => {
@@ -690,9 +706,11 @@ export function AnnotatedTranscript({
           </div>
         </div>
 
+        <div className="hidden xl:block" aria-hidden="true" />
+
         <div
           ref={cardRailRef}
-          className="relative z-10 space-y-4 overflow-y-auto pr-1 xl:max-h-[calc(100vh-230px)] xl:pl-24"
+          className="relative z-10 space-y-4 overflow-y-auto pr-1 xl:max-h-[calc(100vh-230px)]"
         >
           {filteredAnnotations.length > 0 ? (
             filteredAnnotations.map((annotation) => {
@@ -802,9 +820,8 @@ export function AnnotatedTranscript({
 
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-50 h-full w-full overflow-visible"
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
           style={{
-            zIndex: 80,
             overflow: "visible",
             display: connectorBox.width >= 980 ? "block" : "none",
           }}

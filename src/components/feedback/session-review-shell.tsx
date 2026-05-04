@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, LayoutDashboard } from "lucide-react";
+import { FileText, GitBranch, LayoutDashboard, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SessionReviewTab = "overall" | "transcript";
+export type SessionReviewTab = "overall" | "verdict" | "transcript" | "clash";
 
 interface SessionReviewShellProps {
   overall: React.ReactNode;
+  verdict?: React.ReactNode;
   transcript: React.ReactNode;
+  clashMap?: React.ReactNode;
   initialTab?: SessionReviewTab;
   className?: string;
 }
@@ -20,16 +22,30 @@ const tabs: Array<{
   icon: LucideIcon;
 }> = [
   { id: "overall", label: "Overall", icon: LayoutDashboard },
+  { id: "verdict", label: "Verdict", icon: Trophy },
   { id: "transcript", label: "Transcript", icon: FileText },
+  { id: "clash", label: "Clash Map", icon: GitBranch },
 ];
 
 export function SessionReviewShell({
   overall,
+  verdict,
   transcript,
+  clashMap,
   initialTab = "overall",
   className,
 }: SessionReviewShellProps) {
   const [activeTab, setActiveTab] = useState<SessionReviewTab>(initialTab);
+  const availableTabs = tabs.filter((tab) => {
+    if (tab.id === "verdict") return verdict;
+    if (tab.id === "clash") return clashMap;
+    return true;
+  });
+  const resolvedActiveTab =
+    (activeTab === "clash" && !clashMap) ||
+    (activeTab === "verdict" && !verdict)
+      ? "overall"
+      : activeTab;
 
   return (
     <div
@@ -44,8 +60,8 @@ export function SessionReviewShell({
             aria-label="Session sections"
             className="flex gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible"
           >
-            {tabs.map(({ id, label, icon: Icon }) => {
-              const isActive = activeTab === id;
+            {availableTabs.map(({ id, label, icon: Icon }) => {
+              const isActive = resolvedActiveTab === id;
 
               return (
                 <button
@@ -74,7 +90,13 @@ export function SessionReviewShell({
         </aside>
 
         <main className="min-w-0">
-          {activeTab === "overall" ? overall : transcript}
+          {resolvedActiveTab === "overall"
+            ? overall
+            : resolvedActiveTab === "verdict"
+              ? verdict
+            : resolvedActiveTab === "clash"
+              ? clashMap
+              : transcript}
         </main>
       </div>
     </div>

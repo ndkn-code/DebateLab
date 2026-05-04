@@ -11,6 +11,8 @@ import confettiAnimation from "../../../../../../public/lottie/confetti.json";
 import { useSessionStore } from "@/store/session-store";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ResultActionButton } from "@/components/feedback/result-action-button";
+import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";
+import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
 import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
@@ -391,6 +393,9 @@ export default function FeedbackPage() {
             className="space-y-8"
           >
             <SessionReviewShell
+              verdict={
+                isFullRound ? <DebateVerdictPanel session={resultSession} /> : undefined
+              }
               overall={
                 <SessionResultDashboard
                   session={resultSession}
@@ -506,6 +511,11 @@ export default function FeedbackPage() {
                     t("annotations.round", { round: roundNumber })
                   }
                 />
+              }
+              clashMap={
+                isFullRound ? (
+                  <DebateClashMapPanel session={resultSession} />
+                ) : undefined
               }
             />
           </motion.div>

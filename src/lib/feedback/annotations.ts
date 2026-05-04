@@ -157,10 +157,15 @@ export function normalizeTranscriptAnnotations(
         Number.isFinite(source.roundNumber)
           ? source.roundNumber
           : undefined;
+      const speaker =
+        source.speaker === "user" || source.speaker === "ai"
+          ? source.speaker
+          : undefined;
 
       return {
         quote,
         roundNumber,
+        speaker,
         tag: tag as TranscriptAnnotation["tag"],
         severity,
         feedback,

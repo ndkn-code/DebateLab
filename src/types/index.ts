@@ -2,6 +2,11 @@ export type { AiHighlight, AiHighlightType, DebateTopic, DebateSession, DebateRo
 export type {
   DebateScore,
   DebateArgumentBreakdown,
+  DebateClashLink,
+  DebateClashOutcome,
+  DebateClashTag,
+  DebateReviewSpeaker,
+  DebateVerdict,
   TranscriptAnnotation,
   TranscriptAnnotationSeverity,
   TranscriptAnnotationTag,
@@ -43,6 +48,9 @@ export type {
   DebateDuelComparativeCriterion,
   DebateDuelParticipantFeedback,
   DebateDuelRoundBreakdown,
+  DebateDuelClashOutcome,
+  DebateDuelClashTag,
+  DebateDuelClashLink,
   DebateDuelJudgment,
   DebateDuelRoomView,
 } from "./debate-duel";

@@ -136,10 +136,33 @@ function debateJsonSchema(): string {
   "weighingFeedback": "<1-2 sentence evaluation of comparison, prioritization, and impact calculus>",
   "clashFeedback": "<1-2 sentence evaluation of how well the student engaged opposition arguments or likely opposition responses>",
   "strongerRebuilds": ["<stronger rebuilt argument 1>", "<stronger rebuilt argument 2>", "<stronger rebuilt argument 3>"],
+  "debateVerdict": {
+    "winner": "<user|ai|tie, full rounds only; use tie if no clear winner>",
+    "confidence": <number 0.0-1.0>,
+    "summary": "<2-3 sentence verdict explaining whether the student beat the AI opponent>",
+    "decidingReasons": ["<deciding reason 1>", "<deciding reason 2>", "<deciding reason 3>"],
+    "nextMove": "<one concrete strategic move the student should practice next>"
+  },
+  "clashLinks": [
+    {
+      "id": "<stable short id>",
+      "sourceRoundNumber": <round number where the AI/opponent claim appears>,
+      "sourceSpeaker": "<user|ai>",
+      "responseRoundNumber": <round number where the response appears, or null if dropped>,
+      "responseSpeaker": "<user|ai or null if dropped>",
+      "sourceQuote": "<exact quote from the source speech>",
+      "responseQuote": "<exact quote from the response speech, or null if dropped>",
+      "outcome": "<answered|dropped|misanswered|turned|weighed>",
+      "judgeRead": "<1-2 sentence explanation of how this exchange affected the debate>",
+      "suggestion": "<specific next-step rewrite or strategic move>",
+      "tag": "<clash|rebuttal|weighing|logic|evidence>"
+    }
+  ],
   "transcriptAnnotations": [
     {
-      "quote": "<exact contiguous quote copied from the student transcript, 5-25 words, no ellipses>",
-      "roundNumber": <student round number or null>,
+      "quote": "<exact contiguous quote copied from the relevant user or AI speech, 5-25 words, no ellipses>",
+      "roundNumber": <round number or null>,
+      "speaker": "<user|ai>",
       "tag": "<one of: stance, mechanism, evidence, logic, clash, weighing, impact, structure, delivery>",
       "severity": "<one of: strength, improvement, warning>",
       "feedback": "<specific comment about what this quoted moment shows>",
@@ -277,10 +300,19 @@ If the speech sounds polished but the reasoning is thin, score the reasoning low
 - Separate strong ideas from underdeveloped ones
 - In stronger rebuilds, rewrite arguments using the required debate structure
 - For full rounds, comment on consistency across rounds, not just isolated moments
-- Include 4-8 transcriptAnnotations that quote exact contiguous words from the student's transcript
+- Keep overallFeedback focused on speech quality and coaching priorities; put win/loss/tie outcome language only in debateVerdict
+- For non-full debate sessions, set debateVerdict to null and clashLinks to []
+- Include 4-8 transcriptAnnotations that quote exact contiguous words from the relevant transcript
 - Each annotation must connect the quote to a debate layer: stance, mechanism, evidence, logic, clash, weighing, impact, structure, or delivery
 - Include at least one annotation about reasoning depth or missing mechanism, and one about weighing or clash when the transcript gives you material
-- For full rounds, set roundNumber to the student's round number when the quote comes from a labeled student round; use null only when round location is unclear
+- For full rounds, include debateVerdict and 3-6 clashLinks that judge whether the student beat, lost to, or tied the AI opponent
+- For full rounds, annotate both user and AI speeches when useful; set speaker to "user" for student quotes and "ai" for AI opponent quotes
+- For full rounds, set roundNumber to the exact labeled round number; use null only when round location is unclear
+- For full-round clashLinks, sourceQuote should usually be the AI claim being answered and responseQuote should be the later student answer
+- Use outcome "dropped" with responseRoundNumber, responseSpeaker, and responseQuote set to null when the AI claim was not answered
+- Use outcome "misanswered" when the student responds but misses the claim or burden
+- Use outcome "turned" when the student flips the AI's logic
+- Use outcome "weighed" when the student directly compares impacts, worlds, probability, magnitude, or affected groups
 - If a quote cannot be copied exactly from the transcript, choose a shorter exact quote instead of paraphrasing
 
 Return a JSON object with this exact structure:
@@ -307,6 +339,7 @@ interface DuelJudgmentPromptParams {
     opposition: { participantId: string | null; displayName: string };
   };
   speeches: Array<{
+    id: string;
     roundNumber: number;
     speechType: "opening" | "rebuttal";
     side: "proposition" | "opposition";
@@ -351,6 +384,19 @@ function duelJudgmentJsonSchema(): string {
       "reason": "<short reason>"
     }
   ],
+  "clashLinks": [
+    {
+      "id": "<stable short id>",
+      "sourceSpeechId": "<speech id from transcript metadata>",
+      "responseSpeechId": "<speech id that responds, or null if dropped>",
+      "sourceQuote": "<exact quote from the opponent/other side claim>",
+      "responseQuote": "<exact quote from the response speech, or null if dropped>",
+      "outcome": "<answered|dropped|misanswered|turned|weighed>",
+      "judgeRead": "<1-2 sentence explanation of how this clash affected the debate>",
+      "suggestion": "<specific next-step rewrite or strategic move>",
+      "tag": "<clash|rebuttal|weighing|logic|evidence>"
+    }
+  ],
   "summary": "<1 paragraph overall verdict summary>",
   "qualityWarnings": ["<warning 1>", "<warning 2>"],
   "model": "<filled by API if missing>",
@@ -363,7 +409,8 @@ export function buildDuelJudgmentPrompt(
 ): string {
   const speechBlock = params.speeches
     .map(
-      (speech) => `### Round ${speech.roundNumber}: ${speech.label}
+        (speech) => `### Round ${speech.roundNumber}: ${speech.label}
+- Speech id: ${speech.id}
 - Side: ${speech.side}
 - Type: ${speech.speechType}
 - Duration: ${speech.durationSeconds} seconds
@@ -410,6 +457,14 @@ Important judging rules:
 - If a speech is too short or obviously incomplete, reduce confidence and mention it in qualityWarnings
 - Decide who wins overall, even if some categories are tied
 - Round breakdown should explain who won each major speech comparison
+- Generate 3-6 clashLinks that map the most important cross-speech interactions
+- For clashLinks, sourceQuote should be the opponent/other side claim and responseQuote should be the later answer
+- Use exact quotes copied from the transcripts whenever possible
+- Use outcome "dropped" with responseSpeechId and responseQuote set to null when the claim was not answered
+- Use outcome "misanswered" when the response exists but answers the wrong claim or misses the burden
+- Use outcome "turned" when a speaker flips the other side's logic
+- Use outcome "weighed" when a speaker directly compares impacts, worlds, probability, magnitude, or affected groups
+- Frame suggestions as concrete next moves for the debater reviewing the result
 
 ## Debate Transcript
 ${speechBlock}

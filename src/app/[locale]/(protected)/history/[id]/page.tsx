@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResultActionButton } from "@/components/feedback/result-action-button";
+import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";
+import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
 import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
@@ -141,11 +143,18 @@ export default function SessionDetailPage({
     practiceTrack === "speaking"
       ? `I just reviewed my speaking practice on "${session.topic.title}" (${session.side} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
       : `I just reviewed my debate on "${session.topic.title}" (${session.side} side, ${session.mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
+  const isFullRoundDebate =
+    practiceTrack === "debate" && session.mode === "full" && Boolean(session.rounds?.length);
 
   return (
     <div className="min-h-screen bg-background">
       {feedback ? (
         <SessionReviewShell
+          verdict={
+            isFullRoundDebate ? (
+              <DebateVerdictPanel session={sessionWithNormalizedFeedback} />
+            ) : undefined
+          }
           overall={
             <SessionResultDashboard
               session={sessionWithNormalizedFeedback}
@@ -194,6 +203,11 @@ export default function SessionDetailPage({
                 tResult("annotations.round", { round: roundNumber })
               }
             />
+          }
+          clashMap={
+            isFullRoundDebate ? (
+              <DebateClashMapPanel session={sessionWithNormalizedFeedback} />
+            ) : undefined
           }
         />
       ) : (

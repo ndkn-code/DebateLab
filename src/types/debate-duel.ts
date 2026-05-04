@@ -99,6 +99,32 @@ export interface DebateDuelRoundBreakdown {
   reason: string;
 }
 
+export type DebateDuelClashOutcome =
+  | "answered"
+  | "dropped"
+  | "misanswered"
+  | "turned"
+  | "weighed";
+
+export type DebateDuelClashTag =
+  | "clash"
+  | "rebuttal"
+  | "weighing"
+  | "logic"
+  | "evidence";
+
+export interface DebateDuelClashLink {
+  id: string;
+  sourceSpeechId: string;
+  responseSpeechId: string | null;
+  sourceQuote: string;
+  responseQuote: string | null;
+  outcome: DebateDuelClashOutcome;
+  judgeRead: string;
+  suggestion: string;
+  tag: DebateDuelClashTag;
+}
+
 export interface DebateDuelJudgment {
   winnerSide: DebateDuelSide;
   winnerParticipantId: string | null;
@@ -117,6 +143,7 @@ export interface DebateDuelJudgment {
     opposition: DebateDuelParticipantFeedback;
   };
   roundBreakdown: DebateDuelRoundBreakdown[];
+  clashLinks?: DebateDuelClashLink[];
   summary: string;
   qualityWarnings: string[];
   model: string;

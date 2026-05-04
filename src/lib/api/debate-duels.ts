@@ -868,6 +868,7 @@ async function judgeAndFinalizeDebateDuel(
       },
     },
     speeches: orderedSpeeches.map((speech) => ({
+      id: speech.id,
       roundNumber: speech.roundNumber,
       speechType: speech.speechType,
       side: speech.side,

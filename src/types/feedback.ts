@@ -26,13 +26,52 @@ export type TranscriptAnnotationSeverity =
   | "improvement"
   | "warning";
 
+export type DebateReviewSpeaker = "user" | "ai";
+
+export type DebateClashOutcome =
+  | "answered"
+  | "dropped"
+  | "misanswered"
+  | "turned"
+  | "weighed";
+
+export type DebateClashTag =
+  | "clash"
+  | "rebuttal"
+  | "weighing"
+  | "logic"
+  | "evidence";
+
 export interface TranscriptAnnotation {
   quote: string;
   roundNumber?: number;
+  speaker?: DebateReviewSpeaker;
   tag: TranscriptAnnotationTag;
   severity: TranscriptAnnotationSeverity;
   feedback: string;
   suggestion: string;
+}
+
+export interface DebateVerdict {
+  winner: "user" | "ai" | "tie";
+  confidence: number;
+  summary: string;
+  decidingReasons: string[];
+  nextMove: string;
+}
+
+export interface DebateClashLink {
+  id: string;
+  sourceRoundNumber: number;
+  sourceSpeaker: DebateReviewSpeaker;
+  responseRoundNumber: number | null;
+  responseSpeaker: DebateReviewSpeaker | null;
+  sourceQuote: string;
+  responseQuote: string | null;
+  outcome: DebateClashOutcome;
+  judgeRead: string;
+  suggestion: string;
+  tag: DebateClashTag;
 }
 
 export interface DebateScore {
@@ -80,6 +119,8 @@ export interface DebateScore {
   clashFeedback?: string;
   strongerRebuilds?: string[];
   transcriptAnnotations?: TranscriptAnnotation[];
+  debateVerdict?: DebateVerdict;
+  clashLinks?: DebateClashLink[];
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;

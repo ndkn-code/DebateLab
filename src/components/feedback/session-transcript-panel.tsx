@@ -1,8 +1,15 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
+import {
+  filterAnnotationsForRound,
+  getRoundFilterId,
+  getRoundSpeaker,
+  getRoundText,
+} from "@/lib/feedback/debate-review";
 import type { DebateSession } from "@/types";
 import type { TranscriptAnnotation } from "@/types/feedback";
 
@@ -27,6 +34,56 @@ export function SessionTranscriptPanel({
   unmatchedLabel,
   roundLabel,
 }: SessionTranscriptPanelProps) {
+  const transcriptRounds = useMemo(
+    () =>
+      (session.rounds ?? []).filter((round) => getRoundText(round).trim().length > 0),
+    [session.rounds]
+  );
+  const hasMultipleSpeechParts = transcriptRounds.length > 0;
+  const [speechPart, setSpeechPart] = useState("all");
+
+  const selectedRound =
+    speechPart === "all"
+      ? null
+      : transcriptRounds.find((round) => getRoundFilterId(round) === speechPart) ??
+        null;
+
+  const selectedTranscript = selectedRound
+    ? getRoundText(selectedRound)
+    : hasMultipleSpeechParts
+      ? transcriptRounds
+          .map((round) => `${round.label}\n${getRoundText(round)}`)
+          .join("\n\n")
+      : session.transcript || "";
+  const selectedAnnotations = selectedRound
+    ? filterAnnotationsForRound(
+        annotations,
+        getRoundSpeaker(selectedRound),
+        selectedRound.roundNumber
+      )
+    : annotations;
+  const speechPartControl = hasMultipleSpeechParts ? (
+    <label className="block">
+      <span className="text-xs font-bold text-[#718096]">Speech Part</span>
+      <div className="relative mt-1">
+        <select
+          value={speechPart}
+          onInput={(event) => setSpeechPart(event.currentTarget.value)}
+          onChange={(event) => setSpeechPart(event.target.value)}
+          className="h-11 w-full appearance-none rounded-lg border border-[#DEE8F8] bg-white px-3 pr-9 text-sm font-semibold text-[#162033] outline-none focus:border-[#4D86F7]"
+        >
+          <option value="all">All speech parts</option>
+          {transcriptRounds.map((round) => (
+            <option key={getRoundFilterId(round)} value={getRoundFilterId(round)}>
+              {round.type === "ai-rebuttal" ? "AI" : "You"} · {round.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718096]" />
+      </div>
+    </label>
+  ) : undefined;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -37,21 +94,20 @@ export function SessionTranscriptPanel({
           <ArrowLeft className="h-4 w-4" />
           {backLabel}
         </Link>
-        <div className="max-w-full rounded-xl border border-[#DEE8F8] bg-white px-4 py-2 text-sm font-semibold text-[#415069]">
-          <span className="block max-w-[58ch] truncate">
-            {session.topic.title}
-          </span>
-        </div>
       </div>
 
       <AnnotatedTranscript
-        transcript={session.transcript || ""}
-        annotations={annotations}
+        transcript={selectedTranscript}
+        annotations={selectedAnnotations}
         emptyLabel={emptyLabel}
         suggestionLabel={suggestionLabel}
         unmatchedLabel={unmatchedLabel}
         roundLabel={roundLabel}
-        durationSeconds={session.duration || session.speechTime}
+        durationSeconds={
+          selectedRound?.duration ?? (session.duration || session.speechTime)
+        }
+        showSpeakerControl={false}
+        leadingControl={speechPartControl}
       />
     </div>
   );
