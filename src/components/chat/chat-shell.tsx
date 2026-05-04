@@ -8,12 +8,13 @@ import { ChatArea } from "./chat-area";
 import { PageTransition } from "@/components/shared/page-motion";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
-import type { CoachContextEnvelope, CoachProfile } from "@/types";
+import type { CoachContextEnvelope, CoachMessageMetadata, CoachProfile } from "@/types";
 
 export interface ChatMessageLocal {
   id: string;
   role: "user" | "assistant";
   content: string;
+  metadata?: CoachMessageMetadata | null;
   created_at: string;
 }
 
@@ -115,6 +116,7 @@ export function ChatShell({
             id: m.id,
             role: m.role as "user" | "assistant",
             content: m.content,
+            metadata: m.metadata,
             created_at: m.created_at,
           }))
         );
@@ -174,6 +176,7 @@ export function ChatShell({
         id: `temp-${Date.now()}`,
         role: "user",
         content: trimmedText,
+        metadata: null,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
@@ -190,6 +193,7 @@ export function ChatShell({
         id: `temp-assistant-${Date.now()}`,
         role: "assistant",
         content: "",
+        metadata: null,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -246,6 +250,20 @@ export function ChatShell({
                     updated[updated.length - 1] = {
                       ...last,
                       content: last.content + data.text,
+                    };
+                  }
+                  return updated;
+                });
+              }
+
+              if (data.metadata) {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last && last.role === "assistant") {
+                    updated[updated.length - 1] = {
+                      ...last,
+                      metadata: data.metadata as CoachMessageMetadata,
                     };
                   }
                   return updated;

@@ -67,7 +67,7 @@ export async function getConversation(
       .single(),
     supabase
       .from("chat_messages")
-      .select("id, conversation_id, role, content, created_at")
+      .select("id, conversation_id, role, content, metadata, created_at")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true }),
   ]);

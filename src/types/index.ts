@@ -30,6 +30,10 @@ export type {
   CoachRecommendation,
   CoachProfile,
   CoachContextEnvelope,
+  CoachResponseBlockType,
+  CoachResponseBlock,
+  CoachSuggestedAction,
+  CoachMessageMetadata,
 } from "./coach";
 export type {
   DebateDuelStatus,

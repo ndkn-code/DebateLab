@@ -7,6 +7,12 @@ import {
   getCoachContextEnvelope,
   getCoachProfile,
 } from "@/lib/api/coach-profile";
+import type {
+  CoachMessageMetadata,
+  CoachResponseBlock,
+  CoachResponseBlockType,
+  CoachSuggestedAction,
+} from "@/types";
 
 export const maxDuration = 60;
 
@@ -34,6 +40,7 @@ RESPONSE FORMAT RULES:
 - Use line breaks liberally — NEVER write a wall of text
 - Start with a direct answer, then elaborate if needed
 - End with either an encouraging one-liner or a precise next-step suggestion
+- When useful, label sections with coaching-friendly names like "Opening formula", "Try this template", "Coach tip", "Common mistake", "Example", "Drill", or "Next steps" so the UI can turn them into lesson cards.
 
 DEPTH RULES:
 - If the student is asking about speaking or presentation, stay concise and coaching-oriented
@@ -87,6 +94,213 @@ function getGroq() {
   });
 }
 
+const COACH_BLOCK_TYPES = [
+  "opening_formula",
+  "template",
+  "coach_tip",
+  "common_mistake",
+  "example",
+  "drill",
+  "next_steps",
+  "clarifying_question",
+] as const satisfies readonly CoachResponseBlockType[];
+
+function isCoachBlockType(value: unknown): value is CoachResponseBlockType {
+  return (
+    typeof value === "string" &&
+    COACH_BLOCK_TYPES.includes(value as CoachResponseBlockType)
+  );
+}
+
+function cleanText(value: unknown, maxLength = 900) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return undefined;
+  return normalized.slice(0, maxLength);
+}
+
+function cleanItems(value: unknown, maxItems = 6) {
+  if (!Array.isArray(value)) return undefined;
+  const items = value
+    .map((item) => cleanText(item, 220))
+    .filter((item): item is string => Boolean(item))
+    .slice(0, maxItems);
+  return items.length > 0 ? items : undefined;
+}
+
+const ACTION_PLACEHOLDER_PATTERN = /_{2,}|\[[^\]]+\]|<[^>]+>/;
+
+function normalizeBlock(value: unknown, index: number): CoachResponseBlock | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const type = isCoachBlockType(raw.type) ? raw.type : null;
+  const title = cleanText(raw.title, 80);
+  if (!type || !title) return null;
+
+  return {
+    id: cleanText(raw.id, 60) ?? `block-${index + 1}`,
+    type,
+    title,
+    body: cleanText(raw.body),
+    items: cleanItems(raw.items),
+    prompt: cleanText(raw.prompt, 220),
+  };
+}
+
+function normalizeAction(value: unknown): CoachSuggestedAction | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const label = cleanText(raw.label, 48);
+  const prompt = cleanText(raw.prompt, 220);
+  if (!label || !prompt || ACTION_PLACEHOLDER_PATTERN.test(prompt)) {
+    return null;
+  }
+
+  return {
+    label,
+    prompt,
+    variant: raw.variant === "primary" ? "primary" : "secondary",
+  };
+}
+
+function normalizeMetadata(value: unknown): CoachMessageMetadata | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const blocks = Array.isArray(raw.blocks)
+    ? raw.blocks
+        .map((block, index) => normalizeBlock(block, index))
+        .filter((block): block is CoachResponseBlock => Boolean(block))
+        .slice(0, 6)
+    : [];
+
+  if (blocks.length === 0) return null;
+
+  const hasClarifyingQuestion = blocks.some(
+    (block) => block.type === "clarifying_question"
+  );
+  const suggestedActions =
+    !hasClarifyingQuestion && Array.isArray(raw.suggestedActions)
+      ? raw.suggestedActions
+          .map(normalizeAction)
+          .filter((action): action is CoachSuggestedAction => Boolean(action))
+          .slice(0, 3)
+      : [];
+
+  return {
+    renderVersion: 1,
+    summary: cleanText(raw.summary, 360),
+    blocks,
+    suggestedActions,
+  };
+}
+
+function parseJsonObject(text: string) {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+    if (fenced) {
+      try {
+        return JSON.parse(fenced);
+      } catch {
+        return null;
+      }
+    }
+
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(trimmed.slice(start, end + 1));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+async function generateCoachMessageMetadata({
+  assistantText,
+  studentMessage,
+  mode,
+  focusTitle,
+}: {
+  assistantText: string;
+  studentMessage: string;
+  mode?: string;
+  focusTitle?: string;
+}): Promise<CoachMessageMetadata | null> {
+  if (!assistantText.trim()) return null;
+
+  try {
+    const result = await getGroq().chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You convert DebateLab coach replies into compact UI metadata.
+
+Return ONLY valid JSON. Do not use markdown fences.
+
+Schema:
+{
+  "renderVersion": 1,
+  "summary": "short optional lead-in",
+  "blocks": [
+    {
+      "id": "block-1",
+      "type": "opening_formula | template | coach_tip | common_mistake | example | drill | next_steps | clarifying_question",
+      "title": "short card title",
+      "body": "optional short paragraph",
+      "items": ["optional short bullets"],
+      "prompt": "optional follow-up prompt"
+    }
+  ],
+  "suggestedActions": [
+    { "label": "short button label", "prompt": "message to send", "variant": "primary | secondary" }
+  ]
+}
+
+Rules:
+- Use 2-5 blocks.
+- Pick block types that match the assistant reply. Do not invent facts.
+- Prefer debate-specific blocks over generic summaries.
+- Use clarifying_question when the reply asks for missing topic, side, transcript, or format.
+- If any block is clarifying_question, return "suggestedActions": [].
+- Never create action prompts with placeholders such as ____, [motion], <insert>, or similar.
+- Suggested action labels and prompts must sound like natural next moves that fit the current coach ask.
+- Keep every card concise enough for a mobile lesson feed.
+- Suggested actions must be useful next clicks for the student.`,
+        },
+        {
+          role: "user",
+          content: `Student message:
+${studentMessage}
+
+Coach mode: ${mode ?? "general-coaching"}
+Current focus: ${focusTitle ?? "Current coaching focus"}
+
+Assistant reply to structure:
+${assistantText}`,
+        },
+      ],
+      model: process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile",
+      temperature: 0.2,
+      max_tokens: 900,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = result.choices[0]?.message?.content ?? "";
+    return normalizeMetadata(parseJsonObject(raw));
+  } catch (metadataError) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("Coach metadata generation failed:", metadataError);
+    }
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -116,6 +330,7 @@ export async function POST(req: NextRequest) {
     }
 
     let systemPrompt = SYSTEM_PROMPT;
+    let coachMetadataContext: { mode?: string; focusTitle?: string } = {};
 
     try {
       const coachProfile = await getCoachProfile(user.id);
@@ -126,6 +341,10 @@ export async function POST(req: NextRequest) {
         contextId,
         message,
       });
+      coachMetadataContext = {
+        mode: envelope.mode,
+        focusTitle: envelope.focusTitle,
+      };
 
       systemPrompt += `\n\nPERSONAL COACHING CONTEXT
 This is a debate-first coaching conversation. The following summary belongs to the authenticated user and should guide your advice.
@@ -240,12 +459,28 @@ RULES FOR THIS CONTEXT:
             }
           }
 
+          const metadata = await generateCoachMessageMetadata({
+            assistantText: fullResponse,
+            studentMessage: message.trim(),
+            mode: coachMetadataContext.mode,
+            focusTitle: coachMetadataContext.focusTitle,
+          });
+
           // Save assistant message
           await supabase.from("chat_messages").insert({
             conversation_id: conversationId,
             role: "assistant",
             content: fullResponse,
+            metadata,
           });
+
+          if (metadata) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ metadata, conversationId })}\n\n`
+              )
+            );
+          }
 
           getPostHogServer().capture({
             distinctId: user.id,

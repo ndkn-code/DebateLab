@@ -132,3 +132,35 @@ export interface CoachContextEnvelope {
     progressPercent: number | null;
   } | null;
 }
+
+export type CoachResponseBlockType =
+  | "opening_formula"
+  | "template"
+  | "coach_tip"
+  | "common_mistake"
+  | "example"
+  | "drill"
+  | "next_steps"
+  | "clarifying_question";
+
+export interface CoachResponseBlock {
+  id: string;
+  type: CoachResponseBlockType;
+  title: string;
+  body?: string;
+  items?: string[];
+  prompt?: string;
+}
+
+export interface CoachSuggestedAction {
+  label: string;
+  prompt: string;
+  variant?: "primary" | "secondary";
+}
+
+export interface CoachMessageMetadata {
+  renderVersion: 1;
+  summary?: string;
+  blocks: CoachResponseBlock[];
+  suggestedActions: CoachSuggestedAction[];
+}

@@ -170,7 +170,7 @@ export async function GET() {
     conversationIds.length > 0
       ? await supabase
           .from("chat_messages")
-          .select("id, conversation_id, role, content, tokens_used, created_at")
+          .select("id, conversation_id, role, content, metadata, tokens_used, created_at")
           .in("conversation_id", conversationIds)
           .order("created_at", { ascending: true })
       : { data: [] };

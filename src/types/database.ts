@@ -1,4 +1,5 @@
 import type { SettingsPreferences } from "@/lib/settings";
+import type { CoachMessageMetadata } from "./coach";
 
 export interface Profile {
   id: string;
@@ -199,6 +200,7 @@ export interface ChatMessage {
   conversation_id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  metadata: CoachMessageMetadata | null;
   tokens_used: number | null;
   created_at: string;
 }
