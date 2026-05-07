@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Activity, ActivityType } from "@/lib/types/admin";
 import { useActivityPlayerStore } from "@/lib/stores/activityPlayerStore";
 import { completeActivity } from "@/app/actions/activities";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { getElapsedSecondsSince } from "@/lib/time";
 import { TopProgressBar } from "./TopProgressBar";
 import { ActivityCompletionScreen } from "./ActivityCompletionScreen";
@@ -77,8 +78,31 @@ export function ActivityPlayerWrapper({
   useEffect(() => {
     enterActivityMode();
     startTime.current = Date.now();
+    if (!previewMode) {
+      trackAnalyticsEvent({
+        eventName: "module_viewed",
+        featureArea: "courses",
+        route: window.location.pathname,
+        metadata: {
+          course_id: courseId,
+          module_id: currentModule.id,
+          activity_id: activity.id,
+        },
+      });
+      trackAnalyticsEvent({
+        eventName: "activity_started",
+        featureArea: "activities",
+        route: window.location.pathname,
+        metadata: {
+          course_id: courseId,
+          module_id: currentModule.id,
+          activity_id: activity.id,
+          activity_type: activity.activity_type,
+        },
+      });
+    }
     return () => exitActivityMode();
-  }, [enterActivityMode, exitActivityMode]);
+  }, [activity.activity_type, activity.id, courseId, currentModule.id, enterActivityMode, exitActivityMode, previewMode]);
 
   // Find siblings, prev/next
   const siblings = currentModule.activities;

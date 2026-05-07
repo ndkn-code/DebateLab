@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 
 // Give Gemini enough room for annotation-heavy feedback while staying inside
 // the common Vercel serverless ceiling.
@@ -84,6 +85,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await recordAnalyticsEvent(supabase, user.id, {
+      eventName: "ai_feedback_requested",
+      featureArea: "ai_feedback",
+      metadata: {
+        topic,
+        side,
+        speech_type: speechType || "Opening Statement",
+        practice_track: practiceTrack || "debate",
+        word_count: wordCount,
+      },
+    });
+
     // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("TIMEOUT")), 55000);
@@ -106,6 +119,18 @@ export async function POST(req: NextRequest) {
       ]);
 
       const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+      await recordAnalyticsEvent(supabase, user.id, {
+        eventName: "ai_feedback_completed",
+        featureArea: "ai_feedback",
+        durationMs: actualDuration ? actualDuration * 1000 : null,
+        metadata: {
+          topic,
+          side,
+          speech_type: speechType || "Opening Statement",
+          practice_track: practiceTrack || "debate",
+          model: modelUsed,
+        },
+      });
       return NextResponse.json({ ...feedback, _model: modelUsed });
     } catch (err) {
       if (process.env.NODE_ENV === 'development') console.error("Gemini API error:", err);

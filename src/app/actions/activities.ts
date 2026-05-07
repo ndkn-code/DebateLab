@@ -1,12 +1,68 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
+import { canAccessCourse } from "@/lib/utils/courseAccess";
+import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { revalidatePath } from "next/cache";
+
+async function assertActivityAccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  activityId: string,
+  expectedCourseId?: string
+) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  const { data: activity } = await supabase
+    .from("activities")
+    .select("module_id")
+    .eq("id", activityId)
+    .single();
+
+  if (!activity) throw new Error("Activity not found");
+
+  const { data: moduleData } = await supabase
+    .from("course_modules")
+    .select("course_id, access_level")
+    .eq("id", activity.module_id)
+    .single();
+
+  if (!moduleData) throw new Error("Module not found");
+  if (expectedCourseId && moduleData.course_id !== expectedCourseId) {
+    throw new Error("Activity does not belong to this course");
+  }
+
+  if (profile?.role === "admin") return moduleData.course_id as string;
+
+  const [courseAccess, entitlement] = await Promise.all([
+    canAccessCourse(supabase, userId, moduleData.course_id as string),
+    getUserEntitlement(supabase, userId),
+  ]);
+
+  const moduleAccess = canAccessModuleRecord({
+    role: profile?.role,
+    accessLevel: moduleData.access_level,
+    entitlement,
+  });
+
+  if (!courseAccess || !moduleAccess) {
+    throw new Error("This activity is not available on your current plan.");
+  }
+
+  return moduleData.course_id as string;
+}
 
 export async function startActivity(activityId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const courseId = await assertActivityAccess(supabase, user.id, activityId);
 
   // Check for existing incomplete attempt
   const { data: existing } = await supabase
@@ -18,7 +74,14 @@ export async function startActivity(activityId: string) {
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (existing && existing.length > 0) return existing[0];
+  if (existing && existing.length > 0) {
+    await recordAnalyticsEvent(supabase, user.id, {
+      eventName: "activity_started",
+      featureArea: "activities",
+      metadata: { activity_id: activityId, course_id: courseId, resumed: true },
+    });
+    return existing[0];
+  }
 
   // Get next attempt number
   const { count } = await supabase
@@ -38,6 +101,11 @@ export async function startActivity(activityId: string) {
     .single();
 
   if (error) throw new Error(error.message);
+  await recordAnalyticsEvent(supabase, user.id, {
+    eventName: "activity_started",
+    featureArea: "activities",
+    metadata: { activity_id: activityId, course_id: courseId, attempt_id: attempt.id },
+  });
   return attempt;
 }
 
@@ -53,6 +121,8 @@ export async function completeActivity(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  await assertActivityAccess(supabase, user.id, activityId, courseId);
 
   // Find in-progress attempt
   const { data: attempts } = await supabase
@@ -113,6 +183,18 @@ export async function completeActivity(
     xp_earned: xpEarned,
     metadata: { score, maxScore, timeSpentSeconds },
   });
+  await recordAnalyticsEvent(supabase, user.id, {
+    eventName: "activity_completed",
+    featureArea: "activities",
+    durationMs: timeSpentSeconds * 1000,
+    metadata: {
+      activity_id: activityId,
+      course_id: courseId,
+      score,
+      max_score: maxScore,
+      xp_earned: xpEarned,
+    },
+  });
 
   // Update enrollment progress
   const { data: activity } = await supabase
@@ -168,7 +250,7 @@ export async function completeActivity(
 
         await supabase
           .from("enrollments")
-          .update({ progress_pct: progressPct })
+          .update({ progress_percent: progressPct })
           .eq("user_id", user.id)
           .eq("course_id", mod.course_id);
       }

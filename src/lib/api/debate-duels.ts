@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { judgeDebateDuel } from "@/lib/gemini";
+import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
   DUEL_ENTRY_COST,
   DUEL_XP_REWARD,
@@ -939,6 +940,24 @@ async function judgeAndFinalizeDebateDuel(
       updated_at: new Date().toISOString(),
     })
     .eq("duel_id", duelId);
+
+  await Promise.all(
+    participants.map((participant) =>
+      recordAnalyticsEvent(supabase, participant.userId, {
+        eventName: "duel_completed",
+        featureArea: "duels",
+        durationMs: totalSeconds * 1000,
+        metadata: {
+          duel_id: duelId,
+          topic: duel.topic_title,
+          role: participant.role,
+          winner_side: judgment.winnerSide,
+          won: participant.role === judgment.winnerSide,
+          judge_model: judgment.model,
+        },
+      })
+    )
+  );
 
   try {
     await processDebateDuelRating(duelId);

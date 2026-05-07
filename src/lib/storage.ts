@@ -2,6 +2,7 @@ import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { useAchievementStore } from "@/stores/achievement-store";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
@@ -96,6 +97,19 @@ const supabaseAdapter = {
         mode: session.mode,
         score: session.feedback?.totalScore ?? null,
         band: session.feedback?.overallBand ?? null,
+      },
+    });
+    trackAnalyticsEvent({
+      eventName: "practice_completed",
+      featureArea: "practice",
+      route: window.location.pathname,
+      durationMs: session.duration * 1000,
+      metadata: {
+        debate_session_id: session.id,
+        topic: session.topic.title,
+        practice_track: session.practiceTrack,
+        mode: session.mode,
+        score: session.feedback?.totalScore ?? null,
       },
     });
 

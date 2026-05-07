@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
+import { canAccessCourse } from "@/lib/utils/courseAccess";
 import type {
   Course,
   CourseModule,
@@ -833,6 +835,17 @@ export async function getCourseReaderBySlug(
 
   if (error || !course) return null;
   const normalizedCourse = normalizeCourseRecord(course as Course);
+  const hasCourseAccess = userId
+    ? await canAccessCourse(supabase, userId, course.id)
+    : false;
+  const [profileRes, entitlement] =
+    userId && hasCourseAccess
+      ? await Promise.all([
+          supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
+          getUserEntitlement(supabase, userId),
+        ])
+      : [null, null] as const;
+  const userRole = profileRes?.data?.role ?? null;
 
   const [modulesRes, enrollmentRes] = await Promise.all([
     supabase
@@ -857,6 +870,19 @@ export async function getCourseReaderBySlug(
     ...module,
     lessons: (module.lessons ?? []).filter((lesson) => lesson.is_published !== false),
   }));
+  const moduleAccessById = new Map(
+    modulesWithPublishedLessons.map((module) => [
+      module.id,
+      Boolean(
+        entitlement &&
+          canAccessModuleRecord({
+            role: userRole,
+            accessLevel: module.access_level,
+            entitlement,
+          })
+      ),
+    ])
+  );
   const flatLessons: FlatCourseLesson[] = modulesWithPublishedLessons.flatMap((module) =>
     module.lessons.map((lesson) => ({
       lesson,
@@ -899,17 +925,28 @@ export async function getCourseReaderBySlug(
           ),
         }
       : enrollment;
+  const firstAccessibleIndex = flatLessons.findIndex((entry) =>
+    moduleAccessById.get(entry.module.id)
+  );
   const firstIncompleteIndex = flatLessons.findIndex(
-    (entry) => progressByLessonId.get(entry.lesson.id)?.status !== "completed"
+    (entry) =>
+      moduleAccessById.get(entry.module.id) &&
+      progressByLessonId.get(entry.lesson.id)?.status !== "completed"
   );
   const fallbackIndex =
     firstIncompleteIndex >= 0
       ? firstIncompleteIndex
+      : firstAccessibleIndex >= 0
+        ? firstAccessibleIndex
       : flatLessons.length > 0
         ? 0
         : -1;
-  const paramIndex = selectedLessonSlug
-    ? flatLessons.findIndex((entry) => entry.lesson.slug === selectedLessonSlug)
+  const paramIndex = hasCourseAccess && selectedLessonSlug
+    ? flatLessons.findIndex(
+        (entry) =>
+          entry.lesson.slug === selectedLessonSlug &&
+          moduleAccessById.get(entry.module.id)
+      )
     : -1;
   const selectedIndex =
     paramIndex >= 0
@@ -935,9 +972,10 @@ export async function getCourseReaderBySlug(
     const completed =
       progressByLessonId.get(entry.lesson.id)?.status === "completed";
     const current = index === selectedIndex;
-    const locked = resolvedEnrollment
-      ? index > activeIndex && !current
-      : !current;
+    const moduleAccessible = Boolean(moduleAccessById.get(entry.module.id));
+    const locked =
+      !moduleAccessible ||
+      (hasCourseAccess ? index > activeIndex && !current : !current);
 
     return {
       id: entry.lesson.id,
@@ -952,7 +990,7 @@ export async function getCourseReaderBySlug(
       current,
       locked,
       href:
-        resolvedEnrollment && !locked
+        hasCourseAccess && !locked
           ? buildCourseLessonHref(normalizedCourse.slug, entry.lesson.slug)
           : null,
     };
@@ -1045,7 +1083,7 @@ export async function getCourseReaderBySlug(
     lessonItems,
     prevLesson: toAdjacentLesson(prevEntry, selectedIndex - 1),
     nextLesson: toAdjacentLesson(nextEntry, selectedIndex + 1),
-    isPreview: !resolvedEnrollment,
+    isPreview: !hasCourseAccess,
   };
 }
 
@@ -1184,6 +1222,9 @@ export async function getLessonBySlug(
 
 export async function enrollInCourse(userId: string, courseId: string) {
   const supabase = await createClient();
+
+  const hasAccess = await canAccessCourse(supabase, userId, courseId);
+  if (!hasAccess) throw new Error("This course is not available on your current plan.");
 
   const { data, error } = await supabase
     .from("enrollments")

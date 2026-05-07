@@ -38,7 +38,7 @@ export default async function CourseDetailPage({
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") redirect("/dashboard");
+  if (!profile) redirect("/dashboard");
 
   const course = await getCourseReaderBySlug(slug, user.id, lessonSlug);
   if (!course) notFound();

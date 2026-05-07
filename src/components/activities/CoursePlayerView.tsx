@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { ArrowLeft, BookOpen, Eye, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "lucide-react";
 import { enrollInCourse } from "@/app/actions/enrollment";
+import { cn } from "@/lib/utils";
 import type { ActivityType, ActivityPhase } from "@/lib/types/admin";
 
 const TYPE_ICONS: Record<ActivityType, typeof BookOpen> = {
@@ -24,6 +25,9 @@ interface Props {
   enrollment: Record<string, unknown> | null;
   completedActivityIds: string[];
   previewMode?: boolean;
+  hasCourseAccess?: boolean;
+  hasPremiumAccess?: boolean;
+  userRole?: string;
   editorHref?: string;
   publicationState?: "draft" | "published";
 }
@@ -34,6 +38,9 @@ export function CoursePlayerView({
   enrollment,
   completedActivityIds,
   previewMode = false,
+  hasCourseAccess = false,
+  hasPremiumAccess = false,
+  userRole = "student",
   editorHref,
   publicationState = "published",
 }: Props) {
@@ -44,7 +51,7 @@ export function CoursePlayerView({
   const totalActivities = modules.reduce((sum, m) => sum + m.activities.length, 0);
   const completedCount = completedActivityIds.length;
   const progressPct = totalActivities > 0 ? Math.round((completedCount / totalActivities) * 100) : 0;
-  const hasAccess = previewMode || !!enrollment;
+  const hasAccess = previewMode || hasCourseAccess || !!enrollment;
   const backHref = previewMode ? (editorHref ?? `/dashboard/admin/courses/${courseId}`) : "/courses";
   const backLabel = previewMode ? t("backToEditor") : t("backToCourse");
   const previewStateLabel =
@@ -124,7 +131,13 @@ export function CoursePlayerView({
       {/* Modules */}
       <div className="space-y-4">
         {modules.map((mod, mi) => {
-          const badge = accessBadge((mod.access_level as string) ?? "locked");
+          const accessLevel = (mod.access_level as string) ?? "locked";
+          const moduleAccessible =
+            previewMode ||
+            userRole === "admin" ||
+            accessLevel === "free" ||
+            ((accessLevel === "premium" || accessLevel === "locked") && hasPremiumAccess);
+          const badge = accessBadge(accessLevel);
           const BadgeIcon = badge.icon;
 
           return (
@@ -151,11 +164,16 @@ export function CoursePlayerView({
                     <Link
                       key={act.id}
                       href={
-                        hasAccess
+                        hasAccess && moduleAccessible
                           ? `/dashboard/courses/${courseId}/activity/${act.id}${previewMode ? "?preview=1" : ""}`
                           : "#"
                       }
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-surface-container/50 transition-colors"
+                      className={cn(
+                        "flex items-center gap-3 px-5 py-3 transition-colors",
+                        hasAccess && moduleAccessible
+                          ? "hover:bg-surface-container/50"
+                          : "pointer-events-none opacity-55"
+                      )}
                     >
                       {isCompleted ? (
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600">

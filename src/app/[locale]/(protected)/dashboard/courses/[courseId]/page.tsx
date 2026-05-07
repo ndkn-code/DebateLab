@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CoursePlayerView } from "@/components/activities/CoursePlayerView";
+import { getUserEntitlement } from "@/lib/entitlements";
+import { canAccessCourse } from "@/lib/utils/courseAccess";
 
 export default async function CourseDetailPage({
   params,
@@ -16,13 +18,17 @@ export default async function CourseDetailPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  // Courses are admin-only for now
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!profile || profile.role !== "admin") redirect("/dashboard");
+  if (!profile) redirect("/dashboard");
+  const isAdmin = profile.role === "admin";
+
+  if (previewMode && !isAdmin) {
+    redirect("/dashboard");
+  }
 
   let courseQuery = supabase
     .from("courses")
@@ -38,6 +44,17 @@ export default async function CourseDetailPage({
   if (!course) {
     redirect(previewMode ? `/dashboard/admin/courses/${courseId}` : "/courses");
   }
+
+  const hasCourseAccess =
+    isAdmin || (course.is_published && (await canAccessCourse(supabase, user.id, courseId)));
+
+  if (!hasCourseAccess) {
+    redirect("/courses");
+  }
+
+  const entitlement = isAdmin
+    ? null
+    : await getUserEntitlement(supabase, user.id);
 
   const { data: modules } = await supabase
     .from("course_modules")
@@ -91,6 +108,9 @@ export default async function CourseDetailPage({
       enrollment={enrollment}
       completedActivityIds={Array.from(completedIds)}
       previewMode={previewMode}
+      hasCourseAccess={hasCourseAccess}
+      hasPremiumAccess={isAdmin || entitlement?.hasPremiumAccess || false}
+      userRole={profile.role}
       editorHref={`/dashboard/admin/courses/${courseId}`}
       publicationState={course.is_published ? "published" : "draft"}
     />

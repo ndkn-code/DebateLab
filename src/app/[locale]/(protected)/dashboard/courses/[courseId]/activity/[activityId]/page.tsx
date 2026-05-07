@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ActivityPlayerWrapper } from "@/components/activities/ActivityPlayerWrapper";
+import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
+import { canAccessCourse } from "@/lib/utils/courseAccess";
 
 export default async function ActivityPlayerPage({
   params,
@@ -43,14 +45,9 @@ export default async function ActivityPlayerPage({
   }
 
   if (!previewMode && !isAdmin) {
-    const { data: enrollment } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("course_id", courseId)
-      .maybeSingle();
+    const hasCourseAccess = await canAccessCourse(supabase, user.id, courseId);
 
-    if (!enrollment) {
+    if (!hasCourseAccess) {
       redirect(`/courses/${course.slug}`);
     }
   }
@@ -73,11 +70,24 @@ export default async function ActivityPlayerPage({
   // Fetch module info
   const { data: moduleData } = await supabase
     .from("course_modules")
-    .select("id, title, course_id")
+    .select("id, title, course_id, access_level")
     .eq("id", activity.module_id)
     .single();
 
   if (!moduleData) redirect(courseOverviewHref);
+
+  if (!previewMode && !isAdmin) {
+    const entitlement = await getUserEntitlement(supabase, user.id);
+    const hasModuleAccess = canAccessModuleRecord({
+      role: profile.role,
+      accessLevel: moduleData.access_level,
+      entitlement,
+    });
+
+    if (!hasModuleAccess) {
+      redirect(`/courses/${course.slug}`);
+    }
+  }
 
   // Fetch ALL modules with their activities for this course
   const { data: allModulesRaw } = await supabase
