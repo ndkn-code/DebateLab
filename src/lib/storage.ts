@@ -180,7 +180,9 @@ const supabaseAdapter = {
     const { data, error } = await querySessions(userId);
 
     if (error || !data) {
-      return localAdapter.getSessions();
+      const localSessions = localAdapter.getSessions();
+      await syncLocalOnlySessions(userId, localSessions);
+      return localSessions;
     }
 
     const remoteSessions = data.map(rowToSession);
@@ -379,6 +381,27 @@ async function insertSessionRows(
   return supabase.from("debate_sessions").insert(compatibleRows);
 }
 
+async function upsertSessionRows(
+  rows: ReturnType<typeof sessionToRow> | ReturnType<typeof sessionToRow>[]
+) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("debate_sessions")
+    .upsert(rows, { ignoreDuplicates: true, onConflict: "id" });
+
+  if (!isSchemaCompatibilityError(error)) {
+    return { error };
+  }
+
+  const compatibleRows = Array.isArray(rows)
+    ? rows.map(stripOptionalSessionColumns)
+    : stripOptionalSessionColumns(rows);
+
+  return supabase
+    .from("debate_sessions")
+    .upsert(compatibleRows, { ignoreDuplicates: true, onConflict: "id" });
+}
+
 async function querySessions(userId: string) {
   const supabase = createClient();
   const result = await supabase
@@ -418,33 +441,14 @@ async function syncLocalOnlySessions(
 
   if (importableSessions.length === 0) return;
 
-  const supabase = createClient();
-  const importableIds = importableSessions.map((item) => item.importId);
-  const { data: existingRows, error: existingError } = await supabase
-    .from("debate_sessions")
-    .select("id")
-    .eq("user_id", userId)
-    .in("id", importableIds);
-
-  if (existingError) {
-    console.warn("Failed to inspect local practice history sync state", existingError.message);
-    return;
-  }
-
-  const existingIds = new Set((existingRows ?? []).map((row) => row.id));
-  const sessionsToSync = importableSessions.filter(
-    (item) => !existingIds.has(item.importId)
-  );
-  if (sessionsToSync.length === 0) return;
-
-  const rows = sessionsToSync.map(({ importId, session }) =>
+  const rows = importableSessions.map(({ importId, session }) =>
     sessionToRow(session, userId, {
       idOverride: importId,
       preserveCreatedAt: true,
     })
   );
 
-  const { error } = await insertSessionRows(rows);
+  const { error } = await upsertSessionRows(rows);
   if (error) {
     console.warn("Failed to sync local practice history to Supabase", error.message);
   }
