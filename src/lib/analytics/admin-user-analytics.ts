@@ -13,6 +13,7 @@ import {
   parseAdminInsightJson,
   type AdminAiInsights,
   type AdminAnalyticsRawEvent,
+  type AdminClassMembershipSummary,
   type AdminCourseProgress,
   type AdminModuleProgress,
   type AdminUserAnalyticsProfile,
@@ -193,6 +194,46 @@ function mapModuleProgress(rows: ModuleProgressRow[]): AdminModuleProgress[] {
   }));
 }
 
+async function getUserClassMemberships(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<AdminClassMembershipSummary[]> {
+  const { data: memberships, error } = await supabase
+    .from("class_memberships")
+    .select("class_id, member_role, status")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error || !memberships?.length) return [];
+
+  const classIds = memberships.map((membership) => membership.class_id as string);
+  const { data: classRows, error: classError } = await supabase
+    .from("admin_class_list_rows")
+    .select("id, code, title, status, attendance_rate_30d")
+    .in("id", classIds);
+
+  if (classError || !classRows?.length) return [];
+
+  const membershipByClassId = new Map(
+    memberships.map((membership) => [
+      membership.class_id as string,
+      membership,
+    ])
+  );
+
+  return classRows.map((row) => {
+    const membership = membershipByClassId.get(row.id as string);
+    return {
+      classId: row.id as string,
+      code: row.code as string,
+      title: row.title as string,
+      status: row.status as string,
+      memberRole: String(membership?.member_role ?? "student"),
+      attendanceRate30d: (row.attendance_rate_30d as number | null | undefined) ?? null,
+    };
+  });
+}
+
 function hashPayload(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
@@ -353,52 +394,114 @@ function buildMockProfile(targetUserId: string, range: AnalyticsRangePreset): Ad
     created_at: user.createdAt,
   };
   const now = new Date("2026-05-06T12:00:00.000Z");
-  const rawEvents: AdminAnalyticsRawEvent[] = [
-    "page_view",
-    "course_started",
-    "module_viewed",
-    "ai_feedback_completed",
-    "activity_completed",
-  ].map((eventName, index) => ({
-    id: `mock-event-${index + 1}`,
-    eventName,
-    featureArea:
-      index === 3
-        ? "ai_feedback"
-        : index === 4
-          ? "activities"
-          : "courses",
-    route: index === 3 ? "/practice" : "/dashboard/courses/foundations",
-    durationMs: index === 0 ? 84000 : null,
-    occurredAt: new Date(now.getTime() - index * 86400000).toISOString(),
-    source: index === 0 ? "web" : "server",
-    metadata: {},
-  }));
-  const dailyStats: DailyStatLike[] = [
-    { date: "2026-05-04", minutes_studied: 42, sessions_completed: 2, average_score: 78 },
-    { date: "2026-05-05", minutes_studied: 28, sessions_completed: 1, average_score: 82 },
-    { date: "2026-05-06", minutes_studied: 35, sessions_completed: 1, average_score: 86 },
+  const eventSeed: Array<{
+    eventName: string;
+    featureArea: AnalyticsFeatureArea;
+    route: string;
+    daysAgo: number;
+    durationMs?: number;
+  }> = [
+    { eventName: "practice_completed", featureArea: "practice", route: "/practice/complete", daysAgo: 0, durationMs: 1914000 },
+    { eventName: "ai_feedback_completed", featureArea: "ai_feedback", route: "/practice/rebuttal", daysAgo: 0 },
+    { eventName: "module_viewed", featureArea: "courses", route: "/dashboard/courses/argument-building", daysAgo: 1, durationMs: 420000 },
+    { eventName: "activity_completed", featureArea: "activities", route: "/dashboard/courses/argument-building/activity/claim", daysAgo: 1 },
+    { eventName: "course_started", featureArea: "courses", route: "/dashboard/courses/advanced-rebuttals", daysAgo: 2 },
+    { eventName: "duel_completed", featureArea: "duels", route: "/duels/weekend-cup", daysAgo: 3, durationMs: 2280000 },
+    { eventName: "page_view", featureArea: "courses", route: "/dashboard/courses", daysAgo: 4, durationMs: 84000 },
+    { eventName: "ai_feedback_requested", featureArea: "ai_feedback", route: "/practice/rebuttal", daysAgo: 4 },
+    { eventName: "module_viewed", featureArea: "courses", route: "/dashboard/courses/fallacy-guide", daysAgo: 5 },
+    { eventName: "practice_completed", featureArea: "practice", route: "/practice/topic", daysAgo: 5, durationMs: 1740000 },
+    { eventName: "activity_started", featureArea: "activities", route: "/dashboard/courses/fallacy-guide/activity/sources", daysAgo: 7 },
+    { eventName: "page_leave", featureArea: "courses", route: "/dashboard/courses/fallacy-guide", daysAgo: 8, durationMs: 320000 },
+    { eventName: "ai_feedback_completed", featureArea: "ai_feedback", route: "/practice/speech", daysAgo: 9 },
+    { eventName: "module_viewed", featureArea: "courses", route: "/dashboard/courses/persuasive-speaking", daysAgo: 10 },
+    { eventName: "practice_completed", featureArea: "practice", route: "/practice/speaking", daysAgo: 11, durationMs: 1560000 },
+    { eventName: "activity_completed", featureArea: "activities", route: "/dashboard/courses/foundations/activity/evidence", daysAgo: 12 },
+    { eventName: "duel_completed", featureArea: "duels", route: "/duels/open-challenge", daysAgo: 13, durationMs: 2040000 },
+    { eventName: "ai_feedback_requested", featureArea: "ai_feedback", route: "/practice/rebuttal", daysAgo: 14 },
+    { eventName: "module_viewed", featureArea: "courses", route: "/dashboard/courses/advanced-rebuttals", daysAgo: 15 },
+    { eventName: "course_started", featureArea: "courses", route: "/dashboard/courses/evidence-research", daysAgo: 17 },
+    { eventName: "page_view", featureArea: "profile", route: "/profile", daysAgo: 18, durationMs: 54000 },
+    { eventName: "ai_feedback_completed", featureArea: "ai_feedback", route: "/practice/rebuttal", daysAgo: 20 },
+    { eventName: "practice_completed", featureArea: "practice", route: "/practice/topic", daysAgo: 22, durationMs: 1860000 },
+    { eventName: "module_viewed", featureArea: "courses", route: "/dashboard/courses/foundations", daysAgo: 24 },
+    { eventName: "page_view", featureArea: "courses", route: "/dashboard/courses", daysAgo: 27, durationMs: 91000 },
   ];
+  const rawEvents: AdminAnalyticsRawEvent[] = eventSeed.map((event, index) => ({
+    id: `mock-event-${index + 1}`,
+    eventName: event.eventName,
+    featureArea: event.featureArea,
+    route: event.route,
+    durationMs: event.durationMs ?? null,
+    occurredAt: new Date(now.getTime() - event.daysAgo * 86400000 - index * 1800000).toISOString(),
+    source: index % 3 === 0 ? "web" : "server",
+    metadata: {
+      object_id: `mock-${index + 1}`,
+      route: event.route,
+    },
+  }));
+  const dailyMinutes = [28, 18, 36, 34, 86, 64, 31, 22, 38, 33, 45, 52, 18, 29, 82, 55, 21, 44, 46, 39, 51, 12, 18, 31, 24, 63, 36, 22, 14, 36];
+  const scoreSeries = [69, 70, 72, 71, 73, 74, 70, 68, 72, 73, 75, 76, 71, 72, 78, 80, 74, 73, 77, 76, 79, 70, 71, 74, 73, 82, 78, 76, 72, 80];
+  const dailyStats: DailyStatLike[] = dailyMinutes.map((minutes, index) => {
+    const date = new Date("2026-04-07T00:00:00.000Z");
+    date.setUTCDate(date.getUTCDate() + index);
+    return {
+      date: date.toISOString().slice(0, 10),
+      minutes_studied: minutes,
+      sessions_completed: index % 5 === 0 ? 2 : index % 3 === 0 ? 0 : 1,
+      average_score: scoreSeries[index],
+    };
+  });
   const courseProgress: AdminCourseProgress[] = [
     {
       courseId: "mock-course-1",
-      title: "Debate Foundations",
+      title: "Fundamentals of Debate",
       visibility: "premium",
-      status: "active",
-      progressPercent: 64,
+      status: "completed",
+      progressPercent: 100,
       enrolledAt: "2026-04-28T00:00:00.000Z",
-      completedAt: null,
+      completedAt: "2026-05-05T00:00:00.000Z",
       lastActivityAt: "2026-05-06T10:30:00.000Z",
     },
     {
       courseId: "mock-course-2",
-      title: "Rebuttal Lab",
+      title: "Advanced Argumentation",
       visibility: "public",
       status: "active",
-      progressPercent: 32,
+      progressPercent: 67,
       enrolledAt: "2026-05-01T00:00:00.000Z",
       completedAt: null,
       lastActivityAt: "2026-05-04T14:20:00.000Z",
+    },
+    {
+      courseId: "mock-course-3",
+      title: "Rebuttal Mastery",
+      visibility: "premium",
+      status: "active",
+      progressPercent: 43,
+      enrolledAt: "2026-05-02T00:00:00.000Z",
+      completedAt: null,
+      lastActivityAt: "2026-05-03T12:15:00.000Z",
+    },
+    {
+      courseId: "mock-course-4",
+      title: "Persuasion & Impact",
+      visibility: "public",
+      status: "active",
+      progressPercent: 20,
+      enrolledAt: "2026-05-04T00:00:00.000Z",
+      completedAt: null,
+      lastActivityAt: "2026-05-01T16:45:00.000Z",
+    },
+    {
+      courseId: "mock-course-5",
+      title: "Evidence & Research",
+      visibility: "premium",
+      status: "active",
+      progressPercent: 0,
+      enrolledAt: "2026-05-06T00:00:00.000Z",
+      completedAt: null,
+      lastActivityAt: null,
     },
   ];
   const featureAdoption = buildFeatureAdoption(rawEvents);
@@ -408,6 +511,51 @@ function buildMockProfile(targetUserId: string, range: AnalyticsRangePreset): Ad
     courseProgress,
     aiUsageCount: 1,
   });
+  const base = emptyAnalyticsPageData(profile, range);
+  base.hero = {
+    ...base.hero,
+    streak: 12,
+    totalSessions: kpis.sessionsCompleted,
+    totalPracticeMinutes: kpis.practiceMinutes,
+    statusLine: "Active this week with consistent course and feedback usage.",
+  };
+  base.skillSnapshot = {
+    metrics: [
+      { key: "clarity", rawValue: 78, challengeAdjustedValue: 78, value: 78, effectiveSessions: 8, coverage: 100 },
+      { key: "logic", rawValue: 72, challengeAdjustedValue: 72, value: 72, effectiveSessions: 8, coverage: 92 },
+      { key: "rebuttal", rawValue: 58, challengeAdjustedValue: 58, value: 58, effectiveSessions: 6, coverage: 84 },
+      { key: "evidence", rawValue: 65, challengeAdjustedValue: 65, value: 65, effectiveSessions: 7, coverage: 90 },
+      { key: "delivery", rawValue: 75, challengeAdjustedValue: 75, value: 75, effectiveSessions: 5, coverage: 86 },
+    ],
+    overallScore: 70,
+    strongestSkill: "clarity",
+    weakestSkill: "rebuttal",
+    sourceSessions: 8,
+    confidence: 82,
+    trackBreakdown: { debate: 6, speaking: 2 },
+    difficultyBreakdown: {
+      topic: { beginner: 1, intermediate: 5, advanced: 2 },
+      ai: { easy: 1, medium: 4, hard: 2, none: 1 },
+    },
+    note: "Skill profile is based on recent scored rounds.",
+  };
+  base.recentSessions = [
+    {
+      id: "mock-session-1",
+      kind: "practice",
+      topicTitle: "Should AI replace human jobs?",
+      topicCategory: "Technology",
+      practiceTrack: "debate",
+      mode: "topic",
+      side: null,
+      score: 82,
+      resultLabel: null,
+      confidencePercent: 84,
+      durationMinutes: 32,
+      createdAt: "2026-05-06T10:15:00.000Z",
+      href: "/practice/history/mock-session-1",
+    },
+  ];
 
   return {
     range,
@@ -431,10 +579,20 @@ function buildMockProfile(targetUserId: string, range: AnalyticsRangePreset): Ad
       betaAllAccess: isBetaAllAccessEnabled(),
       activeSubscriptionId: user.latestSubscription?.id ?? null,
     },
-    base: emptyAnalyticsPageData(profile, range),
+    base,
     kpis,
     trend: buildAdminTrend(range, rawEvents, dailyStats, now),
     featureAdoption,
+    classMemberships: [
+      {
+        classId: "00000000-0000-4500-8000-000000000101",
+        code: "IDC-2026-S1",
+        title: "Intro Debate Cohort",
+        status: "active",
+        memberRole: "student",
+        attendanceRate30d: 92,
+      },
+    ],
     courseProgress,
     moduleProgress: [
       {
@@ -444,7 +602,7 @@ function buildMockProfile(targetUserId: string, range: AnalyticsRangePreset): Ad
         accessLevel: "premium",
         sortOrder: 1,
         totalActivities: 6,
-        completedActivities: 4,
+        completedActivities: 5,
         lastCompletedAt: "2026-05-06T10:30:00.000Z",
       },
       {
@@ -454,8 +612,28 @@ function buildMockProfile(targetUserId: string, range: AnalyticsRangePreset): Ad
         accessLevel: "free",
         sortOrder: 2,
         totalActivities: 5,
-        completedActivities: 1,
+        completedActivities: 3,
         lastCompletedAt: "2026-05-04T14:20:00.000Z",
+      },
+      {
+        courseId: "mock-course-3",
+        moduleId: "mock-module-3",
+        title: "Fallacy Guide",
+        accessLevel: "premium",
+        sortOrder: 3,
+        totalActivities: 5,
+        completedActivities: 5,
+        lastCompletedAt: "2026-05-03T12:15:00.000Z",
+      },
+      {
+        courseId: "mock-course-4",
+        moduleId: "mock-module-4",
+        title: "Persuasive Speaking",
+        accessLevel: "free",
+        sortOrder: 4,
+        totalActivities: 5,
+        completedActivities: 2,
+        lastCompletedAt: "2026-05-01T16:45:00.000Z",
       },
     ],
     rawEvents,
@@ -547,6 +725,7 @@ export async function getAdminUserAnalyticsProfile(
   const courseProgress = mapCourseProgress((courseProgressRes.data ?? []) as CourseProgressRow[]);
   const moduleProgress = mapModuleProgress((moduleProgressRes.data ?? []) as ModuleProgressRow[]);
   const featureAdoption = buildFeatureAdoption(rawEvents);
+  const classMemberships = await getUserClassMemberships(supabase, targetUserId);
   const kpis = buildAdminKpis({
     events: rawEvents,
     dailyStats,
@@ -599,6 +778,7 @@ export async function getAdminUserAnalyticsProfile(
     kpis,
     trend: buildAdminTrend(range, rawEvents, dailyStats),
     featureAdoption,
+    classMemberships,
     courseProgress,
     moduleProgress,
     rawEvents,

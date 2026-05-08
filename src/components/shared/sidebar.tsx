@@ -254,8 +254,8 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
     },
     {
       key: "courses",
-      href: isAdmin ? "/courses" : undefined,
-      status: isAdmin ? "live" : "coming-soon",
+      href: "/courses",
+      status: "live",
     },
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },

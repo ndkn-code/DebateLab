@@ -196,17 +196,19 @@ export function canAccessCourseRecord({
   visibility,
   entitlement,
   hasAccessRule = false,
+  hasClassAccess = false,
 }: {
   role?: string | null;
   visibility?: CourseVisibility | string | null;
   entitlement: EntitlementState;
   hasAccessRule?: boolean;
+  hasClassAccess?: boolean;
 }) {
   if (role === "admin") return true;
   const resolvedVisibility = visibility ?? "public";
   if (resolvedVisibility === "public") return true;
   if (resolvedVisibility === "premium") return entitlement.hasPremiumAccess;
-  if (resolvedVisibility === "class_restricted") return hasAccessRule;
+  if (resolvedVisibility === "class_restricted") return hasAccessRule || hasClassAccess;
   return false;
 }
 

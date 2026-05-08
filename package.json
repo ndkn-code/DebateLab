@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
+    "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:entitlements": "tsx src/lib/entitlements.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts"

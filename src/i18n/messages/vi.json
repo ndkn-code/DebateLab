@@ -1330,6 +1330,7 @@
       "nav": {
         "overview": "Tổng quan",
         "users": "Người dùng & truy cập",
+        "classes": "Classes",
         "courses": "Khóa học",
         "duels": "Đấu đối kháng"
       },
@@ -1350,6 +1351,146 @@
       "last90Days": "90 ngày",
       "noData": "Chưa có dữ liệu",
       "refreshing": "Đang cập nhật..."
+    },
+    "classes": {
+      "title": "Classes",
+      "subtitle": "Create and manage classes, assign courses, and track attendance.",
+      "newClass": "New Class",
+      "searchPlaceholder": "Search classes",
+      "filters": "Filters",
+      "empty": "No classes match these filters.",
+      "showing": "Showing {current} of {total} classes",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save",
+      "archive": "Archive",
+      "kpis": {
+        "totalClasses": "Total Classes",
+        "totalStudents": "Total Students",
+        "assignedCourses": "Assigned Courses",
+        "attendance": "Attendance (30d)",
+        "sessions": "Sessions (30d)",
+        "active": "{count} active",
+        "acrossAll": "Across all classes",
+        "averageRate": "Average rate"
+      },
+      "status": {
+        "all": "Status: All",
+        "active": "Active",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "sort": {
+        "newest": "Sort: Newest",
+        "oldest": "Sort: Oldest",
+        "title": "Sort: Title",
+        "attendance": "Sort: Attendance"
+      },
+      "table": {
+        "class": "Class",
+        "status": "Status",
+        "dates": "Dates",
+        "students": "Students",
+        "courses": "Assigned Courses",
+        "attendance": "Attendance (30d)"
+      },
+      "create": {
+        "title": "Create Class",
+        "subtitle": "Set up the roster shell now, then assign courses from the class detail page.",
+        "submit": "Create Class"
+      },
+      "fields": {
+        "title": "Class title",
+        "code": "Class code",
+        "grade": "Grade level",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "meeting": "Meeting schedule",
+        "room": "Room",
+        "description": "Description"
+      },
+      "detail": {
+        "back": "Classes",
+        "edit": "Edit Class",
+        "editClass": "Edit Class",
+        "takeAttendance": "Take Attendance",
+        "viewAll": "View All",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save",
+        "archive": "Archive",
+        "fields": {
+          "title": "Class title",
+          "code": "Class code",
+          "grade": "Grade level",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "meeting": "Meeting schedule",
+          "room": "Room",
+          "description": "Description"
+        },
+        "facts": {
+          "code": "Class Code",
+          "grade": "Grade Level",
+          "time": "Time",
+          "dateRange": "Date Range",
+          "room": "Room"
+        },
+        "tabs": {
+          "overview": "Overview",
+          "students": "Students",
+          "courses": "Courses",
+          "attendance": "Attendance"
+        },
+        "metrics": {
+          "students": "Students",
+          "activeStudents": "{count} active",
+          "attendance": "Avg Attendance",
+          "courses": "Assigned Courses",
+          "sessions": "Sessions",
+          "thisMonth": "This month",
+          "classRestricted": "Class restricted"
+        },
+        "roster": {
+          "title": "Roster ({count} Students)",
+          "empty": "No students assigned yet.",
+          "search": "Search students to add"
+        },
+        "courses": {
+          "title": "Assigned Courses ({count})",
+          "assign": "Assign Course",
+          "empty": "No courses assigned yet.",
+          "search": "Search courses to assign",
+          "visibilityNote": "Assigning a course immediately restricts it to this class."
+        },
+        "attendance": {
+          "title": "Attendance",
+          "recent": "Recent Attendance Sessions",
+          "empty": "No attendance sessions yet.",
+          "date": "Date",
+          "course": "Course",
+          "present": "Present",
+          "late": "Late",
+          "absent": "Absent",
+          "rate": "Attendance",
+          "student": "Student"
+        },
+        "attendanceSheet": {
+          "title": "Take Attendance",
+          "course": "Select Course (required)",
+          "date": "Session Date",
+          "present": "Present",
+          "late": "Late",
+          "absent": "Absent",
+          "total": "Total",
+          "student": "Student",
+          "status": "Status",
+          "note": "Note",
+          "sessionNote": "Session note",
+          "save": "Save Attendance",
+          "saving": "Saving..."
+        }
+      }
     },
     "courses": {
       "title": "Khóa học",
@@ -1420,7 +1561,7 @@
         "premiumTitle": "Premium",
         "premiumDesc": "Chỉ dành cho người dùng trả phí.",
         "restrictedTitle": "Riêng tư",
-        "restrictedDesc": "Chỉ học viên được chỉ định mới có thể truy cập."
+        "restrictedDesc": "Chỉ lớp được chỉ định hoặc học viên riêng lẻ mới có thể truy cập."
       },
       "builders": {
         "lesson": {

@@ -27,17 +27,20 @@ export default async function AdminUsersPage() {
   const betaAllAccess = isBetaAllAccessEnabled();
   const devAdminBypass = isDevAdminBypassEnabled();
 
-  const [profilesRes, subscriptionsRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, email, display_name, avatar_url, role, orb_balance, xp, level, created_at")
-      .order("created_at", { ascending: false })
-      .limit(250),
-    supabase
-      .from("subscriptions")
-      .select("*")
-      .order("created_at", { ascending: false }),
-  ]);
+  const profilesRes = await supabase
+    .from("profiles")
+    .select("id, email, display_name, avatar_url, role, orb_balance, xp, level, created_at")
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  const profileIds = ((profilesRes.data ?? []) as ProfileRow[]).map((profile) => profile.id);
+  const subscriptionsRes = profileIds.length > 0
+    ? await supabase
+        .from("subscriptions")
+        .select("*")
+        .in("user_id", profileIds)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
 
   const subscriptionsByUser = new Map<string, SubscriptionRecord[]>();
   for (const subscription of (subscriptionsRes.data ?? []) as SubscriptionRecord[]) {

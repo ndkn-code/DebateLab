@@ -4,29 +4,28 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Globe, Crown, Lock, Unlock, X } from "lucide-react";
+import { ArrowLeft, Globe, Crown, Lock } from "lucide-react";
 import { updateCourseVisibility, updateModuleAccessLevel } from "@/app/actions/courses";
 import type { CourseVisibility, ModuleAccessLevel } from "@/lib/types/admin";
 import { StudentAssignment } from "./StudentAssignment";
+import { ClassAssignment } from "./ClassAssignment";
 
 interface Props {
   course: { id: string; title: string; visibility: string };
   modules: { id: string; title: string; sort_order: number; access_level: string }[];
   initialStudents: { id: string; display_name: string; avatar_url: string | null; email: string | null }[];
+  initialClasses: { id: string; code: string; title: string; grade_level: string | null; status: string; student_count?: number | null }[];
 }
 
-export function CourseSettings({ course, modules, initialStudents }: Props) {
+export function CourseSettings({ course, modules, initialStudents, initialClasses }: Props) {
   const t = useTranslations("admin.courses");
   const tv = useTranslations("admin.courses.visibility");
   const router = useRouter();
   const [visibility, setVisibility] = useState<CourseVisibility>(course.visibility as CourseVisibility);
-  const [saving, setSaving] = useState(false);
 
   const handleVisibilityChange = async (v: CourseVisibility) => {
     setVisibility(v);
-    setSaving(true);
     await updateCourseVisibility(course.id, v);
-    setSaving(false);
     router.refresh();
   };
 
@@ -102,9 +101,19 @@ export function CourseSettings({ course, modules, initialStudents }: Props) {
         </div>
       )}
 
-      {/* Student assignment (only for class_restricted) */}
+      {/* Class assignment is the primary class-restricted flow; student overrides stay advanced. */}
       {visibility === "class_restricted" && (
-        <StudentAssignment courseId={course.id} initialStudents={initialStudents} />
+        <div className="space-y-4">
+          <ClassAssignment courseId={course.id} initialClasses={initialClasses} />
+          <details className="rounded-lg border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-sm">
+            <summary className="cursor-pointer text-sm font-semibold text-on-surface">
+              Individual student overrides
+            </summary>
+            <div className="mt-4">
+              <StudentAssignment courseId={course.id} initialStudents={initialStudents} />
+            </div>
+          </details>
+        </div>
       )}
     </div>
   );

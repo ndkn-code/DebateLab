@@ -675,8 +675,8 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
     {
       key: "courses",
-      href: isAdmin ? "/courses" : undefined,
-      status: isAdmin ? "live" : "coming-soon",
+      href: "/courses",
+      status: "live",
     },
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
@@ -698,11 +698,9 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     },
     {
       key: "course",
-      href: isAdmin ? "/courses" : undefined,
-      status: isAdmin ? "live" : "coming-soon",
-      descriptionKey: !isAdmin
-        ? "action_course_coming_soon_desc"
-        : courseContinuation
+      href: "/courses",
+      status: "live",
+      descriptionKey: courseContinuation
         ? "action_course_desc"
         : "action_course_browse_desc",
     },

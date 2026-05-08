@@ -125,26 +125,39 @@ export async function getSessionTrend(supabase: SupabaseClient, days: number = 3
 }
 
 export async function getPopularCourses(supabase: SupabaseClient, limit: number = 5) {
-  // Simple approach: get courses, then count enrollments separately
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, title")
-    .eq("is_published", true)
-    .eq("is_archived", false)
+  const { data: viewRows, error: viewError } = await supabase
+    .from("admin_popular_courses")
+    .select("course_id, title, enrollment_count")
     .limit(limit);
+
+  if (!viewError && viewRows) {
+    return viewRows as { course_id: string; title: string; enrollment_count: number }[];
+  }
+
+  const [{ data: courses }, { data: enrollments }] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("id, title")
+      .eq("is_published", true)
+      .eq("is_archived", false),
+    supabase.from("enrollments").select("course_id"),
+  ]);
 
   if (!courses || courses.length === 0) return [];
 
-  const result: { course_id: string; title: string; enrollment_count: number }[] = [];
-  for (const c of courses) {
-    const { count } = await supabase
-      .from("enrollments")
-      .select("*", { count: "exact", head: true })
-      .eq("course_id", c.id);
-    result.push({ course_id: c.id, title: c.title, enrollment_count: count ?? 0 });
+  const counts = new Map<string, number>();
+  for (const enrollment of enrollments ?? []) {
+    counts.set(enrollment.course_id, (counts.get(enrollment.course_id) ?? 0) + 1);
   }
 
-  return result.sort((a, b) => b.enrollment_count - a.enrollment_count);
+  return courses
+    .map((course) => ({
+      course_id: course.id,
+      title: course.title,
+      enrollment_count: counts.get(course.id) ?? 0,
+    }))
+    .sort((a, b) => b.enrollment_count - a.enrollment_count || a.title.localeCompare(b.title))
+    .slice(0, limit);
 }
 
 export async function getApiUsageSummary(supabase: SupabaseClient, days: number = 7) {

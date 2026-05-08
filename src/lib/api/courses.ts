@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
-import { canAccessCourse } from "@/lib/utils/courseAccess";
+import { canAccessCourse, getCourseAccessMap } from "@/lib/utils/courseAccess";
 import type {
   Course,
   CourseModule,
@@ -542,6 +542,14 @@ export async function getCourseLibraryData(
   const courses = (coursesRes.data ?? []).map((course) =>
     normalizeCourseRecord(course as Course)
   );
+  const courseAccessMap = await getCourseAccessMap(
+    supabase,
+    userId,
+    courses.map((course) => course.id)
+  );
+  const accessibleCourses = courses.filter((course) =>
+    courseAccessMap.get(course.id)
+  );
   const enrollments = new Map(
     (enrollmentsRes.data ?? []).flatMap((enrollment) => {
       const normalized = normalizeEnrollment(enrollment as EnrollmentRecord);
@@ -574,7 +582,7 @@ export async function getCourseLibraryData(
     }
   }
 
-  const libraryItems = courses.map((course) => {
+  const libraryItems = accessibleCourses.map((course) => {
     const courseModules = modulesByCourseId.get(course.id) ?? [];
     const lessons = courseModules.flatMap((courseModule) =>
       (courseModule.lessons ?? []).filter((lesson) => lesson.is_published !== false)
@@ -838,6 +846,9 @@ export async function getCourseReaderBySlug(
   const hasCourseAccess = userId
     ? await canAccessCourse(supabase, userId, course.id)
     : false;
+  if (!hasCourseAccess && normalizedCourse.visibility === "class_restricted") {
+    return null;
+  }
   const [profileRes, entitlement] =
     userId && hasCourseAccess
       ? await Promise.all([

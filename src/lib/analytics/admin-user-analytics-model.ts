@@ -66,6 +66,15 @@ export interface AdminCourseProgress {
   lastActivityAt: string | null;
 }
 
+export interface AdminClassMembershipSummary {
+  classId: string;
+  code: string;
+  title: string;
+  status: string;
+  memberRole: string;
+  attendanceRate30d: number | null;
+}
+
 export interface AdminModuleProgress {
   courseId: string;
   moduleId: string;
@@ -111,6 +120,7 @@ export interface AdminUserAnalyticsProfile {
   kpis: AdminAnalyticsKpis;
   trend: AdminAnalyticsTrendPoint[];
   featureAdoption: AdminFeatureAdoption[];
+  classMemberships: AdminClassMembershipSummary[];
   courseProgress: AdminCourseProgress[];
   moduleProgress: AdminModuleProgress[];
   rawEvents: AdminAnalyticsRawEvent[];

@@ -7,31 +7,82 @@ import {
 } from "@/lib/entitlements";
 
 export async function canAccessCourse(supabase: SupabaseClient, userId: string, courseId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", userId).single();
+  const accessMap = await getCourseAccessMap(supabase, userId, [courseId]);
+  return accessMap.get(courseId) ?? false;
+}
 
-  const { data: course } = await supabase
-    .from("courses").select("visibility").eq("id", courseId).single();
-  if (!course) return false;
+export async function getCourseAccessMap(
+  supabase: SupabaseClient,
+  userId: string,
+  courseIds: string[]
+): Promise<Map<string, boolean>> {
+  const uniqueCourseIds = [...new Set(courseIds)].filter(Boolean);
+  const accessMap = new Map(uniqueCourseIds.map((id) => [id, false]));
+  if (uniqueCourseIds.length === 0) return accessMap;
 
-  const [entitlement, accessRule] = await Promise.all([
+  const [{ data: profile }, { data: courses }, entitlement] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", userId).single(),
+    supabase.from("courses").select("id, visibility").in("id", uniqueCourseIds),
     getUserEntitlement(supabase, userId),
-    course.visibility === "class_restricted"
-      ? supabase
-          .from("course_access_rules")
-          .select("id")
-          .eq("course_id", courseId)
-          .eq("target_id", userId)
-          .limit(1)
-      : Promise.resolve({ data: [] }),
   ]);
 
-  return canAccessCourseRecord({
-    role: profile?.role,
-    visibility: course.visibility,
-    entitlement,
-    hasAccessRule: Boolean(accessRule.data?.length),
-  });
+  const restrictedCourseIds = (courses ?? [])
+    .filter((course) => course.visibility === "class_restricted")
+    .map((course) => course.id as string);
+
+  let directAccessIds = new Set<string>();
+  let classAccessIds = new Set<string>();
+
+  if (restrictedCourseIds.length > 0) {
+    const [rulesRes, membershipsRes] = await Promise.all([
+      supabase
+        .from("course_access_rules")
+        .select("course_id")
+        .in("course_id", restrictedCourseIds)
+        .eq("target_id", userId),
+      supabase
+        .from("class_memberships")
+        .select("class_id")
+        .eq("user_id", userId)
+        .eq("status", "active"),
+    ]);
+
+    directAccessIds = new Set(
+      (rulesRes.data ?? []).map((rule) => rule.course_id as string)
+    );
+
+    const classIds = (membershipsRes.data ?? [])
+      .map((membership) => membership.class_id as string)
+      .filter(Boolean);
+
+    if (classIds.length > 0) {
+      const { data: assignments } = await supabase
+        .from("class_course_assignments")
+        .select("course_id")
+        .in("class_id", classIds)
+        .in("course_id", restrictedCourseIds);
+
+      classAccessIds = new Set(
+        (assignments ?? []).map((assignment) => assignment.course_id as string)
+      );
+    }
+  }
+
+  for (const course of courses ?? []) {
+    const courseId = course.id as string;
+    accessMap.set(
+      courseId,
+      canAccessCourseRecord({
+        role: profile?.role,
+        visibility: course.visibility,
+        entitlement,
+        hasAccessRule: directAccessIds.has(courseId),
+        hasClassAccess: classAccessIds.has(courseId),
+      })
+    );
+  }
+
+  return accessMap;
 }
 
 export function getModuleLockStatus(

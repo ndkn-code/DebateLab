@@ -16,14 +16,6 @@ export default async function CoursesPage() {
 
   if (!user) redirect("/auth/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") redirect("/dashboard");
-
   await ensureDevelopmentLibraryCourses(user.id);
   const library = await getCourseLibraryData(user.id);
 

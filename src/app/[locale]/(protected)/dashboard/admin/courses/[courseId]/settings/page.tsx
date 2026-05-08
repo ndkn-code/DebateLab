@@ -39,11 +39,35 @@ export default async function CourseSettingsPage({ params }: { params: Promise<{
     students = data ?? [];
   }
 
+  const { data: assignments } = await supabase
+    .from("class_course_assignments")
+    .select("class_id")
+    .eq("course_id", courseId);
+
+  let assignedClasses: {
+    id: string;
+    code: string;
+    title: string;
+    grade_level: string | null;
+    status: string;
+    student_count?: number | null;
+  }[] = [];
+
+  if (assignments && assignments.length > 0) {
+    const ids = assignments.map((assignment) => assignment.class_id);
+    const { data } = await supabase
+      .from("admin_class_list_rows")
+      .select("id, code, title, grade_level, status, student_count")
+      .in("id", ids);
+    assignedClasses = data ?? [];
+  }
+
   return (
     <CourseSettings
       course={course}
       modules={modules ?? []}
       initialStudents={students}
+      initialClasses={assignedClasses}
     />
   );
 }

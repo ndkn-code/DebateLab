@@ -138,6 +138,23 @@ function subscription(
     true
   );
   assert.equal(
+    canAccessCourseRecord({
+      visibility: "class_restricted",
+      entitlement: freeEntitlement,
+      hasClassAccess: true,
+    }),
+    true
+  );
+  assert.equal(
+    canAccessCourseRecord({
+      visibility: "class_restricted",
+      entitlement: premiumEntitlement,
+      hasAccessRule: false,
+      hasClassAccess: false,
+    }),
+    false
+  );
+  assert.equal(
     canAccessModuleRecord({
       accessLevel: "premium",
       entitlement: premiumEntitlement,

@@ -25,6 +25,7 @@ export interface AdminCourse {
   metadata: Record<string, unknown>;
   modules?: AdminCourseModule[];
   enrollment_count?: number;
+  assigned_class_count?: number;
 }
 
 export interface AdminCourseModule {

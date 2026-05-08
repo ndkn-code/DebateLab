@@ -7,17 +7,19 @@ export const metadata = { title: "Admin — Courses" };
 export default async function CoursesPage() {
   const supabase = await createClient();
 
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*, enrollments(count)")
+  const { data: courseRows, error: courseRowsError } = await supabase
+    .from("admin_course_list_rows")
+    .select("*")
     .order("created_at", { ascending: false });
 
-  const formatted = (courses ?? []).map((c: Record<string, unknown>) => ({
-    ...c,
-    enrollment_count: Array.isArray(c.enrollments) && c.enrollments[0]
-      ? (c.enrollments[0] as Record<string, number>).count ?? 0
-      : 0,
-  })) as unknown as AdminCourse[];
+  const { data: fallbackCourses } = courseRowsError
+    ? await supabase
+        .from("courses")
+        .select("*")
+        .order("created_at", { ascending: false })
+    : { data: null };
+
+  const formatted = (courseRowsError ? fallbackCourses ?? [] : courseRows ?? []) as unknown as AdminCourse[];
 
   return <CourseTable initialCourses={formatted} />;
 }
