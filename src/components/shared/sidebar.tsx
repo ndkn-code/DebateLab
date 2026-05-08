@@ -278,6 +278,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           navItems={dashboardNavItems}
           referralCode={profile?.referral_code ?? null}
           inviteReward={REFERRAL_REWARD_CREDITS}
+          isAdmin={isAdmin}
         />
       ) : (
         <aside

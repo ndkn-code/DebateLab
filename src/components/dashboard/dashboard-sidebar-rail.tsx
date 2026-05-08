@@ -11,6 +11,7 @@ import {
   Lock,
   Scale,
   Settings,
+  Shield,
   Sparkles,
   Gift,
   Swords,
@@ -36,12 +37,14 @@ interface DashboardSidebarRailProps {
   navItems: DashboardNavItem[];
   referralCode: string | null;
   inviteReward: number;
+  isAdmin: boolean;
 }
 
 export function DashboardSidebarRail({
   navItems,
   referralCode,
   inviteReward,
+  isAdmin,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
@@ -185,6 +188,15 @@ export function DashboardSidebarRail({
       </div>
 
       <div className="mt-auto space-y-2 pt-6">
+        {isAdmin ? (
+          <Link
+            href="/dashboard/admin"
+            className="flex items-center gap-3 rounded-[1rem] bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)] transition-colors hover:bg-primary/15"
+          >
+            <Shield className="h-5 w-5" />
+            {tNav("switchToAdmin")}
+          </Link>
+        ) : null}
         <Link
           href="/settings"
           className="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
