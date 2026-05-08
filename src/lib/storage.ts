@@ -8,6 +8,8 @@ import type { DebateSession } from "@/types";
 const STORAGE_KEY = "debatelab_sessions";
 const STORAGE_UPDATE_EVENT = "debatelab:sessions-updated";
 const MAX_SESSIONS = 50;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // localStorage adapter (fallback)
 const localAdapter = {
@@ -45,25 +47,7 @@ const supabaseAdapter = {
     const supabase = createClient();
     localAdapter.saveSession(session);
 
-    const row = {
-      id: session.id,
-      user_id: userId,
-      topic_title: session.topic.title,
-      topic_category: session.topic.category,
-      topic_difficulty: session.topic.difficulty ?? "intermediate",
-      side: session.side,
-      mode: session.mode,
-      prep_time: session.prepTime,
-      speech_time: session.speechTime,
-      transcript: session.transcript,
-      prep_notes: session.prepNotes ?? null,
-      ai_difficulty: session.aiDifficulty ?? null,
-      rounds: session.rounds ?? null,
-      feedback: session.feedback as Record<string, unknown> | null,
-      total_score: session.feedback?.totalScore ?? 0,
-      overall_band: session.feedback?.overallBand ?? "Unrated",
-      duration_seconds: session.duration,
-    };
+    const row = sessionToRow(session, userId);
 
     const { error } = await supabase.from("debate_sessions").insert(row);
     if (error) {
@@ -201,6 +185,8 @@ const supabaseAdapter = {
           !remoteSessions.some((remoteSession) => remoteSession.id === localSession.id)
       );
 
+    await syncLocalOnlySessions(userId, localOnlySessions);
+
     return [...remoteSessions, ...localOnlySessions]
       .sort(
         (left, right) =>
@@ -248,6 +234,77 @@ function calculateXp(session: DebateSession): number {
     xp += 10; // bonus for full round
   }
   return xp;
+}
+
+function isImportableSession(session: DebateSession) {
+  return UUID_PATTERN.test(session.id);
+}
+
+function sessionToRow(
+  session: DebateSession,
+  userId: string,
+  options: { preserveCreatedAt?: boolean } = {}
+) {
+  const createdAt = new Date(session.date);
+
+  return {
+    id: session.id,
+    user_id: userId,
+    topic_title: session.topic.title,
+    topic_category: session.topic.category,
+    topic_difficulty: session.topic.difficulty ?? "intermediate",
+    side: session.side,
+    mode: session.mode,
+    prep_time: session.prepTime,
+    speech_time: session.speechTime,
+    transcript: session.transcript,
+    prep_notes: session.prepNotes ?? null,
+    ai_difficulty: session.aiDifficulty ?? null,
+    rounds: session.rounds ?? null,
+    feedback: session.feedback as Record<string, unknown> | null,
+    total_score: session.feedback?.totalScore ?? 0,
+    overall_band: session.feedback?.overallBand ?? "Unrated",
+    duration_seconds: session.duration,
+    ...(options.preserveCreatedAt && !Number.isNaN(createdAt.getTime())
+      ? { created_at: createdAt.toISOString() }
+      : {}),
+  };
+}
+
+async function syncLocalOnlySessions(
+  userId: string,
+  localOnlySessions: DebateSession[]
+) {
+  const importableSessions = localOnlySessions.filter(isImportableSession);
+  if (importableSessions.length === 0) return;
+
+  const supabase = createClient();
+  const importableIds = importableSessions.map((session) => session.id);
+  const { data: existingRows, error: existingError } = await supabase
+    .from("debate_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .in("id", importableIds);
+
+  if (existingError) {
+    console.warn("Failed to inspect local practice history sync state", existingError.message);
+    return;
+  }
+
+  const existingIds = new Set((existingRows ?? []).map((row) => row.id));
+  const sessionsToSync = importableSessions.filter(
+    (session) => !existingIds.has(session.id)
+  );
+  if (sessionsToSync.length === 0) return;
+
+  const rows = sessionsToSync.map((session) =>
+    sessionToRow(session, userId, { preserveCreatedAt: true })
+  );
+
+  const { error } = await supabase.from("debate_sessions").insert(rows);
+  if (error) {
+    console.warn("Failed to sync local practice history to Supabase", error.message);
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
