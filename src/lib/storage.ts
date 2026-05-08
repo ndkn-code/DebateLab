@@ -11,6 +11,17 @@ const STORAGE_UPDATE_EVENT = "debatelab:sessions-updated";
 const MAX_SESSIONS = 50;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const FULL_SESSION_SELECT =
+  "id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds";
+const BASE_SESSION_SELECT =
+  "id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds";
+const OPTIONAL_SESSION_COLUMNS = [
+  "prep_notes",
+  "ai_difficulty",
+  "rounds",
+  "total_score",
+  "overall_band",
+] as const;
 
 // localStorage adapter (fallback)
 const localAdapter = {
@@ -50,7 +61,7 @@ const supabaseAdapter = {
 
     const row = sessionToRow(session, userId);
 
-    const { error } = await supabase.from("debate_sessions").insert(row);
+    const { error } = await insertSessionRows(row);
     if (error) {
       console.warn("Failed to save debate session to Supabase", error.message);
       return;
@@ -166,13 +177,7 @@ const supabaseAdapter = {
   },
 
   async getSessions(userId: string): Promise<DebateSession[]> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("debate_sessions")
-      .select("id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(MAX_SESSIONS);
+    const { data, error } = await querySessions(userId);
 
     if (error || !data) {
       return localAdapter.getSessions();
@@ -202,12 +207,25 @@ const supabaseAdapter = {
     userId: string
   ): Promise<DebateSession | null> {
     const supabase = createClient();
-    const { data, error } = await supabase
+    const initialResult = await supabase
       .from("debate_sessions")
-      .select("id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds")
+      .select(FULL_SESSION_SELECT)
       .eq("id", id)
       .eq("user_id", userId)
       .single();
+    let data: Record<string, unknown> | null = initialResult.data;
+    let error = initialResult.error;
+
+    if (isSchemaCompatibilityError(error)) {
+      const retry = await supabase
+        .from("debate_sessions")
+        .select(BASE_SESSION_SELECT)
+        .eq("id", id)
+        .eq("user_id", userId)
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error || !data) {
       return localAdapter.getSession(id);
@@ -323,6 +341,65 @@ function sessionToRow(
   };
 }
 
+function stripOptionalSessionColumns<T extends Record<string, unknown>>(row: T) {
+  const compatibleRow = { ...row };
+  for (const column of OPTIONAL_SESSION_COLUMNS) {
+    delete compatibleRow[column];
+  }
+  return compatibleRow;
+}
+
+function isSchemaCompatibilityError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String(error.code) : "";
+  const message = "message" in error ? String(error.message) : "";
+  return (
+    code === "42703" ||
+    code === "PGRST204" ||
+    message.includes("Could not find") ||
+    message.includes("schema cache") ||
+    message.includes("column")
+  );
+}
+
+async function insertSessionRows(
+  rows: ReturnType<typeof sessionToRow> | ReturnType<typeof sessionToRow>[]
+) {
+  const supabase = createClient();
+  const { error } = await supabase.from("debate_sessions").insert(rows);
+
+  if (!isSchemaCompatibilityError(error)) {
+    return { error };
+  }
+
+  const compatibleRows = Array.isArray(rows)
+    ? rows.map(stripOptionalSessionColumns)
+    : stripOptionalSessionColumns(rows);
+
+  return supabase.from("debate_sessions").insert(compatibleRows);
+}
+
+async function querySessions(userId: string) {
+  const supabase = createClient();
+  const result = await supabase
+    .from("debate_sessions")
+    .select(FULL_SESSION_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_SESSIONS);
+
+  if (!isSchemaCompatibilityError(result.error)) {
+    return result;
+  }
+
+  return supabase
+    .from("debate_sessions")
+    .select(BASE_SESSION_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_SESSIONS);
+}
+
 async function syncLocalOnlySessions(
   userId: string,
   localOnlySessions: DebateSession[]
@@ -367,7 +444,7 @@ async function syncLocalOnlySessions(
     })
   );
 
-  const { error } = await supabase.from("debate_sessions").insert(rows);
+  const { error } = await insertSessionRows(rows);
   if (error) {
     console.warn("Failed to sync local practice history to Supabase", error.message);
   }
