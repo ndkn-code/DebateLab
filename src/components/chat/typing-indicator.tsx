@@ -11,7 +11,7 @@ export function TypingIndicator() {
       </div>
       <div className="rounded-[18px] border border-outline-variant/14 bg-white px-4 py-3 shadow-[0_14px_32px_rgba(11,20,36,0.04)]">
         <span className="text-sm font-medium text-on-surface-variant">
-          Coach is thinking...
+          Coach is preparing your answer...
         </span>
       </div>
     </div>

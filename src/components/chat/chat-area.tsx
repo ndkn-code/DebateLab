@@ -307,15 +307,11 @@ export function ChatArea({
                   isLoading={isLoading || isInsightsLoading}
                 />
                 <div className="space-y-5">
-                  {messages.map((msg, i) => {
-                    const isLastAssistant =
-                      i === messages.length - 1 &&
-                      msg.role === "assistant" &&
-                      isLoading;
-                    const isEmptyStreaming =
-                      isLastAssistant && msg.content === "";
+                  {messages.map((msg) => {
+                    const isPreparingAssistant =
+                      msg.role === "assistant" && msg.status === "streaming";
 
-                    if (isEmptyStreaming) {
+                    if (isPreparingAssistant) {
                       return <TypingIndicator key={msg.id} />;
                     }
 
@@ -323,7 +319,7 @@ export function ChatArea({
                       <ChatBubble
                         key={msg.id}
                         message={msg}
-                        isStreaming={isLastAssistant && msg.content !== ""}
+                        isStreaming={false}
                         onSendMessage={handleSubmit}
                         onDraftMessage={handleDraftMessage}
                         actionsDisabled={isLoading || isInsightsLoading}

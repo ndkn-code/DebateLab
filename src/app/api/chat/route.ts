@@ -116,7 +116,24 @@ function cleanText(value: unknown, maxLength = 900) {
   if (typeof value !== "string") return undefined;
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return undefined;
-  return normalized.slice(0, maxLength);
+  if (normalized.length <= maxLength) return normalized;
+
+  const clipped = normalized.slice(0, maxLength);
+  const sentenceEnd = Math.max(
+    clipped.lastIndexOf(". "),
+    clipped.lastIndexOf("! "),
+    clipped.lastIndexOf("? ")
+  );
+
+  if (sentenceEnd > maxLength * 0.55) {
+    return clipped.slice(0, sentenceEnd + 1).trim();
+  }
+
+  const wordEnd = clipped.lastIndexOf(" ");
+  const trimmed =
+    wordEnd > maxLength * 0.65 ? clipped.slice(0, wordEnd).trim() : clipped.trim();
+
+  return `${trimmed.replace(/[.,;:!?-]+$/, "")}...`;
 }
 
 function cleanItems(value: unknown, maxItems = 6) {
@@ -129,6 +146,99 @@ function cleanItems(value: unknown, maxItems = 6) {
 }
 
 const ACTION_PLACEHOLDER_PATTERN = /_{2,}|\[[^\]]+\]|<[^>]+>/;
+const GENERIC_ACTION_PATTERN =
+  /\b(share|send|provide)\b[\s\S]{0,80}\b(motion|topic|side|details)\b/i;
+const TEMPLATE_PLACEHOLDER_PATTERN =
+  /\[(motion|stance|side|reason|claim|argument|impact)[^\]]*\]/i;
+const MISSING_CONTEXT_PATTERN =
+  /\b(send|share|provide|tell me|complete|add)\b[\s\S]{0,80}\b(motion|side|topic|transcript|score|details)\b|\b(complete your thought|get started|once i know|before i can)\b/i;
+
+function blockText(block: CoachResponseBlock) {
+  return [block.title, block.body, ...(block.items ?? [])]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function isUsefulTemplate(block: CoachResponseBlock) {
+  return Boolean(
+    block.body &&
+      block.body.length > 48 &&
+      TEMPLATE_PLACEHOLDER_PATTERN.test(block.body)
+  );
+}
+
+function isMissingContextBlock(block: CoachResponseBlock) {
+  return MISSING_CONTEXT_PATTERN.test(blockText(block));
+}
+
+function getOpeningPart(item: string) {
+  const cleaned = item.replace(/\*\*/g, "").replace(/`/g, "").toLowerCase();
+  const separatorIndex = cleaned.indexOf(":");
+  if (separatorIndex < 0) return null;
+
+  const label = cleaned.slice(0, separatorIndex).trim();
+  const body = cleaned.slice(separatorIndex + 1).trim();
+
+  if (label.includes("motion")) return { key: "motion", body };
+  if (label.includes("stance") || label.includes("side")) {
+    return { key: "stance", body };
+  }
+  if (label.includes("thesis") || label.includes("team line")) {
+    return { key: "thesis", body };
+  }
+  if (label.includes("roadmap") || label.includes("preview")) {
+    return { key: "roadmap", body };
+  }
+
+  return null;
+}
+
+function isUsefulOpeningFormula(block: CoachResponseBlock) {
+  const items = block.items ?? [];
+  if (items.length !== 4) return false;
+
+  const parts = items.map(getOpeningPart);
+  const partMap = new Map(parts.flatMap((part) => (part ? [[part.key, part.body]] : [])));
+
+  return (
+    /\b(motion|topic)\b/.test(partMap.get("motion") ?? "") &&
+    /\b(stance|side|support|oppose|position|proposition|opposition)\b/.test(
+      partMap.get("stance") ?? ""
+    ) &&
+    /\b(reason|claim|because|mechanism|why|main)\b/.test(
+      partMap.get("thesis") ?? ""
+    ) &&
+    /\b(preview|argument|point|roadmap|show)\b/.test(
+      partMap.get("roadmap") ?? ""
+    )
+  );
+}
+
+function isUsefulClarifyingQuestion(block: CoachResponseBlock) {
+  const text = blockText(block);
+  return text.length >= 20 && (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"));
+}
+
+function looksIncompleteStudentMessage(text?: string) {
+  const normalized = text?.trim().toLowerCase() ?? "";
+  if (!normalized) return true;
+  if (/\b(on|about|for|motion is|topic is|side is)\s*$/.test(normalized)) {
+    return true;
+  }
+  return (
+    normalized.length < 28 &&
+    /\b(debate|motion|topic|side)\b/.test(normalized) &&
+    !/[?.!]$/.test(normalized)
+  );
+}
+
+function hasSpecificStudentMaterial(text?: string) {
+  const normalized = text?.trim() ?? "";
+  return (
+    normalized.length > 60 ||
+    /\b(motion|topic|side|stance|draft|argument|thesis)\s*:/i.test(normalized)
+  );
+}
 
 function normalizeBlock(value: unknown, index: number): CoachResponseBlock | null {
   if (!value || typeof value !== "object") return null;
@@ -137,14 +247,29 @@ function normalizeBlock(value: unknown, index: number): CoachResponseBlock | nul
   const title = cleanText(raw.title, 80);
   if (!type || !title) return null;
 
-  return {
+  const block = {
     id: cleanText(raw.id, 60) ?? `block-${index + 1}`,
     type,
     title,
     body: cleanText(raw.body),
-    items: cleanItems(raw.items),
+    items: cleanItems(raw.items, type === "opening_formula" ? 4 : 6),
     prompt: cleanText(raw.prompt, 220),
   };
+
+  if (block.type === "opening_formula" && !isUsefulOpeningFormula(block)) {
+    return null;
+  }
+  if (block.type === "template" && !isUsefulTemplate(block)) {
+    return null;
+  }
+  if (block.type === "clarifying_question" && !isUsefulClarifyingQuestion(block)) {
+    return null;
+  }
+  if (block.type !== "clarifying_question" && isMissingContextBlock(block)) {
+    return null;
+  }
+
+  return block;
 }
 
 function normalizeAction(value: unknown): CoachSuggestedAction | null {
@@ -152,7 +277,13 @@ function normalizeAction(value: unknown): CoachSuggestedAction | null {
   const raw = value as Record<string, unknown>;
   const label = cleanText(raw.label, 48);
   const prompt = cleanText(raw.prompt, 220);
-  if (!label || !prompt || ACTION_PLACEHOLDER_PATTERN.test(prompt)) {
+  const actionText = `${label ?? ""} ${prompt ?? ""}`;
+  if (
+    !label ||
+    !prompt ||
+    ACTION_PLACEHOLDER_PATTERN.test(prompt) ||
+    GENERIC_ACTION_PATTERN.test(actionText)
+  ) {
     return null;
   }
 
@@ -163,7 +294,10 @@ function normalizeAction(value: unknown): CoachSuggestedAction | null {
   };
 }
 
-function normalizeMetadata(value: unknown): CoachMessageMetadata | null {
+function normalizeMetadata(
+  value: unknown,
+  context: { assistantText?: string; studentMessage?: string } = {}
+): CoachMessageMetadata | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   const blocks = Array.isArray(raw.blocks)
@@ -175,11 +309,34 @@ function normalizeMetadata(value: unknown): CoachMessageMetadata | null {
 
   if (blocks.length === 0) return null;
 
-  const hasClarifyingQuestion = blocks.some(
+  const needsMoreInfo = looksIncompleteStudentMessage(context.studentMessage);
+  const clarifyingBlocks = blocks.filter(
     (block) => block.type === "clarifying_question"
   );
+
+  if (needsMoreInfo) {
+    if (clarifyingBlocks.length === 0) return null;
+    return {
+      renderVersion: 1,
+      summary: cleanText(raw.summary, 360),
+      blocks: clarifyingBlocks,
+      suggestedActions: [],
+    };
+  }
+
+  const hasClarifyingQuestion = clarifyingBlocks.length > 0;
+  if (hasClarifyingQuestion) {
+    return {
+      renderVersion: 1,
+      summary: cleanText(raw.summary, 360),
+      blocks,
+      suggestedActions: [],
+    };
+  }
+
   const suggestedActions =
-    !hasClarifyingQuestion && Array.isArray(raw.suggestedActions)
+    hasSpecificStudentMaterial(context.studentMessage) &&
+    Array.isArray(raw.suggestedActions)
       ? raw.suggestedActions
           .map(normalizeAction)
           .filter((action): action is CoachSuggestedAction => Boolean(action))
@@ -263,15 +420,18 @@ Schema:
 }
 
 Rules:
-- Use 2-5 blocks.
-- Pick block types that match the assistant reply. Do not invent facts.
-- Prefer debate-specific blocks over generic summaries.
+- Use 0-4 blocks. Return "blocks": [] and "suggestedActions": [] when the reply is clearer as plain text.
+- Pick block types that match the assistant reply. Do not invent facts or force a card.
+- Prefer debate-specific blocks over generic summaries only when the structure is genuinely useful.
+- Do not create opening_formula unless it contains exactly 4 real opening parts: motion, stance, thesis, and roadmap.
+- Do not create template unless the body contains an actual editable template with bracket placeholders.
 - Use clarifying_question when the reply asks for missing topic, side, transcript, or format.
-- If any block is clarifying_question, return "suggestedActions": [].
+- If any block is clarifying_question, return "suggestedActions": []. Only include other blocks when they are useful teaching scaffolds before the question.
 - Never create action prompts with placeholders such as ____, [motion], <insert>, or similar.
+- Never create generic actions like "Share debate motion", "Ask coach", or "Answer this".
 - Suggested action labels and prompts must sound like natural next moves that fit the current coach ask.
 - Keep every card concise enough for a mobile lesson feed.
-- Suggested actions must be useful next clicks for the student.`,
+- Suggested actions are optional. Only include them when the student already gave enough material to act on.`,
         },
         {
           role: "user",
@@ -292,7 +452,10 @@ ${assistantText}`,
     });
 
     const raw = result.choices[0]?.message?.content ?? "";
-    return normalizeMetadata(parseJsonObject(raw));
+    return normalizeMetadata(parseJsonObject(raw), {
+      assistantText,
+      studentMessage,
+    });
   } catch (metadataError) {
     if (process.env.NODE_ENV === "development") {
       console.error("Coach metadata generation failed:", metadataError);

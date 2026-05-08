@@ -15,6 +15,8 @@ export interface ChatMessageLocal {
   role: "user" | "assistant";
   content: string;
   metadata?: CoachMessageMetadata | null;
+  status?: "streaming" | "complete" | "error";
+  finalRenderMode?: "structured" | "markdown";
   created_at: string;
 }
 
@@ -194,6 +196,7 @@ export function ChatShell({
         role: "assistant",
         content: "",
         metadata: null,
+        status: "streaming",
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -250,6 +253,7 @@ export function ChatShell({
                     updated[updated.length - 1] = {
                       ...last,
                       content: last.content + data.text,
+                      status: "streaming",
                     };
                   }
                   return updated;
@@ -264,6 +268,24 @@ export function ChatShell({
                     updated[updated.length - 1] = {
                       ...last,
                       metadata: data.metadata as CoachMessageMetadata,
+                      finalRenderMode: "structured",
+                    };
+                  }
+                  return updated;
+                });
+              }
+
+              if (data.error) {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last && last.role === "assistant") {
+                    updated[updated.length - 1] = {
+                      ...last,
+                      content: t("error_message"),
+                      metadata: null,
+                      status: "error",
+                      finalRenderMode: "markdown",
                     };
                   }
                   return updated;
@@ -271,6 +293,19 @@ export function ChatShell({
               }
 
               if (data.done) {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last && last.role === "assistant") {
+                    updated[updated.length - 1] = {
+                      ...last,
+                      status: "complete",
+                      finalRenderMode: last.metadata ? "structured" : "markdown",
+                    };
+                  }
+                  return updated;
+                });
+
                 // Refresh conversation list
                 if (newConversationId) {
                   // Add or update in sidebar
@@ -321,6 +356,9 @@ export function ChatShell({
             updated[updated.length - 1] = {
               ...last,
               content: t("error_message"),
+              metadata: null,
+              status: "error",
+              finalRenderMode: "markdown",
             };
           }
           return updated;

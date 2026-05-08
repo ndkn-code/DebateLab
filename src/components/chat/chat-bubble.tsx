@@ -7,7 +7,6 @@ import remarkGfm from "remark-gfm";
 import {
   BookOpen,
   Check,
-  ChevronDown,
   CircleAlert,
   CircleHelp,
   Copy,
@@ -15,7 +14,6 @@ import {
   Lightbulb,
   ListChecks,
   PenLine,
-  RotateCcw,
   Sparkles,
   Target,
   ThumbsDown,
@@ -108,6 +106,113 @@ function isCoachMessageMetadata(
   );
 }
 
+function blockText(block: CoachResponseBlock) {
+  return [block.title, block.body, ...(block.items ?? [])]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function isUsefulTemplate(block: CoachResponseBlock) {
+  return Boolean(
+    block.body &&
+      block.body.length > 48 &&
+      TEMPLATE_PLACEHOLDER_PATTERN.test(block.body)
+  );
+}
+
+function isMissingContextBlock(block: CoachResponseBlock) {
+  return MISSING_CONTEXT_PATTERN.test(blockText(block));
+}
+
+function getOpeningPart(item: string) {
+  const cleaned = plainTextFromMarkdown(item).toLowerCase();
+  const separatorIndex = cleaned.indexOf(":");
+  if (separatorIndex < 0) return null;
+
+  const label = cleaned.slice(0, separatorIndex).trim();
+  const body = cleaned.slice(separatorIndex + 1).trim();
+
+  if (label.includes("motion")) return { key: "motion", body };
+  if (label.includes("stance") || label.includes("side")) {
+    return { key: "stance", body };
+  }
+  if (label.includes("thesis") || label.includes("team line")) {
+    return { key: "thesis", body };
+  }
+  if (label.includes("roadmap") || label.includes("preview")) {
+    return { key: "roadmap", body };
+  }
+
+  return null;
+}
+
+function isUsefulOpeningFormula(block: CoachResponseBlock) {
+  const items = block.items ?? [];
+  if (items.length !== 4) return false;
+
+  const parts = items.map(getOpeningPart);
+  const partMap = new Map(parts.flatMap((part) => (part ? [[part.key, part.body]] : [])));
+
+  return (
+    /\b(motion|topic)\b/.test(partMap.get("motion") ?? "") &&
+    /\b(stance|side|support|oppose|position|proposition|opposition)\b/.test(
+      partMap.get("stance") ?? ""
+    ) &&
+    /\b(reason|claim|because|mechanism|why|main)\b/.test(
+      partMap.get("thesis") ?? ""
+    ) &&
+    /\b(preview|argument|point|roadmap|show)\b/.test(
+      partMap.get("roadmap") ?? ""
+    )
+  );
+}
+
+function isUsefulClarifyingQuestion(block: CoachResponseBlock) {
+  const text = blockText(block);
+  return text.length >= 20 && (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"));
+}
+
+function getRenderableMetadata(
+  metadata: ChatMessageLocal["metadata"]
+): CoachMessageMetadata | null {
+  if (!isCoachMessageMetadata(metadata)) return null;
+
+  const filteredBlocks = metadata.blocks.filter((block) => {
+    if (block.type === "opening_formula") return isUsefulOpeningFormula(block);
+    if (block.type === "template") return isUsefulTemplate(block);
+    if (block.type === "clarifying_question") {
+      return isUsefulClarifyingQuestion(block);
+    }
+    if (isMissingContextBlock(block)) {
+      return false;
+    }
+    return true;
+  });
+
+  const clarifyingBlocks = filteredBlocks.filter(
+    (block) => block.type === "clarifying_question"
+  );
+  const hasOpeningBlueprint = filteredBlocks.some(
+    (block) => block.type === "opening_formula"
+  );
+
+  if (clarifyingBlocks.length > 0 && !hasOpeningBlueprint) {
+    return {
+      ...metadata,
+      blocks: clarifyingBlocks,
+      suggestedActions: [],
+    };
+  }
+
+  if (filteredBlocks.length === 0) return null;
+
+  return {
+    ...metadata,
+    blocks: filteredBlocks,
+    suggestedActions: [],
+  };
+}
+
 function MiniMarkdown({
   children,
   className,
@@ -179,6 +284,10 @@ const OPENING_STEP_TITLES = ["Motion", "Stance", "Thesis", "Roadmap"];
 const OPENING_TEMPLATE_DRAFT =
   "Today, we are debating whether [motion]. Our side believes [stance]. We support this because [reason 1] and [reason 2]. By the end of this debate, we will show that [main claim].";
 const MOTION_DETAILS_DRAFT = "Motion:\nSide:";
+const TEMPLATE_PLACEHOLDER_PATTERN =
+  /\[(motion|stance|side|reason|claim|argument|impact)[^\]]*\]/i;
+const MISSING_CONTEXT_PATTERN =
+  /\b(send|share|provide|tell me|complete|add)\b[\s\S]{0,80}\b(motion|side|topic|transcript|score|details)\b|\b(complete your thought|get started|once i know|before i can)\b/i;
 
 function plainTextFromMarkdown(value: string) {
   return value.replace(/\*\*/g, "").replace(/`/g, "").trim();
@@ -226,24 +335,9 @@ function CoachOpeningBlueprint({
   const steps =
     formulaBlock.items && formulaBlock.items.length > 0
       ? formulaBlock.items.map(parseOpeningStep)
-      : [
-          {
-            title: "Motion",
-            body: "Name the exact debate topic.",
-          },
-          {
-            title: "Stance",
-            body: "Say whether you support or oppose it.",
-          },
-          {
-            title: "Thesis",
-            body: "Explain your main reason in one sentence.",
-          },
-          {
-            title: "Roadmap",
-            body: "Preview your strongest arguments.",
-          },
-        ];
+      : [];
+
+  if (steps.length < 3 || steps.length > 4) return null;
 
   return (
     <section className="overflow-hidden rounded-[24px] border border-primary/18 bg-white shadow-[0_22px_54px_rgba(41,74,132,0.09)]">
@@ -260,7 +354,7 @@ function CoachOpeningBlueprint({
             </div>
           </div>
           <div className="rounded-full border border-primary/14 bg-white px-2.5 py-1 text-[11px] font-semibold text-primary">
-            4 parts
+            {steps.length} {steps.length === 1 ? "part" : "parts"}
           </div>
         </div>
       </div>
@@ -282,7 +376,7 @@ function CoachOpeningBlueprint({
                   <StepIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-on-surface">
+                  <div className="text-sm font-semibold leading-5 text-on-surface">
                     {step.title}
                   </div>
                   <p className="mt-1 text-sm leading-5 text-on-surface-variant">
@@ -375,12 +469,11 @@ function CoachOpeningBlueprint({
                 Example Opening
               </div>
               {exampleBlock.body && (
-                <p className="mt-1 line-clamp-2 text-sm leading-5 text-on-surface-variant">
+                <p className="mt-1 text-sm leading-5 text-on-surface-variant">
                   {plainTextFromMarkdown(exampleBlock.body)}
                 </p>
               )}
             </div>
-            <ChevronDown className="mt-2 h-4 w-4 shrink-0 text-on-surface-variant/70" />
           </div>
         </div>
       )}
@@ -388,15 +481,7 @@ function CoachOpeningBlueprint({
   );
 }
 
-function CoachBlockCard({
-  block,
-  onSendMessage,
-  actionsDisabled,
-}: {
-  block: CoachResponseBlock;
-  onSendMessage?: (text: string) => void;
-  actionsDisabled?: boolean;
-}) {
+function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
   const style = BLOCK_STYLES[block.type];
   const Icon = style.icon;
 
@@ -438,17 +523,6 @@ function CoachBlockCard({
               ))}
             </ul>
           )}
-          {block.prompt && onSendMessage && (
-            <button
-              type="button"
-              onClick={() => onSendMessage(block.prompt!)}
-              disabled={actionsDisabled}
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/18 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Ask coach
-            </button>
-          )}
         </div>
       </div>
     </section>
@@ -488,15 +562,7 @@ function CoachFollowUpQuestion({
   );
 }
 
-function AssistantActions({
-  content,
-  onSendMessage,
-  actionsDisabled,
-}: {
-  content: string;
-  onSendMessage?: (text: string) => void;
-  actionsDisabled?: boolean;
-}) {
+function AssistantActions({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
 
@@ -544,20 +610,6 @@ function AssistantActions({
       >
         <ThumbsDown className="h-4 w-4" />
       </button>
-      {onSendMessage && (
-        <button
-          type="button"
-          onClick={() =>
-            onSendMessage("Please regenerate your last answer with a clearer coach structure.")
-          }
-          disabled={actionsDisabled}
-          className={iconButtonClass}
-          title="Regenerate"
-          aria-label="Regenerate"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
-      )}
     </div>
   );
 }
@@ -565,13 +617,10 @@ function AssistantActions({
 function AssistantMessage({
   message,
   isStreaming,
-  onSendMessage,
   onDraftMessage,
   actionsDisabled,
 }: ChatBubbleProps) {
-  const metadata = isCoachMessageMetadata(message.metadata)
-    ? message.metadata
-    : null;
+  const metadata = getRenderableMetadata(message.metadata);
   const cardBlocks =
     metadata?.blocks.filter((block) => block.type !== "clarifying_question") ?? [];
   const followUpBlocks =
@@ -593,11 +642,6 @@ function AssistantMessage({
   const fallbackBlocks = formulaBlock
     ? cardBlocks.filter((block) => !blueprintBlockIds.has(block.id))
     : cardBlocks;
-  const showSuggestedActions =
-    followUpBlocks.length === 0 &&
-    Boolean(metadata?.suggestedActions.length) &&
-    Boolean(onSendMessage);
-
   return (
     <div className="group flex gap-3 sm:gap-4">
       <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-primary/12 bg-white shadow-[0_10px_22px_rgba(77,134,247,0.16)]">
@@ -649,8 +693,6 @@ function AssistantMessage({
                 <CoachBlockCard
                   key={`${block.id}-${blockIndex}`}
                   block={block}
-                  onSendMessage={onSendMessage}
-                  actionsDisabled={actionsDisabled}
                 />
               ))}
             </div>
@@ -664,26 +706,6 @@ function AssistantMessage({
               />
             ))}
 
-            {showSuggestedActions && onSendMessage && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {metadata.suggestedActions.map((action) => (
-                  <button
-                    key={`${action.label}-${action.prompt}`}
-                    type="button"
-                    onClick={() => onSendMessage(action.prompt)}
-                    disabled={actionsDisabled}
-                    className={cn(
-                      "rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                      action.variant === "primary"
-                        ? "border-primary bg-primary text-on-primary shadow-[0_10px_20px_rgba(77,134,247,0.22)]"
-                        : "border-outline-variant/18 bg-white text-on-surface-variant hover:border-primary/25 hover:bg-primary/5 hover:text-primary"
-                    )}
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ) : message.content ? (
           <div className="max-w-[760px] rounded-[22px] border border-outline-variant/14 bg-white px-4 py-4 text-sm shadow-[0_16px_36px_rgba(11,20,36,0.045)] sm:px-5">
@@ -699,11 +721,7 @@ function AssistantMessage({
         ) : null}
 
         {message.content && !isStreaming && (
-          <AssistantActions
-            content={message.content}
-            onSendMessage={onSendMessage}
-            actionsDisabled={actionsDisabled}
-          />
+          <AssistantActions content={message.content} />
         )}
       </div>
     </div>
