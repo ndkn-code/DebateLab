@@ -6,6 +6,7 @@ import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
+const LOCAL_IMPORT_ID_MAP_KEY = "debatelab_session_import_ids";
 const STORAGE_UPDATE_EVENT = "debatelab:sessions-updated";
 const MAX_SESSIONS = 50;
 const UUID_PATTERN =
@@ -178,12 +179,13 @@ const supabaseAdapter = {
     }
 
     const remoteSessions = data.map(rowToSession);
-    const localOnlySessions = localAdapter
-      .getSessions()
-      .filter(
-        (localSession) =>
-          !remoteSessions.some((remoteSession) => remoteSession.id === localSession.id)
-      );
+    const remoteIds = new Set(remoteSessions.map((session) => session.id));
+    const importIdResolver = createImportIdResolver();
+    const localOnlySessions = localAdapter.getSessions().filter((localSession) => {
+      const importId = importIdResolver.resolve(localSession);
+      return importId ? !remoteIds.has(importId) : !remoteIds.has(localSession.id);
+    });
+    importIdResolver.flush();
 
     await syncLocalOnlySessions(userId, localOnlySessions);
 
@@ -236,19 +238,69 @@ function calculateXp(session: DebateSession): number {
   return xp;
 }
 
-function isImportableSession(session: DebateSession) {
-  return UUID_PATTERN.test(session.id);
+function readImportIdMap(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const data = localStorage.getItem(LOCAL_IMPORT_ID_MAP_KEY);
+    if (!data) return {};
+    const parsed = JSON.parse(data);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function writeImportIdMap(map: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LOCAL_IMPORT_ID_MAP_KEY, JSON.stringify(map));
+}
+
+function createImportId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return null;
+}
+
+function createImportIdResolver() {
+  const importIdMap = readImportIdMap();
+  let didChangeMap = false;
+
+  return {
+    resolve(session: DebateSession) {
+      if (UUID_PATTERN.test(session.id)) return session.id;
+
+      const mappedId = importIdMap[session.id];
+      if (mappedId && UUID_PATTERN.test(mappedId)) return mappedId;
+
+      const generatedId = createImportId();
+      if (!generatedId) return null;
+
+      importIdMap[session.id] = generatedId;
+      didChangeMap = true;
+      return generatedId;
+    },
+    flush() {
+      if (didChangeMap) {
+        writeImportIdMap(importIdMap);
+      }
+    },
+  };
 }
 
 function sessionToRow(
   session: DebateSession,
   userId: string,
-  options: { preserveCreatedAt?: boolean } = {}
+  options: { preserveCreatedAt?: boolean; idOverride?: string } = {}
 ) {
   const createdAt = new Date(session.date);
 
   return {
-    id: session.id,
+    id: options.idOverride ?? session.id,
     user_id: userId,
     topic_title: session.topic.title,
     topic_category: session.topic.category,
@@ -275,11 +327,22 @@ async function syncLocalOnlySessions(
   userId: string,
   localOnlySessions: DebateSession[]
 ) {
-  const importableSessions = localOnlySessions.filter(isImportableSession);
+  const importIdResolver = createImportIdResolver();
+  const importableSessions = localOnlySessions
+    .map((session) => ({
+      importId: importIdResolver.resolve(session),
+      session,
+    }))
+    .filter(
+      (item): item is { importId: string; session: DebateSession } =>
+        item.importId !== null
+    );
+  importIdResolver.flush();
+
   if (importableSessions.length === 0) return;
 
   const supabase = createClient();
-  const importableIds = importableSessions.map((session) => session.id);
+  const importableIds = importableSessions.map((item) => item.importId);
   const { data: existingRows, error: existingError } = await supabase
     .from("debate_sessions")
     .select("id")
@@ -293,12 +356,15 @@ async function syncLocalOnlySessions(
 
   const existingIds = new Set((existingRows ?? []).map((row) => row.id));
   const sessionsToSync = importableSessions.filter(
-    (session) => !existingIds.has(session.id)
+    (item) => !existingIds.has(item.importId)
   );
   if (sessionsToSync.length === 0) return;
 
-  const rows = sessionsToSync.map((session) =>
-    sessionToRow(session, userId, { preserveCreatedAt: true })
+  const rows = sessionsToSync.map(({ importId, session }) =>
+    sessionToRow(session, userId, {
+      idOverride: importId,
+      preserveCreatedAt: true,
+    })
   );
 
   const { error } = await supabase.from("debate_sessions").insert(rows);
