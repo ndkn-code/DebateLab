@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
+import {
+  getEnum,
+  getString,
+  isPlainRecord,
+  readJsonObject,
+  RequestValidationError,
+  type JsonRecord,
+} from "@/lib/api/request-validation";
 import type { AiDifficulty, AiHighlight, AiHighlightType, PracticeTrack } from "@/types";
 
 export const maxDuration = 30;
@@ -20,6 +28,67 @@ interface RebuttalRequest {
 interface StructuredRebuttalResponse {
   rebuttal: string;
   highlights?: AiHighlight[];
+}
+
+function parsePreviousRounds(value: unknown) {
+  if (value == null) return undefined;
+  if (!Array.isArray(value) || value.length > 8) {
+    throw new RequestValidationError("previousRounds is invalid.");
+  }
+
+  return value.map((round, index) => {
+    if (!isPlainRecord(round)) {
+      throw new RequestValidationError(`previousRounds[${index}] is invalid.`);
+    }
+
+    const label =
+      typeof round.label === "string"
+        ? round.label.trim().slice(0, 80)
+        : `Round ${index + 1}`;
+    const speaker =
+      typeof round.speaker === "string"
+        ? round.speaker.trim().slice(0, 80)
+        : "speaker";
+    const text =
+      typeof round.text === "string"
+        ? round.text.trim().slice(0, 8000)
+        : "";
+
+    return { label, speaker, text };
+  });
+}
+
+function parseRebuttalRequest(body: JsonRecord): RebuttalRequest {
+  return {
+    topic: getString(body, "topic", {
+      required: true,
+      minLength: 2,
+      maxLength: 300,
+    })!,
+    side: getEnum(body, "side", ["proposition", "opposition"] as const, {
+      required: true,
+    })!,
+    userTranscript: getString(body, "userTranscript", {
+      required: true,
+      minLength: 1,
+      maxLength: 25000,
+    })!,
+    roundLabel: getString(body, "roundLabel", {
+      required: true,
+      minLength: 1,
+      maxLength: 80,
+    })!,
+    difficulty: getEnum(body, "difficulty", ["easy", "medium", "hard"] as const, {
+      defaultValue: "medium",
+    }) as AiDifficulty,
+    practiceTrack: getEnum(
+      body,
+      "practiceTrack",
+      ["speaking", "debate"] as const,
+      { defaultValue: "debate" }
+    ) as PracticeTrack,
+    previousRounds: parsePreviousRounds(body.previousRounds),
+  };
 }
 
 const difficultyPrompts: Record<AiDifficulty, string> = {
@@ -113,11 +182,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { success } = rateLimit(`rebuttal:${user.id}`, 10, 60 * 1000);
-    if (!success) {
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "rebuttal",
+      limit: 10,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
-        { status: 429, headers: { "Retry-After": "60" } }
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 
@@ -128,7 +204,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = (await req.json()) as RebuttalRequest;
+    const body = parseRebuttalRequest(
+      await readJsonObject(req, { maxBytes: 64 * 1024 })
+    );
     const {
       topic,
       side,
@@ -249,6 +327,9 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
 
     return NextResponse.json(structuredResponse);
   } catch (err) {
+    if (err instanceof RequestValidationError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     if (process.env.NODE_ENV === 'development') console.error("Rebuttal API error:", err);
 
     if (err instanceof Error) {

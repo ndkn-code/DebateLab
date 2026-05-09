@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { startDebateDuelRoom } from "@/lib/api/debate-duels";
 import { isAdminUser } from "@/lib/auth/admin";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   _req: NextRequest,
@@ -21,6 +22,21 @@ export async function POST(
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
         { status: 403 }
+      );
+    }
+
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "duel-start",
+      limit: 12,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 

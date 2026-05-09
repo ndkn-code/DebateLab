@@ -63,7 +63,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
         await markLessonCompleteAction(
           lesson.id,
           lesson.course.id,
-          score,
+          Object.fromEntries(answers.entries()),
           undefined,
           courseSlug
         );

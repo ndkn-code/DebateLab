@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
+import {
+  getString,
+  readJsonObject,
+  RequestValidationError,
+} from "@/lib/api/request-validation";
 
 export const maxDuration = 15;
-
-interface OnboardingFeedbackRequest {
-  transcript: string;
-  topic: string;
-  position: string;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,16 +22,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { success } = rateLimit(`onboarding:${user.id}`, 3, 60 * 1000);
-    if (!success) {
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "onboarding-feedback",
+      limit: 3,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
-        { status: 429, headers: { "Retry-After": "60" } }
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 
-    const body: OnboardingFeedbackRequest = await req.json();
-    const { transcript, topic, position } = body;
+    const body = await readJsonObject(req, { maxBytes: 12 * 1024 });
+    const transcript = getString(body, "transcript", { maxLength: 6000 }) ?? "";
+    const topic = getString(body, "topic", {
+      maxLength: 200,
+      defaultValue: "Practice speaking",
+    })!;
+    const position = getString(body, "position", {
+      maxLength: 80,
+      defaultValue: "student",
+    })!;
 
     if (!transcript?.trim()) {
       return NextResponse.json(
@@ -118,6 +132,9 @@ Keep all responses under 20 words each.`;
       encouragement: data.encouragement ?? "Great start! Keep practicing and you'll improve fast.",
     });
   } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (process.env.NODE_ENV === 'development') console.error("Onboarding feedback error:", error);
     return NextResponse.json({
       score: 70,

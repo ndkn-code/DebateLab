@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { setDebateDuelReady } from "@/lib/api/debate-duels";
 import { isAdminUser } from "@/lib/auth/admin";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  getBoolean,
+  readJsonObject,
+  RequestValidationError,
+} from "@/lib/api/request-validation";
 
 export async function POST(
   req: NextRequest,
@@ -24,16 +30,34 @@ export async function POST(
       );
     }
 
-    const body = (await req.json()) as { ready?: boolean };
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "duel-ready",
+      limit: 30,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
+      );
+    }
+
+    const body = await readJsonObject(req, { maxBytes: 1024 });
     const { shareCode } = await context.params;
     const room = await setDebateDuelReady(
       shareCode,
       user.id,
-      body.ready ?? true
+      getBoolean(body, "ready", true) ?? true
     );
 
     return NextResponse.json(room);
   } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const rawMessage =
       error instanceof Error ? error.message : "Failed to update ready state.";
 

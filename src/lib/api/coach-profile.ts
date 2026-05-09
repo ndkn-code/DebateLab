@@ -36,7 +36,7 @@ type SessionRow = {
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
-  transcript: string;
+  transcript?: string | null;
   duration_seconds: number | null;
   created_at: string;
 };
@@ -179,8 +179,8 @@ function summarizeSession(session: SessionRow) {
   return `Completed a ${describeTrack(getPracticeTrack(feedback))} session on "${session.topic_title}".`;
 }
 
-function buildTranscriptExcerpt(transcript: string) {
-  const normalized = transcript.replace(/\s+/g, " ").trim();
+function buildTranscriptExcerpt(transcript?: string | null) {
+  const normalized = (transcript ?? "").replace(/\s+/g, " ").trim();
   if (!normalized) return "";
   return normalized.length > 260 ? `${normalized.slice(0, 257)}...` : normalized;
 }
@@ -685,7 +685,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
         .eq("user_id", userId)
         .not("total_score", "is", null)
@@ -694,7 +694,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       supabase
       .from("debate_sessions")
       .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, transcript, duration_seconds, created_at"
+        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
       )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })

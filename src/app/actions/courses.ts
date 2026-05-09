@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { containsIlikePattern, mergeUniqueById } from "@/lib/supabase/search";
 import { generateSlug, ensureUniqueSlug } from "@/lib/utils/slug";
 import type { CourseVisibility, ActivityType, ActivityPhase, ActivityContent } from "@/lib/types/admin";
 
@@ -392,10 +393,27 @@ export async function removeStudentFromCourse(courseId: string, userId: string) 
 export async function searchStudents(query: string, excludeCourseId?: string) {
   const supabase = await createClient();
   await verifyAdmin(supabase);
+  const term = query.trim();
+  if (term.length < 2) return [];
 
-  const q = supabase.from("profiles").select("id, display_name, avatar_url, email").or(`display_name.ilike.%${query}%,email.ilike.%${query}%`).limit(10);
+  const pattern = containsIlikePattern(term);
+  const [nameRes, emailRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, email")
+      .ilike("display_name", pattern)
+      .limit(10),
+    supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, email")
+      .ilike("email", pattern)
+      .limit(10),
+  ]);
 
-  const { data } = await q;
+  if (nameRes.error) throw new Error(nameRes.error.message);
+  if (emailRes.error) throw new Error(emailRes.error.message);
+
+  const data = mergeUniqueById([nameRes.data, emailRes.data], 10);
   if (!data || !excludeCourseId) return data ?? [];
 
   // Filter out already assigned

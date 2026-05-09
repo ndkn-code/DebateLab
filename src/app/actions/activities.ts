@@ -5,6 +5,160 @@ import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { revalidatePath } from "next/cache";
+import type {
+  ActivityContent,
+  ActivityType,
+  DragOrderContent,
+  FillBlankContent,
+  FlashcardContent,
+  MatchingContent,
+  QuizContent,
+} from "@/lib/types/admin";
+
+type ScoreResult = {
+  score: number;
+  maxScore: number;
+};
+
+function clampTimeSpent(value: number) {
+  return Number.isFinite(value)
+    ? Math.max(0, Math.min(24 * 60 * 60, Math.floor(value)))
+    : 0;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asStringRecord(value: unknown): Record<string, string> {
+  const record = asRecord(value);
+  return Object.fromEntries(
+    Object.entries(record).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    )
+  );
+}
+
+function scoreQuiz(content: QuizContent, responses: Record<string, unknown>): ScoreResult {
+  const questions = content.questions ?? [];
+  const answers = Array.isArray(responses.answers) ? responses.answers : [];
+  const answerByQuestion = new Map<string, string>();
+
+  for (const answer of answers) {
+    const item = asRecord(answer);
+    if (typeof item.questionId === "string" && typeof item.selectedOptionId === "string") {
+      answerByQuestion.set(item.questionId, item.selectedOptionId);
+    }
+  }
+
+  return {
+    score: questions.filter(
+      (question) => answerByQuestion.get(question.id) === question.correctAnswer
+    ).length,
+    maxScore: questions.length,
+  };
+}
+
+function scoreMatching(
+  content: MatchingContent,
+  responses: Record<string, unknown>
+): ScoreResult {
+  const pairs = content.pairs ?? [];
+  const matches = asStringRecord(responses.matches);
+  return {
+    score: pairs.filter((pair) => matches[pair.id] === pair.id).length,
+    maxScore: pairs.length,
+  };
+}
+
+function scoreFillBlank(
+  content: FillBlankContent,
+  responses: Record<string, unknown>
+): ScoreResult {
+  const answers = asStringRecord(responses.answers);
+  const blanks = (content.passages ?? []).flatMap((passage) => passage.blanks ?? []);
+  const score = blanks.filter((blank) => {
+    const answer = (answers[blank.id] ?? "").trim();
+    if (!answer) return false;
+    const equals = (left: string, right: string) =>
+      blank.caseSensitive
+        ? left === right
+        : left.toLowerCase() === right.toLowerCase();
+    return (
+      equals(answer, blank.answer) ||
+      (blank.acceptedAnswers ?? []).some((candidate) => equals(answer, candidate))
+    );
+  }).length;
+
+  return { score, maxScore: blanks.length };
+}
+
+function scoreDragOrder(
+  content: DragOrderContent,
+  responses: Record<string, unknown>
+): ScoreResult {
+  const items = content.items ?? [];
+  const order = Array.isArray(responses.order)
+    ? responses.order.filter((item): item is string => typeof item === "string")
+    : [];
+  const itemById = new Map(items.map((item) => [item.id, item]));
+
+  return {
+    score: order.filter((id, index) => itemById.get(id)?.correctOrder === index + 1).length,
+    maxScore: items.length,
+  };
+}
+
+function scoreFlashcard(
+  content: FlashcardContent,
+  responses: Record<string, unknown>
+): ScoreResult {
+  const cards = content.cards ?? [];
+  const gotOnFirst =
+    typeof responses.gotOnFirst === "number" && Number.isFinite(responses.gotOnFirst)
+      ? Math.floor(responses.gotOnFirst)
+      : 0;
+
+  return {
+    score: Math.max(0, Math.min(cards.length, gotOnFirst)),
+    maxScore: cards.length,
+  };
+}
+
+function scoreActivityFromContent(
+  activityType: ActivityType,
+  content: ActivityContent,
+  responses: Record<string, unknown>
+): ScoreResult {
+  if (activityType === "lesson") return { score: 1, maxScore: 1 };
+  if (activityType === "quiz") return scoreQuiz(content as QuizContent, responses);
+  if (activityType === "matching") return scoreMatching(content as MatchingContent, responses);
+  if (activityType === "fill_blank") return scoreFillBlank(content as FillBlankContent, responses);
+  if (activityType === "drag_order") return scoreDragOrder(content as DragOrderContent, responses);
+  if (activityType === "flashcard") return scoreFlashcard(content as FlashcardContent, responses);
+  return { score: 0, maxScore: 0 };
+}
+
+function calculateActivityXp(
+  activityType: ActivityType,
+  score: number,
+  maxScore: number
+) {
+  if (activityType === "lesson") return 10;
+  if (activityType === "flashcard") {
+    return maxScore > 0 ? Math.round((score / maxScore) * 10) : 5;
+  }
+  return maxScore > 0 ? Math.round((score / maxScore) * 15) : 0;
+}
+
+function normalizeResponses(value: Record<string, unknown>) {
+  if (JSON.stringify(value).length > 64 * 1024) {
+    throw new Error("Activity response is too large");
+  }
+  return value;
+}
 
 async function assertActivityAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -112,10 +266,10 @@ export async function startActivity(activityId: string) {
 export async function completeActivity(
   activityId: string,
   courseId: string,
-  score: number,
-  maxScore: number,
+  _clientScore: number,
+  _clientMaxScore: number,
   responses: Record<string, unknown>,
-  xpEarned: number,
+  _clientXpEarned: number,
   timeSpentSeconds: number
 ) {
   const supabase = await createClient();
@@ -123,6 +277,27 @@ export async function completeActivity(
   if (!user) throw new Error("Not authenticated");
 
   await assertActivityAccess(supabase, user.id, activityId, courseId);
+  const safeResponses = normalizeResponses(responses ?? {});
+  const safeTimeSpentSeconds = clampTimeSpent(timeSpentSeconds);
+
+  const { data: scoringActivity } = await supabase
+    .from("activities")
+    .select("activity_type, content")
+    .eq("id", activityId)
+    .single();
+
+  if (!scoringActivity) throw new Error("Activity not found");
+
+  const { score, maxScore } = scoreActivityFromContent(
+    scoringActivity.activity_type as ActivityType,
+    scoringActivity.content as ActivityContent,
+    safeResponses
+  );
+  const xpEarned = calculateActivityXp(
+    scoringActivity.activity_type as ActivityType,
+    score,
+    maxScore
+  );
 
   // Find in-progress attempt
   const { data: attempts } = await supabase
@@ -143,9 +318,9 @@ export async function completeActivity(
         completed_at: new Date().toISOString(),
         score,
         max_score: maxScore,
-        is_passed: score >= maxScore * 0.6,
-        responses,
-        time_spent_seconds: timeSpentSeconds,
+        is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
+        responses: safeResponses,
+        time_spent_seconds: safeTimeSpentSeconds,
       })
       .eq("id", attemptId);
   } else {
@@ -156,10 +331,10 @@ export async function completeActivity(
       completed_at: new Date().toISOString(),
       score,
       max_score: maxScore,
-      is_passed: score >= maxScore * 0.6,
+      is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
       attempt_number: 1,
-      responses,
-      time_spent_seconds: timeSpentSeconds,
+      responses: safeResponses,
+      time_spent_seconds: safeTimeSpentSeconds,
     });
   }
 
@@ -169,7 +344,7 @@ export async function completeActivity(
     await supabase.rpc("upsert_daily_stats", {
       p_user_id: user.id,
       p_sessions: 0,
-      p_minutes: Math.round(timeSpentSeconds / 60),
+      p_minutes: Math.round(safeTimeSpentSeconds / 60),
       p_xp: xpEarned,
     });
   }
@@ -181,12 +356,12 @@ export async function completeActivity(
     reference_id: activityId,
     reference_type: "activity",
     xp_earned: xpEarned,
-    metadata: { score, maxScore, timeSpentSeconds },
+    metadata: { score, maxScore, timeSpentSeconds: safeTimeSpentSeconds },
   });
   await recordAnalyticsEvent(supabase, user.id, {
     eventName: "activity_completed",
     featureArea: "activities",
-    durationMs: timeSpentSeconds * 1000,
+    durationMs: safeTimeSpentSeconds * 1000,
     metadata: {
       activity_id: activityId,
       course_id: courseId,

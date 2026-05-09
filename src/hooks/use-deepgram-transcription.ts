@@ -96,12 +96,18 @@ export function useDeepgramTranscription() {
     async (micStream: MediaStream) => {
       // Fetch API key from our server endpoint
       let apiKey: string;
+      let authScheme: "token" | "bearer" = "bearer";
       try {
         const res = await fetch("/api/deepgram-token");
         if (!res.ok) throw new Error("Failed to get token");
-        const data = (await res.json()) as { key?: string; error?: string };
+        const data = (await res.json()) as {
+          key?: string;
+          authScheme?: "token" | "bearer";
+          error?: string;
+        };
         if (!data.key) throw new Error(data.error || "No key returned");
         apiKey = data.key;
+        authScheme = data.authScheme === "token" ? "token" : "bearer";
       } catch (err) {
         setError("Failed to initialize speech recognition");
         return;
@@ -120,7 +126,7 @@ export function useDeepgramTranscription() {
       wsUrl.searchParams.set("sample_rate", "16000");
       wsUrl.searchParams.set("channels", "1");
 
-      const ws = new WebSocket(wsUrl.toString(), ["token", apiKey]);
+      const ws = new WebSocket(wsUrl.toString(), [authScheme, apiKey]);
       wsRef.current = ws;
 
       ws.onopen = () => {

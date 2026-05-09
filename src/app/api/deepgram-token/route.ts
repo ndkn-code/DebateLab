@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
   try {
@@ -13,11 +13,18 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { success } = rateLimit(`deepgram:${user.id}`, 5, 60 * 1000);
-    if (!success) {
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "deepgram-token",
+      limit: 5,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
-        { status: 429, headers: { "Retry-After": "60" } }
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 
@@ -30,12 +37,44 @@ export async function GET() {
       );
     }
 
-    // Return the API key for the client to use in WebSocket connection.
-    // This is safe because:
-    // 1. This is a server-side API route — the key is never in client bundles
-    // 2. The client fetches it per-session and uses it only for a short-lived WSS connection
-    // 3. For production hardening, replace with Deepgram's temporary scoped keys
-    return NextResponse.json({ key: apiKey });
+    const response = await fetch("https://api.deepgram.com/v1/auth/grant", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ttl_seconds: 60 }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("Deepgram grant token failed:", await response.text());
+      }
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    const data = (await response.json()) as {
+      access_token?: string;
+      expires_in?: number;
+    };
+
+    if (!data.access_token) {
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
+      key: data.access_token,
+      accessToken: data.access_token,
+      expiresIn: data.expires_in ?? 60,
+      authScheme: "bearer",
+    });
   } catch (error) {
     if (process.env.NODE_ENV === 'development') console.error("Deepgram token error:", error);
     return NextResponse.json(

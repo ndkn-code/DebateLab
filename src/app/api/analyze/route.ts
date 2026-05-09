@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import {
+  getBoolean,
+  getEnum,
+  getNumber,
+  getString,
+  isPlainRecord,
+  readJsonObject,
+  RequestValidationError,
+  type JsonRecord,
+} from "@/lib/api/request-validation";
 
 // Give Gemini enough room for annotation-heavy feedback while staying inside
 // the common Vercel serverless ceiling.
@@ -23,6 +33,96 @@ interface AnalyzeRequest {
   rounds?: DebateRound[];
 }
 
+function parseRound(value: unknown, index: number): DebateRound {
+  if (!isPlainRecord(value)) {
+    throw new RequestValidationError(`rounds[${index}] is invalid.`);
+  }
+
+  const roundNumber =
+    typeof value.roundNumber === "number" && Number.isFinite(value.roundNumber)
+      ? Math.max(1, Math.floor(value.roundNumber))
+      : index + 1;
+  const type =
+    value.type === "ai-rebuttal" || value.type === "user-speech"
+      ? value.type
+      : "user-speech";
+  const label =
+    typeof value.label === "string"
+      ? value.label.trim().slice(0, 80)
+      : `Round ${roundNumber}`;
+  const transcript =
+    typeof value.transcript === "string"
+      ? value.transcript.trim().slice(0, 12000)
+      : undefined;
+  const aiResponse =
+    typeof value.aiResponse === "string"
+      ? value.aiResponse.trim().slice(0, 12000)
+      : undefined;
+  const duration =
+    typeof value.duration === "number" && Number.isFinite(value.duration)
+      ? Math.max(0, Math.min(7200, Math.floor(value.duration)))
+      : undefined;
+
+  return { roundNumber, type, label, transcript, aiResponse, duration };
+}
+
+function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
+  const transcript = getString(body, "transcript", {
+    required: true,
+    minLength: 1,
+    maxLength: 45000,
+  })!;
+  const topic = getString(body, "topic", {
+    required: true,
+    minLength: 2,
+    maxLength: 300,
+  })!;
+  const side = getEnum(body, "side", ["proposition", "opposition"] as const, {
+    required: true,
+  })!;
+  const speechType = getString(body, "speechType", {
+    maxLength: 80,
+    defaultValue: "Opening Statement",
+  })!;
+  const timeLimit = getNumber(body, "timeLimit", {
+    min: 0,
+    max: 7200,
+    defaultValue: 2,
+  })!;
+  const actualDuration = getNumber(body, "actualDuration", {
+    min: 0,
+    max: 7200,
+    defaultValue: 0,
+  })!;
+  const practiceTrack = getEnum(
+    body,
+    "practiceTrack",
+    ["speaking", "debate"] as const,
+    { defaultValue: "debate" }
+  ) as PracticeTrack;
+  const roundsValue = body.rounds;
+  const rounds =
+    roundsValue == null
+      ? undefined
+      : Array.isArray(roundsValue) && roundsValue.length <= 12
+        ? roundsValue.map(parseRound)
+        : (() => {
+            throw new RequestValidationError("rounds is invalid.");
+          })();
+
+  return {
+    transcript,
+    topic,
+    side,
+    speechType,
+    timeLimit,
+    actualDuration,
+    practiceTrack,
+    isFullRound: getBoolean(body, "isFullRound", false),
+    rounds,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -34,11 +134,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { success } = rateLimit(`analyze:${user.id}`, 5, 60 * 1000);
-    if (!success) {
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "analyze",
+      limit: 5,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
-        { status: 429, headers: { "Retry-After": "60" } }
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 
@@ -50,7 +157,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = (await req.json()) as AnalyzeRequest;
+    const body = parseAnalyzeRequest(await readJsonObject(req, { maxBytes: 96 * 1024 }));
     const {
       transcript,
       topic,
@@ -175,6 +282,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (err) {
+    if (err instanceof RequestValidationError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     if (process.env.NODE_ENV === 'development') console.error("Analyze API unexpected error:", err);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },

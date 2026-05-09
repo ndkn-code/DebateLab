@@ -20,7 +20,7 @@ export async function enrollAction(courseId: string) {
 export async function markLessonCompleteAction(
   lessonId: string,
   courseId: string,
-  score?: number,
+  scoreOrAnswers?: number | Record<string, string>,
   timeSpentSeconds?: number
 ) {
   const supabase = await createClient();
@@ -34,7 +34,7 @@ export async function markLessonCompleteAction(
     user.id,
     lessonId,
     courseId,
-    score,
+    scoreOrAnswers,
     timeSpentSeconds
   );
 

@@ -1,9 +1,11 @@
 'use client';
 
-import Lottie from 'lottie-react';
+import dynamic from 'next/dynamic';
 import type { CSSProperties } from 'react';
 
-type LottieAnimationData = Parameters<typeof Lottie>[0]["animationData"];
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+
+type LottieAnimationData = unknown;
 
 interface LottieAnimationProps {
   animationData: LottieAnimationData;

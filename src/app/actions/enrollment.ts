@@ -6,6 +6,39 @@ import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { revalidatePath } from "next/cache";
 
+function normalizeAnswerMap(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return new Map<string, string>();
+  }
+
+  return new Map(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    )
+  );
+}
+
+async function scoreQuizLesson(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lessonId: string,
+  submittedAnswers: unknown
+) {
+  const answerMap = normalizeAnswerMap(submittedAnswers);
+  const { data: questions, error } = await supabase
+    .from("quiz_questions")
+    .select("id, correct_answer")
+    .eq("lesson_id", lessonId);
+
+  if (error) throw new Error(error.message);
+  if (!questions?.length) return null;
+
+  const correct = questions.filter(
+    (question) => answerMap.get(question.id) === question.correct_answer
+  ).length;
+
+  return Math.round((correct / questions.length) * 100);
+}
+
 // Used by course-detail-content.tsx (student-facing enroll button)
 export async function enrollAction(courseId: string) {
   const supabase = await createClient();
@@ -80,7 +113,7 @@ export async function enrollInCourse(courseId: string) {
 export async function markLessonCompleteAction(
   lessonId: string,
   courseId: string,
-  score?: number,
+  scoreOrAnswers?: number | Record<string, string>,
   timeSpentSeconds?: number,
   courseSlug?: string
 ) {
@@ -96,7 +129,7 @@ export async function markLessonCompleteAction(
 
   const { data: lesson } = await supabase
     .from("lessons")
-    .select("module_id")
+    .select("module_id, type")
     .eq("id", lessonId)
     .single();
 
@@ -128,6 +161,14 @@ export async function markLessonCompleteAction(
     }
   }
 
+  const score =
+    lesson.type === "quiz"
+      ? await scoreQuizLesson(supabase, lessonId, scoreOrAnswers)
+      : null;
+  const safeTimeSpentSeconds = Number.isFinite(timeSpentSeconds)
+    ? Math.max(0, Math.min(24 * 60 * 60, Math.floor(timeSpentSeconds ?? 0)))
+    : 0;
+
   // Upsert lesson progress
   await supabase
     .from("lesson_progress")
@@ -137,8 +178,8 @@ export async function markLessonCompleteAction(
         lesson_id: lessonId,
         course_id: courseId,
         status: "completed",
-        score: score ?? null,
-        time_spent_seconds: timeSpentSeconds ?? 0,
+        score,
+        time_spent_seconds: safeTimeSpentSeconds,
         completed_at: new Date().toISOString(),
       },
       { onConflict: "user_id,lesson_id" }
@@ -153,12 +194,12 @@ export async function markLessonCompleteAction(
     reference_id: lessonId,
     reference_type: "lesson",
     xp_earned: xpEarned,
-    metadata: { score, time_spent_seconds: timeSpentSeconds },
+    metadata: { score, time_spent_seconds: safeTimeSpentSeconds },
   });
   await recordAnalyticsEvent(supabase, user.id, {
     eventName: "activity_completed",
     featureArea: "activities",
-    durationMs: timeSpentSeconds ? timeSpentSeconds * 1000 : null,
+    durationMs: safeTimeSpentSeconds ? safeTimeSpentSeconds * 1000 : null,
     metadata: {
       lesson_id: lessonId,
       course_id: courseId,

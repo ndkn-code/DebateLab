@@ -522,18 +522,11 @@ export async function getCourseLibraryData(
 ): Promise<CourseLibraryData> {
   const supabase = await createClient();
 
-  const [coursesRes, enrollmentsRes, modulesRes] = await Promise.all([
-    supabase
-      .from("courses")
-      .select("*")
-      .eq("is_published", true)
-      .order("created_at"),
-    supabase.from("enrollments").select("*").eq("user_id", userId),
-    supabase
-      .from("course_modules")
-      .select("*, lessons(*)")
-      .order("sort_order"),
-  ]);
+  const coursesRes = await supabase
+    .from("courses")
+    .select("*")
+    .eq("is_published", true)
+    .order("created_at");
 
   if (coursesRes.error) {
     return { items: [], featuredCourse: null, recommendedCourse: null };
@@ -550,6 +543,18 @@ export async function getCourseLibraryData(
   const accessibleCourses = courses.filter((course) =>
     courseAccessMap.get(course.id)
   );
+  const accessibleCourseIds = accessibleCourses.map((course) => course.id);
+
+  const [enrollmentsRes, modulesRes] = await Promise.all([
+    supabase.from("enrollments").select("*").eq("user_id", userId),
+    accessibleCourseIds.length > 0
+      ? supabase
+          .from("course_modules")
+          .select("*, lessons(*)")
+          .in("course_id", accessibleCourseIds)
+          .order("sort_order")
+      : Promise.resolve({ data: [] }),
+  ]);
   const enrollments = new Map(
     (enrollmentsRes.data ?? []).flatMap((enrollment) => {
       const normalized = normalizeEnrollment(enrollment as EnrollmentRecord);
@@ -1268,14 +1273,87 @@ export async function enrollInCourse(userId: string, courseId: string) {
 
 // ── Lesson progress ──────────────────────────────────────────────────
 
+function normalizeLessonAnswerMap(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return new Map<string, string>();
+  }
+
+  return new Map(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    )
+  );
+}
+
+async function scoreQuizLesson(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lessonId: string,
+  submittedAnswers: unknown
+) {
+  const answers = normalizeLessonAnswerMap(submittedAnswers);
+  const { data: questions, error } = await supabase
+    .from("quiz_questions")
+    .select("id, correct_answer")
+    .eq("lesson_id", lessonId);
+
+  if (error) throw new Error(error.message);
+  if (!questions?.length) return null;
+
+  const correct = questions.filter(
+    (question) => answers.get(question.id) === question.correct_answer
+  ).length;
+
+  return Math.round((correct / questions.length) * 100);
+}
+
 export async function markLessonComplete(
   userId: string,
   lessonId: string,
   courseId: string,
-  score?: number,
+  scoreOrAnswers?: number | Record<string, string>,
   timeSpentSeconds?: number
 ) {
   const supabase = await createClient();
+  const [{ data: profile }, { data: lesson }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", userId).single(),
+    supabase.from("lessons").select("module_id, type").eq("id", lessonId).single(),
+  ]);
+
+  if (!lesson) throw new Error("Lesson not found");
+
+  const { data: moduleData } = await supabase
+    .from("course_modules")
+    .select("course_id, access_level")
+    .eq("id", lesson.module_id)
+    .single();
+
+  if (!moduleData || moduleData.course_id !== courseId) {
+    throw new Error("Lesson does not belong to this course");
+  }
+
+  if (profile?.role !== "admin") {
+    const [courseAccess, entitlement] = await Promise.all([
+      canAccessCourse(supabase, userId, courseId),
+      getUserEntitlement(supabase, userId),
+    ]);
+    const moduleAccess = canAccessModuleRecord({
+      role: profile?.role,
+      accessLevel: moduleData.access_level,
+      entitlement,
+    });
+
+    if (!courseAccess || !moduleAccess) {
+      throw new Error("This lesson is not available on your current plan.");
+    }
+  }
+
+  const score =
+    lesson.type === "quiz"
+      ? await scoreQuizLesson(supabase, lessonId, scoreOrAnswers)
+      : null;
+  const safeTimeSpentSeconds = Number.isFinite(timeSpentSeconds)
+    ? Math.max(0, Math.min(24 * 60 * 60, Math.floor(timeSpentSeconds ?? 0)))
+    : 0;
 
   // Upsert lesson progress
   const { error: progressError } = await supabase
@@ -1284,9 +1362,10 @@ export async function markLessonComplete(
       {
         user_id: userId,
         lesson_id: lessonId,
+        course_id: courseId,
         status: "completed",
-        score: score ?? null,
-        time_spent_seconds: timeSpentSeconds ?? 0,
+        score,
+        time_spent_seconds: safeTimeSpentSeconds,
         completed_at: new Date().toISOString(),
       },
       { onConflict: "user_id,lesson_id" }
@@ -1304,7 +1383,7 @@ export async function markLessonComplete(
     reference_id: lessonId,
     reference_type: "lesson",
     xp_earned: xpEarned,
-    metadata: { score, time_spent_seconds: timeSpentSeconds },
+    metadata: { score, time_spent_seconds: safeTimeSpentSeconds },
   });
 
   // Award XP atomically via RPC

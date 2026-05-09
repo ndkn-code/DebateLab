@@ -1,12 +1,18 @@
 import { NextRequest } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
 import {
   getCoachContextEnvelope,
   getCoachProfile,
 } from "@/lib/api/coach-profile";
+import {
+  getString,
+  readJsonObject,
+  RequestValidationError,
+  type JsonRecord,
+} from "@/lib/api/request-validation";
 import type {
   CoachMessageMetadata,
   CoachResponseBlock,
@@ -93,6 +99,29 @@ function getGroq() {
   return new Groq({
     apiKey: process.env.GROQ_API_KEY!,
   });
+}
+
+function parseChatRequest(body: JsonRecord): ChatRequest {
+  const message = getString(body, "message", {
+    required: true,
+    minLength: 1,
+    maxLength: 4000,
+  })!;
+  const conversationId = getString(body, "conversationId", {
+    maxLength: 64,
+  });
+  const context = getString(body, "context", {
+    maxLength: 64,
+  });
+  const contextId = getString(body, "contextId", {
+    maxLength: 96,
+  });
+
+  if (conversationId && !isUuid(conversationId)) {
+    throw new RequestValidationError("conversationId is invalid.");
+  }
+
+  return { message, conversationId, context, contextId };
 }
 
 const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA === "true";
@@ -478,22 +507,30 @@ export async function POST(req: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { success } = rateLimit(`chat:${user.id}`, 20, 60 * 1000);
-    if (!success) {
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "chat",
+      limit: 20,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
       return new Response(
         JSON.stringify({ error: "Too many requests. Please wait a moment." }),
-        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } }
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+          },
+        }
       );
     }
 
-    const body: ChatRequest = await req.json();
+    const body = parseChatRequest(
+      await readJsonObject(req, { maxBytes: 12 * 1024 })
+    );
     const normalizedContext = normalizeContextType(body.context);
     const { message, contextId } = body;
     let { conversationId } = body;
-
-    if (!message?.trim()) {
-      return new Response("Message is required", { status: 400 });
-    }
 
     let systemPrompt = SYSTEM_PROMPT;
     let coachMetadataContext: { mode?: string; focusTitle?: string } = {};
@@ -581,12 +618,13 @@ RULES FOR THIS CONTEXT:
     }
 
     // Load conversation history (last 20 messages)
-    const { data: history } = await supabase
+    const { data: historyRows } = await supabase
       .from("chat_messages")
       .select("role, content")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(20);
+    const history = [...(historyRows ?? [])].reverse();
 
     // Build messages array for Groq (OpenAI-compatible format)
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -693,6 +731,12 @@ RULES FOR THIS CONTEXT:
       },
     });
   } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: error.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     if (process.env.NODE_ENV === 'development') console.error("Chat API error:", error);
     return new Response(
       JSON.stringify({ error: "Something went wrong. Please try again." }),

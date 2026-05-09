@@ -20,6 +20,7 @@ import type {
   SaveClassScheduleInput,
   SaveAttendanceInput,
 } from "@/lib/types/admin-classes";
+import { containsIlikePattern, mergeUniqueById } from "@/lib/supabase/search";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -194,14 +195,27 @@ export async function searchStudentsForClass(query: string, excludeClassId?: str
     ].filter((student) => student.display_name.toLowerCase().includes(term.toLowerCase()) || student.email.toLowerCase().includes(term.toLowerCase()));
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name, avatar_url, email")
-    .eq("role", "student")
-    .or(`display_name.ilike.%${term}%,email.ilike.%${term}%`)
-    .limit(12);
+  const pattern = containsIlikePattern(term);
+  const [nameRes, emailRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, email")
+      .eq("role", "student")
+      .ilike("display_name", pattern)
+      .limit(12),
+    supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url, email")
+      .eq("role", "student")
+      .ilike("email", pattern)
+      .limit(12),
+  ]);
 
-  if (error) throw new Error(error.message);
+  if (nameRes.error) throw new Error(nameRes.error.message);
+  if (emailRes.error) throw new Error(emailRes.error.message);
+
+  const data = mergeUniqueById([nameRes.data, emailRes.data], 12);
+
   if (!excludeClassId || !data?.length) return data ?? [];
 
   const { data: existing } = await supabase
@@ -275,15 +289,30 @@ export async function searchCoursesForClass(query: string, excludeClassId?: stri
     ].filter((course) => course.title.toLowerCase().includes(term.toLowerCase()) || course.category.toLowerCase().includes(term.toLowerCase()));
   }
 
-  const { data, error } = await supabase
-    .from("courses")
-    .select("id, title, slug, category, difficulty, thumbnail_url, is_published, visibility")
-    .eq("is_archived", false)
-    .or(`title.ilike.%${term}%,category.ilike.%${term}%`)
-    .order("title")
-    .limit(12);
+  const pattern = containsIlikePattern(term);
+  const select =
+    "id, title, slug, category, difficulty, thumbnail_url, is_published, visibility";
+  const [titleRes, categoryRes] = await Promise.all([
+    supabase
+      .from("courses")
+      .select(select)
+      .eq("is_archived", false)
+      .ilike("title", pattern)
+      .order("title")
+      .limit(12),
+    supabase
+      .from("courses")
+      .select(select)
+      .eq("is_archived", false)
+      .ilike("category", pattern)
+      .order("title")
+      .limit(12),
+  ]);
 
-  if (error) throw new Error(error.message);
+  if (titleRes.error) throw new Error(titleRes.error.message);
+  if (categoryRes.error) throw new Error(categoryRes.error.message);
+
+  const data = mergeUniqueById([titleRes.data, categoryRes.data], 12);
   if (!excludeClassId || !data?.length) return data ?? [];
 
   const { data: existing } = await supabase
@@ -341,15 +370,37 @@ export async function searchClassesForCourse(query: string, excludeCourseId?: st
     );
   }
 
-  const { data, error } = await supabase
-    .from("classes")
-    .select("id, code, title, program_type, grade_level, status")
-    .neq("status", "archived")
-    .or(`title.ilike.%${term}%,program_type.ilike.%${term}%,grade_level.ilike.%${term}%`)
-    .order("created_at", { ascending: false })
-    .limit(12);
+  const pattern = containsIlikePattern(term);
+  const select = "id, code, title, program_type, grade_level, status";
+  const [titleRes, programRes, gradeRes] = await Promise.all([
+    supabase
+      .from("classes")
+      .select(select)
+      .neq("status", "archived")
+      .ilike("title", pattern)
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("classes")
+      .select(select)
+      .neq("status", "archived")
+      .ilike("program_type", pattern)
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("classes")
+      .select(select)
+      .neq("status", "archived")
+      .ilike("grade_level", pattern)
+      .order("created_at", { ascending: false })
+      .limit(12),
+  ]);
 
-  if (error) throw new Error(error.message);
+  if (titleRes.error) throw new Error(titleRes.error.message);
+  if (programRes.error) throw new Error(programRes.error.message);
+  if (gradeRes.error) throw new Error(gradeRes.error.message);
+
+  const data = mergeUniqueById([titleRes.data, programRes.data, gradeRes.data], 12);
   if (!excludeCourseId || !data?.length) return data ?? [];
 
   const { data: existing } = await supabase

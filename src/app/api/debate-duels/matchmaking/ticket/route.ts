@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/auth/admin";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  getEnum,
+  getNumber,
+  readJsonObject,
+  RequestValidationError,
+  isUuid,
+} from "@/lib/api/request-validation";
 import {
   cancelDebateDuelMatchmaking,
   enterDebateDuelMatchmaking,
@@ -88,10 +96,41 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
     const { user, error } = await getAdminUser();
     if (error || !user) return error;
 
-    const body = (await req.json()) as MatchmakingBody;
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "duel-matchmaking",
+      limit: 12,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
+      );
+    }
+
+    const rawBody = await readJsonObject(req, { maxBytes: 4 * 1024 });
+    const body: MatchmakingBody = {
+      topicCategory:
+        getEnum(rawBody, "topicCategory", CATEGORIES, {
+          defaultValue: CATEGORIES[0],
+        }) ?? CATEGORIES[0],
+      topicDifficulty: getEnum(
+        rawBody,
+        "topicDifficulty",
+        ["beginner", "intermediate", "advanced"] as const,
+        { defaultValue: "beginner" }
+      ),
+      prepTimeSeconds: getNumber(rawBody, "prepTimeSeconds"),
+      openingTimeSeconds: getNumber(rawBody, "openingTimeSeconds"),
+      rebuttalTimeSeconds: getNumber(rawBody, "rebuttalTimeSeconds"),
+    };
     const topicCategory = normalizeCategory(body.topicCategory);
     const topicDifficulty = normalizeDifficulty(body.topicDifficulty);
     const topic = pickTopic(topicCategory, topicDifficulty);
@@ -116,6 +155,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ticket });
   } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const message =
       error instanceof Error ? error.message : "Failed to enter matchmaking.";
     const status = message.includes("FORBIDDEN") ? 403 : 500;
@@ -125,11 +167,30 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const supabase = await createClient();
     const { user, error } = await getAdminUser();
     if (error || !user) return error;
 
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "duel-matchmaking-cancel",
+      limit: 20,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const ticketId = searchParams.get("id");
+    if (ticketId && !isUuid(ticketId)) {
+      return NextResponse.json({ error: "Ticket id is invalid." }, { status: 400 });
+    }
     const currentTicket = ticketId
       ? null
       : await getCurrentDebateDuelMatchmakingTicket(user.id);

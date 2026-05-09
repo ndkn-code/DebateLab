@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
 import { Check, BookOpen, Play } from "lucide-react";
 import type { LessonContent, ActivityContent } from "@/lib/types/admin";
+
+const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false });
 
 interface Props {
   content: ActivityContent;

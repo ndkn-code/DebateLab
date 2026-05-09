@@ -1,25 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { readJsonObject, getString, RequestValidationError } from '@/lib/api/request-validation';
+import { consumeRateLimit } from '@/lib/rate-limit';
+import { DEFAULT_VOICE, TTS_VOICES } from '@/lib/tts-voices';
+
+const ALLOWED_VOICES = new Set(TTS_VOICES.map((voice) => voice.id));
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { text, voice } = await req.json();
-
-  if (!text || text.length > 5000) {
-    return NextResponse.json({ error: 'Text required (max 5000 chars)' }, { status: 400 });
-  }
-
-  const voiceModel = voice || 'aura-asteria-en';
-  const startTime = Date.now();
-
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const rateLimit = await consumeRateLimit(supabase, {
+      scope: "tts",
+      limit: 20,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
+      );
+    }
+
+    const body = await readJsonObject(req, { maxBytes: 12 * 1024 });
+    const text = getString(body, "text", {
+      required: true,
+      minLength: 1,
+      maxLength: 5000,
+    })!;
+    const requestedVoice = getString(body, "voice", {
+      maxLength: 64,
+      defaultValue: DEFAULT_VOICE,
+    })!;
+    const voiceModel = ALLOWED_VOICES.has(requestedVoice)
+      ? requestedVoice
+      : DEFAULT_VOICE;
+
+    const apiKey = process.env.DEEPGRAM_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
+    }
+
+    const startTime = Date.now();
     const response = await fetch(`https://api.deepgram.com/v1/speak?model=${voiceModel}&encoding=mp3`, {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+        'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ text }),
@@ -58,6 +89,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
+    if (err instanceof RequestValidationError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     if (process.env.NODE_ENV === 'development') console.error('TTS route error:', err);
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
   }
