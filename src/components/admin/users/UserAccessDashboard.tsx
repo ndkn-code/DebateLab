@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { motion } from "framer-motion";
 import {
   Award,
   BarChart3,
@@ -22,7 +23,9 @@ import {
   grantUserSubscription,
   updateUserRole,
 } from "@/app/actions/admin-users";
+import { FadeInItem, PageTransition, StaggeredContainer } from "@/components/shared/page-motion";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -41,6 +44,7 @@ export interface AdminUserAccessRow {
   xp: number;
   level: number;
   createdAt: string;
+  lastOnlineAt: string | null;
   subscriptions: SubscriptionRecord[];
   latestSubscription: SubscriptionRecord | null;
   entitlement: {
@@ -65,6 +69,20 @@ function formatDate(value?: string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatLastOnline(value?: string | null) {
+  if (!value) return "Never";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  const diffMs = date.getTime() - Date.now();
+  const absMs = Math.abs(diffMs);
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (absMs < 60_000) return "Just now";
+  if (absMs < 3_600_000) return rtf.format(Math.round(diffMs / 60_000), "minute");
+  if (absMs < 86_400_000) return rtf.format(Math.round(diffMs / 3_600_000), "hour");
+  if (absMs < 30 * 86_400_000) return rtf.format(Math.round(diffMs / 86_400_000), "day");
+  return formatDate(value);
 }
 
 function daysUntil(value?: string | null) {
@@ -164,7 +182,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
   };
 
   return (
-    <div className="min-h-full bg-[#f8fbff] text-[#0f1c35]">
+    <PageTransition className="min-h-full bg-[#f8fbff] text-[#0f1c35]">
       <header className="border-b border-[#dce7f7] bg-white/90 px-5 py-5 backdrop-blur md:px-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -176,11 +194,11 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-9 gap-2 rounded-lg bg-[#0b63f6] px-4 text-white shadow-[0_14px_28px_-20px_rgba(11,99,246,0.7)] hover:bg-[#0755d7]">
+            <Button className="h-9 gap-2 rounded-lg bg-[#0b63f6] px-4 text-white shadow-[0_14px_28px_-20px_rgba(11,99,246,0.7)] transition-all hover:-translate-y-0.5 hover:bg-[#0755d7] hover:shadow-[0_18px_34px_-22px_rgba(11,99,246,0.78)] active:scale-[0.98]">
               <Sparkles className="h-4 w-4" />
               Invite User
             </Button>
-            <Button variant="outline" className="h-9 gap-2 rounded-lg border-[#d2dff0] bg-white px-4">
+            <Button variant="outline" className="h-9 gap-2 rounded-lg border-[#d2dff0] bg-white px-4 transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.98]">
               <SlidersHorizontal className="h-4 w-4" />
               Export
             </Button>
@@ -188,7 +206,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
         </div>
       </header>
 
-      <main className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_350px] md:px-7">
+      <main className="grid gap-6 px-5 py-5 2xl:grid-cols-[minmax(0,1fr)_350px] md:px-7">
         <section className="min-w-0 space-y-5">
           {loadError ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -196,38 +214,44 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             </div>
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              icon={Crown}
-              value={betaAllAccess ? users.length : storedPremiumGrants}
-              label={betaAllAccess ? "Beta all-access active" : "Premium access active"}
-              detail={betaAllAccess ? "Server flag is enabled" : "Subscription-backed users"}
-              tone="blue"
-            />
-            <MetricCard
-              icon={Award}
-              value={storedPremiumGrants}
-              label="Stored premium grants"
-              detail="Manual records in subscriptions"
-              tone="green"
-            />
-            <MetricCard
-              icon={UserRound}
-              value={freeUsers}
-              label="Free users"
-              detail="Effective plan after flags"
-              tone="slate"
-            />
-            <MetricCard
-              icon={CalendarClock}
-              value={expiringSoon}
-              label="Expiring soon"
-              detail="Within 30 days"
-              tone="amber"
-            />
-          </div>
+          <StaggeredContainer className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                icon: Crown,
+                value: betaAllAccess ? users.length : storedPremiumGrants,
+                label: betaAllAccess ? "Beta all-access active" : "Premium access active",
+                detail: betaAllAccess ? "Server flag is enabled" : "Subscription-backed users",
+                tone: "blue" as const,
+              },
+              {
+                icon: Award,
+                value: storedPremiumGrants,
+                label: "Stored premium grants",
+                detail: "Manual records in subscriptions",
+                tone: "green" as const,
+              },
+              {
+                icon: UserRound,
+                value: freeUsers,
+                label: "Free users",
+                detail: "Effective plan after flags",
+                tone: "slate" as const,
+              },
+              {
+                icon: CalendarClock,
+                value: expiringSoon,
+                label: "Expiring soon",
+                detail: "Within 30 days",
+                tone: "amber" as const,
+              },
+            ].map((metric) => (
+              <FadeInItem key={metric.label}>
+                <MetricCard {...metric} />
+              </FadeInItem>
+            ))}
+          </StaggeredContainer>
 
-          <div className="grid gap-3 rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
+          <FadeInItem className="grid gap-3 rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7f8da5]" />
               <Input
@@ -240,7 +264,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             <Select
               value={roleFilter}
               onChange={(event) => setRoleFilter(event.target.value as UserRole | "all")}
-              className="h-10 rounded-lg border-[#d2dff0] bg-white"
+              className="h-10 rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
             >
               <option value="all">Role: All</option>
               <option value="student">Student</option>
@@ -250,7 +274,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             <Select
               value={planFilter}
               onChange={(event) => setPlanFilter(event.target.value as PlanType | "all")}
-              className="h-10 rounded-lg border-[#d2dff0] bg-white"
+              className="h-10 rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
             >
               <option value="all">Plan: All</option>
               <option value="free">Free</option>
@@ -262,46 +286,58 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               onChange={(event) =>
                 setEntitlementFilter(event.target.value as EntitlementSource | "all")
               }
-              className="h-10 rounded-lg border-[#d2dff0] bg-white"
+              className="h-10 rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
             >
               <option value="all">Entitlement: All</option>
               <option value="beta_all_access">Beta all-access</option>
               <option value="subscription">Subscription</option>
               <option value="free">Free</option>
             </Select>
-            <Button variant="outline" className="h-10 rounded-lg border-[#d2dff0] bg-white">
+            <Button variant="outline" className="h-10 rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.98]">
               Filters
             </Button>
-          </div>
+          </FadeInItem>
 
-          <div className="overflow-hidden rounded-lg border border-[#dce7f7] bg-white shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)]">
-            <div className="grid min-w-[540px] grid-cols-[minmax(142px,1fr)_74px_126px_54px_72px_48px] border-b border-[#e6edf7] bg-[#fbfdff] px-3 py-3 text-xs font-semibold text-[#17233b] 2xl:min-w-[820px] 2xl:grid-cols-[minmax(220px,1.4fr)_110px_150px_110px_140px_72px] 2xl:px-4">
-              <span>User</span>
-              <span>Role</span>
-              <span>Entitlement</span>
-              <span>Plan</span>
-              <span>Expires</span>
-              <span>Actions</span>
-            </div>
+          <FadeInItem className="overflow-hidden rounded-lg border border-[#dce7f7] bg-white shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)]">
             <div className="overflow-x-auto">
-              <div className="min-w-[540px] divide-y divide-[#e6edf7] 2xl:min-w-[820px]">
+              <div className="min-w-[820px] 2xl:min-w-[980px]">
+                <div className="grid grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] border-b border-[#e6edf7] bg-[#fbfdff] px-3 py-3 text-xs font-semibold text-[#17233b] 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4">
+                  <span>User</span>
+                  <span>Last Online</span>
+                  <span>Role</span>
+                  <span>Entitlement</span>
+                  <span>Plan</span>
+                  <span>Expires</span>
+                  <span>Actions</span>
+                </div>
+                <div className="divide-y divide-[#e6edf7]">
                 {filteredUsers.map((user) => {
                   const selected = selectedUser?.id === user.id;
                   const expiresIn = daysUntil(user.latestSubscription?.current_period_end);
                   return (
-                    <button
+                    <motion.button
                       key={user.id}
                       type="button"
                       onClick={() => setSelectedUserId(user.id)}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.995 }}
                       className={cn(
-                        "grid w-full grid-cols-[minmax(142px,1fr)_74px_126px_54px_72px_48px] items-center px-3 py-3 text-left text-sm transition-colors hover:bg-[#f3f8ff] 2xl:grid-cols-[minmax(220px,1.4fr)_110px_150px_110px_140px_72px] 2xl:px-4",
+                        "grid w-full grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] items-center px-3 py-3 text-left text-sm transition-colors hover:bg-[#f3f8ff] 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4",
                         selected && "bg-[#edf6ff]"
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dceaff] text-sm font-bold text-[#0b63f6]">
-                          {initials(user.displayName)}
-                        </span>
+                        <Avatar size="lg" className="h-10 w-10 bg-[#dceaff] text-[#0b63f6]">
+                          {user.avatarUrl ? (
+                            <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                          ) : null}
+                          <AvatarFallback className="bg-[#dceaff] text-sm font-bold text-[#0b63f6]">
+                            {initials(user.displayName)}
+                          </AvatarFallback>
+                        </Avatar>
                         <span className="min-w-0">
                           <span className="block truncate font-semibold text-[#14213d]">
                             {user.displayName}
@@ -310,6 +346,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                             {user.email ?? user.id}
                           </span>
                         </span>
+                      </span>
+                      <span className="truncate text-xs font-medium text-[#53647f]">
+                        {formatLastOnline(user.lastOnlineAt)}
                       </span>
                       <span>
                         <Badge className="gap-1 rounded-md border border-[#cfe2ff] bg-[#eef6ff] text-[#0b63f6]">
@@ -345,9 +384,10 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                       <span className="flex justify-end pr-2 text-[#10213f]">
                         <MoreHorizontal className="h-4 w-4" />
                       </span>
-                    </button>
+                    </motion.button>
                   );
                 })}
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-[#e6edf7] px-4 py-3 text-sm text-[#53647f]">
@@ -358,16 +398,21 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 250 / page
               </span>
             </div>
-          </div>
+          </FadeInItem>
         </section>
 
-        <aside className="rounded-lg border border-[#dce7f7] bg-white p-5 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] lg:sticky lg:top-5 lg:self-start">
+        <FadeInItem className="rounded-lg border border-[#dce7f7] bg-white p-5 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] 2xl:sticky 2xl:top-5 2xl:self-start">
           {selectedUser ? (
             <div className="space-y-5">
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#dceaff] text-lg font-bold text-[#0b63f6]">
-                  {initials(selectedUser.displayName)}
-                </div>
+                <Avatar className="h-16 w-16 bg-[#dceaff] text-[#0b63f6]">
+                  {selectedUser.avatarUrl ? (
+                    <AvatarImage src={selectedUser.avatarUrl} alt={selectedUser.displayName} />
+                  ) : null}
+                  <AvatarFallback className="bg-[#dceaff] text-lg font-bold text-[#0b63f6]">
+                    {initials(selectedUser.displayName)}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-lg font-bold text-[#12213c]">
                     {selectedUser.displayName}
@@ -375,6 +420,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   <p className="truncate text-sm text-[#53647f]">{selectedUser.email ?? selectedUser.id}</p>
                   <p className="mt-1 text-xs text-[#6d7c94]">
                     Joined {formatDate(selectedUser.createdAt)}
+                  </p>
+                  <p className="mt-1 text-xs text-[#6d7c94]">
+                    Last online {formatLastOnline(selectedUser.lastOnlineAt)}
                   </p>
                 </div>
               </div>
@@ -384,7 +432,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 onClick={() =>
                   router.push(`/dashboard/admin/users/${selectedUser.id}/analytics`)
                 }
-                className="h-10 w-full justify-center gap-2 rounded-lg bg-[#0b63f6] text-white hover:bg-[#0755d7]"
+                className="h-10 w-full justify-center gap-2 rounded-lg bg-[#0b63f6] text-white transition-all hover:-translate-y-0.5 hover:bg-[#0755d7] active:scale-[0.98]"
               >
                 <BarChart3 className="h-4 w-4" />
                 View Analytics
@@ -400,7 +448,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     handleRoleChange(selectedUser.id, event.target.value as UserRole)
                   }
                   disabled={isPending}
-                  className="rounded-lg border-[#d2dff0] bg-white"
+                  className="rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
@@ -456,7 +504,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     value={grantPlan}
                     onChange={(event) => setGrantPlan(event.target.value as PlanType)}
                     disabled={isPending}
-                    className="rounded-lg border-[#d2dff0] bg-white"
+                    className="rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
                   >
                     <option value="premium">Premium</option>
                     <option value="enterprise">Enterprise</option>
@@ -466,7 +514,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     value={String(grantMonths)}
                     onChange={(event) => setGrantMonths(Number(event.target.value))}
                     disabled={isPending}
-                    className="rounded-lg border-[#d2dff0] bg-white"
+                    className="rounded-lg border-[#d2dff0] bg-white transition-all hover:-translate-y-0.5 hover:bg-[#f6f9ff] active:scale-[0.99]"
                   >
                     <option value="1">1 mo</option>
                     <option value="3">3 mo</option>
@@ -477,7 +525,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 <Button
                   onClick={() => handleGrant(selectedUser.id)}
                   disabled={isPending}
-                  className="mt-3 h-10 w-full rounded-lg bg-[#0b63f6] text-white hover:bg-[#0755d7]"
+                  className="mt-3 h-10 w-full rounded-lg bg-[#0b63f6] text-white transition-all hover:-translate-y-0.5 hover:bg-[#0755d7] active:scale-[0.98]"
                 >
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                   Manage Access
@@ -535,7 +583,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   selectedUser.latestSubscription?.id &&
                   handleCancel(selectedUser.latestSubscription.id)
                 }
-                className="h-11 w-full justify-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                className="h-11 w-full justify-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 transition-all hover:-translate-y-0.5 hover:bg-red-100 active:scale-[0.98]"
               >
                 <XCircle className="h-4 w-4" />
                 Revoke Access
@@ -546,9 +594,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               No users found.
             </div>
           )}
-        </aside>
+        </FadeInItem>
       </main>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -573,7 +621,7 @@ function MetricCard({
   } satisfies Record<typeof tone, string>;
 
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-[#dce7f7] bg-white p-5 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)]">
+    <div className="flex items-center gap-4 rounded-lg border border-[#dce7f7] bg-white p-5 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-[#c9dcf5] hover:shadow-[0_24px_60px_-46px_rgba(15,28,53,0.45)]">
       <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-full", toneClasses[tone])}>
         <Icon className="h-6 w-6" />
       </div>

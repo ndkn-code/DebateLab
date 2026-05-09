@@ -32,6 +32,7 @@ import {
   unassignCourseFromClass,
   updateClass,
 } from "@/app/actions/admin-classes";
+import { FadeInItem, PageTransition, StaggeredContainer } from "@/components/shared/page-motion";
 import {
   ClassProgramFields,
   ScheduleEditor,
@@ -106,7 +107,7 @@ function MetricCard({
   helper: string;
 }) {
   return (
-    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-md">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
           {icon}
@@ -154,7 +155,7 @@ function StudentRow({
         </div>
       </div>
       {onRemove ? (
-        <button onClick={onRemove} className="rounded-lg p-2 text-on-surface-variant transition hover:bg-red-50 hover:text-red-600">
+        <button onClick={onRemove} className="rounded-lg p-2 text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 active:scale-[0.95]">
           <Trash2 className="h-4 w-4" />
         </button>
       ) : (
@@ -172,7 +173,7 @@ function CourseAssignmentRow({
   onRemove?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-outline-variant/25 bg-background px-3 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-outline-variant/25 bg-background px-3 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-sm">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary">
         <BookOpen className="h-5 w-5" />
       </div>
@@ -184,7 +185,7 @@ function CourseAssignmentRow({
         {course.isPublished ? "Active" : "Draft"}
       </span>
       {onRemove && (
-        <button onClick={onRemove} className="rounded-lg p-2 text-on-surface-variant hover:bg-red-50 hover:text-red-600">
+        <button onClick={onRemove} className="rounded-lg p-2 text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 active:scale-[0.95]">
           <Trash2 className="h-4 w-4" />
         </button>
       )}
@@ -234,7 +235,7 @@ function SearchPanel<T extends AdminClassProfileSummary | {
                   onAdd(result);
                   setQuery("");
                 }}
-                className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-surface-container"
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.995]"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   {initials(label.title)}
@@ -473,10 +474,10 @@ export function ClassDetailDashboard({ data }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <PageTransition className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <Link href="/dashboard/admin/classes" className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-primary">
+          <Link href="/dashboard/admin/classes" className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:text-primary active:scale-[0.98]">
             <ArrowLeft className="h-4 w-4" />
             {t("back")}
           </Link>
@@ -487,10 +488,10 @@ export function ClassDetailDashboard({ data }: Props) {
           <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">{data.classInfo.description}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setEditOpen(true)} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-primary hover:bg-surface-container">
+          <button onClick={() => setEditOpen(true)} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
             {t("edit")}
           </button>
-          <button onClick={() => setAttendanceOpen(true)} className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20">
+          <button onClick={() => setAttendanceOpen(true)} className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]">
             {t("takeAttendance")}
           </button>
         </div>
@@ -502,7 +503,7 @@ export function ClassDetailDashboard({ data }: Props) {
         </div>
       )}
 
-      <div className="mt-6 grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 text-sm shadow-sm sm:grid-cols-2 lg:grid-cols-5">
+      <FadeInItem className="mt-6 grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 text-sm shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
           <div><p className="text-xs text-on-surface-variant">Program</p><p className="font-semibold text-on-surface">{getProgramLabel(data.classInfo.programType)}</p></div>
@@ -523,7 +524,7 @@ export function ClassDetailDashboard({ data }: Props) {
           <MapPin className="mt-0.5 h-4 w-4 text-primary" />
           <div><p className="text-xs text-on-surface-variant">{t("facts.room")}</p><p className="font-semibold text-on-surface">{data.classInfo.room ?? "-"}</p></div>
         </div>
-      </div>
+      </FadeInItem>
 
       <div className="mt-6 border-b border-outline-variant/20">
         <nav className="flex gap-5 overflow-x-auto">
@@ -532,7 +533,7 @@ export function ClassDetailDashboard({ data }: Props) {
               key={item}
               onClick={() => setTab(item)}
               className={cn(
-                "border-b-2 px-1 py-3 text-sm font-semibold transition",
+                "border-b-2 px-1 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]",
                 tab === item
                   ? "border-primary text-primary"
                   : "border-transparent text-on-surface-variant hover:text-on-surface"
@@ -546,44 +547,44 @@ export function ClassDetailDashboard({ data }: Props) {
 
       {tab === "overview" && (
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2 xl:grid-cols-4">
+          <StaggeredContainer className="grid gap-4 sm:grid-cols-2 lg:col-span-2 xl:grid-cols-4">
             <MetricCard icon={<Users className="h-5 w-5" />} label={t("metrics.students")} value={data.classInfo.studentCount} helper={t("metrics.activeStudents", { count: data.roster.length })} />
             <MetricCard icon={<CheckCircle2 className="h-5 w-5" />} label={t("metrics.attendance")} value={data.classInfo.attendanceRate30d == null ? "-" : `${data.classInfo.attendanceRate30d}%`} helper={t("metrics.thisMonth")} />
             <MetricCard icon={<BookOpen className="h-5 w-5" />} label={t("metrics.courses")} value={data.assignedCourses.length} helper={t("metrics.classRestricted")} />
             <MetricCard icon={<Repeat2 className="h-5 w-5" />} label="Schedules" value={data.schedules.length} helper="Recurring patterns" />
-          </div>
-          <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+          </StaggeredContainer>
+          <FadeInItem className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold text-on-surface">{t("roster.title", { count: data.roster.length })}</h2>
-              <button onClick={() => setTab("students")} className="rounded-lg border border-outline-variant/30 px-3 py-1.5 text-xs font-semibold text-primary">{t("viewAll")}</button>
+              <button onClick={() => setTab("students")} className="rounded-lg border border-outline-variant/30 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">{t("viewAll")}</button>
             </div>
             <div className="overflow-hidden rounded-lg border border-outline-variant/20">
               {data.roster.slice(0, 5).map((student) => <StudentRow key={student.id} student={student} />)}
               {data.roster.length === 0 && <p className="px-3 py-8 text-center text-sm text-on-surface-variant">{t("roster.empty")}</p>}
             </div>
-          </section>
-          <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+          </FadeInItem>
+          <FadeInItem className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold text-on-surface">{t("courses.title", { count: data.assignedCourses.length })}</h2>
-              <button onClick={() => setTab("courses")} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary">{t("courses.assign")}</button>
+              <button onClick={() => setTab("courses")} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98]">{t("courses.assign")}</button>
             </div>
             <div className="space-y-2">
               {data.assignedCourses.slice(0, 5).map((course) => <CourseAssignmentRow key={course.assignmentId} course={course} />)}
               {data.assignedCourses.length === 0 && <p className="rounded-lg border border-dashed border-outline-variant/30 px-3 py-8 text-center text-sm text-on-surface-variant">{t("courses.empty")}</p>}
             </div>
-          </section>
-          <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm lg:col-span-2">
+          </FadeInItem>
+          <FadeInItem className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md lg:col-span-2">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold text-on-surface">{t("attendance.recent")}</h2>
-              <button onClick={() => setTab("attendance")} className="rounded-lg border border-outline-variant/30 px-3 py-1.5 text-xs font-semibold text-primary">{t("viewAll")}</button>
+              <button onClick={() => setTab("attendance")} className="rounded-lg border border-outline-variant/30 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">{t("viewAll")}</button>
             </div>
             <AttendanceTable data={data} compact />
-          </section>
+          </FadeInItem>
         </div>
       )}
 
       {tab === "students" && (
-        <section className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 className="text-lg font-bold text-on-surface">{t("roster.title", { count: data.roster.length })}</h2>
             <div className="w-full md:w-80">
@@ -627,11 +628,11 @@ export function ClassDetailDashboard({ data }: Props) {
             ))}
             {data.roster.length === 0 && <p className="px-3 py-12 text-center text-sm text-on-surface-variant">{t("roster.empty")}</p>}
           </div>
-        </section>
+        </FadeInItem>
       )}
 
       {tab === "courses" && (
-        <section className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-on-surface">{t("courses.title", { count: data.assignedCourses.length })}</h2>
@@ -677,48 +678,50 @@ export function ClassDetailDashboard({ data }: Props) {
             ))}
             {data.assignedCourses.length === 0 && <p className="rounded-lg border border-dashed border-outline-variant/30 px-3 py-12 text-center text-sm text-on-surface-variant">{t("courses.empty")}</p>}
           </div>
-        </section>
+        </FadeInItem>
       )}
 
       {tab === "schedule" && (
         <div className="mt-5 space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+          <FadeInItem className="flex flex-col gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-on-surface">Class Schedule</h2>
               <p className="text-sm text-on-surface-variant">Display-only meeting patterns for this class. Attendance stays manual.</p>
             </div>
             <button
               onClick={() => openSchedule()}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
             >
               <CalendarDays className="h-4 w-4" />
               New Schedule
             </button>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          </FadeInItem>
+          <StaggeredContainer className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <MetricCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming" value={scheduleData.kpis.upcomingMeetings} helper="Next 90 days" />
             <MetricCard icon={<Repeat2 className="h-5 w-5" />} label="Active Rules" value={scheduleData.kpis.activeSchedules} helper="Recurring schedules" />
             <MetricCard icon={<Clock3 className="h-5 w-5" />} label="Weekly Hours" value={scheduleData.kpis.weeklyHours} helper="Estimated" />
-          </div>
-          <ScheduleTimeline
-            data={scheduleData}
-            onNewSchedule={() => openSchedule()}
-            onEditSchedule={(schedule) => openSchedule(schedule)}
-            onDeleteSchedule={(schedule) => {
-              startTransition(async () => {
-                await deleteClassSchedule(data.classInfo.id, schedule.id);
-                router.refresh();
-              });
-            }}
-          />
+          </StaggeredContainer>
+          <FadeInItem>
+            <ScheduleTimeline
+              data={scheduleData}
+              onNewSchedule={() => openSchedule()}
+              onEditSchedule={(schedule) => openSchedule(schedule)}
+              onDeleteSchedule={(schedule) => {
+                startTransition(async () => {
+                  await deleteClassSchedule(data.classInfo.id, schedule.id);
+                  router.refresh();
+                });
+              }}
+            />
+          </FadeInItem>
         </div>
       )}
 
       {tab === "attendance" && (
-        <section className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-on-surface">{t("attendance.title")}</h2>
-            <button onClick={() => setAttendanceOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary">
+            <button onClick={() => setAttendanceOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98]">
               <CalendarDays className="h-4 w-4" />
               {t("takeAttendance")}
             </button>
@@ -727,7 +730,7 @@ export function ClassDetailDashboard({ data }: Props) {
           <div className="mt-5">
             <AttendanceTable data={data} />
           </div>
-        </section>
+        </FadeInItem>
       )}
 
       {attendanceOpen && <AttendanceSheet data={data} onClose={() => setAttendanceOpen(false)} />}
@@ -759,16 +762,16 @@ export function ClassDetailDashboard({ data }: Props) {
               <input type="hidden" name="status" value={data.classInfo.status} />
             </div>
             <div className="mt-5 flex justify-between gap-2">
-              <button type="button" onClick={handleArchive} disabled={isPending} className="h-10 rounded-lg border border-red-100 bg-red-50 px-4 text-sm font-semibold text-red-700">{t("archive")}</button>
+              <button type="button" onClick={handleArchive} disabled={isPending} className="h-10 rounded-lg border border-red-100 bg-red-50 px-4 text-sm font-semibold text-red-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-100 active:scale-[0.98]">{t("archive")}</button>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setEditOpen(false)} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface">{t("cancel")}</button>
-                <button disabled={isPending} className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary">{isPending ? t("saving") : t("save")}</button>
+                <button type="button" onClick={() => setEditOpen(false)} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">{t("cancel")}</button>
+                <button disabled={isPending} className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98]">{isPending ? t("saving") : t("save")}</button>
               </div>
             </div>
           </form>
         </div>
       )}
-    </div>
+    </PageTransition>
   );
 }
 

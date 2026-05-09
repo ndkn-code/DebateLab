@@ -92,7 +92,7 @@ export function ClassProgramFields({
               type="button"
               onClick={() => selectProgram(option.value)}
               className={cn(
-                "flex h-12 items-center justify-center gap-2 border-r border-outline-variant/30 px-2 text-xs font-bold last:border-r-0 sm:text-sm",
+                "flex h-12 items-center justify-center gap-2 border-r border-outline-variant/30 px-2 text-xs font-bold transition-all duration-200 last:border-r-0 hover:-translate-y-0.5 active:scale-[0.98] sm:text-sm",
                 program === option.value ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               )}
             >
@@ -219,7 +219,7 @@ export function ScheduleEditor({
             <h2 className="text-lg font-bold text-on-surface">{schedule ? "Edit Schedule" : "New Schedule"}</h2>
             <p className="text-xs text-on-surface-variant">Display-only class meeting pattern</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-sm text-on-surface-variant hover:bg-surface-container">Esc</button>
+          <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-sm text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">Esc</button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <label className="block">
@@ -289,7 +289,7 @@ export function ScheduleEditor({
               <span className="text-xs font-semibold text-on-surface-variant">Repeat on</span>
               <div className="mt-2 grid grid-cols-7 gap-1">
                 {WEEKDAYS.map((day) => (
-                  <button key={day.value} type="button" onClick={() => toggleWeekday(day.value)} className={cn("h-9 rounded-lg border text-xs font-bold", weekdays.includes(day.value) ? "border-primary bg-primary text-on-primary" : "border-outline-variant/40 bg-background text-on-surface-variant")}>
+                  <button key={day.value} type="button" onClick={() => toggleWeekday(day.value)} className={cn("h-9 rounded-lg border text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.96]", weekdays.includes(day.value) ? "border-primary bg-primary text-on-primary shadow-sm shadow-primary/20" : "border-outline-variant/40 bg-background text-on-surface-variant hover:bg-surface-container")}>
                     {day.label}
                   </button>
                 ))}
@@ -330,8 +330,8 @@ export function ScheduleEditor({
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t border-outline-variant/20 p-4">
-          <button type="button" onClick={onClose} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface">Cancel</button>
-          <button disabled={isPending || !classId || !title} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary disabled:opacity-60">
+          <button type="button" onClick={onClose} className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">Cancel</button>
+          <button disabled={isPending || !classId || !title} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60">
             <Save className="h-4 w-4" />
             {isPending ? "Saving..." : schedule ? "Save Schedule" : "Create Schedule"}
           </button>
@@ -388,14 +388,14 @@ export function ScheduleTimeline({
     : null;
 
   return (
-    <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest shadow-sm">
+    <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
       <div className="flex flex-col gap-3 border-b border-outline-variant/20 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-bold text-on-surface">Schedule timeline</h2>
           <p className="text-sm text-on-surface-variant">Recurring class meetings across programs and levels.</p>
         </div>
         {onNewSchedule && (
-          <button onClick={onNewSchedule} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20">
+          <button onClick={onNewSchedule} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]">
             <Plus className="h-4 w-4" />
             New Schedule
           </button>
@@ -458,7 +458,7 @@ export function ScheduleTimeline({
                           type="button"
                           onClick={() => onEditSchedule?.(schedule)}
                           className={cn(
-                            "absolute h-10 rounded-lg border px-3 text-left text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                            "absolute h-10 rounded-lg border px-3 text-left text-xs shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.995]",
                             PROGRAM_BAR[schedule.classProgramType]
                           )}
                           style={{
@@ -499,7 +499,7 @@ export function ScheduleTimeline({
                   <p className="mt-1 text-xs">{item.classTitle} · {getProgramLabel(item.classProgramType)} {item.classLevel}</p>
                 </div>
                 {schedule && (
-                  <button onClick={() => onEditSchedule?.(schedule)} className="rounded-lg bg-white/80 px-2 py-1 text-xs font-bold">Edit</button>
+                  <button onClick={() => onEditSchedule?.(schedule)} className="rounded-lg bg-white/80 px-2 py-1 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:bg-white active:scale-[0.98]">Edit</button>
                 )}
               </div>
               <div className="mt-2 flex flex-wrap gap-1 text-xs">
@@ -516,7 +516,7 @@ export function ScheduleTimeline({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Manage schedules</p>
           <div className="flex flex-wrap gap-2">
             {data.schedules.map((schedule) => (
-              <button key={schedule.id} onClick={() => onDeleteSchedule(schedule)} className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/30 bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant hover:border-red-200 hover:bg-red-50 hover:text-red-700">
+              <button key={schedule.id} onClick={() => onDeleteSchedule(schedule)} className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/30 bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-700 active:scale-[0.98]">
                 <Trash2 className="h-3.5 w-3.5" />
                 Archive {schedule.title}
               </button>
@@ -534,7 +534,7 @@ export function ScheduleRangeControls({ data }: { data: AdminClassSchedulesData 
   const nextStart = shiftDate(data.filters.rangeStart, 28);
   const nextEnd = shiftDate(data.filters.rangeEnd, 28);
   return (
-    <form className="grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm lg:grid-cols-[1fr_1fr_180px_180px_auto]">
+    <form className="grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md lg:grid-cols-[1fr_1fr_180px_180px_auto]">
       <label className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-3 text-sm">
         <CalendarDays className="h-4 w-4 text-primary" />
         <input type="date" name="start" defaultValue={data.filters.rangeStart} className="min-w-0 flex-1 bg-transparent outline-none" />
@@ -552,12 +552,12 @@ export function ScheduleRangeControls({ data }: { data: AdminClassSchedulesData 
         {Array.from(new Set(PROGRAM_OPTIONS.flatMap((program) => program.levels))).map((level) => <option key={level} value={level}>{level}</option>)}
       </select>
       <div className="flex gap-2">
-        <a href={`?view=schedules&start=${prevStart}&end=${prevEnd}`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background"><ChevronLeft className="h-4 w-4" /></a>
-        <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface">
+        <a href={`?view=schedules&start=${prevStart}&end=${prevEnd}`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"><ChevronLeft className="h-4 w-4" /></a>
+        <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
           <Filter className="h-4 w-4" />
           Filters
         </button>
-        <a href={`?view=schedules&start=${nextStart}&end=${nextEnd}`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background"><ChevronRight className="h-4 w-4" /></a>
+        <a href={`?view=schedules&start=${nextStart}&end=${nextEnd}`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"><ChevronRight className="h-4 w-4" /></a>
       </div>
       <input type="hidden" name="view" value="schedules" />
     </form>

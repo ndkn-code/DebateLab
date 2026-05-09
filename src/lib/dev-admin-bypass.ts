@@ -80,6 +80,7 @@ export function getDevAdminUsers(): AdminUserAccessRow[] {
       xp: 800 + index * 135,
       level: 2 + (index % 4),
       createdAt: `2026-04-${String(10 + index).padStart(2, "0")}T00:00:00.000Z`,
+      lastOnlineAt: new Date(Date.now() - (index + 1) * 36 * 60 * 1000).toISOString(),
       subscriptions: subscription ? [subscription] : [],
       latestSubscription: subscription,
       entitlement: {

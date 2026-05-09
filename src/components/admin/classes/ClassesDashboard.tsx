@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { createClass } from "@/app/actions/admin-classes";
+import { FadeInItem, PageTransition, StaggeredContainer } from "@/components/shared/page-motion";
 import {
   ClassProgramFields,
   ScheduleEditor,
@@ -68,7 +69,7 @@ function KpiCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_24px_60px_-48px_rgba(22,39,91,0.42)]">
       <div className="flex items-center gap-3">
         <div className={cn("flex h-11 w-11 items-center justify-center rounded-full", tone)}>
           {icon}
@@ -88,7 +89,7 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
-      className="grid grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_52px] items-center border-b border-outline-variant/15 px-4 py-3 text-sm transition-colors hover:bg-surface-container/50"
+      className="grid grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_52px] items-center border-b border-outline-variant/15 px-4 py-3 text-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container/50 hover:shadow-sm active:scale-[0.998]"
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
@@ -142,7 +143,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
-      className="block rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+      className="block rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md active:scale-[0.995]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -229,26 +230,28 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <PageTransition className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-on-surface">{t("title")}</h1>
           <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">{t("subtitle")}</p>
         </div>
-        <button
-          onClick={() => (isSchedulesView ? openSchedule() : setCreateOpen(true))}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          {isSchedulesView ? "New Schedule" : t("newClass")}
-        </button>
+        {!isSchedulesView && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            {t("newClass")}
+          </button>
+        )}
       </div>
 
-      <div className="mt-5 flex w-full overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1 shadow-sm sm:w-fit">
+      <FadeInItem className="mt-5 flex w-full overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1 shadow-sm sm:w-fit">
         <Link
           href="/dashboard/admin/classes"
           className={cn(
-            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition sm:flex-none",
+            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] sm:flex-none",
             !isSchedulesView ? "bg-primary text-on-primary shadow-sm shadow-primary/20" : "text-on-surface-variant hover:bg-surface-container"
           )}
         >
@@ -258,14 +261,14 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         <Link
           href="/dashboard/admin/classes?view=schedules"
           className={cn(
-            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition sm:flex-none",
+            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] sm:flex-none",
             isSchedulesView ? "bg-primary text-on-primary shadow-sm shadow-primary/20" : "text-on-surface-variant hover:bg-surface-container"
           )}
         >
           <CalendarDays className="h-4 w-4" />
           Schedules
         </Link>
-      </div>
+      </FadeInItem>
 
       {data.loadError && (
         <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -280,30 +283,33 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
               {schedulesData.loadError}
             </div>
           )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StaggeredContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming Meetings" value={schedulesData.kpis.upcomingMeetings} helper="In selected range" tone="bg-blue-50 text-primary" />
             <KpiCard icon={<Repeat2 className="h-5 w-5" />} label="Active Schedules" value={schedulesData.kpis.activeSchedules} helper="Recurring patterns" tone="bg-violet-50 text-violet-600" />
             <KpiCard icon={<Users className="h-5 w-5" />} label="Scheduled Classes" value={schedulesData.kpis.scheduledClasses} helper="With at least one meeting" tone="bg-emerald-50 text-emerald-600" />
             <KpiCard icon={<Clock3 className="h-5 w-5" />} label="Weekly Hours" value={schedulesData.kpis.weeklyHours} helper="Estimated class time" tone="bg-amber-50 text-amber-600" />
-          </div>
-          <ScheduleRangeControls data={schedulesData} />
-          <ScheduleTimeline
-            data={schedulesData}
-            onNewSchedule={() => openSchedule()}
-            onEditSchedule={(schedule) => openSchedule(schedule)}
-          />
+          </StaggeredContainer>
+          <FadeInItem><ScheduleRangeControls data={schedulesData} /></FadeInItem>
+          <FadeInItem>
+            <ScheduleTimeline
+              data={schedulesData}
+              onNewSchedule={() => openSchedule()}
+              onEditSchedule={(schedule) => openSchedule(schedule)}
+            />
+          </FadeInItem>
         </div>
       ) : (
         <>
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <StaggeredContainer className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalClasses")} value={data.kpis.totalClasses} helper={t("kpis.active", { count: data.kpis.activeClasses })} tone="bg-blue-50 text-primary" />
         <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalStudents")} value={data.kpis.totalStudents} helper={t("kpis.acrossAll")} tone="bg-emerald-50 text-emerald-600" />
         <KpiCard icon={<GraduationCap className="h-5 w-5" />} label={t("kpis.assignedCourses")} value={data.kpis.assignedCourses} helper={t("kpis.acrossAll")} tone="bg-violet-50 text-violet-600" />
         <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label={t("kpis.attendance")} value={data.kpis.attendanceRate30d == null ? "-" : `${data.kpis.attendanceRate30d}%`} helper={t("kpis.averageRate")} tone="bg-emerald-50 text-emerald-600" />
         <KpiCard icon={<CalendarDays className="h-5 w-5" />} label={t("kpis.sessions")} value={data.kpis.sessions30d} helper={t("kpis.acrossAll")} tone="bg-amber-50 text-amber-600" />
-      </div>
+      </StaggeredContainer>
 
-      <form onSubmit={handleFilterSubmit} className="mt-6 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+      <FadeInItem>
+      <form onSubmit={handleFilterSubmit} className="mt-6 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
         <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
           <label className="relative block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
@@ -326,14 +332,15 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             <option value="title">{t("sort.title")}</option>
             <option value="attendance">{t("sort.attendance")}</option>
           </select>
-          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition hover:bg-surface-container">
+          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
             <Filter className="h-4 w-4" />
             {t("filters")}
           </button>
         </div>
       </form>
+      </FadeInItem>
 
-      <div className="mt-4 hidden overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest shadow-sm lg:block">
+      <FadeInItem className="mt-4 hidden overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest shadow-sm lg:block">
         <div className="grid grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_52px] border-b border-outline-variant/20 bg-surface-container px-4 py-3 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
           <div>{t("table.class")}</div>
           <div>{t("table.status")}</div>
@@ -348,9 +355,9 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         ) : (
           data.classes.map((item) => <ClassRow key={item.id} item={item} />)
         )}
-      </div>
+      </FadeInItem>
 
-      <div className="mt-4 grid gap-3 lg:hidden">
+      <StaggeredContainer className="mt-4 grid gap-3 lg:hidden">
         {data.classes.length === 0 ? (
           <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-4 py-14 text-center text-sm text-on-surface-variant">
             {t("empty")}
@@ -358,26 +365,26 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         ) : (
           data.classes.map((item) => <ClassCard key={item.id} item={item} />)
         )}
-      </div>
+      </StaggeredContainer>
 
-      <div className="mt-4 flex items-center justify-between text-sm text-on-surface-variant">
+      <FadeInItem className="mt-4 flex items-center justify-between text-sm text-on-surface-variant">
         <span>{t("showing", { current: data.classes.length, total: data.totalCount })}</span>
         <div className="flex items-center gap-2">
           <Link
             href={pageHref(Math.max(1, data.page - 1))}
-            className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-lowest", data.page <= 1 && "pointer-events-none opacity-40")}
+            className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-lowest transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]", data.page <= 1 && "pointer-events-none opacity-40")}
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
           <span className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary">{data.page}</span>
           <Link
             href={pageHref(Math.min(data.pageCount, data.page + 1))}
-            className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-lowest", data.page >= data.pageCount && "pointer-events-none opacity-40")}
+            className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-lowest transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]", data.page >= data.pageCount && "pointer-events-none opacity-40")}
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
-      </div>
+      </FadeInItem>
         </>
       )}
 
@@ -451,6 +458,6 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
           }}
         />
       )}
-    </div>
+    </PageTransition>
   );
 }

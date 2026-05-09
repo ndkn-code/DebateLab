@@ -22,6 +22,11 @@ type ProfileRow = {
   created_at: string;
 };
 
+type SessionRow = {
+  user_id: string;
+  last_seen_at: string | null;
+};
+
 export default async function AdminUsersPage() {
   const supabase = await createClient();
   const betaAllAccess = isBetaAllAccessEnabled();
@@ -51,6 +56,22 @@ export default async function AdminUsersPage() {
     subscriptionsByUser.set(userId, list);
   }
 
+  const sessionsRes = profileIds.length > 0
+    ? await supabase
+        .from("user_sessions")
+        .select("user_id, last_seen_at")
+        .in("user_id", profileIds)
+        .order("last_seen_at", { ascending: false })
+        .limit(1000)
+    : { data: [], error: null };
+
+  const lastSeenByUser = new Map<string, string>();
+  for (const session of (sessionsRes.data ?? []) as SessionRow[]) {
+    if (session.user_id && session.last_seen_at && !lastSeenByUser.has(session.user_id)) {
+      lastSeenByUser.set(session.user_id, session.last_seen_at);
+    }
+  }
+
   const databaseRows: AdminUserAccessRow[] = ((profilesRes.data ?? []) as ProfileRow[]).map(
     (profile) => {
       const subscriptions = subscriptionsByUser.get(profile.id) ?? [];
@@ -68,6 +89,7 @@ export default async function AdminUsersPage() {
         xp: profile.xp ?? 0,
         level: profile.level ?? 1,
         createdAt: profile.created_at,
+        lastOnlineAt: lastSeenByUser.get(profile.id) ?? null,
         subscriptions,
         latestSubscription: subscriptions[0] ?? null,
         entitlement: {
@@ -85,7 +107,7 @@ export default async function AdminUsersPage() {
     : getDevAdminUsers();
   const loadError = devAdminBypass
     ? null
-    : profilesRes.error?.message ?? subscriptionsRes.error?.message ?? null;
+    : profilesRes.error?.message ?? subscriptionsRes.error?.message ?? sessionsRes.error?.message ?? null;
 
   return (
     <UserAccessDashboard
