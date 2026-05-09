@@ -8,11 +8,13 @@ import {
   searchClassesForCourse,
   unassignCourseFromClass,
 } from "@/app/actions/admin-classes";
+import { getProgramLabel, normalizeClassProgram } from "@/lib/api/admin-class-schedules-model";
 
 interface AssignedClass {
   id: string;
   code: string;
   title: string;
+  program_type?: string | null;
   grade_level: string | null;
   status: string;
   student_count?: number | null;
@@ -61,6 +63,11 @@ export function ClassAssignment({ courseId, initialClasses }: Props) {
     });
   }
 
+  function classSubtitle(classRow: AssignedClass) {
+    const program = normalizeClassProgram(classRow.program_type);
+    return `${getProgramLabel(program)} · ${classRow.grade_level ?? "Level TBD"}`;
+  }
+
   return (
     <div className="rounded-lg border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -80,7 +87,7 @@ export function ClassAssignment({ courseId, initialClasses }: Props) {
         <input
           value={query}
           onChange={(event) => handleSearch(event.target.value)}
-          placeholder="Search classes by title, code, or grade..."
+          placeholder="Search classes by title, program, or level..."
           className="h-11 w-full rounded-lg border border-outline-variant/40 bg-background pl-10 pr-3 text-sm outline-none focus:border-primary"
         />
         {results.length > 0 && (
@@ -97,7 +104,7 @@ export function ClassAssignment({ courseId, initialClasses }: Props) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-on-surface">{classRow.title}</p>
-                  <p className="truncate text-xs text-on-surface-variant">{classRow.code} · {classRow.grade_level ?? "All grades"}</p>
+                  <p className="truncate text-xs text-on-surface-variant">{classSubtitle(classRow)}</p>
                 </div>
                 <Plus className="h-4 w-4 text-primary" />
               </button>
@@ -120,7 +127,7 @@ export function ClassAssignment({ courseId, initialClasses }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-on-surface">{classRow.title}</p>
                 <p className="truncate text-xs text-on-surface-variant">
-                  {classRow.code} · {classRow.grade_level ?? "All grades"}
+                  {classSubtitle(classRow)}
                   {typeof classRow.student_count === "number" ? ` · ${classRow.student_count} students` : ""}
                 </p>
               </div>

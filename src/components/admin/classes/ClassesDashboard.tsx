@@ -9,20 +9,35 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   Filter,
   GraduationCap,
   MoreVertical,
   Plus,
+  Repeat2,
   Search,
   Users,
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { createClass } from "@/app/actions/admin-classes";
+import {
+  ClassProgramFields,
+  ScheduleEditor,
+  ScheduleRangeControls,
+  ScheduleTimeline,
+} from "@/components/admin/classes/ScheduleTools";
+import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
-import type { AdminClassesPageData, AdminClassListRow } from "@/lib/types/admin-classes";
+import type {
+  AdminClassesPageData,
+  AdminClassListRow,
+  AdminClassSchedule,
+  AdminClassSchedulesData,
+} from "@/lib/types/admin-classes";
 
 interface Props {
   data: AdminClassesPageData;
+  schedulesData: AdminClassSchedulesData;
 }
 
 function formatDateRange(startDate: string | null, endDate: string | null) {
@@ -69,6 +84,7 @@ function KpiCard({
 }
 
 function ClassRow({ item }: { item: AdminClassListRow }) {
+  const classMeta = `${getProgramLabel(item.programType)}${item.gradeLevel ? ` · ${item.gradeLevel}` : ""}`;
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
@@ -80,9 +96,7 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
         </div>
         <div className="min-w-0">
           <p className="truncate font-semibold text-on-surface">{item.title}</p>
-          <p className="truncate text-xs text-on-surface-variant">
-            {item.code}{item.gradeLevel ? ` · Grade ${item.gradeLevel}` : ""}
-          </p>
+          <p className="truncate text-xs text-on-surface-variant">{classMeta}</p>
         </div>
       </div>
       <div>
@@ -95,7 +109,10 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
         {formatDateRange(item.startDate, item.endDate)}
       </div>
       <div className="font-medium text-on-surface">{item.studentCount}</div>
-      <div className="font-medium text-on-surface">{item.assignedCourseCount}</div>
+      <div>
+        <p className="font-medium text-on-surface">{item.assignedCourseCount}</p>
+        <p className="text-xs text-on-surface-variant">{item.scheduleCount} schedules</p>
+      </div>
       <div>
         {item.attendanceRate30d == null ? (
           <span className="text-on-surface-variant">-</span>
@@ -121,6 +138,7 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
 }
 
 function ClassCard({ item }: { item: AdminClassListRow }) {
+  const classMeta = `${getProgramLabel(item.programType)}${item.gradeLevel ? ` · ${item.gradeLevel}` : ""}`;
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
@@ -133,7 +151,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-bold text-on-surface">{item.title}</h2>
-            <p className="truncate text-xs text-on-surface-variant">{item.gradeLevel ?? item.code}</p>
+            <p className="truncate text-xs text-on-surface-variant">{classMeta}</p>
           </div>
         </div>
         <span className={cn("rounded-full border px-2 py-0.5 text-xs font-semibold", statusTone(item.status))}>
@@ -147,6 +165,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
         </div>
         <div className="flex items-center justify-between">
           <span>{item.assignedCourseCount} courses</span>
+          <span>{item.scheduleCount} schedules</span>
           <span className="inline-flex items-center gap-1">
             <Users className="h-4 w-4" />
             {item.studentCount}
@@ -165,12 +184,15 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
   );
 }
 
-export function ClassesDashboard({ data }: Props) {
+export function ClassesDashboard({ data, schedulesData }: Props) {
   const t = useTranslations("admin.classes");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<AdminClassSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
+  const isSchedulesView = searchParams.get("view") === "schedules";
 
   const searchDefaults = useMemo(() => ({
     q: data.filters.search,
@@ -201,6 +223,11 @@ export function ClassesDashboard({ data }: Props) {
     return `/dashboard/admin/classes?${next.toString()}`;
   }
 
+  function openSchedule(schedule?: AdminClassSchedule | null) {
+    setEditingSchedule(schedule ?? null);
+    setScheduleOpen(true);
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -209,12 +236,35 @@ export function ClassesDashboard({ data }: Props) {
           <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">{t("subtitle")}</p>
         </div>
         <button
-          onClick={() => setCreateOpen(true)}
+          onClick={() => (isSchedulesView ? openSchedule() : setCreateOpen(true))}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
-          {t("newClass")}
+          {isSchedulesView ? "New Schedule" : t("newClass")}
         </button>
+      </div>
+
+      <div className="mt-5 flex w-full overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1 shadow-sm sm:w-fit">
+        <Link
+          href="/dashboard/admin/classes"
+          className={cn(
+            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition sm:flex-none",
+            !isSchedulesView ? "bg-primary text-on-primary shadow-sm shadow-primary/20" : "text-on-surface-variant hover:bg-surface-container"
+          )}
+        >
+          <Users className="h-4 w-4" />
+          Classes
+        </Link>
+        <Link
+          href="/dashboard/admin/classes?view=schedules"
+          className={cn(
+            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition sm:flex-none",
+            isSchedulesView ? "bg-primary text-on-primary shadow-sm shadow-primary/20" : "text-on-surface-variant hover:bg-surface-container"
+          )}
+        >
+          <CalendarDays className="h-4 w-4" />
+          Schedules
+        </Link>
       </div>
 
       {data.loadError && (
@@ -223,6 +273,28 @@ export function ClassesDashboard({ data }: Props) {
         </div>
       )}
 
+      {isSchedulesView ? (
+        <div className="mt-6 space-y-5">
+          {schedulesData.loadError && (
+            <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {schedulesData.loadError}
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming Meetings" value={schedulesData.kpis.upcomingMeetings} helper="In selected range" tone="bg-blue-50 text-primary" />
+            <KpiCard icon={<Repeat2 className="h-5 w-5" />} label="Active Schedules" value={schedulesData.kpis.activeSchedules} helper="Recurring patterns" tone="bg-violet-50 text-violet-600" />
+            <KpiCard icon={<Users className="h-5 w-5" />} label="Scheduled Classes" value={schedulesData.kpis.scheduledClasses} helper="With at least one meeting" tone="bg-emerald-50 text-emerald-600" />
+            <KpiCard icon={<Clock3 className="h-5 w-5" />} label="Weekly Hours" value={schedulesData.kpis.weeklyHours} helper="Estimated class time" tone="bg-amber-50 text-amber-600" />
+          </div>
+          <ScheduleRangeControls data={schedulesData} />
+          <ScheduleTimeline
+            data={schedulesData}
+            onNewSchedule={() => openSchedule()}
+            onEditSchedule={(schedule) => openSchedule(schedule)}
+          />
+        </div>
+      ) : (
+        <>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalClasses")} value={data.kpis.totalClasses} helper={t("kpis.active", { count: data.kpis.activeClasses })} tone="bg-blue-50 text-primary" />
         <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalStudents")} value={data.kpis.totalStudents} helper={t("kpis.acrossAll")} tone="bg-emerald-50 text-emerald-600" />
@@ -306,6 +378,8 @@ export function ClassesDashboard({ data }: Props) {
           </Link>
         </div>
       </div>
+        </>
+      )}
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm">
@@ -333,14 +407,7 @@ export function ClassesDashboard({ data }: Props) {
                 <span className="text-xs font-semibold text-on-surface-variant">{t("fields.title")}</span>
                 <input name="title" required className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" />
               </label>
-              <label>
-                <span className="text-xs font-semibold text-on-surface-variant">{t("fields.code")}</span>
-                <input name="code" placeholder="IDC-2026-S1" className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" />
-              </label>
-              <label>
-                <span className="text-xs font-semibold text-on-surface-variant">{t("fields.grade")}</span>
-                <input name="gradeLevel" placeholder="9-12" className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" />
-              </label>
+              <ClassProgramFields />
               <label>
                 <span className="text-xs font-semibold text-on-surface-variant">{t("fields.startDate")}</span>
                 <input type="date" name="startDate" className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" />
@@ -373,6 +440,16 @@ export function ClassesDashboard({ data }: Props) {
             </div>
           </form>
         </div>
+      )}
+      {scheduleOpen && (
+        <ScheduleEditor
+          classes={schedulesData.classes}
+          schedule={editingSchedule}
+          onClose={() => {
+            setScheduleOpen(false);
+            setEditingSchedule(null);
+          }}
+        />
       )}
     </div>
   );

@@ -48,6 +48,7 @@ export default async function CourseSettingsPage({ params }: { params: Promise<{
     id: string;
     code: string;
     title: string;
+    program_type?: string | null;
     grade_level: string | null;
     status: string;
     student_count?: number | null;
@@ -57,7 +58,7 @@ export default async function CourseSettingsPage({ params }: { params: Promise<{
     const ids = assignments.map((assignment) => assignment.class_id);
     const { data } = await supabase
       .from("admin_class_list_rows")
-      .select("id, code, title, grade_level, status, student_count")
+      .select("id, code, title, program_type, grade_level, status, student_count")
       .in("id", ids);
     assignedClasses = data ?? [];
   }

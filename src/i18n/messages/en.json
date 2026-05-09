@@ -1402,7 +1402,9 @@
       "fields": {
         "title": "Class title",
         "code": "Class code",
-        "grade": "Grade level",
+        "grade": "Level",
+        "program": "Program",
+        "level": "Level",
         "startDate": "Start date",
         "endDate": "End date",
         "meeting": "Meeting schedule",
@@ -1422,7 +1424,9 @@
         "fields": {
           "title": "Class title",
           "code": "Class code",
-          "grade": "Grade level",
+          "grade": "Level",
+          "program": "Program",
+          "level": "Level",
           "startDate": "Start date",
           "endDate": "End date",
           "meeting": "Meeting schedule",
@@ -1431,7 +1435,7 @@
         },
         "facts": {
           "code": "Class Code",
-          "grade": "Grade Level",
+          "grade": "Level",
           "time": "Time",
           "dateRange": "Date Range",
           "room": "Room"
@@ -1440,6 +1444,7 @@
           "overview": "Overview",
           "students": "Students",
           "courses": "Courses",
+          "schedule": "Schedule",
           "attendance": "Attendance"
         },
         "metrics": {

@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
+    "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:entitlements": "tsx src/lib/entitlements.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts"
@@ -46,6 +47,7 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "rrule": "^2.8.1",
     "shadcn": "^4.4.0",
     "sonner": "^2.0.7",
     "swr": "^2.4.1",

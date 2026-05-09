@@ -2,12 +2,18 @@ export type AdminClassStatus = "draft" | "active" | "archived";
 export type ClassMembershipRole = "student" | "teacher";
 export type ClassMembershipStatus = "active" | "removed";
 export type AttendanceStatus = "present" | "late" | "absent";
+export type AdminClassProgram = "debate" | "ielts" | "public_speaking";
+export type ClassScheduleStatus = "active" | "cancelled" | "archived";
+export type RecurrenceFrequency = "none" | "daily" | "weekly" | "monthly";
+export type RecurrenceEndMode = "never" | "on_date" | "after_occurrences";
+export type RecurrenceWeekday = "SU" | "MO" | "TU" | "WE" | "TH" | "FR" | "SA";
 
 export interface AdminClassListRow {
   id: string;
   code: string;
   title: string;
   description: string | null;
+  programType: AdminClassProgram;
   gradeLevel: string | null;
   status: AdminClassStatus;
   startDate: string | null;
@@ -19,6 +25,7 @@ export interface AdminClassListRow {
   assignedCourseCount: number;
   attendanceRate30d: number | null;
   sessionCount30d: number;
+  scheduleCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +102,77 @@ export interface AdminClassAttendanceSession {
   createdAt: string;
 }
 
+export interface ClassRecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  weekdays: RecurrenceWeekday[];
+  endMode: RecurrenceEndMode;
+  until: string | null;
+  count: number | null;
+}
+
+export interface AdminClassSchedule {
+  id: string;
+  classId: string;
+  classTitle: string;
+  classProgramType: AdminClassProgram;
+  classLevel: string | null;
+  courseId: string | null;
+  courseTitle: string | null;
+  title: string;
+  room: string | null;
+  location: string | null;
+  startDate: string;
+  endDate: string | null;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  recurrenceRule: ClassRecurrenceRule;
+  recurrenceSummary: string;
+  status: ClassScheduleStatus;
+  createdAt: string;
+  updatedAt: string;
+  occurrenceCount: number;
+  nextOccurrenceDate: string | null;
+}
+
+export interface AdminClassScheduleOccurrence {
+  id: string;
+  scheduleId: string;
+  classId: string;
+  classTitle: string;
+  classProgramType: AdminClassProgram;
+  classLevel: string | null;
+  courseId: string | null;
+  courseTitle: string | null;
+  title: string;
+  room: string | null;
+  location: string | null;
+  date: string;
+  startsAt: string;
+  endsAt: string;
+  recurrenceSummary: string;
+}
+
+export interface AdminClassSchedulesData {
+  schedules: AdminClassSchedule[];
+  occurrences: AdminClassScheduleOccurrence[];
+  classes: AdminClassListRow[];
+  filters: {
+    rangeStart: string;
+    rangeEnd: string;
+    program: AdminClassProgram | "all";
+    level: string;
+  };
+  kpis: {
+    upcomingMeetings: number;
+    activeSchedules: number;
+    scheduledClasses: number;
+    weeklyHours: number;
+  };
+  loadError: string | null;
+}
+
 export interface AdminClassDetailData {
   classInfo: AdminClassListRow & {
     teacherUserId: string | null;
@@ -112,6 +190,8 @@ export interface AdminClassDetailData {
       }
     >;
   };
+  schedules: AdminClassSchedule[];
+  scheduleOccurrences: AdminClassScheduleOccurrence[];
   loadError: string | null;
 }
 
@@ -128,4 +208,19 @@ export interface SaveAttendanceInput {
   title?: string | null;
   notes?: string | null;
   records: AttendanceInputRecord[];
+}
+
+export interface SaveClassScheduleInput {
+  id?: string;
+  classId: string;
+  courseId?: string | null;
+  title: string;
+  room?: string | null;
+  location?: string | null;
+  startDate: string;
+  endDate?: string | null;
+  startTime: string;
+  endTime: string;
+  timezone?: string | null;
+  recurrenceRule: Partial<ClassRecurrenceRule>;
 }

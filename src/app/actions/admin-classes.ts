@@ -4,9 +4,20 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { validateAttendanceSubmission } from "@/lib/api/admin-classes-model";
+import {
+  DEFAULT_CLASS_TIMEZONE,
+  buildClassCodeCandidate,
+  isScheduleCourseAllowed,
+  normalizeClassLevel,
+  normalizeClassProgram,
+  normalizeRecurrenceRule,
+  summarizeRecurrence,
+} from "@/lib/api/admin-class-schedules-model";
 import type {
+  AdminClassProgram,
   AdminClassStatus,
   AttendanceStatus,
+  SaveClassScheduleInput,
   SaveAttendanceInput,
 } from "@/lib/types/admin-classes";
 
@@ -73,6 +84,12 @@ function cleanDate(value: FormDataEntryValue | string | null | undefined) {
   return text;
 }
 
+function cleanTime(value: string | null | undefined) {
+  const text = cleanString(value);
+  if (!text || !/^\d{2}:\d{2}(:\d{2})?$/.test(text)) throw new Error("Invalid time");
+  return text.length === 5 ? `${text}:00` : text;
+}
+
 function cleanStatus(value: FormDataEntryValue | string | null | undefined) {
   const text = cleanString(value) ?? "active";
   if (!CLASS_STATUSES.has(text as AdminClassStatus)) throw new Error("Invalid class status");
@@ -82,20 +99,14 @@ function cleanStatus(value: FormDataEntryValue | string | null | undefined) {
 function classPayloadFromForm(formData: FormData) {
   const title = cleanString(formData.get("title"));
   if (!title) throw new Error("Class title is required");
-
-  const code =
-    cleanString(formData.get("code")) ??
-    title
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 24);
+  const programType = normalizeClassProgram(cleanString(formData.get("programType")));
+  const level = normalizeClassLevel(programType, cleanString(formData.get("gradeLevel")));
 
   return {
-    code,
     title,
     description: cleanString(formData.get("description")),
-    grade_level: cleanString(formData.get("gradeLevel")),
+    program_type: programType,
+    grade_level: level,
     status: cleanStatus(formData.get("status")),
     start_date: cleanDate(formData.get("startDate")),
     end_date: cleanDate(formData.get("endDate")),
@@ -107,14 +118,25 @@ function classPayloadFromForm(formData: FormData) {
   };
 }
 
+async function generateUniqueClassCode(supabase: Supabase, programType: AdminClassProgram) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = buildClassCodeCandidate(programType, attempt);
+    const { data, error } = await supabase.from("classes").select("id").eq("code", code).limit(1);
+    if (error) throw new Error(error.message);
+    if (!data?.length) return code;
+  }
+  throw new Error("Could not generate a unique class code");
+}
+
 export async function createClass(formData: FormData) {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
   const payload = classPayloadFromForm(formData);
+  const code = await generateUniqueClassCode(supabase, payload.program_type);
 
   const { data, error } = await supabase
     .from("classes")
-    .insert({ ...payload, created_by: adminId })
+    .insert({ ...payload, code, created_by: adminId })
     .select("id")
     .single();
 
@@ -273,6 +295,35 @@ export async function searchCoursesForClass(query: string, excludeClassId?: stri
   return data.filter((course) => !assignedIds.has(course.id));
 }
 
+export async function getAssignedCoursesForClass(classId: string) {
+  const supabase = await createClient();
+  await verifyAdmin(supabase);
+
+  if (isDevClassId(classId)) {
+    return [
+      { id: "00000000-0000-4600-8000-000000000001", title: "Public Speaking 101" },
+      { id: "00000000-0000-4600-8000-000000000002", title: "Debate Fundamentals" },
+      { id: "00000000-0000-4600-8000-000000000003", title: "Argument Building" },
+    ];
+  }
+
+  const { data: assignments, error: assignmentError } = await supabase
+    .from("class_course_assignments")
+    .select("course_id")
+    .eq("class_id", classId);
+  if (assignmentError) throw new Error(assignmentError.message);
+  const courseIds = (assignments ?? []).map((row) => row.course_id as string);
+  if (!courseIds.length) return [];
+
+  const { data, error } = await supabase
+    .from("courses")
+    .select("id, title")
+    .in("id", courseIds)
+    .order("title");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function searchClassesForCourse(query: string, excludeCourseId?: string) {
   const supabase = await createClient();
   await verifyAdmin(supabase);
@@ -281,16 +332,20 @@ export async function searchClassesForCourse(query: string, excludeCourseId?: st
 
   if (isDevAdminBypassEnabled()) {
     return [
-      { id: "00000000-0000-4500-8000-000000000101", code: "IDC-2026-S1", title: "Intro Debate Cohort", grade_level: "9-12", status: "active" },
-      { id: "00000000-0000-4500-8000-000000000102", code: "PSC-2026-HS", title: "Public Speaking 101", grade_level: "High School", status: "active" },
-    ].filter((classRow) => classRow.title.toLowerCase().includes(term.toLowerCase()) || classRow.code.toLowerCase().includes(term.toLowerCase()));
+      { id: "00000000-0000-4500-8000-000000000101", code: "DEB-2026-S1", title: "Intro Debate Cohort", program_type: "debate", grade_level: "Beginner", status: "active" },
+      { id: "00000000-0000-4500-8000-000000000102", code: "PS-2026-HS", title: "Public Speaking 101", program_type: "public_speaking", grade_level: "Beginner", status: "active" },
+    ].filter((classRow) =>
+      classRow.title.toLowerCase().includes(term.toLowerCase()) ||
+      classRow.program_type.toLowerCase().includes(term.toLowerCase()) ||
+      classRow.grade_level.toLowerCase().includes(term.toLowerCase())
+    );
   }
 
   const { data, error } = await supabase
     .from("classes")
-    .select("id, code, title, grade_level, status")
+    .select("id, code, title, program_type, grade_level, status")
     .neq("status", "archived")
-    .or(`title.ilike.%${term}%,code.ilike.%${term}%,grade_level.ilike.%${term}%`)
+    .or(`title.ilike.%${term}%,program_type.ilike.%${term}%,grade_level.ilike.%${term}%`)
     .order("created_at", { ascending: false })
     .limit(12);
 
@@ -350,6 +405,12 @@ export async function unassignCourseFromClass(classId: string, courseId: string)
     .eq("course_id", courseId);
 
   if (error) throw new Error(error.message);
+  const { error: scheduleError } = await supabase
+    .from("class_schedules")
+    .update({ course_id: null, updated_at: new Date().toISOString() })
+    .eq("class_id", classId)
+    .eq("course_id", courseId);
+  if (scheduleError) throw new Error(scheduleError.message);
   await logAdminAction(supabase, adminId, "unassign_course_from_class", "class", classId, { course_id: courseId });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
@@ -464,4 +525,98 @@ export async function deleteAttendanceSession(classId: string, sessionId: string
   await logAdminAction(supabase, adminId, "delete_class_attendance", "class", classId, { session_id: sessionId });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
+}
+
+export async function saveClassSchedule(input: SaveClassScheduleInput) {
+  const supabase = await createClient();
+  const adminId = await verifyAdmin(supabase);
+  if (isDevClassId(input.classId)) {
+    return input.id ?? "dev-schedule";
+  }
+
+  const startDate = cleanDate(input.startDate);
+  if (!startDate) throw new Error("Schedule start date is required");
+  const startTime = cleanTime(input.startTime);
+  const endTime = cleanTime(input.endTime);
+  if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+    throw new Error("End time must be after start time");
+  }
+  const title = cleanString(input.title);
+  if (!title) throw new Error("Schedule title is required");
+
+  const recurrenceRule = normalizeRecurrenceRule(input.recurrenceRule, startDate);
+  const endDate = recurrenceRule.endMode === "on_date" ? recurrenceRule.until : cleanDate(input.endDate);
+  const courseId = cleanString(input.courseId);
+
+  if (courseId) {
+    const { data: assignments, error: assignmentError } = await supabase
+      .from("class_course_assignments")
+      .select("course_id")
+      .eq("class_id", input.classId);
+    if (assignmentError) throw new Error(assignmentError.message);
+    if (!isScheduleCourseAllowed(courseId, (assignments ?? []).map((row) => row.course_id as string))) {
+      throw new Error("Schedule course must be assigned to this class.");
+    }
+  }
+
+  const payload = {
+    class_id: input.classId,
+    course_id: courseId,
+    title,
+    room: cleanString(input.room),
+    location: cleanString(input.location),
+    start_date: startDate,
+    end_date: endDate,
+    start_time: startTime,
+    end_time: endTime,
+    timezone: cleanString(input.timezone) ?? DEFAULT_CLASS_TIMEZONE,
+    recurrence_rule: recurrenceRule,
+    recurrence_summary: summarizeRecurrence(recurrenceRule, startDate),
+    status: "active",
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.id) {
+    const { error } = await supabase
+      .from("class_schedules")
+      .update(payload)
+      .eq("id", input.id)
+      .eq("class_id", input.classId);
+    if (error) throw new Error(error.message);
+    await logAdminAction(supabase, adminId, "update_class_schedule", "class", input.classId, { schedule_id: input.id });
+  } else {
+    const { data, error } = await supabase
+      .from("class_schedules")
+      .insert({ ...payload, created_by: adminId })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    await logAdminAction(supabase, adminId, "create_class_schedule", "class", input.classId, { schedule_id: data.id });
+  }
+
+  revalidatePath("/dashboard/admin/classes");
+  revalidatePath(`/dashboard/admin/classes/${input.classId}`);
+  return input.id ?? null;
+}
+
+export async function deleteClassSchedule(classId: string, scheduleId: string) {
+  const supabase = await createClient();
+  const adminId = await verifyAdmin(supabase);
+  if (isDevClassId(classId)) {
+    return;
+  }
+  const { error } = await supabase
+    .from("class_schedules")
+    .update({ status: "archived", updated_at: new Date().toISOString() })
+    .eq("id", scheduleId)
+    .eq("class_id", classId);
+  if (error) throw new Error(error.message);
+  await logAdminAction(supabase, adminId, "delete_class_schedule", "class", classId, { schedule_id: scheduleId });
+  revalidatePath("/dashboard/admin/classes");
+  revalidatePath(`/dashboard/admin/classes/${classId}`);
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
 }

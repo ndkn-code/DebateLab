@@ -2,16 +2,29 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { summarizeAttendanceRecords } from "@/lib/api/admin-classes-model";
+import {
+  DEFAULT_CLASS_TIMEZONE,
+  expandScheduleOccurrences,
+  getProgramLabel,
+  normalizeClassProgram,
+  normalizeRecurrenceRule,
+  summarizeRecurrence,
+} from "@/lib/api/admin-class-schedules-model";
 import type {
   AdminClassAssignedCourse,
   AdminClassAttendanceSession,
   AdminClassDetailData,
+  AdminClassProgram,
   AdminClassesKpis,
   AdminClassesPageData,
   AdminClassListRow,
   AdminClassRosterRow,
+  AdminClassSchedule,
+  AdminClassSchedulesData,
   AdminClassStatus,
   AttendanceStatus,
+  ClassRecurrenceRule,
+  ClassScheduleStatus,
 } from "@/lib/types/admin-classes";
 
 type Supabase = Awaited<ReturnType<typeof createClient>> | SupabaseClient;
@@ -21,6 +34,7 @@ type ClassRow = {
   code: string;
   title: string;
   description: string | null;
+  program_type?: AdminClassProgram | null;
   grade_level: string | null;
   status: AdminClassStatus;
   start_date: string | null;
@@ -37,6 +51,26 @@ type ClassRow = {
   assigned_course_count?: number | null;
   attendance_rate_30d?: number | null;
   session_count_30d?: number | null;
+  schedule_count?: number | null;
+};
+
+type ScheduleRow = {
+  id: string;
+  class_id: string;
+  course_id: string | null;
+  title: string;
+  room: string | null;
+  location: string | null;
+  start_date: string;
+  end_date: string | null;
+  start_time: string;
+  end_time: string;
+  timezone: string | null;
+  recurrence_rule: Partial<ClassRecurrenceRule> | null;
+  recurrence_summary: string | null;
+  status: ClassScheduleStatus;
+  created_at: string;
+  updated_at: string;
 };
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -47,6 +81,7 @@ function toClassListRow(row: ClassRow): AdminClassListRow {
     code: row.code,
     title: row.title,
     description: row.description,
+    programType: normalizeClassProgram(row.program_type),
     gradeLevel: row.grade_level,
     status: row.status,
     startDate: row.start_date,
@@ -58,6 +93,7 @@ function toClassListRow(row: ClassRow): AdminClassListRow {
     assignedCourseCount: row.assigned_course_count ?? 0,
     attendanceRate30d: row.attendance_rate_30d ?? null,
     sessionCount30d: row.session_count_30d ?? 0,
+    scheduleCount: row.schedule_count ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -110,7 +146,7 @@ export async function getAdminClassesPageData({
   const safeSearch = escapeLike(search);
   if (safeSearch) {
     query = query.or(
-      `title.ilike.%${safeSearch}%,code.ilike.%${safeSearch}%,grade_level.ilike.%${safeSearch}%`
+      `title.ilike.%${safeSearch}%,program_type.ilike.%${safeSearch}%,grade_level.ilike.%${safeSearch}%`
     );
   }
 
@@ -154,6 +190,236 @@ export async function getAdminClassesPageData({
     filters: { search, status, sort },
     loadError: null,
   };
+}
+
+export async function getAdminClassSchedulesPageData({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+} = {}): Promise<AdminClassSchedulesData> {
+  const supabase = await createClient();
+  const range = normalizeScheduleRange(searchParams);
+  const program = normalizeScheduleProgram(String(searchParams?.program ?? "all"));
+  const level = String(searchParams?.level ?? "all").trim() || "all";
+
+  const classQuery = supabase
+    .from("admin_class_list_rows")
+    .select("*")
+    .neq("status", "archived")
+    .order("program_type", { ascending: true })
+    .order("grade_level", { ascending: true })
+    .order("title", { ascending: true });
+
+  const { data: classRows, error: classError } = await classQuery;
+  if (classError) {
+    if (isDevAdminBypassEnabled()) {
+      return getDevSchedulesPageData(range.rangeStart, range.rangeEnd, program, level);
+    }
+    return emptySchedulesData(range.rangeStart, range.rangeEnd, program, level, classError.message);
+  }
+
+  let classes = ((classRows ?? []) as ClassRow[]).map(toClassListRow);
+  if (program !== "all") classes = classes.filter((item) => item.programType === program);
+  if (level !== "all") classes = classes.filter((item) => item.gradeLevel === level);
+
+  const classIds = classes.map((item) => item.id);
+  if (classIds.length === 0) {
+    return buildSchedulesData([], [], range.rangeStart, range.rangeEnd, program, level, null);
+  }
+
+  const schedulesRes = await supabase
+    .from("class_schedules")
+    .select("*")
+    .in("class_id", classIds)
+    .eq("status", "active")
+    .lte("start_date", range.rangeEnd)
+    .or(`end_date.is.null,end_date.gte.${range.rangeStart}`)
+    .order("start_date", { ascending: true });
+
+  if (schedulesRes.error) {
+    if (isDevAdminBypassEnabled()) {
+      return getDevSchedulesPageData(range.rangeStart, range.rangeEnd, program, level);
+    }
+    return buildSchedulesData(classes, [], range.rangeStart, range.rangeEnd, program, level, schedulesRes.error.message);
+  }
+
+  const schedules = await enrichSchedules(
+    supabase,
+    (schedulesRes.data ?? []) as ScheduleRow[],
+    classes,
+    range.rangeStart,
+    range.rangeEnd
+  );
+  return buildSchedulesData(classes, schedules, range.rangeStart, range.rangeEnd, program, level, null);
+}
+
+function normalizeScheduleRange(searchParams?: Record<string, string | string[] | undefined>) {
+  const today = new Date();
+  const defaultStart = toIsoDate(addDays(today, -7));
+  const defaultEnd = toIsoDate(addDays(today, 45));
+  const rangeStart = normalizeIsoDate(String(searchParams?.start ?? searchParams?.rangeStart ?? "")) ?? defaultStart;
+  const rangeEnd = normalizeIsoDate(String(searchParams?.end ?? searchParams?.rangeEnd ?? "")) ?? defaultEnd;
+  return rangeStart <= rangeEnd
+    ? { rangeStart, rangeEnd }
+    : { rangeStart: rangeEnd, rangeEnd: rangeStart };
+}
+
+function normalizeScheduleProgram(value: string): AdminClassProgram | "all" {
+  if (value === "debate" || value === "ielts" || value === "public_speaking") return value;
+  return "all";
+}
+
+function normalizeIsoDate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function emptySchedulesData(
+  rangeStart: string,
+  rangeEnd: string,
+  program: AdminClassProgram | "all",
+  level: string,
+  loadError: string | null
+): AdminClassSchedulesData {
+  return buildSchedulesData([], [], rangeStart, rangeEnd, program, level, loadError);
+}
+
+async function enrichSchedules(
+  supabase: Supabase,
+  rows: ScheduleRow[],
+  classes: AdminClassListRow[],
+  rangeStart: string,
+  rangeEnd: string
+): Promise<AdminClassSchedule[]> {
+  const classById = new Map(classes.map((classInfo) => [classInfo.id, classInfo]));
+  const courseIds = Array.from(new Set(rows.map((row) => row.course_id).filter(Boolean) as string[]));
+  const coursesRes = courseIds.length
+    ? await supabase.from("courses").select("id, title").in("id", courseIds)
+    : { data: [], error: null };
+  const courseTitleById = new Map((coursesRes.data ?? []).map((course) => [course.id as string, course.title as string]));
+
+  return rows.flatMap((row) => {
+    const classInfo = classById.get(row.class_id);
+    if (!classInfo) return [];
+    const rule = normalizeRecurrenceRule(row.recurrence_rule, row.start_date);
+    const summary = row.recurrence_summary ?? summarizeRecurrence(rule, row.start_date);
+    const expansionSource = {
+      id: row.id,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      startTime: normalizeTime(row.start_time),
+      endTime: normalizeTime(row.end_time),
+      recurrenceRule: rule,
+    };
+    const occurrences = expandScheduleOccurrences(expansionSource, rangeStart, rangeEnd);
+    return [{
+      id: row.id,
+      classId: row.class_id,
+      classTitle: classInfo.title,
+      classProgramType: classInfo.programType,
+      classLevel: classInfo.gradeLevel,
+      courseId: row.course_id,
+      courseTitle: row.course_id ? courseTitleById.get(row.course_id) ?? null : null,
+      title: row.title,
+      room: row.room,
+      location: row.location,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      startTime: normalizeTime(row.start_time),
+      endTime: normalizeTime(row.end_time),
+      timezone: row.timezone ?? DEFAULT_CLASS_TIMEZONE,
+      recurrenceRule: rule,
+      recurrenceSummary: summary,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      occurrenceCount: occurrences.length,
+      nextOccurrenceDate: occurrences.find((item) => item.date >= toIsoDate(new Date()))?.date ?? occurrences[0]?.date ?? null,
+    }];
+  });
+}
+
+function buildSchedulesData(
+  classes: AdminClassListRow[],
+  schedules: AdminClassSchedule[],
+  rangeStart: string,
+  rangeEnd: string,
+  program: AdminClassProgram | "all",
+  level: string,
+  loadError: string | null
+): AdminClassSchedulesData {
+  const occurrences = schedules.flatMap((schedule) =>
+    expandScheduleOccurrences({
+      id: schedule.id,
+      startDate: schedule.startDate,
+      endDate: schedule.endDate,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      recurrenceRule: schedule.recurrenceRule,
+    }, rangeStart, rangeEnd).map((occurrence) => ({
+      id: `${schedule.id}-${occurrence.date}`,
+      scheduleId: schedule.id,
+      classId: schedule.classId,
+      classTitle: schedule.classTitle,
+      classProgramType: schedule.classProgramType,
+      classLevel: schedule.classLevel,
+      courseId: schedule.courseId,
+      courseTitle: schedule.courseTitle,
+      title: schedule.title,
+      room: schedule.room,
+      location: schedule.location,
+      date: occurrence.date,
+      startsAt: occurrence.startsAt,
+      endsAt: occurrence.endsAt,
+      recurrenceSummary: schedule.recurrenceSummary,
+    }))
+  ).sort((a, b) => a.date.localeCompare(b.date) || a.startsAt.localeCompare(b.startsAt));
+
+  const classIdsWithSchedules = new Set(schedules.map((schedule) => schedule.classId));
+  const weeklyHours = schedules.reduce((sum, schedule) => sum + estimateWeeklyScheduleHours(schedule), 0);
+
+  return {
+    schedules,
+    occurrences,
+    classes,
+    filters: { rangeStart, rangeEnd, program, level },
+    kpis: {
+      upcomingMeetings: occurrences.length,
+      activeSchedules: schedules.length,
+      scheduledClasses: classIdsWithSchedules.size,
+      weeklyHours: Math.round(weeklyHours * 10) / 10,
+    },
+    loadError,
+  };
+}
+
+function normalizeTime(value: string) {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
+}
+
+function estimateWeeklyScheduleHours(schedule: AdminClassSchedule) {
+  const duration = Math.max(0, timeToMinutes(schedule.endTime) - timeToMinutes(schedule.startTime)) / 60;
+  const interval = Math.max(1, schedule.recurrenceRule.interval || 1);
+  if (schedule.recurrenceRule.frequency === "daily") return (duration * 5) / interval;
+  if (schedule.recurrenceRule.frequency === "weekly") {
+    return (duration * Math.max(1, schedule.recurrenceRule.weekdays.length)) / interval;
+  }
+  if (schedule.recurrenceRule.frequency === "monthly") return duration / (4 * interval);
+  return 0;
 }
 
 async function getAdminClassesKpis(supabase: Supabase): Promise<AdminClassesKpis> {
@@ -229,6 +495,7 @@ export async function getAdminClassDetail(
     membershipsRes,
     assignmentsRes,
     sessionsRes,
+    schedulesRes,
   ] = await Promise.all([
     supabase
       .from("class_memberships")
@@ -247,9 +514,15 @@ export async function getAdminClassDetail(
       .eq("class_id", classId)
       .order("session_date", { ascending: false })
       .limit(12),
+    supabase
+      .from("class_schedules")
+      .select("*")
+      .eq("class_id", classId)
+      .neq("status", "archived")
+      .order("start_date", { ascending: true }),
   ]);
 
-  if (membershipsRes.error || assignmentsRes.error || sessionsRes.error) {
+  if (membershipsRes.error || assignmentsRes.error || sessionsRes.error || schedulesRes.error) {
     return {
       classInfo: {
         ...toClassListRow({ ...(classRow as ClassRow), student_count: 0 }),
@@ -261,10 +534,13 @@ export async function getAdminClassDetail(
       assignedCourses: [],
       attendanceSessions: [],
       attendanceGrid: { sessions: [], students: [] },
+      schedules: [],
+      scheduleOccurrences: [],
       loadError:
         membershipsRes.error?.message ??
         assignmentsRes.error?.message ??
         sessionsRes.error?.message ??
+        schedulesRes.error?.message ??
         "Failed to load class detail",
     };
   }
@@ -407,17 +683,38 @@ export async function getAdminClassDetail(
     };
   });
 
+  const detailClassInfo = toClassListRow({
+    ...(classRow as ClassRow),
+    student_count: roster.length,
+    assigned_course_count: assignedCourses.length,
+    attendance_rate_30d: summarizeAttendanceRecords(
+      [...recentRecordsByUser.values()].flat()
+    ).attendanceRate,
+    session_count_30d: recentSessionsRes.data?.length ?? 0,
+    schedule_count: schedulesRes.data?.length ?? 0,
+  });
+  const scheduleRangeStart = toIsoDate(addDays(new Date(), -7));
+  const scheduleRangeEnd = toIsoDate(addDays(new Date(), 90));
+  const schedules = await enrichSchedules(
+    supabase,
+    (schedulesRes.data ?? []) as ScheduleRow[],
+    [detailClassInfo],
+    scheduleRangeStart,
+    scheduleRangeEnd
+  );
+  const scheduleData = buildSchedulesData(
+    [detailClassInfo],
+    schedules,
+    scheduleRangeStart,
+    scheduleRangeEnd,
+    "all",
+    "all",
+    null
+  );
+
   return {
     classInfo: {
-      ...toClassListRow({
-        ...(classRow as ClassRow),
-        student_count: roster.length,
-        assigned_course_count: assignedCourses.length,
-        attendance_rate_30d: summarizeAttendanceRecords(
-          [...recentRecordsByUser.values()].flat()
-        ).attendanceRate,
-        session_count_30d: recentSessionsRes.data?.length ?? 0,
-      }),
+      ...detailClassInfo,
       teacherUserId: classRow.teacher_user_id ?? null,
       createdBy: classRow.created_by ?? null,
       metadata: classRow.metadata ?? {},
@@ -437,6 +734,8 @@ export async function getAdminClassDetail(
         return { ...student, attendance };
       }),
     },
+    schedules,
+    scheduleOccurrences: scheduleData.occurrences,
     loadError: profilesRes.error?.message ?? coursesRes.error?.message ?? recordsRes.error?.message ?? null,
   };
 }
@@ -453,15 +752,16 @@ function getDevKpis(): AdminClassesKpis {
 }
 
 const DEV_CLASSES: AdminClassListRow[] = [
-  ["00000000-0000-4500-8000-000000000101", "IDC-2026-S1", "Intro Debate Cohort", "Introductory debate concepts and confident communication.", "9-12", "active", "2026-05-01", "2026-07-31", "Tues & Thu 4:00 - 5:30 PM", "Room 204", 28, 3, 92, 14],
-  ["00000000-0000-4500-8000-000000000102", "PSC-2026-HS", "Public Speaking 101", "Speaking workshop for high school students.", "High School", "active", "2026-04-15", "2026-05-31", "Mon 5:00 - 6:30 PM", "Room 108", 24, 2, 88, 9],
-  ["00000000-0000-4500-8000-000000000103", "ARG-2026-A", "Advanced Argumentation", "A sharper track for rebuttal and weighing.", "11-12", "active", "2026-03-10", "2026-06-10", "Wed 4:30 - 6:00 PM", "Room 302", 32, 3, 85, 12],
-  ["00000000-0000-4500-8000-000000000104", "MDS-2026", "Middle School Debaters", "Foundational practice for younger debaters.", "6-8", "active", "2026-01-20", "2026-04-30", "Sat 10:00 - 11:30 AM", "Room 110", 26, 2, 76, 8],
-].map(([id, code, title, description, gradeLevel, status, startDate, endDate, meetingSchedule, room, studentCount, assignedCourseCount, attendanceRate30d, sessionCount30d]) => ({
+  ["00000000-0000-4500-8000-000000000101", "DEB-2026-S1", "Intro Debate Cohort", "Introductory debate concepts and confident communication.", "debate", "Beginner", "active", "2026-05-01", "2026-07-31", "Tues & Thu 4:00 - 5:30 PM", "Room 204", 28, 3, 92, 14, 2],
+  ["00000000-0000-4500-8000-000000000102", "PS-2026-HS", "Public Speaking 101", "Speaking workshop for high school students.", "public_speaking", "Beginner", "active", "2026-04-15", "2026-05-31", "Mon 5:00 - 6:30 PM", "Room 108", 24, 2, 88, 9, 1],
+  ["00000000-0000-4500-8000-000000000103", "DEB-2026-A", "Advanced Argumentation", "A sharper track for rebuttal and weighing.", "debate", "Advanced", "active", "2026-03-10", "2026-06-10", "Wed 4:30 - 6:00 PM", "Room 302", 32, 3, 85, 12, 1],
+  ["00000000-0000-4500-8000-000000000104", "IELTS-2026-F", "IELTS Writing Lab", "Focused writing and speaking practice for IELTS learners.", "ielts", "Band 6.5-7.5", "active", "2026-01-20", "2026-07-30", "Sat 10:00 - 11:30 AM", "Room 401", 26, 2, 76, 8, 1],
+].map(([id, code, title, description, programType, gradeLevel, status, startDate, endDate, meetingSchedule, room, studentCount, assignedCourseCount, attendanceRate30d, sessionCount30d, scheduleCount]) => ({
   id: String(id),
   code: String(code),
   title: String(title),
   description: String(description),
+  programType: programType as AdminClassProgram,
   gradeLevel: String(gradeLevel),
   status: status as AdminClassStatus,
   startDate: String(startDate),
@@ -473,6 +773,7 @@ const DEV_CLASSES: AdminClassListRow[] = [
   assignedCourseCount: Number(assignedCourseCount),
   attendanceRate30d: Number(attendanceRate30d),
   sessionCount30d: Number(sessionCount30d),
+  scheduleCount: Number(scheduleCount),
   createdAt: "2026-05-01T00:00:00.000Z",
   updatedAt: "2026-05-08T00:00:00.000Z",
 }));
@@ -495,7 +796,7 @@ function getDevClassesPageData({
     const matchesStatus = status === "all" || item.status === status;
     const matchesSearch = !normalizedSearch ||
       item.title.toLowerCase().includes(normalizedSearch) ||
-      item.code.toLowerCase().includes(normalizedSearch) ||
+      getProgramLabel(item.programType).toLowerCase().includes(normalizedSearch) ||
       (item.gradeLevel ?? "").toLowerCase().includes(normalizedSearch);
     return matchesStatus && matchesSearch;
   });
@@ -517,6 +818,119 @@ function getDevClassesPageData({
     filters: { search, status, sort },
     loadError: null,
   };
+}
+
+const DEV_SCHEDULES: AdminClassSchedule[] = [
+  {
+    id: "00000000-0000-4800-8000-000000000101",
+    classId: "00000000-0000-4500-8000-000000000101",
+    classTitle: "Intro Debate Cohort",
+    classProgramType: "debate",
+    classLevel: "Beginner",
+    courseId: "00000000-0000-4600-8000-000000000002",
+    courseTitle: "Debate Fundamentals",
+    title: "Debate Basics A",
+    room: "Room 204",
+    location: null,
+    startDate: "2026-05-04",
+    endDate: "2026-07-31",
+    startTime: "16:00:00",
+    endTime: "17:30:00",
+    timezone: DEFAULT_CLASS_TIMEZONE,
+    recurrenceRule: normalizeRecurrenceRule({ frequency: "weekly", interval: 1, weekdays: ["MO", "TH"], endMode: "on_date", until: "2026-07-31" }, "2026-05-04"),
+    recurrenceSummary: "Weekly on Mon, Thu from May 4, 2026 until Jul 31, 2026",
+    status: "active",
+    createdAt: "2026-05-01T00:00:00.000Z",
+    updatedAt: "2026-05-08T00:00:00.000Z",
+    occurrenceCount: 0,
+    nextOccurrenceDate: null,
+  },
+  {
+    id: "00000000-0000-4800-8000-000000000102",
+    classId: "00000000-0000-4500-8000-000000000103",
+    classTitle: "Advanced Argumentation",
+    classProgramType: "debate",
+    classLevel: "Advanced",
+    courseId: "00000000-0000-4600-8000-000000000003",
+    courseTitle: "Argument Building",
+    title: "Case Construction",
+    room: "Room 302",
+    location: null,
+    startDate: "2026-05-06",
+    endDate: "2026-06-10",
+    startTime: "17:30:00",
+    endTime: "19:00:00",
+    timezone: DEFAULT_CLASS_TIMEZONE,
+    recurrenceRule: normalizeRecurrenceRule({ frequency: "weekly", interval: 1, weekdays: ["WE"], endMode: "on_date", until: "2026-06-10" }, "2026-05-06"),
+    recurrenceSummary: "Weekly on Wed from May 6, 2026 until Jun 10, 2026",
+    status: "active",
+    createdAt: "2026-05-01T00:00:00.000Z",
+    updatedAt: "2026-05-08T00:00:00.000Z",
+    occurrenceCount: 0,
+    nextOccurrenceDate: null,
+  },
+  {
+    id: "00000000-0000-4800-8000-000000000103",
+    classId: "00000000-0000-4500-8000-000000000104",
+    classTitle: "IELTS Writing Lab",
+    classProgramType: "ielts",
+    classLevel: "Band 6.5-7.5",
+    courseId: null,
+    courseTitle: null,
+    title: "IELTS Writing",
+    room: "Room 401",
+    location: null,
+    startDate: "2026-05-05",
+    endDate: "2026-07-30",
+    startTime: "19:00:00",
+    endTime: "20:30:00",
+    timezone: DEFAULT_CLASS_TIMEZONE,
+    recurrenceRule: normalizeRecurrenceRule({ frequency: "weekly", interval: 1, weekdays: ["TU", "TH"], endMode: "on_date", until: "2026-07-30" }, "2026-05-05"),
+    recurrenceSummary: "Weekly on Tue, Thu from May 5, 2026 until Jul 30, 2026",
+    status: "active",
+    createdAt: "2026-05-01T00:00:00.000Z",
+    updatedAt: "2026-05-08T00:00:00.000Z",
+    occurrenceCount: 0,
+    nextOccurrenceDate: null,
+  },
+  {
+    id: "00000000-0000-4800-8000-000000000104",
+    classId: "00000000-0000-4500-8000-000000000102",
+    classTitle: "Public Speaking 101",
+    classProgramType: "public_speaking",
+    classLevel: "Beginner",
+    courseId: "00000000-0000-4600-8000-000000000001",
+    courseTitle: "Public Speaking 101",
+    title: "Presentation Mastery",
+    room: "Room 108",
+    location: null,
+    startDate: "2026-05-09",
+    endDate: "2026-05-31",
+    startTime: "10:00:00",
+    endTime: "12:00:00",
+    timezone: DEFAULT_CLASS_TIMEZONE,
+    recurrenceRule: normalizeRecurrenceRule({ frequency: "weekly", interval: 1, weekdays: ["SA"], endMode: "on_date", until: "2026-05-31" }, "2026-05-09"),
+    recurrenceSummary: "Weekly on Sat from May 9, 2026 until May 31, 2026",
+    status: "active",
+    createdAt: "2026-05-01T00:00:00.000Z",
+    updatedAt: "2026-05-08T00:00:00.000Z",
+    occurrenceCount: 0,
+    nextOccurrenceDate: null,
+  },
+];
+
+function getDevSchedulesPageData(
+  rangeStart: string,
+  rangeEnd: string,
+  program: AdminClassProgram | "all",
+  level: string
+): AdminClassSchedulesData {
+  let classes = DEV_CLASSES;
+  if (program !== "all") classes = classes.filter((item) => item.programType === program);
+  if (level !== "all") classes = classes.filter((item) => item.gradeLevel === level);
+  const classIds = new Set(classes.map((item) => item.id));
+  const schedules = DEV_SCHEDULES.filter((schedule) => classIds.has(schedule.classId));
+  return buildSchedulesData(classes, schedules, rangeStart, rangeEnd, program, level, null);
 }
 
 function getDevClassDetail(classId: string): AdminClassDetailData {
@@ -582,6 +996,16 @@ function getDevClassDetail(classId: string): AdminClassDetailData {
       createdAt: `${sessionDate}T14:00:00.000Z`,
     };
   });
+  const schedules = DEV_SCHEDULES.filter((schedule) => schedule.classId === classInfo.id);
+  const scheduleData = buildSchedulesData(
+    [classInfo],
+    schedules,
+    toIsoDate(addDays(new Date(), -7)),
+    toIsoDate(addDays(new Date(), 90)),
+    "all",
+    "all",
+    null
+  );
 
   return {
     classInfo: {
@@ -609,6 +1033,8 @@ function getDevClassDetail(classId: string): AdminClassDetailData {
         ) as Record<string, AttendanceStatus>,
       })),
     },
+    schedules,
+    scheduleOccurrences: scheduleData.occurrences,
     loadError: null,
   };
 }

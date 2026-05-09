@@ -13,6 +13,7 @@ import {
   MapPin,
   MoreVertical,
   Plus,
+  Repeat2,
   Save,
   Search,
   Trash2,
@@ -23,6 +24,7 @@ import {
   addStudentToClass,
   archiveClass,
   assignCourseToClass,
+  deleteClassSchedule,
   removeStudentFromClass,
   saveAttendanceSession,
   searchCoursesForClass,
@@ -30,10 +32,18 @@ import {
   unassignCourseFromClass,
   updateClass,
 } from "@/app/actions/admin-classes";
+import {
+  ClassProgramFields,
+  ScheduleEditor,
+  ScheduleTimeline,
+} from "@/components/admin/classes/ScheduleTools";
+import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
 import type {
   AdminClassAssignedCourse,
   AdminClassDetailData,
+  AdminClassSchedule,
+  AdminClassSchedulesData,
   AdminClassProfileSummary,
   AdminClassRosterRow,
   AttendanceStatus,
@@ -43,7 +53,7 @@ interface Props {
   data: AdminClassDetailData;
 }
 
-type Tab = "overview" | "students" | "courses" | "attendance";
+type Tab = "overview" | "students" | "courses" | "schedule" | "attendance";
 
 function initials(name: string) {
   return name
@@ -61,6 +71,21 @@ function formatDate(value?: string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(`${value}T00:00:00`));
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function timeToMinutes(value: string) {
+  const [hours = "0", minutes = "0"] = value.slice(0, 5).split(":");
+  return Number(hours) * 60 + Number(minutes);
 }
 
 function statusTone(value: AttendanceStatus) {
@@ -383,6 +408,8 @@ export function ClassDetailDashboard({ data }: Props) {
   const [studentResults, setStudentResults] = useState<AdminClassProfileSummary[]>([]);
   const [courseResults, setCourseResults] = useState<Array<{ id: string; title: string; category: string | null }>>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<AdminClassSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleArchive() {
@@ -402,7 +429,48 @@ export function ClassDetailDashboard({ data }: Props) {
     });
   }
 
-  const tabs: Tab[] = ["overview", "students", "courses", "attendance"];
+  const tabs: Tab[] = ["overview", "students", "courses", "schedule", "attendance"];
+  const scheduleData = useMemo<AdminClassSchedulesData>(() => {
+    const rangeStart = toIsoDate(addDays(new Date(), -7));
+    const rangeEnd = toIsoDate(addDays(new Date(), 90));
+    const scheduledClasses = data.schedules.length > 0 ? 1 : 0;
+    const weeklyMinutes = data.schedules.reduce((total, schedule) => {
+      const duration = Math.max(0, timeToMinutes(schedule.endTime) - timeToMinutes(schedule.startTime));
+      const interval = Math.max(1, schedule.recurrenceRule.interval || 1);
+      const weeklyMultiplier =
+        schedule.recurrenceRule.frequency === "weekly"
+          ? Math.max(1, schedule.recurrenceRule.weekdays.length) / interval
+          : schedule.recurrenceRule.frequency === "daily"
+            ? 5 / interval
+            : schedule.recurrenceRule.frequency === "monthly"
+              ? 0.25 / interval
+              : 0;
+      return total + duration * weeklyMultiplier;
+    }, 0);
+    return {
+      schedules: data.schedules,
+      occurrences: data.scheduleOccurrences,
+      classes: [data.classInfo],
+      filters: {
+        rangeStart,
+        rangeEnd,
+        program: "all",
+        level: "all",
+      },
+      kpis: {
+        upcomingMeetings: data.scheduleOccurrences.length,
+        activeSchedules: data.schedules.filter((schedule) => schedule.status === "active").length,
+        scheduledClasses,
+        weeklyHours: Number((weeklyMinutes / 60).toFixed(1)),
+      },
+      loadError: null,
+    };
+  }, [data]);
+
+  function openSchedule(schedule?: AdminClassSchedule | null) {
+    setEditingSchedule(schedule ?? null);
+    setScheduleOpen(true);
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -437,11 +505,11 @@ export function ClassDetailDashboard({ data }: Props) {
       <div className="mt-6 grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 text-sm shadow-sm sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
-          <div><p className="text-xs text-on-surface-variant">{t("facts.code")}</p><p className="font-semibold text-on-surface">{data.classInfo.code}</p></div>
+          <div><p className="text-xs text-on-surface-variant">Program</p><p className="font-semibold text-on-surface">{getProgramLabel(data.classInfo.programType)}</p></div>
         </div>
         <div className="flex items-start gap-3">
           <GraduationCap className="mt-0.5 h-4 w-4 text-primary" />
-          <div><p className="text-xs text-on-surface-variant">{t("facts.grade")}</p><p className="font-semibold text-on-surface">{data.classInfo.gradeLevel ?? "-"}</p></div>
+          <div><p className="text-xs text-on-surface-variant">Level</p><p className="font-semibold text-on-surface">{data.classInfo.gradeLevel ?? "-"}</p></div>
         </div>
         <div className="flex items-start gap-3">
           <Clock3 className="mt-0.5 h-4 w-4 text-primary" />
@@ -482,7 +550,7 @@ export function ClassDetailDashboard({ data }: Props) {
             <MetricCard icon={<Users className="h-5 w-5" />} label={t("metrics.students")} value={data.classInfo.studentCount} helper={t("metrics.activeStudents", { count: data.roster.length })} />
             <MetricCard icon={<CheckCircle2 className="h-5 w-5" />} label={t("metrics.attendance")} value={data.classInfo.attendanceRate30d == null ? "-" : `${data.classInfo.attendanceRate30d}%`} helper={t("metrics.thisMonth")} />
             <MetricCard icon={<BookOpen className="h-5 w-5" />} label={t("metrics.courses")} value={data.assignedCourses.length} helper={t("metrics.classRestricted")} />
-            <MetricCard icon={<Clock3 className="h-5 w-5" />} label={t("metrics.sessions")} value={data.classInfo.sessionCount30d} helper={t("metrics.thisMonth")} />
+            <MetricCard icon={<Repeat2 className="h-5 w-5" />} label="Schedules" value={data.schedules.length} helper="Recurring patterns" />
           </div>
           <section className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
@@ -612,6 +680,40 @@ export function ClassDetailDashboard({ data }: Props) {
         </section>
       )}
 
+      {tab === "schedule" && (
+        <div className="mt-5 space-y-4">
+          <div className="flex flex-col gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-on-surface">Class Schedule</h2>
+              <p className="text-sm text-on-surface-variant">Display-only meeting patterns for this class. Attendance stays manual.</p>
+            </div>
+            <button
+              onClick={() => openSchedule()}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20"
+            >
+              <CalendarDays className="h-4 w-4" />
+              New Schedule
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <MetricCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming" value={scheduleData.kpis.upcomingMeetings} helper="Next 90 days" />
+            <MetricCard icon={<Repeat2 className="h-5 w-5" />} label="Active Rules" value={scheduleData.kpis.activeSchedules} helper="Recurring schedules" />
+            <MetricCard icon={<Clock3 className="h-5 w-5" />} label="Weekly Hours" value={scheduleData.kpis.weeklyHours} helper="Estimated" />
+          </div>
+          <ScheduleTimeline
+            data={scheduleData}
+            onNewSchedule={() => openSchedule()}
+            onEditSchedule={(schedule) => openSchedule(schedule)}
+            onDeleteSchedule={(schedule) => {
+              startTransition(async () => {
+                await deleteClassSchedule(data.classInfo.id, schedule.id);
+                router.refresh();
+              });
+            }}
+          />
+        </div>
+      )}
+
       {tab === "attendance" && (
         <section className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -629,6 +731,18 @@ export function ClassDetailDashboard({ data }: Props) {
       )}
 
       {attendanceOpen && <AttendanceSheet data={data} onClose={() => setAttendanceOpen(false)} />}
+      {scheduleOpen && (
+        <ScheduleEditor
+          classes={[data.classInfo]}
+          schedule={editingSchedule}
+          initialClassId={data.classInfo.id}
+          initialCourses={data.assignedCourses}
+          onClose={() => {
+            setScheduleOpen(false);
+            setEditingSchedule(null);
+          }}
+        />
+      )}
 
       {editOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm">
@@ -636,8 +750,7 @@ export function ClassDetailDashboard({ data }: Props) {
             <h2 className="text-lg font-bold text-on-surface">{t("editClass")}</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="sm:col-span-2"><span className="text-xs font-semibold text-on-surface-variant">{t("fields.title")}</span><input name="title" defaultValue={data.classInfo.title} required className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
-              <label><span className="text-xs font-semibold text-on-surface-variant">{t("fields.code")}</span><input name="code" defaultValue={data.classInfo.code} className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
-              <label><span className="text-xs font-semibold text-on-surface-variant">{t("fields.grade")}</span><input name="gradeLevel" defaultValue={data.classInfo.gradeLevel ?? ""} className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
+              <ClassProgramFields defaultProgram={data.classInfo.programType} defaultLevel={data.classInfo.gradeLevel} />
               <label><span className="text-xs font-semibold text-on-surface-variant">{t("fields.startDate")}</span><input type="date" name="startDate" defaultValue={data.classInfo.startDate ?? ""} className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
               <label><span className="text-xs font-semibold text-on-surface-variant">{t("fields.endDate")}</span><input type="date" name="endDate" defaultValue={data.classInfo.endDate ?? ""} className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
               <label><span className="text-xs font-semibold text-on-surface-variant">{t("fields.meeting")}</span><input name="meetingSchedule" defaultValue={data.classInfo.meetingSchedule ?? ""} className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary" /></label>
