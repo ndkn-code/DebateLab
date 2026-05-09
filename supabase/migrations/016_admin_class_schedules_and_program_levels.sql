@@ -130,7 +130,9 @@ create policy "Students can view own class schedules"
     )
   );
 
-create or replace view public.admin_class_list_rows
+drop view if exists public.admin_class_list_rows;
+
+create view public.admin_class_list_rows
 with (security_invoker = true)
 as
 select
@@ -192,3 +194,5 @@ left join (
   where sessions.session_date >= (current_date - interval '30 days')::date
   group by sessions.class_id
 ) r on r.class_id = c.id;
+
+grant select on public.admin_class_list_rows to authenticated;
