@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getConversations } from "@/lib/api/chat";
 import {
@@ -6,12 +7,13 @@ import {
   getCoachProfile,
 } from "@/lib/api/coach-profile";
 import { ChatShell } from "@/components/chat/chat-shell";
+import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 
 export const metadata = {
   title: "AI Coach",
 };
 
-export default async function ChatPage({
+async function ChatPayload({
   searchParams,
 }: {
   searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
@@ -46,5 +48,17 @@ export default async function ChatPage({
       initialCoachProfile={coachProfile}
       initialCoachEnvelope={initialEnvelope}
     />
+  );
+}
+
+export default function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
+}) {
+  return (
+    <Suspense fallback={<StudentRouteSkeleton variant="chat" />}>
+      <ChatPayload searchParams={searchParams} />
+    </Suspense>
   );
 }

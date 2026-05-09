@@ -84,6 +84,14 @@ type EnrollmentRow = {
   } | null;
 };
 
+type DashboardRpcPayload = {
+  profile?: unknown;
+  enrollments?: unknown;
+  recent_sessions?: unknown;
+  scored_sessions?: unknown;
+  stats?: unknown;
+};
+
 export interface EnrollmentWithCourse {
   id: string;
   course_id: string;
@@ -219,6 +227,22 @@ export interface DashboardHomeData {
     referralCode: string | null;
   };
   courseContinuation: DashboardCourseContinuation | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+async function getDashboardPayloadFromRpc(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<DashboardRpcPayload | null> {
+  const { data, error } = await supabase.rpc("get_dashboard_payload");
+  if (error || !isRecord(data)) return null;
+  return data as DashboardRpcPayload;
 }
 
 function getDateFormatter() {
@@ -534,58 +558,66 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   skillSnapshotStartDate.setHours(0, 0, 0, 0);
   const skillSnapshotStartIso = skillSnapshotStartDate.toISOString();
 
-  const [
-    profileRes,
-    enrollmentsRes,
-    recentSessionsRes,
-    scoredSessionsRes,
-    statsRes,
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
-      )
-      .eq("id", userId)
-      .single(),
+  const rpcPayload = await getDashboardPayloadFromRpc(supabase);
+  const fallbackPayload = rpcPayload
+    ? null
+    : await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
+          )
+          .eq("id", userId)
+          .single(),
 
-    supabase
-      .from("enrollments")
-      .select("*, courses(title, category, thumbnail_url)")
-      .eq("user_id", userId)
-      .eq("status", "active"),
+        supabase
+          .from("enrollments")
+          .select("*, courses(title, category, thumbnail_url)")
+          .eq("user_id", userId)
+          .eq("status", "active"),
 
-    supabase
-      .from("debate_sessions")
-      .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
-      )
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(8),
+        supabase
+          .from("debate_sessions")
+          .select(
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+          )
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(8),
 
-    supabase
-      .from("debate_sessions")
-      .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
-      )
-      .eq("user_id", userId)
-      .not("total_score", "is", null)
-      .gte("created_at", skillSnapshotStartIso)
-      .order("created_at", { ascending: false }),
+        supabase
+          .from("debate_sessions")
+          .select(
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+          )
+          .eq("user_id", userId)
+          .not("total_score", "is", null)
+          .gte("created_at", skillSnapshotStartIso)
+          .order("created_at", { ascending: false }),
 
-    supabase
-      .from("daily_stats")
-      .select("date, sessions_completed, minutes_studied, xp_earned")
-      .eq("user_id", userId)
-      .gte("date", trailing14Dates[0])
-      .lte("date", trailing14Dates[trailing14Dates.length - 1])
-      .order("date"),
-  ]);
+        supabase
+          .from("daily_stats")
+          .select("date, sessions_completed, minutes_studied, xp_earned")
+          .eq("user_id", userId)
+          .gte("date", trailing14Dates[0])
+          .lte("date", trailing14Dates[trailing14Dates.length - 1])
+          .order("date"),
+      ]);
 
-  const profile = profileRes.data as Profile | null;
+  const profile = (rpcPayload?.profile ??
+    fallbackPayload?.[0].data) as Profile | null;
   const isAdmin = profile?.role === "admin";
-  const enrollments: EnrollmentRow[] = (enrollmentsRes.data ?? [])
+  const enrollmentRows = rpcPayload
+    ? asArray(rpcPayload.enrollments)
+    : fallbackPayload?.[1].data ?? [];
+  const enrollments: EnrollmentRow[] = (enrollmentRows as Array<{
+    id: string;
+    course_id: string;
+    status: string;
+    progress_percent?: number;
+    progress_pct?: number;
+    courses?: { title?: string; category?: string; thumbnail_url?: string | null } | Array<{ title?: string; category?: string; thumbnail_url?: string | null }> | null;
+  }>)
     .map((entry) => {
       const course = Array.isArray(entry.courses) ? entry.courses[0] : entry.courses;
       const progressPercent =
@@ -602,7 +634,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
         progress_pct: progressPercent,
         courses: course
           ? {
-              title: course.title,
+              title: course.title ?? "Course",
               category: normalizeCourseCategory(course.category),
               thumbnail_url: course.thumbnail_url ?? null,
             }
@@ -614,8 +646,12 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
         right.progress_pct - left.progress_pct ||
         (left.courses?.title ?? "").localeCompare(right.courses?.title ?? "")
     );
-  const recentSessions = (recentSessionsRes.data ?? []) as SessionScoreRow[];
-  const scoredSessions = (scoredSessionsRes.data ?? []) as SessionScoreRow[];
+  const recentSessions = (rpcPayload
+    ? asArray(rpcPayload.recent_sessions)
+    : fallbackPayload?.[2].data ?? []) as SessionScoreRow[];
+  const scoredSessions = (rpcPayload
+    ? asArray(rpcPayload.scored_sessions)
+    : fallbackPayload?.[3].data ?? []) as SessionScoreRow[];
 
   const statsByDate = new Map<string, DailyStatEntry>();
   for (const date of trailing14Dates) {
@@ -627,7 +663,15 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
     });
   }
 
-  for (const stat of statsRes.data ?? []) {
+  const statRows = rpcPayload
+    ? asArray(rpcPayload.stats)
+    : fallbackPayload?.[4].data ?? [];
+  for (const stat of statRows as Array<{
+    date: string;
+    sessions_completed: number;
+    minutes_studied: number;
+    xp_earned: number;
+  }>) {
     statsByDate.set(stat.date, {
       date: stat.date,
       sessions_completed: stat.sessions_completed,

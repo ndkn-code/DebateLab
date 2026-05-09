@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ModuleAccessLevel } from "@/lib/types/admin";
+import type { CourseVisibility, ModuleAccessLevel } from "@/lib/types/admin";
 import {
   canAccessCourseRecord,
   getUserEntitlement,
@@ -20,9 +20,24 @@ export async function getCourseAccessMap(
   const accessMap = new Map(uniqueCourseIds.map((id) => [id, false]));
   if (uniqueCourseIds.length === 0) return accessMap;
 
-  const [{ data: profile }, { data: courses }, entitlement] = await Promise.all([
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, visibility")
+    .in("id", uniqueCourseIds);
+
+  return getCourseAccessMapFromRecords(supabase, userId, courses ?? []);
+}
+
+export async function getCourseAccessMapFromRecords(
+  supabase: SupabaseClient,
+  userId: string,
+  courses: Array<{ id: string; visibility?: CourseVisibility | string | null }>
+): Promise<Map<string, boolean>> {
+  const accessMap = new Map(courses.map((course) => [course.id, false]));
+  if (courses.length === 0) return accessMap;
+
+  const [{ data: profile }, entitlement] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).single(),
-    supabase.from("courses").select("id, visibility").in("id", uniqueCourseIds),
     getUserEntitlement(supabase, userId),
   ]);
 

@@ -496,6 +496,15 @@ async function getCourseSummary(userId: string, courseId: string) {
 
 async function getSessionById(userId: string, sessionId: string) {
   const supabase = await createClient();
+  const { data: rpcSession, error: rpcError } = await supabase.rpc(
+    "get_practice_feedback_payload",
+    { p_session_id: sessionId }
+  );
+
+  if (!rpcError && rpcSession && typeof rpcSession === "object" && !Array.isArray(rpcSession)) {
+    return rpcSession as SessionRow;
+  }
+
   const { data } = await supabase
       .from("debate_sessions")
       .select(

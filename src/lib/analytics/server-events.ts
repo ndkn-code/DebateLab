@@ -14,7 +14,7 @@ export async function recordAnalyticsEvent(
   source: AnalyticsEventSource = "server"
 ) {
   try {
-    const event = normalizeAnalyticsEventInput(input, { source });
+    const event = normalizeAnalyticsEventInput({ ...input, source }, { source });
     const { error } = await supabase.from("analytics_events").insert({
       user_id: userId,
       session_id: event.sessionId,

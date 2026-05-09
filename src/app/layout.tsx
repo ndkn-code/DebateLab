@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
+import { WebVitalsReporter } from "@/components/shared/web-vitals-reporter";
 import { ANALYTICS_COOKIE_NAME, isAnalyticsEnabled } from "@/lib/settings";
 import "./globals.css";
 
@@ -74,6 +75,7 @@ export default async function RootLayout({
         <Toaster position="top-right" richColors />
         {analyticsEnabled ? (
           <>
+            <WebVitalsReporter />
             <SpeedInsights />
             <Analytics />
           </>

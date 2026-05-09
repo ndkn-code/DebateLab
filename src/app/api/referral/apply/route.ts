@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createReferral, getReferrerByCode } from "@/lib/api/referrals";
+import {
+  getString,
+  readJsonObject,
+  RequestValidationError,
+} from "@/lib/api/request-validation";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
-export async function POST(request: Request) {
+const REFERRAL_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
+
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,17 +20,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const code = (body.code as string)?.trim().toUpperCase();
-
-  if (!code || code.length !== 6) {
+  const rateLimit = await consumeRateLimit(supabase, {
+    scope: "referral-apply",
+    limit: 20,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.success) {
     return NextResponse.json(
-      { error: "Invalid referral code" },
-      { status: 400 }
+      { error: "Too many requests. Please wait a moment." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      }
     );
   }
 
-  // Find referrer
+  let code: string;
+  try {
+    const body = await readJsonObject(request, { maxBytes: 1024 });
+    const rawCode = getString(body, "code", {
+      required: true,
+      minLength: 6,
+      maxLength: 6,
+    });
+    if (!rawCode) throw new RequestValidationError("code is required.");
+    code = rawCode.toUpperCase();
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid referral code" },
+      { status: error instanceof RequestValidationError ? error.status : 400 }
+    );
+  }
+
+  if (!REFERRAL_CODE_PATTERN.test(code)) {
+    return NextResponse.json({ error: "Invalid referral code" }, { status: 400 });
+  }
+
   const referrer = await getReferrerByCode(code);
   if (!referrer) {
     return NextResponse.json(

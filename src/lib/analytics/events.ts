@@ -9,6 +9,7 @@ export const ANALYTICS_EVENT_NAMES = [
   "duel_completed",
   "ai_feedback_requested",
   "ai_feedback_completed",
+  "web_vital_recorded",
   "admin_grant_created",
   "admin_grant_cancelled",
 ] as const;
@@ -96,6 +97,7 @@ export function inferFeatureAreaFromRoute(route: string | null | undefined): Ana
   if (pathname.includes("/dashboard/admin")) return "admin";
   if (pathname.includes("/activity/")) return "activities";
   if (pathname.includes("/courses")) return "courses";
+  if (pathname.endsWith("/dashboard") || pathname.includes("/dashboard?")) return "profile";
   if (pathname.includes("/practice") || pathname.includes("/history")) return "practice";
   if (pathname.includes("/debates") || pathname.includes("/duel")) return "duels";
   if (pathname.includes("/profile") || pathname.includes("/settings")) return "profile";

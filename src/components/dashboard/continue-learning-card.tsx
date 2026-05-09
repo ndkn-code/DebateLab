@@ -125,6 +125,7 @@ export function ContinueLearningCard({
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 220px"
+                  priority
                 />
               ) : (
                 <div
@@ -245,6 +246,7 @@ export function ContinueLearningCard({
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 28vw"
+                priority
               />
             ) : (
               <div

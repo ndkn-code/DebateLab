@@ -30,13 +30,18 @@ export default async function LocaleLayout({ children, params }: Props) {
   const analyticsEnabled = isAnalyticsEnabled(
     cookieStore.get(ANALYTICS_COOKIE_NAME)?.value
   );
+  const content = analyticsEnabled ? (
+    <PostHogProvider enabled>
+      <PostHogPageview enabled />
+      {children}
+    </PostHogProvider>
+  ) : (
+    children
+  );
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <PostHogProvider enabled={analyticsEnabled}>
-        <PostHogPageview enabled={analyticsEnabled} />
-        {children}
-      </PostHogProvider>
+      {content}
       <ToastProvider />
     </NextIntlClientProvider>
   );

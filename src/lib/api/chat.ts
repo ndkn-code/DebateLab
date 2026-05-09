@@ -9,6 +9,13 @@ export async function getConversations(
   userId: string
 ): Promise<ConversationWithPreview[]> {
   const supabase = await createClient();
+  const { data: rpcConversations, error: rpcError } = await supabase.rpc(
+    "get_chat_sidebar_payload"
+  );
+
+  if (!rpcError && Array.isArray(rpcConversations)) {
+    return rpcConversations as ConversationWithPreview[];
+  }
 
   const { data, error } = await supabase
     .from("chat_conversations")

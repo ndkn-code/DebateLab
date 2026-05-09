@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
-import { canAccessCourse, getCourseAccessMap } from "@/lib/utils/courseAccess";
+import {
+  canAccessCourse,
+  getCourseAccessMapFromRecords,
+} from "@/lib/utils/courseAccess";
 import type {
   Course,
   CourseModule,
@@ -522,11 +525,20 @@ export async function getCourseLibraryData(
 ): Promise<CourseLibraryData> {
   const supabase = await createClient();
 
-  const coursesRes = await supabase
-    .from("courses")
-    .select("*")
-    .eq("is_published", true)
-    .order("created_at");
+  const { data: rpcPayload, error: rpcError } = await supabase.rpc(
+    "get_course_library_payload"
+  );
+  const rpcRecord =
+    !rpcError && rpcPayload && typeof rpcPayload === "object" && !Array.isArray(rpcPayload)
+      ? (rpcPayload as { courses?: unknown; enrollments?: unknown })
+      : null;
+  const coursesRes = rpcRecord
+    ? { data: Array.isArray(rpcRecord.courses) ? rpcRecord.courses : [], error: null }
+    : await supabase
+        .from("courses")
+        .select("*")
+        .eq("is_published", true)
+        .order("created_at");
 
   if (coursesRes.error) {
     return { items: [], featuredCourse: null, recommendedCourse: null };
@@ -535,10 +547,10 @@ export async function getCourseLibraryData(
   const courses = (coursesRes.data ?? []).map((course) =>
     normalizeCourseRecord(course as Course)
   );
-  const courseAccessMap = await getCourseAccessMap(
+  const courseAccessMap = await getCourseAccessMapFromRecords(
     supabase,
     userId,
-    courses.map((course) => course.id)
+    courses.map((course) => ({ id: course.id, visibility: course.visibility }))
   );
   const accessibleCourses = courses.filter((course) =>
     courseAccessMap.get(course.id)
@@ -546,7 +558,11 @@ export async function getCourseLibraryData(
   const accessibleCourseIds = accessibleCourses.map((course) => course.id);
 
   const [enrollmentsRes, modulesRes] = await Promise.all([
-    supabase.from("enrollments").select("*").eq("user_id", userId),
+    rpcRecord
+      ? Promise.resolve({
+          data: Array.isArray(rpcRecord.enrollments) ? rpcRecord.enrollments : [],
+        })
+      : supabase.from("enrollments").select("*").eq("user_id", userId),
     accessibleCourseIds.length > 0
       ? supabase
           .from("course_modules")

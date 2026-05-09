@@ -1,20 +1,29 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { Users, Wifi, BookOpen, GraduationCap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { AnalyticsOverview } from "@/lib/types/admin";
 import { StatCard } from "./StatCard";
-import { TrendChart } from "./TrendChart";
 import { PopularCoursesList } from "./PopularCoursesList";
-import { ApiUsageChart } from "./ApiUsageChart";
 import { GlobalMap } from "./GlobalMap";
 import posthog from "posthog-js";
 
 interface Props {
   initialData: AnalyticsOverview;
 }
+
+const TrendChart = dynamic(
+  () => import("./TrendChart").then((mod) => mod.TrendChart),
+  { ssr: false }
+);
+
+const ApiUsageChart = dynamic(
+  () => import("./ApiUsageChart").then((mod) => mod.ApiUsageChart),
+  { ssr: false }
+);
 
 export function OverviewDashboard({ initialData }: Props) {
   const t = useTranslations("admin.overview");

@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 
 export const metadata = {
   title: "Dashboard",
 };
 
-export default async function DashboardPage() {
+async function DashboardPayload() {
   const supabase = await createClient();
 
   const {
@@ -40,5 +42,13 @@ export default async function DashboardPage() {
       userId={user.id}
       showWelcome={showWelcome}
     />
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<StudentRouteSkeleton variant="dashboard" />}>
+      <DashboardPayload />
+    </Suspense>
   );
 }

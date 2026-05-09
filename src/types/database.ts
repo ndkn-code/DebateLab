@@ -335,6 +335,7 @@ export interface AnalyticsEvent {
     | "duel_completed"
     | "ai_feedback_requested"
     | "ai_feedback_completed"
+    | "web_vital_recorded"
     | "admin_grant_created"
     | "admin_grant_cancelled";
   feature_area:

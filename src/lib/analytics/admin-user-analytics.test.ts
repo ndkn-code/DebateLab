@@ -70,6 +70,22 @@ assert.equal(normalized.eventName, "page_leave");
 assert.equal(normalized.featureArea, "courses");
 assert.equal(normalized.durationMs, 1200);
 
+const webVital = normalizeAnalyticsEventInput({
+  eventName: "web_vital_recorded",
+  route: "/dashboard",
+  durationMs: 2100,
+  metadata: {
+    metricName: "LCP",
+    metricId: "v1",
+    value: 2100,
+    rating: "good",
+    route: "/dashboard",
+    navigationType: "navigate",
+  },
+});
+assert.equal(webVital.eventName, "web_vital_recorded");
+assert.equal(webVital.featureArea, "profile");
+
 assert.throws(
   () => normalizeAnalyticsEventInput({ eventName: "freeform", featureArea: "courses" }),
   /Invalid analytics event name/

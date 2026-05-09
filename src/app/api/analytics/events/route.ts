@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeAnalyticsEventInput } from "@/lib/analytics/events";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { RequestValidationError, readJsonObject } from "@/lib/api/request-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,17 @@ export async function POST(request: NextRequest) {
 
   let event;
   try {
-    event = normalizeAnalyticsEventInput(await request.json(), { source: "web" });
+    const body = await readJsonObject(request, { maxBytes: 12 * 1024 });
+    event = normalizeAnalyticsEventInput(
+      { ...body, source: "web" },
+      { source: "web" }
+    );
   } catch (error) {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Invalid analytics event",
       },
-      { status: 400 }
+      { status: error instanceof RequestValidationError ? error.status : 400 }
     );
   }
 
