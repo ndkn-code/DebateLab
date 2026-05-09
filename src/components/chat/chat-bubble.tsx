@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -34,6 +35,7 @@ interface ChatBubbleProps {
   onSendMessage?: (text: string) => void;
   onDraftMessage?: (text: string) => void;
   actionsDisabled?: boolean;
+  renderStructuredMetadata?: boolean;
 }
 
 const BLOCK_STYLES: Record<
@@ -617,10 +619,14 @@ function AssistantActions({ content }: { content: string }) {
 function AssistantMessage({
   message,
   isStreaming,
+  onSendMessage,
   onDraftMessage,
   actionsDisabled,
+  renderStructuredMetadata = false,
 }: ChatBubbleProps) {
-  const metadata = getRenderableMetadata(message.metadata);
+  const metadata = renderStructuredMetadata
+    ? getRenderableMetadata(message.metadata)
+    : null;
   const cardBlocks =
     metadata?.blocks.filter((block) => block.type !== "clarifying_question") ?? [];
   const followUpBlocks =
@@ -643,7 +649,13 @@ function AssistantMessage({
     ? cardBlocks.filter((block) => !blueprintBlockIds.has(block.id))
     : cardBlocks;
   return (
-    <div className="group flex gap-3 sm:gap-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="group flex gap-3 sm:gap-4"
+    >
       <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-primary/12 bg-white shadow-[0_10px_22px_rgba(77,134,247,0.16)]">
         <Image
           src="/coach/coach-pet-clean.png"
@@ -708,7 +720,11 @@ function AssistantMessage({
 
           </div>
         ) : message.content ? (
-          <div className="max-w-[760px] rounded-[22px] border border-outline-variant/14 bg-white px-4 py-4 text-sm shadow-[0_16px_36px_rgba(11,20,36,0.045)] sm:px-5">
+          <motion.div
+            layout
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="max-w-[760px] rounded-[22px] border border-outline-variant/14 bg-white px-4 py-4 text-sm shadow-[0_16px_36px_rgba(11,20,36,0.045)] sm:px-5"
+          >
             <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mb-1 prose-headings:mt-3 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {message.content}
@@ -717,14 +733,30 @@ function AssistantMessage({
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-text-bottom" />
               )}
             </div>
-          </div>
+          </motion.div>
         ) : null}
+
+        {message.isTruncated && !isStreaming && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
+            <span>Response stopped early.</span>
+            {onSendMessage && (
+              <button
+                type="button"
+                onClick={() => onSendMessage("Please continue your last answer.")}
+                disabled={actionsDisabled}
+                className="rounded-full border border-primary/16 bg-white px-2.5 py-1 font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue
+              </button>
+            )}
+          </div>
+        )}
 
         {message.content && !isStreaming && (
           <AssistantActions content={message.content} />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

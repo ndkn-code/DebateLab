@@ -17,6 +17,8 @@ export interface ChatMessageLocal {
   metadata?: CoachMessageMetadata | null;
   status?: "streaming" | "complete" | "error";
   finalRenderMode?: "structured" | "markdown";
+  finishReason?: string | null;
+  isTruncated?: boolean;
   created_at: string;
 }
 
@@ -119,6 +121,10 @@ export function ChatShell({
             role: m.role as "user" | "assistant",
             content: m.content,
             metadata: m.metadata,
+            status: "complete",
+            finalRenderMode: "markdown",
+            finishReason: null,
+            isTruncated: false,
             created_at: m.created_at,
           }))
         );
@@ -260,21 +266,6 @@ export function ChatShell({
                 });
               }
 
-              if (data.metadata) {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last && last.role === "assistant") {
-                    updated[updated.length - 1] = {
-                      ...last,
-                      metadata: data.metadata as CoachMessageMetadata,
-                      finalRenderMode: "structured",
-                    };
-                  }
-                  return updated;
-                });
-              }
-
               if (data.error) {
                 setMessages((prev) => {
                   const updated = [...prev];
@@ -293,6 +284,8 @@ export function ChatShell({
               }
 
               if (data.done) {
+                const finishReason =
+                  typeof data.finishReason === "string" ? data.finishReason : null;
                 setMessages((prev) => {
                   const updated = [...prev];
                   const last = updated[updated.length - 1];
@@ -300,7 +293,9 @@ export function ChatShell({
                     updated[updated.length - 1] = {
                       ...last,
                       status: "complete",
-                      finalRenderMode: last.metadata ? "structured" : "markdown",
+                      finalRenderMode: "markdown",
+                      finishReason,
+                      isTruncated: finishReason === "length",
                     };
                   }
                   return updated;

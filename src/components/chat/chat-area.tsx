@@ -59,80 +59,6 @@ const STARTER_STYLES = [
   },
 ] as const;
 
-const SKILL_LABELS = {
-  clarity: "Clarity",
-  logic: "Logic",
-  rebuttal: "Rebuttal",
-  evidence: "Evidence",
-  delivery: "Delivery",
-} as const;
-
-function CoachFocusStrip({
-  coachProfile,
-  coachEnvelope,
-  onPromptSelect,
-  isLoading,
-}: {
-  coachProfile: CoachProfile;
-  coachEnvelope: CoachContextEnvelope;
-  onPromptSelect: (prompt: string) => void;
-  isLoading: boolean;
-}) {
-  const strongest = coachProfile.skillSnapshot.strongestSkill;
-  const weakest = coachProfile.skillSnapshot.weakestSkill;
-  const prompts = coachEnvelope.starterPrompts.slice(0, 3);
-
-  return (
-    <section className="mb-5 rounded-[24px] border border-primary/12 bg-white px-4 py-4 shadow-[0_18px_42px_rgba(11,20,36,0.045)] sm:px-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-            <Target className="h-3.5 w-3.5" />
-            Current focus
-          </div>
-          <h2 className="mt-3 text-lg font-semibold leading-7 text-on-surface">
-            {coachEnvelope.focusTitle}
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
-            {coachEnvelope.focusSummary}
-          </p>
-          {(strongest || weakest) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {strongest && (
-                <span className="rounded-full border border-secondary/20 bg-secondary-container px-3 py-1 text-xs font-semibold text-secondary-dim">
-                  Strongest: {SKILL_LABELS[strongest]}
-                </span>
-              )}
-              {weakest && (
-                <span className="rounded-full border border-primary/16 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-                  Focus next: {SKILL_LABELS[weakest]}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {prompts.length > 0 && (
-          <div className="flex w-full flex-col gap-2 md:w-[260px]">
-            {prompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => onPromptSelect(prompt)}
-                disabled={isLoading}
-                className="group flex items-center justify-between gap-3 rounded-2xl border border-outline-variant/14 bg-surface-container-low px-3 py-2 text-left text-xs font-semibold leading-5 text-on-surface-variant transition-colors hover:border-primary/24 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <span className="line-clamp-2">{prompt}</span>
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function CoachEmptyState({
   coachProfile,
   coachEnvelope,
@@ -300,18 +226,14 @@ export function ChatArea({
               </div>
             ) : (
               <div className="pb-4">
-                <CoachFocusStrip
-                  coachProfile={coachProfile}
-                  coachEnvelope={coachEnvelope}
-                  onPromptSelect={handleSubmit}
-                  isLoading={isLoading || isInsightsLoading}
-                />
                 <div className="space-y-5">
                   {messages.map((msg) => {
-                    const isPreparingAssistant =
+                    const isStreamingAssistant =
                       msg.role === "assistant" && msg.status === "streaming";
+                    const isWaitingForFirstToken =
+                      isStreamingAssistant && msg.content.length === 0;
 
-                    if (isPreparingAssistant) {
+                    if (isWaitingForFirstToken) {
                       return <TypingIndicator key={msg.id} />;
                     }
 
@@ -319,7 +241,7 @@ export function ChatArea({
                       <ChatBubble
                         key={msg.id}
                         message={msg}
-                        isStreaming={false}
+                        isStreaming={isStreamingAssistant}
                         onSendMessage={handleSubmit}
                         onDraftMessage={handleDraftMessage}
                         actionsDisabled={isLoading || isInsightsLoading}

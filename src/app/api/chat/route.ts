@@ -40,7 +40,8 @@ RESPONSE FORMAT RULES:
 - Use line breaks liberally — NEVER write a wall of text
 - Start with a direct answer, then elaborate if needed
 - End with either an encouraging one-liner or a precise next-step suggestion
-- When useful, label sections with coaching-friendly names like "Opening formula", "Try this template", "Coach tip", "Common mistake", "Example", "Drill", or "Next steps" so the UI can turn them into lesson cards.
+- Give the full useful answer as normal readable markdown. Do not rely on UI cards, section labels, or hidden metadata to complete the answer.
+- If details are missing, teach the general method first, then ask for the exact missing detail you need.
 
 DEPTH RULES:
 - If the student is asking about speaking or presentation, stay concise and coaching-oriented
@@ -93,6 +94,8 @@ function getGroq() {
     apiKey: process.env.GROQ_API_KEY!,
   });
 }
+
+const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA === "true";
 
 const COACH_BLOCK_TYPES = [
   "opening_formula",
@@ -600,18 +603,23 @@ RULES FOR THIS CONTEXT:
       messages,
       model: chatModel,
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 1600,
       stream: true,
     });
 
     let fullResponse = "";
+    let finishReason: string | null = null;
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
           for await (const chunk of chatCompletion) {
-            const text = chunk.choices[0]?.delta?.content || "";
+            const choice = chunk.choices[0];
+            const text = choice?.delta?.content || "";
+            if (choice?.finish_reason) {
+              finishReason = choice.finish_reason;
+            }
             if (text) {
               fullResponse += text;
               controller.enqueue(
@@ -622,12 +630,14 @@ RULES FOR THIS CONTEXT:
             }
           }
 
-          const metadata = await generateCoachMessageMetadata({
-            assistantText: fullResponse,
-            studentMessage: message.trim(),
-            mode: coachMetadataContext.mode,
-            focusTitle: coachMetadataContext.focusTitle,
-          });
+          const metadata = ENABLE_COACH_METADATA
+            ? await generateCoachMessageMetadata({
+                assistantText: fullResponse,
+                studentMessage: message.trim(),
+                mode: coachMetadataContext.mode,
+                focusTitle: coachMetadataContext.focusTitle,
+              })
+            : null;
 
           // Save assistant message
           await supabase.from("chat_messages").insert({
@@ -636,14 +646,6 @@ RULES FOR THIS CONTEXT:
             content: fullResponse,
             metadata,
           });
-
-          if (metadata) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ metadata, conversationId })}\n\n`
-              )
-            );
-          }
 
           getPostHogServer().capture({
             distinctId: user.id,
@@ -654,6 +656,7 @@ RULES FOR THIS CONTEXT:
               $ai_output_tokens: Math.ceil(fullResponse.length / 4),
               $ai_latency: Date.now() - streamStartTime,
               $ai_is_error: false,
+              $ai_finish_reason: finishReason,
               $ai_trace_id: crypto.randomUUID(),
               route: "/api/chat",
             },
@@ -666,7 +669,7 @@ RULES FOR THIS CONTEXT:
 
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ done: true, conversationId })}\n\n`
+              `data: ${JSON.stringify({ done: true, conversationId, finishReason })}\n\n`
             )
           );
           controller.close();

@@ -296,6 +296,7 @@ export function CoachChatMockupClient() {
                     onSendMessage={sendMockMessage}
                     onDraftMessage={draftMockMessage}
                     actionsDisabled={showTyping}
+                    renderStructuredMetadata
                   />
                 ))}
                 {showTyping && <TypingIndicator />}
