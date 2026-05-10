@@ -135,6 +135,7 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     practiceReminders: Boolean(input.practiceReminders),
     streakReminders: Boolean(input.streakReminders),
     achievementUpdates: Boolean(input.achievementUpdates),
+    smartFeaturePopups: input.smartFeaturePopups !== false,
     emailNotifications: Boolean(input.emailNotifications),
     analyticsCookiesEnabled: Boolean(input.analyticsCookiesEnabled),
   };

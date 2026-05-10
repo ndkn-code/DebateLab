@@ -12,6 +12,10 @@ export const ANALYTICS_EVENT_NAMES = [
   "web_vital_recorded",
   "admin_grant_created",
   "admin_grant_cancelled",
+  "popup_impression",
+  "popup_dismissed",
+  "popup_cta_clicked",
+  "popup_dont_show_again",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [
@@ -22,6 +26,7 @@ export const ANALYTICS_FEATURE_AREAS = [
   "ai_feedback",
   "admin",
   "profile",
+  "notifications",
 ] as const;
 
 export const ANALYTICS_SOURCES = ["web", "server", "admin", "system"] as const;
@@ -95,6 +100,7 @@ export function inferFeatureAreaFromRoute(route: string | null | undefined): Ana
   const pathname = (route ?? "").toLowerCase();
 
   if (pathname.includes("/dashboard/admin")) return "admin";
+  if (pathname.includes("/notifications") || pathname.includes("/smart-popups")) return "notifications";
   if (pathname.includes("/activity/")) return "activities";
   if (pathname.includes("/courses")) return "courses";
   if (pathname.endsWith("/dashboard") || pathname.includes("/dashboard?")) return "profile";

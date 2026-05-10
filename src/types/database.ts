@@ -337,7 +337,11 @@ export interface AnalyticsEvent {
     | "ai_feedback_completed"
     | "web_vital_recorded"
     | "admin_grant_created"
-    | "admin_grant_cancelled";
+    | "admin_grant_cancelled"
+    | "popup_impression"
+    | "popup_dismissed"
+    | "popup_cta_clicked"
+    | "popup_dont_show_again";
   feature_area:
     | "courses"
     | "activities"
@@ -345,13 +349,73 @@ export interface AnalyticsEvent {
     | "duels"
     | "ai_feedback"
     | "admin"
-    | "profile";
+    | "profile"
+    | "notifications";
   route: string | null;
   duration_ms: number | null;
   occurred_at: string;
   metadata: Record<string, unknown>;
   source: "web" | "server" | "admin" | "system";
   created_at: string;
+}
+
+export interface SmartPopupCampaign {
+  id: string;
+  key: string;
+  surface: "dashboard" | "global";
+  status: "active" | "paused" | "archived";
+  priority: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  cooldown_hours: number;
+  max_impressions_per_user: number;
+  daily_cap_per_user: number;
+  weekly_cap_per_user: number;
+  cta_href: string;
+  image_path: string;
+  copy_en: Record<string, unknown>;
+  copy_vi: Record<string, unknown>;
+  rules: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SmartPopupUserState {
+  user_id: string;
+  segment: string;
+  traits: Record<string, unknown>;
+  campaign_state: Record<string, unknown>;
+  last_refreshed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SmartPopupEvent {
+  id: string;
+  user_id: string;
+  campaign_key: string;
+  event_type:
+    | "impression"
+    | "dismissed"
+    | "cta_clicked"
+    | "dont_show_again";
+  surface: string;
+  route: string | null;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+}
+
+export interface SmartPopupCronRun {
+  id: string;
+  job_key: string;
+  status: "started" | "success" | "error";
+  started_at: string;
+  finished_at: string | null;
+  processed_users: number;
+  generated_opportunities: number;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
 }
 
 export interface AiInsightsCache {

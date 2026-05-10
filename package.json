@@ -14,6 +14,7 @@
     "test:performance-summary": "tsx src/lib/analytics/performance-summary.test.ts",
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
+    "test:smart-popups": "tsx src/lib/smart-popups/rules.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts"
   },
   "dependencies": {

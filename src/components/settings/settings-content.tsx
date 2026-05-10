@@ -322,6 +322,10 @@ export function SettingsContent({
     ) {
       return {
         ...snapshot.draft,
+        smartFeaturePopups:
+          typeof snapshot.draft.smartFeaturePopups === "boolean"
+            ? snapshot.draft.smartFeaturePopups
+            : serverDraft.smartFeaturePopups,
         analyticsCookiesEnabled: serverDraft.analyticsCookiesEnabled,
       };
     }
@@ -781,6 +785,14 @@ export function SettingsContent({
                 checked={draft.achievementUpdates}
                 onCheckedChange={(checked) =>
                   updateDraft("achievementUpdates", checked)
+                }
+              />
+              <ToggleRow
+                title={t("toggles.smart_feature_popups.title")}
+                description={t("toggles.smart_feature_popups.description")}
+                checked={draft.smartFeaturePopups}
+                onCheckedChange={(checked) =>
+                  updateDraft("smartFeaturePopups", checked)
                 }
               />
               <ToggleRow

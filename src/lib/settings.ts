@@ -26,8 +26,10 @@ export interface SettingsPreferences extends Record<string, unknown> {
   practice_reminders?: boolean;
   streak_reminders?: boolean;
   achievement_updates?: boolean;
+  smart_feature_popups?: boolean;
   email_notifications?: boolean;
   analytics_cookies_enabled?: boolean;
+  first_dashboard_visit?: boolean;
 }
 
 export interface SettingsDraft {
@@ -45,6 +47,7 @@ export interface SettingsDraft {
   practiceReminders: boolean;
   streakReminders: boolean;
   achievementUpdates: boolean;
+  smartFeaturePopups: boolean;
   emailNotifications: boolean;
   analyticsCookiesEnabled: boolean;
 }
@@ -122,6 +125,7 @@ const DEFAULT_SETTINGS = {
   practiceReminders: true,
   streakReminders: true,
   achievementUpdates: true,
+  smartFeaturePopups: true,
   emailNotifications: true,
   analyticsCookiesEnabled: true,
 };
@@ -288,6 +292,10 @@ export function normalizeSettingsPreferences(
       source.achievement_updates,
       DEFAULT_SETTINGS.achievementUpdates
     ),
+    smartFeaturePopups: coerceBoolean(
+      source.smart_feature_popups,
+      DEFAULT_SETTINGS.smartFeaturePopups
+    ),
     emailNotifications: coerceBoolean(
       source.email_notifications,
       DEFAULT_SETTINGS.emailNotifications
@@ -333,6 +341,7 @@ export function buildSettingsDraft(input: {
     practiceReminders: normalized.practiceReminders,
     streakReminders: normalized.streakReminders,
     achievementUpdates: normalized.achievementUpdates,
+    smartFeaturePopups: normalized.smartFeaturePopups,
     emailNotifications: normalized.emailNotifications,
     analyticsCookiesEnabled: normalized.analyticsCookiesEnabled,
   } satisfies SettingsDraft;
@@ -364,6 +373,7 @@ export function buildSavedSettingsDraft(input: {
     practiceReminders: normalized.practiceReminders,
     streakReminders: normalized.streakReminders,
     achievementUpdates: normalized.achievementUpdates,
+    smartFeaturePopups: normalized.smartFeaturePopups,
     emailNotifications: normalized.emailNotifications,
     analyticsCookiesEnabled: normalized.analyticsCookiesEnabled,
   } satisfies SettingsDraft;
@@ -387,6 +397,7 @@ export function draftToPreferences(
     practice_reminders: draft.practiceReminders,
     streak_reminders: draft.streakReminders,
     achievement_updates: draft.achievementUpdates,
+    smart_feature_popups: draft.smartFeaturePopups,
     email_notifications: draft.emailNotifications,
     analytics_cookies_enabled: draft.analyticsCookiesEnabled,
   } satisfies SettingsPreferences;

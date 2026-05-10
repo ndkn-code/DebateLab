@@ -1189,6 +1189,10 @@
         "title": "Thành tích & cập nhật",
         "description": "Nhận thông tin về cột mốc mới, tính năng mới và tiến bộ của bạn."
       },
+      "smart_feature_popups": {
+        "title": "Popup gợi ý thông minh",
+        "description": "Cho phép gợi ý trong app được cá nhân hoá cho luyện tập, khoá học, streak và AI Coach."
+      },
       "email_notifications": {
         "title": "Thông báo qua email",
         "description": "Cho phép gửi lời nhắc quan trọng và cập nhật sản phẩm qua email."

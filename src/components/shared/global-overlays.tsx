@@ -3,6 +3,7 @@
 import { useAchievementStore } from "@/stores/achievement-store";
 import { AchievementToast } from "@/components/ui/achievement-toast";
 import { LevelUpOverlay } from "@/components/ui/level-up-overlay";
+import { SmartPopupHost } from "@/components/shared/smart-popup-host";
 
 export function GlobalOverlays() {
   const {
@@ -19,6 +20,7 @@ export function GlobalOverlays() {
         onDismiss={dismissAchievement}
       />
       <LevelUpOverlay newLevel={levelUp} onDismiss={dismissLevelUp} />
+      <SmartPopupHost paused={Boolean(pendingAchievement || levelUp)} />
     </>
   );
 }
