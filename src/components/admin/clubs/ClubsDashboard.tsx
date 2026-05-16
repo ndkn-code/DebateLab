@@ -102,7 +102,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           </div>
           <div className="flex h-10 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#40516F]">
             <ShieldCheck className="h-4 w-4 text-[#34C759]" />
-            QA/QC pipeline active
+            {data.qaEnabled ? "QA/QC pipeline active" : "Data contract V1"}
           </div>
         </div>
 
