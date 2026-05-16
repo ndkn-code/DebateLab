@@ -2,6 +2,23 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
+const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
+
+function createDebugId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `speech-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function logSpeechDebug(
+  debugId: string,
+  event: string,
+  metadata: Record<string, unknown> = {}
+) {
+  console.info("[speech-debug]", { debugId, event, ...metadata });
+}
+
 function float32ToInt16(float32Array: Float32Array): ArrayBuffer {
   const int16Array = new Int16Array(float32Array.length);
   for (let i = 0; i < float32Array.length; i++) {
@@ -43,6 +60,9 @@ export function useDeepgramTranscription() {
   const reconnectCountRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const debugIdRef = useRef<string>(createDebugId());
+  const hasReceivedInterimRef = useRef(false);
+  const hasReceivedFinalRef = useRef(false);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -94,12 +114,19 @@ export function useDeepgramTranscription() {
 
   const connectWebSocket = useCallback(
     async (micStream: MediaStream) => {
+      const debugId = debugIdRef.current;
+      logSpeechDebug(debugId, "deepgram_token_fetch_started");
+
       // Fetch API key from our server endpoint
       let apiKey: string;
       let authScheme: "token" | "bearer" = "bearer";
       try {
         const res = await fetch("/api/deepgram-token");
-        if (!res.ok) throw new Error("Failed to get token");
+        logSpeechDebug(debugId, "deepgram_token_fetch_finished", {
+          status: res.status,
+          ok: res.ok,
+        });
+        if (!res.ok) throw new Error(`Failed to get token (${res.status})`);
         const data = (await res.json()) as {
           key?: string;
           authScheme?: "token" | "bearer";
@@ -109,9 +136,30 @@ export function useDeepgramTranscription() {
         apiKey = data.key;
         authScheme = data.authScheme === "token" ? "token" : "bearer";
       } catch (err) {
+        logSpeechDebug(debugId, "deepgram_token_fetch_failed", {
+          message: err instanceof Error ? err.message : String(err),
+        });
         setError("Failed to initialize speech recognition");
         return;
       }
+
+      let audioContext: AudioContext;
+      try {
+        audioContext = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = audioContext;
+      } catch (err) {
+        logSpeechDebug(debugId, "audio_context_failed", {
+          message: err instanceof Error ? err.message : String(err),
+        });
+        setError("Failed to set up audio capture");
+        return;
+      }
+
+      const actualSampleRate = audioContext.sampleRate;
+      logSpeechDebug(debugId, "audio_context_ready", {
+        actualSampleRate,
+        requestedSampleRate: 16000,
+      });
 
       // Build Deepgram WebSocket URL
       const wsUrl = new URL("wss://api.deepgram.com/v1/listen");
@@ -123,21 +171,25 @@ export function useDeepgramTranscription() {
       wsUrl.searchParams.set("interim_results", "true");
       wsUrl.searchParams.set("endpointing", "300");
       wsUrl.searchParams.set("encoding", "linear16");
-      wsUrl.searchParams.set("sample_rate", "16000");
+      wsUrl.searchParams.set("sample_rate", String(actualSampleRate));
       wsUrl.searchParams.set("channels", "1");
 
       const ws = new WebSocket(wsUrl.toString(), [authScheme, apiKey]);
       wsRef.current = ws;
+      logSpeechDebug(debugId, "deepgram_socket_created", {
+        sampleRate: actualSampleRate,
+        authScheme,
+      });
 
       ws.onopen = () => {
         reconnectCountRef.current = 0;
         setError(null);
+        logSpeechDebug(debugId, "deepgram_socket_opened", {
+          sampleRate: actualSampleRate,
+        });
 
         // Set up audio processing to capture PCM data and send to Deepgram
         try {
-          const audioContext = new AudioContext({ sampleRate: 16000 });
-          audioContextRef.current = audioContext;
-
           const source = audioContext.createMediaStreamSource(micStream);
           sourceRef.current = source;
 
@@ -156,7 +208,10 @@ export function useDeepgramTranscription() {
           source.connect(processor);
           processor.connect(audioContext.destination);
 
-        } catch {
+        } catch (err) {
+          logSpeechDebug(debugId, "audio_processing_failed", {
+            message: err instanceof Error ? err.message : String(err),
+          });
           setError("Failed to set up audio capture");
         }
       };
@@ -181,11 +236,26 @@ export function useDeepgramTranscription() {
             }
 
             if (data.is_final) {
+              if (!hasReceivedFinalRef.current) {
+                hasReceivedFinalRef.current = true;
+                logSpeechDebug(debugId, "deepgram_first_final_result", {
+                  transcriptLength: text.length,
+                  confidence: alt.confidence,
+                  speechFinal: data.speech_final,
+                });
+              }
               // Append finalized text to transcript
               transcriptRef.current += (transcriptRef.current ? " " : "") + text;
               setTranscript(transcriptRef.current);
               setInterimTranscript("");
             } else {
+              if (!hasReceivedInterimRef.current) {
+                hasReceivedInterimRef.current = true;
+                logSpeechDebug(debugId, "deepgram_first_interim_result", {
+                  transcriptLength: text.length,
+                  confidence: alt.confidence,
+                });
+              }
               // Show interim text
               setInterimTranscript(text);
             }
@@ -196,10 +266,22 @@ export function useDeepgramTranscription() {
       };
 
       ws.onerror = () => {
+        logSpeechDebug(debugId, "deepgram_socket_error", {
+          readyState: ws.readyState,
+        });
         setError("network");
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        logSpeechDebug(debugId, "deepgram_socket_closed", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          shouldReconnect: shouldBeListeningRef.current,
+          hasReceivedInterim: hasReceivedInterimRef.current,
+          hasReceivedFinal: hasReceivedFinalRef.current,
+          transcriptLength: transcriptRef.current.length,
+        });
         closeAudioProcessing();
 
         if (shouldBeListeningRef.current) {
@@ -225,9 +307,19 @@ export function useDeepgramTranscription() {
     async (micStream: MediaStream) => {
       if (typeof window === "undefined") return;
 
+      const debugId = createDebugId();
+      debugIdRef.current = debugId;
+      window.sessionStorage.setItem(PRACTICE_DEBUG_ID_STORAGE_KEY, debugId);
+      logSpeechDebug(debugId, "speech_start_requested", {
+        trackCount: micStream.getAudioTracks().length,
+        trackState: micStream.getAudioTracks()[0]?.readyState ?? "missing",
+      });
+
       setError(null);
       reconnectCountRef.current = 0;
       hasReceivedSpeechRef.current = false;
+      hasReceivedInterimRef.current = false;
+      hasReceivedFinalRef.current = false;
       setHasReceivedSpeech(false);
 
       shouldBeListeningRef.current = true;
@@ -241,6 +333,12 @@ export function useDeepgramTranscription() {
   );
 
   const stopListening = useCallback(() => {
+    logSpeechDebug(debugIdRef.current, "speech_stop_requested", {
+      hasReceivedSpeech: hasReceivedSpeechRef.current,
+      hasReceivedInterim: hasReceivedInterimRef.current,
+      hasReceivedFinal: hasReceivedFinalRef.current,
+      transcriptLength: transcriptRef.current.length,
+    });
     shouldBeListeningRef.current = false;
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);

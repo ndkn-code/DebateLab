@@ -33,6 +33,18 @@ interface AnalyzeRequest {
   rounds?: DebateRound[];
 }
 
+function createAnalyzeRequestId() {
+  return `analyze-${crypto.randomUUID()}`;
+}
+
+function logAnalyzeRequest(
+  requestId: string,
+  event: string,
+  metadata: Record<string, unknown> = {}
+) {
+  console.info(JSON.stringify({ scope: "api/analyze", requestId, event, ...metadata }));
+}
+
 function parseRound(value: unknown, index: number): DebateRound {
   if (!isPlainRecord(value)) {
     throw new RequestValidationError(`rounds[${index}] is invalid.`);
@@ -124,6 +136,10 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = req.headers.get("x-debug-id") || createAnalyzeRequestId();
+  const startedAt = Date.now();
+  logAnalyzeRequest(requestId, "request_received");
+
   try {
     const supabase = await createClient();
     const {
@@ -131,6 +147,7 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
+      logAnalyzeRequest(requestId, "unauthorized");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -140,6 +157,9 @@ export async function POST(req: NextRequest) {
       windowSeconds: 60,
     });
     if (!rateLimit.success) {
+      logAnalyzeRequest(requestId, "rate_limited", {
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
         {
@@ -150,7 +170,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!process.env.GEMINI_API_KEY) {
-      if (process.env.NODE_ENV === 'development') console.error("GEMINI_API_KEY is not set");
+      console.error(JSON.stringify({
+        scope: "api/analyze",
+        requestId,
+        event: "missing_gemini_api_key",
+      }));
       return NextResponse.json(
         { error: "Something went wrong. Please try again." },
         { status: 500 }
@@ -173,6 +197,11 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!transcript || !topic || !side) {
+      logAnalyzeRequest(requestId, "missing_required_fields", {
+        hasTranscript: Boolean(transcript),
+        hasTopic: Boolean(topic),
+        hasSide: Boolean(side),
+      });
       return NextResponse.json(
         { error: "Missing required fields: transcript, topic, side" },
         { status: 400 }
@@ -183,7 +212,15 @@ export async function POST(req: NextRequest) {
     const wordCount = transcript
       .split(/\s+/)
       .filter((w) => w.length > 0).length;
+    logAnalyzeRequest(requestId, "request_validated", {
+      wordCount,
+      practiceTrack,
+      mode: speechType,
+      isFullRound,
+      roundCount: rounds?.length ?? 0,
+    });
     if (wordCount < 20) {
+      logAnalyzeRequest(requestId, "transcript_too_short", { wordCount });
       return NextResponse.json(
         {
           error: `Transcript too short (${wordCount} words). Minimum 20 words required.`,
@@ -201,6 +238,7 @@ export async function POST(req: NextRequest) {
         speech_type: speechType || "Opening Statement",
         practice_track: practiceTrack || "debate",
         word_count: wordCount,
+        debug_id: requestId,
       },
     });
 
@@ -210,6 +248,9 @@ export async function POST(req: NextRequest) {
     });
 
     try {
+      logAnalyzeRequest(requestId, "gemini_started", {
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      });
       const feedback = await Promise.race([
         analyzeDebate({
           transcript,
@@ -236,14 +277,28 @@ export async function POST(req: NextRequest) {
           speech_type: speechType || "Opening Statement",
           practice_track: practiceTrack || "debate",
           model: modelUsed,
+          debug_id: requestId,
         },
+      });
+      logAnalyzeRequest(requestId, "completed", {
+        durationMs: Date.now() - startedAt,
+        model: modelUsed,
       });
       return NextResponse.json({ ...feedback, _model: modelUsed });
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') console.error("Gemini API error:", err);
+      console.error(JSON.stringify({
+        scope: "api/analyze",
+        requestId,
+        event: "gemini_failed",
+        durationMs: Date.now() - startedAt,
+        message: err instanceof Error ? err.message : String(err),
+      }));
 
       if (err instanceof Error) {
         if (err.message === "TIMEOUT") {
+          logAnalyzeRequest(requestId, "timeout", {
+            durationMs: Date.now() - startedAt,
+          });
           return NextResponse.json(
             {
               error:
@@ -259,6 +314,9 @@ export async function POST(req: NextRequest) {
           );
         }
         if (err.message.includes("Invalid response") || err.message.includes("JSON")) {
+          logAnalyzeRequest(requestId, "parse_failed", {
+            message: err.message,
+          });
           return NextResponse.json(
             { error: "Failed to parse AI response. Please try again." },
             { status: 502 }
@@ -283,9 +341,19 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     if (err instanceof RequestValidationError) {
+      logAnalyzeRequest(requestId, "request_validation_failed", {
+        durationMs: Date.now() - startedAt,
+        message: err.message,
+      });
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    if (process.env.NODE_ENV === 'development') console.error("Analyze API unexpected error:", err);
+    console.error(JSON.stringify({
+      scope: "api/analyze",
+      requestId,
+      event: "unexpected_error",
+      durationMs: Date.now() - startedAt,
+      message: err instanceof Error ? err.message : String(err),
+    }));
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }

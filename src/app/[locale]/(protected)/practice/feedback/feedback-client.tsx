@@ -26,6 +26,32 @@ import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/refe
 import type { DebateSession } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 
+const ANALYZE_CLIENT_TIMEOUT_MS = 65000;
+const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
+
+function createAnalyzeDebugId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `analyze-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function getPracticeDebugId() {
+  const stored = window.sessionStorage.getItem(PRACTICE_DEBUG_ID_STORAGE_KEY);
+  if (stored) return stored;
+  const debugId = createAnalyzeDebugId();
+  window.sessionStorage.setItem(PRACTICE_DEBUG_ID_STORAGE_KEY, debugId);
+  return debugId;
+}
+
+function logAnalyzeDebug(
+  debugId: string,
+  event: string,
+  metadata: Record<string, unknown> = {}
+) {
+  console.info("[analyze-debug]", { debugId, event, ...metadata });
+}
+
 export default function FeedbackPage() {
   const router = useRouter();
   const t = useTranslations("sessionResult");
@@ -91,7 +117,11 @@ export default function FeedbackPage() {
   );
 
   const fetchFeedback = useCallback(async () => {
-    if (!selectedTopic || !transcript) return;
+    if (!selectedTopic || !transcript) {
+      setError("Missing session transcript. Please try the speech again.");
+      setLoading(false);
+      return;
+    }
 
     const actualDuration = sessionStartTime
       ? Math.round((Date.now() - sessionStartTime) / 1000)
@@ -106,10 +136,33 @@ export default function FeedbackPage() {
             ? "Opening Statement"
             : "Quick Debate Practice";
 
+    const debugId = getPracticeDebugId();
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      logAnalyzeDebug(debugId, "client_timeout", {
+        timeoutMs: ANALYZE_CLIENT_TIMEOUT_MS,
+      });
+      controller.abort();
+    }, ANALYZE_CLIENT_TIMEOUT_MS);
+
     try {
+      const wordCount = transcript
+        .split(/\s+/)
+        .filter((w: string) => w.length > 0).length;
+      logAnalyzeDebug(debugId, "request_started", {
+        wordCount,
+        practiceTrack,
+        mode,
+        isFullRound,
+      });
+
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Id": debugId,
+        },
+        signal: controller.signal,
         body: JSON.stringify({
           transcript,
           topic: selectedTopic.title,
@@ -121,6 +174,10 @@ export default function FeedbackPage() {
           isFullRound,
           rounds: isFullRound ? rounds : undefined,
         }),
+      });
+      logAnalyzeDebug(debugId, "response_received", {
+        status: res.status,
+        ok: res.ok,
       });
 
       if (!res.ok) {
@@ -145,13 +202,18 @@ export default function FeedbackPage() {
         throw new Error("Received invalid response from server. Please try again.");
       }
 
-      if (data._model) {
-        setModelUsed(data._model);
+      const modelUsedByResponse = data._model ?? null;
+      if (modelUsedByResponse) {
+        setModelUsed(modelUsedByResponse);
         delete data._model;
       }
 
       const normalizedFeedback = normalizeFeedback(data);
       setResultDuration(actualDuration);
+      logAnalyzeDebug(debugId, "feedback_parsed", {
+        model: modelUsedByResponse,
+        totalScore: normalizedFeedback.totalScore,
+      });
 
       setLocalFeedback(normalizedFeedback);
       setFeedback(normalizedFeedback);
@@ -208,10 +270,17 @@ export default function FeedbackPage() {
         }
       }
     } catch (err) {
+      logAnalyzeDebug(debugId, "request_failed", {
+        message: err instanceof Error ? err.message : String(err),
+        name: err instanceof Error ? err.name : undefined,
+      });
       setError(
-        err instanceof Error ? err.message : "Failed to analyze speech"
+        err instanceof DOMException && err.name === "AbortError"
+          ? "Analysis is taking longer than expected. Your transcript is safe, so please try again in a moment."
+          : err instanceof Error ? err.message : "Failed to analyze speech"
       );
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [
