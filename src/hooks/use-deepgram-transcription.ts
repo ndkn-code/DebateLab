@@ -40,6 +40,51 @@ interface DeepgramResult {
   };
 }
 
+interface DeepgramTokenResponse {
+  key?: string;
+  authScheme?: "token" | "bearer";
+  error?: string;
+  code?: string;
+  requestId?: string;
+}
+
+type DeepgramTokenError = Error & {
+  code?: string;
+  status?: number;
+  requestId?: string;
+};
+
+function createDeepgramTokenError(
+  message: string,
+  metadata: Pick<DeepgramTokenError, "code" | "status" | "requestId"> = {}
+) {
+  const error = new Error(message) as DeepgramTokenError;
+  error.code = metadata.code;
+  error.status = metadata.status;
+  error.requestId = metadata.requestId;
+  return error;
+}
+
+function getTokenFailureSpeechError(error: DeepgramTokenError) {
+  switch (error.code) {
+    case "unauthorized":
+      return "token-unauthorized";
+    case "rate_limited":
+      return "token-rate-limited";
+    case "deepgram_missing_api_key":
+    case "deepgram_grant_forbidden":
+    case "deepgram_grant_missing_access_token":
+      return "token-service-misconfigured";
+    case "deepgram_grant_failed":
+    case "deepgram_token_unexpected":
+      return "token-service";
+    default:
+      if (error.status === 401) return "token-unauthorized";
+      if (error.status === 429) return "token-rate-limited";
+      return "token-service";
+  }
+}
+
 export function useDeepgramTranscription() {
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -121,25 +166,49 @@ export function useDeepgramTranscription() {
       let apiKey: string;
       let authScheme: "token" | "bearer" = "bearer";
       try {
-        const res = await fetch("/api/deepgram-token");
+        const res = await fetch("/api/deepgram-token", {
+          cache: "no-store",
+          headers: {
+            "X-Debug-Id": debugId,
+          },
+        });
+        const data = (await res.json().catch(() => null)) as
+          | DeepgramTokenResponse
+          | null;
         logSpeechDebug(debugId, "deepgram_token_fetch_finished", {
           status: res.status,
           ok: res.ok,
+          endpointCode: data?.code,
+          tokenRequestId: data?.requestId,
         });
-        if (!res.ok) throw new Error(`Failed to get token (${res.status})`);
-        const data = (await res.json()) as {
-          key?: string;
-          authScheme?: "token" | "bearer";
-          error?: string;
-        };
-        if (!data.key) throw new Error(data.error || "No key returned");
+        if (!res.ok) {
+          throw createDeepgramTokenError(
+            data?.error || `Failed to get token (${res.status})`,
+            {
+              code: data?.code,
+              status: res.status,
+              requestId: data?.requestId,
+            }
+          );
+        }
+        if (!data?.key) {
+          throw createDeepgramTokenError(data?.error || "No key returned", {
+            code: data?.code ?? "deepgram_token_missing_key",
+            status: res.status,
+            requestId: data?.requestId,
+          });
+        }
         apiKey = data.key;
         authScheme = data.authScheme === "token" ? "token" : "bearer";
       } catch (err) {
+        const tokenError = err as DeepgramTokenError;
         logSpeechDebug(debugId, "deepgram_token_fetch_failed", {
-          message: err instanceof Error ? err.message : String(err),
+          message: tokenError.message ?? String(err),
+          code: tokenError.code,
+          status: tokenError.status,
+          tokenRequestId: tokenError.requestId,
         });
-        setError("Failed to initialize speech recognition");
+        setError(getTokenFailureSpeechError(tokenError));
         return;
       }
 

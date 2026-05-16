@@ -116,6 +116,14 @@ export function SpeakingPhase({
         return "Speech recognition requires an internet connection. Check your network.";
       case "reconnecting":
         return "Reconnecting speech recognition...";
+      case "token-unauthorized":
+        return "Please sign in again to start speech recognition.";
+      case "token-rate-limited":
+        return "Speech recognition is reconnecting too often. Please wait a moment and try again.";
+      case "token-service-misconfigured":
+        return "Speech recognition is not configured correctly. Please contact support.";
+      case "token-service":
+        return "Speech recognition is temporarily unavailable. Please try again later.";
       default:
         return "Speech recognition error. Attempting to recover...";
     }
