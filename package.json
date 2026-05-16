@@ -10,6 +10,8 @@
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
+    "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
+    "test:club-performance": "tsx src/lib/performance/club-performance-recorder.test.ts",
     "test:entitlements": "tsx src/lib/entitlements.test.ts",
     "test:performance-summary": "tsx src/lib/analytics/performance-summary.test.ts",
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",

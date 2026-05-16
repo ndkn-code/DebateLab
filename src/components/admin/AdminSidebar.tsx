@@ -2,7 +2,7 @@
 
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays } from "lucide-react";
+import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/overview", key: "overview" as const, icon: BarChart3 },
   { href: "/dashboard/admin/users", key: "users" as const, icon: Users },
   { href: "/dashboard/admin/classes", key: "classes" as const, icon: CalendarDays },
+  { href: "/dashboard/admin/clubs", key: "clubs" as const, icon: Building2 },
   { href: "/dashboard/admin/courses", key: "courses" as const, icon: BookOpen },
   { href: "/dashboard/admin/duels", key: "duels" as const, icon: Swords },
 ] as const;

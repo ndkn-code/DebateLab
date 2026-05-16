@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   AiHighlight,
+  ClubPracticeContext,
   DebateTopic,
   DebateRound,
   AiDifficulty,
@@ -48,6 +49,7 @@ interface SessionDraftSnapshot {
   prepNotes: string;
   rounds: DebateRound[];
   sessionStartTime: number | null;
+  clubContext?: ClubPracticeContext;
 }
 
 interface SessionState {
@@ -70,6 +72,7 @@ interface SessionState {
   audioBlob: Blob | null;
   audioUrl: string | null;
   draftId: string | null;
+  clubContext: ClubPracticeContext | null;
 
   // Full Round data
   currentRound: number;
@@ -92,6 +95,7 @@ interface SessionState {
   setAudioBlob: (blob: Blob | null) => void;
   setAudioUrl: (url: string | null) => void;
   setDraftId: (draftId: string | null) => void;
+  setClubContext: (context: ClubPracticeContext | null) => void;
   startSession: () => void;
   restoreSessionDraft: (draft: SessionDraftSnapshot) => void;
   resetSession: () => void;
@@ -123,6 +127,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   audioBlob: null,
   audioUrl: null,
   draftId: null,
+  clubContext: null,
 
   currentRound: 1,
   rounds: [],
@@ -150,6 +155,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setAudioBlob: (blob) => set({ audioBlob: blob }),
   setAudioUrl: (url) => set({ audioUrl: url }),
   setDraftId: (draftId) => set({ draftId }),
+  setClubContext: (clubContext) => set({ clubContext }),
   startSession: () =>
     set((state) => {
       const resolvedSide =
@@ -196,6 +202,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       rounds: draft.rounds,
       sessionStartTime: draft.sessionStartTime,
       draftId: draft.draftId,
+      clubContext: draft.clubContext ?? null,
       feedback: null,
       audioBlob: null,
       audioUrl: null,
@@ -218,6 +225,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       audioBlob: null,
       audioUrl: null,
       draftId: null,
+      clubContext: null,
       currentRound: 1,
       rounds: [],
     }),

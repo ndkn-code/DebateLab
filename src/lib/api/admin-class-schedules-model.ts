@@ -31,7 +31,7 @@ export interface ScheduleOccurrence {
   endsAt: string;
 }
 
-export const DEFAULT_CLASS_TIMEZONE = "America/New_York";
+export const DEFAULT_CLASS_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 export const PROGRAM_OPTIONS: Array<{
   value: AdminClassProgram;

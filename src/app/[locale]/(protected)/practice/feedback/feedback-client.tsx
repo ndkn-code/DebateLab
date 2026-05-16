@@ -68,6 +68,7 @@ export default function FeedbackPage() {
     rounds,
     prepNotes,
     draftId,
+    clubContext,
     setDraftId,
     aiDifficulty,
     setFeedback,
@@ -202,16 +203,16 @@ export default function FeedbackPage() {
         throw new Error("Received invalid response from server. Please try again.");
       }
 
-      const modelUsedByResponse = data._model ?? null;
-      if (modelUsedByResponse) {
-        setModelUsed(modelUsedByResponse);
+      const responseModel = data._model ?? null;
+      if (responseModel) {
+        setModelUsed(responseModel);
         delete data._model;
       }
 
       const normalizedFeedback = normalizeFeedback(data);
       setResultDuration(actualDuration);
       logAnalyzeDebug(debugId, "feedback_parsed", {
-        model: modelUsedByResponse,
+        model: responseModel,
         totalScore: normalizedFeedback.totalScore,
       });
 
@@ -238,6 +239,8 @@ export default function FeedbackPage() {
           feedback: normalizedFeedback,
           duration: actualDuration,
           prepNotes: useSessionStore.getState().prepNotes,
+          clubContext: useSessionStore.getState().clubContext ?? undefined,
+          modelName: responseModel,
           aiDifficulty:
             practiceTrack === "debate" && mode === "full"
               ? aiDifficulty
@@ -387,6 +390,8 @@ export default function FeedbackPage() {
       feedback,
       duration: resultDuration,
       prepNotes,
+      clubContext: clubContext ?? undefined,
+      modelName: modelUsed,
       aiDifficulty:
         practiceTrack === "debate" && mode === "full"
           ? aiDifficulty
@@ -409,6 +414,8 @@ export default function FeedbackPage() {
     speechTime,
     transcript,
     prepNotes,
+    clubContext,
+    modelUsed,
   ]);
 
   if (!selectedTopic) return null;

@@ -33,6 +33,13 @@ export interface DebateRound {
   duration?: number;
 }
 
+export interface ClubPracticeContext {
+  clubId?: string;
+  classId?: string;
+  assignmentId?: string;
+  assignmentTitle?: string;
+}
+
 export interface DebateSession {
   id: string;
   date: string;
@@ -46,6 +53,8 @@ export interface DebateSession {
   feedback: DebateScore | null;
   duration: number;
   prepNotes?: string;
+  clubContext?: ClubPracticeContext;
+  modelName?: string | null;
   // Full Round fields
   aiDifficulty?: AiDifficulty;
   rounds?: DebateRound[];

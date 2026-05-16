@@ -151,6 +151,7 @@ export default function PracticePage() {
     setSide,
     setPrepTime,
     setSpeechTime,
+    setClubContext,
   } = useSessionStore();
 
   const allDisplays = useMemo(() => buildPracticeTopicDisplays(topics), []);
@@ -225,6 +226,7 @@ export default function PracticePage() {
     setPracticeTrack(practiceTrack);
     setAiDifficulty(initialPrefill.aiDifficulty ?? "medium");
     setSide(initialPrefill.side ?? "proposition");
+    setClubContext(initialPrefill.clubContext ?? null);
 
     if (practiceTrack === "debate") {
       setMode(initialPrefill.mode ?? "quick");
@@ -236,6 +238,7 @@ export default function PracticePage() {
     setMode,
     setPracticeTrack,
     setSide,
+    setClubContext,
   ]);
 
   useEffect(() => {
@@ -271,6 +274,7 @@ export default function PracticePage() {
       setSpeechTime(defaults.defaultSpeechTime);
       setAiDifficulty(initialPrefill?.aiDifficulty ?? defaults.defaultDifficulty);
       setSide(initialPrefill?.side ?? "proposition");
+      setClubContext(initialPrefill?.clubContext ?? null);
       setOrbBalance(profile?.orb_balance ?? 0);
       setReferralCode(profile?.referral_code ?? "");
     }
@@ -282,6 +286,7 @@ export default function PracticePage() {
     };
   }, [
     initialPrefill?.aiDifficulty,
+    initialPrefill?.clubContext,
     initialPrefill?.mode,
     initialPrefill?.practiceTrack,
     initialPrefill?.side,
@@ -290,6 +295,7 @@ export default function PracticePage() {
     setPracticeTrack,
     setPrepTime,
     setSide,
+    setClubContext,
     setSpeechTime,
   ]);
 

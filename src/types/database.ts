@@ -117,6 +117,7 @@ export interface DebateSessionRow {
   topic_category: string;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   side: "proposition" | "opposition";
+  practice_track: "speaking" | "debate";
   mode: "quick" | "full";
   prep_time: number;
   speech_time: number;
@@ -338,6 +339,10 @@ export interface AnalyticsEvent {
     | "web_vital_recorded"
     | "admin_grant_created"
     | "admin_grant_cancelled"
+    | "club_assignment_created"
+    | "club_assignment_started"
+    | "club_assignment_submitted"
+    | "club_review_created"
     | "popup_impression"
     | "popup_dismissed"
     | "popup_cta_clicked"
@@ -349,6 +354,7 @@ export interface AnalyticsEvent {
     | "duels"
     | "ai_feedback"
     | "admin"
+    | "clubs"
     | "profile"
     | "notifications";
   route: string | null;

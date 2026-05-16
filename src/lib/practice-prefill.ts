@@ -1,5 +1,5 @@
 import { CATEGORIES, topics } from "@/lib/topics";
-import type { AiDifficulty, DebateTopic, PracticeTrack } from "@/types";
+import type { AiDifficulty, ClubPracticeContext, DebateTopic, PracticeTrack } from "@/types";
 
 export type PracticeMode = "quick" | "full";
 export type PracticeSide = "proposition" | "opposition" | "random";
@@ -12,6 +12,7 @@ export interface PracticePrefill {
   mode?: PracticeMode;
   aiDifficulty?: AiDifficulty;
   side?: PracticeSide;
+  clubContext?: ClubPracticeContext;
 }
 
 export interface PracticeQueryPrefill {
@@ -22,6 +23,7 @@ export interface PracticeQueryPrefill {
   mode?: PracticeMode;
   aiDifficulty?: AiDifficulty;
   side?: PracticeSide;
+  clubContext?: ClubPracticeContext;
 }
 
 const CATEGORY_SET = new Set<string>(CATEGORIES);
@@ -55,6 +57,24 @@ function parseSide(value?: string | null): PracticeSide | undefined {
     value === "random"
     ? value
     : undefined;
+}
+
+function parseContextId(value?: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)
+    ? trimmed
+    : undefined;
+}
+
+function parseClubContext(searchParams: URLSearchParams): ClubPracticeContext | undefined {
+  const clubId = parseContextId(searchParams.get("clubId"));
+  const classId = parseContextId(searchParams.get("classId"));
+  const assignmentId = parseContextId(searchParams.get("assignmentId"));
+  const assignmentTitle = searchParams.get("assignmentTitle")?.trim() || undefined;
+
+  if (!clubId && !classId && !assignmentId && !assignmentTitle) return undefined;
+  return { clubId, classId, assignmentId, assignmentTitle };
 }
 
 function toTopicDifficulty(
@@ -107,6 +127,7 @@ export function readPracticePrefill(
   const mode = parseMode(searchParams.get("mode"));
   const aiDifficulty = parseAiDifficulty(searchParams.get("difficulty"));
   const side = parseSide(searchParams.get("side"));
+  const clubContext = parseClubContext(searchParams);
 
   if (
     !topicTitle &&
@@ -115,7 +136,8 @@ export function readPracticePrefill(
     !practiceTrack &&
     !mode &&
     !aiDifficulty &&
-    !side
+    !side &&
+    !clubContext
   ) {
     return null;
   }
@@ -128,6 +150,7 @@ export function readPracticePrefill(
     mode,
     aiDifficulty,
     side,
+    clubContext,
   };
 }
 
@@ -157,6 +180,22 @@ export function buildPracticeHref(prefill: PracticePrefill) {
 
   if (prefill.side) {
     searchParams.set("side", prefill.side);
+  }
+
+  if (prefill.clubContext?.clubId) {
+    searchParams.set("clubId", prefill.clubContext.clubId);
+  }
+
+  if (prefill.clubContext?.classId) {
+    searchParams.set("classId", prefill.clubContext.classId);
+  }
+
+  if (prefill.clubContext?.assignmentId) {
+    searchParams.set("assignmentId", prefill.clubContext.assignmentId);
+  }
+
+  if (prefill.clubContext?.assignmentTitle) {
+    searchParams.set("assignmentTitle", prefill.clubContext.assignmentTitle);
   }
 
   return `/practice?${searchParams.toString()}`;
