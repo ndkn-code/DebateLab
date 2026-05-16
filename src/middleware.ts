@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/api") ||
     pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/email/unsubscribe") ||
     pathname.startsWith("/join/")
   ) {
     return await updateSession(request);

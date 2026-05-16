@@ -1,0 +1,157 @@
+import type { EmailAdminDashboardData } from "@/lib/email/admin";
+
+function makeTrend() {
+  const days = [
+    ["2026-05-03", 18, 16, 10, 4, 1],
+    ["2026-05-04", 28, 27, 18, 7, 0],
+    ["2026-05-05", 21, 19, 13, 5, 2],
+    ["2026-05-06", 34, 31, 20, 9, 1],
+    ["2026-05-07", 42, 39, 25, 11, 0],
+    ["2026-05-08", 33, 30, 18, 8, 1],
+    ["2026-05-09", 26, 24, 15, 6, 0],
+    ["2026-05-10", 44, 41, 29, 13, 1],
+    ["2026-05-11", 51, 48, 31, 15, 2],
+    ["2026-05-12", 39, 36, 22, 10, 0],
+    ["2026-05-13", 57, 54, 36, 17, 1],
+    ["2026-05-14", 46, 43, 28, 12, 0],
+    ["2026-05-15", 62, 58, 41, 20, 1],
+    ["2026-05-16", 35, 31, 19, 8, 0],
+  ] as const;
+
+  return days.map(([date, sent, delivered, opened, clicked, failed]) => ({
+    date,
+    sent,
+    delivered,
+    opened,
+    clicked,
+    failed,
+  }));
+}
+
+export function getEmailAdminFixtureData(): EmailAdminDashboardData {
+  return {
+    domain: {
+      name: "thinkfy.net",
+      status: "verified",
+      sending: "enabled",
+      receiving: "disabled",
+      openTracking: true,
+      clickTracking: true,
+    },
+    kpis: [
+      { key: "sent", label: "Sent", value: 496, tone: "neutral" },
+      { key: "delivered", label: "Delivered", value: 467, tone: "success" },
+      { key: "opened", label: "Opened", value: 305, tone: "neutral" },
+      { key: "clicked", label: "Clicked", value: 145, tone: "success" },
+      { key: "bounced", label: "Bounced", value: 6, tone: "warning" },
+      { key: "failed", label: "Failed", value: 4, tone: "error" },
+      { key: "suppressed", label: "Suppressed", value: 11, tone: "warning" },
+    ],
+    trend: makeTrend(),
+    templatePerformance: [
+      { templateKey: "practice_reminder", sent: 132, delivered: 125, opened: 82, clicked: 39, failed: 2 },
+      { templateKey: "streak_rescue", sent: 92, delivered: 89, opened: 66, clicked: 34, failed: 1 },
+      { templateKey: "weekly_progress", sent: 81, delivered: 78, opened: 51, clicked: 21, failed: 0 },
+      { templateKey: "winback", sent: 62, delivered: 55, opened: 31, clicked: 14, failed: 3 },
+    ],
+    recentMessages: [
+      {
+        id: "msg_1",
+        toEmail: "minh@example.com",
+        templateKey: "streak_rescue",
+        category: "streak",
+        locale: "vi",
+        subject: "Streak còn cứu được hôm nay",
+        status: "clicked",
+        errorMessage: null,
+        skipReason: null,
+        createdAt: "2026-05-16T12:15:00.000Z",
+        streakMismatch: true,
+      },
+      {
+        id: "msg_2",
+        toEmail: "linh@example.com",
+        templateKey: "weekly_progress",
+        category: "progress",
+        locale: "vi",
+        subject: "Tuần này bạn đã lên tay thế nào?",
+        status: "opened",
+        errorMessage: null,
+        skipReason: null,
+        createdAt: "2026-05-16T11:42:00.000Z",
+        streakMismatch: false,
+      },
+      {
+        id: "msg_3",
+        toEmail: "test@example.com",
+        templateKey: "practice_reminder",
+        category: "practice",
+        locale: "en",
+        subject: "10 minutes today still counts",
+        status: "bounced",
+        errorMessage: "Mailbox unavailable",
+        skipReason: null,
+        createdAt: "2026-05-16T10:28:00.000Z",
+        streakMismatch: false,
+      },
+    ],
+    webhookEvents: [
+      {
+        id: "evt_1",
+        eventType: "email.clicked",
+        resendEmailId: "email_123",
+        receivedAt: "2026-05-16T12:16:00.000Z",
+        errorMessage: null,
+      },
+      {
+        id: "evt_2",
+        eventType: "email.bounced",
+        resendEmailId: "email_124",
+        receivedAt: "2026-05-16T10:29:00.000Z",
+        errorMessage: null,
+      },
+    ],
+    cronRuns: [
+      {
+        id: "cron_1",
+        status: "success",
+        startedAt: "2026-05-16T02:00:00.000Z",
+        finishedAt: "2026-05-16T02:01:16.000Z",
+        candidateUsers: 214,
+        sentCount: 35,
+        skippedCount: 176,
+        failedCount: 3,
+        errorMessage: null,
+      },
+      {
+        id: "cron_2",
+        status: "success",
+        startedAt: "2026-05-15T02:00:00.000Z",
+        finishedAt: "2026-05-15T02:01:49.000Z",
+        candidateUsers: 229,
+        sentCount: 62,
+        skippedCount: 165,
+        failedCount: 2,
+        errorMessage: null,
+      },
+    ],
+    suppressions: [
+      {
+        id: "sup_1",
+        email: "bounce@example.com",
+        category: null,
+        reason: "bounced",
+        source: "resend",
+        createdAt: "2026-05-15T08:00:00.000Z",
+      },
+      {
+        id: "sup_2",
+        email: "complaint@example.com",
+        category: null,
+        reason: "complained",
+        source: "resend",
+        createdAt: "2026-05-12T14:00:00.000Z",
+      },
+    ],
+  };
+}

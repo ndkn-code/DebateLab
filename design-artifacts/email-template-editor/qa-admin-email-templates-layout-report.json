@@ -1,0 +1,55 @@
+{
+  "desktop": {
+    "name": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "docWidth": 1440,
+    "bodyWidth": 1440,
+    "templatesVisible": true,
+    "buttonCount": 22,
+    "iframeRect": {
+      "left": 984,
+      "right": 1360,
+      "width": 376,
+      "top": 503,
+      "height": 760
+    },
+    "overflowCount": 1,
+    "overflowItems": [
+      {
+        "tag": "aside",
+        "text": "D\nDebateLab\n0\nCredit \nDa hboard\nPractice\nDuel\nAI Coach\nHi tory\nAnalytic \nDA\n\nDev Admin\n\nad",
+        "left": 0,
+        "right": 240,
+        "width": 240,
+        "viewportOverflow": 0,
+        "localOverflow": 12,
+        "className": "hidden md:flex flex-col h- creen  ticky top-0 border-r border-outline-variant/10 bg- urfac"
+      }
+    ],
+    "screenshot": "/Users/jacknguyen/Documents/DebateLab/design-artifacts/email-template-editor/qa-admin-email-templates-desktop.png"
+  },
+  "mobile": {
+    "name": "mobile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "docWidth": 390,
+    "bodyWidth": 390,
+    "templatesVisible": true,
+    "buttonCount": 22,
+    "iframeRect": {
+      "left": 52,
+      "right": 338,
+      "width": 286,
+      "top": 2416,
+      "height": 760
+    },
+    "overflowCount": 0,
+    "overflowItems": [],
+    "screenshot": "/Users/jacknguyen/Documents/DebateLab/design-artifacts/email-template-editor/qa-admin-email-templates-mobile.png"
+  }
+}
