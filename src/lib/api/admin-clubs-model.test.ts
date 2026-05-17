@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import {
   buildClubDashboardKpis,
   buildWeakestSkills,
+  normalizeClubRecipients,
+  normalizeSocialUrl,
+  normalizeVietnamCity,
   normalizeClubAssignmentStatus,
+  validateClubCreationInput,
   validateClubAssignmentInput,
+  validateClubEventInput,
 } from "./admin-clubs-model";
 import type {
   AdminClubAssignmentRow,
@@ -91,6 +96,17 @@ const reviews: AdminClubReviewQueueItem[] = [
 
 assert.equal(normalizeClubAssignmentStatus("active"), "active");
 assert.equal(normalizeClubAssignmentStatus("bad"), "draft");
+assert.equal(normalizeVietnamCity("ha noi"), "Ha Noi");
+assert.equal(normalizeVietnamCity("New York"), null);
+assert.equal(normalizeSocialUrl("https://facebook.com/debatelab", { required: true, hostIncludes: "facebook.com" }), "https://facebook.com/debatelab");
+assert.equal(
+  normalizeClubRecipients([
+    { email: "Coach@Example.com", role: "owner" },
+    { email: "Coach@Example.com", role: "owner" },
+    { email: "bad", role: "coach" },
+  ]).length,
+  1
+);
 
 assert.deepEqual(
   validateClubAssignmentInput({
@@ -108,6 +124,38 @@ assert.equal(
     title: "Policy Case",
   }).reason,
   "invalid_club_id"
+);
+
+assert.equal(
+  validateClubCreationInput({
+    name: "Hanoi Debate Club",
+    city: "Ha Noi",
+    facebookUrl: "https://facebook.com/hanoidebate",
+    recipients: [{ email: "owner@example.com", role: "owner" }],
+  }).ok,
+  true
+);
+
+assert.equal(
+  validateClubCreationInput({
+    name: "Hanoi Debate Club",
+    city: "Ha Noi",
+    facebookUrl: "https://facebook.com/hanoidebate",
+    recipients: [{ email: "student@example.com", role: "student" }],
+  }).reason,
+  "missing_owner_recipient"
+);
+
+assert.equal(
+  validateClubEventInput({
+    clubId,
+    title: "Weekly sparring",
+    startDate: "2026-05-18",
+    startTime: "17:00",
+    endTime: "18:30",
+    recurrenceRule: { frequency: "weekly", weekdays: ["MO"], endMode: "after_occurrences", count: 6 },
+  }).ok,
+  true
 );
 
 assert.deepEqual(

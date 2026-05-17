@@ -7,6 +7,7 @@ export const EMAIL_TEMPLATE_KEYS = [
   "weekly_progress",
   "achievement",
   "course_nudge",
+  "club_invitation",
 ] as const;
 
 export type EmailTemplateKey = (typeof EMAIL_TEMPLATE_KEYS)[number];

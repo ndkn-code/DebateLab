@@ -106,6 +106,7 @@ export const EMAIL_PREVIEW_SCENARIOS = [
   { key: "weekly_progress", label: "Weekly progress" },
   { key: "achievement", label: "Achievement" },
   { key: "course_nudge", label: "Course nudge" },
+  { key: "club_invitation", label: "Club invitation" },
 ] as const;
 
 const FIELD_TO_VARIABLE: Record<EmailTemplateCopyField, keyof EmailTemplateVariables | "subject"> = {
@@ -248,6 +249,11 @@ export function buildEmailPreviewContext(
       locale === "en" ? "Team debate rebuttal basics" : "Phản biện như đội tuyển debate",
     latestAchievementLabel:
       locale === "en" ? "7-day streak is almost in reach." : "Streak 7 ngày sắp vào tầm ngắm.",
+    ctaUrl: "https://thinkfy.net/join/club/demo-token",
+    clubName: locale === "en" ? "Hanoi Debate Club" : "Hanoi Debate Club",
+    clubRole: locale === "en" ? "club admin" : "quản trị viên CLB",
+    inviterName: "Coach Linh",
+    city: "Ha Noi",
   };
 
   if (scenarioKey === "onboarding") {
@@ -287,6 +293,15 @@ export function buildEmailPreviewContext(
     return {
       ...base,
       latestCourseTitle: locale === "en" ? "Cross-examination fundamentals" : "Nền tảng cross-examination",
+    };
+  }
+
+  if (scenarioKey === "club_invitation" || templateKey === "club_invitation") {
+    return {
+      ...base,
+      sessionsLast7Days: 0,
+      minutesLast7Days: 0,
+      xpLast7Days: 0,
     };
   }
 

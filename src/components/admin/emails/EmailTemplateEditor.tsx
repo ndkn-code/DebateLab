@@ -93,6 +93,7 @@ const TEMPLATE_LABELS: Record<EmailTemplateKey, { title: string; helper: string;
   weekly_progress: { title: "weekly_progress", helper: "Báo cáo tiến bộ tuần", icon: Mail },
   achievement: { title: "achievement", helper: "Chúc mừng thành tích", icon: Trophy },
   course_nudge: { title: "course_nudge", helper: "Nhắc học tiếp", icon: BookOpen },
+  club_invitation: { title: "club_invitation", helper: "Mời vào câu lạc bộ", icon: Mail },
 };
 
 const DEFAULT_TEST_RECIPIENT = "ndkn.work@gmail.com";

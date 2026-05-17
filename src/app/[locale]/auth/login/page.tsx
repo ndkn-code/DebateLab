@@ -12,6 +12,7 @@ function LoginContent() {
   const t = useTranslations('auth.login');
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
+  const next = searchParams.get("next");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
@@ -37,7 +38,7 @@ function LoginContent() {
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`,
       },
     });
 

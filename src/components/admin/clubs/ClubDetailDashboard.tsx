@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
-  BarChart3,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
   Clock3,
+  ExternalLink,
   FileText,
   Import,
   Mail,
@@ -17,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { ClubSchedulePanel } from "@/components/admin/clubs/ClubSchedulePanel";
 import { buildPracticeHref } from "@/lib/practice-prefill";
 import { cn } from "@/lib/utils";
 import type {
@@ -27,7 +29,7 @@ import type {
   ClubQaState,
 } from "@/lib/types/admin-clubs";
 
-const TABS = ["Overview", "Cohorts", "Assignments", "Performance", "Attendance"] as const;
+const TABS = ["Overview", "Members", "Schedule", "Cohorts", "Assignments", "Performance", "Attendance"] as const;
 const QA_STATES: Array<{ key: ClubQaState; label: string }> = [
   { key: "empty", label: "Empty" },
   { key: "active", label: "Active" },
@@ -47,6 +49,29 @@ function formatScore(value: number | null) {
 function formatShortDate(value: string | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function formatDay(value: string) {
+  return new Intl.DateTimeFormat("en", { day: "2-digit" }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatMonth(value: string) {
+  return new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${value}T00:00:00`)).toUpperCase();
+}
+
+function formatTimeRange(start: string, end: string) {
+  return `${formatClock(start)}-${formatClock(end)}`;
+}
+
+function formatClock(value: string) {
+  const time = value.includes("T") ? value.split("T")[1] : value;
+  return time.slice(0, 5);
+}
+
+function clubInitials(name: string) {
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length >= 3) return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+  return words.map((word) => word[0]).join("").slice(0, 3).toUpperCase() || "CLB";
 }
 
 function KpiCard({
@@ -354,25 +379,127 @@ function AttemptsList({ attempts }: { attempts: AdminClubPerformanceAttempt[] })
   );
 }
 
+function eventTone(type: string) {
+  if (type === "workshop") return "border-[#D7C8FF] bg-[#F4EFFF] text-[#7B4CE2]";
+  if (type === "tournament") return "border-[#FFD0A8] bg-[#FFF4E9] text-[#D56B00]";
+  if (type === "social") return "border-[#FFD5E6] bg-[#FFF1F7] text-[#C43D75]";
+  return "border-[#CFE0FF] bg-[#EAF2FF] text-[#1E63E9]";
+}
+
+function MembersSchedulePreview({ data }: { data: AdminClubDetailData }) {
+  const upcoming = data.eventOccurrences.slice(0, 4);
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1fr)]">
+      <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-[#152238]">Upcoming events</h2>
+          <span className="rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-xs font-bold text-[#40516F]">Next 7 days</span>
+        </div>
+        <div className="mt-4 space-y-4">
+          {upcoming.map((event) => (
+            <div key={event.id} className="grid grid-cols-[48px_1fr] gap-3">
+              <div className="text-center">
+                <p className="text-[10px] font-bold text-[#667795]">{formatMonth(event.date)}</p>
+                <p className="text-2xl font-bold leading-none text-[#152238]">{formatDay(event.date)}</p>
+              </div>
+              <div className="border-l-2 border-[#4D86F7] pl-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-bold text-[#152238]">{event.title}</p>
+                  <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold capitalize", eventTone(event.eventType))}>
+                    {event.eventType}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-[#667795]">{formatTimeRange(event.startsAt, event.endsAt)}</p>
+                <p className="mt-1 truncate text-xs text-[#667795]">{event.location ?? event.room ?? data.club.city ?? "Vietnam"}</p>
+              </div>
+            </div>
+          ))}
+          {!upcoming.length && <p className="py-8 text-center text-sm text-[#667795]">No upcoming events yet.</p>}
+        </div>
+        <button className="mt-4 text-sm font-bold text-[#1E63E9]">View full calendar</button>
+      </section>
+
+      <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-[#152238]">New event</h2>
+          <Link href={`/dashboard/admin/clubs/${data.club.id}?tab=Schedule`} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#2E78F6] px-3 text-xs font-bold text-white">
+            <Plus className="h-4 w-4" />
+            Schedule tab
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <PreviewField label="Title" value={data.events[0]?.title ?? "Weekly Debate Practice"} />
+          <PreviewField label="Type" value="Meeting" />
+          <PreviewField label="Cohort" value={data.events[0]?.classTitle ?? "Whole club"} />
+          <PreviewField label="Date" value={formatShortDate(data.events[0]?.startDate ?? new Date().toISOString())} />
+          <PreviewField label="Start" value={data.events[0]?.startTime.slice(0, 5) ?? "17:00"} />
+          <PreviewField label="End" value={data.events[0]?.endTime.slice(0, 5) ?? "19:30"} />
+          <PreviewField label="Location" value={data.events[0]?.location ?? data.events[0]?.room ?? "Room 204"} />
+          <PreviewField label="Timezone" value="GMT+7 Asia/Ho_Chi_Minh" />
+        </div>
+        <div className="mt-4 rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+          <p className="text-xs font-bold uppercase text-[#667795]">Recurrence preview</p>
+          <p className="mt-1 text-sm font-bold text-[#152238]">{data.events[0]?.recurrenceSummary ?? "Every week on Friday for 8 occurrences"}</p>
+          <div className="mt-2 space-y-1 text-xs text-[#667795]">
+            {upcoming.slice(0, 4).map((event) => (
+              <p key={`preview-${event.id}`}>✓ {formatShortDate(event.date)}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <label>
+      <span className="text-xs font-bold text-[#667795]">{label}</span>
+      <span className="mt-1 flex h-10 items-center rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm font-semibold text-[#40516F]">
+        {value}
+      </span>
+    </label>
+  );
+}
+
 export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview");
+  const searchParams = useSearchParams();
+  const initialTab = TABS.find((tab) => tab === searchParams.get("tab")) ?? "Overview";
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>(initialTab);
   const completionHelper = useMemo(() => data.kpis.completionRate == null ? "No assignment baseline yet" : "6% vs last 30 days", [data.kpis.completionRate]);
 
   return (
     <main className="min-h-full bg-[#F7FAFE] px-4 py-5 text-[#152238] sm:px-5 lg:px-6">
       <div className="mx-auto max-w-[1440px]">
         <header className="flex flex-col gap-4 border-b border-[#DEE8F8] pb-5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#CFE0FF] bg-white text-[#1E63E9]">
-              <BuildingBadge />
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#CFE0FF] bg-[#2E78F6] text-2xl font-bold text-white shadow-sm shadow-[#4D86F7]/20">
+              {data.club.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={data.club.logoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                clubInitials(data.club.name)
+              )}
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="truncate text-2xl font-bold tracking-normal text-[#152238] sm:text-3xl">{data.club.name}</h1>
-                <span className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#CFE0FF] bg-white px-3 text-sm font-semibold text-[#40516F]">
+                <span className="inline-flex h-6 items-center rounded-full border border-[#BFE8CA] bg-[#EAFBF0] px-2 text-xs font-bold text-[#159947]">
+                  {data.club.status}
+                </span>
+                <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#CFE0FF] bg-white px-3 text-sm font-semibold text-[#40516F]">
                   <Clock3 className="h-4 w-4 text-[#667795]" />
                   GMT+7 Vietnam
                 </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#667795]">
+                <span>{data.club.code}</span>
+                <span>·</span>
+                <span>{data.club.city ?? "Vietnam"}, Vietnam</span>
+                {data.club.facebookUrl && <SocialLink href={data.club.facebookUrl} label="Facebook" />}
+                {data.club.instagramUrl && <SocialLink href={data.club.instagramUrl} label="Instagram" />}
+                {data.club.threadsUrl && <SocialLink href={data.club.threadsUrl} label="Threads" />}
               </div>
               {data.qaEnabled && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -450,6 +577,84 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
           </div>
         )}
 
+        {activeTab === "Members" && (
+          <div className="mt-5 space-y-4">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <section className="overflow-hidden rounded-lg border border-[#DEE8F8] bg-white shadow-sm">
+                <div className="border-b border-[#DEE8F8] px-4 py-3">
+                  <h2 className="text-base font-bold text-[#152238]">Members</h2>
+                  <p className="mt-1 text-sm text-[#667795]">Manage club admins, coaches, and members.</p>
+                </div>
+                <div className="hidden grid-cols-[1.1fr_1fr_120px_90px_116px_32px] border-b border-[#DEE8F8] bg-[#F7FAFE] px-4 py-3 text-xs font-bold text-[#667795] lg:grid">
+                  <div>Person</div>
+                  <div>Email</div>
+                  <div>Role</div>
+                  <div>Status</div>
+                  <div>Joined</div>
+                  <div />
+                </div>
+                <div className="divide-y divide-[#EEF3FA]">
+                  {data.members.slice(0, 5).map((member) => (
+                    <div key={member.id} className="grid gap-2 px-4 py-3 text-sm lg:grid-cols-[1.1fr_1fr_120px_90px_116px_32px] lg:items-center">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAF2FF] text-xs font-bold text-[#667795]">
+                          {clubInitials(member.displayName).slice(0, 2)}
+                        </span>
+                        <p className="truncate font-bold text-[#152238]">{member.displayName}</p>
+                      </div>
+                      <p className="truncate text-[#40516F]">{member.email ?? "-"}</p>
+                      <span className="w-fit rounded-lg border border-[#CFE0FF] bg-[#EAF2FF] px-2 py-1 text-xs font-bold capitalize text-[#1E63E9]">
+                        {member.role === "owner" ? "Club admin" : member.role}
+                      </span>
+                      <span className="w-fit rounded-lg border border-[#BFE8CA] bg-[#EAFBF0] px-2 py-1 text-xs font-bold capitalize text-[#159947]">
+                        {member.status}
+                      </span>
+                      <p className="text-[#40516F]">{formatShortDate(member.joinedAt)}</p>
+                      <MoreVertical className="hidden h-4 w-4 text-[#667795] lg:block" />
+                    </div>
+                  ))}
+                  {!data.members.length && <div className="px-4 py-14 text-center text-sm text-[#667795]">No active members yet.</div>}
+                </div>
+                {data.members.length > 5 && (
+                  <button className="border-t border-[#DEE8F8] px-4 py-3 text-sm font-bold text-[#1E63E9]">
+                    View all members
+                  </button>
+                )}
+              </section>
+
+              <aside className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+                <h2 className="text-base font-bold text-[#152238]">Pending invitations</h2>
+                <div className="mt-3 space-y-3">
+                  {data.invitations.map((invitation) => (
+                    <div key={invitation.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+                      <p className="truncate text-sm font-bold text-[#152238]">{invitation.email}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-md border border-[#CFE0FF] bg-white px-2 py-1 font-bold capitalize text-[#1E63E9]">
+                          {invitation.role === "owner" ? "Club admin" : invitation.role}
+                        </span>
+                        <span className={cn(
+                          "rounded-md border px-2 py-1 font-bold capitalize",
+                          invitation.status === "pending"
+                            ? "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
+                            : "border-[#C8F0D5] bg-[#EAFBF0] text-[#159947]"
+                        )}>
+                          {invitation.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-[#667795]">Expires {formatShortDate(invitation.expiresAt)}</p>
+                    </div>
+                  ))}
+                  {!data.invitations.length && <p className="py-8 text-center text-sm text-[#667795]">No pending invitations.</p>}
+                </div>
+              </aside>
+            </div>
+
+            <MembersSchedulePreview data={data} />
+          </div>
+        )}
+
+        {activeTab === "Schedule" && <ClubSchedulePanel data={data} />}
+
         {activeTab === "Cohorts" && (
           <div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {data.cohorts.map((cohort) => (
@@ -471,7 +676,6 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             {!data.cohorts.length && <EmptyPanel label="No cohorts yet." />}
           </div>
         )}
-
         {activeTab === "Assignments" && <div className="mt-5"><AssignmentTable assignments={data.assignments} clubId={data.club.id} /></div>}
         {activeTab === "Performance" && <div className="mt-5"><AttemptsList attempts={data.attempts} /></div>}
         {activeTab === "Attendance" && (
@@ -510,10 +714,16 @@ function EmptyPanel({ label }: { label: string }) {
   );
 }
 
-function BuildingBadge() {
+function SocialLink({ href, label }: { href: string; label: string }) {
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF2FF]">
-      <BarChart3 className="h-5 w-5" />
-    </div>
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 rounded-md border border-[#DEE8F8] bg-white px-2 py-1 text-xs font-bold text-[#40516F] hover:border-[#4D86F7]/50"
+    >
+      <ExternalLink className="h-3 w-3 text-[#4D86F7]" />
+      {label}
+    </a>
   );
 }

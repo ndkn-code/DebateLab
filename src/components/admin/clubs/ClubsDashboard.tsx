@@ -1,9 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Building2, CheckCircle2, ClipboardList, Search, ShieldCheck, Users } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Building2, CheckCircle2, ClipboardList, ExternalLink, Plus, Search, ShieldCheck, Users } from "lucide-react";
+import { Link, useRouter } from "@/i18n/navigation";
 import { PageTransition } from "@/components/shared/page-motion";
+import { CreateClubDialog } from "@/components/admin/clubs/CreateClubDialog";
 import { cn } from "@/lib/utils";
 import type { AdminClubListRow, AdminClubsPageData, ClubQaState } from "@/lib/types/admin-clubs";
 
@@ -53,22 +56,33 @@ function ClubCard({ club, qaState }: { club: AdminClubListRow; qaState: ClubQaSt
   return (
     <Link
       href={href}
-      className="grid gap-4 rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm transition hover:border-[#4D86F7]/40 hover:shadow-md lg:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.8fr_44px] lg:items-center"
+      className="grid gap-4 rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm transition hover:border-[#4D86F7]/40 hover:shadow-md lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.8fr_0.6fr_0.8fr_44px] lg:items-center"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#EAF2FF] text-[#4D86F7]">
-          <Building2 className="h-5 w-5" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#EAF2FF] text-[#4D86F7]">
+          {club.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={club.logoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <Building2 className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0">
           <h2 className="truncate text-sm font-bold text-[#152238]">{club.name}</h2>
           <p className="truncate text-xs text-[#667795]">
             {club.code} · {club.city ?? "Vietnam"} · {club.timezone}
           </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {club.facebookUrl && <SocialBadge label="Facebook" />}
+            {club.instagramUrl && <SocialBadge label="Instagram" />}
+            {club.threadsUrl && <SocialBadge label="Threads" />}
+          </div>
         </div>
       </div>
       <Metric label="Cohorts" value={club.classCount} />
       <Metric label="Students" value={club.studentCount} />
       <Metric label="Completion" value={formatPercent(club.completionRate30d)} />
+      <Metric label="Events" value={club.upcomingEventCount} />
       <Metric label="Review queue" value={club.reviewQueueCount} tone={club.reviewQueueCount > 12 ? "text-[#FF6B6B]" : "text-[#152238]"} />
       <div className="hidden justify-end lg:flex">
         <span className="rounded-full border border-[#DEE8F8] px-2.5 py-1 text-xs font-semibold text-[#4D86F7]">
@@ -76,6 +90,15 @@ function ClubCard({ club, qaState }: { club: AdminClubListRow; qaState: ClubQaSt
         </span>
       </div>
     </Link>
+  );
+}
+
+function SocialBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-[#DEE8F8] bg-[#F7FAFE] px-1.5 py-0.5 text-[10px] font-bold text-[#667795]">
+      <ExternalLink className="h-3 w-3 text-[#4D86F7]" />
+      {label}
+    </span>
   );
 }
 
@@ -89,6 +112,10 @@ function Metric({ label, value, tone = "text-[#152238]" }: { label: string; valu
 }
 
 export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(() => searchParams.get("create") === "1");
+
   return (
     <PageTransition className="min-h-full bg-[#F7FAFE] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -100,9 +127,18 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
               Coach/admin workflow for cohorts, assignments, attendance, reviews, and normalized performance data.
             </p>
           </div>
-          <div className="flex h-10 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#40516F]">
-            <ShieldCheck className="h-4 w-4 text-[#34C759]" />
-            {data.qaEnabled ? "QA/QC pipeline active" : "Data contract V1"}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#4D86F7] px-4 text-sm font-bold text-white shadow-sm shadow-[#4D86F7]/20 transition hover:bg-[#3E78EC]"
+            >
+              <Plus className="h-4 w-4" />
+              Create club
+            </button>
+            <div className="flex h-10 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#40516F]">
+              <ShieldCheck className="h-4 w-4 text-[#34C759]" />
+              {data.qaEnabled ? "QA/QC pipeline active" : "Data contract V1"}
+            </div>
           </div>
         </div>
 
@@ -154,12 +190,33 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
             data.clubs.map((club) => <ClubCard key={club.id} club={club} qaState={data.qaState} />)
           ) : (
             <div className="rounded-lg border border-dashed border-[#C8D7EF] bg-white px-6 py-16 text-center">
-              <p className="text-base font-bold text-[#152238]">No clubs yet</p>
-              <p className="mt-2 text-sm text-[#667795]">Create a club, attach cohorts, then start collecting assignment performance.</p>
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[#EAF2FF] text-[#4D86F7]">
+                <Building2 className="h-6 w-6" />
+              </div>
+              <p className="mt-4 text-base font-bold text-[#152238]">No clubs yet</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-[#667795]">
+                Create a Vietnam club workspace with a logo, social profile, admins, members, and schedule-ready operations.
+              </p>
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-[#4D86F7] px-4 text-sm font-bold text-white shadow-sm shadow-[#4D86F7]/20"
+              >
+                <Plus className="h-4 w-4" />
+                Create club
+              </button>
             </div>
           )}
         </div>
       </div>
+      <CreateClubDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(clubId) => {
+          setCreateOpen(false);
+          router.push(`/dashboard/admin/clubs/${clubId}`);
+          router.refresh();
+        }}
+      />
     </PageTransition>
   );
 }

@@ -29,6 +29,7 @@ export const EMAIL_TEMPLATE_META: Record<
   weekly_progress: { category: "progress", preference: "achievement" },
   achievement: { category: "achievement", preference: "achievement" },
   course_nudge: { category: "course", preference: "practice" },
+  club_invitation: { category: "system", preference: "global" },
 };
 
 const palette = {
@@ -60,6 +61,11 @@ export interface TemplateContext {
   totalSessions?: number;
   latestCourseTitle?: string | null;
   latestAchievementLabel?: string | null;
+  ctaUrl?: string | null;
+  clubName?: string | null;
+  clubRole?: string | null;
+  inviterName?: string | null;
+  city?: string | null;
 }
 
 function numberFormat(locale: EmailLocale) {
@@ -95,6 +101,11 @@ export function buildTemplateVariables(
     context.latestCourseTitle || (context.locale === "en" ? "your course" : "khóa học của bạn");
   const achievement =
     context.latestAchievementLabel || (context.locale === "en" ? "New milestone unlocked" : "Cột mốc mới đã mở khóa");
+  const clubName = context.clubName || (context.locale === "en" ? "your club" : "CLB của bạn");
+  const clubRole = context.clubRole || (context.locale === "en" ? "member" : "thành viên");
+  const inviterName = context.inviterName || "Thinkfy";
+  const clubCity = context.city || "Vietnam";
+  const clubInviteUrl = context.ctaUrl || base.appUrl;
 
   if (context.locale === "en") {
     const en: Record<EmailTemplateKey, EmailTemplateVariables & { subject: string }> = {
@@ -214,6 +225,21 @@ export function buildTemplateVariables(
         badgeLabel: "Course",
         stat1Label: "Next step",
         stat1Value: "1 lesson",
+      },
+      club_invitation: {
+        ...base,
+        subject: `Join ${clubName} on Thinkfy`,
+        ctaUrl: clubInviteUrl,
+        ctaLabel: "Accept invitation",
+        headline: `${clubName} invited you to Thinkfy.`,
+        body: `${inviterName} added you as ${clubRole}. Accept the invitation with the same email address to join the club workspace.`,
+        preheader: `Accept your ${clubName} club invitation.`,
+        mascotMood: "welcome",
+        badgeLabel: "Club invite",
+        stat1Label: "Role",
+        stat1Value: clubRole,
+        stat2Label: "City",
+        stat2Value: clubCity,
       },
     };
 
@@ -337,6 +363,21 @@ export function buildTemplateVariables(
       badgeLabel: "Khóa học",
       stat1Label: "Bước tiếp",
       stat1Value: "1 bài",
+    },
+    club_invitation: {
+      ...base,
+      subject: `Tham gia ${clubName} trên Thinkfy`,
+      ctaUrl: clubInviteUrl,
+      ctaLabel: "Nhận lời mời",
+      headline: `${clubName} đã mời bạn vào Thinkfy.`,
+      body: `${inviterName} đã thêm bạn với vai trò ${clubRole}. Hãy nhận lời mời bằng đúng email này để vào workspace của câu lạc bộ.`,
+      preheader: `Nhận lời mời tham gia ${clubName}.`,
+      mascotMood: "welcome",
+      badgeLabel: "Lời mời CLB",
+      stat1Label: "Vai trò",
+      stat1Value: clubRole,
+      stat2Label: "Thành phố",
+      stat2Value: clubCity,
     },
   };
 

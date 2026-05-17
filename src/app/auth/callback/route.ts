@@ -11,6 +11,7 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/practice",
   "/chat",
   "/history",
+  "/join/club",
 ];
 
 function isAllowedRedirect(path: string): boolean {

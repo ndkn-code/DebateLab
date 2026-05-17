@@ -8,16 +8,28 @@ import {
   buildWeakestSkills,
   normalizeClubAssignmentStatus,
 } from "@/lib/api/admin-clubs-model";
+import {
+  DEFAULT_CLASS_TIMEZONE,
+  expandScheduleOccurrences,
+  normalizeRecurrenceRule,
+  summarizeRecurrence,
+} from "@/lib/api/admin-class-schedules-model";
 import type { AdminClassListRow } from "@/lib/types/admin-classes";
 import type {
   AdminClubAssignmentRow,
   AdminClubDetailData,
+  AdminClubEvent,
+  AdminClubEventOccurrence,
+  AdminClubInvitation,
   AdminClubListRow,
   AdminClubMember,
   AdminClubPerformanceAttempt,
   AdminClubReviewQueueItem,
   AdminClubsKpis,
   AdminClubsPageData,
+  ClubEventStatus,
+  ClubEventType,
+  ClubInvitationStatus,
   ClubQaState,
   ClubStatus,
   ClubType,
@@ -48,10 +60,16 @@ function toClubListRow(row: Record<string, unknown>): AdminClubListRow {
     country: String(row.country ?? "VN"),
     status: (row.status === "draft" || row.status === "archived" ? row.status : "active") as ClubStatus,
     timezone: String(row.timezone ?? "Asia/Ho_Chi_Minh"),
+    logoUrl: (row.logo_url as string | null | undefined) ?? null,
+    logoStoragePath: (row.logo_storage_path as string | null | undefined) ?? null,
+    facebookUrl: (row.facebook_url as string | null | undefined) ?? null,
+    instagramUrl: (row.instagram_url as string | null | undefined) ?? null,
+    threadsUrl: (row.threads_url as string | null | undefined) ?? null,
     classCount: Number(row.class_count ?? 0),
     studentCount: Number(row.student_count ?? 0),
     coachCount: Number(row.coach_count ?? 0),
     assignmentCount: Number(row.assignment_count ?? 0),
+    upcomingEventCount: Number(row.upcoming_event_count ?? 0),
     completionRate30d: numberOrNull(row.completion_rate_30d),
     attendanceRate30d: numberOrNull(row.attendance_rate_30d),
     averageScore30d: numberOrNull(row.average_score_30d),
@@ -110,6 +128,133 @@ function toAssignmentRow(row: Record<string, unknown>): AdminClubAssignmentRow {
     createdAt: String(row.created_at ?? new Date().toISOString()),
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
   };
+}
+
+function toInvitationRow(row: Record<string, unknown>): AdminClubInvitation {
+  return {
+    id: String(row.id),
+    clubId: String(row.club_id),
+    email: String(row.email ?? ""),
+    role: row.role === "owner" || row.role === "coach" ? row.role : "student",
+    status: normalizeInvitationStatus(row.status),
+    expiresAt: String(row.expires_at ?? new Date().toISOString()),
+    invitedBy: (row.invited_by as string | null | undefined) ?? null,
+    acceptedBy: (row.accepted_by as string | null | undefined) ?? null,
+    acceptedAt: (row.accepted_at as string | null | undefined) ?? null,
+    lastSentAt: (row.last_sent_at as string | null | undefined) ?? null,
+    createdAt: String(row.created_at ?? new Date().toISOString()),
+    updatedAt: String(row.updated_at ?? new Date().toISOString()),
+  };
+}
+
+function enrichClubEvents(
+  rows: Record<string, unknown>[],
+  cohorts: AdminClassListRow[],
+  rangeStart: string,
+  rangeEnd: string
+): AdminClubEvent[] {
+  const cohortById = new Map(cohorts.map((cohort) => [cohort.id, cohort]));
+
+  return rows.map((row) => {
+    const startDate = String(row.start_date ?? toIsoDate(new Date()));
+    const recurrenceInput = row.recurrence_rule && typeof row.recurrence_rule === "object"
+      ? (row.recurrence_rule as Parameters<typeof normalizeRecurrenceRule>[0])
+      : null;
+    const rule = normalizeRecurrenceRule(recurrenceInput, startDate);
+    const startTime = normalizeTime(String(row.start_time ?? "16:00:00"));
+    const endTime = normalizeTime(String(row.end_time ?? "17:00:00"));
+    const occurrences = expandScheduleOccurrences({
+      id: String(row.id),
+      startDate,
+      endDate: (row.end_date as string | null | undefined) ?? null,
+      startTime,
+      endTime,
+      recurrenceRule: rule,
+    }, rangeStart, rangeEnd);
+    const classId = (row.class_id as string | null | undefined) ?? null;
+
+    return {
+      id: String(row.id),
+      clubId: String(row.club_id),
+      classId,
+      classTitle: classId ? cohortById.get(classId)?.title ?? null : null,
+      title: String(row.title ?? "Club event"),
+      eventType: normalizeEventType(row.event_type),
+      room: (row.room as string | null | undefined) ?? null,
+      location: (row.location as string | null | undefined) ?? null,
+      startDate,
+      endDate: (row.end_date as string | null | undefined) ?? null,
+      startTime,
+      endTime,
+      timezone: String(row.timezone ?? DEFAULT_CLASS_TIMEZONE),
+      recurrenceRule: rule,
+      recurrenceSummary: (row.recurrence_summary as string | null | undefined) ?? summarizeRecurrence(rule, startDate),
+      externalCalendarUrl: (row.external_calendar_url as string | null | undefined) ?? null,
+      externalProvider: (row.external_provider as string | null | undefined) ?? null,
+      status: normalizeEventStatus(row.status),
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      updatedAt: String(row.updated_at ?? new Date().toISOString()),
+      occurrenceCount: occurrences.length,
+      nextOccurrenceDate: occurrences.find((item) => item.date >= toIsoDate(new Date()))?.date ?? occurrences[0]?.date ?? null,
+    };
+  });
+}
+
+function buildClubEventOccurrences(
+  events: AdminClubEvent[],
+  rangeStart: string,
+  rangeEnd: string
+): AdminClubEventOccurrence[] {
+  return events
+    .filter((event) => event.status === "active")
+    .flatMap((event) =>
+      expandScheduleOccurrences({
+        id: event.id,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        recurrenceRule: event.recurrenceRule,
+      }, rangeStart, rangeEnd).map((occurrence) => ({
+        id: `${event.id}-${occurrence.date}`,
+        eventId: event.id,
+        clubId: event.clubId,
+        classId: event.classId,
+        classTitle: event.classTitle,
+        title: event.title,
+        eventType: event.eventType,
+        room: event.room,
+        location: event.location,
+        date: occurrence.date,
+        startsAt: occurrence.startsAt,
+        endsAt: occurrence.endsAt,
+        recurrenceSummary: event.recurrenceSummary,
+      }))
+    )
+    .sort((left, right) => left.date.localeCompare(right.date) || left.startsAt.localeCompare(right.startsAt));
+}
+
+function normalizeInvitationStatus(value: unknown): ClubInvitationStatus {
+  if (value === "accepted" || value === "revoked" || value === "expired") return value;
+  return "pending";
+}
+
+function normalizeEventStatus(value: unknown): ClubEventStatus {
+  if (value === "cancelled" || value === "archived") return value;
+  return "active";
+}
+
+function normalizeEventType(value: unknown): ClubEventType {
+  if (
+    value === "workshop" ||
+    value === "tournament" ||
+    value === "social" ||
+    value === "deadline" ||
+    value === "other"
+  ) {
+    return value;
+  }
+  return "meeting";
 }
 
 function buildPageKpis(clubs: AdminClubListRow[]): AdminClubsKpis {
@@ -185,7 +330,7 @@ export async function getAdminClubDetail(
     return null;
   }
 
-  const [membersRes, cohortsRes, assignmentsRes, attemptsRes, reviewsRes] = await Promise.all([
+  const [membersRes, cohortsRes, assignmentsRes, attemptsRes, reviewsRes, invitationsRes, eventsRes] = await Promise.all([
     supabase
       .from("club_memberships")
       .select("id, user_id, role, status, joined_at")
@@ -213,6 +358,18 @@ export async function getAdminClubDetail(
       .eq("club_id", clubId)
       .order("created_at", { ascending: false })
       .limit(40),
+    supabase
+      .from("club_invitations")
+      .select("id, club_id, email, role, status, expires_at, invited_by, accepted_by, accepted_at, last_sent_at, created_at, updated_at")
+      .eq("club_id", clubId)
+      .order("created_at", { ascending: false })
+      .limit(80),
+    supabase
+      .from("club_events")
+      .select("*")
+      .eq("club_id", clubId)
+      .neq("status", "archived")
+      .order("start_date", { ascending: true }),
   ]);
 
   const loadError =
@@ -221,11 +378,18 @@ export async function getAdminClubDetail(
     assignmentsRes.error?.message ??
     attemptsRes.error?.message ??
     reviewsRes.error?.message ??
+    invitationsRes.error?.message ??
+    eventsRes.error?.message ??
     null;
 
   const members = await enrichMembers(supabase, (membersRes.data ?? []) as Record<string, unknown>[]);
   const cohorts = ((cohortsRes.data ?? []) as Record<string, unknown>[]).map(toClassListRow);
   const assignments = ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(toAssignmentRow);
+  const invitations = ((invitationsRes.data ?? []) as Record<string, unknown>[]).map(toInvitationRow);
+  const scheduleRangeStart = toIsoDate(addDays(new Date(), -7));
+  const scheduleRangeEnd = toIsoDate(addDays(new Date(), 90));
+  const events = enrichClubEvents((eventsRes.data ?? []) as Record<string, unknown>[], cohorts, scheduleRangeStart, scheduleRangeEnd);
+  const eventOccurrences = buildClubEventOccurrences(events, scheduleRangeStart, scheduleRangeEnd);
   const attempts = await enrichAttempts(
     supabase,
     (attemptsRes.data ?? []) as Record<string, unknown>[],
@@ -259,6 +423,9 @@ export async function getAdminClubDetail(
     }),
     weakestSkills: buildWeakestSkills(attempts),
     trend: buildClubTrend(attempts, assignments),
+    invitations,
+    events,
+    eventOccurrences,
     qaEnabled: false,
     qaState: null,
     loadError,
@@ -397,6 +564,20 @@ function buildCompletionByUser(
   );
 }
 
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeTime(value: string) {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 const DEV_CLUB_IDS: Record<ClubQaState, string> = {
   empty: "00000000-0000-4c00-8000-000000000001",
   active: "00000000-0000-4c00-8000-000000000002",
@@ -423,10 +604,16 @@ function devClub(state: ClubQaState): AdminClubListRow {
     country: "VN",
     status: "active",
     timezone: "Asia/Ho_Chi_Minh",
+    logoUrl: null,
+    logoStoragePath: null,
+    facebookUrl: "https://facebook.com/hanoidebateclub",
+    instagramUrl: "https://instagram.com/hanoidebateclub",
+    threadsUrl: null,
     classCount: Number(config[2]),
     studentCount: Number(config[3]),
     coachCount: Number(config[4]),
     assignmentCount: state === "empty" ? 0 : 12,
+    upcomingEventCount: state === "empty" ? 0 : 5,
     completionRate30d: config[5] as number | null,
     attendanceRate30d: config[6] as number | null,
     averageScore30d: config[7] as number | null,
@@ -460,6 +647,8 @@ function getDevClubDetail(clubId: string, state: ClubQaState): AdminClubDetailDa
   const assignments = buildDevAssignments(resolvedState, club.id, cohorts);
   const attempts = buildDevAttempts(resolvedState, club.id, cohorts, assignments, members);
   const reviewQueue = buildReviewQueue([], attempts);
+  const events = buildDevEvents(resolvedState, club.id, cohorts);
+  const eventOccurrences = buildClubEventOccurrences(events, "2026-05-01", "2026-08-31");
   const completionByUser = buildCompletionByUser(members, assignments, attempts);
   const attendanceByUser = new Map(
     members
@@ -494,10 +683,98 @@ function getDevClubDetail(clubId: string, state: ClubQaState): AdminClubDetailDa
     atRiskStudents: buildAtRiskStudents({ attempts, studentAttendance: attendanceByUser, studentCompletion: completionByUser }),
     weakestSkills: buildWeakestSkills(attempts),
     trend: buildClubTrend(attempts, assignments, new Date("2026-05-15T00:00:00.000Z")),
+    invitations: buildDevInvitations(resolvedState, club.id),
+    events,
+    eventOccurrences,
     qaEnabled: true,
     qaState: resolvedState,
     loadError: null,
   };
+}
+
+function buildDevInvitations(state: ClubQaState, clubId: string): AdminClubInvitation[] {
+  if (state === "empty") return [];
+  return [
+    {
+      id: "00000000-0000-4c15-8000-000000000001",
+      clubId,
+      email: "new.coach@debatelab.vn",
+      role: "coach",
+      status: "pending",
+      expiresAt: "2026-05-30T00:00:00.000Z",
+      invitedBy: "00000000-0000-4000-8000-000000000001",
+      acceptedBy: null,
+      acceptedAt: null,
+      lastSentAt: "2026-05-15T00:00:00.000Z",
+      createdAt: "2026-05-15T00:00:00.000Z",
+      updatedAt: "2026-05-15T00:00:00.000Z",
+    },
+  ];
+}
+
+function buildDevEvents(
+  state: ClubQaState,
+  clubId: string,
+  cohorts: AdminClassListRow[]
+): AdminClubEvent[] {
+  if (state === "empty") return [];
+  return [
+    {
+      id: "00000000-0000-4c60-8000-000000000001",
+      clubId,
+      classId: cohorts[0]?.id ?? null,
+      classTitle: cohorts[0]?.title ?? null,
+      title: "Weekly sparring round",
+      eventType: "meeting",
+      room: "Room 204",
+      location: "Ha Noi campus",
+      startDate: "2026-05-18",
+      endDate: "2026-07-31",
+      startTime: "17:00:00",
+      endTime: "18:30:00",
+      timezone: DEFAULT_CLASS_TIMEZONE,
+      recurrenceRule: normalizeRecurrenceRule({
+        frequency: "weekly",
+        interval: 1,
+        weekdays: ["MO"],
+        endMode: "on_date",
+        until: "2026-07-31",
+        count: null,
+      }, "2026-05-18"),
+      recurrenceSummary: "Weekly on Mon from May 18, 2026 until Jul 31, 2026",
+      externalCalendarUrl: null,
+      externalProvider: null,
+      status: "active",
+      createdAt: "2026-05-10T00:00:00.000Z",
+      updatedAt: "2026-05-15T00:00:00.000Z",
+      occurrenceCount: 11,
+      nextOccurrenceDate: "2026-05-18",
+    },
+    {
+      id: "00000000-0000-4c60-8000-000000000002",
+      clubId,
+      classId: null,
+      classTitle: null,
+      title: "Parent showcase",
+      eventType: "social",
+      room: "Auditorium",
+      location: "Ha Noi campus",
+      startDate: "2026-06-06",
+      endDate: null,
+      startTime: "09:00:00",
+      endTime: "11:00:00",
+      timezone: DEFAULT_CLASS_TIMEZONE,
+      recurrenceRule: normalizeRecurrenceRule({ frequency: "none" }, "2026-06-06"),
+      recurrenceSummary: "Does not repeat",
+      externalCalendarUrl: null,
+      externalProvider: null,
+      status: "active",
+      createdAt: "2026-05-12T00:00:00.000Z",
+      updatedAt: "2026-05-15T00:00:00.000Z",
+      occurrenceCount: 1,
+      nextOccurrenceDate: "2026-06-06",
+    },
+  ];
 }
 
 function buildDevCohorts(state: ClubQaState, clubId: string): AdminClassListRow[] {

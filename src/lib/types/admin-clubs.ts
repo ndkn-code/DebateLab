@@ -1,4 +1,4 @@
-import type { AdminClassListRow } from "@/lib/types/admin-classes";
+import type { AdminClassListRow, ClassRecurrenceRule } from "@/lib/types/admin-classes";
 
 export type ClubRole = "owner" | "coach" | "student";
 export type ClubStatus = "draft" | "active" | "archived";
@@ -8,6 +8,10 @@ export type ClubAssignmentTrack = "debate" | "speaking" | "mun";
 export type ClubAssignmentType = "practice" | "case" | "speech" | "quiz" | "attendance";
 export type CoachReviewStatus = "open" | "resolved";
 export type ClubQaState = "empty" | "active" | "high" | "low" | "mixed";
+export type ClubInvitationStatus = "pending" | "accepted" | "revoked" | "expired";
+export type ClubInviteResultStatus = "invited" | "added" | "existing_member" | "missing_account" | "email_skipped" | "failed";
+export type ClubEventType = "meeting" | "workshop" | "tournament" | "social" | "deadline" | "other";
+export type ClubEventStatus = "active" | "cancelled" | "archived";
 
 export interface AdminClubListRow {
   id: string;
@@ -18,10 +22,16 @@ export interface AdminClubListRow {
   country: string;
   status: ClubStatus;
   timezone: string;
+  logoUrl: string | null;
+  logoStoragePath: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  threadsUrl: string | null;
   classCount: number;
   studentCount: number;
   coachCount: number;
   assignmentCount: number;
+  upcomingEventCount: number;
   completionRate30d: number | null;
   attendanceRate30d: number | null;
   averageScore30d: number | null;
@@ -54,6 +64,40 @@ export interface AdminClubMember {
   role: ClubRole;
   status: "active" | "removed";
   joinedAt: string;
+}
+
+export interface AdminClubInvitation {
+  id: string;
+  clubId: string;
+  email: string;
+  role: ClubRole;
+  status: ClubInvitationStatus;
+  expiresAt: string;
+  invitedBy: string | null;
+  acceptedBy: string | null;
+  acceptedAt: string | null;
+  lastSentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClubRecipientInput {
+  email: string;
+  role: ClubRole;
+}
+
+export interface ClubRecipientResult {
+  email: string;
+  role: ClubRole;
+  status: ClubInviteResultStatus;
+  invitationId?: string | null;
+  userId?: string | null;
+  message?: string | null;
+}
+
+export interface CreateClubResult {
+  clubId: string;
+  recipients: ClubRecipientResult[];
 }
 
 export interface AdminClubAssignmentRow {
@@ -152,9 +196,53 @@ export interface AdminClubDetailData {
   atRiskStudents: AdminClubAtRiskStudent[];
   weakestSkills: AdminClubSkillSummary[];
   trend: AdminClubTrendPoint[];
+  invitations: AdminClubInvitation[];
+  events: AdminClubEvent[];
+  eventOccurrences: AdminClubEventOccurrence[];
   qaEnabled: boolean;
   qaState: ClubQaState | null;
   loadError: string | null;
+}
+
+export interface AdminClubEvent {
+  id: string;
+  clubId: string;
+  classId: string | null;
+  classTitle: string | null;
+  title: string;
+  eventType: ClubEventType;
+  room: string | null;
+  location: string | null;
+  startDate: string;
+  endDate: string | null;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  recurrenceRule: ClassRecurrenceRule;
+  recurrenceSummary: string;
+  externalCalendarUrl: string | null;
+  externalProvider: string | null;
+  status: ClubEventStatus;
+  createdAt: string;
+  updatedAt: string;
+  occurrenceCount: number;
+  nextOccurrenceDate: string | null;
+}
+
+export interface AdminClubEventOccurrence {
+  id: string;
+  eventId: string;
+  clubId: string;
+  classId: string | null;
+  classTitle: string | null;
+  title: string;
+  eventType: ClubEventType;
+  room: string | null;
+  location: string | null;
+  date: string;
+  startsAt: string;
+  endsAt: string;
+  recurrenceSummary: string;
 }
 
 export interface ClubAssignmentInput {
@@ -171,4 +259,20 @@ export interface ClubAssignmentInput {
   rubricKey?: string;
   rubricVersion?: number;
   status?: ClubAssignmentStatus;
+}
+
+export interface SaveClubEventInput {
+  id?: string;
+  clubId: string;
+  classId?: string | null;
+  title: string;
+  eventType?: ClubEventType;
+  room?: string | null;
+  location?: string | null;
+  startDate: string;
+  endDate?: string | null;
+  startTime: string;
+  endTime: string;
+  timezone?: string | null;
+  recurrenceRule: Partial<ClassRecurrenceRule>;
 }
