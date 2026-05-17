@@ -4,8 +4,18 @@ import {
   SOLO_SPEECH_DURATION,
   clampDurationSeconds,
 } from "@/lib/practice-durations";
+import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  coercePracticeLanguage,
+} from "@/lib/practice-language";
 import type { Mode, Phase } from "@/store/session-store";
-import type { AiDifficulty, DebateRound, DebateTopic, PracticeTrack } from "@/types";
+import type {
+  AiDifficulty,
+  DebateRound,
+  DebateTopic,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 
 const STORAGE_KEY = "debatelab_practice_draft_id";
 const LOCAL_DRAFT_KEY = "debatelab_practice_local_draft";
@@ -14,6 +24,7 @@ export interface PracticeSessionDraftPayload {
   selectedTopic: DebateTopic;
   side: "proposition" | "opposition";
   practiceTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   mode: Mode;
   prepTime: number;
   speechTime: number;
@@ -34,6 +45,7 @@ interface PracticeSessionDraftRow {
   topic_difficulty: DebateTopic["difficulty"];
   side: "proposition" | "opposition";
   practice_track: PracticeTrack;
+  practice_language?: PracticeLanguage | null;
   mode: Mode;
   prep_time: number;
   speech_time: number;
@@ -55,6 +67,7 @@ function payloadToRow(userId: string, payload: PracticeSessionDraftPayload) {
     topic_difficulty: payload.selectedTopic.difficulty ?? "intermediate",
     side: payload.side,
     practice_track: payload.practiceTrack,
+    practice_language: coercePracticeLanguage(payload.practiceLanguage),
     mode: payload.mode,
     prep_time: clampDurationSeconds(payload.prepTime, SOLO_PREP_DURATION),
     speech_time: clampDurationSeconds(payload.speechTime, SOLO_SPEECH_DURATION),
@@ -81,6 +94,10 @@ function rowToPayload(row: PracticeSessionDraftRow): PracticeSessionDraftPayload
     },
     side: row.side,
     practiceTrack: row.practice_track,
+    practiceLanguage: coercePracticeLanguage(
+      row.practice_language,
+      DEFAULT_PRACTICE_LANGUAGE
+    ),
     mode: row.mode,
     prepTime: clampDurationSeconds(row.prep_time, SOLO_PREP_DURATION),
     speechTime: clampDurationSeconds(row.speech_time, SOLO_SPEECH_DURATION),
@@ -180,7 +197,7 @@ export async function loadPracticeSessionDraft(draftId: string, userId: string) 
   const { data, error } = await supabase
     .from("practice_session_drafts")
     .select(
-      "id, topic_id, topic_title, topic_category, topic_difficulty, side, practice_track, mode, prep_time, speech_time, ai_difficulty, current_phase, current_round, prep_notes, transcript, rounds, session_started_at"
+      "id, topic_id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, ai_difficulty, current_phase, current_round, prep_notes, transcript, rounds, session_started_at"
     )
     .eq("id", draftId)
     .eq("user_id", userId)

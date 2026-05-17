@@ -762,6 +762,11 @@
       "session_config": "Cấu Hình Phiên",
       "selected_motion": "Motion Bạn Đã Chọn",
       "practice_track": "Kiểu",
+      "practice_language": "Ngôn ngữ luyện tập",
+      "practice_language_options": {
+        "en": "Tiếng Anh",
+        "vi": "Tiếng Việt"
+      },
       "debate_mode": "Chế Độ Debate",
       "solo_debate": "Debate Solo",
       "one_vs_one_debate": "Debate 1v1",
@@ -1137,7 +1142,8 @@
     "default_prep_time": "Thời gian chuẩn bị mặc định",
     "default_speech_time": "Thời gian nói mặc định",
     "default_difficulty": "Độ khó AI mặc định",
-    "app_language": "Ngôn ngữ ứng dụng"
+    "app_language": "Ngôn ngữ ứng dụng",
+    "practice_language": "Ngôn ngữ luyện tập"
   },
   "change_password": "Đổi mật khẩu",
   "change_password_description": "Xác nhận mật khẩu hiện tại rồi chọn mật khẩu mới cho thiết bị này.",
@@ -1158,8 +1164,13 @@
       "en": "Tiếng Anh (English)",
       "vi": "Tiếng Việt (Vietnamese)"
     },
+    "practice_languages": {
+      "en": "Luyện tập bằng tiếng Anh",
+      "vi": "Luyện tập bằng tiếng Việt"
+    },
     "language_switching": "Đang chuyển ngôn ngữ...",
     "language_hint": "Ngôn ngữ đổi ngay lập tức, và khi lưu trang này hệ thống sẽ ghi nhớ lựa chọn của bạn.",
+    "practice_language_hint": "Mục này điều khiển nhận diện giọng nói, giọng AI, phản biện và ngôn ngữ phản hồi trong phiên luyện tập.",
     "toggles": {
       "detailed_feedback": {
         "title": "Hiện phản hồi chi tiết",
@@ -1226,10 +1237,12 @@
       "more_voices_description": "Giữ sẵn các giọng nổi bật hoặc chọn từ toàn bộ danh sách tại đây.",
       "preview_button": "Nghe thử",
       "selected_label": "Giọng đang chọn",
+      "high_quality": "Chất lượng cao",
       "accents": {
         "american": "Mỹ",
         "british": "Anh",
-        "irish": "Ireland"
+        "irish": "Ireland",
+        "vietnamese": "Việt Nam"
       }
     },
   "toast": {

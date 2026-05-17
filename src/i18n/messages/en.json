@@ -762,6 +762,11 @@
       "session_config": "Session Configuration",
       "selected_motion": "Your Selected Motion",
       "practice_track": "Track",
+      "practice_language": "Practice Language",
+      "practice_language_options": {
+        "en": "English",
+        "vi": "Vietnamese"
+      },
       "debate_mode": "Debate Mode",
       "solo_debate": "Solo Debate",
       "one_vs_one_debate": "1v1 Debate",
@@ -1137,7 +1142,8 @@
     "default_prep_time": "Default Prep Time",
     "default_speech_time": "Default Speech Time",
     "default_difficulty": "Default AI Difficulty",
-    "app_language": "App Language"
+    "app_language": "App Language",
+    "practice_language": "Practice Language"
   },
   "change_password": "Change Password",
   "change_password_description": "Confirm your current password, then choose a new one for this device.",
@@ -1154,12 +1160,17 @@
       "medium": "Medium",
       "hard": "Hard"
     },
-    "languages": {
-      "en": "English (English)",
-      "vi": "Vietnamese (Tiếng Việt)"
-    },
-    "language_switching": "Switching language...",
-    "language_hint": "Language changes apply immediately, and saving this page remembers your preferred locale.",
+  "languages": {
+    "en": "English (English)",
+    "vi": "Vietnamese (Tiếng Việt)"
+  },
+  "practice_languages": {
+    "en": "English practice",
+    "vi": "Vietnamese practice"
+  },
+  "language_switching": "Switching language...",
+  "language_hint": "Language changes apply immediately, and saving this page remembers your preferred locale.",
+  "practice_language_hint": "This controls speech recognition, AI voice, rebuttals, and feedback language during practice.",
     "toggles": {
       "detailed_feedback": {
         "title": "Show detailed feedback",
@@ -1226,12 +1237,14 @@
       "more_voices_description": "Keep the featured voices handy, or choose from the full catalog here.",
       "preview_button": "Preview",
       "selected_label": "Selected voice",
-      "accents": {
-        "american": "American",
-        "british": "British",
-        "irish": "Irish"
-      }
-    },
+      "high_quality": "High quality",
+    "accents": {
+      "american": "American",
+      "british": "British",
+      "irish": "Irish",
+      "vietnamese": "Vietnamese"
+    }
+  },
   "toast": {
     "saved": "Settings saved.",
     "save_error": "Unable to save your settings right now.",

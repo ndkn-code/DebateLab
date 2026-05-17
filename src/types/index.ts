@@ -1,4 +1,4 @@
-export type { AiHighlight, AiHighlightType, DebateTopic, DebateSession, DebateRound, AiDifficulty, ClubPracticeContext, PracticeTrack } from "./debate";
+export type { AiHighlight, AiHighlightType, DebateTopic, DebateSession, DebateRound, AiDifficulty, ClubPracticeContext, PracticeLanguage, PracticeTrack } from "./debate";
 export type {
   DebateScore,
   DebateArgumentBreakdown,

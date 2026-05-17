@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import type { Profile } from "@/types/database";
 
 export default async function ProtectedLayout({
@@ -15,14 +16,17 @@ export default async function ProtectedLayout({
     data: { user },
   } = await supabase.auth.getUser();
   const devAdminBypass = isDevAdminBypassEnabled();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
 
   if (!user) {
-    if (devAdminBypass) {
+    if (devAdminBypass || devAuthBypassUser) {
       return (
         <ProtectedShell
           profile={DEV_ADMIN_PROFILE}
-          userEmail={DEV_ADMIN_PROFILE.email}
-          userId={DEV_ADMIN_PROFILE.id}
+          userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
+          userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
         >
           {children}
         </ProtectedShell>

@@ -1,3 +1,5 @@
+import type { PracticeLanguage } from "./feedback";
+
 export type DebateDuelStatus =
   | "lobby"
   | "in_progress"
@@ -38,6 +40,7 @@ export interface DebateDuelMatchmakingTicket {
   status: DebateDuelMatchmakingStatus;
   topicCategory: string;
   topicDifficulty: DebateDuelTopicDifficulty;
+  practiceLanguage: PracticeLanguage;
   config: DebateDuelConfig;
   matchedDuelId: string | null;
   matchedTicketId: string | null;
@@ -157,6 +160,7 @@ export interface DebateDuelRoomView {
   topicCategory: string;
   topicDifficulty: DebateDuelTopicDifficulty;
   topicDescription: string | null;
+  practiceLanguage: PracticeLanguage;
   duelKind: DebateDuelKind;
   rated: boolean;
   integrityStatus: DebateDuelIntegrityStatus;

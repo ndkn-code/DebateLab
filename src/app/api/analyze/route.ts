@@ -3,6 +3,7 @@ import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
 import {
   getBoolean,
   getEnum,
@@ -18,8 +19,7 @@ import {
 // the common Vercel serverless ceiling.
 export const maxDuration = 60;
 
-import type { DebateRound } from "@/types";
-import type { PracticeTrack } from "@/types";
+import type { DebateRound, PracticeLanguage, PracticeTrack } from "@/types";
 
 interface AnalyzeRequest {
   transcript: string;
@@ -29,6 +29,7 @@ interface AnalyzeRequest {
   timeLimit: number;
   actualDuration: number;
   practiceTrack?: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   isFullRound?: boolean;
   rounds?: DebateRound[];
 }
@@ -112,6 +113,12 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     ["speaking", "debate"] as const,
     { defaultValue: "debate" }
   ) as PracticeTrack;
+  const practiceLanguage = getEnum(
+    body,
+    "practiceLanguage",
+    ["en", "vi"] as const,
+    { defaultValue: "en" }
+  ) as PracticeLanguage;
   const roundsValue = body.rounds;
   const rounds =
     roundsValue == null
@@ -130,6 +137,7 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     timeLimit,
     actualDuration,
     practiceTrack,
+    practiceLanguage,
     isFullRound: getBoolean(body, "isFullRound", false),
     rounds,
   };
@@ -145,28 +153,33 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const authUser = user
+      ? { id: user.id, email: user.email ?? null }
+      : getDevAuthBypassUserFromRequest(req);
 
-    if (!user) {
+    if (!authUser) {
       logAnalyzeRequest(requestId, "unauthorized");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rateLimit = await consumeRateLimit(supabase, {
-      scope: "analyze",
-      limit: 5,
-      windowSeconds: 60,
-    });
-    if (!rateLimit.success) {
-      logAnalyzeRequest(requestId, "rate_limited", {
-        retryAfterSeconds: rateLimit.retryAfterSeconds,
+    if (user) {
+      const rateLimit = await consumeRateLimit(supabase, {
+        scope: "analyze",
+        limit: 5,
+        windowSeconds: 60,
       });
-      return NextResponse.json(
-        { error: "Too many requests. Please wait a moment." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
-      );
+      if (!rateLimit.success) {
+        logAnalyzeRequest(requestId, "rate_limited", {
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        });
+        return NextResponse.json(
+          { error: "Too many requests. Please wait a moment." },
+          {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+          }
+        );
+      }
     }
 
     if (!process.env.GEMINI_API_KEY) {
@@ -190,6 +203,7 @@ export async function POST(req: NextRequest) {
       timeLimit,
       actualDuration,
       practiceTrack,
+      practiceLanguage,
       isFullRound,
       rounds,
     } =
@@ -215,6 +229,7 @@ export async function POST(req: NextRequest) {
     logAnalyzeRequest(requestId, "request_validated", {
       wordCount,
       practiceTrack,
+      practiceLanguage,
       mode: speechType,
       isFullRound,
       roundCount: rounds?.length ?? 0,
@@ -229,7 +244,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await recordAnalyticsEvent(supabase, user.id, {
+    await recordAnalyticsEvent(supabase, authUser.id, {
       eventName: "ai_feedback_requested",
       featureArea: "ai_feedback",
       metadata: {
@@ -237,6 +252,7 @@ export async function POST(req: NextRequest) {
         side,
         speech_type: speechType || "Opening Statement",
         practice_track: practiceTrack || "debate",
+        practice_language: practiceLanguage,
         word_count: wordCount,
         debug_id: requestId,
       },
@@ -260,14 +276,15 @@ export async function POST(req: NextRequest) {
           timeLimit: timeLimit || 2,
           actualDuration: actualDuration || 0,
           practiceTrack: practiceTrack || "debate",
+          practiceLanguage,
           isFullRound,
           rounds,
-        }, user.id),
+        }, authUser.id),
         timeoutPromise,
       ]);
 
       const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-      await recordAnalyticsEvent(supabase, user.id, {
+      await recordAnalyticsEvent(supabase, authUser.id, {
         eventName: "ai_feedback_completed",
         featureArea: "ai_feedback",
         durationMs: actualDuration ? actualDuration * 1000 : null,
@@ -276,6 +293,7 @@ export async function POST(req: NextRequest) {
           side,
           speech_type: speechType || "Opening Statement",
           practice_track: practiceTrack || "debate",
+          practice_language: practiceLanguage,
           model: modelUsed,
           debug_id: requestId,
         },

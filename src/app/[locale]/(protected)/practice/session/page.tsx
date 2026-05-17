@@ -4,7 +4,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
-import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import {
+  DEFAULT_VOICE,
+  coerceVoiceForLanguage,
+} from "@/lib/tts-voices";
 import { createClient } from "@/lib/supabase/client";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
@@ -28,6 +31,7 @@ export default function SessionPage() {
     selectedTopic,
     side,
     practiceTrack,
+    practiceLanguage,
     mode,
     prepTime,
     speechTime,
@@ -68,7 +72,7 @@ export default function SessionPage() {
 
   const prepTimer = useCountdown(prepTime);
   const speechTimer = useCountdown(speechTime);
-  const speech = useDeepgramTranscription();
+  const speech = useDeepgramTranscription(practiceLanguage);
   const audio = useAudioRecorder();
 
   const isFullRound = practiceTrack === "debate" && mode === "full";
@@ -85,13 +89,13 @@ export default function SessionPage() {
       if (user) {
         const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
         const prefs = data?.preferences as Record<string, unknown> | null;
-        if (prefs?.tts_voice && typeof prefs.tts_voice === 'string') {
-          setTtsVoice(prefs.tts_voice);
-        }
+        setTtsVoice(coerceVoiceForLanguage(prefs?.tts_voice, practiceLanguage));
+      } else {
+        setTtsVoice(coerceVoiceForLanguage(DEFAULT_VOICE, practiceLanguage));
       }
     };
     loadVoice();
-  }, []);
+  }, [practiceLanguage]);
 
   // Redirect if no topic
   useEffect(() => {
@@ -551,6 +555,7 @@ export default function SessionPage() {
         topicTitle={selectedTopic.title}
         side={resolvedSide}
         practiceTrack={practiceTrack}
+        practiceLanguage={practiceLanguage}
         mode={mode}
         phase={currentPhase}
       />
@@ -620,6 +625,7 @@ export default function SessionPage() {
           roundLabel={currentRoundInfo.label}
           difficulty={aiDifficulty}
           practiceTrack={practiceTrack}
+          practiceLanguage={practiceLanguage}
           previousRounds={previousRoundsForAi}
           prepNotes={prepNotes}
           onNotesChange={setPrepNotes}

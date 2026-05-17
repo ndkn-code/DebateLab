@@ -17,6 +17,7 @@ const session: DebateSession = {
   },
   side: "proposition",
   practiceTrack: "debate",
+  practiceLanguage: "en",
   mode: "full",
   prepTime: 300,
   speechTime: 420,
@@ -30,6 +31,7 @@ const session: DebateSession = {
   },
   feedback: {
     practiceTrack: "debate",
+    practiceLanguage: "en",
     content: {
       score: 8,
       claimClarity: 8,

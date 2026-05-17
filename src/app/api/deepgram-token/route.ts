@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
 
 type DeepgramGrantResponse = {
   access_token?: string;
@@ -58,7 +59,7 @@ function summarizeDeepgramError(body: string) {
   };
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const requestId = request.headers.get("x-debug-id") ?? createRequestId();
 
   try {
@@ -68,8 +69,11 @@ export async function GET(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const authUser = user
+      ? { id: user.id, email: user.email ?? null }
+      : getDevAuthBypassUserFromRequest(request);
 
-    if (!user) {
+    if (!authUser) {
       logDeepgramToken("warn", "unauthorized", { requestId });
       return NextResponse.json(
         { error: "Unauthorized", code: "unauthorized", requestId },
@@ -79,39 +83,41 @@ export async function GET(request: Request) {
 
     logDeepgramToken("info", "auth_succeeded", {
       requestId,
-      userId: user.id,
+      userId: authUser.id,
     });
 
-    const rateLimit = await consumeRateLimit(supabase, {
-      scope: "deepgram-token",
-      limit: 5,
-      windowSeconds: 60,
-    });
-    logDeepgramToken("info", "rate_limit_checked", {
-      requestId,
-      userId: user.id,
-      success: rateLimit.success,
-      retryAfterSeconds: rateLimit.retryAfterSeconds,
-    });
-    if (!rateLimit.success) {
-      return NextResponse.json(
-        {
-          error: "Too many requests. Please wait a moment.",
-          code: "rate_limited",
-          requestId,
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
-      );
+    if (user) {
+      const rateLimit = await consumeRateLimit(supabase, {
+        scope: "deepgram-token",
+        limit: 5,
+        windowSeconds: 60,
+      });
+      logDeepgramToken("info", "rate_limit_checked", {
+        requestId,
+        userId: authUser.id,
+        success: rateLimit.success,
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      if (!rateLimit.success) {
+        return NextResponse.json(
+          {
+            error: "Too many requests. Please wait a moment.",
+            code: "rate_limited",
+            requestId,
+          },
+          {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+          }
+        );
+      }
     }
 
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
       logDeepgramToken("error", "missing_deepgram_api_key", {
         requestId,
-        userId: user.id,
+        userId: authUser.id,
       });
       return NextResponse.json(
         {
@@ -125,7 +131,7 @@ export async function GET(request: Request) {
 
     logDeepgramToken("info", "grant_started", {
       requestId,
-      userId: user.id,
+      userId: authUser.id,
     });
 
     const response = await fetch("https://api.deepgram.com/v1/auth/grant", {
@@ -145,7 +151,7 @@ export async function GET(request: Request) {
       const isPermissionError = response.status === 401 || response.status === 403;
       logDeepgramToken("error", "grant_failed", {
         requestId,
-        userId: user.id,
+        userId: authUser.id,
         status: response.status,
         statusText: response.statusText,
         ...summary,
@@ -167,7 +173,7 @@ export async function GET(request: Request) {
     if (!data?.access_token) {
       logDeepgramToken("error", "grant_missing_access_token", {
         requestId,
-        userId: user.id,
+        userId: authUser.id,
         status: response.status,
         bodyKeys: data ? Object.keys(data) : [],
       });
@@ -183,7 +189,7 @@ export async function GET(request: Request) {
 
     logDeepgramToken("info", "grant_succeeded", {
       requestId,
-      userId: user.id,
+      userId: authUser.id,
       expiresIn: data.expires_in ?? 60,
     });
 

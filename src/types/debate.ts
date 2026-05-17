@@ -1,4 +1,4 @@
-import type { DebateScore, PracticeTrack } from "./feedback";
+import type { DebateScore, PracticeLanguage, PracticeTrack } from "./feedback";
 
 export interface DebateTopic {
   id: string;
@@ -13,7 +13,7 @@ export interface DebateTopic {
 }
 
 export type AiDifficulty = "easy" | "medium" | "hard";
-export type { PracticeTrack } from "./feedback";
+export type { PracticeLanguage, PracticeTrack } from "./feedback";
 
 export type AiHighlightType = "claim" | "evidence" | "impact" | "assumption";
 
@@ -46,6 +46,7 @@ export interface DebateSession {
   topic: DebateTopic;
   side: "proposition" | "opposition";
   practiceTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   mode: "quick" | "full";
   prepTime: number;
   speechTime: number;

@@ -36,9 +36,14 @@ import {
   buildSettingsDraft,
 } from "@/lib/settings";
 import {
+  coercePracticeLanguage,
+  PRACTICE_LANGUAGES,
+} from "@/lib/practice-language";
+import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
 } from "@/lib/practice-durations";
+import { coerceVoiceForLanguage } from "@/lib/tts-voices";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
@@ -383,6 +388,15 @@ export function SettingsContent({
     });
   }
 
+  function handlePracticeLanguageChange(nextLanguage: string) {
+    const practiceLanguage = coercePracticeLanguage(nextLanguage);
+    setDraft((current) => ({
+      ...current,
+      practiceLanguage,
+      ttsVoice: coerceVoiceForLanguage(current.ttsVoice, practiceLanguage),
+    }));
+  }
+
   async function handleAvatarFileChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
@@ -700,6 +714,24 @@ export function SettingsContent({
                   ? t("language_switching")
                   : t("language_hint")}
               </div>
+              <div>
+                <SettingLabel>{t("fields.practice_language")}</SettingLabel>
+                <Select
+                  value={draft.practiceLanguage}
+                  onChange={(event) =>
+                    handlePracticeLanguageChange(event.target.value)
+                  }
+                >
+                  {PRACTICE_LANGUAGES.map((language) => (
+                    <option key={language} value={language}>
+                      {t(`practice_languages.${language}`)}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-2 text-sm text-[#64748b]">
+                  {t("practice_language_hint")}
+                </p>
+              </div>
             </div>
           </SettingsCard>
 
@@ -711,6 +743,7 @@ export function SettingsContent({
           >
             <VoiceSettings
               currentVoice={draft.ttsVoice}
+              practiceLanguage={draft.practiceLanguage}
               onVoiceChange={(voiceId) => updateDraft("ttsVoice", voiceId)}
             />
           </SettingsCard>

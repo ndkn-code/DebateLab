@@ -17,6 +17,8 @@ const COLORS: Record<string, string> = {
   gemini_chat: "#059669",
   deepgram_stt: "#d97706",
   deepgram_tts: "#dc2626",
+  azure_tts: "#2563eb",
+  google_tts: "#16a34a",
 };
 
 interface Props {

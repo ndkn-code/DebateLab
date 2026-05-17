@@ -59,10 +59,15 @@ function getSideLabel(side: DebateDuelSide | null) {
   return "Pending";
 }
 
+function getPracticeLanguageLabel(language: "en" | "vi") {
+  return language === "vi" ? "Vietnamese" : "English";
+}
+
 export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const router = useRouter();
   const { data: room, error, mutate, isLoading } = useDebateDuelRoom(shareCode);
-  const speech = useDeepgramTranscription();
+  const practiceLanguage = room?.practiceLanguage ?? "en";
+  const speech = useDeepgramTranscription(practiceLanguage);
   useDuelIntegrityMonitor(room ?? null);
   const [notes, setNotes] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -484,7 +489,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                   4 speeches
                 </div>
                 <div className="mt-1 text-sm text-on-surface-variant">
-                  Shared prep + rebuttals
+                  {getPracticeLanguageLabel(practiceLanguage)} + rebuttals
                 </div>
               </div>
 

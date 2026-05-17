@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
+import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
+import { getPracticeLanguageConfig } from "@/lib/practice-language";
 import {
   getEnum,
   getString,
@@ -11,7 +13,13 @@ import {
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
-import type { AiDifficulty, AiHighlight, AiHighlightType, PracticeTrack } from "@/types";
+import type {
+  AiDifficulty,
+  AiHighlight,
+  AiHighlightType,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 
 export const maxDuration = 30;
 
@@ -22,6 +30,7 @@ interface RebuttalRequest {
   roundLabel: string;
   difficulty: AiDifficulty;
   practiceTrack?: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   previousRounds?: { label: string; speaker: string; text: string }[];
 }
 
@@ -87,6 +96,12 @@ function parseRebuttalRequest(body: JsonRecord): RebuttalRequest {
       ["speaking", "debate"] as const,
       { defaultValue: "debate" }
     ) as PracticeTrack,
+    practiceLanguage: getEnum(
+      body,
+      "practiceLanguage",
+      ["en", "vi"] as const,
+      { defaultValue: "en" }
+    ) as PracticeLanguage,
     previousRounds: parsePreviousRounds(body.previousRounds),
   };
 }
@@ -177,24 +192,29 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const authUser = user
+      ? { id: user.id, email: user.email ?? null }
+      : getDevAuthBypassUserFromRequest(req);
 
-    if (!user) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rateLimit = await consumeRateLimit(supabase, {
-      scope: "rebuttal",
-      limit: 10,
-      windowSeconds: 60,
-    });
-    if (!rateLimit.success) {
-      return NextResponse.json(
-        { error: "Too many requests. Please wait a moment." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
-      );
+    if (user) {
+      const rateLimit = await consumeRateLimit(supabase, {
+        scope: "rebuttal",
+        limit: 10,
+        windowSeconds: 60,
+      });
+      if (!rateLimit.success) {
+        return NextResponse.json(
+          { error: "Too many requests. Please wait a moment." },
+          {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+          }
+        );
+      }
     }
 
     if (!process.env.GEMINI_API_KEY) {
@@ -214,6 +234,7 @@ export async function POST(req: NextRequest) {
       roundLabel,
       difficulty,
       practiceTrack,
+      practiceLanguage,
       previousRounds,
     } = body;
 
@@ -227,6 +248,15 @@ export async function POST(req: NextRequest) {
     const aiSide = side === "proposition" ? "Opposition (AGAINST)" : "Proposition (FOR)";
     const difficultyInstructions = difficultyPrompts[difficulty || "medium"];
     const track = practiceTrack || "debate";
+    const languageConfig = getPracticeLanguageConfig(practiceLanguage);
+    const responseLanguageInstruction =
+      practiceLanguage === "vi"
+        ? "Write the rebuttal and highlight notes in Vietnamese. Preserve Vietnamese diacritics and use natural spoken Vietnamese debate language."
+        : "Write the rebuttal and highlight notes in English for students practicing English debate.";
+    const learnerContext =
+      practiceLanguage === "vi"
+        ? "This is for Vietnamese high school students practicing debate in Vietnamese, so be a challenging but fair practice partner."
+        : "This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner.";
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -253,6 +283,10 @@ ${contextSection}
 ## Practice Track
 ${track}
 
+## Practice Language
+${languageConfig.label}
+${responseLanguageInstruction}
+
 ## Opponent's Latest Speech
 """
 ${userTranscript}
@@ -269,7 +303,7 @@ Rules:
 - Prioritize depth over fancy wording
 - Maintain your side (${aiSide}) consistently
 - Be respectful but firm
-- This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner
+- ${learnerContext}
 
 Return ONLY valid JSON in this exact shape:
 {
@@ -311,7 +345,7 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
     const usage = result.response.usageMetadata;
 
     getPostHogServer().capture({
-      distinctId: user.id,
+      distinctId: authUser.id,
       event: "$ai_generation",
       properties: {
         $ai_provider: "google",

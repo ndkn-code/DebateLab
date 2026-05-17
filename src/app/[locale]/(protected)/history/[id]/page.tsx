@@ -127,18 +127,22 @@ export default function SessionDetailPage({
   if (!session) return null;
 
   const practiceTrack = session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+  const practiceLanguage =
+    session.practiceLanguage ?? session.feedback?.practiceLanguage ?? "en";
   const feedback = session.feedback
     ? {
         ...session.feedback,
         practiceTrack: session.feedback.practiceTrack ?? practiceTrack,
+        practiceLanguage: session.feedback.practiceLanguage ?? practiceLanguage,
       }
     : null;
   const sessionWithNormalizedFeedback = feedback
     ? {
         ...session,
+        practiceLanguage,
         feedback,
       }
-    : session;
+    : { ...session, practiceLanguage };
   const coachPrompt =
     practiceTrack === "speaking"
       ? `I just reviewed my speaking practice on "${session.topic.title}" (${session.side} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`

@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock3,
+  Languages,
   Loader2,
   Radar,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
 import { CATEGORIES, topics, type Category } from "@/lib/topics";
+import { PRACTICE_LANGUAGES } from "@/lib/practice-language";
 import {
   DUEL_OPENING_DURATION,
   DUEL_PREP_DURATION,
@@ -28,6 +30,7 @@ import { cn } from "@/lib/utils";
 import type {
   DebateDuelMatchmakingTicket,
   DebateDuelTopicDifficulty,
+  PracticeLanguage,
 } from "@/types";
 import {
   DuelPreviewSidebar,
@@ -47,6 +50,10 @@ const difficultyOptions: {
   { value: "intermediate", label: "Medium" },
   { value: "advanced", label: "Hard" },
 ];
+const languageLabels: Record<PracticeLanguage, string> = {
+  en: "English",
+  vi: "Vietnamese",
+};
 
 async function fetchTicket(url: string) {
   const response = await fetch(url, { credentials: "include" });
@@ -78,6 +85,8 @@ export function DuelMatchmakingPage() {
   const [topicCategory, setTopicCategory] = useState<Category>(CATEGORIES[0]);
   const [topicDifficulty, setTopicDifficulty] =
     useState<DebateDuelTopicDifficulty>("beginner");
+  const [practiceLanguage, setPracticeLanguage] =
+    useState<PracticeLanguage>("en");
   const [prepTimeSeconds, setPrepTimeSeconds] = useState(120);
   const [openingTimeSeconds, setOpeningTimeSeconds] = useState(180);
   const [rebuttalTimeSeconds, setRebuttalTimeSeconds] = useState(120);
@@ -160,6 +169,7 @@ export function DuelMatchmakingPage() {
         body: JSON.stringify({
           topicCategory,
           topicDifficulty,
+          practiceLanguage,
           prepTimeSeconds,
           openingTimeSeconds,
           rebuttalTimeSeconds,
@@ -276,6 +286,7 @@ export function DuelMatchmakingPage() {
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
                   {[
                     ["Category", topicCategory],
+                    ["Language", languageLabels[activeTicket?.practiceLanguage ?? practiceLanguage]],
                     ["Difficulty", formatDifficulty(topicDifficulty)],
                     [
                       "Format",
@@ -375,6 +386,36 @@ export function DuelMatchmakingPage() {
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                       2
+                    </div>
+                    <h2 className="text-xl font-bold text-on-surface">
+                      Practice language
+                    </h2>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {PRACTICE_LANGUAGES.map((language) => (
+                      <button
+                        key={language}
+                        type="button"
+                        onClick={() => setPracticeLanguage(language)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-[20px] border px-4 py-4 text-left text-sm font-semibold transition-all",
+                          practiceLanguage === language
+                            ? "border-primary bg-primary/8 text-primary"
+                            : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
+                        )}
+                      >
+                        <Languages className="h-4 w-4" />
+                        {languageLabels[language]}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
+                      3
                     </div>
                     <h2 className="text-xl font-bold text-on-surface">
                       Timer preset

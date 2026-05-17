@@ -21,11 +21,12 @@ import {
   DUEL_REBUTTAL_DURATION,
   clampDurationSeconds,
 } from "@/lib/practice-durations";
-import type { DebateDuelTopicDifficulty } from "@/types";
+import type { DebateDuelTopicDifficulty, PracticeLanguage } from "@/types";
 
 type MatchmakingBody = {
   topicCategory?: string;
   topicDifficulty?: DebateDuelTopicDifficulty;
+  practiceLanguage?: PracticeLanguage;
   prepTimeSeconds?: number;
   openingTimeSeconds?: number;
   rebuttalTimeSeconds?: number;
@@ -127,6 +128,12 @@ export async function POST(req: NextRequest) {
         ["beginner", "intermediate", "advanced"] as const,
         { defaultValue: "beginner" }
       ),
+      practiceLanguage: getEnum(
+        rawBody,
+        "practiceLanguage",
+        ["en", "vi"] as const,
+        { defaultValue: "en" }
+      ) as PracticeLanguage,
       prepTimeSeconds: getNumber(rawBody, "prepTimeSeconds"),
       openingTimeSeconds: getNumber(rawBody, "openingTimeSeconds"),
       rebuttalTimeSeconds: getNumber(rawBody, "rebuttalTimeSeconds"),
@@ -139,6 +146,7 @@ export async function POST(req: NextRequest) {
       topicDifficulty,
       topicTitle: topic.title,
       topicDescription: topic.context ?? "",
+      practiceLanguage: body.practiceLanguage ?? "en",
       prepTimeSeconds: clampDurationSeconds(
         body.prepTimeSeconds,
         DUEL_PREP_DURATION

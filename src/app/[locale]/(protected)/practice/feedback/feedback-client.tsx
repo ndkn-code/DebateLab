@@ -59,6 +59,7 @@ export default function FeedbackPage() {
     selectedTopic,
     side,
     practiceTrack,
+    practiceLanguage,
     mode,
     prepTime,
     speechTime,
@@ -77,6 +78,7 @@ export default function FeedbackPage() {
     setTopic,
     setSide,
     setPracticeTrack,
+    setPracticeLanguage,
     setMode,
     setPrepTime,
     setSpeechTime,
@@ -113,8 +115,9 @@ export default function FeedbackPage() {
     (data: DebateScore): DebateScore => ({
       ...data,
       practiceTrack: data.practiceTrack ?? practiceTrack,
+      practiceLanguage: data.practiceLanguage ?? practiceLanguage,
     }),
-    [practiceTrack]
+    [practiceLanguage, practiceTrack]
   );
 
   const fetchFeedback = useCallback(async () => {
@@ -153,6 +156,7 @@ export default function FeedbackPage() {
       logAnalyzeDebug(debugId, "request_started", {
         wordCount,
         practiceTrack,
+        practiceLanguage,
         mode,
         isFullRound,
       });
@@ -169,6 +173,7 @@ export default function FeedbackPage() {
           topic: selectedTopic.title,
           side: resolvedSide,
           practiceTrack,
+          practiceLanguage,
           speechType,
           timeLimit: speechTime / 60,
           actualDuration,
@@ -232,6 +237,7 @@ export default function FeedbackPage() {
           topic: selectedTopic,
           side: resolvedSide,
           practiceTrack,
+          practiceLanguage,
           mode,
           prepTime,
           speechTime,
@@ -291,6 +297,7 @@ export default function FeedbackPage() {
     transcript,
     resolvedSide,
     practiceTrack,
+    practiceLanguage,
     mode,
     prepTime,
     speechTime,
@@ -352,6 +359,7 @@ export default function FeedbackPage() {
     resetSession();
     setTopic(topic);
     setPracticeTrack(practiceTrack);
+    setPracticeLanguage(practiceLanguage);
     setSide(resolvedSide);
     setMode(mode);
     setPrepTime(prepTime);
@@ -383,6 +391,7 @@ export default function FeedbackPage() {
       topic: selectedTopic,
       side: resolvedSide,
       practiceTrack,
+      practiceLanguage,
       mode,
       prepTime,
       speechTime,
@@ -404,6 +413,7 @@ export default function FeedbackPage() {
     isFullRound,
     mode,
     practiceTrack,
+    practiceLanguage,
     prepTime,
     resolvedSide,
     resultDate,

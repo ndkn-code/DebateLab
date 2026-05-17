@@ -4,12 +4,13 @@ import { useTranslations } from "next-intl";
 import { MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Phase } from "@/store/session-store";
-import type { PracticeTrack } from "@/types";
+import type { PracticeLanguage, PracticeTrack } from "@/types";
 
 interface SessionTopBarProps {
   topicTitle: string;
   side: "proposition" | "opposition";
   practiceTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   mode: string;
   phase: Phase;
 }
@@ -18,6 +19,7 @@ export function SessionTopBar({
   topicTitle,
   side,
   practiceTrack,
+  practiceLanguage,
   mode,
   phase,
 }: SessionTopBarProps) {
@@ -61,6 +63,9 @@ export function SessionTopBar({
             {practiceTrack === "speaking"
               ? t("speaking_practice")
               : t("debate_practice")}
+          </span>
+          <span className="inline-flex h-11 items-center rounded-xl bg-surface-container px-4 text-sm font-semibold text-on-surface">
+            {t(`practice_language_options.${practiceLanguage}`)}
           </span>
           {(phase === "speaking" || phase === "ai-rebuttal") && (
             <span

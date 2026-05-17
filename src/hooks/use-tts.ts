@@ -5,6 +5,7 @@ import { usePostHog } from 'posthog-js/react';
 
 interface UseTTSOptions {
   voice?: string;
+  practiceLanguage?: "en" | "vi";
   autoPlay?: boolean;
   onPlayStart?: () => void;
   onPlayEnd?: () => void;
@@ -25,6 +26,7 @@ interface UseTTSReturn {
 export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const {
     voice = 'aura-asteria-en',
+    practiceLanguage,
     autoPlay = true,
     onPlayStart,
     onPlayEnd,
@@ -72,7 +74,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: truncatedText, voice }),
+        body: JSON.stringify({ text: truncatedText, voice, practiceLanguage }),
       });
 
       if (!res.ok) {
@@ -181,7 +183,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [voice, autoPlay, posthog, onPlayStart, onPlayEnd, onError]);
+  }, [voice, practiceLanguage, autoPlay, posthog, onPlayStart, onPlayEnd, onError]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {

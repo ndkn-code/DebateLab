@@ -1,6 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { DebateScore } from "@/types/feedback";
-import type { DebateDuelJudgment, DebateRound, PracticeTrack } from "@/types";
+import type {
+  DebateDuelJudgment,
+  DebateRound,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
 import { normalizeDebateDuelClashLinks } from "./debate-duels/clash-links";
 import {
@@ -20,6 +25,7 @@ export async function analyzeDebate(params: {
   timeLimit: number;
   actualDuration: number;
   practiceTrack?: PracticeTrack;
+  practiceLanguage?: PracticeLanguage;
   isFullRound?: boolean;
   rounds?: DebateRound[];
 }, userId?: string): Promise<DebateScore> {
@@ -86,6 +92,7 @@ export async function analyzeDebate(params: {
   }
 
   parsed.practiceTrack = parsed.practiceTrack ?? params.practiceTrack ?? "debate";
+  parsed.practiceLanguage = parsed.practiceLanguage ?? params.practiceLanguage ?? "en";
   parsed.argumentBreakdowns = parsed.argumentBreakdowns ?? [];
   parsed.missingLayers = parsed.missingLayers ?? [];
   parsed.strongerRebuilds = parsed.strongerRebuilds ?? [];
@@ -101,6 +108,7 @@ export async function analyzeDebate(params: {
 export async function judgeDebateDuel(params: {
   motion: string;
   topicCategory: string;
+  practiceLanguage?: PracticeLanguage;
   participants: {
     proposition: { participantId: string | null; displayName: string };
     opposition: { participantId: string | null; displayName: string };

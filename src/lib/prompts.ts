@@ -1,4 +1,5 @@
-import type { DebateRound, PracticeTrack } from "@/types";
+import { getPracticeLanguageConfig } from "@/lib/practice-language";
+import type { DebateRound, PracticeLanguage, PracticeTrack } from "@/types";
 
 interface AnalysisPromptParams {
   transcript: string;
@@ -8,8 +9,27 @@ interface AnalysisPromptParams {
   timeLimit: number;
   actualDuration: number;
   practiceTrack?: PracticeTrack;
+  practiceLanguage?: PracticeLanguage;
   isFullRound?: boolean;
   rounds?: DebateRound[];
+}
+
+function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
+  const config = getPracticeLanguageConfig(language);
+
+  if (config.code === "vi") {
+    return `## Practice Language
+- The student is practicing debate/speaking in Vietnamese.
+- Return all user-facing prose values in Vietnamese: summaries, strengths, improvements, detailed feedback, suggestions, rebuilt arguments, verdict summaries, and highlight notes.
+- Preserve this JSON schema exactly. Keep schema keys and enum literal values in English exactly as specified.
+- Copy transcript quotes exactly as written, including Vietnamese diacritics. If an exact quote is hard to match, choose a shorter exact contiguous quote.`;
+  }
+
+  return `## Practice Language
+- The student is practicing debate/speaking in English.
+- Return all user-facing prose values in English.
+- Preserve this JSON schema exactly. Keep schema keys and enum literal values in English exactly as specified.
+- Copy transcript quotes exactly as written.`;
 }
 
 function buildRoundsContext(rounds?: DebateRound[]): string {
@@ -179,9 +199,19 @@ function debateJsonSchema(): string {
 }
 
 function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
-  const { transcript, topic, side, speechType, timeLimit, actualDuration } = params;
+  const {
+    transcript,
+    topic,
+    side,
+    speechType,
+    timeLimit,
+    actualDuration,
+    practiceLanguage,
+  } = params;
+  const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
+  const languageConfig = getPracticeLanguageConfig(practiceLanguage);
 
-  return `You are an expert public speaking coach for Vietnamese high school students practicing English. Analyze this speech and provide supportive but honest feedback.
+  return `You are an expert public speaking coach for Vietnamese high school students practicing ${languageConfig.aiName}. Analyze this speech and provide supportive but honest feedback.
 
 ## Context
 - Topic: "${topic}"
@@ -189,6 +219,8 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
 - Session Type: ${speechType}
 - Time Limit: ${timeLimit} minutes
 - Actual Duration: ${actualDuration} seconds
+
+${languageInstructions}
 
 ## Transcript
 """
@@ -243,13 +275,16 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     speechType,
     timeLimit,
     actualDuration,
+    practiceLanguage,
     isFullRound,
     rounds,
   } = params;
 
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
+  const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
+  const languageConfig = getPracticeLanguageConfig(practiceLanguage);
 
-  return `You are an expert debate coach and judge for Vietnamese high school students practicing English debate. Analyze this debate speech and provide rigorous, debate-specific feedback.
+  return `You are an expert debate coach and judge for Vietnamese high school students practicing ${languageConfig.aiName} debate. Analyze this debate speech and provide rigorous, debate-specific feedback.
 
 ## Context
 - Motion: "${topic}"
@@ -258,6 +293,8 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
 - Time Limit: ${timeLimit} minutes
 - Actual Duration: ${actualDuration} seconds
 ${roundsContext}
+${languageInstructions}
+
 ## ${isFullRound ? "Combined " : ""}Transcript
 """
 ${transcript}
@@ -334,6 +371,7 @@ export function buildAnalysisPrompt(params: AnalysisPromptParams): string {
 interface DuelJudgmentPromptParams {
   motion: string;
   topicCategory: string;
+  practiceLanguage?: PracticeLanguage;
   participants: {
     proposition: { participantId: string | null; displayName: string };
     opposition: { participantId: string | null; displayName: string };
@@ -407,6 +445,9 @@ function duelJudgmentJsonSchema(): string {
 export function buildDuelJudgmentPrompt(
   params: DuelJudgmentPromptParams
 ): string {
+  const languageInstructions = buildPracticeLanguageInstructions(
+    params.practiceLanguage
+  );
   const speechBlock = params.speeches
     .map(
         (speech) => `### Round ${speech.roundNumber}: ${speech.label}
@@ -439,6 +480,8 @@ ${speech.transcript}
 - Rebuttal prep
 - Proposition rebuttal
 - Opposition rebuttal
+
+${languageInstructions}
 
 ## Evaluation Standard
 Judge comparatively, not absolutely.

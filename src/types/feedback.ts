@@ -1,4 +1,5 @@
 export type PracticeTrack = "speaking" | "debate";
+export type PracticeLanguage = "en" | "vi";
 
 export interface DebateArgumentBreakdown {
   name: string;
@@ -111,6 +112,7 @@ export interface DebateScore {
   improvements: string[];
   sampleArguments: string[];
   practiceTrack?: PracticeTrack;
+  practiceLanguage?: PracticeLanguage;
   caseSummary?: string;
   stanceFeedback?: string;
   argumentBreakdowns?: DebateArgumentBreakdown[];

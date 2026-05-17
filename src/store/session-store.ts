@@ -6,6 +6,7 @@ import type {
   DebateRound,
   AiDifficulty,
   PracticeTrack,
+  PracticeLanguage,
 } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 import {
@@ -13,6 +14,10 @@ import {
   SOLO_SPEECH_DURATION,
   clampDurationSeconds,
 } from "@/lib/practice-durations";
+import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  coercePracticeLanguage,
+} from "@/lib/practice-language";
 
 export type Side = "proposition" | "opposition" | "random";
 export type Mode = "quick" | "full";
@@ -39,6 +44,7 @@ interface SessionDraftSnapshot {
   selectedTopic: DebateTopic;
   side: "proposition" | "opposition";
   practiceTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   mode: Mode;
   prepTime: number;
   speechTime: number;
@@ -57,6 +63,7 @@ interface SessionState {
   selectedTopic: DebateTopic | null;
   side: Side;
   practiceTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   mode: Mode;
   prepTime: number;
   speechTime: number;
@@ -82,6 +89,7 @@ interface SessionState {
   setTopic: (topic: DebateTopic | null) => void;
   setSide: (side: Side) => void;
   setPracticeTrack: (track: PracticeTrack) => void;
+  setPracticeLanguage: (language: PracticeLanguage) => void;
   setMode: (mode: Mode) => void;
   setPrepTime: (time: number) => void;
   setSpeechTime: (time: number) => void;
@@ -113,6 +121,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   selectedTopic: null,
   side: "random",
   practiceTrack: "debate",
+  practiceLanguage: DEFAULT_PRACTICE_LANGUAGE,
   mode: "full",
   prepTime: SOLO_PREP_DURATION.defaultSeconds,
   speechTime: SOLO_SPEECH_DURATION.defaultSeconds,
@@ -139,6 +148,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       practiceTrack,
       mode: practiceTrack === "speaking" ? "quick" : state.mode,
     })),
+  setPracticeLanguage: (practiceLanguage) =>
+    set({ practiceLanguage: coercePracticeLanguage(practiceLanguage) }),
   setMode: (mode) => set({ mode }),
   setPrepTime: (time) =>
     set({ prepTime: clampDurationSeconds(time, SOLO_PREP_DURATION) }),
@@ -191,6 +202,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       selectedTopic: draft.selectedTopic,
       side: draft.side,
       practiceTrack: draft.practiceTrack,
+      practiceLanguage: coercePracticeLanguage(draft.practiceLanguage),
       mode: draft.mode,
       prepTime: clampDurationSeconds(draft.prepTime, SOLO_PREP_DURATION),
       speechTime: clampDurationSeconds(draft.speechTime, SOLO_SPEECH_DURATION),
@@ -212,6 +224,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       selectedTopic: null,
       side: "random",
       practiceTrack: "debate",
+      practiceLanguage: DEFAULT_PRACTICE_LANGUAGE,
       mode: "full",
       prepTime: SOLO_PREP_DURATION.defaultSeconds,
       speechTime: SOLO_SPEECH_DURATION.defaultSeconds,

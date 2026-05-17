@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  getPracticeLanguageConfig,
+} from "@/lib/practice-language";
+import type { PracticeLanguage } from "@/types";
 
 const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
 
@@ -85,7 +90,13 @@ function getTokenFailureSpeechError(error: DeepgramTokenError) {
   }
 }
 
-export function useDeepgramTranscription() {
+export function useDeepgramTranscription(
+  practiceLanguage: PracticeLanguage = DEFAULT_PRACTICE_LANGUAGE
+) {
+  const languageConfig = useMemo(
+    () => getPracticeLanguageConfig(practiceLanguage),
+    [practiceLanguage]
+  );
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -233,9 +244,11 @@ export function useDeepgramTranscription() {
       // Build Deepgram WebSocket URL
       const wsUrl = new URL("wss://api.deepgram.com/v1/listen");
       wsUrl.searchParams.set("model", "nova-3");
-      wsUrl.searchParams.set("language", "en");
+      wsUrl.searchParams.set("language", languageConfig.deepgramLanguage);
       wsUrl.searchParams.set("smart_format", "true");
-      wsUrl.searchParams.set("filler_words", "true");
+      if (practiceLanguage === "en") {
+        wsUrl.searchParams.set("filler_words", "true");
+      }
       wsUrl.searchParams.set("utterances", "true");
       wsUrl.searchParams.set("interim_results", "true");
       wsUrl.searchParams.set("endpointing", "300");
@@ -248,6 +261,7 @@ export function useDeepgramTranscription() {
       logSpeechDebug(debugId, "deepgram_socket_created", {
         sampleRate: actualSampleRate,
         authScheme,
+        language: languageConfig.deepgramLanguage,
       });
 
       ws.onopen = () => {
@@ -369,7 +383,7 @@ export function useDeepgramTranscription() {
         }
       };
     },
-    [closeAudioProcessing]
+    [closeAudioProcessing, languageConfig.deepgramLanguage, practiceLanguage]
   );
 
   const startListening = useCallback(
@@ -382,6 +396,7 @@ export function useDeepgramTranscription() {
       logSpeechDebug(debugId, "speech_start_requested", {
         trackCount: micStream.getAudioTracks().length,
         trackState: micStream.getAudioTracks()[0]?.readyState ?? "missing",
+        practiceLanguage,
       });
 
       setError(null);
@@ -398,7 +413,7 @@ export function useDeepgramTranscription() {
 
       await connectWebSocket(micStream);
     },
-    [connectWebSocket, startSilenceDetection]
+    [connectWebSocket, practiceLanguage, startSilenceDetection]
   );
 
   const stopListening = useCallback(() => {

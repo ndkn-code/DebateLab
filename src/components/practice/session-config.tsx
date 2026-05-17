@@ -11,6 +11,7 @@ import {
   BookmarkCheck,
   CircleHelp,
   Clock3,
+  Languages,
   Mic2,
   Scale,
   Sparkles,
@@ -26,9 +27,10 @@ import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
 } from "@/lib/practice-durations";
+import { PRACTICE_LANGUAGES } from "@/lib/practice-language";
 import { useSessionStore } from "@/store/session-store";
 import { cn } from "@/lib/utils";
-import type { DebateTopic } from "@/types";
+import type { DebateTopic, PracticeLanguage } from "@/types";
 
 interface SessionConfigProps {
   topic: DebateTopic;
@@ -213,6 +215,7 @@ export function SessionConfig({
   const {
     side,
     practiceTrack,
+    practiceLanguage,
     mode,
     prepTime,
     speechTime,
@@ -220,6 +223,7 @@ export function SessionConfig({
     aiDifficulty,
     setSide,
     setPracticeTrack,
+    setPracticeLanguage,
     setMode,
     setPrepTime,
     setSpeechTime,
@@ -309,6 +313,17 @@ export function SessionConfig({
                 </SegmentButton>
               </div>
             </ConfigSection>
+
+            <SelectRow
+              label={t("practice_language")}
+              icon={Languages}
+              value={practiceLanguage}
+              onChange={(next) => setPracticeLanguage(next as PracticeLanguage)}
+              options={PRACTICE_LANGUAGES.map((language) => ({
+                value: language,
+                label: t(`practice_language_options.${language}`),
+              }))}
+            />
 
             <ConfigSection label={t("session_mode")} icon={Zap}>
               <div className="grid gap-3 sm:grid-cols-2">

@@ -23,7 +23,12 @@ import {
   QuickNotesEditor,
 } from "./practice-session-ui";
 import { cn } from "@/lib/utils";
-import type { AiDifficulty, AiHighlight, PracticeTrack } from "@/types";
+import type {
+  AiDifficulty,
+  AiHighlight,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 
 interface AiRebuttalPhaseProps {
   topic: string;
@@ -32,6 +37,7 @@ interface AiRebuttalPhaseProps {
   roundLabel: string;
   difficulty: AiDifficulty;
   practiceTrack?: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
   previousRounds?: { label: string; speaker: string; text: string }[];
   prepNotes: string;
   onNotesChange: (notes: string) => void;
@@ -136,6 +142,7 @@ export function AiRebuttalPhase({
   roundLabel,
   difficulty,
   practiceTrack = "debate",
+  practiceLanguage,
   previousRounds,
   prepNotes,
   onNotesChange,
@@ -168,6 +175,7 @@ export function AiRebuttalPhase({
     error: ttsError,
   } = useTTS({
     voice: ttsVoice,
+    practiceLanguage,
     autoPlay: true,
   });
 
@@ -193,6 +201,7 @@ export function AiRebuttalPhase({
           roundLabel,
           difficulty,
           practiceTrack,
+          practiceLanguage,
           previousRounds,
         }),
       });
@@ -233,6 +242,7 @@ export function AiRebuttalPhase({
     roundLabel,
     difficulty,
     practiceTrack,
+    practiceLanguage,
     previousRounds,
     onGenerated,
     ttsSpeak,

@@ -107,6 +107,7 @@ export default function PracticePage() {
             topicCategory: initialPrefill.topicCategory,
             topicDescription: initialPrefill.topicDescription,
             practiceTrack: initialPrefill.practiceTrack,
+            practiceLanguage: initialPrefill.practiceLanguage,
             mode: initialPrefill.mode,
             aiDifficulty: initialPrefill.aiDifficulty,
             side: initialPrefill.side,
@@ -146,6 +147,7 @@ export default function PracticePage() {
   const [referralCode, setReferralCode] = useState("");
   const {
     setPracticeTrack,
+    setPracticeLanguage,
     setMode,
     setAiDifficulty,
     setSide,
@@ -224,6 +226,9 @@ export default function PracticePage() {
     const practiceTrack = initialPrefill.practiceTrack ?? "speaking";
 
     setPracticeTrack(practiceTrack);
+    if (initialPrefill.practiceLanguage) {
+      setPracticeLanguage(initialPrefill.practiceLanguage);
+    }
     setAiDifficulty(initialPrefill.aiDifficulty ?? "medium");
     setSide(initialPrefill.side ?? "proposition");
     setClubContext(initialPrefill.clubContext ?? null);
@@ -236,6 +241,7 @@ export default function PracticePage() {
     searchParams,
     setAiDifficulty,
     setMode,
+    setPracticeLanguage,
     setPracticeTrack,
     setSide,
     setClubContext,
@@ -269,6 +275,7 @@ export default function PracticePage() {
       );
 
       setPracticeTrack(initialPrefill?.practiceTrack ?? "speaking");
+      setPracticeLanguage(initialPrefill?.practiceLanguage ?? defaults.practiceLanguage);
       setMode(initialPrefill?.mode ?? "quick");
       setPrepTime(defaults.defaultPrepTime);
       setSpeechTime(defaults.defaultSpeechTime);
@@ -288,10 +295,12 @@ export default function PracticePage() {
     initialPrefill?.aiDifficulty,
     initialPrefill?.clubContext,
     initialPrefill?.mode,
+    initialPrefill?.practiceLanguage,
     initialPrefill?.practiceTrack,
     initialPrefill?.side,
     setAiDifficulty,
     setMode,
+    setPracticeLanguage,
     setPracticeTrack,
     setPrepTime,
     setSide,

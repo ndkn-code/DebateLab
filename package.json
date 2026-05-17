@@ -16,9 +16,12 @@
     "test:performance-summary": "tsx src/lib/analytics/performance-summary.test.ts",
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
+    "test:practice-language": "tsx src/lib/practice-language.test.ts",
+    "test:tts-voices": "tsx src/lib/tts-voices.test.ts",
     "test:smart-popups": "tsx src/lib/smart-popups/rules.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts",
     "test:email-system": "tsx src/lib/email/email-system.test.ts",
+    "generate:tts-samples": "tsx scripts/generate-tts-voice-samples.ts",
     "test:email-templates": "tsx src/lib/email/template-overrides.test.ts"
   },
   "dependencies": {

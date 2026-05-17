@@ -57,6 +57,7 @@ const annotatedSession: DebateSession = {
   topic: mockTopic,
   side: "proposition",
   practiceTrack: "debate",
+  practiceLanguage: "en",
   mode: "quick",
   prepTime: 420,
   speechTime: 420,
@@ -90,6 +91,7 @@ const annotatedSession: DebateSession = {
     totalScore: 76,
     overallBand: "Proficient",
     practiceTrack: "debate",
+    practiceLanguage: "en",
     summary:
       "The stance is clear and the case has a usable attention/fairness line. The next jump is to prove the mechanism and compare why a school-wide rule beats softer alternatives.",
     strengths: [
@@ -432,6 +434,7 @@ const mockDuelRoom: DebateDuelRoomView = {
   topicDifficulty: "intermediate",
   topicDescription:
     "A full classroom phone ban is being compared against flexible teacher-managed phone use.",
+  practiceLanguage: "en",
   duelKind: "custom",
   rated: false,
   integrityStatus: "clean",

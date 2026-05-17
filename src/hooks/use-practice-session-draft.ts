@@ -38,6 +38,7 @@ export function usePracticeSessionDraft() {
   const selectedTopic = useSessionStore((state) => state.selectedTopic);
   const side = useSessionStore((state) => state.side);
   const practiceTrack = useSessionStore((state) => state.practiceTrack);
+  const practiceLanguage = useSessionStore((state) => state.practiceLanguage);
   const mode = useSessionStore((state) => state.mode);
   const prepTime = useSessionStore((state) => state.prepTime);
   const speechTime = useSessionStore((state) => state.speechTime);
@@ -63,6 +64,7 @@ export function usePracticeSessionDraft() {
       selectedTopic,
       side: resolvedSide,
       practiceTrack,
+      practiceLanguage,
       mode,
       prepTime,
       speechTime,
@@ -79,6 +81,7 @@ export function usePracticeSessionDraft() {
     currentPhase,
     currentRound,
     mode,
+    practiceLanguage,
     practiceTrack,
     prepNotes,
     prepTime,

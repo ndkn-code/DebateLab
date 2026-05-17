@@ -1,5 +1,11 @@
 import { CATEGORIES, topics } from "@/lib/topics";
-import type { AiDifficulty, ClubPracticeContext, DebateTopic, PracticeTrack } from "@/types";
+import type {
+  AiDifficulty,
+  ClubPracticeContext,
+  DebateTopic,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 
 export type PracticeMode = "quick" | "full";
 export type PracticeSide = "proposition" | "opposition" | "random";
@@ -9,6 +15,7 @@ export interface PracticePrefill {
   topicCategory?: string;
   topicDescription?: string;
   practiceTrack?: PracticeTrack;
+  practiceLanguage?: PracticeLanguage;
   mode?: PracticeMode;
   aiDifficulty?: AiDifficulty;
   side?: PracticeSide;
@@ -20,6 +27,7 @@ export interface PracticeQueryPrefill {
   topicCategory?: string;
   topicDescription?: string;
   practiceTrack?: PracticeTrack;
+  practiceLanguage?: PracticeLanguage;
   mode?: PracticeMode;
   aiDifficulty?: AiDifficulty;
   side?: PracticeSide;
@@ -39,6 +47,10 @@ function isCategory(value?: string | null): value is (typeof CATEGORIES)[number]
 
 function parsePracticeTrack(value?: string | null): PracticeTrack | undefined {
   return value === "speaking" || value === "debate" ? value : undefined;
+}
+
+function parsePracticeLanguage(value?: string | null): PracticeLanguage | undefined {
+  return value === "en" || value === "vi" ? value : undefined;
 }
 
 function parseMode(value?: string | null): PracticeMode | undefined {
@@ -124,6 +136,7 @@ export function readPracticePrefill(
   const topicCategory = searchParams.get("category") ?? undefined;
   const topicDescription = searchParams.get("description") ?? undefined;
   const practiceTrack = parsePracticeTrack(searchParams.get("track"));
+  const practiceLanguage = parsePracticeLanguage(searchParams.get("language"));
   const mode = parseMode(searchParams.get("mode"));
   const aiDifficulty = parseAiDifficulty(searchParams.get("difficulty"));
   const side = parseSide(searchParams.get("side"));
@@ -134,6 +147,7 @@ export function readPracticePrefill(
     !topicCategory &&
     !topicDescription &&
     !practiceTrack &&
+    !practiceLanguage &&
     !mode &&
     !aiDifficulty &&
     !side &&
@@ -147,6 +161,7 @@ export function readPracticePrefill(
     topicCategory,
     topicDescription,
     practiceTrack,
+    practiceLanguage,
     mode,
     aiDifficulty,
     side,
@@ -168,6 +183,10 @@ export function buildPracticeHref(prefill: PracticePrefill) {
 
   if (prefill.practiceTrack) {
     searchParams.set("track", prefill.practiceTrack);
+  }
+
+  if (prefill.practiceLanguage) {
+    searchParams.set("language", prefill.practiceLanguage);
   }
 
   if (prefill.mode) {

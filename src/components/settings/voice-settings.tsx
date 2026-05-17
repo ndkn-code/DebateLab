@@ -1,26 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Pause, Play, Sparkles, Waves } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { useTTS } from "@/hooks/use-tts";
-import { TTS_VOICES, type TTSVoice } from "@/lib/tts-voices";
+import {
+  getVoiceSampleUrl,
+  getVoicesForLanguage,
+  TTS_SAMPLE_TEXT_BY_LANGUAGE,
+  TTS_VOICES,
+  type TTSVoice,
+} from "@/lib/tts-voices";
 import { cn } from "@/lib/utils";
+import type { PracticeLanguage } from "@/types";
 
 interface VoiceSettingsProps {
   currentVoice: string;
+  practiceLanguage: PracticeLanguage;
   onVoiceChange: (voiceId: string) => void;
 }
 
-const FEATURED_VOICE_IDS = ["aura-orion-en", "aura-asteria-en"] as const;
-const PREVIEW_TEXT =
-  "That is a strong claim, but let me challenge the assumption behind it.";
+const FEATURED_VOICE_IDS_BY_LANGUAGE: Record<PracticeLanguage, string[]> = {
+  en: ["aura-orion-en", "aura-asteria-en"],
+  vi: ["vi-VN-Wavenet-A", "vi-VN-HoaiMyNeural"],
+};
 const WAVE_BARS = [14, 24, 12, 20, 10, 26, 18, 12, 22, 9, 16, 20];
 
-function findVoice(voiceId: string) {
-  return TTS_VOICES.find((voice) => voice.id === voiceId) ?? TTS_VOICES[0];
+function findVoice(voiceId: string, language: PracticeLanguage) {
+  return (
+    TTS_VOICES.find((voice) => voice.id === voiceId && voice.language === language) ??
+    getVoicesForLanguage(language)[0] ??
+    TTS_VOICES[0]
+  );
 }
 
 function VoiceWaveform({ active }: { active: boolean }) {
@@ -47,16 +59,25 @@ function VoiceCard(props: {
   disabled: boolean;
   onSelect: () => void;
   onPreview: () => void;
-  accentLabel: string;
   genderLabel: string;
+  qualityLabel: string;
 }) {
-  const { voice, selected, previewing, disabled, onSelect, onPreview, accentLabel, genderLabel } =
+  const { voice, selected, previewing, disabled, onSelect, onPreview, genderLabel, qualityLabel } =
     props;
 
+  function handleSelectKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect();
+  }
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
       onClick={onSelect}
+      onKeyDown={handleSelectKeyDown}
       className={cn(
         "group relative flex w-full flex-col gap-4 rounded-2xl border p-4 text-left transition-all",
         selected
@@ -78,9 +99,14 @@ function VoiceCard(props: {
           </div>
           <div>
             <p className="text-sm font-semibold text-on-surface">{voice.name}</p>
-            <p className="text-xs text-on-surface-variant">
-              {genderLabel} / {accentLabel}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-on-surface-variant">{genderLabel}</span>
+              {voice.quality === "high" ? (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  {qualityLabel}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
         {selected ? (
@@ -110,51 +136,150 @@ function VoiceCard(props: {
           )}
         </Button>
       </div>
-    </button>
+    </div>
   );
 }
 
 export function VoiceSettings({
   currentVoice,
+  practiceLanguage,
   onVoiceChange,
 }: VoiceSettingsProps) {
   const t = useTranslations("settings");
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
+  const voicesForLanguage = useMemo(
+    () => getVoicesForLanguage(practiceLanguage),
+    [practiceLanguage]
+  );
+  const featuredVoiceIds = FEATURED_VOICE_IDS_BY_LANGUAGE[practiceLanguage];
 
   const selectedVoice = useMemo(
-    () => findVoice(currentVoice),
-    [currentVoice]
+    () => findVoice(currentVoice, practiceLanguage),
+    [currentVoice, practiceLanguage]
   );
+  const resolvedVoiceId = selectedVoice.id;
   const featuredVoices = useMemo(
     () =>
-      FEATURED_VOICE_IDS.map((voiceId) => findVoice(voiceId)).filter(Boolean),
-    []
+      featuredVoiceIds.map((voiceId) => findVoice(voiceId, practiceLanguage)).filter(Boolean),
+    [featuredVoiceIds, practiceLanguage]
   );
   const additionalVoices = useMemo(
     () =>
-      TTS_VOICES.filter(
-        (voice) => !FEATURED_VOICE_IDS.includes(voice.id as (typeof FEATURED_VOICE_IDS)[number])
+      voicesForLanguage.filter(
+        (voice) => !featuredVoiceIds.includes(voice.id)
       ),
-    []
+    [featuredVoiceIds, voicesForLanguage]
   );
 
-  const { speak, stop, isLoading, isPlaying } = useTTS({
-    voice: previewingVoice ?? currentVoice,
-    autoPlay: true,
-    onPlayEnd: () => setPreviewingVoice(null),
-    onError: () => setPreviewingVoice(null),
-  });
+  const stopPreview = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+
+    setIsPlayingPreview(false);
+    setLoadingVoice(null);
+  }, []);
+
+  useEffect(() => {
+    return () => stopPreview();
+  }, [stopPreview]);
+
+  async function playPreviewUrl(url: string) {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+
+    audio.onpause = () => {
+      if (!audio.ended) {
+        setIsPlayingPreview(false);
+      }
+    };
+    audio.onended = () => {
+      setIsPlayingPreview(false);
+      setPreviewingVoice(null);
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      audio.onplay = () => {
+        setLoadingVoice(null);
+        setIsPlayingPreview(true);
+        resolve();
+      };
+      audio.onerror = () => reject(new Error("Preview audio failed"));
+      audio.play().catch(reject);
+    });
+  }
+
+  async function playLivePreview(voiceId: string) {
+    setLoadingVoice(voiceId);
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: TTS_SAMPLE_TEXT_BY_LANGUAGE[practiceLanguage],
+        voice: voiceId,
+        practiceLanguage,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Preview failed");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    blobUrlRef.current = url;
+    await playPreviewUrl(url);
+  }
 
   async function handlePreview(voiceId: string) {
-    if (isPlaying && previewingVoice === voiceId) {
-      stop();
+    if (isPlayingPreview && previewingVoice === voiceId) {
+      stopPreview();
       setPreviewingVoice(null);
       return;
     }
 
-    stop();
+    stopPreview();
     setPreviewingVoice(voiceId);
-    await speak(PREVIEW_TEXT);
+    setLoadingVoice(voiceId);
+
+    const sampleUrl = getVoiceSampleUrl(voiceId);
+    if (sampleUrl) {
+      try {
+        await playPreviewUrl(sampleUrl);
+        return;
+      } catch {
+        stopPreview();
+        setPreviewingVoice(voiceId);
+      }
+    }
+
+    try {
+      await playLivePreview(voiceId);
+    } catch {
+      stopPreview();
+      setPreviewingVoice(null);
+    }
+  }
+
+  function renderVoiceOptionLabel(voice: TTSVoice) {
+    return [
+      voice.name,
+      voice.gender === "male" ? t("voice.male") : t("voice.female"),
+      voice.quality === "high" ? t("voice.high_quality") : null,
+    ]
+      .filter(Boolean)
+      .join(" / ");
   }
 
   return (
@@ -164,13 +289,13 @@ export function VoiceSettings({
           <VoiceCard
             key={voice.id}
             voice={voice}
-            selected={currentVoice === voice.id}
-            previewing={previewingVoice === voice.id && isPlaying}
-            disabled={isLoading && previewingVoice !== voice.id}
+            selected={resolvedVoiceId === voice.id}
+            previewing={previewingVoice === voice.id && isPlayingPreview}
+            disabled={Boolean(loadingVoice && loadingVoice !== voice.id)}
             onSelect={() => onVoiceChange(voice.id)}
             onPreview={() => handlePreview(voice.id)}
-            accentLabel={t(`voice.accents.${voice.accent.toLowerCase()}`)}
             genderLabel={voice.gender === "male" ? t("voice.male") : t("voice.female")}
+            qualityLabel={t("voice.high_quality")}
           />
         ))}
       </div>
@@ -192,7 +317,7 @@ export function VoiceSettings({
 
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Select
-                value={currentVoice}
+                value={resolvedVoiceId}
                 onChange={(event) => onVoiceChange(event.target.value)}
               >
                 {[selectedVoice, ...additionalVoices]
@@ -202,9 +327,7 @@ export function VoiceSettings({
                   )
                   .map((voice) => (
                     <option key={voice.id} value={voice.id}>
-                      {voice.name} /{" "}
-                      {voice.gender === "male" ? t("voice.male") : t("voice.female")} /{" "}
-                      {t(`voice.accents.${voice.accent.toLowerCase()}`)}
+                      {renderVoiceOptionLabel(voice)}
                     </option>
                   ))}
               </Select>
@@ -212,10 +335,10 @@ export function VoiceSettings({
                 type="button"
                 variant="outline"
                 className="gap-2"
-                onClick={() => handlePreview(currentVoice)}
-                disabled={isLoading && previewingVoice !== currentVoice}
+                onClick={() => handlePreview(resolvedVoiceId)}
+                disabled={Boolean(loadingVoice && previewingVoice !== resolvedVoiceId)}
               >
-                {previewingVoice === currentVoice && isPlaying ? (
+                {previewingVoice === resolvedVoiceId && isPlayingPreview ? (
                   <Pause className="h-4 w-4" />
                 ) : (
                   <Play className="h-4 w-4" />
@@ -235,14 +358,15 @@ export function VoiceSettings({
               {t("voice.selected_label")}
             </p>
             <p className="text-xs text-on-surface-variant">
-              {selectedVoice.name} /{" "}
-              {selectedVoice.gender === "male" ? t("voice.male") : t("voice.female")}
+              {selectedVoice.name} / {selectedVoice.gender === "male" ? t("voice.male") : t("voice.female")}
             </p>
           </div>
         </div>
-        <span className="text-xs font-medium text-on-surface-variant">
-          {t(`voice.accents.${selectedVoice.accent.toLowerCase()}`)}
-        </span>
+        {selectedVoice.quality === "high" ? (
+          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            {t("voice.high_quality")}
+          </span>
+        ) : null}
       </div>
     </div>
   );

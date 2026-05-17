@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   ANALYTICS_COOKIE_MAX_AGE,
   ANALYTICS_COOKIE_NAME,
@@ -15,7 +17,8 @@ import {
   getAnalyticsCookieValue,
   normalizeAvatarUrl,
 } from "@/lib/settings";
-import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import { coercePracticeLanguage } from "@/lib/practice-language";
+import { coerceVoiceForLanguage } from "@/lib/tts-voices";
 import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
@@ -105,6 +108,7 @@ function getSupportedLocale(locale: string): SettingsLocale {
 
 function sanitizeDraft(input: SettingsDraft): SettingsDraft {
   const locale = getSupportedLocale(input.preferredLocale);
+  const practiceLanguage = coercePracticeLanguage(input.practiceLanguage);
   const displayName = input.displayName.trim();
   const defaultPrepTime = clampDurationSeconds(
     input.defaultPrepTime,
@@ -126,8 +130,9 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     defaultPrepTime,
     defaultSpeechTime,
     defaultDifficulty,
-    ttsVoice: input.ttsVoice.trim() || DEFAULT_VOICE,
+    ttsVoice: coerceVoiceForLanguage(input.ttsVoice, practiceLanguage),
     preferredLocale: locale,
+    practiceLanguage,
     detailedFeedback: Boolean(input.detailedFeedback),
     highlightWeakAreas: Boolean(input.highlightWeakAreas),
     explainLikeImLearning: Boolean(input.explainLikeImLearning),
@@ -362,15 +367,49 @@ export async function saveSettings(input: SettingsDraft) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user) {
+  if (!user && !devAuthBypassUser) {
     throw new Error("Not authenticated");
+  }
+
+  if (!user && devAuthBypassUser) {
+    const preferences = draftToPreferences(
+      draft,
+      DEV_ADMIN_PROFILE.preferences as Record<string, unknown>
+    );
+
+    const cookieStore = await cookies();
+    cookieStore.set(
+      ANALYTICS_COOKIE_NAME,
+      getAnalyticsCookieValue(draft.analyticsCookiesEnabled),
+      {
+        httpOnly: false,
+        maxAge: ANALYTICS_COOKIE_MAX_AGE,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      }
+    );
+
+    revalidateSettingsRoutes();
+
+    return {
+      saved: buildSavedSettingsDraft({
+        displayName: draft.displayName,
+        avatarUrl: draft.avatarUrl,
+        preferences,
+        currentLocale: draft.preferredLocale,
+      }),
+    };
   }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("display_name, avatar_url, preferences")
-    .eq("id", user.id)
+    .eq("id", user!.id)
     .single();
 
   if (profileError) {
@@ -389,7 +428,7 @@ export async function saveSettings(input: SettingsDraft) {
       avatar_url: draft.avatarUrl,
       preferences,
     })
-    .eq("id", user.id);
+    .eq("id", user!.id);
 
   if (error) {
     throw new Error(error.message);

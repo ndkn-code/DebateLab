@@ -1,5 +1,6 @@
 import type { SettingsPreferences } from "@/lib/settings";
 import type { CoachMessageMetadata } from "./coach";
+import type { PracticeLanguage } from "./feedback";
 
 export interface Profile {
   id: string;
@@ -118,6 +119,7 @@ export interface DebateSessionRow {
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   side: "proposition" | "opposition";
   practice_track: "speaking" | "debate";
+  practice_language: PracticeLanguage;
   mode: "quick" | "full";
   prep_time: number;
   speech_time: number;
@@ -141,6 +143,7 @@ export interface PracticeSessionDraftRow {
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   side: "proposition" | "opposition";
   practice_track: "speaking" | "debate";
+  practice_language: PracticeLanguage;
   mode: "quick" | "full";
   prep_time: number;
   speech_time: number;
@@ -447,6 +450,7 @@ export interface DebateDuelRow {
   topic_category: string;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
+  practice_language: PracticeLanguage;
   prep_time_seconds: number;
   opening_time_seconds: number;
   rebuttal_time_seconds: number;

@@ -9,6 +9,10 @@ import {
   getNextDuelPhase,
 } from "@/lib/debate-duels/shared";
 import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  coercePracticeLanguage,
+} from "@/lib/practice-language";
+import {
   computeSkillSnapshot,
   type SkillFeedbackSource,
 } from "@/lib/analytics/skill-snapshot";
@@ -21,6 +25,7 @@ import type {
   DebateDuelSide,
   DebateDuelSideAssignmentMode,
   DebateDuelSpeech,
+  PracticeLanguage,
 } from "@/types";
 
 type DuelRow = {
@@ -31,6 +36,7 @@ type DuelRow = {
   topic_category: string;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
+  practice_language?: PracticeLanguage | null;
   duel_kind: "custom" | "matchmaking";
   rated: boolean;
   integrity_status: "clean" | "warned" | "suspicious" | "no_contest";
@@ -96,6 +102,7 @@ type DuelMatchmakingTicketRow = {
   status: DebateDuelMatchmakingTicket["status"];
   topic_category: string;
   topic_difficulty: DebateDuelMatchmakingTicket["topicDifficulty"];
+  practice_language?: PracticeLanguage | null;
   prep_time_seconds: number;
   opening_time_seconds: number;
   rebuttal_time_seconds: number;
@@ -114,6 +121,7 @@ export interface CreateDebateDuelInput {
   topicCategory: string;
   topicDifficulty: "beginner" | "intermediate" | "advanced";
   topicDescription?: string;
+  practiceLanguage?: PracticeLanguage;
   prepTimeSeconds: number;
   openingTimeSeconds: number;
   rebuttalTimeSeconds: number;
@@ -159,7 +167,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: duel, error: duelError } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("share_code", normalizedCode)
     .maybeSingle();
@@ -259,6 +267,10 @@ function toRoomView(params: {
     topicCategory: duel.topic_category,
     topicDifficulty: duel.topic_difficulty,
     topicDescription: duel.topic_description,
+    practiceLanguage: coercePracticeLanguage(
+      duel.practice_language,
+      DEFAULT_PRACTICE_LANGUAGE
+    ),
     duelKind: duel.duel_kind ?? "custom",
     rated: duel.rated ?? false,
     integrityStatus: duel.integrity_status ?? "clean",
@@ -308,7 +320,7 @@ async function getDuelById(duelId: string) {
   const { data, error } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .eq("id", duelId)
     .single();
@@ -385,6 +397,7 @@ export async function createDebateDuelRoom(
       topic_category: input.topicCategory,
       topic_difficulty: input.topicDifficulty,
       topic_description: input.topicDescription ?? null,
+      practice_language: coercePracticeLanguage(input.practiceLanguage),
       prep_time_seconds: input.prepTimeSeconds,
       opening_time_seconds: input.openingTimeSeconds,
       rebuttal_time_seconds: input.rebuttalTimeSeconds,
@@ -473,6 +486,7 @@ export interface EnterDebateDuelMatchmakingInput {
   topicDifficulty: "beginner" | "intermediate" | "advanced";
   topicTitle: string;
   topicDescription?: string | null;
+  practiceLanguage?: PracticeLanguage;
   prepTimeSeconds: number;
   openingTimeSeconds: number;
   rebuttalTimeSeconds: number;
@@ -497,6 +511,10 @@ function mapMatchmakingTicket(
     status: expired ? "expired" : row.status,
     topicCategory: row.topic_category,
     topicDifficulty: row.topic_difficulty,
+    practiceLanguage: coercePracticeLanguage(
+      row.practice_language,
+      DEFAULT_PRACTICE_LANGUAGE
+    ),
     config: {
       prepTimeSeconds: row.prep_time_seconds,
       openingTimeSeconds: row.opening_time_seconds,
@@ -535,7 +553,7 @@ async function fetchMatchmakingTicketById(ticketId: string, userId: string) {
   const { data, error } = await supabase
     .from("debate_duel_matchmaking_tickets")
     .select(
-      "id, user_id, status, topic_category, topic_difficulty, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+      "id, user_id, status, topic_category, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
     )
     .eq("id", ticketId)
     .eq("user_id", userId)
@@ -556,7 +574,7 @@ export async function getCurrentDebateDuelMatchmakingTicket(userId: string) {
   const { data, error } = await supabase
     .from("debate_duel_matchmaking_tickets")
     .select(
-      "id, user_id, status, topic_category, topic_difficulty, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+      "id, user_id, status, topic_category, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
     )
     .eq("user_id", userId)
     .in("status", ["queued", "matched"])
@@ -635,6 +653,7 @@ export async function enterDebateDuelMatchmaking(
       p_topic_difficulty: input.topicDifficulty,
       p_topic_title: input.topicTitle,
       p_topic_description: input.topicDescription ?? "",
+      p_practice_language: coercePracticeLanguage(input.practiceLanguage),
       p_prep_time_seconds: input.prepTimeSeconds,
       p_opening_time_seconds: input.openingTimeSeconds,
       p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
@@ -856,6 +875,7 @@ async function judgeAndFinalizeDebateDuel(
   const judgment = await judgeDebateDuel({
     motion: duel.topic_title,
     topicCategory: duel.topic_category,
+    practiceLanguage: coercePracticeLanguage(duel.practice_language),
     participants: {
       proposition: {
         participantId: participantBySide.get("proposition")?.id ?? null,
@@ -950,6 +970,7 @@ async function judgeAndFinalizeDebateDuel(
         metadata: {
           duel_id: duelId,
           topic: duel.topic_title,
+          practice_language: coercePracticeLanguage(duel.practice_language),
           role: participant.role,
           winner_side: judgment.winnerSide,
           won: participant.role === judgment.winnerSide,
@@ -1152,7 +1173,7 @@ export async function getDebateDuelHistory(
   const { data: duels } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, topic_title, topic_category, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .in("id", duelIds)
     .eq("status", "completed")

@@ -71,6 +71,12 @@ export async function POST(req: NextRequest) {
         ["beginner", "intermediate", "advanced"] as const,
         { defaultValue: "beginner" }
       ) ?? "beginner";
+    const practiceLanguage = getEnum(
+      body,
+      "practiceLanguage",
+      ["en", "vi"] as const,
+      { defaultValue: "en" }
+    );
     const sideAssignmentMode = getEnum(
       body,
       "sideAssignmentMode",
@@ -89,6 +95,7 @@ export async function POST(req: NextRequest) {
       topicTitle,
       topicCategory,
       topicDifficulty,
+      practiceLanguage,
       topicDescription: topicDescription || undefined,
       prepTimeSeconds: clampDurationSeconds(
         getNumber(body, "prepTimeSeconds"),

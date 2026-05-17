@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Check,
   Clock3,
+  Languages,
   Mail,
   Scale,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import { CATEGORIES, topics, type Category } from "@/lib/topics";
+import { PRACTICE_LANGUAGES } from "@/lib/practice-language";
 import { DUEL_ENTRY_COST } from "@/lib/debate-duels/shared";
 import {
   DUEL_OPENING_DURATION,
@@ -26,7 +28,11 @@ import {
   DUEL_REBUTTAL_DURATION,
 } from "@/lib/practice-durations";
 import { cn } from "@/lib/utils";
-import type { DebateDuelRoomView, DebateDuelTopicDifficulty } from "@/types";
+import type {
+  DebateDuelRoomView,
+  DebateDuelTopicDifficulty,
+  PracticeLanguage,
+} from "@/types";
 import {
   DuelFlowStepper,
   DuelLobbySetupView,
@@ -50,6 +56,10 @@ const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
 ];
 
 const categoryFilters: CategoryFilter[] = ["All", ...CATEGORIES];
+const languageLabels: Record<PracticeLanguage, string> = {
+  en: "English",
+  vi: "Vietnamese",
+};
 
 function difficultyTone(difficulty: DebateDuelTopicDifficulty) {
   if (difficulty === "beginner") return "bg-[#edf8ef] text-[#4aa05f]";
@@ -82,6 +92,8 @@ export function DuelCreatePage({
   const [prepTimeSeconds, setPrepTimeSeconds] = useState(120);
   const [openingTimeSeconds, setOpeningTimeSeconds] = useState(180);
   const [rebuttalTimeSeconds, setRebuttalTimeSeconds] = useState(120);
+  const [practiceLanguage, setPracticeLanguage] =
+    useState<PracticeLanguage>("en");
   const [sideAssignmentMode, setSideAssignmentMode] = useState<
     "random" | "choose"
   >("random");
@@ -135,6 +147,7 @@ export function DuelCreatePage({
           prepTimeSeconds,
           openingTimeSeconds,
           rebuttalTimeSeconds,
+          practiceLanguage,
           sideAssignmentMode,
           creatorSidePreference:
             sideAssignmentMode === "choose" ? creatorSidePreference : null,
@@ -169,6 +182,7 @@ export function DuelCreatePage({
       setPrepTimeSeconds(activeRoom.config.prepTimeSeconds);
       setOpeningTimeSeconds(activeRoom.config.openingTimeSeconds);
       setRebuttalTimeSeconds(activeRoom.config.rebuttalTimeSeconds);
+      setPracticeLanguage(activeRoom.practiceLanguage);
       setSideAssignmentMode(activeRoom.sideAssignmentMode);
       setCreatorSidePreference(activeRoom.creatorSidePreference ?? "proposition");
     }
@@ -399,6 +413,39 @@ export function DuelCreatePage({
                   config={DUEL_REBUTTAL_DURATION}
                   onChange={setRebuttalTimeSeconds}
                 />
+              </div>
+
+              <div className="mt-6 rounded-[20px] border border-outline-variant/15 bg-surface-container-low p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Languages className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-on-surface">
+                      Practice language
+                    </h3>
+                    <p className="mt-1 text-sm text-on-surface-variant">
+                      Controls live transcription and AI judging for this duel.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {PRACTICE_LANGUAGES.map((language) => (
+                    <button
+                      key={language}
+                      type="button"
+                      onClick={() => setPracticeLanguage(language)}
+                      className={cn(
+                        "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
+                        practiceLanguage === language
+                          ? "border-primary bg-primary/8 text-primary"
+                          : "border-outline-variant/15 bg-surface text-on-surface"
+                      )}
+                    >
+                      {languageLabels[language]}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 

@@ -1,9 +1,14 @@
-import { DEFAULT_VOICE } from "@/lib/tts-voices";
+import { coercePracticeLanguage } from "@/lib/practice-language";
+import {
+  coerceVoiceForLanguage,
+  DEFAULT_VOICE,
+} from "@/lib/tts-voices";
 import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
   clampDurationSeconds,
 } from "@/lib/practice-durations";
+import type { PracticeLanguage } from "@/types";
 
 export const ANALYTICS_COOKIE_NAME = "debatelab_analytics_consent";
 export const ANALYTICS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -19,6 +24,7 @@ export interface SettingsPreferences extends Record<string, unknown> {
   default_ai_difficulty?: SettingsDifficulty;
   tts_voice?: string;
   preferred_locale?: SettingsLocale;
+  practice_language?: PracticeLanguage;
   detailed_feedback?: boolean;
   highlight_weak_areas?: boolean;
   explain_like_im_learning?: boolean;
@@ -40,6 +46,7 @@ export interface SettingsDraft {
   defaultDifficulty: SettingsDifficulty;
   ttsVoice: string;
   preferredLocale: SettingsLocale;
+  practiceLanguage: PracticeLanguage;
   detailedFeedback: boolean;
   highlightWeakAreas: boolean;
   explainLikeImLearning: boolean;
@@ -118,6 +125,7 @@ const DEFAULT_SETTINGS = {
   defaultDifficulty: "medium" as SettingsDifficulty,
   ttsVoice: DEFAULT_VOICE,
   preferredLocale: "vi" as SettingsLocale,
+  practiceLanguage: "en" as PracticeLanguage,
   detailedFeedback: true,
   highlightWeakAreas: true,
   explainLikeImLearning: true,
@@ -240,6 +248,10 @@ export function normalizeSettingsPreferences(
   fallbackLocale: SettingsLocale = DEFAULT_SETTINGS.preferredLocale
 ) {
   const source = (preferences ?? {}) as SettingsPreferences;
+  const practiceLanguage = coercePracticeLanguage(
+    source.practice_language,
+    DEFAULT_SETTINGS.practiceLanguage
+  );
 
   return {
     defaultPrepTime: coerceDuration(
@@ -256,14 +268,12 @@ export function normalizeSettingsPreferences(
       source.default_ai_difficulty,
       DEFAULT_SETTINGS.defaultDifficulty
     ),
-    ttsVoice:
-      typeof source.tts_voice === "string" && source.tts_voice.length > 0
-        ? source.tts_voice
-        : DEFAULT_SETTINGS.ttsVoice,
+    ttsVoice: coerceVoiceForLanguage(source.tts_voice, practiceLanguage),
     preferredLocale: coerceLocale(
       source.preferred_locale,
       fallbackLocale ?? DEFAULT_SETTINGS.preferredLocale
     ),
+    practiceLanguage,
     detailedFeedback: coerceBoolean(
       source.detailed_feedback,
       DEFAULT_SETTINGS.detailedFeedback
@@ -334,6 +344,7 @@ export function buildSettingsDraft(input: {
     defaultDifficulty: normalized.defaultDifficulty,
     ttsVoice: normalized.ttsVoice,
     preferredLocale: input.currentLocale,
+    practiceLanguage: normalized.practiceLanguage,
     detailedFeedback: normalized.detailedFeedback,
     highlightWeakAreas: normalized.highlightWeakAreas,
     explainLikeImLearning: normalized.explainLikeImLearning,
@@ -366,6 +377,7 @@ export function buildSavedSettingsDraft(input: {
     defaultDifficulty: normalized.defaultDifficulty,
     ttsVoice: normalized.ttsVoice,
     preferredLocale: normalized.preferredLocale,
+    practiceLanguage: normalized.practiceLanguage,
     detailedFeedback: normalized.detailedFeedback,
     highlightWeakAreas: normalized.highlightWeakAreas,
     explainLikeImLearning: normalized.explainLikeImLearning,
@@ -390,6 +402,7 @@ export function draftToPreferences(
     default_ai_difficulty: draft.defaultDifficulty,
     tts_voice: draft.ttsVoice,
     preferred_locale: draft.preferredLocale,
+    practice_language: draft.practiceLanguage,
     detailed_feedback: draft.detailedFeedback,
     highlight_weak_areas: draft.highlightWeakAreas,
     explain_like_im_learning: draft.explainLikeImLearning,
