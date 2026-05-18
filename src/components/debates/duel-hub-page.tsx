@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Swords } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,14 @@ function ModeCard({
   href,
   disabled,
   image,
+  unavailableLabel,
 }: {
   title: string;
   description: string;
   href: string;
   disabled: boolean;
   image: string;
+  unavailableLabel: string;
 }) {
   const content = (
     <div
@@ -38,6 +41,7 @@ function ModeCard({
         width={220}
         height={180}
         alt=""
+        priority
         className="mx-auto mt-8 h-40 w-full object-contain transition-transform group-hover:scale-[1.03]"
       />
 
@@ -53,7 +57,7 @@ function ModeCard({
         disabled={disabled}
         className="mt-6 h-12 w-full rounded-2xl text-base"
       >
-        {disabled ? "Unavailable" : title}
+        {disabled ? unavailableLabel : title}
         {!disabled && <ArrowRight className="h-4 w-4" />}
       </Button>
     </div>
@@ -71,37 +75,40 @@ function ModeCard({
 }
 
 export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
+  const t = useTranslations("duelHub");
+
   return (
     <PageTransition className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">
             <Swords className="h-4 w-4" />
-            1v1 Debate Arena
+            {t("badge")}
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-on-surface sm:text-5xl">
-            Pick your duel format
+            {t("title")}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-on-surface-variant">
-            Matchmaking is a monitored beta with invisible skill matching.
-            Friend rooms stay casual, shareable, and unrated.
+            {t("subtitle")}
           </p>
         </div>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
           <ModeCard
-            title="Find a Match"
-            description="Queue into a human opponent with hidden MMR, fair-play telemetry, and a ready check before the duel starts."
+            title={t("match.title")}
+            description={t("match.description")}
             href="/debates/matchmaking"
             disabled={!isAdmin}
             image="/images/debates/duel-preview.png"
+            unavailableLabel={t("unavailable")}
           />
           <ModeCard
-            title="Challenge a Friend"
-            description="Create a shareable room, send the code, and debate casually. These duels do not affect hidden rating."
+            title={t("friend.title")}
+            description={t("friend.description")}
             href="/debates/new"
             disabled={!isAdmin}
             image="/images/debates/trophy.png"
+            unavailableLabel={t("unavailable")}
           />
         </div>
       </div>

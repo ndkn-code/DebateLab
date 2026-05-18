@@ -8,6 +8,10 @@ import {
   getCoachProfile,
 } from "@/lib/api/coach-profile";
 import {
+  coercePracticeLanguage,
+  getPracticeLanguageConfig,
+} from "@/lib/practice-language";
+import {
   getString,
   readJsonObject,
   RequestValidationError,
@@ -64,7 +68,7 @@ DEPTH RULES:
 
 TONE:
 - Warm, encouraging, and slightly casual (like a cool older sibling who happens to be a debate expert)
-- Use simple English — remember these are non-native speakers
+- Use the selected coaching language naturally and keep explanations student-friendly
 - Celebrate effort and progress
 - Be specific in feedback, not generic
 
@@ -76,11 +80,32 @@ DO NOT:
 
 If the user asks you to review a debate and no transcript or score is available, ask for the topic, side, and transcript (or score).`;
 
+function buildSystemPrompt(practiceLanguageInput: unknown) {
+  const languageConfig = getPracticeLanguageConfig(practiceLanguageInput);
+  const languageRules =
+    languageConfig.code === "vi"
+      ? [
+          "RESPONSE LANGUAGE:",
+          "- Respond in Vietnamese.",
+          "- Use natural Vietnamese debate coaching language. It is fine to keep common debate terms such as motion, rebuttal, clash, weighing, and impact when they sound natural to Vietnamese students.",
+          "- If the user asks in English while Vietnamese mode is active, still answer in Vietnamese unless they explicitly ask otherwise.",
+        ].join("\n")
+      : [
+          "RESPONSE LANGUAGE:",
+          "- Respond in English.",
+          "- Keep English clear and accessible for Vietnamese high school students.",
+          "- If the user asks in Vietnamese while English mode is active, gently answer in English unless they explicitly ask otherwise.",
+        ].join("\n");
+
+  return `${SYSTEM_PROMPT}\n\n${languageConfig.aiInstruction}\n\n${languageRules}`;
+}
+
 interface ChatRequest {
   message: string;
   conversationId?: string;
   context?: string;
   contextId?: string;
+  practiceLanguage?: string;
 }
 
 function isUuid(value?: string | null): value is string {
@@ -116,12 +141,15 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
   const contextId = getString(body, "contextId", {
     maxLength: 96,
   });
+  const practiceLanguage = getString(body, "practiceLanguage", {
+    maxLength: 8,
+  });
 
   if (conversationId && !isUuid(conversationId)) {
     throw new RequestValidationError("conversationId is invalid.");
   }
 
-  return { message, conversationId, context, contextId };
+  return { message, conversationId, context, contextId, practiceLanguage };
 }
 
 const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA === "true";
@@ -415,11 +443,13 @@ async function generateCoachMessageMetadata({
   studentMessage,
   mode,
   focusTitle,
+  practiceLanguage,
 }: {
   assistantText: string;
   studentMessage: string;
   mode?: string;
   focusTitle?: string;
+  practiceLanguage: string;
 }): Promise<CoachMessageMetadata | null> {
   if (!assistantText.trim()) return null;
 
@@ -462,6 +492,7 @@ Rules:
 - Never create action prompts with placeholders such as ____, [motion], <insert>, or similar.
 - Never create generic actions like "Share debate motion", "Ask coach", or "Answer this".
 - Suggested action labels and prompts must sound like natural next moves that fit the current coach ask.
+- Write every title, body, item, label, and suggested action prompt in ${practiceLanguage === "vi" ? "Vietnamese" : "English"}.
 - Keep every card concise enough for a mobile lesson feed.
 - Suggested actions are optional. Only include them when the student already gave enough material to act on.`,
         },
@@ -529,20 +560,22 @@ export async function POST(req: NextRequest) {
       await readJsonObject(req, { maxBytes: 12 * 1024 })
     );
     const normalizedContext = normalizeContextType(body.context);
+    const practiceLanguage = coercePracticeLanguage(body.practiceLanguage);
     const { message, contextId } = body;
     let { conversationId } = body;
 
-    let systemPrompt = SYSTEM_PROMPT;
+    let systemPrompt = buildSystemPrompt(practiceLanguage);
     let coachMetadataContext: { mode?: string; focusTitle?: string } = {};
 
     try {
-      const coachProfile = await getCoachProfile(user.id);
+      const coachProfile = await getCoachProfile(user.id, practiceLanguage);
       const envelope = await getCoachContextEnvelope({
         userId: user.id,
         profile: coachProfile,
         contextType: normalizedContext,
         contextId,
         message,
+        practiceLanguage,
       });
       coachMetadataContext = {
         mode: envelope.mode,
@@ -588,7 +621,7 @@ RULES FOR THIS CONTEXT:
     } else {
       const insertData: Record<string, string> = {
         user_id: user.id,
-        title: "New conversation",
+        title: practiceLanguage === "vi" ? "Cuộc hội thoại mới" : "New conversation",
       };
       if (normalizedContext) insertData.context_type = normalizedContext;
       if (isUuid(contextId)) insertData.context_id = contextId;
@@ -674,6 +707,7 @@ RULES FOR THIS CONTEXT:
                 studentMessage: message.trim(),
                 mode: coachMetadataContext.mode,
                 focusTitle: coachMetadataContext.focusTitle,
+                practiceLanguage,
               })
             : null;
 
@@ -702,7 +736,7 @@ RULES FOR THIS CONTEXT:
 
           // Auto-generate title from first user message
           if ((history ?? []).length <= 1) {
-            generateTitle(message.trim(), conversationId!, supabase);
+            generateTitle(message.trim(), conversationId!, supabase, practiceLanguage);
           }
 
           controller.enqueue(
@@ -746,14 +780,19 @@ RULES FOR THIS CONTEXT:
 }
 
 // Fire-and-forget title generation using Groq
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function generateTitle(firstMessage: string, conversationId: string, supabase: any) {
+async function generateTitle(
+  firstMessage: string,
+  conversationId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  practiceLanguage: string
+) {
   try {
     const result = await getGroq().chat.completions.create({
       messages: [
         {
           role: "user",
-          content: `Generate a short 3-5 word title for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`,
+          content: `Generate a short 3-5 word title in ${practiceLanguage === "vi" ? "Vietnamese" : "English"} for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`,
         },
       ],
       model: process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile",

@@ -1,6 +1,7 @@
 import type { SkillMetricKey } from "@/lib/analytics/skill-snapshot";
 import type { DebateDuelSide } from "./debate-duel";
 import type { PracticeTrack } from "./debate";
+import type { PracticeLanguage } from "./feedback";
 
 export type AnalyticsRangePreset = "7d" | "30d" | "90d";
 
@@ -95,6 +96,7 @@ export interface AnalyticsRecentSession {
 
 export interface AnalyticsPageData {
   range: AnalyticsRangePreset;
+  practiceLanguage: PracticeLanguage;
   hero: AnalyticsHero;
   skillSnapshot: AnalyticsSkillSnapshot;
   insights: AnalyticsInsightCard[];

@@ -1,50 +1,62 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getConversations } from "@/lib/api/chat";
 import {
   getCoachContextEnvelope,
   getCoachProfile,
 } from "@/lib/api/coach-profile";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { ChatShell } from "@/components/chat/chat-shell";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 
 export const metadata = {
   title: "AI Coach",
 };
+export const dynamic = "force-dynamic";
 
 async function ChatPayload({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
 }) {
+  const { locale } = await params;
+  const practiceLanguage = coercePracticeLanguage(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user) redirect("/auth/login");
+  if (!user && !devAuthBypassUser) redirect("/auth/login");
+  const userId = user?.id ?? devAuthBypassUser!.id;
 
-  const conversations = await getConversations(user.id);
-  const params = await searchParams;
+  const conversations = user ? await getConversations(user.id) : [];
+  const query = await searchParams;
   const normalizedContext =
-    params.context === "dashboard-home" ? "coach-home" : params.context;
-  const coachProfile = await getCoachProfile(user.id);
+    query.context === "dashboard-home" ? "coach-home" : query.context;
+  const coachProfile = await getCoachProfile(userId, practiceLanguage);
   const initialEnvelope = await getCoachContextEnvelope({
-    userId: user.id,
+    userId,
     profile: coachProfile,
     contextType: normalizedContext,
-    contextId: params.contextId,
-    message: params.message,
+    contextId: query.contextId,
+    message: query.message,
+    practiceLanguage,
   });
 
   return (
     <ChatShell
       conversations={conversations}
-      initialMessage={params.message}
-      initialConversationId={params.conversationId}
+      initialMessage={query.message}
+      initialConversationId={query.conversationId}
       context={normalizedContext}
-      contextId={params.contextId}
+      contextId={query.contextId}
       initialCoachProfile={coachProfile}
       initialCoachEnvelope={initialEnvelope}
     />
@@ -52,13 +64,15 @@ async function ChatPayload({
 }
 
 export default function ChatPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
 }) {
   return (
     <Suspense fallback={<StudentRouteSkeleton variant="chat" />}>
-      <ChatPayload searchParams={searchParams} />
+      <ChatPayload params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

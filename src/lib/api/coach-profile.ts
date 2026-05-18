@@ -2,6 +2,11 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  coercePracticeLanguage,
+} from "@/lib/practice-language";
+import { buildCoachStarterPrompts } from "@/lib/coach-starter-prompts";
+import {
   computeSkillSnapshot,
   roundToTenth,
   type SkillMetricKey,
@@ -15,6 +20,7 @@ import type {
   CoachWeaknessPattern,
   DebateDuelJudgment,
   DebateScore,
+  PracticeLanguage,
   PracticeTrack,
   Profile,
 } from "@/types";
@@ -36,6 +42,7 @@ type SessionRow = {
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
+  practice_language?: PracticeLanguage | null;
   transcript?: string | null;
   duration_seconds: number | null;
   created_at: string;
@@ -63,57 +70,155 @@ type DuelJudgmentRow = {
 type DuelRow = {
   id: string;
   topic_title: string;
+  practice_language?: PracticeLanguage | null;
 };
 
-const SKILL_LABELS: Record<SkillMetricKey, string> = {
-  clarity: "clarity",
-  logic: "logic",
-  rebuttal: "rebuttal",
-  evidence: "evidence",
-  delivery: "delivery",
+const SKILL_LABELS: Record<PracticeLanguage, Record<SkillMetricKey, string>> = {
+  en: {
+    clarity: "clarity",
+    logic: "logic",
+    rebuttal: "rebuttal",
+    evidence: "evidence",
+    delivery: "delivery",
+  },
+  vi: {
+    clarity: "độ rõ",
+    logic: "logic",
+    rebuttal: "phản biện",
+    evidence: "bằng chứng",
+    delivery: "trình bày",
+  },
+};
+
+const SKILL_TITLE_LABELS: Record<
+  PracticeLanguage,
+  Record<SkillMetricKey, string>
+> = {
+  en: {
+    clarity: "Clarity",
+    logic: "Logic",
+    rebuttal: "Rebuttal",
+    evidence: "Evidence",
+    delivery: "Delivery",
+  },
+  vi: {
+    clarity: "Độ rõ",
+    logic: "Logic",
+    rebuttal: "Phản biện",
+    evidence: "Bằng chứng",
+    delivery: "Trình bày",
+  },
 };
 
 const WEAKNESS_PATTERNS: Array<{
   key: string;
-  label: string;
+  label: Record<PracticeLanguage, string>;
+  repeatedSummary: Record<PracticeLanguage, string>;
+  nextSummary: Record<PracticeLanguage, string>;
   relatedSkill: SkillMetricKey | null;
   keywords: string[];
 }> = [
   {
     key: "mechanism",
-    label: "Mechanism depth",
+    label: {
+      en: "Mechanism depth",
+      vi: "Độ sâu cơ chế",
+    },
+    repeatedSummary: {
+      en: "Mechanism depth has shown up repeatedly in recent feedback.",
+      vi: "Độ sâu cơ chế xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Mechanism depth is worth tightening in your next debate.",
+      vi: "Bạn nên làm rõ cơ chế hơn trong phiên debate tiếp theo.",
+    },
     relatedSkill: "logic",
-    keywords: ["mechanism", "how this works", "causal", "causation"],
+    keywords: ["mechanism", "how this works", "causal", "causation", "cơ chế", "nguyên nhân", "nhân quả"],
   },
   {
     key: "comparison",
-    label: "Weighing and comparison",
+    label: {
+      en: "Weighing and comparison",
+      vi: "So sánh và weighing",
+    },
+    repeatedSummary: {
+      en: "Weighing and comparison has shown up repeatedly in recent feedback.",
+      vi: "So sánh và weighing xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Weighing and comparison is worth tightening in your next debate.",
+      vi: "Bạn nên so sánh tác động rõ hơn trong phiên debate tiếp theo.",
+    },
     relatedSkill: "rebuttal",
-    keywords: ["weigh", "comparison", "comparative", "compare"],
+    keywords: ["weigh", "comparison", "comparative", "compare", "so sánh", "weighing", "quan trọng hơn"],
   },
   {
     key: "impact",
-    label: "Impact framing",
+    label: {
+      en: "Impact framing",
+      vi: "Đóng khung tác động",
+    },
+    repeatedSummary: {
+      en: "Impact framing has shown up repeatedly in recent feedback.",
+      vi: "Đóng khung tác động xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Impact framing is worth tightening in your next debate.",
+      vi: "Bạn nên làm tác động rõ và sắc hơn trong phiên debate tiếp theo.",
+    },
     relatedSkill: "clarity",
-    keywords: ["impact", "impactful", "link back", "motion link"],
+    keywords: ["impact", "impactful", "link back", "motion link", "tác động", "liên hệ motion", "kết nối motion"],
   },
   {
     key: "evidence",
-    label: "Evidence support",
+    label: {
+      en: "Evidence support",
+      vi: "Bằng chứng hỗ trợ",
+    },
+    repeatedSummary: {
+      en: "Evidence support has shown up repeatedly in recent feedback.",
+      vi: "Bằng chứng hỗ trợ xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Evidence support is worth tightening in your next debate.",
+      vi: "Bạn nên thêm bằng chứng cụ thể hơn trong phiên debate tiếp theo.",
+    },
     relatedSkill: "evidence",
-    keywords: ["evidence", "example", "proof", "supporting detail"],
+    keywords: ["evidence", "example", "proof", "supporting detail", "bằng chứng", "ví dụ", "dẫn chứng", "chi tiết"],
   },
   {
     key: "clash",
-    label: "Clash and rebuttal depth",
+    label: {
+      en: "Clash and rebuttal depth",
+      vi: "Clash và độ sâu phản biện",
+    },
+    repeatedSummary: {
+      en: "Clash and rebuttal depth has shown up repeatedly in recent feedback.",
+      vi: "Clash và độ sâu phản biện xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Clash and rebuttal depth is worth tightening in your next debate.",
+      vi: "Bạn nên phản biện trực diện và sâu hơn trong phiên debate tiếp theo.",
+    },
     relatedSkill: "rebuttal",
-    keywords: ["clash", "rebuttal", "counter", "response"],
+    keywords: ["clash", "rebuttal", "counter", "response", "phản biện", "đáp lại", "đối đáp"],
   },
   {
     key: "delivery",
-    label: "Delivery and clarity",
+    label: {
+      en: "Delivery and clarity",
+      vi: "Trình bày và độ rõ",
+    },
+    repeatedSummary: {
+      en: "Delivery and clarity has shown up repeatedly in recent feedback.",
+      vi: "Trình bày và độ rõ xuất hiện lặp lại trong feedback gần đây.",
+    },
+    nextSummary: {
+      en: "Delivery and clarity is worth tightening in your next debate.",
+      vi: "Bạn nên luyện cách nói rõ và tự tin hơn trong phiên tiếp theo.",
+    },
     relatedSkill: "delivery",
-    keywords: ["fluency", "grammar", "vocabulary", "delivery", "confidence"],
+    keywords: ["fluency", "grammar", "vocabulary", "delivery", "confidence", "lưu loát", "ngữ pháp", "từ vựng", "trình bày", "tự tin"],
   },
 ];
 
@@ -158,25 +263,51 @@ function getPracticeTrack(feedback: DebateScore | null): PracticeTrack {
   return feedback?.practiceTrack === "speaking" ? "speaking" : "debate";
 }
 
-function describeTrack(track: PracticeTrack) {
+function describeTrack(track: PracticeTrack, practiceLanguage: PracticeLanguage) {
+  if (practiceLanguage === "vi") {
+    return track === "speaking" ? "luyện nói" : "luyện debate";
+  }
   return track === "speaking" ? "speaking practice" : "debate practice";
 }
 
-function titleCaseSkill(skill: SkillMetricKey | null) {
-  if (!skill) return null;
-  const label = SKILL_LABELS[skill];
-  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+function skillLabel(skill: SkillMetricKey, practiceLanguage: PracticeLanguage) {
+  return SKILL_LABELS[practiceLanguage][skill];
 }
 
-function summarizeSession(session: SessionRow) {
+function titleCaseSkill(
+  skill: SkillMetricKey | null,
+  practiceLanguage: PracticeLanguage
+) {
+  if (!skill) return null;
+  return SKILL_TITLE_LABELS[practiceLanguage][skill];
+}
+
+function summarizeSession(
+  session: SessionRow,
+  practiceLanguage: PracticeLanguage
+) {
   const feedback = session.feedback;
   if (feedback?.summary) return feedback.summary;
   if (session.total_score != null && session.overall_band) {
-    return `Scored ${session.total_score}/100 (${session.overall_band}) on ${describeTrack(
-      getPracticeTrack(feedback)
-    )}.`;
+    return practiceLanguage === "vi"
+      ? `Đạt ${session.total_score}/100 (${session.overall_band}) trong phiên ${describeTrack(
+          getPracticeTrack(feedback),
+          practiceLanguage
+        )}.`
+      : `Scored ${session.total_score}/100 (${session.overall_band}) on ${describeTrack(
+          getPracticeTrack(feedback),
+          practiceLanguage
+        )}.`;
   }
-  return `Completed a ${describeTrack(getPracticeTrack(feedback))} session on "${session.topic_title}".`;
+  return practiceLanguage === "vi"
+    ? `Đã hoàn thành phiên ${describeTrack(
+        getPracticeTrack(feedback),
+        practiceLanguage
+      )} về "${session.topic_title}".`
+    : `Completed a ${describeTrack(
+        getPracticeTrack(feedback),
+        practiceLanguage
+      )} session on "${session.topic_title}".`;
 }
 
 function buildTranscriptExcerpt(transcript?: string | null) {
@@ -187,7 +318,8 @@ function buildTranscriptExcerpt(transcript?: string | null) {
 
 function mapRecentSession(
   session: SessionRow,
-  includeTranscript = false
+  includeTranscript = false,
+  practiceLanguage: PracticeLanguage = DEFAULT_PRACTICE_LANGUAGE
 ): CoachRecentSession {
   return {
     id: session.id,
@@ -201,7 +333,7 @@ function mapRecentSession(
     createdAt: session.created_at,
     strengths: session.feedback?.strengths ?? [],
     improvements: session.feedback?.improvements ?? [],
-    summary: summarizeSession(session),
+    summary: summarizeSession(session, practiceLanguage),
     transcriptExcerpt: includeTranscript
       ? buildTranscriptExcerpt(session.transcript)
       : undefined,
@@ -248,7 +380,10 @@ function collectPatternText(session: SessionRow) {
     .filter(Boolean);
 }
 
-function buildWeaknessPatterns(sessions: SessionRow[]): CoachWeaknessPattern[] {
+function buildWeaknessPatterns(
+  sessions: SessionRow[],
+  practiceLanguage: PracticeLanguage
+): CoachWeaknessPattern[] {
   const counts = new Map<string, number>();
 
   for (const session of sessions) {
@@ -264,12 +399,12 @@ function buildWeaknessPatterns(sessions: SessionRow[]): CoachWeaknessPattern[] {
 
   return WEAKNESS_PATTERNS.map((pattern) => ({
     key: pattern.key,
-    label: pattern.label,
+    label: pattern.label[practiceLanguage],
     count: counts.get(pattern.key) ?? 0,
     summary:
       counts.get(pattern.key) && counts.get(pattern.key)! > 1
-        ? `${pattern.label} has shown up repeatedly in recent feedback.`
-        : `${pattern.label} is worth tightening in your next debate.`,
+        ? pattern.repeatedSummary[practiceLanguage]
+        : pattern.nextSummary[practiceLanguage],
     relatedSkill: pattern.relatedSkill,
   }))
     .filter((pattern) => pattern.count > 0)
@@ -277,7 +412,10 @@ function buildWeaknessPatterns(sessions: SessionRow[]): CoachWeaknessPattern[] {
     .slice(0, 4);
 }
 
-function buildTrendSummary(sessions: SessionRow[]) {
+function buildTrendSummary(
+  sessions: SessionRow[],
+  practiceLanguage: PracticeLanguage
+) {
   const recent = sessions.slice(0, 5).filter((session) => session.total_score != null);
   const previous = sessions.slice(5, 10).filter((session) => session.total_score != null);
 
@@ -304,24 +442,47 @@ function buildTrendSummary(sessions: SessionRow[]) {
   if (delta != null && delta >= 2) direction = "up";
   if (delta != null && delta <= -2) direction = "down";
 
-  let summary = "You need a few more scored debates before trend analysis becomes reliable.";
+  let summary =
+    practiceLanguage === "vi"
+      ? "Bạn cần thêm vài phiên có chấm điểm để phân tích xu hướng đáng tin hơn."
+      : "You need a few more scored debates before trend analysis becomes reliable.";
   if (recentAverage != null && previousAverage == null) {
-    summary = `Your recent scored sessions are averaging ${Math.round(
-      recentAverage
-    )}/100. Keep building that baseline.`;
+    summary =
+      practiceLanguage === "vi"
+        ? `Các phiên có điểm gần đây của bạn đang trung bình ${Math.round(
+            recentAverage
+          )}/100. Hãy tiếp tục xây baseline này.`
+        : `Your recent scored sessions are averaging ${Math.round(
+            recentAverage
+          )}/100. Keep building that baseline.`;
   } else if (recentAverage != null && delta != null) {
     if (direction === "up") {
-      summary = `Your last ${recent.length} scored sessions are trending up by ${Math.abs(
-        delta
-      ).toFixed(1)} points.`;
+      summary =
+        practiceLanguage === "vi"
+          ? `${recent.length} phiên có điểm gần nhất của bạn tăng ${Math.abs(
+              delta
+            ).toFixed(1)} điểm.`
+          : `Your last ${recent.length} scored sessions are trending up by ${Math.abs(
+              delta
+            ).toFixed(1)} points.`;
     } else if (direction === "down") {
-      summary = `Your last ${recent.length} scored sessions dipped by ${Math.abs(
-        delta
-      ).toFixed(1)} points, so this is a good moment to tighten fundamentals.`;
+      summary =
+        practiceLanguage === "vi"
+          ? `${recent.length} phiên có điểm gần nhất giảm ${Math.abs(
+              delta
+            ).toFixed(1)} điểm, nên đây là lúc tốt để siết lại nền tảng.`
+          : `Your last ${recent.length} scored sessions dipped by ${Math.abs(
+              delta
+            ).toFixed(1)} points, so this is a good moment to tighten fundamentals.`;
     } else {
-      summary = `Your recent performance is stable around ${Math.round(
-        recentAverage
-      )}/100.`;
+      summary =
+        practiceLanguage === "vi"
+          ? `Hiệu suất gần đây của bạn ổn định quanh ${Math.round(
+              recentAverage
+            )}/100.`
+          : `Your recent performance is stable around ${Math.round(
+              recentAverage
+            )}/100.`;
     }
   }
 
@@ -339,37 +500,20 @@ function buildStarterPrompts(params: {
   strongestSkill: SkillMetricKey | null;
   weaknessPatterns: CoachWeaknessPattern[];
   recentSessions: CoachRecentSession[];
+  practiceLanguage: PracticeLanguage;
 }) {
-  const prompts: string[] = [];
-
-  if (params.weakestSkill && params.strongestSkill) {
-    prompts.push(
-      `Why is my ${SKILL_LABELS[params.weakestSkill]} weaker than my ${SKILL_LABELS[
-        params.strongestSkill
-      ]}?`
-    );
-  }
-
-  if (params.recentSessions.length >= 2) {
-    prompts.push("Compare my last 3 debate sessions.");
-  }
-
-  if (params.weaknessPatterns[0]) {
-    prompts.push(`Help me fix my ${params.weaknessPatterns[0].label.toLowerCase()}.`);
-  }
-
-  prompts.push("What should I practice today?");
-
-  if (params.recentSessions.length === 0) {
-    return [
-      "Help me build a clear debate opening.",
-      "What should I focus on in my first practice session?",
-      "Make me a short rebuttal drill.",
-      "How do I weigh impacts clearly?",
-    ];
-  }
-
-  return prompts.slice(0, 4);
+  const language = params.practiceLanguage;
+  return buildCoachStarterPrompts({
+    weakestSkillLabel: params.weakestSkill
+      ? skillLabel(params.weakestSkill, language)
+      : null,
+    strongestSkillLabel: params.strongestSkill
+      ? skillLabel(params.strongestSkill, language)
+      : null,
+    weaknessLabel: params.weaknessPatterns[0]?.label ?? null,
+    recentSessionCount: params.recentSessions.length,
+    practiceLanguage: language,
+  });
 }
 
 function buildRecommendations(params: {
@@ -377,19 +521,43 @@ function buildRecommendations(params: {
   weaknessPatterns: CoachWeaknessPattern[];
   recentSessions: CoachRecentSession[];
   underusedTrack: PracticeTrack;
+  practiceLanguage: PracticeLanguage;
 }): CoachRecommendation[] {
   const recommendations: CoachRecommendation[] = [];
+  const language = params.practiceLanguage;
 
   if (params.skillSnapshot.weakestSkill) {
     const targetTrack =
       params.skillSnapshot.weakestSkill === "delivery" ? "speaking" : "debate";
     recommendations.push({
       id: "weakest-skill",
-      title: `Improve ${titleCaseSkill(params.skillSnapshot.weakestSkill)}`,
-      description: `A ${targetTrack} round is the fastest way to work on ${SKILL_LABELS[
-        params.skillSnapshot.weakestSkill
-      ]}.`,
-      prompt: `Help me improve my ${SKILL_LABELS[params.skillSnapshot.weakestSkill]}.`,
+      title:
+        language === "vi"
+          ? `Cải thiện ${titleCaseSkill(params.skillSnapshot.weakestSkill, language)}`
+          : `Improve ${titleCaseSkill(params.skillSnapshot.weakestSkill, language)}`,
+      description:
+        language === "vi"
+          ? `Một phiên ${describeTrack(
+              targetTrack,
+              language
+            )} là cách nhanh nhất để luyện ${skillLabel(
+              params.skillSnapshot.weakestSkill,
+              language
+            )}.`
+          : `A ${targetTrack} round is the fastest way to work on ${skillLabel(
+              params.skillSnapshot.weakestSkill,
+              language
+            )}.`,
+      prompt:
+        language === "vi"
+          ? `Giúp mình cải thiện ${skillLabel(
+              params.skillSnapshot.weakestSkill,
+              language
+            )}.`
+          : `Help me improve my ${skillLabel(
+              params.skillSnapshot.weakestSkill,
+              language
+            )}.`,
       href: `/practice?track=${targetTrack}`,
       track: targetTrack,
       skillKey: params.skillSnapshot.weakestSkill,
@@ -399,9 +567,15 @@ function buildRecommendations(params: {
   if (params.weaknessPatterns[0]) {
     recommendations.push({
       id: "recurring-pattern",
-      title: `Fix ${params.weaknessPatterns[0].label}`,
+      title:
+        language === "vi"
+          ? `Sửa ${params.weaknessPatterns[0].label}`
+          : `Fix ${params.weaknessPatterns[0].label}`,
       description: params.weaknessPatterns[0].summary,
-      prompt: `Help me fix ${params.weaknessPatterns[0].label.toLowerCase()} in my next debate.`,
+      prompt:
+        language === "vi"
+          ? `Giúp mình sửa ${params.weaknessPatterns[0].label.toLowerCase()} trong phiên debate tiếp theo.`
+          : `Help me fix ${params.weaknessPatterns[0].label.toLowerCase()} in my next debate.`,
       skillKey: params.weaknessPatterns[0].relatedSkill,
     });
   }
@@ -409,9 +583,15 @@ function buildRecommendations(params: {
   if (params.recentSessions[0]) {
     recommendations.push({
       id: "review-latest",
-      title: "Review your latest debate",
+      title:
+        language === "vi"
+          ? "Review phiên debate mới nhất"
+          : "Review your latest debate",
       description: params.recentSessions[0].topicTitle,
-      prompt: "Review my last debate and tell me the biggest thing to fix next.",
+      prompt:
+        language === "vi"
+          ? "Review phiên debate gần nhất và nói cho mình điểm lớn nhất cần sửa tiếp theo."
+          : "Review my last debate and tell me the biggest thing to fix next.",
       href: params.recentSessions[0].href,
       track: params.recentSessions[0].practiceTrack,
     });
@@ -420,16 +600,31 @@ function buildRecommendations(params: {
   recommendations.push({
     id: "rebalance-track",
     title:
-      params.underusedTrack === "speaking"
-        ? "Bring speaking back into the mix"
-        : "Bring debate back into the mix",
-    description: `Your recent practice mix is lighter on ${describeTrack(
-      params.underusedTrack
-    )}.`,
+      language === "vi"
+        ? params.underusedTrack === "speaking"
+          ? "Đưa luyện nói trở lại nhịp luyện"
+          : "Đưa debate trở lại nhịp luyện"
+        : params.underusedTrack === "speaking"
+          ? "Bring speaking back into the mix"
+          : "Bring debate back into the mix",
+    description:
+      language === "vi"
+        ? `Nhịp luyện gần đây của bạn đang ít ${describeTrack(
+            params.underusedTrack,
+            language
+          )}.`
+        : `Your recent practice mix is lighter on ${describeTrack(
+            params.underusedTrack,
+            language
+          )}.`,
     prompt:
-      params.underusedTrack === "speaking"
-        ? "Should I do a speaking practice today or a debate practice?"
-        : "Should I do a debate practice today or a speaking practice?",
+      language === "vi"
+        ? params.underusedTrack === "speaking"
+          ? "Hôm nay mình nên luyện nói hay luyện debate?"
+          : "Hôm nay mình nên luyện debate hay luyện nói?"
+        : params.underusedTrack === "speaking"
+          ? "Should I do a speaking practice today or a debate practice?"
+          : "Should I do a debate practice today or a speaking practice?",
     href: `/practice?track=${params.underusedTrack}`,
     track: params.underusedTrack,
   });
@@ -437,9 +632,44 @@ function buildRecommendations(params: {
   return recommendations.slice(0, 4);
 }
 
-function buildProfileSummary(profile: CoachProfile) {
-  const strongest = titleCaseSkill(profile.skillSnapshot.strongestSkill);
-  const weakest = titleCaseSkill(profile.skillSnapshot.weakestSkill);
+function buildProfileSummary(
+  profile: CoachProfile,
+  practiceLanguage: PracticeLanguage
+) {
+  const strongest = titleCaseSkill(
+    profile.skillSnapshot.strongestSkill,
+    practiceLanguage
+  );
+  const weakest = titleCaseSkill(
+    profile.skillSnapshot.weakestSkill,
+    practiceLanguage
+  );
+
+  if (practiceLanguage === "vi") {
+    return [
+      `Người dùng: ${profile.displayName}`,
+      `Chuỗi ngày: ${profile.streak}`,
+      `Level: ${profile.level}`,
+      `Credits: ${profile.credits}`,
+      `Mục tiêu hằng ngày: ${profile.dailyGoalMinutes} phút`,
+      `Nhịp luyện: ${profile.sessionsLast7} phiên trong 7 ngày, ${profile.minutesLast7} phút trong 7 ngày, ${profile.sessionsLast30} phiên trong 30 ngày`,
+      `Tỷ lệ luyện: speaking ${profile.practiceMix.speaking}, debate ${profile.practiceMix.debate}, track đang ít ${profile.practiceMix.underusedTrack}`,
+      `Ảnh chụp kỹ năng: mạnh nhất ${strongest ?? "chưa có"}, yếu nhất ${weakest ?? "chưa có"}, tổng ${
+        profile.skillSnapshot.overallScore != null
+          ? `${Math.round(profile.skillSnapshot.overallScore)}/100`
+          : "chưa có"
+      }, độ tin cậy ${profile.skillSnapshot.confidence}%`,
+      `Xu hướng: ${profile.recentTrend.summary}`,
+      profile.weaknessPatterns.length > 0
+        ? `Điểm yếu lặp lại: ${profile.weaknessPatterns
+            .map((pattern) => pattern.label)
+            .join(", ")}`
+        : "Điểm yếu lặp lại: chưa xác định",
+      profile.strengthPatterns.length > 0
+        ? `Điểm mạnh lặp lại: ${profile.strengthPatterns.join(", ")}`
+        : "Điểm mạnh lặp lại: chưa xác định",
+    ].join("\n");
+  }
 
   return [
     `User: ${profile.displayName}`,
@@ -634,17 +864,22 @@ function buildDuelPromptContext(duel: NonNullable<CoachContextEnvelope["selected
 function inferIntent(params: {
   contextType?: string | null;
   message?: string | null;
+  practiceLanguage?: PracticeLanguage;
 }) {
   const normalizedMessage = params.message?.toLowerCase() ?? "";
   const contextType = params.contextType ?? "";
+  const practiceLanguage = params.practiceLanguage ?? DEFAULT_PRACTICE_LANGUAGE;
 
   if (contextType === "duel-review") return "duel-review" as CoachIntentMode;
   if (contextType === "course") return "course-help" as CoachIntentMode;
   if (contextType === "practice-feedback") return "session-review" as CoachIntentMode;
 
   if (
-    normalizedMessage.includes("compare") &&
-    (normalizedMessage.includes("recent") || normalizedMessage.includes("last"))
+    (normalizedMessage.includes("compare") &&
+      (normalizedMessage.includes("recent") || normalizedMessage.includes("last"))) ||
+    (practiceLanguage === "vi" &&
+      normalizedMessage.includes("so sánh") &&
+      (normalizedMessage.includes("gần nhất") || normalizedMessage.includes("vừa rồi")))
   ) {
     return "session-comparison" as CoachIntentMode;
   }
@@ -653,7 +888,11 @@ function inferIntent(params: {
     normalizedMessage.includes("review my last") ||
     normalizedMessage.includes("review my latest") ||
     normalizedMessage.includes("last debate") ||
-    normalizedMessage.includes("latest debate")
+    normalizedMessage.includes("latest debate") ||
+    (practiceLanguage === "vi" &&
+      (normalizedMessage.includes("review phiên") ||
+        normalizedMessage.includes("xem lại phiên") ||
+        normalizedMessage.includes("debate gần nhất")))
   ) {
     return "session-review" as CoachIntentMode;
   }
@@ -662,7 +901,11 @@ function inferIntent(params: {
     normalizedMessage.includes("progress") ||
     normalizedMessage.includes("trend") ||
     normalizedMessage.includes("improving") ||
-    normalizedMessage.includes("why is my")
+    normalizedMessage.includes("why is my") ||
+    (practiceLanguage === "vi" &&
+      (normalizedMessage.includes("tiến bộ") ||
+        normalizedMessage.includes("xu hướng") ||
+        normalizedMessage.includes("vì sao")))
   ) {
     return "progress-review" as CoachIntentMode;
   }
@@ -670,10 +913,43 @@ function inferIntent(params: {
   return "general-coaching" as CoachIntentMode;
 }
 
-export async function getCoachProfile(userId: string): Promise<CoachProfile> {
+export async function getCoachProfile(
+  userId: string,
+  practiceLanguageInput?: PracticeLanguage | string | null
+): Promise<CoachProfile> {
   const supabase = await createClient();
+  const practiceLanguage = coercePracticeLanguage(
+    practiceLanguageInput,
+    DEFAULT_PRACTICE_LANGUAGE
+  );
   const trailing30Dates = getTrailingDates(DAYS_30);
   const today = trailing30Dates[trailing30Dates.length - 1];
+
+  let scoredSessionsQuery = supabase
+    .from("debate_sessions")
+    .select(
+      "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, practice_language, duration_seconds, created_at"
+    )
+    .eq("user_id", userId)
+    .not("total_score", "is", null);
+  let recentSessionsQuery = supabase
+    .from("debate_sessions")
+    .select(
+      "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, practice_language, duration_seconds, created_at"
+    )
+    .eq("user_id", userId);
+
+  if (practiceLanguage === "vi") {
+    scoredSessionsQuery = scoredSessionsQuery.eq("practice_language", "vi");
+    recentSessionsQuery = recentSessionsQuery.eq("practice_language", "vi");
+  } else {
+    scoredSessionsQuery = scoredSessionsQuery.or(
+      "practice_language.eq.en,practice_language.is.null"
+    );
+    recentSessionsQuery = recentSessionsQuery.or(
+      "practice_language.eq.en,practice_language.is.null"
+    );
+  }
 
   const [profileRes, statsRes, scoredSessionsRes, recentSessionsRes, duelParticipantRes] =
     await Promise.all([
@@ -691,21 +967,10 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
         .gte("date", trailing30Dates[0])
         .lte("date", today)
         .order("date"),
-      supabase
-      .from("debate_sessions")
-      .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
-      )
-        .eq("user_id", userId)
-        .not("total_score", "is", null)
+      scoredSessionsQuery
         .order("created_at", { ascending: false })
         .limit(MAX_SCORED_SESSIONS),
-      supabase
-      .from("debate_sessions")
-      .select(
-        "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
-      )
-        .eq("user_id", userId)
+      recentSessionsQuery
         .order("created_at", { ascending: false })
         .limit(MAX_RECENT_SESSIONS),
       supabase
@@ -739,11 +1004,14 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
     .reduce((sum, date) => sum + (statsByDate.get(date)?.sessions_completed ?? 0), 0);
 
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
-  const recentTrend = buildTrendSummary(scoredSessions);
-  const weaknessPatterns = buildWeaknessPatterns(scoredSessions.slice(0, 8));
+  const recentTrend = buildTrendSummary(scoredSessions, practiceLanguage);
+  const weaknessPatterns = buildWeaknessPatterns(
+    scoredSessions.slice(0, 8),
+    practiceLanguage
+  );
   const strengthPatterns = buildStrengthPatterns(scoredSessions.slice(0, 8));
   const mappedRecentSessions = recentSessions.map((session) =>
-    mapRecentSession(session)
+    mapRecentSession(session, false, practiceLanguage)
   );
   const recentScoredSessions = mappedRecentSessions.filter(
     (session) => session.totalScore != null
@@ -777,24 +1045,34 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
 
   if (duelParticipants.length > 0) {
     const duelIds = duelParticipants.map((participant) => participant.duel_id);
-    const [judgmentRes, duelRes] = await Promise.all([
-      supabase
-        .from("debate_duel_judgments")
-        .select("duel_id, winner_side, summary, verdict, created_at")
-        .in("duel_id", duelIds)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("debate_duels")
-        .select("id, topic_title")
-        .in("id", duelIds),
-    ]);
+    let duelQuery = supabase
+      .from("debate_duels")
+      .select("id, topic_title, practice_language")
+      .in("id", duelIds);
+    duelQuery =
+      practiceLanguage === "vi"
+        ? duelQuery.eq("practice_language", "vi")
+        : duelQuery.or("practice_language.eq.en,practice_language.is.null");
 
-    const judgments = (judgmentRes.data ?? []) as DuelJudgmentRow[];
+    const { data: duelData } = await duelQuery;
+    const languageScopedDuelIds = ((duelData ?? []) as DuelRow[]).map(
+      (duel) => duel.id
+    );
+    const { data: judgmentData } =
+      languageScopedDuelIds.length > 0
+        ? await supabase
+            .from("debate_duel_judgments")
+            .select("duel_id, winner_side, summary, verdict, created_at")
+            .in("duel_id", languageScopedDuelIds)
+            .order("created_at", { ascending: false })
+        : { data: [] };
+
+    const judgments = (judgmentData ?? []) as DuelJudgmentRow[];
     const roleByDuel = new Map(
       duelParticipants.map((participant) => [participant.duel_id, participant.role])
     );
     const duelById = new Map(
-      ((duelRes.data ?? []) as DuelRow[]).map((duel) => [duel.id, duel])
+      ((duelData ?? []) as DuelRow[]).map((duel) => [duel.id, duel])
     );
 
     const wins = judgments.filter((judgment) => {
@@ -811,7 +1089,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
       wins,
       losses,
       recentSummary: judgments[0]
-        ? `${duelById.get(judgments[0].duel_id)?.topic_title ?? "Recent duel"}: ${
+        ? `${duelById.get(judgments[0].duel_id)?.topic_title ?? (practiceLanguage === "vi" ? "Duel gần đây" : "Recent duel")}: ${
             judgments[0].summary
           }`
         : null,
@@ -832,6 +1110,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
     weaknessPatterns,
     recentSessions: mappedRecentSessions,
     underusedTrack,
+    practiceLanguage,
   });
 
   const starterPrompts = buildStarterPrompts({
@@ -839,6 +1118,7 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
     strongestSkill: skillSnapshot.strongestSkill,
     weaknessPatterns,
     recentSessions: mappedRecentSessions,
+    practiceLanguage,
   });
 
   return {
@@ -876,12 +1156,14 @@ export async function getCoachProfile(userId: string): Promise<CoachProfile> {
     recommendations,
     starterPrompts,
     brief: {
-      strongestSkillLabel: titleCaseSkill(skillSnapshot.strongestSkill),
-      weakestSkillLabel: titleCaseSkill(skillSnapshot.weakestSkill),
+      strongestSkillLabel: titleCaseSkill(skillSnapshot.strongestSkill, practiceLanguage),
+      weakestSkillLabel: titleCaseSkill(skillSnapshot.weakestSkill, practiceLanguage),
       trendSummary: recentTrend.summary,
       nextMove:
         recommendations[0]?.description ??
-        "Start a scored debate round so the coach can personalize your next move.",
+        (practiceLanguage === "vi"
+          ? "Bắt đầu một phiên debate có chấm điểm để Coach cá nhân hóa bước tiếp theo."
+          : "Start a scored debate round so the coach can personalize your next move."),
     },
   };
 }
@@ -892,10 +1174,16 @@ export async function getCoachContextEnvelope(params: {
   contextType?: string | null;
   contextId?: string | null;
   message?: string | null;
+  practiceLanguage?: PracticeLanguage | string | null;
 }): Promise<CoachContextEnvelope> {
+  const practiceLanguage = coercePracticeLanguage(
+    params.practiceLanguage,
+    DEFAULT_PRACTICE_LANGUAGE
+  );
   const mode = inferIntent({
     contextType: params.contextType,
     message: params.message,
+    practiceLanguage,
   });
 
   let selectedSession: CoachRecentSession | null = null;
@@ -905,7 +1193,7 @@ export async function getCoachContextEnvelope(params: {
   if (params.contextType === "practice-feedback" && params.contextId) {
     const session = await getSessionById(params.userId, params.contextId);
     if (session) {
-      selectedSession = mapRecentSession(session, true);
+      selectedSession = mapRecentSession(session, true, practiceLanguage);
     }
   }
 
@@ -919,7 +1207,7 @@ export async function getCoachContextEnvelope(params: {
     if (latestSessionId) {
       const session = await getSessionById(params.userId, latestSessionId);
       if (session) {
-        selectedSession = mapRecentSession(session, true);
+        selectedSession = mapRecentSession(session, true, practiceLanguage);
       }
     }
   }
@@ -932,47 +1220,83 @@ export async function getCoachContextEnvelope(params: {
     selectedCourse = await getCourseSummary(params.userId, params.contextId);
   }
 
-  const strongest = titleCaseSkill(params.profile.skillSnapshot.strongestSkill);
-  const weakest = titleCaseSkill(params.profile.skillSnapshot.weakestSkill);
+  const strongest = titleCaseSkill(
+    params.profile.skillSnapshot.strongestSkill,
+    practiceLanguage
+  );
+  const weakest = titleCaseSkill(
+    params.profile.skillSnapshot.weakestSkill,
+    practiceLanguage
+  );
   const starterPrompts =
     selectedSession != null
-      ? [
-          `Review my session on "${selectedSession.topicTitle}".`,
-          "What was the biggest weakness in that round?",
-          "How would you rebuild my weakest argument?",
-          "Give me a targeted drill for this session.",
-        ]
-      : selectedDuel != null
+      ? practiceLanguage === "vi"
         ? [
-            `Why did ${selectedDuel.winnerSide ?? "that side"} win this duel?`,
-            "What should I change in the rematch?",
-            "Compare both sides' rebuttal quality.",
-            "Give me a duel-specific improvement plan.",
+            `Review phiên "${selectedSession.topicTitle}" của mình.`,
+            "Điểm yếu lớn nhất trong phiên đó là gì?",
+            "Bạn sẽ xây lại lập luận yếu nhất của mình như thế nào?",
+            "Cho mình một bài luyện đúng vào phiên này.",
           ]
+        : [
+            `Review my session on "${selectedSession.topicTitle}".`,
+            "What was the biggest weakness in that round?",
+            "How would you rebuild my weakest argument?",
+            "Give me a targeted drill for this session.",
+          ]
+      : selectedDuel != null
+        ? practiceLanguage === "vi"
+          ? [
+              `Vì sao ${selectedDuel.winnerSide ?? "phe đó"} thắng trận này?`,
+              "Mình nên đổi gì trong lần đấu lại?",
+              "So sánh chất lượng phản biện của hai bên.",
+              "Cho mình một kế hoạch cải thiện riêng cho trận này.",
+            ]
+          : [
+              `Why did ${selectedDuel.winnerSide ?? "that side"} win this duel?`,
+              "What should I change in the rematch?",
+              "Compare both sides' rebuttal quality.",
+              "Give me a duel-specific improvement plan.",
+            ]
         : params.profile.starterPrompts;
 
   const focusTitle =
     selectedSession != null
-      ? "Pinned session review"
+      ? practiceLanguage === "vi"
+        ? "Review phiên đã ghim"
+        : "Pinned session review"
       : selectedDuel != null
-        ? "Pinned duel review"
+        ? practiceLanguage === "vi"
+          ? "Review duel đã ghim"
+          : "Pinned duel review"
         : selectedCourse != null
-          ? "Course-aware coaching"
-          : "Current coaching focus";
+          ? practiceLanguage === "vi"
+            ? "Coach theo khóa học"
+            : "Course-aware coaching"
+          : practiceLanguage === "vi"
+            ? "Trọng tâm coaching hiện tại"
+            : "Current coaching focus";
 
   const focusSummary =
     selectedSession != null
-      ? `${selectedSession.topicTitle} is ready to review with its score, strengths, and improvement notes attached.`
+      ? practiceLanguage === "vi"
+        ? `${selectedSession.topicTitle} đã sẵn sàng để review với điểm, điểm mạnh và ghi chú cải thiện đi kèm.`
+        : `${selectedSession.topicTitle} is ready to review with its score, strengths, and improvement notes attached.`
       : selectedDuel != null
-        ? `${selectedDuel.topicTitle} is pinned with the AI verdict and comparative notes.`
+        ? practiceLanguage === "vi"
+          ? `${selectedDuel.topicTitle} đã được ghim cùng phán quyết AI và ghi chú so sánh.`
+          : `${selectedDuel.topicTitle} is pinned with the AI verdict and comparative notes.`
         : selectedCourse != null
-          ? `${selectedCourse.title} is attached, so the coach can connect course work to your debate profile.`
+          ? practiceLanguage === "vi"
+            ? `${selectedCourse.title} đã được gắn vào, nên Coach có thể nối nội dung khóa học với hồ sơ debate của bạn.`
+            : `${selectedCourse.title} is attached, so the coach can connect course work to your debate profile.`
           : weakest && strongest
-            ? `Your strongest area is ${strongest}, while ${weakest} is the clearest gap to close next.`
+            ? practiceLanguage === "vi"
+              ? `Mảng mạnh nhất của bạn là ${strongest}, còn ${weakest} là khoảng trống rõ nhất cần xử lý tiếp.`
+              : `Your strongest area is ${strongest}, while ${weakest} is the clearest gap to close next.`
             : params.profile.recentTrend.summary;
 
   const promptContext = [
-    buildProfileSummary(params.profile),
+    buildProfileSummary(params.profile, practiceLanguage),
     selectedSession
       ? buildSessionPromptContext(selectedSession, mode === "session-review")
       : null,
@@ -980,14 +1304,23 @@ export async function getCoachContextEnvelope(params: {
     selectedCourse ? buildCoursePromptContext(selectedCourse) : null,
     mode === "session-comparison" &&
     params.profile.recentSessions.filter((session) => session.totalScore != null).length > 1
-      ? `Recent sessions to compare: ${params.profile.recentSessions
-          .filter((session) => session.totalScore != null)
-          .slice(0, 3)
-          .map(
-            (session) =>
-              `${session.topicTitle} (${session.totalScore != null ? `${session.totalScore}/100` : "unscored"})`
-          )
-          .join(", ")}`
+      ? practiceLanguage === "vi"
+        ? `Các phiên gần đây để so sánh: ${params.profile.recentSessions
+            .filter((session) => session.totalScore != null)
+            .slice(0, 3)
+            .map(
+              (session) =>
+                `${session.topicTitle} (${session.totalScore != null ? `${session.totalScore}/100` : "chưa chấm"})`
+            )
+            .join(", ")}`
+        : `Recent sessions to compare: ${params.profile.recentSessions
+            .filter((session) => session.totalScore != null)
+            .slice(0, 3)
+            .map(
+              (session) =>
+                `${session.topicTitle} (${session.totalScore != null ? `${session.totalScore}/100` : "unscored"})`
+            )
+            .join(", ")}`
       : null,
   ]
     .filter(Boolean)

@@ -10,6 +10,9 @@ import {
 import { normalizeSettingsPreferences } from "./settings";
 import { buildPracticeHref, readPracticePrefill } from "./practice-prefill";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import { buildCoachStarterPrompts } from "./coach-starter-prompts";
+import { filterSessionsByPracticeLanguage } from "./storage";
+import type { DebateSession } from "@/types";
 
 assert.equal(coercePracticeLanguage("vi"), "vi");
 assert.equal(coercePracticeLanguage("fr"), "en");
@@ -72,5 +75,51 @@ const viDuelPrompt = buildDuelJudgmentPrompt({
   ],
 });
 assert.match(viDuelPrompt, /Return all user-facing prose values in Vietnamese/);
+
+const viCoachPrompts = buildCoachStarterPrompts({
+  weakestSkillLabel: "phản biện",
+  strongestSkillLabel: "độ rõ",
+  weaknessLabel: "Bằng chứng hỗ trợ",
+  recentSessionCount: 3,
+  practiceLanguage: "vi",
+});
+assert.deepEqual(viCoachPrompts, [
+  "Vì sao phản biện của mình yếu hơn độ rõ?",
+  "So sánh 3 phiên tranh biện gần nhất của mình.",
+  "Giúp mình sửa bằng chứng hỗ trợ.",
+  "Hôm nay mình nên luyện gì?",
+]);
+
+const enCoachPrompts = buildCoachStarterPrompts({
+  weakestSkillLabel: "rebuttal",
+  strongestSkillLabel: "clarity",
+  weaknessLabel: "Evidence support",
+  recentSessionCount: 3,
+  practiceLanguage: "en",
+});
+assert.deepEqual(enCoachPrompts, [
+  "Why is my rebuttal weaker than my clarity?",
+  "Compare my last 3 debate sessions.",
+  "Help me fix my evidence support.",
+  "What should I practice today?",
+]);
+
+const languageScopedSessions = [
+  { id: "explicit-en", practiceLanguage: "en" },
+  { id: "explicit-vi", practiceLanguage: "vi" },
+  { id: "legacy" },
+] as DebateSession[];
+assert.deepEqual(
+  filterSessionsByPracticeLanguage(languageScopedSessions, "en").map(
+    (session) => session.id
+  ),
+  ["explicit-en", "legacy"]
+);
+assert.deepEqual(
+  filterSessionsByPracticeLanguage(languageScopedSessions, "vi").map(
+    (session) => session.id
+  ),
+  ["explicit-vi"]
+);
 
 console.log("practice-language tests passed");

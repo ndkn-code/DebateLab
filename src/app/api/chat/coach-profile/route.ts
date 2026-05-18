@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
 import {
   getCoachContextEnvelope,
   getCoachProfile,
 } from "@/lib/api/coach-profile";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 
 function normalizeContextType(context?: string | null) {
   if (!context) return undefined;
@@ -16,8 +18,12 @@ export async function GET(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const devAuthBypassUser = user
+      ? null
+      : getDevAuthBypassUserFromRequest(req);
+    const userId = user?.id ?? devAuthBypassUser?.id;
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,14 +31,18 @@ export async function GET(req: NextRequest) {
     const contextType = normalizeContextType(searchParams.get("contextType"));
     const contextId = searchParams.get("contextId");
     const message = searchParams.get("message");
+    const practiceLanguage = coercePracticeLanguage(
+      searchParams.get("practiceLanguage")
+    );
 
-    const profile = await getCoachProfile(user.id);
+    const profile = await getCoachProfile(userId, practiceLanguage);
     const envelope = await getCoachContextEnvelope({
-      userId: user.id,
+      userId,
       profile,
       contextType,
       contextId,
       message,
+      practiceLanguage,
     });
 
     return NextResponse.json({ profile, envelope });

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import posthog from "posthog-js";
 import { ConversationSidebar } from "./conversation-sidebar";
 import { ChatArea } from "./chat-area";
 import { PageTransition } from "@/components/shared/page-motion";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
 import type { CoachContextEnvelope, CoachMessageMetadata, CoachProfile } from "@/types";
@@ -42,6 +43,8 @@ export function ChatShell({
   initialCoachEnvelope,
 }: ChatShellProps) {
   const t = useTranslations("dashboard.chat");
+  const locale = useLocale();
+  const practiceLanguage = coercePracticeLanguage(locale);
   const initialContextType = context ?? "coach-home";
   const [conversations, setConversations] = useState(initialConversations);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
@@ -81,6 +84,7 @@ export function ChatShell({
         if (nextMessage) {
           params.set("message", nextMessage);
         }
+        params.set("practiceLanguage", practiceLanguage);
 
         const coachProfileUrl = `/api/chat/coach-profile?${params.toString()}`;
         const res = await fetch(coachProfileUrl);
@@ -100,7 +104,7 @@ export function ChatShell({
         setIsInsightsLoading(false);
       }
     },
-    []
+    [practiceLanguage]
   );
 
   // Load messages when switching conversations
@@ -217,6 +221,7 @@ export function ChatShell({
             conversationId: activeConversationId,
             context: activeContextType,
             contextId: activeContextId,
+            practiceLanguage,
           }),
         });
 
@@ -362,7 +367,14 @@ export function ChatShell({
         setIsLoading(false);
       }
     },
-    [activeContextId, activeContextType, activeConversationId, refreshCoachView, t]
+    [
+      activeContextId,
+      activeContextType,
+      activeConversationId,
+      practiceLanguage,
+      refreshCoachView,
+      t,
+    ]
   );
 
   // Auto-send initial message from URL param

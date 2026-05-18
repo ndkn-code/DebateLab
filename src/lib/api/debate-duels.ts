@@ -1169,9 +1169,14 @@ export async function getDebateDuelResult(
 }
 
 export async function getDebateDuelHistory(
-  userId: string
+  userId: string,
+  practiceLanguageInput?: PracticeLanguage | string | null
 ): Promise<DebateDuelHistoryItem[]> {
   const supabase = await createClient();
+  const practiceLanguage =
+    practiceLanguageInput == null
+      ? null
+      : coercePracticeLanguage(practiceLanguageInput);
 
   const { data: participantRows, error } = await supabase
     .from("debate_duel_participants")
@@ -1184,13 +1189,21 @@ export async function getDebateDuelHistory(
   }
 
   const duelIds = participantRows.map((row) => row.duel_id);
-  const { data: duels } = await supabase
+  let duelQuery = supabase
     .from("debate_duels")
     .select(
       "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
     )
     .in("id", duelIds)
-    .eq("status", "completed")
+    .eq("status", "completed");
+
+  if (practiceLanguage === "vi") {
+    duelQuery = duelQuery.eq("practice_language", "vi");
+  } else if (practiceLanguage === "en") {
+    duelQuery = duelQuery.or("practice_language.eq.en,practice_language.is.null");
+  }
+
+  const { data: duels } = await duelQuery
     .order("created_at", { ascending: false })
     .limit(6);
 

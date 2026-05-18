@@ -79,6 +79,7 @@ type ModuleProgressRow = {
 function emptyAnalyticsPageData(profile: ProfileRow, range: AnalyticsRangePreset): AnalyticsPageData {
   return {
     range,
+    practiceLanguage: "en",
     hero: {
       displayName: profile.display_name || profile.email?.split("@")[0] || "Debater",
       avatarUrl: profile.avatar_url,

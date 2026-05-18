@@ -9,7 +9,7 @@ import {
   coercePracticeLanguage,
 } from "@/lib/practice-language";
 import { getTopicCategoryKey, getTopicStableKey } from "@/lib/topics";
-import type { DebateSession } from "@/types";
+import type { DebateSession, PracticeLanguage } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
 const LOCAL_IMPORT_ID_MAP_KEY = "debatelab_session_import_ids";
@@ -32,6 +32,23 @@ const OPTIONAL_SESSION_COLUMNS = [
   "total_score",
   "overall_band",
 ] as const;
+
+interface GetSessionsOptions {
+  practiceLanguage?: PracticeLanguage;
+}
+
+export function filterSessionsByPracticeLanguage(
+  sessions: DebateSession[],
+  practiceLanguage?: PracticeLanguage
+) {
+  if (!practiceLanguage) return sessions;
+
+  return sessions.filter(
+    (session) =>
+      coercePracticeLanguage(session.practiceLanguage, DEFAULT_PRACTICE_LANGUAGE) ===
+      practiceLanguage
+  );
+}
 
 // localStorage adapter (fallback)
 const localAdapter = {
@@ -198,19 +215,26 @@ const supabaseAdapter = {
     checkAndUnlockAchievements(userId).catch(() => {});
   },
 
-  async getSessions(userId: string): Promise<DebateSession[]> {
-    const { data, error } = await querySessions(userId);
+  async getSessions(
+    userId: string,
+    options: GetSessionsOptions = {}
+  ): Promise<DebateSession[]> {
+    const { data, error } = await querySessions(userId, options);
 
     if (error || !data) {
-      const localSessions = localAdapter.getSessions();
-      await syncLocalOnlySessions(userId, localSessions);
-      return localSessions;
+      const allLocalSessions = localAdapter.getSessions();
+      await syncLocalOnlySessions(userId, allLocalSessions);
+      return filterSessionsByPracticeLanguage(
+        allLocalSessions,
+        options.practiceLanguage
+      );
     }
 
     const remoteSessions = data.map(rowToSession);
     const remoteIds = new Set(remoteSessions.map((session) => session.id));
     const importIdResolver = createImportIdResolver();
-    const localOnlySessions = localAdapter.getSessions().filter((localSession) => {
+    const allLocalSessions = localAdapter.getSessions();
+    const localOnlySessions = allLocalSessions.filter((localSession) => {
       const importId = importIdResolver.resolve(localSession);
       return importId ? !remoteIds.has(importId) : !remoteIds.has(localSession.id);
     });
@@ -218,7 +242,12 @@ const supabaseAdapter = {
 
     await syncLocalOnlySessions(userId, localOnlySessions);
 
-    return [...remoteSessions, ...localOnlySessions]
+    const visibleLocalSessions = filterSessionsByPracticeLanguage(
+      localOnlySessions,
+      options.practiceLanguage
+    );
+
+    return [...remoteSessions, ...visibleLocalSessions]
       .sort(
         (left, right) =>
           new Date(right.date).getTime() - new Date(left.date).getTime()
@@ -428,17 +457,32 @@ async function upsertSessionRows(
     .upsert(compatibleRows, { ignoreDuplicates: true, onConflict: "id" });
 }
 
-async function querySessions(userId: string) {
+async function querySessions(
+  userId: string,
+  options: GetSessionsOptions = {}
+) {
   const supabase = createClient();
-  const result = await supabase
+  let query = supabase
     .from("debate_sessions")
     .select(FULL_SESSION_SELECT)
-    .eq("user_id", userId)
+    .eq("user_id", userId);
+
+  if (options.practiceLanguage === "vi") {
+    query = query.eq("practice_language", "vi");
+  } else if (options.practiceLanguage === "en") {
+    query = query.or("practice_language.eq.en,practice_language.is.null");
+  }
+
+  const result = await query
     .order("created_at", { ascending: false })
     .limit(MAX_SESSIONS);
 
   if (!isSchemaCompatibilityError(result.error)) {
     return result;
+  }
+
+  if (options.practiceLanguage === "vi") {
+    return { data: [], error: null };
   }
 
   return supabase

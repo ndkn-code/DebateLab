@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState, type ComponentType } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
 import {
@@ -25,8 +26,9 @@ import { PageTransition } from "@/components/shared/page-motion";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseQuery } from "@/hooks/use-supabase-query";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
-import type { DebateSession } from "@/types";
+import type { DebateSession, PracticeLanguage } from "@/types";
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest";
 type FilterOption = "all" | "practice" | "duel";
@@ -77,17 +79,19 @@ interface RecommendedPractice {
 
 const FILTERS: Array<{
   value: FilterOption;
-  label: string;
+  labelKey: string;
   icon: ComponentType<{ className?: string }> | null;
 }> = [
-  { value: "all", label: "All", icon: null },
-  { value: "practice", label: "Practice", icon: Scale },
-  { value: "duel", label: "Duel", icon: Swords },
+  { value: "all", labelKey: "category_all", icon: null },
+  { value: "practice", labelKey: "debate_practice", icon: Scale },
+  { value: "duel", labelKey: "duel", icon: Swords },
 ];
 
 const DEMO_METRICS_EMAIL = "ndkn.work@gmail.com";
 
-async function fetchHistoryData(): Promise<HistoryData> {
+async function fetchHistoryData(
+  practiceLanguage: PracticeLanguage
+): Promise<HistoryData> {
   const supabase = createClient();
   const { data: authData } = await supabase.auth.getUser();
   const allowMockMetrics =
@@ -95,16 +99,29 @@ async function fetchHistoryData(): Promise<HistoryData> {
 
   if (authData.user) {
     return {
-      sessions: await supabaseStorage.getSessions(authData.user.id),
+      sessions: await supabaseStorage.getSessions(authData.user.id, {
+        practiceLanguage,
+      }),
       allowMockMetrics,
     };
   }
 
-  return { sessions: storage.getSessions(), allowMockMetrics: false };
+  return {
+    sessions: storage
+      .getSessions()
+      .filter(
+        (session) =>
+          coercePracticeLanguage(session.practiceLanguage) === practiceLanguage
+      ),
+    allowMockMetrics: false,
+  };
 }
 
-async function fetchDuelHistory(): Promise<DuelHistoryItem[]> {
-  const response = await fetch("/api/debate-duels/history", {
+async function fetchDuelHistory(
+  practiceLanguage: PracticeLanguage
+): Promise<DuelHistoryItem[]> {
+  const params = new URLSearchParams({ language: practiceLanguage });
+  const response = await fetch(`/api/debate-duels/history?${params.toString()}`, {
     credentials: "include",
   });
 
@@ -115,21 +132,24 @@ async function fetchDuelHistory(): Promise<DuelHistoryItem[]> {
   return (await response.json()) as DuelHistoryItem[];
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-function formatDuration(seconds: number | null) {
+function formatDuration(
+  seconds: number | null,
+  t: ReturnType<typeof useTranslations>
+) {
   if (!seconds || seconds <= 0) {
-    return "Not recorded";
+    return t("not_recorded");
   }
 
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return `${minutes} min`;
+  return t("minutes_short", { count: minutes });
 }
 
 function getScoreMeta(score: number) {
@@ -192,19 +212,21 @@ function getSessionIcon(session: DebateSession) {
   };
 }
 
-function getPracticeDetail(session: DebateSession) {
+function getPracticeDetail(
+  session: DebateSession,
+  t: ReturnType<typeof useTranslations>
+) {
   if (session.practiceTrack === "speaking") {
-    return session.topic.category.includes("Public")
-      ? "Public Speaking"
-      : "Persuasive Speech";
+    return t("persuasive_speech");
   }
 
   if (session.mode === "full") {
-    return "1v1 Debate";
+    return t("one_v_one_debate");
   }
 
-  const roundFocus = session.side === "opposition" ? "Rebuttal" : "Constructive";
-  return `${session.topic.category || "Policy Debate"} • ${roundFocus}`;
+  const roundFocus =
+    session.side === "opposition" ? t("rebuttal_focus") : t("constructive_focus");
+  return `${session.topic.category || t("debate_practice")} • ${roundFocus}`;
 }
 
 function getNullableScore(rawScore: number | null | undefined) {
@@ -219,7 +241,8 @@ function hasScore(item: HistoryItem): item is HistoryItem & { score: number } {
 
 function sessionToHistoryItem(
   session: DebateSession,
-  allowMockMetrics: boolean
+  allowMockMetrics: boolean,
+  t: ReturnType<typeof useTranslations>
 ): HistoryItem {
   const realScore = getNullableScore(session.feedback?.totalScore);
   const score = realScore ?? (allowMockMetrics ? 76 : null);
@@ -235,7 +258,7 @@ function sessionToHistoryItem(
     kind: "practice",
     title: session.topic.title,
     tag: session.practiceTrack === "speaking" ? "Speaking" : "Debate",
-    detail: getPracticeDetail(session),
+    detail: getPracticeDetail(session, t),
     date: session.date,
     durationSeconds:
       realDuration ?? (allowMockMetrics ? session.speechTime || 15 * 60 : null),
@@ -251,7 +274,8 @@ function sessionToHistoryItem(
 
 function duelToHistoryItem(
   duel: DuelHistoryItem,
-  allowMockMetrics: boolean
+  allowMockMetrics: boolean,
+  t: ReturnType<typeof useTranslations>
 ): HistoryItem {
   const score = allowMockMetrics
     ? duel.winnerSide && duel.role
@@ -267,7 +291,7 @@ function duelToHistoryItem(
     kind: "duel",
     title: duel.topicTitle,
     tag: "Duel",
-    detail: "1v1 Debate",
+    detail: t("one_v_one_debate"),
     date: duel.createdAt,
     durationSeconds:
       duel.durationSeconds ?? (allowMockMetrics ? 21 * 60 : null),
@@ -281,13 +305,16 @@ function duelToHistoryItem(
   };
 }
 
-function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
+function getRecommendedPractice(
+  items: HistoryItem[],
+  t: ReturnType<typeof useTranslations>
+): RecommendedPractice {
   if (items.length === 0) {
     return {
       tag: "Speaking",
-      title: "Rebuttals That Stick",
-      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
-      duration: "15 min",
+      title: t("recommended_rebuttals_title"),
+      body: t("recommended_rebuttals_body"),
+      duration: t("minutes_short", { count: 15 }),
       href: "/practice?track=speaking",
     };
   }
@@ -317,9 +344,9 @@ function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
   if (weakest && weakest.score < 76 && weakest.tag === "Speaking") {
     return {
       tag: "Speaking",
-      title: "Confident Delivery Sprint",
-      body: "Practice pacing, clarity, and emphasis with a short guided speaking round.",
-      duration: "12 min",
+      title: t("recommended_delivery_title"),
+      body: t("recommended_delivery_body"),
+      duration: t("minutes_short", { count: 12 }),
       href: "/practice?track=speaking",
     };
   }
@@ -331,9 +358,9 @@ function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
   ) {
     return {
       tag: "Speaking",
-      title: "Rebuttals That Stick",
-      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
-      duration: "15 min",
+      title: t("recommended_rebuttals_title"),
+      body: t("recommended_rebuttals_body"),
+      duration: t("minutes_short", { count: 15 }),
       href: "/practice?track=speaking",
     };
   }
@@ -346,9 +373,9 @@ function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
   ) {
     return {
       tag: "Speaking",
-      title: "Rebuttals That Stick",
-      body: "Learn how to respond to your opponent with strong, clear rebuttals.",
-      duration: "15 min",
+      title: t("recommended_rebuttals_title"),
+      body: t("recommended_rebuttals_body"),
+      duration: t("minutes_short", { count: 15 }),
       href: "/practice?track=speaking",
     };
   }
@@ -361,23 +388,50 @@ function getRecommendedPractice(items: HistoryItem[]): RecommendedPractice {
   ) {
     return {
       tag: "Debate",
-      title: "Constructive Case Builder",
-      body: "Strengthen your opening arguments with clearer claims and weighing.",
-      duration: "15 min",
+      title: t("recommended_case_title"),
+      body: t("recommended_case_body"),
+      duration: t("minutes_short", { count: 15 }),
       href: "/practice?track=debate",
     };
   }
 
   return {
     tag: "Debate",
-    title: "Constructive Case Builder",
-    body: "Strengthen your opening arguments with clearer claims and weighing.",
-    duration: "15 min",
+    title: t("recommended_case_title"),
+    body: t("recommended_case_body"),
+    duration: t("minutes_short", { count: 15 }),
     href: "/practice?track=debate",
   };
 }
 
+function getTagLabel(tag: HistoryItem["tag"], t: ReturnType<typeof useTranslations>) {
+  if (tag === "Speaking") return t("speaking");
+  if (tag === "Duel") return t("duel");
+  return t("debate");
+}
+
+function getStatusLabel(
+  status: HistoryItem["status"],
+  t: ReturnType<typeof useTranslations>
+) {
+  if (status === "Proficient") return t("status_proficient");
+  if (status === "Competent") return t("status_competent");
+  return t("unscored");
+}
+
+function getNoteLabel(
+  note: HistoryItem["note"],
+  t: ReturnType<typeof useTranslations>
+) {
+  if (note === "Excellent") return t("excellent");
+  if (note === "Very Good") return t("very_good");
+  if (note === "Good") return t("good");
+  if (note === "Solid") return t("solid");
+  return t("no_feedback_yet");
+}
+
 function ScoreRing({ score }: { score: number | null }) {
+  const t = useTranslations("dashboard.history");
   const scoreMeta = score === null ? null : getScoreMeta(score);
   const size = 70;
   const strokeWidth = 4;
@@ -424,7 +478,7 @@ function ScoreRing({ score }: { score: number | null }) {
         </div>
       </div>
       <span className="mt-0.5 text-xs font-medium text-on-surface-variant">
-        Score
+        {t("score")}
       </span>
     </div>
   );
@@ -439,6 +493,8 @@ function SessionRow({
   index: number;
   onReview: (href: string) => void;
 }) {
+  const t = useTranslations("dashboard.history");
+  const locale = useLocale();
   const Icon = item.icon;
   const scoreMeta = item.score === null ? null : getScoreMeta(item.score);
   const StatusIcon = item.status === "Proficient" ? BadgeCheck : ShieldCheck;
@@ -474,7 +530,7 @@ function SessionRow({
                   : "bg-[#f1e9ff] text-[#8a34ff]"
             )}
           >
-            {item.tag}
+            {getTagLabel(item.tag, t)}
           </span>
           <span className="min-w-0 text-sm font-medium leading-5 text-on-surface-variant">
             {item.detail}
@@ -493,21 +549,21 @@ function SessionRow({
           )}
         >
           <StatusIcon className="h-4 w-4 shrink-0" />
-          {item.status ?? "Unscored"}
+          {getStatusLabel(item.status, t)}
         </span>
         <span className="pl-2 text-sm font-medium text-on-surface-variant">
-          {item.note ?? "No feedback yet"}
+          {getNoteLabel(item.note, t)}
         </span>
       </div>
 
       <div className="flex min-w-0 flex-col gap-3 text-sm font-medium text-on-surface-variant">
         <span className="inline-flex items-center gap-2">
           <Clock className="h-4 w-4 shrink-0 text-primary" />
-          {formatDuration(item.durationSeconds)}
+          {formatDuration(item.durationSeconds, t)}
         </span>
         <span className="inline-flex items-center gap-2 whitespace-nowrap">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-          {formatDate(item.date)}
+          {formatDate(item.date, locale)}
         </span>
       </div>
 
@@ -516,7 +572,7 @@ function SessionRow({
         onClick={() => onReview(item.href)}
         className="h-11 min-w-0 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary shadow-none hover:bg-primary-dim"
       >
-        Review
+        {t("review")}
         <ArrowRight className="ml-1 h-4 w-4" />
       </Button>
     </motion.article>
@@ -525,13 +581,16 @@ function SessionRow({
 
 export default function HistoryPage() {
   const router = useRouter();
+  const t = useTranslations("dashboard.history");
+  const locale = useLocale();
+  const practiceLanguage = coercePracticeLanguage(locale);
   const { data: historyData, isLoading: sessionsLoading } = useSupabaseQuery(
-    "history-sessions",
-    fetchHistoryData
+    `history-sessions-${practiceLanguage}`,
+    () => fetchHistoryData(practiceLanguage)
   );
   const { data: duelHistory = [], isLoading: duelsLoading } = useSupabaseQuery(
-    "history-duels",
-    fetchDuelHistory
+    `history-duels-${practiceLanguage}`,
+    () => fetchDuelHistory(practiceLanguage)
   );
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all");
@@ -542,14 +601,14 @@ export default function HistoryPage() {
     const sessions = historyData?.sessions ?? [];
     const allowMockMetrics = historyData?.allowMockMetrics ?? false;
     const practiceItems = sessions.map((session) =>
-      sessionToHistoryItem(session, allowMockMetrics)
+      sessionToHistoryItem(session, allowMockMetrics, t)
     );
     const duelItems = duelHistory.map((duel) =>
-      duelToHistoryItem(duel, allowMockMetrics)
+      duelToHistoryItem(duel, allowMockMetrics, t)
     );
 
     return [...practiceItems, ...duelItems];
-  }, [historyData, duelHistory]);
+  }, [historyData, duelHistory, t]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -563,7 +622,13 @@ export default function HistoryPage() {
 
     if (query) {
       items = items.filter((item) =>
-        [item.title, item.tag, item.detail, item.status, item.note]
+        [
+          item.title,
+          getTagLabel(item.tag, t),
+          item.detail,
+          getStatusLabel(item.status, t),
+          getNoteLabel(item.note, t),
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query)
@@ -588,12 +653,12 @@ export default function HistoryPage() {
     });
 
     return items;
-  }, [activeFilter, historyItems, search, sort]);
+  }, [activeFilter, historyItems, search, sort, t]);
 
   const visibleItems = filteredItems.slice(0, visibleCount);
   const recommendedPractice = useMemo(
-    () => getRecommendedPractice(historyItems),
-    [historyItems]
+    () => getRecommendedPractice(historyItems, t),
+    [historyItems, t]
   );
   const isLoading = sessionsLoading || duelsLoading;
 
@@ -611,10 +676,15 @@ export default function HistoryPage() {
         >
           <div>
             <h1 className="text-[2.35rem] font-bold leading-none tracking-[-0.05em] text-on-surface md:text-[2.6rem]">
-              History
+              {t("page_headline")}
             </h1>
             <p className="mt-3 text-sm font-medium leading-6 text-on-surface-variant sm:text-base">
-              Review your rounds and see how you&apos;re improving.
+              {t("page_subtitle")}
+            </p>
+            <p className="mt-2 text-xs font-semibold text-primary">
+              {practiceLanguage === "vi"
+                ? t("language_scope_vi")
+                : t("language_scope_en")}
             </p>
           </div>
         </motion.header>
@@ -634,7 +704,7 @@ export default function HistoryPage() {
                   setSearch(event.target.value);
                   setVisibleCount(5);
                 }}
-                placeholder="Search topics or sessions..."
+                placeholder={t("search_placeholder")}
                 className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-4 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/75 focus:border-primary"
               />
             </label>
@@ -667,7 +737,7 @@ export default function HistoryPage() {
                         )}
                       />
                     ) : null}
-                    <span>{filter.label}</span>
+                    <span>{t(filter.labelKey)}</span>
                   </button>
                 );
               })}
@@ -683,10 +753,10 @@ export default function HistoryPage() {
                 }}
                 className="h-12 w-full appearance-none rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-12 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary"
               >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="highest">Highest score</option>
-                <option value="lowest">Lowest score</option>
+                <option value="newest">{t("sort_newest")}</option>
+                <option value="oldest">{t("sort_oldest")}</option>
+                <option value="highest">{t("sort_highest")}</option>
+                <option value="lowest">{t("sort_lowest")}</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             </div>
@@ -705,15 +775,14 @@ export default function HistoryPage() {
                   <Clock className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="mt-5 text-2xl font-semibold text-on-surface">
-                  No practice history yet
+                  {t("empty")}
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-on-surface-variant">
-                  Complete a practice round or duel, then come back here to
-                  review your scores and progress.
+                  {t("empty_subtitle")}
                 </p>
                 <Link href="/practice" className="mt-7 inline-flex">
                   <Button className="h-12 rounded-2xl bg-primary px-7 text-sm font-semibold text-on-primary hover:bg-primary-dim">
-                    Start Practice
+                    {t("start_practicing")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -743,7 +812,7 @@ export default function HistoryPage() {
                 className="mt-5 flex h-14 w-full items-center justify-center gap-4 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest text-sm font-semibold text-primary shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] transition-colors hover:border-primary-fixed disabled:cursor-default disabled:opacity-75"
               >
                 <ChevronDown className="h-5 w-5" />
-                Load more sessions
+                {t("load_more_sessions")}
               </button>
             )}
           </main>
@@ -756,10 +825,10 @@ export default function HistoryPage() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold leading-6 text-on-surface">
-                    Next Recommended Practice
+                    {t("recommended_title")}
                   </h2>
                   <p className="mt-0.5 text-sm font-medium text-on-surface-variant">
-                    Keep building your skills!
+                    {t("recommended_subtitle")}
                   </p>
                 </div>
               </div>
@@ -770,13 +839,13 @@ export default function HistoryPage() {
                   alt=""
                   width={220}
                   height={170}
-                  className="mx-auto h-[170px] w-full object-contain"
+                  className="mx-auto h-auto max-h-[170px] w-full object-contain"
                   priority
                 />
               </div>
 
               <span className="mt-5 inline-flex h-7 items-center rounded-lg bg-primary-container px-2.5 text-xs font-semibold text-primary">
-                {recommendedPractice.tag}
+                {getTagLabel(recommendedPractice.tag, t)}
               </span>
 
               <h3 className="mt-4 text-xl font-semibold leading-7 tracking-normal text-on-surface">
@@ -795,7 +864,7 @@ export default function HistoryPage() {
                 href={recommendedPractice.href}
                 className="mt-7 inline-flex h-12 w-full items-center justify-center gap-4 rounded-2xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim"
               >
-                Start Practice
+                {t("start_practicing")}
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </section>

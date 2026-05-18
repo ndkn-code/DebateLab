@@ -277,16 +277,16 @@
       "dashboard": "Trang chủ",
       "courses": "Khóa học",
       "practice": "Luyện tập",
-      "duel": "Duel",
-      "chat": "AI Coach",
+      "duel": "Đấu 1v1",
+      "chat": "HLV AI",
       "history": "Lịch sử",
       "profile": "Hồ sơ",
       "settings": "Cài đặt",
       "switchToAdmin": "Chuyển sang Quản trị",
       "speaking": "Luyện Nói",
-      "debate": "Debate",
-      "coach": "AI Coach",
-      "feedback": "Feedback",
+      "debate": "Luyện tranh biện",
+      "coach": "HLV AI",
+      "feedback": "Phản hồi",
       "bookmarks": "Đánh dấu",
       "analytics": "Phân tích"
     },
@@ -829,25 +829,25 @@
     },
     "chat": {
       "new_chat": "Chat Mới",
-      "header_title": "AI Debate Coach",
+      "header_title": "HLV tranh biện AI",
       "header_subtitle": "Luôn sẵn sàng giúp bạn",
-      "sidebar_empty": "Bắt đầu một đoạn chat mới với AI Coach.",
-      "welcome_title": "Hỏi mình bất cứ điều gì về debate",
+      "sidebar_empty": "Bắt đầu một đoạn chat mới với HLV AI.",
+      "welcome_title": "Hỏi mình bất cứ điều gì về tranh biện",
       "welcome_subtitle": "Mình sẽ dùng các phiên gần đây và dữ liệu chấm điểm của bạn để coach sát hơn.",
       "suggestion_opening": "Cách mở bài ấn tượng?",
-      "suggestion_wsdc": "Giải thích format WSDC",
+      "suggestion_wsdc": "Giải thích thể thức WSDC",
       "suggestion_fallacies": "Lỗi ngụy biện thường gặp?",
       "suggestion_rebuttals": "Giúp mình luyện phản biện",
-      "suggestion_review": "Review bài debate vừa rồi",
+      "suggestion_review": "Xem lại bài tranh biện vừa rồi",
       "suggestion_impromptu": "Mẹo nói ứng biến",
       "quick_actions": {
         "debate_stance": {
-          "label": "Củng cố stance",
-          "prompt": "Giúp mình củng cố stance cho motion này."
+          "label": "Củng cố lập trường",
+          "prompt": "Giúp mình củng cố lập trường cho đề này."
         },
         "weighing": {
-          "label": "Cho mình weighing",
-          "prompt": "Cho mình weighing và comparison quan trọng nhất nên dùng trong debate này."
+          "label": "So sánh tác động",
+          "prompt": "Cho mình phần so sánh tác động quan trọng nhất nên dùng trong bài tranh biện này."
         },
         "clearer_english": {
           "label": "Nói rõ hơn",
@@ -855,19 +855,19 @@
         },
         "stronger_opening": {
           "label": "Mở bài mạnh hơn",
-          "prompt": "Cho mình một opening statement mạnh hơn cho topic này."
+          "prompt": "Cho mình một phần mở bài mạnh hơn cho chủ đề này."
         },
         "rebuild_argument": {
           "label": "Xây lại luận điểm",
           "prompt": "Xây lại luận điểm này để phần cơ chế, weighing và impact chắc hơn."
         },
         "test_assumptions": {
-          "label": "Test assumption",
-          "prompt": "Giúp mình test các assumption trong case này và chỉ ra mắt xích yếu nhất."
+          "label": "Kiểm tra giả định",
+          "prompt": "Giúp mình kiểm tra các giả định trong hệ lập luận này và chỉ ra mắt xích yếu nhất."
         },
         "speech_structure": {
-          "label": "Sắp speech giúp mình",
-          "prompt": "Giúp mình sắp speech này thành opening, body và closing rõ ràng."
+          "label": "Sắp xếp bài nói",
+          "prompt": "Giúp mình sắp bài nói này thành mở bài, thân bài và kết bài rõ ràng."
         },
         "sound_confident": {
           "label": "Tự tin hơn",
@@ -882,27 +882,27 @@
           "prompt": "Cho mình vài ví dụ cụ thể có thể dùng từ bài học này."
         },
         "lesson_quiz": {
-          "label": "Quiz mình đi",
-          "prompt": "Quiz mình về các ý chính của bài học này trước khi luyện."
+          "label": "Kiểm tra mình đi",
+          "prompt": "Kiểm tra mình về các ý chính của bài học này trước khi luyện."
         },
         "lesson_drill": {
-          "label": "Biến thành drill",
-          "prompt": "Biến bài học này thành một bài drill ngắn để mình luyện."
+          "label": "Biến thành bài luyện",
+          "prompt": "Biến bài học này thành một bài luyện ngắn để mình luyện."
         }
       },
-      "input_placeholder": "Hỏi AI Coach bất cứ gì...",
+      "input_placeholder": "Hỏi HLV AI bất cứ gì...",
       "new_conversation": "Cuộc hội thoại mới",
       "conversations": "Hội thoại",
       "today": "Hôm nay",
       "yesterday": "Hôm qua",
       "days_ago": "{count} ngày trước",
-      "preview_fallback": "Mở cuộc hội thoại này để tiếp tục với AI Coach.",
+      "preview_fallback": "Mở cuộc hội thoại này để tiếp tục với HLV AI.",
       "delete_conversation": "Xóa cuộc hội thoại",
       "context": {
         "general_coaching": "Coach tổng quát",
         "course_help": "Hỗ trợ khóa học",
         "session_review": "Review phiên luyện",
-        "duel_review": "Review trận duel"
+        "duel_review": "Xem lại trận 1v1"
       },
       "coach": {
         "personalized_brief_badge": "Tóm tắt cá nhân hóa",
@@ -948,7 +948,9 @@
     },
     "history": {
       "page_headline": "Lịch Sử Luyện Tập",
-      "page_subtitle": "Xem lại các phiên luyện nói và debate. Mỗi lần luyện giúp bạn tốt hơn.",
+      "page_subtitle": "Xem lại các phiên luyện nói và tranh biện. Mỗi lần luyện giúp bạn tốt hơn.",
+      "language_scope_en": "Chỉ hiển thị phiên tiếng Anh.",
+      "language_scope_vi": "Chỉ hiển thị phiên tiếng Việt.",
       "empty": "Chưa có phiên luyện nào",
       "empty_subtitle": "Bắt đầu phiên luyện đầu tiên, lịch sử sẽ hiện ở đây!",
       "start_practicing": "Bắt Đầu Luyện",
@@ -967,6 +969,9 @@
       "achieved_on": "Đạt được vào {date}",
       "sessions_count": "{count} phiên",
       "not_available": "Chưa có dữ liệu",
+      "score": "Điểm",
+      "not_recorded": "Chưa ghi nhận",
+      "minutes_short": "{count} phút",
       "sort_newest": "Mới nhất",
       "sort_oldest": "Cũ nhất",
       "sort_highest": "Điểm cao nhất",
@@ -974,23 +979,32 @@
       "for": "ỦNG HỘ",
       "against": "PHẢN ĐỐI",
       "speaking": "Luyện Nói",
-      "debate": "Debate",
-      "duel": "Duel",
+      "debate": "Tranh biện",
+      "duel": "Đấu 1v1",
       "speaking_practice": "Luyện Nói",
-      "debate_practice": "Luyện Debate",
+      "debate_practice": "Luyện tranh biện",
       "quick_practice": "Luyện Nhanh",
-      "solo_debate": "Solo Debate",
-      "one_v_one_debate": "Debate 1v1",
+      "persuasive_speech": "Bài nói thuyết phục",
+      "constructive_focus": "Xây luận điểm",
+      "rebuttal_focus": "Phản biện",
+      "solo_debate": "Tranh biện solo",
+      "one_v_one_debate": "Tranh biện 1v1",
       "affirmative": "Ủng hộ",
       "negative": "Phản đối",
       "new_badge": "Mới",
       "review": "Xem lại",
       "options_label": "Tùy chọn phiên",
       "score_fallback": "Đã chấm",
+      "status_proficient": "Thành thạo",
+      "status_competent": "Khá vững",
+      "unscored": "Chưa chấm",
+      "no_feedback_yet": "Chưa có feedback",
       "great_job": "Rất tốt!",
       "excellent": "Xuất sắc!",
+      "very_good": "Rất tốt",
       "great": "Tốt",
       "good": "Ổn",
+      "solid": "Khá chắc",
       "keep_going": "Cố lên",
       "judged": "Đã chấm",
       "duel_won": "Bạn thắng",
@@ -999,19 +1013,28 @@
       "view_full_report": "Xem báo cáo",
       "progress_headline": "Bạn đang tiến bộ!",
       "progress_body": "Điểm trung bình của bạn tăng {count} điểm trong tháng này.",
-      "no_score_trend": "Biểu đồ điểm sẽ hiện sau vài phiên có feedback.",
+      "no_score_trend": "Biểu đồ điểm sẽ hiện sau vài phiên có phản hồi.",
       "strongest_recent_area": "Mảng Mạnh Gần Đây",
       "logic_reasoning": "Logic & Lập luận",
       "structure_strategy": "Cấu trúc & Chiến lược",
       "language_delivery": "Ngôn ngữ & Trình bày",
-      "persuasion_weighing": "Thuyết phục & Weighing",
+      "persuasion_weighing": "Thuyết phục & So sánh tác động",
       "avg_score": "Điểm TB",
       "points_delta": "{sign} {count} điểm",
       "strong_area_hint": "Tiếp tục dùng khung lập luận logic thật chắc nhé!",
       "suggested_next_move": "Bước Tiếp Theo",
-      "try_1v1_debate": "Thử Debate 1v1",
-      "suggested_next_move_body": "Luyện phản hồi thời gian thực và cải thiện rebuttal.",
-      "start_1v1_debate": "Bắt Đầu Debate 1v1",
+      "try_1v1_debate": "Thử tranh biện 1v1",
+      "suggested_next_move_body": "Luyện phản hồi thời gian thực và cải thiện phản biện.",
+      "start_1v1_debate": "Bắt đầu tranh biện 1v1",
+      "load_more_sessions": "Tải thêm phiên",
+      "recommended_title": "Gợi ý luyện tiếp theo",
+      "recommended_subtitle": "Tiếp tục xây kỹ năng nhé!",
+      "recommended_rebuttals_title": "Phản biện rõ và dính",
+      "recommended_rebuttals_body": "Luyện cách đáp lại đối thủ bằng phản biện rõ, mạnh và trực diện.",
+      "recommended_delivery_title": "Bài luyện trình bày tự tin",
+      "recommended_delivery_body": "Luyện nhịp nói, độ rõ và nhấn ý trong một vòng nói ngắn có hướng dẫn.",
+      "recommended_case_title": "Xây hệ lập luận mở đầu chắc",
+      "recommended_case_body": "Củng cố luận điểm mở đầu bằng ý chính rõ hơn và so sánh tác động sắc hơn.",
       "single_speech": "Một Bài Nói",
       "full": "Đầy đủ",
       "quick": "Nhanh",
@@ -1839,15 +1862,30 @@
       "hoursMinutes": "{hours} giờ {minutes} phút"
     }
   },
+  "duelHub": {
+    "badge": "Tranh biện 1v1",
+    "title": "Chọn kiểu đấu",
+    "subtitle": "Ghép đối thủ đang ở giai đoạn beta có giám sát, dùng trình độ ẩn để tạo trận công bằng. Phòng bạn bè thoải mái hơn, dễ chia sẻ và không tính điểm xếp hạng.",
+    "unavailable": "Chưa mở",
+    "match": {
+      "title": "Tìm đối thủ",
+      "description": "Vào hàng chờ gặp một đối thủ thật với điểm trình độ ẩn, tín hiệu công bằng và bước xác nhận sẵn sàng trước khi bắt đầu."
+    },
+    "friend": {
+      "title": "Thách đấu bạn bè",
+      "description": "Tạo phòng có thể chia sẻ, gửi mã phòng và tranh biện thoải mái. Những trận này không ảnh hưởng điểm xếp hạng ẩn."
+    }
+  },
   "analyticsPage": {
     "title": "Phân tích",
-    "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng debate của bạn.",
+    "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng tranh biện của bạn.",
+    "scope_note": "Điểm và xu hướng kỹ năng theo ngôn ngữ hiện tại. Chuỗi ngày, XP và thời gian luyện vẫn tính chung mọi ngôn ngữ.",
     "range_7d": "7 ngày",
     "range_30d": "30 ngày",
     "range_90d": "90 ngày",
     "range_label": "Khoảng thời gian phân tích",
     "loading_range": "Đang cập nhật",
-    "default_title": "Debater đang lên",
+    "default_title": "Người tranh biện đang lên",
     "level": "Cấp {level}",
     "xp_total": "Tổng {count} XP",
     "xp_progress": "{current} / {total} XP",
@@ -1868,43 +1906,67 @@
     "cards": {
       "practice_minutes": {
         "title": "Phút luyện tập hàng tuần",
+        "scope": "Thói quen tính chung mọi ngôn ngữ",
         "unit": "phút",
         "delta": "{sign}{count}% so với kỳ trước",
         "no_delta": "Cần thêm lịch sử để so sánh"
       },
-      "mix": {
-        "title": "Tỷ lệ Speaking vs Debate",
-        "debate": "Debate",
-        "speaking": "Speaking",
-        "breakdown": "{debate} phiên debate • {speaking} phiên speaking",
-        "view_breakdown": "Xem chi tiết"
+    "mix": {
+      "title": "Tỷ lệ luyện nói vs tranh biện",
+      "scope": "Tỷ lệ luyện theo ngôn ngữ hiện tại",
+      "debate": "Tranh biện",
+      "speaking": "Luyện nói",
+      "breakdown": "{debate} phiên tranh biện • {speaking} phiên luyện nói",
+      "view_breakdown": "Xem chi tiết"
       },
       "average_score": {
         "title": "Điểm trung bình gần đây",
+        "scope": "Điểm theo ngôn ngữ hiện tại",
         "delta": "{sign}{count} điểm so với kỳ trước",
         "no_delta": "Hoàn thành thêm phiên có điểm để mở trend này"
       },
       "strongest_focus": {
         "title": "Mạnh nhất / Cần tập trung",
+        "scope": "Ảnh chụp kỹ năng theo ngôn ngữ hiện tại",
         "strongest": "Mạnh nhất",
         "focus_next": "Tập trung tiếp"
       }
     },
-    "recent_sessions_title": "Phiên gần đây",
-    "recent_sessions_subtitle": "Xem lại các phiên solo và duel có AI chấm gần nhất.",
-    "recent_speaking_badge": "Speaking Practice",
-    "recent_debate_badge": "Debate Practice",
-    "recent_duel_badge": "Duel 1v1",
+  "recent_sessions_title": "Phiên gần đây",
+  "recent_sessions_subtitle": "Xem lại các phiên solo và 1v1 có AI chấm gần nhất.",
+  "recent_speaking_badge": "Luyện nói",
+  "recent_debate_badge": "Luyện tranh biện",
+  "recent_duel_badge": "Đấu 1v1",
+  "recent_full_debate": "Tranh biện 1v1",
+    "recent_rebuttal": "Phản biện",
+    "recent_constructive": "Xây luận điểm",
     "recent_won": "Bạn thắng",
     "recent_lost": "Bạn thua",
     "recent_completed": "Hoàn thành",
     "review": "Xem lại",
     "view_all": "Xem tất cả",
     "minutes_short": "{count} phút",
+    "hours_short": "{count} giờ",
+    "hours_minutes_short": "{hours} giờ {minutes} phút",
     "duration_unknown": "Chưa có thời lượng",
     "confidence": "Độ tin cậy {count}%",
+    "score_trend_chart": "Xu hướng điểm trung bình gần đây",
+    "score_status": {
+      "completed": "Hoàn thành",
+      "proficient": "Thành thạo",
+      "competent": "Khá vững",
+      "developing": "Đang phát triển"
+    },
+    "score_note": {
+    "reviewed": "Đã xem lại",
+      "excellent": "Xuất sắc",
+      "very_good": "Rất tốt",
+      "good": "Ổn",
+      "solid": "Khá chắc",
+      "keep_going": "Cố lên"
+    },
     "empty_title": "Trang phân tích đang chờ dữ liệu",
-    "empty_body": "Hoàn thành thêm vài phiên speaking hoặc debate để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
+  "empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc tranh biện để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
     "start_practicing": "Bắt đầu luyện tập"
   }
 }

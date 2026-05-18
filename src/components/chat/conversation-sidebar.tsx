@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Plus,
   Trash2,
@@ -31,6 +31,7 @@ function SidebarContent({
 }: Omit<ConversationSidebarProps, "open" | "onOpenChange">) {
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("dashboard.chat");
+  const locale = useLocale();
 
   const formatDate = (iso: string) => {
     const date = new Date(iso);
@@ -42,7 +43,7 @@ function SidebarContent({
     if (diffDays === 1) return t("yesterday");
     if (diffDays < 7) return t("days_ago", { count: diffDays });
 
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
     });

@@ -37,6 +37,7 @@ import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/shared/page-motion";
 import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
 import fireAnimation from "../../../public/lottie/fire.json";
 import type {
@@ -66,11 +67,16 @@ function getInitials(name: string | null | undefined) {
     .toUpperCase();
 }
 
-function formatTotalMinutes(totalMinutes: number) {
-  if (totalMinutes < 60) return `${totalMinutes}m`;
+function formatTotalMinutes(
+  totalMinutes: number,
+  t: ReturnType<typeof useTranslations>
+) {
+  if (totalMinutes < 60) return t("minutes_short", { count: totalMinutes });
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  return minutes > 0
+    ? t("hours_minutes_short", { hours, minutes })
+    : t("hours_short", { count: hours });
 }
 
 function formatDuration(minutes: number | null, t: ReturnType<typeof useTranslations>) {
@@ -130,8 +136,11 @@ function polygonPoints(values: number[]) {
     .join(" ");
 }
 
-function getAnalyticsSummaryKey(range: AnalyticsRangePreset) {
-  return `/api/analytics/summary?range=${range}`;
+function getAnalyticsSummaryKey(
+  range: AnalyticsRangePreset,
+  practiceLanguage: string
+) {
+  return `/api/analytics/summary?range=${range}&language=${practiceLanguage}`;
 }
 
 function getLocalSessionDurationMinutes(session: DebateSession) {
@@ -162,9 +171,14 @@ function subscribeToLocalSessions(onStoreChange: () => void) {
   };
 }
 
-function parseLocalRecentSessions(snapshot: string) {
+function parseLocalRecentSessions(snapshot: string, practiceLanguage: string) {
   try {
-    return (JSON.parse(snapshot) as DebateSession[]).map(mapLocalRecentSession);
+    return (JSON.parse(snapshot) as DebateSession[])
+      .filter(
+        (session) =>
+          coercePracticeLanguage(session.practiceLanguage) === practiceLanguage
+      )
+      .map(mapLocalRecentSession);
   } catch {
     return [];
   }
@@ -223,12 +237,15 @@ function replaceRangeInUrl(range: AnalyticsRangePreset) {
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-function getAnalyticsScoreMeta(score: number | null) {
+function getAnalyticsScoreMeta(
+  score: number | null,
+  t?: ReturnType<typeof useTranslations>
+) {
   if (score == null) {
     return {
       stroke: "#8A96A8",
-      status: "Completed",
-      note: "Reviewed",
+      status: t?.("score_status.completed") ?? "Completed",
+      note: t?.("score_note.reviewed") ?? "Reviewed",
       badgeClassName: "bg-surface-container-low text-on-surface-variant",
     };
   }
@@ -236,8 +253,11 @@ function getAnalyticsScoreMeta(score: number | null) {
   if (score >= 80) {
     return {
       stroke: "#00a66f",
-      status: "Proficient",
-      note: score >= 90 ? "Excellent" : "Very Good",
+      status: t?.("score_status.proficient") ?? "Proficient",
+      note:
+        score >= 90
+          ? t?.("score_note.excellent") ?? "Excellent"
+          : t?.("score_note.very_good") ?? "Very Good",
       badgeClassName: "bg-[#eaf8f4] text-[#00a66f]",
     };
   }
@@ -245,16 +265,19 @@ function getAnalyticsScoreMeta(score: number | null) {
   if (score >= 70) {
     return {
       stroke: "#1478ff",
-      status: "Competent",
-      note: score >= 74 ? "Good" : "Solid",
+      status: t?.("score_status.competent") ?? "Competent",
+      note:
+        score >= 74
+          ? t?.("score_note.good") ?? "Good"
+          : t?.("score_note.solid") ?? "Solid",
       badgeClassName: "bg-[#edf5ff] text-[#1478ff]",
     };
   }
 
   return {
     stroke: "#F59E0B",
-    status: "Developing",
-    note: "Keep going",
+    status: t?.("score_status.developing") ?? "Developing",
+    note: t?.("score_note.keep_going") ?? "Keep going",
     badgeClassName: "bg-[#fff4e2] text-[#F59E0B]",
   };
 }
@@ -315,13 +338,13 @@ function getSessionVisual(session: AnalyticsRecentSession, index: number) {
 function getSessionDetail(session: AnalyticsRecentSession, t: ReturnType<typeof useTranslations>) {
   if (session.kind === "duel") return t("recent_duel_badge");
   if (session.practiceTrack === "speaking") {
-    return session.topicCategory?.includes("Public")
-      ? "Public Speaking"
-      : t("recent_speaking_badge");
+    return t("recent_speaking_badge");
   }
 
-  if (session.mode === "full") return "1v1 Debate";
-  return session.side === "opposition" ? "Rebuttal" : "Constructive";
+  if (session.mode === "full") return t("recent_full_debate");
+  return session.side === "opposition"
+    ? t("recent_rebuttal")
+    : t("recent_constructive");
 }
 
 function AnalyticsScoreRing({ score }: { score: number | null }) {
@@ -415,7 +438,13 @@ function MiniBarChart({
   );
 }
 
-function MiniLineChart({ values }: { values: number[] }) {
+function MiniLineChart({
+  values,
+  ariaLabel,
+}: {
+  values: number[];
+  ariaLabel: string;
+}) {
   if (values.length === 0) {
     return (
       <div className="mt-4 flex h-[96px] items-center justify-center rounded-2xl bg-surface-container-low text-sm text-on-surface-variant">
@@ -448,7 +477,7 @@ function MiniLineChart({ values }: { values: number[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="h-[112px] w-full overflow-visible"
         role="img"
-        aria-label="Recent average score trend"
+        aria-label={ariaLabel}
       >
         <defs>
           <linearGradient id="analytics-score-area" x1="0" x2="0" y1="0" y2="1">
@@ -866,7 +895,7 @@ function RecentSessionCard({
   const t = useTranslations("analyticsPage");
   const locale = useLocale();
   const score = session.score != null ? Math.round(session.score) : null;
-  const scoreMeta = getAnalyticsScoreMeta(score);
+  const scoreMeta = getAnalyticsScoreMeta(score, t);
   const visual = getSessionVisual(session, index);
   const StatusIcon = scoreMeta.status === "Proficient" ? BadgeCheck : ShieldCheck;
   const tag =
@@ -959,6 +988,8 @@ function RecentSessionCard({
 
 export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }) {
   const t = useTranslations("analyticsPage");
+  const locale = useLocale();
+  const practiceLanguage = coercePracticeLanguage(locale);
   const [selectedRange, setSelectedRange] = useState(initialData.range);
   const prefetchedRangesRef = useRef(new Set<AnalyticsRangePreset>([initialData.range]));
   const localSessionsSnapshot = useSyncExternalStore(
@@ -966,7 +997,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
     getLocalSessionsSnapshot,
     () => "[]"
   );
-  const analyticsKey = getAnalyticsSummaryKey(selectedRange);
+  const analyticsKey = getAnalyticsSummaryKey(selectedRange, practiceLanguage);
   const { data: fetchedData, isValidating } = useSWR<AnalyticsPageData>(
     analyticsKey,
     fetchAnalyticsSummary,
@@ -983,12 +1014,12 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
   const prefetchRange = useCallback((range: AnalyticsRangePreset) => {
     if (prefetchedRangesRef.current.has(range)) return;
     prefetchedRangesRef.current.add(range);
-    const key = getAnalyticsSummaryKey(range);
+    const key = getAnalyticsSummaryKey(range, practiceLanguage);
     mutateSWR(key, fetchAnalyticsSummary(key), {
       populateCache: true,
       revalidate: false,
     });
-  }, []);
+  }, [practiceLanguage]);
   const handleRangeChange = useCallback(
     (range: AnalyticsRangePreset) => {
       if (range === selectedRange) return;
@@ -996,7 +1027,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
       replaceRangeInUrl(range);
       prefetchRange(range);
     },
-    [prefetchRange, selectedRange]
+    [prefetchRange, selectedRange, setSelectedRange]
   );
 
   useEffect(() => {
@@ -1030,9 +1061,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
     () =>
       mergeRecentSessions(
         data.recentSessions,
-        parseLocalRecentSessions(localSessionsSnapshot)
+        parseLocalRecentSessions(localSessionsSnapshot, practiceLanguage)
       ),
-    [data.recentSessions, localSessionsSnapshot]
+    [data.recentSessions, localSessionsSnapshot, practiceLanguage]
   );
 
   return (
@@ -1045,6 +1076,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             </h1>
             <p className="mt-2 max-w-2xl text-lg text-on-surface-variant">
               {t("subtitle")}
+            </p>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-on-surface-variant">
+              {t("scope_note")}
             </p>
           </div>
           <RangeControl
@@ -1125,7 +1159,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   />
                   <HeroStat
                     icon={<Clock3 className="h-5 w-5 text-[#34C759]" />}
-                    value={formatTotalMinutes(data.hero.totalPracticeMinutes)}
+                    value={formatTotalMinutes(data.hero.totalPracticeMinutes, t)}
                     label={t("hero_practice_time")}
                     tone="bg-[#EAF8EF]"
                   />
@@ -1143,6 +1177,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {t("cards.practice_minutes.title")}
                 </h3>
               </div>
+              <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                {t("cards.practice_minutes.scope")}
+              </p>
               <div className="mt-5 flex flex-1 items-end justify-between gap-5">
                 <div className="min-w-0 flex-1 self-start">
                   <div className="flex items-end gap-2">
@@ -1187,6 +1224,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {t("cards.mix.title")}
                 </h3>
               </div>
+              <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                {t("cards.mix.scope")}
+              </p>
               <div className="mt-4 flex flex-1 items-center gap-6">
                 <DonutRing value={mixDisplay.debatePercent} label={t("cards.mix.debate")} />
                 <div className="min-w-0 flex-1 space-y-3.5 text-sm">
@@ -1225,6 +1265,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {t("cards.average_score.title")}
                 </h3>
               </div>
+              <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                {t("cards.average_score.scope")}
+              </p>
               <div className="mt-4 flex items-end gap-2">
                 <div className="text-4xl font-semibold text-on-surface">
                   {averageScoreDisplay.averageScore != null
@@ -1250,7 +1293,10 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   : t("cards.average_score.no_delta")}
               </p>
               <div className="mt-auto">
-                <MiniLineChart values={averageScoreDisplay.series.map((entry) => entry.value)} />
+                <MiniLineChart
+                  values={averageScoreDisplay.series.map((entry) => entry.value)}
+                  ariaLabel={t("score_trend_chart")}
+                />
               </div>
             </section>
 
@@ -1260,6 +1306,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {t("cards.strongest_focus.title")}
                 </h3>
               </div>
+              <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                {t("cards.strongest_focus.scope")}
+              </p>
               <div className="mt-4 flex flex-1 flex-col justify-center gap-3">
                 <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-[0_8px_20px_rgba(11,20,36,0.025)]">
                   <div className="flex items-center justify-between gap-4">

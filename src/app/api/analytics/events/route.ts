@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeAnalyticsEventInput } from "@/lib/analytics/events";
 import { createClient } from "@/lib/supabase/server";
+import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { RequestValidationError, readJsonObject } from "@/lib/api/request-validation";
 
@@ -11,6 +12,17 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const devAuthBypassUser = user
+    ? null
+    : getDevAuthBypassUserFromRequest(request);
+
+  if (!user && !devAuthBypassUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (devAuthBypassUser) {
+    return NextResponse.json({ ok: true, skipped: "dev-auth-bypass" });
+  }
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

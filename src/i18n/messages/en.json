@@ -949,6 +949,8 @@
     "history": {
       "page_headline": "Practice History",
       "page_subtitle": "Review your past speaking and debate sessions. Every practice makes you better.",
+      "language_scope_en": "Showing English sessions only.",
+      "language_scope_vi": "Showing Vietnamese sessions only.",
       "empty": "No practice sessions yet",
       "empty_subtitle": "Start your first session and your history will appear here!",
       "start_practicing": "Start Practicing",
@@ -967,6 +969,9 @@
       "achieved_on": "Achieved on {date}",
       "sessions_count": "{count} sessions",
       "not_available": "Not available",
+      "score": "Score",
+      "not_recorded": "Not recorded",
+      "minutes_short": "{count} min",
       "sort_newest": "Newest First",
       "sort_oldest": "Oldest First",
       "sort_highest": "Highest Score",
@@ -979,6 +984,9 @@
       "speaking_practice": "Speaking Practice",
       "debate_practice": "Debate Practice",
       "quick_practice": "Quick Practice",
+      "persuasive_speech": "Persuasive Speech",
+      "constructive_focus": "Constructive",
+      "rebuttal_focus": "Rebuttal",
       "solo_debate": "Solo Debate",
       "one_v_one_debate": "1v1 Debate",
       "affirmative": "Affirmative",
@@ -987,10 +995,16 @@
       "review": "Review",
       "options_label": "Session options",
       "score_fallback": "Judged",
+      "status_proficient": "Proficient",
+      "status_competent": "Competent",
+      "unscored": "Unscored",
+      "no_feedback_yet": "No feedback yet",
       "great_job": "Great job!",
       "excellent": "Excellent!",
+      "very_good": "Very Good",
       "great": "Great",
       "good": "Good",
+      "solid": "Solid",
       "keep_going": "Keep going",
       "judged": "Judged",
       "duel_won": "You won",
@@ -1012,6 +1026,15 @@
       "try_1v1_debate": "Try a 1v1 Debate",
       "suggested_next_move_body": "Challenge real-time responses and improve rebuttals.",
       "start_1v1_debate": "Start 1v1 Debate",
+      "load_more_sessions": "Load more sessions",
+      "recommended_title": "Next Recommended Practice",
+      "recommended_subtitle": "Keep building your skills!",
+      "recommended_rebuttals_title": "Rebuttals That Stick",
+      "recommended_rebuttals_body": "Learn how to respond to your opponent with strong, clear rebuttals.",
+      "recommended_delivery_title": "Confident Delivery Sprint",
+      "recommended_delivery_body": "Practice pacing, clarity, and emphasis with a short guided speaking round.",
+      "recommended_case_title": "Constructive Case Builder",
+      "recommended_case_body": "Strengthen your opening arguments with clearer claims and weighing.",
       "single_speech": "Single Speech",
       "full": "Full",
       "quick": "Quick",
@@ -1839,9 +1862,24 @@
       "hoursMinutes": "{hours} hr {minutes} min"
     }
   },
+  "duelHub": {
+    "badge": "1v1 Debate Arena",
+    "title": "Pick your duel format",
+    "subtitle": "Matchmaking is a monitored beta with invisible skill matching. Friend rooms stay casual, shareable, and unrated.",
+    "unavailable": "Unavailable",
+    "match": {
+      "title": "Find a Match",
+      "description": "Queue into a human opponent with hidden MMR, fair-play telemetry, and a ready check before the duel starts."
+    },
+    "friend": {
+      "title": "Challenge a Friend",
+      "description": "Create a shareable room, send the code, and debate casually. These duels do not affect hidden rating."
+    }
+  },
   "analyticsPage": {
     "title": "Analytics",
     "subtitle": "Track your progress and grow your debate skills.",
+    "scope_note": "Scores and skill trends follow your current language. Streaks, XP, and practice time stay shared across languages.",
     "range_7d": "7d",
     "range_30d": "30d",
     "range_90d": "90d",
@@ -1868,12 +1906,14 @@
     "cards": {
       "practice_minutes": {
         "title": "Weekly Practice Minutes",
+        "scope": "All-language habit metric",
         "unit": "mins",
         "delta": "{sign}{count}% vs previous range",
         "no_delta": "Need more history to compare"
       },
       "mix": {
         "title": "Speaking vs Debate Mix",
+        "scope": "Current-language performance mix",
         "debate": "Debate",
         "speaking": "Speaking",
         "breakdown": "{debate} debate sessions • {speaking} speaking sessions",
@@ -1881,11 +1921,13 @@
       },
       "average_score": {
         "title": "Recent Average Score",
+        "scope": "Current-language score",
         "delta": "{sign}{count} pts vs previous range",
         "no_delta": "Scored sessions will unlock this trend"
       },
       "strongest_focus": {
         "title": "Strongest / Focus Next",
+        "scope": "Current-language skill snapshot",
         "strongest": "Strongest",
         "focus_next": "Focus Next"
       }
@@ -1895,14 +1937,34 @@
     "recent_speaking_badge": "Speaking Practice",
     "recent_debate_badge": "Debate Practice",
     "recent_duel_badge": "1v1 Duel",
+    "recent_full_debate": "1v1 Debate",
+    "recent_rebuttal": "Rebuttal",
+    "recent_constructive": "Constructive",
     "recent_won": "You won",
     "recent_lost": "You lost",
     "recent_completed": "Completed",
     "review": "Review",
     "view_all": "View all",
     "minutes_short": "{count} min",
+    "hours_short": "{count}h",
+    "hours_minutes_short": "{hours}h {minutes}m",
     "duration_unknown": "Time unavailable",
     "confidence": "{count}% confidence",
+    "score_trend_chart": "Recent average score trend",
+    "score_status": {
+      "completed": "Completed",
+      "proficient": "Proficient",
+      "competent": "Competent",
+      "developing": "Developing"
+    },
+    "score_note": {
+      "reviewed": "Reviewed",
+      "excellent": "Excellent",
+      "very_good": "Very Good",
+      "good": "Good",
+      "solid": "Solid",
+      "keep_going": "Keep going"
+    },
     "empty_title": "Your analytics are warming up",
     "empty_body": "Finish a few speaking or debate sessions and this page will start showing your progress, strongest skills, and next focus.",
     "start_practicing": "Start practicing"

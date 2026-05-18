@@ -2,6 +2,10 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  DEFAULT_PRACTICE_LANGUAGE,
+  coercePracticeLanguage,
+} from "@/lib/practice-language";
+import {
   computeSkillSnapshot,
   roundToTenth,
   type SkillFeedbackSource,
@@ -15,6 +19,7 @@ import type {
   DebateDuelJudgment,
   DebateDuelSide,
   DebateScore,
+  PracticeLanguage,
   PracticeTrack,
   Profile,
 } from "@/types";
@@ -47,6 +52,7 @@ type SoloSessionRow = {
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
+  practice_language?: PracticeLanguage | null;
   duration_seconds: number;
   created_at: string;
 };
@@ -62,6 +68,7 @@ type DuelRow = {
   share_code: string;
   topic_title: string;
   topic_category: string;
+  practice_language?: PracticeLanguage | null;
   completed_at: string | null;
   created_at: string;
 };
@@ -133,59 +140,122 @@ function inferPracticeTrack(feedback: DebateScore | null): PracticeTrack {
   return feedback?.practiceTrack === "speaking" ? "speaking" : "debate";
 }
 
-function titleCaseSkill(skill: SkillMetricKey | null) {
+const ANALYTICS_SKILL_LABELS: Record<
+  PracticeLanguage,
+  Record<SkillMetricKey, string>
+> = {
+  en: {
+    clarity: "Clarity",
+    logic: "Logic",
+    rebuttal: "Rebuttal",
+    evidence: "Evidence",
+    delivery: "Delivery",
+  },
+  vi: {
+    clarity: "Độ rõ",
+    logic: "Logic",
+    rebuttal: "Phản biện",
+    evidence: "Bằng chứng",
+    delivery: "Trình bày",
+  },
+};
+
+function titleCaseSkill(
+  skill: SkillMetricKey | null,
+  practiceLanguage: PracticeLanguage
+) {
   if (!skill) return null;
-  return `${skill.charAt(0).toUpperCase()}${skill.slice(1)}`;
+  return ANALYTICS_SKILL_LABELS[practiceLanguage][skill];
 }
 
 function buildStatusLine(
-  totalSessions: number,
+  scoredSessions: number,
   strongestSkill: SkillMetricKey | null,
-  weakestSkill: SkillMetricKey | null
+  weakestSkill: SkillMetricKey | null,
+  practiceLanguage: PracticeLanguage
 ) {
-  if (totalSessions === 0) {
-    return "Start your first practice session and your analytics will come to life.";
+  if (scoredSessions === 0) {
+    return practiceLanguage === "vi"
+      ? "Hoàn thành một phiên tiếng Việt có chấm điểm để mở khóa phân tích kỹ năng."
+      : "Finish a scored English session and your performance analytics will come to life.";
   }
 
   if (strongestSkill && weakestSkill && strongestSkill !== weakestSkill) {
-    return `You're strongest in ${titleCaseSkill(
-      strongestSkill
-    )} right now. ${titleCaseSkill(weakestSkill)} is the clearest next focus.`;
+    return practiceLanguage === "vi"
+      ? `Hiện tại bạn mạnh nhất ở ${titleCaseSkill(
+          strongestSkill,
+          practiceLanguage
+        )}. ${titleCaseSkill(
+          weakestSkill,
+          practiceLanguage
+        )} là trọng tâm rõ nhất tiếp theo.`
+      : `You're strongest in ${titleCaseSkill(
+          strongestSkill,
+          practiceLanguage
+        )} right now. ${titleCaseSkill(
+          weakestSkill,
+          practiceLanguage
+        )} is the clearest next focus.`;
   }
 
   if (strongestSkill) {
-    return `You're building confidence through ${titleCaseSkill(
-      strongestSkill
-    )}. Keep that momentum going.`;
+    return practiceLanguage === "vi"
+      ? `Bạn đang xây sự tự tin qua ${titleCaseSkill(
+          strongestSkill,
+          practiceLanguage
+        )}. Cứ giữ nhịp này.`
+      : `You're building confidence through ${titleCaseSkill(
+          strongestSkill,
+          practiceLanguage
+        )}. Keep that momentum going.`;
   }
 
-  return "You're building strong arguments and better habits every week.";
+  return practiceLanguage === "vi"
+    ? "Bạn đang xây lập luận chắc hơn và thói quen luyện tập đều hơn mỗi tuần."
+    : "You're building strong arguments and better habits every week.";
 }
 
 function buildSkillNote(
   strongestSkill: SkillMetricKey | null,
   sourceSessions: number,
   confidence: number,
-  trackBreakdown: Record<PracticeTrack, number>
+  trackBreakdown: Record<PracticeTrack, number>,
+  practiceLanguage: PracticeLanguage
 ) {
   if (sourceSessions === 0 || !strongestSkill) {
-    return "Complete a few scored rounds in this range to unlock your skill profile.";
+    return practiceLanguage === "vi"
+      ? "Hoàn thành vài phiên có chấm điểm trong khoảng này để mở khóa hồ sơ kỹ năng."
+      : "Complete a few scored rounds in this range to unlock your skill profile.";
   }
 
   if (confidence < 45) {
-    return "This snapshot is still warming up. Add a few more scored rounds before treating recommendations as firm.";
+    return practiceLanguage === "vi"
+      ? "Ảnh chụp này vẫn đang gom dữ liệu. Hãy thêm vài phiên có điểm trước khi xem gợi ý là chắc chắn."
+      : "This snapshot is still warming up. Add a few more scored rounds before treating recommendations as firm.";
   }
 
   const trackLabel =
     trackBreakdown.speaking > 0 && trackBreakdown.debate > 0
-      ? "mixed practice"
+      ? practiceLanguage === "vi"
+        ? "luyện tập kết hợp"
+        : "mixed practice"
       : trackBreakdown.speaking > 0
-        ? "speaking practice"
-        : "debate practice";
+        ? practiceLanguage === "vi"
+          ? "luyện nói"
+          : "speaking practice"
+        : practiceLanguage === "vi"
+          ? "luyện debate"
+          : "debate practice";
 
-  return `${titleCaseSkill(
-    strongestSkill
-  )} is your strongest skill in this range based on your ${trackLabel}.`;
+  return practiceLanguage === "vi"
+    ? `${titleCaseSkill(
+        strongestSkill,
+        practiceLanguage
+      )} là kỹ năng mạnh nhất của bạn trong khoảng này, dựa trên ${trackLabel}.`
+    : `${titleCaseSkill(
+        strongestSkill,
+        practiceLanguage
+      )} is your strongest skill in this range based on your ${trackLabel}.`;
 }
 
 function buildPracticeSeries(range: AnalyticsRangePreset, dailyStats: DailyStatRow[]) {
@@ -246,7 +316,10 @@ function roundMinutesFromSeconds(totalSeconds: number | null) {
   return Math.max(1, Math.round(totalSeconds / 60));
 }
 
-function mapSkillSnapshot(rows: SkillFeedbackSource[]) {
+function mapSkillSnapshot(
+  rows: SkillFeedbackSource[],
+  practiceLanguage: PracticeLanguage
+) {
   const snapshot = computeSkillSnapshot(rows);
   return {
     metrics: snapshot.metrics.map((metric) => ({
@@ -268,7 +341,8 @@ function mapSkillSnapshot(rows: SkillFeedbackSource[]) {
       snapshot.strongestSkill,
       snapshot.sourceSessions,
       snapshot.confidence,
-      snapshot.trackBreakdown
+      snapshot.trackBreakdown,
+      practiceLanguage
     ),
   };
 }
@@ -363,9 +437,14 @@ function buildRecentSessions(params: {
 
 export async function getAnalyticsPageData(
   userId: string,
-  rangeInput?: string
+  rangeInput?: string,
+  practiceLanguageInput?: PracticeLanguage | string | null
 ): Promise<AnalyticsPageData> {
   const range = normalizeRangePreset(rangeInput);
+  const practiceLanguage = coercePracticeLanguage(
+    practiceLanguageInput,
+    DEFAULT_PRACTICE_LANGUAGE
+  );
   const {
     currentStartDate,
     currentStartIso,
@@ -374,7 +453,29 @@ export async function getAnalyticsPageData(
   } = getRangeWindow(range);
   const supabase = await createClient();
   const soloSessionSelect =
-    "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at";
+    "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, practice_language, duration_seconds, created_at";
+
+  let rangeSoloSessionsQuery = supabase
+    .from("debate_sessions")
+    .select(soloSessionSelect)
+    .eq("user_id", userId)
+    .gte("created_at", previousStartIso);
+  let recentSoloSessionsQuery = supabase
+    .from("debate_sessions")
+    .select(soloSessionSelect)
+    .eq("user_id", userId);
+
+  if (practiceLanguage === "vi") {
+    rangeSoloSessionsQuery = rangeSoloSessionsQuery.eq("practice_language", "vi");
+    recentSoloSessionsQuery = recentSoloSessionsQuery.eq("practice_language", "vi");
+  } else {
+    rangeSoloSessionsQuery = rangeSoloSessionsQuery.or(
+      "practice_language.eq.en,practice_language.is.null"
+    );
+    recentSoloSessionsQuery = recentSoloSessionsQuery.or(
+      "practice_language.eq.en,practice_language.is.null"
+    );
+  }
 
   const [
     profileRes,
@@ -391,17 +492,10 @@ export async function getAnalyticsPageData(
         .eq("user_id", userId)
         .gte("date", previousStartDate)
         .order("date", { ascending: true }),
-      supabase
-        .from("debate_sessions")
-        .select(soloSessionSelect)
-        .eq("user_id", userId)
-        .gte("created_at", previousStartIso)
+      rangeSoloSessionsQuery
         .order("created_at", { ascending: false })
         .limit(240),
-      supabase
-        .from("debate_sessions")
-        .select(soloSessionSelect)
-        .eq("user_id", userId)
+      recentSoloSessionsQuery
         .order("created_at", { ascending: false })
         .limit(MAX_RECENT_SESSIONS),
       supabase
@@ -468,7 +562,7 @@ export async function getAnalyticsPageData(
     );
   });
 
-  const rangeSkillSnapshot = mapSkillSnapshot(currentSoloSessions);
+  const rangeSkillSnapshot = mapSkillSnapshot(currentSoloSessions, practiceLanguage);
 
   const currentScoredSoloSessions = currentSoloSessions.filter(
     (session) => session.total_score != null
@@ -483,12 +577,19 @@ export async function getAnalyticsPageData(
   const duelSpeeches: DuelSpeechRow[] = [];
 
   if (duelIds.length > 0) {
+    let duelsQuery = supabase
+      .from("debate_duels")
+      .select("id, share_code, topic_title, topic_category, practice_language, completed_at, created_at")
+      .in("id", duelIds)
+      .eq("status", "completed");
+
+    duelsQuery =
+      practiceLanguage === "vi"
+        ? duelsQuery.eq("practice_language", "vi")
+        : duelsQuery.or("practice_language.eq.en,practice_language.is.null");
+
     const [duelsRes, judgmentsRes, speechesRes] = await Promise.all([
-      supabase
-        .from("debate_duels")
-        .select("id, share_code, topic_title, topic_category, completed_at, created_at")
-        .in("id", duelIds)
-        .eq("status", "completed")
+      duelsQuery
         .order("completed_at", { ascending: false }),
       supabase
         .from("debate_duel_judgments")
@@ -590,8 +691,11 @@ export async function getAnalyticsPageData(
 
   return {
     range,
+    practiceLanguage,
     hero: {
-      displayName: profile?.display_name ?? "Debater",
+      displayName:
+        profile?.display_name ??
+        (practiceLanguage === "vi" ? "Người tranh biện" : "Debater"),
       avatarUrl: profile?.avatar_url ?? null,
       title: profile?.selected_title ?? null,
       level: profile?.level ?? 1,
@@ -600,9 +704,10 @@ export async function getAnalyticsPageData(
       xpToNextLevel,
       xpProgressPercent: Math.min(100, Math.round((xpInLevel / xpToNextLevel) * 100)),
       statusLine: buildStatusLine(
-        profile?.total_sessions_completed ?? 0,
+        rangeSkillSnapshot.sourceSessions,
         rangeSkillSnapshot.strongestSkill,
-        rangeSkillSnapshot.weakestSkill
+        rangeSkillSnapshot.weakestSkill,
+        practiceLanguage
       ),
       streak: profile?.streak_current ?? 0,
       totalSessions: profile?.total_sessions_completed ?? 0,

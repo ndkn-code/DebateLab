@@ -5,6 +5,8 @@ import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypa
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import type { Profile } from "@/types/database";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProtectedLayout({
   children,
 }: {
