@@ -8,14 +8,10 @@ import {
   BellRing,
   Camera,
   Clock3,
-  Eye,
-  EyeOff,
   Globe2,
   Loader2,
-  Lock,
   LogOut,
   Save,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
@@ -25,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { DurationControl } from "@/components/shared/duration-control";
 import { showToast } from "@/components/shared/toast";
 import { VoiceSettings } from "@/components/settings/voice-settings";
-import { changePassword, saveSettings } from "@/app/[locale]/(protected)/settings/actions";
+import { saveSettings } from "@/app/[locale]/(protected)/settings/actions";
 import {
   AI_DIFFICULTY_OPTIONS,
   SETTINGS_DRAFT_STORAGE_KEY,
@@ -151,45 +147,6 @@ function ToggleRow(props: {
   );
 }
 
-function PasswordField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  const { label, value, onChange, placeholder } = props;
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-medium text-[#64748b]">
-        {label}
-      </label>
-      <div className="flex h-10 items-center rounded-2xl border border-[#d8e3f8] bg-white pr-2 text-[#172554] transition-colors focus-within:border-primary">
-        <input
-          type={visible ? "text" : "password"}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className="h-full w-full bg-transparent px-3 text-xs text-[#172554] outline-none placeholder:text-[#94a3b8]"
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((current) => !current)}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#64748b] transition hover:bg-[#edf3ff] hover:text-primary"
-          aria-label={visible ? "Hide password" : "Show password"}
-        >
-          {visible ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 async function fileToAvatarDataUrl(file: File) {
   const imageUrl = URL.createObjectURL(file);
 
@@ -280,12 +237,8 @@ export function SettingsContent({
   const locale = useLocale() as SettingsLocale;
   const [isSaving, startSavingTransition] = useTransition();
   const [isLocalePending, startLocaleTransition] = useTransition();
-  const [isPasswordPending, startPasswordTransition] = useTransition();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const serverSavedDraft = useMemo(
     () =>
@@ -317,7 +270,10 @@ export function SettingsContent({
   const [localSavedDraft, setLocalSavedDraft] = useState<SettingsDraft | null>(
     null
   );
-  const [draft, setDraft] = useState<SettingsDraft>(() => {
+  const [draft, setDraft] = useState<SettingsDraft>(serverDraft);
+  const [hasHydratedStoredDraft, setHasHydratedStoredDraft] = useState(false);
+
+  useEffect(() => {
     const snapshot = readStoredSnapshot();
 
     if (
@@ -325,18 +281,18 @@ export function SettingsContent({
       snapshot.userId === userId &&
       JSON.stringify(snapshot.saved) === savedSignature
     ) {
-      return {
+      setDraft({
         ...snapshot.draft,
         smartFeaturePopups:
           typeof snapshot.draft.smartFeaturePopups === "boolean"
             ? snapshot.draft.smartFeaturePopups
             : serverDraft.smartFeaturePopups,
         analyticsCookiesEnabled: serverDraft.analyticsCookiesEnabled,
-      };
+      });
     }
 
-    return serverDraft;
-  });
+    setHasHydratedStoredDraft(true);
+  }, [savedSignature, serverDraft, userId]);
 
   const effectiveSavedDraft =
     localSavedDraft &&
@@ -351,7 +307,7 @@ export function SettingsContent({
   const isDirty = draftSignature !== savedDraftSignature;
 
   useEffect(() => {
-    if (!userId || typeof window === "undefined") {
+    if (!hasHydratedStoredDraft || !userId || typeof window === "undefined") {
       return;
     }
 
@@ -365,7 +321,7 @@ export function SettingsContent({
       SETTINGS_DRAFT_STORAGE_KEY,
       JSON.stringify(snapshot)
     );
-  }, [draft, effectiveSavedDraft, userId]);
+  }, [draft, effectiveSavedDraft, hasHydratedStoredDraft, userId]);
 
   function updateDraft<K extends keyof SettingsDraft>(
     key: K,
@@ -439,42 +395,6 @@ export function SettingsContent({
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t("toast.save_error"),
-          "error"
-        );
-      }
-    });
-  }
-
-  function handlePasswordChange() {
-    if (!currentPassword.trim()) {
-      showToast(t("toast.current_password_required"), "warning");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      showToast(t("toast.password_short"), "warning");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      showToast(t("toast.password_mismatch"), "warning");
-      return;
-    }
-
-    startPasswordTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("current_password", currentPassword);
-        formData.set("new_password", newPassword);
-        formData.set("confirm_password", confirmPassword);
-        await changePassword(formData);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        showToast(t("toast.password_updated"), "success");
-      } catch (error) {
-        showToast(
-          error instanceof Error ? error.message : t("toast.password_error"),
           "error"
         );
       }
@@ -583,68 +503,6 @@ export function SettingsContent({
         </section>
 
         <div className="grid gap-5 xl:grid-cols-3">
-          <SettingsCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            title={t("cards.account.title")}
-            description={t("cards.account.description")}
-          >
-            <div className="space-y-4">
-              <div>
-                <SettingLabel>{t("fields.email")}</SettingLabel>
-                <input
-                  type="email"
-                  value={userEmail}
-                  readOnly
-                  className="h-11 w-full rounded-2xl border border-[#dbe5fb] bg-[#f4f7fd] px-4 text-sm text-[#64748b] outline-none"
-                />
-              </div>
-
-              <div className="rounded-[22px] border border-[#edf2fb] bg-[#fbfdff] p-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#172554]">
-                    {t("change_password")}
-                  </h3>
-                  <p className="mt-1 text-xs text-[#64748b]">
-                    {t("change_password_description")}
-                  </p>
-                </div>
-                <div className="mt-3 space-y-2.5">
-                  <PasswordField
-                    label={t("fields.current_password")}
-                    value={currentPassword}
-                    onChange={setCurrentPassword}
-                    placeholder={t("fields.current_password")}
-                  />
-                  <PasswordField
-                    label={t("new_password")}
-                    value={newPassword}
-                    onChange={setNewPassword}
-                    placeholder={t("new_password")}
-                  />
-                  <PasswordField
-                    label={t("confirm_password")}
-                    value={confirmPassword}
-                    onChange={setConfirmPassword}
-                    placeholder={t("confirm_password")}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handlePasswordChange}
-                    disabled={isPasswordPending}
-                    className="mt-1 h-10 gap-2 rounded-2xl bg-primary px-4 text-xs text-white hover:bg-primary/90"
-                  >
-                    {isPasswordPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-                    {t("update_password")}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </SettingsCard>
-
           <SettingsCard
             icon={<Clock3 className="h-5 w-5" />}
             title={t("cards.practice.title")}
