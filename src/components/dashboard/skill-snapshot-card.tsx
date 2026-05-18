@@ -51,8 +51,10 @@ function polygonPoints(values: number[]) {
 
 export function SkillSnapshotCard({
   snapshot,
+  compact = false,
 }: {
   snapshot: DashboardSkillSnapshot;
+  compact?: boolean;
 }) {
   const t = useTranslations("dashboard.home");
   const values = snapshot.metrics.map((metric) =>
@@ -60,11 +62,11 @@ export function SkillSnapshotCard({
   );
 
   return (
-    <section className="rounded-[1.75rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_28px_80px_-52px_rgba(22,39,91,0.45)]">
-      <div className="grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6">
+    <section className="rounded-[1.45rem] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+      <div className={compact ? "grid gap-4 p-4 2xl:grid-cols-[minmax(230px,0.9fr)_minmax(220px,0.78fr)]" : "grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6"}>
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-on-surface">
+          <div className={compact ? "mb-2 flex items-center gap-2" : "mb-3 flex items-center gap-2"}>
+            <h2 className={compact ? "text-[1.05rem] font-semibold text-on-surface" : "text-lg font-semibold text-on-surface"}>
               {t("skill_snapshot_title")}
             </h2>
             <TooltipProvider>
@@ -81,19 +83,19 @@ export function SkillSnapshotCard({
           </div>
 
           {snapshot.sourceSessions === 0 ? (
-            <div className="flex h-[220px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-5 text-center">
+            <div className={compact ? "flex h-[180px] flex-col items-center justify-center rounded-[1rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-4 text-center" : "flex h-[220px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-5 text-center"}>
               <p className="text-sm font-medium text-on-surface">
                 {t("skill_snapshot_empty_title")}
               </p>
-              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+              <p className={compact ? "mt-2 line-clamp-2 text-sm leading-6 text-on-surface-variant" : "mt-2 text-sm leading-6 text-on-surface-variant"}>
                 {t("skill_snapshot_empty_body")}
               </p>
             </div>
           ) : (
-            <div className="mt-5">
+            <div className={compact ? "mt-2" : "mt-5"}>
               <svg
                 viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
-                className="mx-auto block h-[370px] w-full max-w-[418px] 2xl:h-[320px] 2xl:max-w-[370px]"
+                className={compact ? "mx-auto block h-[230px] w-full max-w-[290px]" : "mx-auto block h-[370px] w-full max-w-[418px] 2xl:h-[320px] 2xl:max-w-[370px]"}
                 aria-hidden="true"
               >
                 {[1, 2, 3, 4].map((step) => {
@@ -166,23 +168,23 @@ export function SkillSnapshotCard({
           )}
         </div>
 
-        <div className="flex flex-col md:border-l md:border-outline-variant/20 md:pl-6 md:pt-8">
+        <div className={compact ? "flex flex-col 2xl:border-l 2xl:border-outline-variant/20 2xl:pl-4" : "flex flex-col md:border-l md:border-outline-variant/20 md:pl-6 md:pt-8"}>
           <div className="divide-y divide-outline-variant/18">
             {snapshot.metrics.map((metric) => (
               <div
                 key={metric.key}
-                className="flex items-center justify-between gap-4 py-4 first:pt-1"
+                className={compact ? "flex items-center justify-between gap-3 py-2.5 first:pt-0" : "flex items-center justify-between gap-4 py-4 first:pt-1"}
               >
                 <div className="flex items-center gap-3">
                   <span
                     className={`h-2.5 w-2.5 shrink-0 rounded-full ${SKILL_UI_META[metric.key].dotClassName}`}
                   />
-                  <span className="text-[0.95rem] font-medium text-on-surface">
+                  <span className={compact ? "text-sm font-medium text-on-surface" : "text-[0.95rem] font-medium text-on-surface"}>
                     {t(`skill_labels.${metric.key}`)}
                   </span>
                 </div>
                 <p className="shrink-0 text-right">
-                  <span className="text-[1.05rem] font-semibold text-on-surface">
+                  <span className={compact ? "text-[0.95rem] font-semibold text-on-surface" : "text-[1.05rem] font-semibold text-on-surface"}>
                     {metric.coverage > 0 ? Math.round(metric.value) : "—"}
                   </span>
                   {metric.coverage > 0 ? (

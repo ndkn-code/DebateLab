@@ -450,6 +450,15 @@ DebateLab product UI should feel calm, sparse, and action-led. The OnePrep lesso
 - Assistant answers should read as plain text first. Use small callouts only when they add structure: `Tip`, `Common mistake`, `Try this`, `Example`, `Practice`, or `Next steps`.
 - Avoid assistant badges, large avatars, and repeated coach identity text inside every message.
 
+### Coach Dashboard Pattern
+- The student dashboard's first job is to answer: "what should I do next?" The first viewport must show one recommended drill with one dominant CTA.
+- Recommendation order is weakest scored skill below target, active course continuation, latest feedback review, then underused practice track. If data is sparse, fall back to a simple practice-start recommendation instead of a vague overview.
+- Use generated dashboard graphics as supportive WebP assets inside the recommendation panel. They should contain no readable text, no logos, and no marketing composition; the CTA and metadata remain real UI.
+- The recommendation panel uses compact metadata chips for duration, target, score, progress, or track. Avoid motivational paragraphs and oversized generic hero headlines.
+- "Today plan" rows are concrete actions with direct routes. Do not include coming-soon items, roadmap promises, or decorative cards in this area.
+- Quick actions are secondary shortcuts near the recommendation, not the primary dashboard experience.
+- Recent practice stays row-first. Skill Snapshot and progress panels are secondary and compact, especially on 13-inch and 27-inch desktop layouts.
+
 ### Loading And Failure
 - Skeletons should match the final surface, not a generic card grid.
 - Chat, dashboard, and high-traffic pages must resolve, show useful empty state, or show a quiet retryable error. Do not leave users in an indefinite skeleton.

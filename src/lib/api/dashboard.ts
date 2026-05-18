@@ -13,6 +13,7 @@ import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 const USER_TIMEZONE = "America/New_York";
 const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
 const DAYS_IN_WEEK = 7;
+const RECOMMENDED_SKILL_TARGET = 75;
 
 type DashboardNavKey =
   | "dashboard"
@@ -36,12 +37,16 @@ type DashboardSkillKey =
   | "evidence"
   | "delivery";
 
-type DashboardTaskKey =
+type DashboardPlanKey =
   | "continue-course"
   | "weakest-skill"
   | "underused-track"
   | "review-feedback"
-  | "live-match";
+  | "start-speaking"
+  | "start-debate"
+  | "coach-check";
+
+type DashboardPlanCtaKey = "start" | "continue" | "review" | "ask-coach";
 
 type DashboardRecentKind =
   | "speaking"
@@ -155,16 +160,21 @@ export interface DashboardQuickAction {
   descriptionKey: string;
 }
 
-export interface DashboardTask {
-  key: DashboardTaskKey;
-  href?: string;
-  status: "live" | "coming-soon";
+export interface DashboardRecommendedDrill {
+  key: DashboardPlanKey;
+  href: string;
+  detailHref?: string;
+  ctaKey: DashboardPlanCtaKey;
+  durationMinutes: number;
+  context: string | null;
   progressLabel?: string;
-  ctaKey: string;
-  titleKey: string;
-  description: string;
+  scoreOutOf100?: number | null;
   skillKey?: DashboardSkillKey;
   track?: PracticeTrack;
+}
+
+export interface DashboardTodayPlanItem extends DashboardRecommendedDrill {
+  id: string;
 }
 
 export interface DashboardRecentItem {
@@ -217,9 +227,10 @@ export interface DashboardHomeData {
     todayGoal: DashboardGoalSummary;
   };
   skillSnapshot: DashboardSkillSnapshot;
+  recommendedDrill: DashboardRecommendedDrill;
   quickActions: DashboardQuickAction[];
   recentActivity: DashboardRecentItem[];
-  nextSteps: DashboardTask[];
+  todayPlanItems: DashboardTodayPlanItem[];
   progress: DashboardProgressMetric[];
   sidebarCards: {
     dailyGoal: DashboardGoalSummary;
@@ -461,47 +472,7 @@ function buildRecentActivity(
   });
 }
 
-function buildNextSteps(
-  skillSnapshot: DashboardSkillSnapshot,
-  recentSessions: SessionScoreRow[],
-  courseContinuation: DashboardCourseContinuation | null
-): DashboardTask[] {
-  const tasks: DashboardTask[] = [];
-
-  if (courseContinuation) {
-    tasks.push({
-      key: "continue-course",
-      href: courseContinuation.href,
-      status: "live",
-      progressLabel: `${courseContinuation.progressPercent}%`,
-      ctaKey: "continue",
-      titleKey: "continue_course",
-      description: courseContinuation.title,
-    });
-  }
-
-  if (skillSnapshot.weakestSkill) {
-    const weakestSkill = skillSnapshot.metrics.find(
-      (metric) => metric.key === skillSnapshot.weakestSkill
-    );
-    const targetTrack =
-      skillSnapshot.weakestSkill === "delivery" ? "speaking" : "debate";
-
-    tasks.push({
-      key: "weakest-skill",
-      href: `/practice?track=${targetTrack}`,
-      status: "live",
-      ctaKey: "practice",
-      titleKey: `skill_${skillSnapshot.weakestSkill}`,
-      description:
-        weakestSkill && weakestSkill.value > 0
-          ? `${Math.round(weakestSkill.value)} /100`
-          : "Focus area",
-      skillKey: skillSnapshot.weakestSkill,
-      track: targetTrack,
-    });
-  }
-
+function getUnderusedTrack(recentSessions: SessionScoreRow[]): PracticeTrack {
   const practiceCounts = recentSessions.reduce(
     (summary, session) => {
       const practiceTrack = getPracticeTrack(session.feedback);
@@ -510,42 +481,162 @@ function buildNextSteps(
     },
     { speaking: 0, debate: 0 }
   );
-  const underusedTrack =
-    practiceCounts.speaking < practiceCounts.debate ? "speaking" : "debate";
-  tasks.push({
-    key: "underused-track",
-    href: `/practice?track=${underusedTrack}`,
-    status: "live",
-    ctaKey: "open_setup",
-    titleKey: underusedTrack === "speaking" ? "start_speaking" : "start_debate",
-    description:
-      underusedTrack === "speaking"
-        ? "Rebalance with a speaking session"
-        : "Rebalance with a debate round",
-    track: underusedTrack,
-  });
 
-  const latestScored = recentSessions.find((session) => session.total_score != null);
-  if (latestScored) {
-    tasks.push({
-      key: "review-feedback",
-      href: `/history/${latestScored.id}`,
-      status: "live",
-      ctaKey: "review",
-      titleKey: "review_feedback",
-      description: latestScored.topic_title,
-    });
+  return practiceCounts.speaking < practiceCounts.debate ? "speaking" : "debate";
+}
+
+function buildCoursePlanItem(
+  courseContinuation: DashboardCourseContinuation | null
+): DashboardTodayPlanItem | null {
+  if (!courseContinuation) return null;
+
+  return {
+    id: "continue-course",
+    key: "continue-course",
+    href: courseContinuation.href,
+    detailHref: courseContinuation.href,
+    ctaKey: "continue",
+    durationMinutes: 12,
+    context: courseContinuation.title,
+    progressLabel: `${courseContinuation.progressPercent}%`,
+  };
+}
+
+function buildWeakestSkillPlanItem(
+  skillSnapshot: DashboardSkillSnapshot
+): DashboardTodayPlanItem | null {
+  if (!skillSnapshot.weakestSkill) return null;
+
+  const weakestMetric = skillSnapshot.metrics.find(
+    (metric) => metric.key === skillSnapshot.weakestSkill
+  );
+  const score =
+    weakestMetric && weakestMetric.coverage > 0
+      ? Math.round(weakestMetric.value)
+      : null;
+
+  if (score != null && score >= RECOMMENDED_SKILL_TARGET) {
+    return null;
   }
 
-  tasks.push({
-    key: "live-match",
-    status: "coming-soon",
-    ctaKey: "coming_soon",
-    titleKey: "join_live_debate",
-    description: "Live debate matchmaking is on the roadmap",
+  const track = skillSnapshot.weakestSkill === "delivery" ? "speaking" : "debate";
+
+  return {
+    id: `weakest-${skillSnapshot.weakestSkill}`,
+    key: "weakest-skill",
+    href: `/practice?track=${track}`,
+    detailHref: "/profile",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    scoreOutOf100: score,
+    skillKey: skillSnapshot.weakestSkill,
+    track,
+  };
+}
+
+function buildReviewPlanItem(
+  recentSessions: SessionScoreRow[]
+): DashboardTodayPlanItem | null {
+  const latestScored = recentSessions.find((session) => session.total_score != null);
+  if (!latestScored) return null;
+
+  return {
+    id: `review-${latestScored.id}`,
+    key: "review-feedback",
+    href: `/history/${latestScored.id}`,
+    detailHref: `/history/${latestScored.id}`,
+    ctaKey: "review",
+    durationMinutes: 7,
+    context: latestScored.topic_title,
+    scoreOutOf100:
+      latestScored.total_score != null ? Math.round(latestScored.total_score) : null,
+    track: getPracticeTrack(latestScored.feedback),
+  };
+}
+
+function buildUnderusedPlanItem(
+  recentSessions: SessionScoreRow[]
+): DashboardTodayPlanItem {
+  const track = getUnderusedTrack(recentSessions);
+
+  return {
+    id: `underused-${track}`,
+    key: "underused-track",
+    href: `/practice?track=${track}`,
+    detailHref: "/practice",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    track,
+  };
+}
+
+function buildStarterPlanItem(track: PracticeTrack): DashboardTodayPlanItem {
+  return {
+    id: `start-${track}`,
+    key: track === "speaking" ? "start-speaking" : "start-debate",
+    href: `/practice?track=${track}`,
+    detailHref: "/practice",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    track,
+  };
+}
+
+function buildCoachPlanItem(): DashboardTodayPlanItem {
+  return {
+    id: "coach-check",
+    key: "coach-check",
+    href: "/chat?context=coach-home",
+    detailHref: "/chat?context=coach-home",
+    ctaKey: "ask-coach",
+    durationMinutes: 5,
+    context: null,
+  };
+}
+
+function buildDashboardPlan(
+  skillSnapshot: DashboardSkillSnapshot,
+  recentSessions: SessionScoreRow[],
+  courseContinuation: DashboardCourseContinuation | null
+): {
+  recommendedDrill: DashboardRecommendedDrill;
+  todayPlanItems: DashboardTodayPlanItem[];
+} {
+  const weakestSkillPlan = buildWeakestSkillPlanItem(skillSnapshot);
+  const coursePlan = buildCoursePlanItem(courseContinuation);
+  const reviewPlan = buildReviewPlanItem(recentSessions);
+  const underusedPlan = buildUnderusedPlanItem(recentSessions);
+
+  const recommendedDrill =
+    weakestSkillPlan ?? coursePlan ?? reviewPlan ?? underusedPlan;
+
+  const candidateItems = [
+    coursePlan,
+    reviewPlan,
+    weakestSkillPlan,
+    underusedPlan,
+    buildStarterPlanItem("speaking"),
+    buildStarterPlanItem("debate"),
+    buildCoachPlanItem(),
+  ].filter((item): item is DashboardTodayPlanItem => Boolean(item));
+
+  const seen = new Set<string>();
+  const todayPlanItems = candidateItems.filter((item) => {
+    const signature = `${item.key}:${item.href}`;
+    const duplicatesHero =
+      item.key === recommendedDrill.key && item.href === recommendedDrill.href;
+    if (duplicatesHero || seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
   });
 
-  return tasks.slice(0, 4);
+  return {
+    recommendedDrill,
+    todayPlanItems: todayPlanItems.slice(0, 3),
+  };
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardHomeData> {
@@ -699,7 +790,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
 
   const featuredEnrollment = enrollments[0];
   const courseContinuation =
-    isAdmin && featuredEnrollment
+    featuredEnrollment
       ? {
           courseId: featuredEnrollment.course_id,
           title: featuredEnrollment.courses?.title ?? "Continue course",
@@ -757,7 +848,7 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
   ];
 
   const recentActivity = buildRecentActivity(recentSessions);
-  const nextSteps = buildNextSteps(
+  const { recommendedDrill, todayPlanItems } = buildDashboardPlan(
     skillSnapshot,
     recentSessions,
     courseContinuation
@@ -779,9 +870,10 @@ export async function getDashboardData(userId: string): Promise<DashboardHomeDat
       todayGoal,
     },
     skillSnapshot,
+    recommendedDrill,
     quickActions,
     recentActivity,
-    nextSteps,
+    todayPlanItems,
     progress,
     sidebarCards: {
       dailyGoal: todayGoal,

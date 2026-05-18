@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
+  ArrowRight,
   BookOpen,
-  Check,
   ChevronRight,
   Clock3,
   Copy,
@@ -35,13 +36,12 @@ import type {
   DashboardProgressMetric,
   DashboardQuickAction,
   DashboardRecentItem,
-  DashboardTask,
-  DailyStatEntry,
+  DashboardRecommendedDrill,
+  DashboardTodayPlanItem,
 } from "@/lib/api/dashboard";
 import { SkillSnapshotCard } from "./skill-snapshot-card";
 import fireAnimation from "../../../public/lottie/fire.json";
 
-const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 const ACTION_ICONS = {
   speaking: Mic,
   debate: Users2,
@@ -53,7 +53,9 @@ const TASK_ICONS = {
   "weakest-skill": Target,
   "underused-track": Users2,
   "review-feedback": MessageSquareText,
-  "live-match": Scale,
+  "start-speaking": Mic,
+  "start-debate": Scale,
+  "coach-check": Sparkles,
 } as const;
 const PROGRESS_ICONS = {
   "total-sessions": Trophy,
@@ -166,55 +168,111 @@ function getScoreTone(score: number) {
   return "bg-[#fff0f0] text-[#dd666b]";
 }
 
-function getTaskTitle(
-  task: DashboardTask,
+function getPlanTrackLabel(
+  track: DashboardRecommendedDrill["track"],
   t: ReturnType<typeof useTranslations>
 ) {
-  switch (task.key) {
+  if (track === "speaking") return t("track_speaking");
+  return t("track_debate");
+}
+
+function getPlanTitle(
+  item: DashboardRecommendedDrill,
+  t: ReturnType<typeof useTranslations>
+) {
+  switch (item.key) {
     case "continue-course":
-      return t("next_step_continue_course");
+      return t("plan_title_continue_course");
     case "weakest-skill":
-      return task.skillKey
-        ? t("next_step_skill_title", {
-            skill: t(`skill_labels.${task.skillKey}`),
+      return item.skillKey
+        ? t("plan_title_weakest_skill", {
+            skill: t(`skill_labels.${item.skillKey}`),
           })
-        : t("next_step_skill_title_generic");
+        : t("plan_title_weakest_skill_generic");
     case "underused-track":
-      return task.track === "speaking"
-        ? t("next_step_underused_speaking")
-        : t("next_step_underused_debate");
+      return item.track === "speaking"
+        ? t("plan_title_underused_speaking")
+        : t("plan_title_underused_debate");
     case "review-feedback":
-      return t("next_step_review_feedback");
-    case "live-match":
-      return t("next_step_live_match");
+      return t("plan_title_review_feedback");
+    case "start-speaking":
+      return t("plan_title_start_speaking");
+    case "start-debate":
+      return t("plan_title_start_debate");
+    case "coach-check":
+      return t("plan_title_coach");
     default:
-      return t("next_steps_title");
+      return t("today_plan_title");
   }
 }
 
-function getTaskDescription(
-  task: DashboardTask,
+function getPlanReason(
+  item: DashboardRecommendedDrill,
   t: ReturnType<typeof useTranslations>
 ) {
-  switch (task.key) {
+  switch (item.key) {
     case "continue-course":
+      return t("plan_reason_course");
     case "review-feedback":
-      return task.description;
+      return t("plan_reason_feedback");
     case "weakest-skill":
-      return task.skillKey
-        ? t("next_step_skill_desc", {
-            skill: t(`skill_labels.${task.skillKey}`),
-            score: task.description,
-          })
-        : task.description;
+      return t("plan_reason_skill");
     case "underused-track":
-      return task.track === "speaking"
-        ? t("next_step_underused_speaking_desc")
-        : t("next_step_underused_debate_desc");
-    case "live-match":
-      return t("next_step_live_match_desc");
+      return t("plan_reason_rebalance");
+    case "start-speaking":
+    case "start-debate":
+      return t("plan_reason_start");
+    case "coach-check":
+      return t("plan_reason_coach");
     default:
-      return task.description;
+      return t("plan_reason_start");
+  }
+}
+
+function getPlanDescription(
+  item: DashboardRecommendedDrill,
+  t: ReturnType<typeof useTranslations>
+) {
+  switch (item.key) {
+    case "continue-course":
+      return item.context ?? t("plan_context_course_fallback");
+    case "weakest-skill":
+      return item.skillKey
+        ? t("recommended_desc_weakest", {
+            skill: t(`skill_labels.${item.skillKey}`),
+          })
+        : t("recommended_desc_weakest_generic");
+    case "review-feedback":
+      return item.context ?? t("plan_context_feedback_fallback");
+    case "underused-track":
+      return item.track === "speaking"
+        ? t("recommended_desc_underused_speaking")
+        : t("recommended_desc_underused_debate");
+    case "start-speaking":
+      return t("recommended_desc_start_speaking");
+    case "start-debate":
+      return t("recommended_desc_start_debate");
+    case "coach-check":
+      return t("recommended_desc_coach");
+    default:
+      return "";
+  }
+}
+
+function getPlanCtaLabel(
+  item: DashboardRecommendedDrill,
+  t: ReturnType<typeof useTranslations>
+) {
+  switch (item.ctaKey) {
+    case "continue":
+      return t("plan_cta_continue");
+    case "review":
+      return t("plan_cta_review");
+    case "ask-coach":
+      return t("plan_cta_ask_coach");
+    case "start":
+    default:
+      return t("plan_cta_start");
   }
 }
 
@@ -249,103 +307,6 @@ function UtilityChip({
   );
 }
 
-function HeroWeekWidget({
-  weeklyStats,
-}: {
-  weeklyStats: DailyStatEntry[];
-}) {
-  const t = useTranslations("dashboard.home");
-  const activeDays = weeklyStats.filter(
-    (entry) => entry.practice_minutes > 0 || entry.sessions_completed > 0
-  ).length;
-
-  return (
-    <div className="p-5">
-      <div className="flex items-start gap-3">
-        <div className="-ml-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center">
-          <LottieAnimation
-            animationData={fireAnimation}
-            className="h-7 w-7"
-            loop
-          />
-        </div>
-        <div>
-          <p className="text-[1.05rem] font-semibold text-on-surface">
-            {activeDays} {t("topbar_streak")}
-          </p>
-          <p className="text-sm text-on-surface-variant">{t("streak_widget_note")}</p>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-7 gap-2">
-        {weeklyStats.map((entry, index) => {
-          const isActive =
-            entry.practice_minutes > 0 || entry.sessions_completed > 0;
-          const dayLabel = t(`days_labels.${DAY_KEYS[index]}`).slice(0, 1);
-
-          return (
-            <div key={entry.date} className="flex flex-col items-center gap-1.5">
-              <span className="text-[11px] font-medium text-on-surface-variant">
-                {dayLabel}
-              </span>
-              <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold",
-                  isActive
-                    ? "border-primary bg-primary text-on-primary"
-                    : "border-outline-variant/20 bg-surface-container-low text-on-surface-variant"
-                )}
-              >
-                {isActive ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : ""}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function HeroGoalWidget({
-  practicedMinutes,
-  goalMinutes,
-  progressPercent,
-}: DashboardHomeData["hero"]["todayGoal"]) {
-  const t = useTranslations("dashboard.home");
-
-  return (
-    <div className="p-5">
-      <div className="flex items-center gap-3">
-        <Clock3 className="h-5 w-5 shrink-0 text-primary" />
-        <div>
-          <p className="text-lg font-semibold text-on-surface">
-            {t("today_practice_title")}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 flex items-end gap-3">
-        <p className="text-[2rem] font-semibold leading-none text-on-surface">
-          {practicedMinutes}
-          <span className="ml-1 text-sm font-medium text-on-surface-variant">
-            {t("min")}
-          </span>
-        </p>
-      </div>
-
-      <div className="mt-6 flex items-center gap-3">
-        <span className="shrink-0 text-sm text-on-surface-variant">
-          {t("goal_minutes", { count: goalMinutes })}
-        </span>
-        <Progress
-          value={progressPercent}
-          className="h-2.5 flex-1 bg-surface-container-high"
-        />
-      </div>
-    </div>
-  );
-}
-
 function QuickActionCard({
   action,
 }: {
@@ -355,18 +316,18 @@ function QuickActionCard({
   const Icon = ACTION_ICONS[action.key];
 
   const content = (
-    <div className="group flex h-full items-center gap-3 rounded-[1.35rem] border border-outline-variant/12 bg-surface-container-lowest px-4 py-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/15">
+    <div className="group flex min-h-[52px] items-center gap-3 rounded-[1rem] border border-outline-variant/12 bg-surface-container-lowest px-3 py-2 shadow-[0_16px_48px_-42px_rgba(22,39,91,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/20">
       <div
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.1rem] bg-gradient-to-br ${getActionTone(
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${getActionTone(
           action.key
         )}`}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4 w-4" />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-[1rem] font-semibold text-on-surface">
+          <p className="truncate text-[0.92rem] font-semibold text-on-surface">
             {t(`action_${action.key}_title`)}
           </p>
           {action.status === "coming-soon" ? (
@@ -375,13 +336,9 @@ function QuickActionCard({
             </span>
           ) : null}
         </div>
-
-        <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-on-surface-variant">
-          {t(action.descriptionKey)}
-        </p>
       </div>
 
-      <ChevronRight className="h-5 w-5 shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5" />
+      <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5" />
     </div>
   );
 
@@ -489,80 +446,209 @@ function RecentActivityCard({
   );
 }
 
-function NextStepsCard({
-  tasks,
+function RecommendedDrillPanel({
+  drill,
 }: {
-  tasks: DashboardTask[];
+  drill: DashboardRecommendedDrill;
+}) {
+  const t = useTranslations("dashboard.home");
+  const Icon = TASK_ICONS[drill.key];
+  const targetLabel = drill.skillKey
+    ? t("recommended_meta_target_skill", {
+        skill: t(`skill_labels.${drill.skillKey}`),
+      })
+    : drill.track
+      ? t("recommended_meta_track", {
+          track: getPlanTrackLabel(drill.track, t),
+        })
+      : null;
+  const scoreLabel =
+    drill.scoreOutOf100 != null
+      ? t("recommended_meta_score", { score: drill.scoreOutOf100 })
+      : drill.progressLabel
+        ? t("recommended_meta_progress", { progress: drill.progressLabel })
+        : null;
+
+  return (
+    <section
+      data-testid="dashboard-recommended-panel"
+      className="relative overflow-hidden rounded-[1.55rem] border border-outline-variant/20 bg-gradient-to-br from-surface-container-lowest via-white to-[#edf4ff] shadow-[0_28px_90px_-60px_rgba(11,20,36,0.22)]"
+    >
+      <div className="grid min-h-[330px] gap-3 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(270px,0.78fr)] xl:min-h-[340px] 2xl:min-h-[390px] 2xl:grid-cols-[minmax(0,0.9fr)_minmax(430px,0.9fr)]">
+        <div className="relative z-10 flex min-w-0 flex-col">
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase text-primary">
+            <Star className="h-3.5 w-3.5 fill-current" />
+            {t("recommended_label")}
+          </span>
+
+          <h1 className="mt-4 max-w-2xl text-[1.8rem] font-bold leading-tight text-on-surface sm:text-[2rem] xl:text-[2.15rem] 2xl:text-[2.45rem]">
+            {getPlanTitle(drill, t)}
+          </h1>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef4ff] px-3 py-1 text-xs font-semibold text-primary">
+              <Clock3 className="h-3.5 w-3.5" />
+              {t("recommended_meta_duration", {
+                count: drill.durationMinutes,
+              })}
+            </span>
+            {targetLabel ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-semibold text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.12)]">
+                <Target className="h-3.5 w-3.5 text-[#F2A93B]" />
+                {targetLabel}
+              </span>
+            ) : null}
+            {scoreLabel ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-semibold text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.12)]">
+                <Star className="h-3.5 w-3.5 text-primary" />
+                {scoreLabel}
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-3 max-w-xl text-sm leading-6 text-on-surface-variant">
+            {getPlanDescription(drill, t)}
+          </p>
+
+          <div className="mt-4 grid grid-cols-[minmax(96px,0.9fr)_minmax(140px,1.2fr)_minmax(64px,0.65fr)] gap-2">
+            <div className="rounded-xl border border-outline-variant/16 bg-white/70 px-3 py-2">
+              <p className="text-[11px] font-medium text-on-surface-variant">
+                {t("recommended_detail_reason")}
+              </p>
+              <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-on-surface">
+                {getPlanReason(drill, t)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-outline-variant/16 bg-white/70 px-3 py-2">
+              <p className="text-[11px] font-medium text-on-surface-variant">
+                {t("recommended_detail_context")}
+              </p>
+              <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-on-surface">
+                {drill.context ??
+                  (drill.track ? getPlanTrackLabel(drill.track, t) : t("recommended_context_fallback"))}
+              </p>
+            </div>
+            <div className="rounded-xl border border-outline-variant/16 bg-white/70 px-3 py-2">
+              <p className="text-[11px] font-medium text-on-surface-variant">
+                {t("recommended_detail_time")}
+              </p>
+              <p className="mt-1 line-clamp-1 text-sm font-semibold text-on-surface">
+                {t("plan_detail_minutes", { count: drill.durationMinutes })}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-auto flex flex-wrap items-center gap-3 pt-4">
+            <Link href={drill.href} data-testid="dashboard-recommended-cta">
+              <Button className="min-h-12 rounded-2xl bg-primary px-5 text-[0.95rem] font-semibold text-on-primary shadow-[0_18px_34px_-22px_rgba(62,120,236,0.9)] hover:bg-primary/95">
+                <Icon className="mr-2 h-4 w-4" />
+                {getPlanCtaLabel(drill, t)}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            {drill.detailHref && drill.detailHref !== drill.href ? (
+              <Link href={drill.detailHref}>
+                <Button
+                  variant="outline"
+                  className="min-h-12 rounded-2xl border-primary/15 bg-white/75 px-5 text-[0.95rem] font-semibold text-on-surface hover:bg-[#eef4ff]"
+                >
+                  {t("recommended_secondary_cta")}
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+        </div>
+
+        <div
+          data-testid="dashboard-recommended-illustration"
+          className="relative min-h-[210px] overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-white/40 to-[#dfeaff]/70 lg:min-h-full"
+        >
+          <Image
+            src="/images/dashboard/recommended-drill.webp"
+            alt=""
+            fill
+            sizes="(max-width: 1024px) 100vw, (max-width: 1536px) 34vw, 430px"
+            priority
+            className="object-cover object-[56%_52%]"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TodayPlanPanel({
+  items,
+}: {
+  items: DashboardTodayPlanItem[];
 }) {
   const t = useTranslations("dashboard.home");
 
   return (
-    <section className="flex min-h-0 flex-col rounded-[1.55rem] border border-outline-variant/20 bg-surface-container-lowest p-3 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
-      <div className="mb-2 min-h-[32px]">
+    <section
+      data-testid="dashboard-today-plan"
+      className="flex min-h-0 flex-col rounded-[1.55rem] border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]"
+    >
+      <div className="mb-3 flex min-h-[32px] items-center justify-between gap-3">
         <h2 className="text-[1.05rem] font-semibold text-on-surface">
-          {t("next_steps_title")}
+          {t("today_plan_title")}
         </h2>
+        <Link
+          href="/practice"
+          className="rounded-xl border border-outline-variant/15 bg-surface-container-low px-3 py-1.5 text-xs font-medium text-primary"
+        >
+          {t("view_all")}
+        </Link>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {tasks.map((task) => {
-          const Icon = TASK_ICONS[task.key];
-          const ctaLabel =
-            task.status === "coming-soon"
-              ? t("coming_soon")
-              : task.key === "review-feedback"
-                ? t("review")
-                : task.key === "continue-course"
-                  ? t("continue")
-                  : task.key === "live-match"
-                    ? t("join_now")
-                    : t("open_setup");
+        {items.map((item) => {
+          const Icon = TASK_ICONS[item.key];
+          const context =
+            item.context ??
+            (item.track ? getPlanTrackLabel(item.track, t) : t("recommended_context_fallback"));
 
           const body = (
-            <div className={`${PANEL_ROW_CLASS} grid-cols-[auto_minmax(0,1fr)_auto]`}>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon className="h-4 w-4" />
+            <div className="group grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[1rem] border border-[#e3ebf8] bg-surface-container-lowest px-3 py-2 transition-all hover:border-[#c9d8f7] hover:shadow-[0_12px_22px_-24px_rgba(22,39,91,0.22)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-[18px] w-[18px]" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="line-clamp-1 text-[0.92rem] font-medium leading-5 text-on-surface">
-                  {getTaskTitle(task, t)}
+                <p className="line-clamp-1 text-[11px] font-semibold leading-4 text-primary">
+                  {getPlanReason(item, t)}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[0.9rem] font-semibold leading-[1.15rem] text-on-surface">
+                  {getPlanTitle(item, t)}
                 </p>
                 <p className="mt-0.5 line-clamp-1 text-[11px] leading-4 text-on-surface-variant">
-                  {getTaskDescription(task, t)}
+                  {t("today_plan_meta", {
+                    duration: item.durationMinutes,
+                    context,
+                  })}
                 </p>
               </div>
 
               <div className="shrink-0">
-                {task.progressLabel ? (
-                  <span className="mr-2 rounded-full bg-white/65 px-2 py-0.5 text-[11px] font-medium text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]">
-                    {task.progressLabel}
-                  </span>
-                ) : null}
-
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium",
-                    task.status === "coming-soon"
-                      ? "bg-white/65 text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(74,94,144,0.08)]"
-                      : "bg-white/70 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
-                  )}
-                >
-                  {ctaLabel}
+                <span className="inline-flex whitespace-nowrap rounded-xl bg-[#eef4ff] px-3 py-2 text-xs font-semibold text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]">
+                  {getPlanCtaLabel(item, t)}
                 </span>
               </div>
             </div>
           );
 
-          return task.href && task.status === "live" ? (
-            <Link key={task.key} href={task.href}>
+          return (
+            <Link key={item.id} href={item.href} data-testid="dashboard-today-plan-row">
               {body}
             </Link>
-          ) : (
-            <div key={task.key}>{body}</div>
           );
         })}
       </div>
+
+      <p className="mt-auto flex items-center gap-2 pt-4 text-xs text-on-surface-variant">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        {t("today_plan_tip")}
+      </p>
     </section>
   );
 }
@@ -700,7 +786,6 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const t = useTranslations("dashboard.home");
   const topBar = data.topBar;
-  const hero = data.hero;
 
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
@@ -708,40 +793,47 @@ export function DashboardContent({
     <PageTransition className="min-h-full bg-background">
       <ProductPageShell>
       <PageContainer size="wide" className="flex flex-col py-3 lg:py-4">
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-1 text-on-surface">
-          <UtilityChip
-            icon={
-              <LottieAnimation
-                animationData={fireAnimation}
-                className="h-7 w-7"
-                loop
-              />
-            }
-            label={t("topbar_streak")}
-            value={topBar.currentStreak}
-          />
-          <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
-          <UtilityChip
-            icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
-            label={t("topbar_orbs")}
-            value={topBar.orbBalance.toLocaleString()}
-          />
-          <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
-          <UtilityChip
-            icon={<Star className="h-5 w-5 text-primary" />}
-            label=""
-            value={t("level", { level: topBar.level })}
-          >
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs text-on-surface-variant">
-                {currentXpInLevel} / {topBar.xpGoal} XP
-              </span>
-              <Progress
-                value={(currentXpInLevel / topBar.xpGoal) * 100}
-                className="h-1.5 w-20 bg-surface-container-high"
-              />
-            </div>
-          </UtilityChip>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-on-surface">
+          <p className="min-w-0 text-[1rem] font-medium text-on-surface">
+            {t(getTimeGreetingKey())}, {displayName}!{" "}
+            <span aria-hidden="true">👋</span>
+          </p>
+
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <UtilityChip
+              icon={
+                <LottieAnimation
+                  animationData={fireAnimation}
+                  className="h-7 w-7"
+                  loop
+                />
+              }
+              label={t("topbar_streak")}
+              value={topBar.currentStreak}
+            />
+            <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
+            <UtilityChip
+              icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
+              label={t("topbar_orbs")}
+              value={topBar.orbBalance.toLocaleString()}
+            />
+            <div className="hidden h-10 w-px bg-outline-variant/35 sm:block" />
+            <UtilityChip
+              icon={<Star className="h-5 w-5 text-primary" />}
+              label=""
+              value={t("level", { level: topBar.level })}
+            >
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-on-surface-variant">
+                  {currentXpInLevel} / {topBar.xpGoal} XP
+                </span>
+                <Progress
+                  value={(currentXpInLevel / topBar.xpGoal) * 100}
+                  className="h-1.5 w-20 bg-surface-container-high"
+                />
+              </div>
+            </UtilityChip>
+          </div>
         </div>
 
         {showWelcome ? (
@@ -749,42 +841,26 @@ export function DashboardContent({
         ) : null}
 
         <div className="flex flex-col gap-3">
-          <section className="rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-4 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)]">
-            <div className="grid gap-4 2xl:grid-cols-[minmax(0,0.88fr)_minmax(500px,1.12fr)]">
-              <div className="min-w-0">
-                <p className="text-[1.05rem] font-medium text-on-surface">
-                  {t(getTimeGreetingKey())}, {displayName}!{" "}
-                  <span aria-hidden="true">👋</span>
-                </p>
-                <h1 className="mt-3 max-w-2xl text-[2rem] font-bold text-on-surface sm:text-[2.5rem]">
-                  {t("hero_title")}
-                </h1>
-
-                <div className="mt-6 rounded-[1.45rem] border border-outline-variant/24 bg-surface-container-lowest shadow-[0_20px_60px_-48px_rgba(11,20,36,0.16)]">
-                  <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-                    <HeroWeekWidget weeklyStats={hero.weeklyStats} />
-                    <div className="hidden bg-outline-variant/35 md:block" />
-                    <div className="border-t border-outline-variant/20 md:border-t-0">
-                      <HeroGoalWidget {...hero.todayGoal} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <SkillSnapshotCard snapshot={data.skillSnapshot} />
-            </div>
+          <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(310px,0.48fr)] 2xl:grid-cols-[minmax(0,1.42fr)_minmax(420px,0.72fr)]">
+            <RecommendedDrillPanel drill={data.recommendedDrill} />
+            <TodayPlanPanel items={data.todayPlanItems} />
           </section>
 
-          <section className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          <section
+            aria-label={t("quick_actions_label")}
+            className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-4"
+          >
             {data.quickActions.map((action) => (
               <QuickActionCard key={action.key} action={action} />
             ))}
           </section>
 
-          <section className="grid gap-3 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] 2xl:items-start">
+          <section className="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] 2xl:grid-cols-[minmax(0,1.1fr)_minmax(500px,0.9fr)] 2xl:items-start">
             <RecentActivityCard items={data.recentActivity} />
-            <NextStepsCard tasks={data.nextSteps} />
-            <ProgressCard metrics={data.progress} />
+            <div className="grid gap-3">
+              <ProgressCard metrics={data.progress} />
+              <SkillSnapshotCard snapshot={data.skillSnapshot} compact />
+            </div>
           </section>
 
           <MobileSupportCards
