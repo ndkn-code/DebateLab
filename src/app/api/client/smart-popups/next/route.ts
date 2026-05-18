@@ -8,6 +8,36 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+type SmartPopupRouteContext = {
+  method: "GET" | "POST";
+  userId?: string;
+  locale?: string | null;
+  surface?: string | null;
+  route?: string | null;
+  commit: boolean;
+};
+
+function logSmartPopupFailure(context: SmartPopupRouteContext, error: unknown) {
+  console.error("[smart-popups/next] failed", {
+    ...context,
+    error:
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          }
+        : error,
+  });
+}
+
+function emptyPopupResponse() {
+  return NextResponse.json({
+    popup: null,
+    segment: null,
+  });
+}
+
 async function getAuthenticatedUser() {
   const supabase = await createClient();
   const {
@@ -40,18 +70,20 @@ async function guardRateLimit(
 }
 
 export async function GET(request: NextRequest) {
-  const { supabase, user } = await getAuthenticatedUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const limited = await guardRateLimit(supabase);
-  if (limited) return limited;
-
+  const searchParams = request.nextUrl.searchParams;
+  let userId: string | undefined;
   try {
+    const { supabase, user } = await getAuthenticatedUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = user.id;
+
+    const limited = await guardRateLimit(supabase);
+    if (limited) return limited;
+
     const admin = createAdminClient();
-    const searchParams = request.nextUrl.searchParams;
     const result = await getNextSmartPopup({
       supabase: admin,
       userId: user.id,
@@ -63,46 +95,64 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(
+    logSmartPopupFailure(
       {
-        error:
-          error instanceof Error ? error.message : "Unable to preview popup.",
+        method: "GET",
+        userId,
+        locale: searchParams.get("locale"),
+        surface: searchParams.get("surface"),
+        route: searchParams.get("route"),
+        commit: false,
       },
-      { status: 500 }
+      error
     );
+    return emptyPopupResponse();
   }
 }
 
 export async function POST(request: NextRequest) {
-  const { supabase, user } = await getAuthenticatedUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const limited = await guardRateLimit(supabase);
-  if (limited) return limited;
-
+  let userId: string | undefined;
+  let locale: string | null = null;
+  let surface: string | null = null;
+  let route: string | null = null;
   try {
+    const { supabase, user } = await getAuthenticatedUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = user.id;
+
+    const limited = await guardRateLimit(supabase);
+    if (limited) return limited;
+
     const body = await readJsonObject(request, { maxBytes: 8 * 1024 });
+    locale = getString(body, "locale", { maxLength: 8 }) ?? null;
+    surface = getString(body, "surface", { maxLength: 32 }) ?? null;
+    route = getString(body, "route", { maxLength: 500 }) ?? null;
     const admin = createAdminClient();
     const result = await getNextSmartPopup({
       supabase: admin,
       userId: user.id,
-      locale: getString(body, "locale", { maxLength: 8 }),
-      surface: getString(body, "surface", { maxLength: 32 }),
-      route: getString(body, "route", { maxLength: 500 }),
+      locale,
+      surface,
+      route,
       commit: true,
     });
 
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(
+    logSmartPopupFailure(
       {
-        error:
-          error instanceof Error ? error.message : "Unable to commit popup.",
+        method: "POST",
+        userId,
+        locale,
+        surface,
+        route,
+        commit: true,
       },
-      { status: 500 }
+      error
     );
+    return emptyPopupResponse();
   }
 }
