@@ -198,9 +198,9 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
   return (
     <div className="bg-[#F7FAFE] text-[#0B1424]">
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
+        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
           <div className="order-2 max-w-[560px] lg:order-1">
-            <h1 className="mt-[4.25rem] text-[3.2rem] font-bold leading-[0.98] tracking-[-0.05em] text-[#0B1424] sm:text-[4.4rem]">
+            <h1 className="mt-[4.25rem] text-[3rem] font-bold leading-[0.98] text-[#0B1424] sm:text-[4rem]">
               {copy.hero.line1}
               <br />
               <span className="text-[#4D86F7]">{copy.hero.line2}</span>
@@ -244,7 +244,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       <section className="px-6 pb-18 md:px-8">
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div className="grid overflow-hidden rounded-[28px] border border-[#E3ECF8] bg-white shadow-[0_30px_60px_-40px_rgba(11,20,36,0.28)] md:grid-cols-2 xl:grid-cols-4">
             {copy.stats.map((item, index) => (
               <div
@@ -271,7 +271,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       <section id="features" className="px-6 py-10 md:px-8 md:py-14">
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
               {copy.features.eyebrow}
@@ -303,7 +303,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       <section id="how-it-works" className="px-6 py-18 md:px-8 md:py-20">
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
               {copy.steps.eyebrow}
@@ -337,7 +337,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       <section className="px-6 py-14 md:px-8 md:py-18">
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
               {copy.testimonials.eyebrow}
@@ -389,7 +389,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
       </section>
 
       <section id="pricing" className="px-6 py-14 md:px-8 md:py-18">
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div className="overflow-hidden rounded-[34px] border border-[#E3ECF8] bg-[linear-gradient(180deg,#F2F7FF_0%,#ECF3FF_100%)] px-8 py-10 shadow-[0_24px_56px_-44px_rgba(11,20,36,0.38)] md:px-12 md:py-12">
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_476px]">
               <div className="max-w-[560px]">
@@ -426,7 +426,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
         id="about"
         className="px-6 pb-10 pt-8 md:px-8"
       >
-        <div className="mx-auto max-w-[1280px]">
+        <div className="mx-auto max-w-6xl">
           <div
             id="resources"
             className="grid gap-10 border-t border-[#E4EDF8] pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_1.1fr]"

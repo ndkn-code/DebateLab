@@ -431,7 +431,7 @@ export default function FeedbackPage() {
   if (!selectedTopic) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       {showConfetti && (
         <div className="fixed inset-0 pointer-events-none z-50">
           <LottieAnimation

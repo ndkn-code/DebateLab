@@ -312,7 +312,7 @@ export function AiRebuttalPhase({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-6 py-7 lg:px-8">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-7 lg:px-8">
       <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.85fr)]">
         <PracticePanel className="p-7">
           <div className="flex items-start justify-between gap-5 border-b border-outline-variant/70 pb-7">

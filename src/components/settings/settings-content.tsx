@@ -412,11 +412,11 @@ export function SettingsContent({
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)]">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">
+            <h1 className="text-3xl font-bold text-[#172554] sm:text-[2rem]">
               {t("headline")}
             </h1>
             <p className="mt-2 text-sm text-[#64748b] sm:text-base">

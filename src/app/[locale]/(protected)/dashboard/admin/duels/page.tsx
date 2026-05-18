@@ -136,8 +136,8 @@ export default async function AdminDuelsPage() {
   const hiddenProfiles = mmrProfilesRes.count ?? 0;
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1380px]">
+    <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">
             <Swords className="h-4 w-4" />

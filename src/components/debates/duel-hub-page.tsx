@@ -78,7 +78,7 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
   const t = useTranslations("duelHub");
 
   return (
-    <PageTransition className="min-h-screen bg-background">
+    <PageTransition className="min-h-full bg-background">
       <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">

@@ -27,7 +27,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
 
   return (
     <header className="relative z-20 bg-[#F7FAFE]">
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-6 md:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 md:px-8">
         <Link href="/" className="shrink-0">
           <LogoMark
             className="gap-2.5"
@@ -81,7 +81,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
           mobileOpen ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="mx-auto max-w-[1280px] px-6 py-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-6 py-4 md:px-8">
           <div className="flex flex-col gap-1">
             {NAV_LINKS.map((item) => (
               <a

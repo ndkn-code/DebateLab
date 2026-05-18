@@ -503,7 +503,7 @@ export default function SessionPage() {
   }, [router, stopMicStream]);
 
   if (isRestoringDraft) {
-    return <div className="min-h-screen bg-background" />;
+    return <div className="h-dvh bg-background" />;
   }
 
   if (!selectedTopic) return null;
@@ -538,7 +538,7 @@ export default function SessionPage() {
   })();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
       {/* Network error banner */}
       {speech.error === "network" && currentPhase === "speaking" && (
         <div

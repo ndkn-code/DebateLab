@@ -17,9 +17,9 @@ export default async function AdminLayout({
   if (!user) {
     if (devAdminBypass) {
       return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background md:flex-row">
+        <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
           <AdminSidebar />
-          <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
         </div>
       );
     }
@@ -36,9 +36,9 @@ export default async function AdminLayout({
   if (!profile || profile.role !== "admin") {
     if (devAdminBypass) {
       return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background md:flex-row">
+        <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
           <AdminSidebar />
-          <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
         </div>
       );
     }
@@ -48,9 +48,9 @@ export default async function AdminLayout({
 
   // Use fixed positioning to completely replace the parent layout's sidebar
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background md:flex-row">
+    <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
       <AdminSidebar />
-      <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
     </div>
   );
 }

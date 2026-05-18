@@ -128,7 +128,7 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
       </motion.div>
 
       <div className="border-t border-outline-variant/60 bg-surface-container-lowest/80 px-8 py-5">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <span className="inline-flex items-center gap-3 text-sm font-medium text-on-surface-variant">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/70 bg-surface">
               <ArrowLeft className="h-5 w-5" />

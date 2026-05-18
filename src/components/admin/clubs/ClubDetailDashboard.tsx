@@ -471,7 +471,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
 
   return (
     <main className="min-h-full bg-[#F7FAFE] px-4 py-5 text-[#152238] sm:px-5 lg:px-6">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 border-b border-[#DEE8F8] pb-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-start gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#CFE0FF] bg-[#2E78F6] text-2xl font-bold text-white shadow-sm shadow-[#4D86F7]/20">

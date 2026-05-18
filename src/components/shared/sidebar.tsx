@@ -85,11 +85,11 @@ function NavContent({
     .toUpperCase();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Logo */}
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center border-b border-outline-variant/10 px-4",
+          "flex h-14 shrink-0 items-center border-b border-outline-variant/10 px-4",
           collapsed ? "justify-center" : "gap-2"
         )}
       >
@@ -97,7 +97,7 @@ function NavContent({
           D
         </div>
         {!collapsed && (
-          <span className="text-lg font-extrabold text-on-surface tracking-tight">
+          <span className="truncate text-base font-extrabold text-on-surface">
             DebateLab
           </span>
         )}
@@ -119,7 +119,7 @@ function NavContent({
       )}
 
       {/* Nav Links */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -134,9 +134,9 @@ function NavContent({
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
                 <>
-                  <span>{label}</span>
+                  <span className="truncate">{label}</span>
                   {isUnavailable ? (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-container px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
                       <Lock className="h-3 w-3" />
                       {ts("coming_soon")}
                     </span>
@@ -152,7 +152,7 @@ function NavContent({
                 key={item.href}
                 aria-disabled="true"
                 className={cn(
-                  "flex min-h-[44px] cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-on-surface-variant/65 opacity-75",
+                  "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant/65 opacity-75",
                   collapsed && "justify-center px-0"
                 )}
                 title={collapsed ? `${label} - ${ts("coming_soon")}` : undefined}
@@ -168,7 +168,7 @@ function NavContent({
               href={item.href}
               onClick={onNavClick}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all min-h-[44px]",
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 collapsed && "justify-center px-0",
                 isActive
                   ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
@@ -183,11 +183,11 @@ function NavContent({
       </nav>
 
       {/* User section */}
-      <div className="shrink-0 border-t border-outline-variant/10 p-3">
+      <div className="shrink-0 border-t border-outline-variant/10 p-2">
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-surface-container",
+              "flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-surface-container",
               collapsed && "justify-center px-0"
             )}
           >
@@ -283,8 +283,8 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       ) : (
         <aside
           className={cn(
-            "hidden md:flex flex-col h-screen sticky top-0 border-r border-outline-variant/10 bg-surface-container-lowest transition-all duration-200",
-            collapsed ? "w-16" : "w-60"
+            "hidden h-full shrink-0 flex-col overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest transition-all duration-200 md:flex",
+            collapsed ? "w-16" : "w-55"
           )}
         >
           <NavContent
@@ -296,7 +296,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container"
+            className="absolute right-2 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container"
           >
             <ChevronLeft
               className={cn(
@@ -314,7 +314,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0" showCloseButton={false}>
+          <SheetContent side="left" className="w-55 p-0" showCloseButton={false}>
             <SheetTitle className="sr-only">{tc('navigation')}</SheetTitle>
             <NavContent
               collapsed={false}

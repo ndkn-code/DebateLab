@@ -24,7 +24,7 @@ export function ProtectedShell({
 
   if (isPracticeSession) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="h-dvh min-h-0 overflow-hidden bg-background">
         {children}
         <GlobalOverlays />
         <SessionHeartbeatProvider userId={userId} />
@@ -33,9 +33,11 @@ export function ProtectedShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background md:flex-row">
+    <div className="flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
       <Sidebar profile={profile} userEmail={userEmail} />
-      <main className="flex-1 min-w-0">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+        {children}
+      </main>
       <GlobalOverlays />
       <SessionHeartbeatProvider userId={userId} />
     </div>

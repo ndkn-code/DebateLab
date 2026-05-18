@@ -162,7 +162,7 @@ export function PrepPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 px-5 py-4 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-5 py-4 sm:px-6 lg:px-8">
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <MotionInfoPanel topic={topic} side={side} />
 

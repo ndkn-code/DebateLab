@@ -77,7 +77,7 @@ function CoachEmptyState({
     t("welcome_subtitle");
 
   return (
-    <div className="flex flex-col items-center px-4 py-8 text-center sm:px-8 sm:py-12">
+    <div className="flex w-full min-w-0 max-w-full flex-col items-center px-4 py-8 text-center sm:px-8 sm:py-12">
       <Image
         src="/coach/coach-pet-clean.png"
         alt="Debate Lab AI Coach"
@@ -87,14 +87,14 @@ function CoachEmptyState({
         priority
       />
 
-      <h1 className="mt-6 text-[1.8rem] font-semibold tracking-[-0.03em] text-on-surface sm:text-[2rem]">
+      <h1 className="mt-6 max-w-full text-[1.55rem] font-semibold leading-tight text-on-surface sm:text-[2rem]">
         {t("welcome_title")}
       </h1>
-      <p className="mt-2 max-w-[540px] text-[15px] leading-7 text-on-surface-variant">
+      <p className="mt-2 max-w-full text-[15px] leading-7 text-on-surface-variant sm:max-w-[540px]">
         {subtitle}
       </p>
 
-      <div className="mt-8 w-full max-w-[560px] space-y-3">
+      <div className="mt-8 w-full min-w-0 max-w-[560px] space-y-3">
         {coachEnvelope.starterPrompts.slice(0, 5).map((prompt, index) => {
           const style = STARTER_STYLES[index % STARTER_STYLES.length];
           const Icon = style.icon;
@@ -104,7 +104,7 @@ function CoachEmptyState({
               key={prompt}
               onClick={() => onPromptSelect(prompt)}
               disabled={isLoading}
-              className="group flex w-full items-center justify-between gap-3 rounded-[18px] border border-outline-variant/16 bg-surface px-4 py-3 text-left shadow-[0_16px_32px_rgba(11,20,36,0.03)] transition-colors hover:border-primary/20 hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex w-full min-w-0 items-center justify-between gap-3 rounded-[18px] border border-outline-variant/16 bg-surface px-4 py-3 text-left shadow-[0_16px_32px_rgba(11,20,36,0.03)] transition-colors hover:border-primary/20 hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div

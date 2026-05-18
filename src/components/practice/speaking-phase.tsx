@@ -130,7 +130,7 @@ export function SpeakingPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-6 px-5 pb-24 pt-6 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-5 pb-24 pt-6 sm:px-6 lg:px-8">
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
         <MotionInfoPanel topic={topic} side={side} />
 

@@ -88,14 +88,16 @@ export function DashboardSidebarRail({
   };
 
   return (
-    <aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-outline-variant/10 bg-surface-container-lowest px-5 py-6 lg:flex lg:flex-col">
-      <LogoMark
-        className="shrink-0"
-        bubbleClassName="h-11 w-11 rounded-2xl"
-        textClassName="text-[1.75rem]"
-      />
+    <aside className="hidden h-full w-55 shrink-0 overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest lg:flex lg:flex-col">
+      <div className="flex h-14 shrink-0 items-center border-b border-outline-variant/10 px-4">
+        <LogoMark
+          className="shrink-0"
+          bubbleClassName="h-9 w-9 rounded-xl"
+          textClassName="text-[1.45rem]"
+        />
+      </div>
 
-      <nav className="mt-8 space-y-1.5">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.key];
           const href = item.href;
@@ -104,12 +106,12 @@ export function DashboardSidebarRail({
 
           const content = (
             <>
-              <span className="flex items-center gap-3">
-                <Icon className="h-5 w-5" />
-                {tNav(item.key)}
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="truncate">{tNav(item.key)}</span>
               </span>
               {isUnavailable ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-container px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
                   <Lock className="h-3 w-3" />
                   {t("coming_soon")}
                 </span>
@@ -129,7 +131,7 @@ export function DashboardSidebarRail({
               <div
                 key={item.key}
                 aria-disabled="true"
-                className="flex cursor-not-allowed items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium text-on-surface-variant/70 opacity-75"
+                className="flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium text-on-surface-variant/65 opacity-75"
               >
                 {content}
               </div>
@@ -141,9 +143,9 @@ export function DashboardSidebarRail({
               key={item.key}
               href={href}
               className={cn(
-                "group flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-sm font-medium transition-all",
+                "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
+                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)]"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               )}
             >
@@ -153,22 +155,8 @@ export function DashboardSidebarRail({
         })}
       </nav>
 
-      <div className="mt-8 space-y-4">
-        <div className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest p-4 shadow-[0_20px_60px_-48px_rgba(22,39,91,0.45)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Gift className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-on-surface">
-                {t("invite_friend_title")}
-              </p>
-              <p className="text-sm text-primary">
-                {t("invite_friend_reward", { count: inviteReward })}
-              </p>
-            </div>
-          </div>
-
+      <div className="shrink-0 border-t border-outline-variant/10 p-2">
+        <div className="space-y-1">
           <button
             type="button"
             disabled={!referralCode}
@@ -179,39 +167,43 @@ export function DashboardSidebarRail({
               setCopied(true);
               window.setTimeout(() => setCopied(false), 1800);
             }}
-            className="mt-4 flex w-full items-center justify-between rounded-[1rem] border border-outline-variant/15 bg-surface-container-low px-3 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span>{copied ? t("referral_copied") : t("invite_friend_cta")}</span>
+            <span className="flex min-w-0 items-center gap-3">
+              <Gift className="h-5 w-5 shrink-0 text-primary" />
+              <span className="truncate">
+                {copied
+                  ? t("referral_copied")
+                  : t("invite_friend_reward", { count: inviteReward })}
+              </span>
+            </span>
             <ChevronRight className="h-4 w-4" />
           </button>
-        </div>
-      </div>
-
-      <div className="mt-auto space-y-2 pt-6">
-        {isAdmin ? (
+          {isAdmin ? (
+            <Link
+              href="/dashboard/admin"
+              className="flex h-8 items-center gap-3 rounded-lg bg-primary/10 px-2 text-sm font-semibold text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)] transition-colors hover:bg-primary/15"
+            >
+              <Shield className="h-5 w-5 shrink-0" />
+              <span>{tNav("adminShort")}</span>
+            </Link>
+          ) : null}
           <Link
-            href="/dashboard/admin"
-            className="flex items-center gap-3 rounded-[1rem] bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)] transition-colors hover:bg-primary/15"
+            href="/settings"
+            className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
           >
-            <Shield className="h-5 w-5" />
-            {tNav("switchToAdmin")}
+            <Settings className="h-5 w-5 shrink-0" />
+            <span className="truncate">{t("settings_label")}</span>
           </Link>
-        ) : null}
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 rounded-[1rem] px-3 py-2.5 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
-        >
-          <Settings className="h-5 w-5" />
-          {t("settings_label")}
-        </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full justify-start rounded-[1rem] px-3 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-        >
-          <HelpCircle className="mr-3 h-5 w-5" />
-          {t("help_support")}
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 w-full justify-start rounded-lg px-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+          >
+            <HelpCircle className="mr-3 h-5 w-5 shrink-0" />
+            <span className="truncate">{t("help_support")}</span>
+          </Button>
+        </div>
       </div>
     </aside>
   );

@@ -27,14 +27,14 @@ export function StudentRouteSkeleton({
   const isFeedback = variant === "feedback";
 
   return (
-    <div className="min-h-screen bg-background px-4 py-7 sm:px-6 xl:px-8">
+    <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div
         className={cn(
-          "mx-auto grid max-w-[1440px] animate-pulse gap-6",
+          "mx-auto grid max-w-6xl animate-pulse gap-5",
           isChat
-            ? "lg:grid-cols-[320px_minmax(0,1fr)]"
+            ? "lg:grid-cols-[220px_minmax(0,1fr)]"
             : isFeedback
-              ? "lg:grid-cols-[minmax(0,1fr)_360px]"
+              ? "lg:grid-cols-[minmax(0,1fr)_320px]"
               : "grid-cols-1"
         )}
       >
@@ -48,7 +48,7 @@ export function StudentRouteSkeleton({
             className={cn(
               "grid gap-4",
               variant === "courses" || variant === "practice"
-                ? "md:grid-cols-2 xl:grid-cols-3"
+                ? "md:grid-cols-2 2xl:grid-cols-3"
                 : "md:grid-cols-2"
             )}
           >

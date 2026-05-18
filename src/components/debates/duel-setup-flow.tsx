@@ -450,8 +450,8 @@ export function DuelLobbySetupView({
             : "Waiting for creator";
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full bg-background">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
           <div>
             <button

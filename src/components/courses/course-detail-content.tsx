@@ -90,8 +90,8 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-3.5rem)] bg-[#f7fafe] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-      <div className="mx-auto max-w-[1380px]">
+    <div className="min-h-full bg-[#f7fafe] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-6xl">
         <Link
           href="/courses"
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#3971dd] transition-colors hover:text-[#2359c8]"
@@ -100,7 +100,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
           {t("detail.back")}
         </Link>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_292px]">
+        <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_292px]">
           <div className="min-w-0">
             <section className="rounded-[28px] border border-[#dee8f8] bg-white p-5 shadow-[0_24px_60px_-48px_rgba(22,39,91,0.28)] sm:p-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -139,7 +139,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     ) : null}
                   </div>
 
-                  <h1 className="mt-3 text-[2rem] font-semibold tracking-[-0.04em] text-[#10213f] sm:text-[2.35rem]">
+                  <h1 className="mt-3 text-[2rem] font-semibold text-[#10213f] sm:text-[2.25rem]">
                     {course.title}
                   </h1>
                   <p className="mt-3 max-w-3xl text-[15px] leading-8 text-[#66758d]">
@@ -201,7 +201,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                         lesson: currentItem?.lessonNumber ?? 1,
                       })}
                     </div>
-                    <h2 className="mt-4 text-[2.15rem] font-semibold tracking-[-0.04em] text-[#10213f] sm:text-[2.55rem]">
+                    <h2 className="mt-4 text-[1.9rem] font-semibold text-[#10213f] sm:text-[2.2rem]">
                       {selectedLesson.title}
                     </h2>
                     <p className="mt-3 max-w-3xl text-[15px] leading-8 text-[#66758d]">
@@ -266,7 +266,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
           </div>
 
           <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-            <section className="rounded-[26px] border border-[#dee8f8] bg-white p-5 shadow-[0_24px_60px_-50px_rgba(22,39,91,0.28)] xl:mt-[118px]">
+            <section className="rounded-[26px] border border-[#dee8f8] bg-white p-5 shadow-[0_24px_60px_-50px_rgba(22,39,91,0.28)] 2xl:mt-[118px]">
               <p className="text-[1.45rem] font-semibold tracking-[-0.03em] text-[#10213f]">
                 {course.isPreview ? t("reader.preview_title") : t("reader.whats_next")}
               </p>

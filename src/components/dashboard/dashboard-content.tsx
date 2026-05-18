@@ -24,6 +24,10 @@ import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/shared/page-motion";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { cn } from "@/lib/utils";
 import type {
@@ -701,8 +705,9 @@ export function DashboardContent({
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
 
   return (
-    <PageTransition className="h-screen overflow-hidden bg-background px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
-      <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
+    <PageTransition className="min-h-full bg-background">
+      <ProductPageShell>
+      <PageContainer size="wide" className="flex flex-col py-3 lg:py-4">
         <div className="mb-3 flex flex-wrap items-center justify-end gap-1 text-on-surface">
           <UtilityChip
             icon={
@@ -743,15 +748,15 @@ export function DashboardContent({
           <WelcomeBanner displayName={displayName} userId={userId} show />
         ) : null}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
-          <section className="rounded-[1.7rem] border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-4 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)]">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,0.88fr)_minmax(560px,1.12fr)]">
+        <div className="flex flex-col gap-3">
+          <section className="rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-background via-surface-container-lowest to-[#EEF4FF] p-4 shadow-[0_28px_90px_-60px_rgba(11,20,36,0.16)]">
+            <div className="grid gap-4 2xl:grid-cols-[minmax(0,0.88fr)_minmax(500px,1.12fr)]">
               <div className="min-w-0">
                 <p className="text-[1.05rem] font-medium text-on-surface">
                   {t(getTimeGreetingKey())}, {displayName}!{" "}
                   <span aria-hidden="true">👋</span>
                 </p>
-                <h1 className="mt-3 max-w-2xl text-[2.6rem] font-bold tracking-[-0.05em] text-on-surface sm:text-[3.25rem]">
+                <h1 className="mt-3 max-w-2xl text-[2rem] font-bold text-on-surface sm:text-[2.5rem]">
                   {t("hero_title")}
                 </h1>
 
@@ -770,13 +775,13 @@ export function DashboardContent({
             </div>
           </section>
 
-          <section className="grid gap-3 xl:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
             {data.quickActions.map((action) => (
               <QuickActionCard key={action.key} action={action} />
             ))}
           </section>
 
-          <section className="grid min-h-0 shrink-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] xl:items-start">
+          <section className="grid gap-3 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)_minmax(280px,0.8fr)] 2xl:items-start">
             <RecentActivityCard items={data.recentActivity} />
             <NextStepsCard tasks={data.nextSteps} />
             <ProgressCard metrics={data.progress} />
@@ -787,7 +792,8 @@ export function DashboardContent({
             inviteReward={data.sidebarCards.inviteOrbs}
           />
         </div>
-      </div>
+      </PageContainer>
+      </ProductPageShell>
     </PageTransition>
   );
 }

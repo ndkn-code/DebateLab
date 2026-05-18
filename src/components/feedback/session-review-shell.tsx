@@ -50,7 +50,7 @@ export function SessionReviewShell({
   return (
     <div
       className={cn(
-        "mx-auto max-w-[1720px] px-4 py-5 sm:px-6 lg:px-8",
+        "mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8",
         className
       )}
     >

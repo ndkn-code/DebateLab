@@ -27,7 +27,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-full items-center justify-center bg-background">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -35,7 +35,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
 
   if (error || !room || !room.judgment) {
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="min-h-full bg-background px-4 py-10">
         <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
@@ -70,7 +70,7 @@ export function DuelResultContent({
 
   if (!room.judgment) {
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="min-h-full bg-background px-4 py-10">
         <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
@@ -96,7 +96,7 @@ export function DuelResultContent({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <SessionReviewShell
         initialTab={initialTab}
         transcript={<DuelTranscriptTab room={room} />}

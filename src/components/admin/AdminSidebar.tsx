@@ -23,19 +23,19 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
   const t = useTranslations("admin");
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex h-16 shrink-0 items-center gap-2 border-b border-outline-variant/10 px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-outline-variant/10 px-4">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Shield className="h-4 w-4" />
         </div>
-        <span className="text-lg font-extrabold text-primary tracking-tight">
+        <span className="truncate text-base font-extrabold text-primary">
           {t("title")}
         </span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
         {ADMIN_NAV.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -45,28 +45,28 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
               href={item.href}
               onClick={onNavClick}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all min-h-[44px]",
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
+                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)]"
                   : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              <span>{t(`nav.${item.key}`)}</span>
+              <span className="truncate">{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Back to Dashboard */}
-      <div className="shrink-0 border-t border-outline-variant/10 p-3">
+      <div className="shrink-0 border-t border-outline-variant/10 p-2">
         <Link
           href="/dashboard"
           onClick={onNavClick}
-          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all min-h-[44px]"
+          className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-container hover:text-on-surface"
         >
           <ArrowLeft className="h-5 w-5 shrink-0" />
-          <span>{t("backToDashboard")}</span>
+          <span className="truncate">{t("backToDashboard")}</span>
         </Link>
       </div>
     </div>
@@ -79,7 +79,7 @@ export function AdminSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col h-screen sticky top-0 w-60 border-r border-outline-variant/10 bg-surface-container-lowest">
+      <aside className="hidden h-full w-55 shrink-0 flex-col overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest md:flex">
         <NavLinks />
       </aside>
 
@@ -89,7 +89,7 @@ export function AdminSidebar() {
           <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0" showCloseButton={false}>
+          <SheetContent side="left" className="w-55 p-0" showCloseButton={false}>
             <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
             <NavLinks onNavClick={() => setSidebarOpen(false)} />
           </SheetContent>

@@ -318,3 +318,89 @@ This palette should not push the product toward:
 - purple-first branding
 
 The visual direction should stay blue-led, editorial, and trustworthy.
+
+## In-App Feedback Popups
+
+### Purpose
+Feedback popups collect immediate product feedback without interrupting core practice work. They should feel like a respectful intercept: short, clear, localized, and easy to dismiss.
+
+### Color Profile
+- `Primary`: `#4D86F7`
+- `Primary Dark`: `#3E78EC`
+- `Primary Light`: `#A9C6FB`
+- `Background`: `#F7FAFE`
+- `Surface`: `#FFFFFF`
+- `Surface Alt`: `#F1F6FD`
+- `Border`: `#DEE8F8`
+- `Heading`: `#0B1424`
+- `Text`: `#415069`
+- `Muted`: `#718096`
+- `Success`: `#34C759`
+- `Warning`: `#F5B942`
+- `Error`: `#EF6A6A`
+
+### Interaction Rules
+- Show feedback popups only on safe protected pages, never during auth, onboarding, administration, or live practice sessions.
+- Use the current app locale for all title, body, question, option, and thank-you copy.
+- Keep surveys short: 1 to 5 questions is ideal, 8 questions is the hard maximum.
+- Required questions should be obvious with a small `*`; validation should happen inline without losing entered answers.
+- Completed feedback earns `50 Credits` and must show a calm thank-you state.
+
+### Layout Rules
+- Use a compact modal, not a full-screen interruption.
+- Use 8px-radius controls inside the modal and avoid nested card-on-card styling.
+- Primary action is the submit button; secondary actions are Later and Don’t ask again.
+- Mobile layouts must keep rating scales, choices, and text inputs inside the modal width without horizontal scrolling.
+
+### Admin Control Panel
+- Admin pages use the same light-blue surface system as the rest of Administration.
+- Builder previews should show English and Vietnamese side by side on desktop and stacked on mobile.
+- Campaign status, delivery mode, response counts, average rating, and send-now actions must be visible without opening a detail page.
+
+## Product Proportion System
+
+### Purpose
+DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The reference rhythm is OnePrep's proportion system: a compact fixed sidebar, restrained content width, modest typography, and internal scrolling panes. Keep DebateLab's blue-led brand and Plus Jakarta Sans; copy the layout discipline, not OnePrep's palette.
+
+### App Shell
+- Protected app shells use `h-dvh w-screen overflow-hidden`; the main pane is `min-w-0 flex-1 overflow-y-auto overflow-x-hidden`.
+- Special live-practice flows may stay full-screen, but their top bars and panels still follow the same type, spacing, and container discipline.
+- Avoid page-level `min-h-screen` inside the protected shell unless a route deliberately replaces the app frame.
+- Do not allow horizontal document scrolling. If a surface needs overflow, it scrolls inside the relevant table, chart, or panel.
+
+### Sidebar Rhythm
+- Desktop student and admin sidebars are fixed at `w-55` / `220px`.
+- Sidebar nav rows are `32px` tall (`h-8` or `min-h-8`), with `20px` icons, compact labels, and grouped utility rows at the bottom.
+- Section labels use `12px` uppercase text with relaxed spacing only when grouping helps scanability.
+- Persistent sidebars do not hold large promotional cards. Referral, upgrade, or campaign prompts should be compact rows in the rail or live inside dashboard content.
+- Sidebar content may scroll internally, but the rail itself remains stable and never pushes the page wider.
+
+### Containers
+- Use the shared page container primitive for product pages.
+- `focused`: `max-w-3xl` for auth, onboarding, focused forms, and narrow review tasks.
+- `standard`: `max-w-5xl` for most product pages, profile, analytics, settings, history, and form/table hybrids.
+- `wide`: `max-w-6xl` for dashboards, practice selection, course pages, and dense-but-readable workflows.
+- `data`: `max-w-7xl` only for true admin data tables or special full-screen review surfaces that need the space.
+- Remove ad hoc `max-w-[1400px]` style defaults unless the page is a real data-table surface.
+
+### Type Scale
+- Keep Plus Jakarta Sans.
+- Body and dense UI copy: `14px` to `16px`.
+- Card titles and compact panel titles: `14px` to `16px`.
+- Page titles: `24px` to `32px`.
+- Stats and hero numerals may use `30px` to `36px`.
+- Letter spacing should be `0` by default; use only mild negative tracking for large headings.
+
+### Component Density
+- Cards should use compact padding (`p-4` to `p-6`) and 8px to 16px radius unless an existing component family requires more.
+- Avoid cards nested inside larger decorative cards.
+- Buttons and inputs should keep labels on one line at 13-inch Safari widths in both English and Vietnamese.
+- Four-column card grids should not appear at 13-inch laptop widths unless each card has enough measured width for its localized labels.
+
+### QA Checklist
+- Check desktop widths `1280x720` and `1440x900`, tablet `768x1024`, and mobile `390x844`.
+- Verify `document.documentElement.scrollWidth <= document.documentElement.clientWidth`.
+- Verify no clipped labels, offscreen buttons, or text bleeding outside cards.
+- Verify analytics/dashboard cards do not collide or truncate awkwardly at 13-inch Safari size.
+- Verify English and Vietnamese labels fit the sidebar and primary controls.
+- Capture Browser screenshots for dashboard, profile/analytics, practice, history, courses, chat, settings, onboarding, auth, landing, and admin after proportion changes.

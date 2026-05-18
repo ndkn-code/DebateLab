@@ -204,7 +204,7 @@ export function DuelCreatePage({
   if (activeRoomCode) {
     if (roomLoading) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex min-h-full items-center justify-center bg-background">
           <div className="rounded-2xl border border-outline-variant/15 bg-surface px-5 py-4 text-sm text-on-surface-variant">
             Loading duel room...
           </div>
@@ -214,7 +214,7 @@ export function DuelCreatePage({
 
     if (roomError || !activeRoom) {
       return (
-        <div className="min-h-screen bg-background px-4 py-10">
+        <div className="min-h-full bg-background px-4 py-10">
           <div className="mx-auto max-w-xl rounded-[28px] border border-outline-variant/20 bg-surface p-6 text-center">
             <h1 className="text-2xl font-bold text-on-surface">
               Duel room unavailable
@@ -249,8 +249,8 @@ export function DuelCreatePage({
   }
 
   return (
-    <PageTransition className="min-h-screen bg-[linear-gradient(180deg,#F7FAFE_0%,#EEF4FF_45%,#F7FAFE_100%)]">
-      <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10">
+    <PageTransition className="min-h-full bg-[linear-gradient(180deg,#F7FAFE_0%,#EEF4FF_45%,#F7FAFE_100%)]">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
         <div className="mb-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
           <div>
             <button

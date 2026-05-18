@@ -30,6 +30,10 @@ import { SessionConfig } from "@/components/practice/session-config";
 import { TopicCard } from "@/components/practice/topic-card";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
+import {
   getLocalizedCategoryOptions,
   getLocalizedTopics,
   getTopicCategoryKey,
@@ -411,14 +415,16 @@ export default function PracticePage() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-background px-4 py-7 sm:px-6 xl:px-8">
+    <PageTransition className="min-h-full bg-background">
+      <ProductPageShell>
+      <PageContainer size="wide" className="py-5 sm:py-6">
       <div
         className={cn(
-          "relative mx-auto flex max-w-[1440px] flex-col gap-7",
-          selectedDisplay && "xl:flex-row xl:items-start xl:gap-6"
+          "relative flex flex-col gap-5",
+          selectedDisplay && "2xl:flex-row 2xl:items-start 2xl:gap-6"
         )}
       >
-        <section className="min-w-0 flex-1 xl:max-w-[990px]">
+        <section className="min-w-0 flex-1 2xl:max-w-[760px]">
           <div className="relative min-h-[88px] lg:static">
             <div className="max-w-[620px] pt-1">
               <h1 className="text-[1.75rem] font-semibold leading-[1.15] text-on-surface md:text-[1.9rem]">
@@ -540,7 +546,7 @@ export default function PracticePage() {
 
           {visibleDisplays.length ? (
             <>
-              <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {visibleDisplays.map((display, index) => (
                   <TopicCard
                     key={display.topic.id}
@@ -594,7 +600,7 @@ export default function PracticePage() {
                 duration: 0.28,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="w-full xl:w-[424px] xl:flex-none xl:pt-[112px]"
+              className="w-full 2xl:w-[360px] 2xl:flex-none 2xl:pt-[100px]"
             >
               <SessionConfig
                 topic={selectedDisplay.topic}
@@ -609,6 +615,8 @@ export default function PracticePage() {
           ) : null}
         </AnimatePresence>
       </div>
+      </PageContainer>
+      </ProductPageShell>
     </PageTransition>
   );
 }

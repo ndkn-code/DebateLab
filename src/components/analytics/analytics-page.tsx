@@ -36,6 +36,10 @@ import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/shared/page-motion";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
@@ -707,7 +711,7 @@ function HeroStat({
   tone: string;
 }) {
   return (
-    <div className="flex min-h-[5rem] w-full items-center justify-center gap-2.5 px-3.5 py-3.5">
+    <div className="flex min-h-[5rem] min-w-0 w-full items-center justify-center gap-2.5 px-3.5 py-3.5">
       <div
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
@@ -739,7 +743,7 @@ function AnalyticsSkillSnapshotCard({
   const values = metrics.map((metric) => (metric.coverage > 0 ? metric.value : 0));
 
   return (
-    <section className="rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6 lg:pb-4">
+    <section className="min-w-0 overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6 lg:pb-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-on-surface">
@@ -759,7 +763,7 @@ function AnalyticsSkillSnapshotCard({
           </p>
         </div>
       ) : (
-        <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(300px,1.08fr)_minmax(270px,0.92fr)]">
+        <div className="mt-4 grid min-w-0 gap-5 xl:grid-cols-[minmax(300px,1.08fr)_minmax(270px,0.92fr)]">
           <div className="flex min-h-[294px] items-center justify-center">
             <svg
               viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
@@ -1067,14 +1071,15 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
   );
 
   return (
-    <PageTransition className="min-h-[calc(100dvh-3.5rem)] bg-background px-4 py-4 sm:px-6 md:min-h-screen lg:px-8 lg:py-6">
-      <div className="mx-auto flex max-w-[1400px] flex-col">
+    <PageTransition className="min-h-full bg-background">
+      <ProductPageShell>
+      <PageContainer size="standard" className="flex min-w-0 flex-col py-5 lg:py-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-on-surface">
+            <h1 className="text-3xl font-semibold text-on-surface md:text-[2rem]">
               {t("title")}
             </h1>
-            <p className="mt-2 max-w-2xl text-lg text-on-surface-variant">
+            <p className="mt-2 max-w-2xl text-base leading-7 text-on-surface-variant">
               {t("subtitle")}
             </p>
             <p className="mt-2 max-w-2xl text-sm font-medium text-on-surface-variant">
@@ -1090,21 +1095,21 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
         </div>
 
         <div className="mt-6 grid gap-4">
-          <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
-            <section className="rounded-[1.8rem] border border-outline-variant/15 bg-surface p-6 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)]">
-              <div className="grid h-full grid-cols-1 gap-x-7 md:grid-cols-[10rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
-                <Avatar className="h-36 w-36 shrink-0 ring-2 ring-[#EEF4FF] shadow-[0_18px_38px_rgba(11,20,36,0.08)]">
+          <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
+              <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
+                <Avatar className="h-28 w-28 shrink-0 ring-2 ring-[#EEF4FF] shadow-[0_18px_38px_rgba(11,20,36,0.08)]">
                   {data.hero.avatarUrl ? (
                     <AvatarImage src={data.hero.avatarUrl} alt={data.hero.displayName} />
                   ) : null}
-                  <AvatarFallback className="bg-[linear-gradient(180deg,#EEF4FF_0%,#DCEAFF_100%)] text-[2.2rem] font-semibold text-primary">
+                  <AvatarFallback className="bg-[linear-gradient(180deg,#EEF4FF_0%,#DCEAFF_100%)] text-[1.75rem] font-semibold text-primary">
                     {getInitials(data.hero.displayName)}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="mt-7 min-w-0 md:mt-0">
+                <div className="mt-5 min-w-0 md:mt-0">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-[2.15rem] font-semibold leading-tight tracking-tight text-on-surface">
+                    <h2 className="text-[1.75rem] font-semibold leading-tight text-on-surface md:text-[2rem]">
                       {data.hero.displayName}
                     </h2>
                     <span className="rounded-full bg-primary/10 px-3 py-1 text-[0.95rem] font-medium text-primary">
@@ -1118,7 +1123,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                     <span>{t("xp_total", { count: data.hero.xp })}</span>
                   </div>
 
-                  <p className="mt-4 max-w-[42rem] text-[1.05rem] leading-8 text-on-surface-variant">
+                  <p className="mt-4 max-w-[42rem] break-words text-base leading-7 text-on-surface-variant">
                     {data.hero.statusLine}
                   </p>
 
@@ -1138,7 +1143,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   </div>
                 </div>
 
-                <div className="col-span-full mt-16 grid w-full grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+                <div className="col-span-full mt-9 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
                   <HeroStat
                     icon={
                       <LottieAnimation
@@ -1170,8 +1175,8 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             <AnalyticsSkillSnapshotCard {...data.skillSnapshot} />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-4">
-            <section className="flex min-h-[210px] flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+          <div className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.practice_minutes.title")}
@@ -1218,7 +1223,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </div>
             </section>
 
-            <section className="flex min-h-[210px] flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.mix.title")}
@@ -1259,7 +1264,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </Link>
             </section>
 
-            <section className="flex min-h-[210px] flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.average_score.title")}
@@ -1300,7 +1305,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </div>
             </section>
 
-            <section className="flex min-h-[210px] flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.strongest_focus.title")}
@@ -1372,7 +1377,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             </section>
           </div>
 
-          <section className="flex flex-col rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
+          <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-on-surface">
@@ -1416,7 +1421,8 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             )}
           </section>
         </div>
-      </div>
+      </PageContainer>
+      </ProductPageShell>
     </PageTransition>
   );
 }

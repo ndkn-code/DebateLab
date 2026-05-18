@@ -23,6 +23,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { storage, supabaseStorage } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseQuery } from "@/hooks/use-supabase-query";
@@ -667,15 +671,16 @@ export default function HistoryPage() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background text-on-surface">
-      <div className="mx-auto max-w-[1360px] px-4 py-8 sm:px-8 lg:px-10">
+    <PageTransition className="min-h-full bg-background text-on-surface">
+      <ProductPageShell>
+      <PageContainer size="standard" className="py-6">
         <motion.header
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center"
         >
           <div>
-            <h1 className="text-[2.35rem] font-bold leading-none tracking-[-0.05em] text-on-surface md:text-[2.6rem]">
+            <h1 className="text-[2rem] font-bold leading-tight text-on-surface md:text-[2.25rem]">
               {t("page_headline")}
             </h1>
             <p className="mt-3 text-sm font-medium leading-6 text-on-surface-variant sm:text-base">
@@ -693,7 +698,7 @@ export default function HistoryPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.04 }}
-          className="mb-6 mt-9 xl:pr-[332px]"
+          className="mb-5 mt-7"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <label className="relative w-full lg:w-[320px]">
@@ -705,7 +710,7 @@ export default function HistoryPage() {
                   setVisibleCount(5);
                 }}
                 placeholder={t("search_placeholder")}
-                className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-4 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/75 focus:border-primary"
+                className="h-10 w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest pl-10 pr-4 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/75 focus:border-primary"
               />
             </label>
 
@@ -723,7 +728,7 @@ export default function HistoryPage() {
                       setVisibleCount(5);
                     }}
                     className={cn(
-                      "inline-flex h-12 min-w-[86px] items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition-colors",
+                      "inline-flex h-10 min-w-[78px] items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors",
                       active
                         ? "border-primary bg-primary text-on-primary shadow-[0_12px_26px_-18px_rgba(77,134,247,0.9)]"
                         : "border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-primary-fixed"
@@ -751,7 +756,7 @@ export default function HistoryPage() {
                   setSort(event.target.value as SortOption);
                   setVisibleCount(5);
                 }}
-                className="h-12 w-full appearance-none rounded-2xl border border-outline-variant/60 bg-surface-container-lowest pl-11 pr-12 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary"
+                className="h-10 w-full appearance-none rounded-xl border border-outline-variant/60 bg-surface-container-lowest pl-10 pr-10 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary"
               >
                 <option value="newest">{t("sort_newest")}</option>
                 <option value="oldest">{t("sort_oldest")}</option>
@@ -763,7 +768,7 @@ export default function HistoryPage() {
           </div>
         </motion.section>
 
-        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
           <main className="min-w-0">
             {visibleItems.length === 0 ? (
               <motion.section
@@ -781,7 +786,7 @@ export default function HistoryPage() {
                   {t("empty_subtitle")}
                 </p>
                 <Link href="/practice" className="mt-7 inline-flex">
-                  <Button className="h-12 rounded-2xl bg-primary px-7 text-sm font-semibold text-on-primary hover:bg-primary-dim">
+                  <Button className="h-10 rounded-xl bg-primary px-5 text-sm font-semibold text-on-primary hover:bg-primary-dim">
                     {t("start_practicing")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -862,7 +867,7 @@ export default function HistoryPage() {
 
               <Link
                 href={recommendedPractice.href}
-                className="mt-7 inline-flex h-12 w-full items-center justify-center gap-4 rounded-2xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim"
+                className="mt-6 inline-flex h-10 w-full items-center justify-center gap-3 rounded-xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dim"
               >
                 {t("start_practicing")}
                 <ArrowRight className="h-5 w-5" />
@@ -870,36 +875,37 @@ export default function HistoryPage() {
             </section>
           </aside>
         </div>
-      </div>
+      </PageContainer>
+      </ProductPageShell>
     </PageTransition>
   );
 }
 
 function HistoryPageSkeleton() {
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-[1360px] animate-pulse">
+    <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl animate-pulse">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-2xl bg-primary-container" />
           <div>
             <div className="h-11 w-72 rounded-lg bg-outline-variant/60" />
-            <div className="mt-3 h-5 w-[380px] max-w-full rounded bg-outline-variant/50" />
+            <div className="mt-3 h-5 w-full max-w-[320px] rounded bg-outline-variant/50" />
           </div>
         </div>
 
-        <div className="mb-6 mt-9 xl:pr-[332px]">
+        <div className="mb-5 mt-7">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:w-[320px]" />
-            <div className="flex gap-2.5">
-              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
-              <div className="h-12 w-[104px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
-              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
+            <div className="h-10 w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest lg:w-[320px]" />
+            <div className="flex gap-2">
+              <div className="h-10 w-[78px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-10 w-[98px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-10 w-[78px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
             </div>
-            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:ml-auto lg:w-[220px]" />
+            <div className="h-10 w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest lg:ml-auto lg:w-[220px]" />
           </div>
         </div>
 
-        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
           <main className="flex flex-col gap-2.5">
             {[...Array(5)].map((_, index) => (
               <div

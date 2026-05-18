@@ -401,7 +401,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-full items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
@@ -409,7 +409,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
   if (error || !room) {
     return (
-      <div className="min-h-screen bg-background px-4 py-10">
+      <div className="min-h-full bg-background px-4 py-10">
         <div className="mx-auto max-w-2xl rounded-[28px] border border-outline-variant/20 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel room unavailable
@@ -429,8 +429,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-full bg-background">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-6 shadow-[0_18px_45px_rgba(11,20,66,0.06)] lg:p-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">

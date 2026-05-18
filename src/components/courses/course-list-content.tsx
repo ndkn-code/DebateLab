@@ -81,7 +81,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
 
   return (
     <section className="overflow-hidden rounded-[20px] border border-[#dee8f8] bg-white shadow-[0_24px_50px_-42px_rgba(31,55,113,0.26)]">
-      <div className="grid gap-0 xl:grid-cols-[248px_minmax(0,1fr)_440px]">
+      <div className="grid gap-0 2xl:grid-cols-[248px_minmax(0,1fr)_360px]">
         <div className="p-3">
           <div className="overflow-hidden rounded-[15px] border border-[#e3ebfa]">
             <div className="aspect-[1.13/1] xl:aspect-[1.16/1]">
@@ -104,7 +104,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
             {statusLabel}
           </div>
 
-          <h2 className="mt-4 text-[2.1rem] font-semibold tracking-[-0.04em] text-[#14244a]">
+          <h2 className="mt-4 text-[1.75rem] font-semibold text-[#14244a] sm:text-[2rem]">
             {course.title}
           </h2>
           <p className="mt-3 max-w-[520px] text-[15px] leading-8 text-[#66758d]">
@@ -125,7 +125,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
           </div>
         </div>
 
-        <div className="border-t border-[#edf3fd] px-7 py-6 xl:border-l xl:border-t-0 xl:py-7">
+        <div className="border-t border-[#edf3fd] px-7 py-6 2xl:border-l 2xl:border-t-0 2xl:py-7">
           <div className="flex h-full flex-col justify-between gap-5">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f3f7ff] text-[#4d86f7]">
@@ -310,10 +310,10 @@ export function CourseListContent({ library }: CourseListContentProps) {
     .slice(0, 4);
 
   return (
-    <PageTransition className="min-h-[calc(100dvh-3.5rem)] bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-      <div className="mx-auto max-w-[1240px]">
+    <PageTransition className="min-h-full bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mx-auto max-w-6xl">
         <header className="mb-5">
-          <h1 className="text-[2.45rem] font-semibold tracking-[-0.045em] text-[#14244a] sm:text-[2.8rem]">
+          <h1 className="text-[2rem] font-semibold text-[#14244a] sm:text-[2.25rem]">
             {t("page_headline")}
           </h1>
           <p className="mt-1 text-[16px] leading-8 text-[#66758d]">
@@ -354,7 +354,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
           </h2>
 
           {gridCourses.length > 0 ? (
-            <div className="grid gap-4 xl:grid-cols-4">
+            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
               {gridCourses.map((course) => (
                 <CourseCard
                   key={course.id}

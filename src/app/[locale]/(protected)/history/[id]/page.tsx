@@ -99,12 +99,12 @@ export default function SessionDetailPage({
   };
 
   if (!mounted) {
-    return <div className="min-h-screen bg-background" />;
+    return <div className="min-h-full bg-background" />;
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4">
         <h1 className="text-2xl font-bold text-on-surface">
           {tResult("notFoundTitle")}
         </h1>
@@ -151,7 +151,7 @@ export default function SessionDetailPage({
     practiceTrack === "debate" && session.mode === "full" && Boolean(session.rounds?.length);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       {feedback ? (
         <SessionReviewShell
           verdict={

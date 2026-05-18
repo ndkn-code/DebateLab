@@ -138,12 +138,12 @@ export function ConversationSidebar(props: ConversationSidebarProps) {
 
   return (
     <>
-      <div className="hidden w-[260px] shrink-0 border-r border-outline-variant/12 bg-surface lg:block">
+      <div className="hidden w-55 shrink-0 border-r border-outline-variant/12 bg-surface lg:block">
         <SidebarContent {...rest} />
       </div>
 
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[260px] p-0">
+        <SheetContent side="left" className="w-55 p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>{t("conversations")}</SheetTitle>
           </SheetHeader>

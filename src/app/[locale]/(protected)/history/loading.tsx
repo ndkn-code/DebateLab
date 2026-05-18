@@ -1,28 +1,28 @@
 export default function HistoryLoading() {
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-[1360px] animate-pulse">
+    <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl animate-pulse">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-2xl bg-primary-container" />
           <div>
             <div className="h-11 w-72 rounded-lg bg-outline-variant/60" />
-            <div className="mt-3 h-5 w-[380px] max-w-full rounded bg-outline-variant/50" />
+            <div className="mt-3 h-5 w-full max-w-[320px] rounded bg-outline-variant/50" />
           </div>
         </div>
 
-        <div className="mb-6 mt-9 xl:pr-[332px]">
+        <div className="mb-5 mt-7">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:w-[320px]" />
-            <div className="flex gap-2.5">
-              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
-              <div className="h-12 w-[104px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
-              <div className="h-12 w-[86px] rounded-2xl border border-outline-variant/60 bg-surface-container-lowest" />
+            <div className="h-10 w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest lg:w-[320px]" />
+            <div className="flex gap-2">
+              <div className="h-10 w-[78px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-10 w-[98px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
+              <div className="h-10 w-[78px] rounded-xl border border-outline-variant/60 bg-surface-container-lowest" />
             </div>
-            <div className="h-12 w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest lg:ml-auto lg:w-[220px]" />
+            <div className="h-10 w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest lg:ml-auto lg:w-[220px]" />
           </div>
         </div>
 
-        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
           <main className="flex flex-col gap-2.5">
             {[...Array(5)].map((_, index) => (
               <div

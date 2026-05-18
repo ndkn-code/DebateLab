@@ -1,7 +1,7 @@
 export default function ProfileLoading() {
   return (
-    <div className="min-h-[calc(100dvh-3.5rem)] bg-background px-4 py-4 sm:px-6 md:min-h-screen lg:px-8 lg:py-6">
-      <div className="mx-auto flex max-w-[1400px] flex-col animate-pulse">
+    <div className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mx-auto flex max-w-5xl flex-col animate-pulse">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="h-11 w-56 rounded-lg bg-outline-variant/50" />
@@ -11,12 +11,12 @@ export default function ProfileLoading() {
         </div>
 
         <div className="mt-6 grid gap-4">
-          <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+          <div className="grid gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
             <div className="h-[392px] rounded-[1.8rem] border border-outline-variant/15 bg-surface" />
             <div className="h-[392px] rounded-[1.8rem] border border-outline-variant/15 bg-surface" />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
             {[...Array(4)].map((_, index) => (
               <div
                 key={index}
