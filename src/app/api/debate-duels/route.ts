@@ -60,6 +60,12 @@ export async function POST(req: NextRequest) {
       maxLength: 80,
       defaultValue: "Open",
     })!;
+    const topicKey = getString(body, "topicKey", {
+      maxLength: 80,
+    });
+    const topicCategoryKey = getString(body, "topicCategoryKey", {
+      maxLength: 80,
+    });
     const topicDescription = getString(body, "topicDescription", {
       maxLength: 2000,
     });
@@ -92,8 +98,10 @@ export async function POST(req: NextRequest) {
       ) ?? "proposition";
 
     const shareCode = await createDebateDuelRoom(user.id, {
+      topicKey: topicKey || undefined,
       topicTitle,
       topicCategory,
+      topicCategoryKey: topicCategoryKey || undefined,
       topicDifficulty,
       practiceLanguage,
       topicDescription: topicDescription || undefined,

@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import useSWR from "swr";
 import {
   ArrowLeft,
   ArrowRight,
   Clock3,
-  Languages,
   Loader2,
   Radar,
   ShieldCheck,
@@ -19,8 +19,13 @@ import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
-import { CATEGORIES, topics, type Category } from "@/lib/topics";
-import { PRACTICE_LANGUAGES } from "@/lib/practice-language";
+import {
+  getLocalizedCategoryOptions,
+  getLocalizedTopics,
+  getTopicCategoryKey,
+  type CategoryKey,
+} from "@/lib/topics";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import {
   DUEL_OPENING_DURATION,
   DUEL_PREP_DURATION,
@@ -82,11 +87,24 @@ function formatQueueTimer(seconds: number) {
 
 export function DuelMatchmakingPage() {
   const router = useRouter();
-  const [topicCategory, setTopicCategory] = useState<Category>(CATEGORIES[0]);
+  const locale = useLocale();
+  const practiceLanguage = coercePracticeLanguage(locale);
+  const localizedTopics = useMemo(
+    () => getLocalizedTopics(practiceLanguage),
+    [practiceLanguage]
+  );
+  const categoryOptions = useMemo(
+    () =>
+      getLocalizedCategoryOptions(practiceLanguage).filter(
+        (category): category is { key: CategoryKey; label: string } =>
+          category.key !== "all"
+      ),
+    [practiceLanguage]
+  );
+  const [topicCategoryKey, setTopicCategoryKey] =
+    useState<CategoryKey>("education");
   const [topicDifficulty, setTopicDifficulty] =
     useState<DebateDuelTopicDifficulty>("beginner");
-  const [practiceLanguage, setPracticeLanguage] =
-    useState<PracticeLanguage>("en");
   const [prepTimeSeconds, setPrepTimeSeconds] = useState(120);
   const [openingTimeSeconds, setOpeningTimeSeconds] = useState(180);
   const [rebuttalTimeSeconds, setRebuttalTimeSeconds] = useState(120);
@@ -113,14 +131,20 @@ export function DuelMatchmakingPage() {
 
   const previewTopic = useMemo(() => {
     return (
-      topics.find(
+      localizedTopics.find(
         (topic) =>
-          topic.category === topicCategory && topic.difficulty === topicDifficulty
+          getTopicCategoryKey(topic) === topicCategoryKey &&
+          topic.difficulty === topicDifficulty
       ) ??
-      topics.find((topic) => topic.category === topicCategory) ??
-      topics[0]
+      localizedTopics.find(
+        (topic) => getTopicCategoryKey(topic) === topicCategoryKey
+      ) ??
+      localizedTopics[0]
     );
-  }, [topicCategory, topicDifficulty]);
+  }, [localizedTopics, topicCategoryKey, topicDifficulty]);
+  const selectedCategoryLabel =
+    categoryOptions.find((category) => category.key === topicCategoryKey)?.label ??
+    previewTopic.category;
   const timerControls = [
     {
       label: "Prep",
@@ -167,7 +191,7 @@ export function DuelMatchmakingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topicCategory,
+          topicCategoryKey,
           topicDifficulty,
           practiceLanguage,
           prepTimeSeconds,
@@ -285,7 +309,7 @@ export function DuelMatchmakingPage() {
 
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
                   {[
-                    ["Category", topicCategory],
+                    ["Category", activeTicket?.topicCategory ?? selectedCategoryLabel],
                     ["Language", languageLabels[activeTicket?.practiceLanguage ?? practiceLanguage]],
                     ["Difficulty", formatDifficulty(topicDifficulty)],
                     [
@@ -346,19 +370,19 @@ export function DuelMatchmakingPage() {
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {CATEGORIES.slice(0, 6).map((category) => (
+                    {categoryOptions.map((category) => (
                       <button
-                        key={category}
+                        key={category.key}
                         type="button"
-                        onClick={() => setTopicCategory(category)}
+                        onClick={() => setTopicCategoryKey(category.key)}
                         className={cn(
                           "rounded-[20px] border px-4 py-4 text-left text-sm font-semibold transition-all",
-                          topicCategory === category
+                          topicCategoryKey === category.key
                             ? "border-primary bg-primary/8 text-primary"
                             : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
                         )}
                       >
-                        {category}
+                        {category.label}
                       </button>
                     ))}
                   </div>
@@ -386,36 +410,6 @@ export function DuelMatchmakingPage() {
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                       2
-                    </div>
-                    <h2 className="text-xl font-bold text-on-surface">
-                      Practice language
-                    </h2>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {PRACTICE_LANGUAGES.map((language) => (
-                      <button
-                        key={language}
-                        type="button"
-                        onClick={() => setPracticeLanguage(language)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-[20px] border px-4 py-4 text-left text-sm font-semibold transition-all",
-                          practiceLanguage === language
-                            ? "border-primary bg-primary/8 text-primary"
-                            : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
-                        )}
-                      >
-                        <Languages className="h-4 w-4" />
-                        {languageLabels[language]}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
-                      3
                     </div>
                     <h2 className="text-xl font-bold text-on-surface">
                       Timer preset
@@ -487,7 +481,7 @@ export function DuelMatchmakingPage() {
           <div className="space-y-4">
             <DuelPreviewSidebar
               topicTitle={previewTopic.title}
-              topicCategory={topicCategory}
+              topicCategory={selectedCategoryLabel}
               prepTimeSeconds={prepTimeSeconds}
               openingTimeSeconds={openingTimeSeconds}
               rebuttalTimeSeconds={rebuttalTimeSeconds}

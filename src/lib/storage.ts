@@ -8,6 +8,7 @@ import {
   DEFAULT_PRACTICE_LANGUAGE,
   coercePracticeLanguage,
 } from "@/lib/practice-language";
+import { getTopicCategoryKey, getTopicStableKey } from "@/lib/topics";
 import type { DebateSession } from "@/types";
 
 const STORAGE_KEY = "debatelab_sessions";
@@ -17,10 +18,12 @@ const MAX_SESSIONS = 50;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FULL_SESSION_SELECT =
-  "id, created_at, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds";
+  "id, created_at, topic_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds";
 const BASE_SESSION_SELECT =
   "id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds";
 const OPTIONAL_SESSION_COLUMNS = [
+  "practice_topic_key",
+  "topic_category_key",
   "practice_track",
   "practice_language",
   "prep_notes",
@@ -341,8 +344,10 @@ function sessionToRow(
   return {
     id: options.idOverride ?? session.id,
     user_id: userId,
+    practice_topic_key: getTopicStableKey(session.topic),
     topic_title: session.topic.title,
     topic_category: session.topic.category,
+    topic_category_key: getTopicCategoryKey(session.topic),
     topic_difficulty: session.topic.difficulty ?? "intermediate",
     side: session.side,
     practice_track: session.practiceTrack,
@@ -481,7 +486,9 @@ function rowToSession(row: any): DebateSession {
     id: row.id,
     date: row.created_at,
     topic: {
-      id: row.topic_id ?? row.id,
+      id: row.practice_topic_key ?? row.topic_id ?? row.id,
+      topicKey: row.practice_topic_key ?? row.topic_id ?? row.id,
+      categoryKey: row.topic_category_key,
       title: row.topic_title,
       category: row.topic_category,
       difficulty: row.topic_difficulty ?? "intermediate",

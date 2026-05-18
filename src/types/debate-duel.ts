@@ -39,6 +39,7 @@ export interface DebateDuelMatchmakingTicket {
   id: string;
   status: DebateDuelMatchmakingStatus;
   topicCategory: string;
+  topicCategoryKey: string | null;
   topicDifficulty: DebateDuelTopicDifficulty;
   practiceLanguage: PracticeLanguage;
   config: DebateDuelConfig;
@@ -156,8 +157,10 @@ export interface DebateDuelJudgment {
 export interface DebateDuelRoomView {
   id: string;
   shareCode: string;
+  topicKey: string | null;
   topicTitle: string;
   topicCategory: string;
+  topicCategoryKey: string | null;
   topicDifficulty: DebateDuelTopicDifficulty;
   topicDescription: string | null;
   practiceLanguage: PracticeLanguage;

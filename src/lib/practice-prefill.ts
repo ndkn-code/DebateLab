@@ -1,4 +1,11 @@
-import { CATEGORIES, topics } from "@/lib/topics";
+import {
+  CATEGORIES,
+  getCategoryKey,
+  getCategoryLabel,
+  getLocalizedTopic,
+  getLocalizedTopics,
+  getTopicByKey,
+} from "@/lib/topics";
 import type {
   AiDifficulty,
   ClubPracticeContext,
@@ -11,6 +18,7 @@ export type PracticeMode = "quick" | "full";
 export type PracticeSide = "proposition" | "opposition" | "random";
 
 export interface PracticePrefill {
+  topicId?: string;
   topicTitle: string;
   topicCategory?: string;
   topicDescription?: string;
@@ -23,6 +31,7 @@ export interface PracticePrefill {
 }
 
 export interface PracticeQueryPrefill {
+  topicId?: string;
   topicTitle?: string;
   topicCategory?: string;
   topicDescription?: string;
@@ -34,15 +43,10 @@ export interface PracticeQueryPrefill {
   clubContext?: ClubPracticeContext;
 }
 
-const CATEGORY_SET = new Set<string>(CATEGORIES);
 const DEFAULT_CATEGORY = CATEGORIES[0];
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
-}
-
-function isCategory(value?: string | null): value is (typeof CATEGORIES)[number] {
-  return !!value && CATEGORY_SET.has(value);
 }
 
 function parsePracticeTrack(value?: string | null): PracticeTrack | undefined {
@@ -98,32 +102,55 @@ function toTopicDifficulty(
 }
 
 function slugify(value: string) {
-  return value
+  const slug = value
     .trim()
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+
+  return slug || "custom-topic";
 }
 
-export function findPracticeTopicByTitle(title?: string | null) {
+export function findPracticeTopicByTitle(
+  title?: string | null,
+  language: PracticeLanguage = "en"
+) {
   if (!title) return undefined;
   const normalizedTitle = normalizeText(title);
-  return topics.find((topic) => normalizeText(topic.title) === normalizedTitle);
+  const languages: PracticeLanguage[] =
+    language === "vi" ? ["vi", "en"] : ["en", "vi"];
+
+  for (const candidateLanguage of languages) {
+    const topic = getLocalizedTopics(candidateLanguage).find(
+      (candidate) => normalizeText(candidate.title) === normalizedTitle
+    );
+    if (topic) return getLocalizedTopic(topic, language);
+  }
+
+  return undefined;
 }
 
-export function resolvePracticeTopic(prefill: PracticePrefill): DebateTopic {
-  const existingTopic = findPracticeTopicByTitle(prefill.topicTitle);
-  if (existingTopic) return existingTopic;
+export function resolvePracticeTopic(
+  prefill: PracticePrefill,
+  language: PracticeLanguage = prefill.practiceLanguage ?? "en"
+): DebateTopic {
+  const existingTopic =
+    getTopicByKey(prefill.topicId) ??
+    findPracticeTopicByTitle(prefill.topicTitle, language);
+  if (existingTopic) return getLocalizedTopic(existingTopic, language);
 
-  const category = isCategory(prefill.topicCategory)
-    ? prefill.topicCategory
-    : DEFAULT_CATEGORY;
+  const categoryKey = getCategoryKey(prefill.topicCategory ?? DEFAULT_CATEGORY);
 
   return {
     id: `prefill-${slugify(prefill.topicTitle)}`,
+    topicKey: `prefill-${slugify(prefill.topicTitle)}`,
+    categoryKey,
     title: prefill.topicTitle,
-    category,
+    category: getCategoryLabel(categoryKey, language),
     difficulty: toTopicDifficulty(prefill.aiDifficulty),
     context: prefill.topicDescription,
   };
@@ -133,6 +160,7 @@ export function readPracticePrefill(
   searchParams: URLSearchParams
 ): PracticeQueryPrefill | null {
   const topicTitle = searchParams.get("topic");
+  const topicId = searchParams.get("topicId") ?? undefined;
   const topicCategory = searchParams.get("category") ?? undefined;
   const topicDescription = searchParams.get("description") ?? undefined;
   const practiceTrack = parsePracticeTrack(searchParams.get("track"));
@@ -143,6 +171,7 @@ export function readPracticePrefill(
   const clubContext = parseClubContext(searchParams);
 
   if (
+    !topicId &&
     !topicTitle &&
     !topicCategory &&
     !topicDescription &&
@@ -157,6 +186,7 @@ export function readPracticePrefill(
   }
 
   return {
+    topicId,
     topicTitle: topicTitle ?? undefined,
     topicCategory,
     topicDescription,
@@ -169,9 +199,37 @@ export function readPracticePrefill(
   };
 }
 
+export function buildLegacyPracticeLanguageRedirect(
+  pathname: string,
+  legacyLanguage: PracticeLanguage,
+  searchParams: URLSearchParams
+) {
+  const nextParams = new URLSearchParams(searchParams.toString());
+  nextParams.delete("language");
+
+  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const pathWithoutLocale =
+    normalizedPathname.replace(/^\/(en|vi)(?=\/|$)/, "") || "/";
+  const pathSuffix = nextParams.toString() ? `?${nextParams.toString()}` : "";
+  const finalPath =
+    legacyLanguage === "en"
+      ? `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`
+      : pathWithoutLocale;
+  const switchPath = `/${legacyLanguage}${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`;
+
+  return {
+    finalHref: `${finalPath}${pathSuffix}`,
+    switchHref: `${switchPath}${pathSuffix}`,
+  };
+}
+
 export function buildPracticeHref(prefill: PracticePrefill) {
   const searchParams = new URLSearchParams();
   searchParams.set("topic", prefill.topicTitle);
+
+  if (prefill.topicId) {
+    searchParams.set("topicId", prefill.topicId);
+  }
 
   if (prefill.topicCategory) {
     searchParams.set("category", prefill.topicCategory);

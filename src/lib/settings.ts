@@ -125,7 +125,7 @@ const DEFAULT_SETTINGS = {
   defaultDifficulty: "medium" as SettingsDifficulty,
   ttsVoice: DEFAULT_VOICE,
   preferredLocale: "vi" as SettingsLocale,
-  practiceLanguage: "en" as PracticeLanguage,
+  practiceLanguage: "vi" as PracticeLanguage,
   detailedFeedback: true,
   highlightWeakAreas: true,
   explainLikeImLearning: true,
@@ -248,10 +248,11 @@ export function normalizeSettingsPreferences(
   fallbackLocale: SettingsLocale = DEFAULT_SETTINGS.preferredLocale
 ) {
   const source = (preferences ?? {}) as SettingsPreferences;
-  const practiceLanguage = coercePracticeLanguage(
-    source.practice_language,
-    DEFAULT_SETTINGS.practiceLanguage
+  const preferredLocale = coerceLocale(
+    source.preferred_locale,
+    fallbackLocale ?? DEFAULT_SETTINGS.preferredLocale
   );
+  const practiceLanguage = coercePracticeLanguage(preferredLocale);
 
   return {
     defaultPrepTime: coerceDuration(
@@ -269,10 +270,7 @@ export function normalizeSettingsPreferences(
       DEFAULT_SETTINGS.defaultDifficulty
     ),
     ttsVoice: coerceVoiceForLanguage(source.tts_voice, practiceLanguage),
-    preferredLocale: coerceLocale(
-      source.preferred_locale,
-      fallbackLocale ?? DEFAULT_SETTINGS.preferredLocale
-    ),
+    preferredLocale,
     practiceLanguage,
     detailedFeedback: coerceBoolean(
       source.detailed_feedback,
@@ -342,9 +340,9 @@ export function buildSettingsDraft(input: {
     defaultPrepTime: normalized.defaultPrepTime,
     defaultSpeechTime: normalized.defaultSpeechTime,
     defaultDifficulty: normalized.defaultDifficulty,
-    ttsVoice: normalized.ttsVoice,
+    ttsVoice: coerceVoiceForLanguage(normalized.ttsVoice, input.currentLocale),
     preferredLocale: input.currentLocale,
-    practiceLanguage: normalized.practiceLanguage,
+    practiceLanguage: coercePracticeLanguage(input.currentLocale),
     detailedFeedback: normalized.detailedFeedback,
     highlightWeakAreas: normalized.highlightWeakAreas,
     explainLikeImLearning: normalized.explainLikeImLearning,
@@ -395,6 +393,8 @@ export function draftToPreferences(
   draft: SettingsDraft,
   existing: Record<string, unknown> | null | undefined
 ) {
+  const practiceLanguage = coercePracticeLanguage(draft.preferredLocale);
+
   return {
     ...(existing ?? {}),
     default_prep_time: draft.defaultPrepTime,
@@ -402,7 +402,7 @@ export function draftToPreferences(
     default_ai_difficulty: draft.defaultDifficulty,
     tts_voice: draft.ttsVoice,
     preferred_locale: draft.preferredLocale,
-    practice_language: draft.practiceLanguage,
+    practice_language: practiceLanguage,
     detailed_feedback: draft.detailedFeedback,
     highlight_weak_areas: draft.highlightWeakAreas,
     explain_like_im_learning: draft.explainLikeImLearning,

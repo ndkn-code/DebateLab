@@ -1,4 +1,6 @@
 import type { DebateTopic } from "@/types";
+import { getTopicCategoryKey } from "@/lib/topics";
+import type { PracticeLanguage } from "@/types";
 
 export type PracticeCategoryTone =
   | "blue"
@@ -26,12 +28,12 @@ export interface PracticeTopicDisplay {
 }
 
 const CATEGORY_TONES: Record<string, PracticeCategoryTone> = {
-  "Technology & Social Media": "blue",
-  "Education & School Life": "green",
-  "Environment & Sustainability": "teal",
-  "Society & Culture": "indigo",
-  "Ethics & Philosophy": "violet",
-  "Vietnam-Specific Issues": "amber",
+  technology: "blue",
+  education: "green",
+  environment: "teal",
+  society: "indigo",
+  ethics: "violet",
+  vietnam: "amber",
 };
 
 const AVATAR_TONES = [
@@ -67,22 +69,45 @@ const FEATURED_ORDER = [
   "edu-03",
 ] as const;
 
-const SUMMARY_OVERRIDES: Partial<Record<string, string>> = {
-  "tech-01":
-    "Social media affects mental health, productivity, and real-life relationships.",
-  "edu-01": "Weekends should be for rest, not more academic pressure.",
-  "env-03":
-    "Banning single-use plastics is essential for a cleaner, healthier future.",
-  "eth-02":
-    "Absolute free speech is often defended as essential for an open society.",
-  "tech-02":
-    "AI automation is transforming industries faster than many workers can adapt.",
-  "vn-04":
-    "Many students feel the system rewards memorization more than independent thought.",
-  "tech-03":
-    "Phone restrictions in schools are often framed as a focus and wellbeing issue.",
-  "soc-06":
-    "Public shaming online can silence discussion and escalate conflicts instead of resolving them.",
+const SUMMARY_OVERRIDES: Record<
+  PracticeLanguage,
+  Partial<Record<string, string>>
+> = {
+  en: {
+    "tech-01":
+      "Social media affects mental health, productivity, and real-life relationships.",
+    "edu-01": "Weekends should be for rest, not more academic pressure.",
+    "env-03":
+      "Banning single-use plastics is essential for a cleaner, healthier future.",
+    "eth-02":
+      "Absolute free speech is often defended as essential for an open society.",
+    "tech-02":
+      "AI automation is transforming industries faster than many workers can adapt.",
+    "vn-04":
+      "Many students feel the system rewards memorization more than independent thought.",
+    "tech-03":
+      "Phone restrictions in schools are often framed as a focus and wellbeing issue.",
+    "soc-06":
+      "Public shaming online can silence discussion and escalate conflicts instead of resolving them.",
+  },
+  vi: {
+    "tech-01":
+      "Mạng xã hội tác động đến sức khỏe tinh thần, năng suất và quan hệ ngoài đời.",
+    "edu-01":
+      "Cuối tuần nên dành cho nghỉ ngơi, không phải thêm áp lực học tập.",
+    "env-03":
+      "Cấm nhựa dùng một lần là bước quan trọng cho tương lai sạch và khỏe hơn.",
+    "eth-02":
+      "Tự do ngôn luận tuyệt đối thường được bảo vệ như nền tảng của xã hội mở.",
+    "tech-02":
+      "Tự động hóa AI đang thay đổi ngành nghề nhanh hơn nhiều lao động có thể thích ứng.",
+    "vn-04":
+      "Nhiều học sinh cảm thấy hệ thống thưởng cho ghi nhớ hơn tư duy độc lập.",
+    "tech-03":
+      "Hạn chế điện thoại trong trường thường được xem là vấn đề tập trung và sức khỏe tinh thần.",
+    "soc-06":
+      "Bêu xấu công khai trên mạng có thể làm im lặng thảo luận và đẩy xung đột đi xa hơn.",
+  },
 };
 
 const PRACTICE_COUNT_OVERRIDES: Partial<Record<string, number>> = {
@@ -117,8 +142,8 @@ function formatPracticeCount(value: number) {
   return `+${value} practiced`;
 }
 
-function resolveSummary(topic: DebateTopic) {
-  const override = SUMMARY_OVERRIDES[topic.id];
+function resolveSummary(topic: DebateTopic, language: PracticeLanguage) {
+  const override = SUMMARY_OVERRIDES[language][topic.topicKey ?? topic.id];
   if (override) {
     return override;
   }
@@ -186,7 +211,8 @@ function resolveAvatars(index: number): PracticeAvatarSeed[] {
 }
 
 export function buildPracticeTopicDisplays(
-  sourceTopics: DebateTopic[]
+  sourceTopics: DebateTopic[],
+  language: PracticeLanguage = "en"
 ): PracticeTopicDisplay[] {
   const orderedTopics = [...sourceTopics].sort((left, right) => {
     const leftIndex = FEATURED_ORDER_INDEX[left.id];
@@ -211,13 +237,14 @@ export function buildPracticeTopicDisplays(
     topic,
     popularityRank: index + 1,
     practiceCount: resolvePracticeCount(topic, index, allTopics.length),
-    summary: resolveSummary(topic),
-    categoryTone: CATEGORY_TONES[topic.category] ?? "blue",
+    summary: resolveSummary(topic, language),
+    categoryTone: CATEGORY_TONES[getTopicCategoryKey(topic)] ?? "blue",
     difficultyTone: resolveDifficultyTone(topic.difficulty),
     avatars: resolveAvatars(index),
   }));
 }
 
-export function formatPracticeCountLabel(value: number) {
-  return formatPracticeCount(value);
+export function formatPracticeCountLabel(value: number, label = "practiced") {
+  const count = formatPracticeCount(value).replace(" practiced", "");
+  return `${count} ${label}`;
 }

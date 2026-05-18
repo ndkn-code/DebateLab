@@ -752,6 +752,7 @@
       "card_easy": "Easy",
       "card_medium": "Medium",
       "card_hard": "Hard",
+      "practice_count_label": "practiced",
       "surprise_me": "Surprise Me",
       "no_topics": "No topics found in this category",
       "no_topics_body": "Try another category or switch off saved-only mode to explore more motions.",

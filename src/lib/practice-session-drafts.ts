@@ -8,6 +8,7 @@ import {
   DEFAULT_PRACTICE_LANGUAGE,
   coercePracticeLanguage,
 } from "@/lib/practice-language";
+import { getTopicCategoryKey, getTopicStableKey } from "@/lib/topics";
 import type { Mode, Phase } from "@/store/session-store";
 import type {
   AiDifficulty,
@@ -40,8 +41,10 @@ export interface PracticeSessionDraftPayload {
 interface PracticeSessionDraftRow {
   id: string;
   topic_id: string | null;
+  practice_topic_key?: string | null;
   topic_title: string;
   topic_category: string;
+  topic_category_key?: string | null;
   topic_difficulty: DebateTopic["difficulty"];
   side: "proposition" | "opposition";
   practice_track: PracticeTrack;
@@ -62,8 +65,10 @@ function payloadToRow(userId: string, payload: PracticeSessionDraftPayload) {
   return {
     user_id: userId,
     topic_id: payload.selectedTopic.id,
+    practice_topic_key: getTopicStableKey(payload.selectedTopic),
     topic_title: payload.selectedTopic.title,
     topic_category: payload.selectedTopic.category,
+    topic_category_key: getTopicCategoryKey(payload.selectedTopic),
     topic_difficulty: payload.selectedTopic.difficulty ?? "intermediate",
     side: payload.side,
     practice_track: payload.practiceTrack,
@@ -87,7 +92,9 @@ function payloadToRow(userId: string, payload: PracticeSessionDraftPayload) {
 function rowToPayload(row: PracticeSessionDraftRow): PracticeSessionDraftPayload {
   return {
     selectedTopic: {
-      id: row.topic_id ?? row.id,
+      id: row.practice_topic_key ?? row.topic_id ?? row.id,
+      topicKey: row.practice_topic_key ?? row.topic_id ?? row.id,
+      categoryKey: row.topic_category_key ?? undefined,
       title: row.topic_title,
       category: row.topic_category,
       difficulty: row.topic_difficulty ?? "intermediate",
@@ -197,7 +204,7 @@ export async function loadPracticeSessionDraft(draftId: string, userId: string) 
   const { data, error } = await supabase
     .from("practice_session_drafts")
     .select(
-      "id, topic_id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, ai_difficulty, current_phase, current_round, prep_notes, transcript, rounds, session_started_at"
+      "id, topic_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, ai_difficulty, current_phase, current_round, prep_notes, transcript, rounds, session_started_at"
     )
     .eq("id", draftId)
     .eq("user_id", userId)

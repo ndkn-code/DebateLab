@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   Clock3,
-  Languages,
   Mail,
   Scale,
   ShieldCheck,
@@ -19,8 +19,14 @@ import { Button } from "@/components/ui/button";
 import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
-import { CATEGORIES, topics, type Category } from "@/lib/topics";
-import { PRACTICE_LANGUAGES } from "@/lib/practice-language";
+import {
+  getLocalizedCategoryOptions,
+  getLocalizedTopics,
+  getTopicCategoryKey,
+  getTopicStableKey,
+  type CategoryFilterKey,
+} from "@/lib/topics";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { DUEL_ENTRY_COST } from "@/lib/debate-duels/shared";
 import {
   DUEL_OPENING_DURATION,
@@ -31,7 +37,6 @@ import { cn } from "@/lib/utils";
 import type {
   DebateDuelRoomView,
   DebateDuelTopicDifficulty,
-  PracticeLanguage,
 } from "@/types";
 import {
   DuelFlowStepper,
@@ -45,7 +50,6 @@ interface DuelCreatePageProps {
   initialRoomShareCode?: string;
 }
 
-type CategoryFilter = "All" | Category;
 type DifficultyFilter = "all" | DebateDuelTopicDifficulty;
 
 const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
@@ -54,12 +58,6 @@ const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
   { value: "intermediate", label: "Medium" },
   { value: "advanced", label: "Hard" },
 ];
-
-const categoryFilters: CategoryFilter[] = ["All", ...CATEGORIES];
-const languageLabels: Record<PracticeLanguage, string> = {
-  en: "English",
-  vi: "Vietnamese",
-};
 
 function difficultyTone(difficulty: DebateDuelTopicDifficulty) {
   if (difficulty === "beginner") return "bg-[#edf8ef] text-[#4aa05f]";
@@ -80,20 +78,30 @@ export function DuelCreatePage({
   initialRoomShareCode,
 }: DuelCreatePageProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const practiceLanguage = coercePracticeLanguage(locale);
+  const localizedTopics = useMemo(
+    () => getLocalizedTopics(practiceLanguage),
+    [practiceLanguage]
+  );
+  const categoryFilters = useMemo(
+    () => getLocalizedCategoryOptions(practiceLanguage),
+    [practiceLanguage]
+  );
   const initialTopic =
-    topics.find((topic) => topic.title === initialTopicTitle) ?? topics[0];
+    localizedTopics.find((topic) => topic.title === initialTopicTitle) ??
+    localizedTopics[0];
   const [activeRoomCode, setActiveRoomCode] = useState(
     initialRoomShareCode?.trim().toUpperCase() || null
   );
   const [topicId, setTopicId] = useState(initialTopic.id);
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("All");
+  const [categoryFilter, setCategoryFilter] =
+    useState<CategoryFilterKey>("all");
   const [difficultyFilter, setDifficultyFilter] =
     useState<DifficultyFilter>("all");
   const [prepTimeSeconds, setPrepTimeSeconds] = useState(120);
   const [openingTimeSeconds, setOpeningTimeSeconds] = useState(180);
   const [rebuttalTimeSeconds, setRebuttalTimeSeconds] = useState(120);
-  const [practiceLanguage, setPracticeLanguage] =
-    useState<PracticeLanguage>("en");
   const [sideAssignmentMode, setSideAssignmentMode] = useState<
     "random" | "choose"
   >("random");
@@ -111,21 +119,21 @@ export function DuelCreatePage({
   } = useDebateDuelRoom(activeRoomCode);
 
   const selectedTopic = useMemo(
-    () => topics.find((topic) => topic.id === topicId) ?? topics[0],
-    [topicId]
+    () => localizedTopics.find((topic) => topic.id === topicId) ?? localizedTopics[0],
+    [localizedTopics, topicId]
   );
 
   const filteredTopics = useMemo(() => {
-    const matches = topics.filter((topic) => {
+    const matches = localizedTopics.filter((topic) => {
       const categoryMatches =
-        categoryFilter === "All" || topic.category === categoryFilter;
+        categoryFilter === "all" || getTopicCategoryKey(topic) === categoryFilter;
       const difficultyMatches =
         difficultyFilter === "all" || topic.difficulty === difficultyFilter;
       return categoryMatches && difficultyMatches;
     });
 
-    return matches.length > 0 ? matches : topics;
-  }, [categoryFilter, difficultyFilter]);
+    return matches.length > 0 ? matches : localizedTopics;
+  }, [categoryFilter, difficultyFilter, localizedTopics]);
 
   useEffect(() => {
     if (activeRoom && activeRoom.status !== "lobby") {
@@ -141,7 +149,9 @@ export function DuelCreatePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topicTitle: selectedTopic.title,
+          topicKey: getTopicStableKey(selectedTopic),
           topicCategory: selectedTopic.category,
+          topicCategoryKey: getTopicCategoryKey(selectedTopic),
           topicDifficulty: selectedTopic.difficulty,
           topicDescription: selectedTopic.context ?? "",
           prepTimeSeconds,
@@ -175,14 +185,15 @@ export function DuelCreatePage({
 
   const editFromRoom = () => {
     if (activeRoom) {
-      const matchingTopic = topics.find(
-        (topic) => topic.title === activeRoom.topicTitle
+      const matchingTopic = localizedTopics.find(
+        (topic) =>
+          getTopicStableKey(topic) === activeRoom.topicKey ||
+          topic.title === activeRoom.topicTitle
       );
       if (matchingTopic) setTopicId(matchingTopic.id);
       setPrepTimeSeconds(activeRoom.config.prepTimeSeconds);
       setOpeningTimeSeconds(activeRoom.config.openingTimeSeconds);
       setRebuttalTimeSeconds(activeRoom.config.rebuttalTimeSeconds);
-      setPracticeLanguage(activeRoom.practiceLanguage);
       setSideAssignmentMode(activeRoom.sideAssignmentMode);
       setCreatorSidePreference(activeRoom.creatorSidePreference ?? "proposition");
     }
@@ -278,23 +289,17 @@ export function DuelCreatePage({
                 <div className="flex flex-wrap gap-3">
                   {categoryFilters.slice(0, 5).map((category) => (
                     <button
-                      key={category}
+                      key={category.key}
                       type="button"
-                      onClick={() => setCategoryFilter(category)}
+                      onClick={() => setCategoryFilter(category.key)}
                       className={cn(
                         "h-10 rounded-full border px-5 text-sm font-medium transition-colors",
-                        categoryFilter === category
+                        categoryFilter === category.key
                           ? "border-primary bg-primary text-on-primary"
                           : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container-low"
                       )}
                     >
-                      {category === "Technology & Social Media"
-                        ? "Technology"
-                        : category === "Society & Culture"
-                          ? "Society"
-                          : category === "Education & School Life"
-                            ? "Education"
-                            : category}
+                      {category.label}
                     </button>
                   ))}
                 </div>
@@ -415,38 +420,6 @@ export function DuelCreatePage({
                 />
               </div>
 
-              <div className="mt-6 rounded-[20px] border border-outline-variant/15 bg-surface-container-low p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Languages className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-on-surface">
-                      Practice language
-                    </h3>
-                    <p className="mt-1 text-sm text-on-surface-variant">
-                      Controls live transcription and AI judging for this duel.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {PRACTICE_LANGUAGES.map((language) => (
-                    <button
-                      key={language}
-                      type="button"
-                      onClick={() => setPracticeLanguage(language)}
-                      className={cn(
-                        "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
-                        practiceLanguage === language
-                          ? "border-primary bg-primary/8 text-primary"
-                          : "border-outline-variant/15 bg-surface text-on-surface"
-                      )}
-                    >
-                      {languageLabels[language]}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </section>
 
             <section className="mt-10 border-t border-outline-variant/15 pt-8">

@@ -1,4 +1,4 @@
-import type { DebateTopic } from "@/types";
+import type { DebateTopic, PracticeLanguage } from "@/types";
 
 export const CATEGORIES = [
   "Education & School Life",
@@ -10,6 +10,96 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+export const CATEGORY_CONFIG = [
+  {
+    key: "education",
+    en: "Education & School Life",
+    vi: "Giáo Dục & Đời Sống",
+  },
+  {
+    key: "technology",
+    en: "Technology & Social Media",
+    vi: "Công Nghệ & Mạng Xã Hội",
+  },
+  {
+    key: "society",
+    en: "Society & Culture",
+    vi: "Xã Hội & Văn Hóa",
+  },
+  {
+    key: "environment",
+    en: "Environment & Sustainability",
+    vi: "Môi Trường & Bền Vững",
+  },
+  {
+    key: "ethics",
+    en: "Ethics & Philosophy",
+    vi: "Đạo Đức & Triết Học",
+  },
+  {
+    key: "vietnam",
+    en: "Vietnam-Specific Issues",
+    vi: "Vấn Đề Việt Nam",
+  },
+] as const;
+
+export type CategoryKey = (typeof CATEGORY_CONFIG)[number]["key"];
+export type CategoryFilterKey = "all" | CategoryKey;
+
+export interface PracticeCategoryOption {
+  key: CategoryFilterKey;
+  label: string;
+}
+
+type TopicTranslation = Pick<
+  DebateTopic,
+  "title" | "context" | "suggestedPoints"
+>;
+
+const CATEGORY_KEY_BY_LABEL = new Map<string, CategoryKey>(
+  CATEGORY_CONFIG.flatMap((category) => [
+    [category.en, category.key],
+    [category.vi, category.key],
+  ])
+);
+
+export function isCategoryKey(value: unknown): value is CategoryKey {
+  return CATEGORY_CONFIG.some((category) => category.key === value);
+}
+
+export function getCategoryKey(
+  category: string | null | undefined
+): CategoryKey {
+  if (isCategoryKey(category)) {
+    return category;
+  }
+
+  return CATEGORY_KEY_BY_LABEL.get(category ?? "") ?? "education";
+}
+
+export function getCategoryLabel(
+  categoryKey: CategoryKey,
+  language: PracticeLanguage
+) {
+  const category =
+    CATEGORY_CONFIG.find((candidate) => candidate.key === categoryKey) ??
+    CATEGORY_CONFIG[0];
+
+  return category[language];
+}
+
+export function getLocalizedCategoryOptions(
+  language: PracticeLanguage
+): PracticeCategoryOption[] {
+  return [
+    { key: "all", label: language === "vi" ? "Tất cả" : "All" },
+    ...CATEGORY_CONFIG.map((category) => ({
+      key: category.key,
+      label: category[language],
+    })),
+  ];
+}
 
 export const topics: DebateTopic[] = [
   // ── Education & School Life ──────────────────────────────────────
@@ -687,3 +777,607 @@ export const topics: DebateTopic[] = [
     },
   },
 ];
+
+const VI_TOPIC_TRANSLATIONS: Record<string, TopicTranslation> = {
+  "edu-01": {
+    title: "Nên bãi bỏ bài tập về nhà ở bậc trung học",
+    context:
+      "Nhiều nhà giáo dục tranh luận liệu bài tập về nhà có thật sự cải thiện kết quả học tập hay chỉ tạo thêm căng thẳng không cần thiết cho học sinh.",
+    suggestedPoints: {
+      proposition: [
+        "Bài tập về nhà gây căng thẳng quá mức và làm giảm thời gian phát triển ngoại khóa",
+        "Nhiều nghiên cứu cho thấy hiệu quả của bài tập về nhà ở bậc trung học giảm dần",
+        "Nếu phương pháp dạy hiệu quả, thời gian trên lớp nên đủ để học sinh nắm bài",
+      ],
+      opposition: [
+        "Bài tập về nhà củng cố kiến thức trên lớp và xây thói quen tự học",
+        "Nó chuẩn bị cho học sinh tính kỷ luật cần có ở đại học và trong công việc",
+        "Phụ huynh có thể theo dõi tiến độ học tập thông qua bài tập được giao",
+      ],
+    },
+  },
+  "edu-02": {
+    title: "Học trực tuyến hiệu quả hơn học trong lớp truyền thống",
+    context:
+      "Đại dịch COVID-19 thúc đẩy học trực tuyến, làm dấy lên tranh luận về hiệu quả lâu dài của nó so với giáo dục trực tiếp.",
+    suggestedPoints: {
+      proposition: [
+        "Học trực tuyến cho phép học theo tốc độ cá nhân và lộ trình phù hợp hơn",
+        "Học sinh có thể tiếp cận tài nguyên và giáo viên chất lượng cao bất kể địa điểm",
+        "Công cụ số giúp theo dõi tiến độ và mức độ tham gia của học sinh tốt hơn",
+      ],
+      opposition: [
+        "Tương tác trực tiếp rất cần cho kỹ năng xã hội và hợp tác",
+        "Nhiều học sinh thiếu kỷ luật tự học để học online hiệu quả",
+        "Các môn cần thực hành như thí nghiệm khoa học và nghệ thuật cần không gian trực tiếp",
+      ],
+    },
+  },
+  "edu-03": {
+    title: "Học sinh nên được phép dùng công cụ AI cho bài tập",
+    context:
+      "Sự xuất hiện của ChatGPT và các công cụ AI tương tự khiến trường học trên thế giới phải cân nhắc nên chấp nhận hay hạn chế AI trong học tập.",
+    suggestedPoints: {
+      proposition: [
+        "Hiểu biết về AI là kỹ năng thiết yếu của thế kỷ 21 mà học sinh cần học sớm",
+        "AI có thể đóng vai trò gia sư cá nhân, giúp học sinh hiểu khái niệm khó",
+        "Cấm AI là thiếu thực tế; giáo dục nên dạy cách sử dụng có trách nhiệm",
+      ],
+      opposition: [
+        "Dùng AI như lối tắt làm suy yếu tư duy phản biện và việc học thật",
+        "Nó tạo lợi thế không công bằng giữa học sinh có mức tiếp cận AI khác nhau",
+        "Giáo viên khó đánh giá đúng năng lực nếu AI tạo ra bài làm",
+      ],
+    },
+  },
+  "edu-04": {
+    title: "Nên khuyến khích học sinh gap year trước đại học",
+    context:
+      "Gap year giữa trung học và đại học phổ biến ở nhiều nước phương Tây nhưng vẫn chưa quen thuộc trong nhiều hệ thống giáo dục châu Á.",
+    suggestedPoints: {
+      proposition: [
+        "Gap year giúp học sinh khám phá đam mê trước khi chọn ngành",
+        "Trải nghiệm thực tế giúp các em trưởng thành và có động lực học rõ hơn",
+        "Học sinh gap year thường học tốt hơn khi quay lại môi trường đại học",
+      ],
+      opposition: [
+        "Một năm nghỉ có thể làm đứt mạch học tập và thói quen học",
+        "Không phải gia đình nào cũng đủ khả năng chi trả cho việc học bị kéo dài",
+        "Học sinh có thể khó hòa nhập lại với môi trường học thuật sau thời gian nghỉ",
+      ],
+    },
+  },
+  "edu-05": {
+    title: "Nên thay thế thi chuẩn hóa bằng đánh giá theo dự án",
+    context:
+      "Người phản đối cho rằng bài thi chuẩn hóa đo khả năng ghi nhớ hơn là hiểu sâu, trong khi người ủng hộ đánh giá cao tính khách quan và khả năng so sánh.",
+    suggestedPoints: {
+      proposition: [
+        "Dự án đánh giá hiểu sâu, sáng tạo và khả năng ứng dụng thực tế",
+        "Thi chuẩn hóa ưu tiên học thuộc hơn kỹ năng tư duy phản biện",
+        "Đánh giá theo dự án chuẩn bị học sinh tốt hơn cho thách thức đời thực",
+      ],
+      opposition: [
+        "Thi chuẩn hóa cung cấp dữ liệu khách quan, so sánh được giữa trường và vùng",
+        "Chấm dự án dễ chủ quan và khó chuẩn hóa công bằng",
+        "Một số kỹ năng cốt lõi như toán và đọc hiểu vẫn phù hợp với bài thi",
+      ],
+    },
+  },
+  "edu-06": {
+    title: "Trường học nên dạy tài chính cá nhân như môn bắt buộc",
+    context:
+      "Nhiều người trẻ gặp khó khăn với tài chính cá nhân, dẫn đến lời kêu gọi đưa giáo dục tài chính vào chương trình chính khóa.",
+    suggestedPoints: {
+      proposition: [
+        "Thiếu hiểu biết tài chính dẫn đến quyết định kém về nợ, tiết kiệm và đầu tư",
+        "Trường học có trách nhiệm chuẩn bị học sinh cho vấn đề thực tế",
+        "Giáo dục tài chính sớm giúp giảm bất bình đẳng tài sản giữa các nhóm xã hội",
+      ],
+      opposition: [
+        "Tài chính cá nhân nên được phụ huynh dạy trong bối cảnh gia đình",
+        "Thêm môn bắt buộc làm chương trình học vốn đã nặng càng quá tải",
+        "Khái niệm tài chính có thể quá trừu tượng để học sinh nhỏ áp dụng có ý nghĩa",
+      ],
+    },
+  },
+  "tech-01": {
+    title: "Mạng xã hội gây hại nhiều hơn lợi cho thanh thiếu niên",
+    context:
+      "Nghiên cứu liên hệ việc dùng mạng xã hội nhiều với lo âu, trầm cảm và bắt nạt mạng ngày càng tăng ở thanh thiếu niên trên toàn cầu.",
+    suggestedPoints: {
+      proposition: [
+        "Mạng xã hội góp phần gây lo âu, trầm cảm và hình ảnh bản thân tiêu cực",
+        "Bắt nạt mạng trên các nền tảng gây tổn thương tâm lý lâu dài",
+        "Thiết kế gây nghiện khai thác não bộ đang phát triển và làm giảm năng suất",
+      ],
+      opposition: [
+        "Mạng xã hội giúp thanh thiếu niên xây cộng đồng và tìm mạng lưới hỗ trợ",
+        "Nó mở ra nội dung giáo dục và nhiều góc nhìn đa dạng",
+        "Vấn đề nằm ở cách dùng sai, không phải bản thân nền tảng; giải pháp là kỹ năng số",
+      ],
+    },
+  },
+  "tech-02": {
+    title: "Trí tuệ nhân tạo sẽ thay thế phần lớn công việc của con người",
+    context:
+      "Tự động hóa bằng AI đang thay đổi các ngành từ sản xuất đến sáng tạo, đặt ra câu hỏi về tương lai việc làm của con người.",
+    suggestedPoints: {
+      proposition: [
+        "AI có thể làm các nhiệm vụ nhận thức và thể chất lặp lại nhanh hơn, rẻ hơn con người",
+        "Lịch sử cho thấy công nghệ thường xuyên thay thế toàn bộ nhóm nghề",
+        "AI đang bước vào cả lĩnh vực sáng tạo và chuyên môn từng được xem là an toàn",
+      ],
+      opposition: [
+        "AI tạo ra ngành nghề và loại công việc mới chưa từng tồn tại",
+        "Kỹ năng con người như đồng cảm, sáng tạo và phán đoán vẫn không thể thay thế",
+        "Các cuộc cách mạng công nghệ trước đây tạo ra nhiều việc làm hơn số việc mất đi",
+      ],
+    },
+  },
+  "tech-03": {
+    title: "Nên cấm điện thoại thông minh trong trường học",
+    context:
+      "Một số quốc gia đã cấm điện thoại trong trường, với lý do cải thiện sự tập trung và tương tác xã hội của học sinh.",
+    suggestedPoints: {
+      proposition: [
+        "Điện thoại là nguồn gây xao nhãng chính trong lớp học",
+        "Lệnh cấm cải thiện tương tác trực tiếp trong giờ nghỉ",
+        "Các trường cấm điện thoại ghi nhận kết quả học tập được cải thiện",
+      ],
+      opposition: [
+        "Điện thoại là công cụ học tập hữu ích nếu dùng đúng cách",
+        "Học sinh cần học tự điều chỉnh thay vì bị cấm toàn diện",
+        "Điện thoại cần thiết cho an toàn và liên lạc với phụ huynh",
+      ],
+    },
+  },
+  "tech-04": {
+    title: "Chính phủ nên quản lý các nền tảng mạng xã hội",
+    context:
+      "Các chính phủ đang tranh luận cách quản lý công ty công nghệ để bảo vệ người dùng mà vẫn giữ đổi mới và tự do ngôn luận.",
+    suggestedPoints: {
+      proposition: [
+        "Các nền tảng đã thất bại trong tự kiểm soát tin giả và ngôn từ thù ghét",
+        "Quyền riêng tư dữ liệu cần bảo vệ pháp lý mà chỉ chính phủ có thể thực thi",
+        "Quản lý tạo trách nhiệm giải trình cho thuật toán gây hại cho thảo luận công",
+      ],
+      opposition: [
+        "Quản lý của chính phủ có thể dẫn đến kiểm duyệt và bóp nghẹt biểu đạt",
+        "Công nghệ thay đổi nhanh hơn luật, khiến quy định nhanh lỗi thời",
+        "Quản lý quá mức có thể đẩy đổi mới sang các nước ít bị kiểm soát hơn",
+      ],
+    },
+  },
+  "tech-05": {
+    title: "Công nghệ đang làm con người kém sáng tạo hơn",
+    context:
+      "Dù công nghệ cung cấp công cụ sáng tạo mạnh mẽ, nhiều người cho rằng nó khuyến khích tiêu thụ hơn sáng tạo và làm văn hóa trở nên đồng dạng.",
+    suggestedPoints: {
+      proposition: [
+        "Tiêu thụ nội dung số liên tục khiến con người ít thời gian cho suy nghĩ độc đáo",
+        "Nội dung do thuật toán dẫn dắt tạo buồng vang và xu hướng đồng dạng",
+        "Văn hóa sao chép và dùng mẫu làm giảm nhu cầu sáng tạo nguyên bản",
+      ],
+      opposition: [
+        "Công nghệ dân chủ hóa công cụ sáng tạo; ai cũng có thể làm nhạc, nghệ thuật hoặc phim",
+        "Nền tảng số tạo ra hình thức nghệ thuật mới như nghệ thuật số, VR và remix",
+        "Công cụ cộng tác cho phép hợp tác sáng tạo xuyên biên giới",
+      ],
+    },
+  },
+  "tech-06": {
+    title: "Quyền riêng tư trực tuyến quan trọng hơn an ninh quốc gia",
+    context:
+      "Chính phủ cho rằng chương trình giám sát cần thiết cho an ninh, trong khi người bảo vệ quyền riêng tư cảnh báo nguy cơ lạm quyền.",
+    suggestedPoints: {
+      proposition: [
+        "Giám sát đại trà xâm phạm quyền riêng tư cơ bản của con người",
+        "Quyền giám sát của chính phủ thường bị lạm dụng cho mục đích chính trị",
+        "Mã hóa mạnh và quyền riêng tư bảo vệ nhà báo, nhà hoạt động và nhóm thiểu số",
+      ],
+      opposition: [
+        "Cơ quan tình báo cần truy cập dữ liệu để ngăn khủng bố và tội phạm mạng",
+        "Công dân không có gì để giấu không nên sợ giám sát hợp lý",
+        "Mối đe dọa an ninh quốc gia có thể gây hại lớn hơn nhiều so với giới hạn riêng tư",
+      ],
+    },
+  },
+  "soc-01": {
+    title: "Nên hạ tuổi bầu cử xuống 16",
+    context:
+      "Một số quốc gia và thành phố đã hạ tuổi bầu cử xuống 16, cho rằng thanh thiếu niên đủ hiểu biết để tham gia dân chủ.",
+    suggestedPoints: {
+      proposition: [
+        "Người 16 tuổi có thể đi làm, đóng thuế và chịu ảnh hưởng từ quyết định chính trị",
+        "Bầu cử sớm tạo thói quen tham gia công dân lâu dài",
+        "Người trẻ xứng đáng có tiếng nói trong vấn đề như biến đổi khí hậu ảnh hưởng tương lai họ",
+      ],
+      opposition: [
+        "Phần lớn người 16 tuổi thiếu trải nghiệm sống để đưa ra quyết định chính trị chín chắn",
+        "Nghiên cứu não bộ cho thấy vỏ não trước trán chưa trưởng thành đến khoảng 25 tuổi",
+        "Thanh thiếu niên dễ bị thao túng chính trị và áp lực bạn bè hơn",
+      ],
+    },
+  },
+  "soc-02": {
+    title: "Nên cấm thời trang nhanh",
+    context:
+      "Các thương hiệu thời trang nhanh sản xuất quần áo rẻ và theo xu hướng với chi phí môi trường và nhân quyền rất lớn, tạo ra hàng triệu tấn rác dệt may mỗi năm.",
+    suggestedPoints: {
+      proposition: [
+        "Thời trang nhanh là một trong những ngành gây ô nhiễm hàng đầu thế giới",
+        "Nó dựa vào lao động bị bóc lột ở các nước đang phát triển",
+        "Cấm thời trang nhanh sẽ thúc đẩy đổi mới trong vật liệu bền vững",
+      ],
+      opposition: [
+        "Quần áo giá rẻ rất cần thiết cho gia đình thu nhập thấp",
+        "Lệnh cấm sẽ xóa bỏ hàng triệu việc làm sản xuất ở các nước đang phát triển",
+        "Giáo dục người tiêu dùng và quản lý thực tế hơn cấm tuyệt đối",
+      ],
+    },
+  },
+  "soc-03": {
+    title: "Giao thông công cộng nên miễn phí",
+    context:
+      "Một số thành phố thử miễn phí giao thông công cộng để giảm dùng xe cá nhân, giảm phát thải và tăng khả năng tiếp cận cho người thu nhập thấp.",
+    suggestedPoints: {
+      proposition: [
+        "Giao thông miễn phí giảm ùn tắc và phát thải carbon",
+        "Nó cải thiện khả năng di chuyển cho cộng đồng thu nhập thấp phụ thuộc vào phương tiện công cộng",
+        "Lợi ích kinh tế từ di chuyển tốt hơn lớn hơn chi phí trợ giá",
+      ],
+      opposition: [
+        "Giao thông miễn phí đòi hỏi tăng thuế lớn để vận hành",
+        "Nó có thể gây quá tải và giảm chất lượng dịch vụ",
+        "Doanh thu vé cần cho bảo trì và mở rộng hạ tầng",
+      ],
+    },
+  },
+  "soc-04": {
+    title: "Nên cấm hoàn toàn thử nghiệm trên động vật",
+    context:
+      "Mỗi năm hơn 100 triệu động vật được dùng trong phòng thí nghiệm cho nghiên cứu y khoa, mỹ phẩm và an toàn sản phẩm.",
+    suggestedPoints: {
+      proposition: [
+        "Động vật biết đau khổ và có quyền không bị dùng làm đối tượng thử nghiệm",
+        "Các lựa chọn hiện đại như nuôi cấy tế bào và mô hình máy tính có thể thay thế",
+        "Kết quả thử nghiệm trên động vật thường không chuyển hóa chính xác sang con người",
+      ],
+      opposition: [
+        "Thử nghiệm động vật từng thiết yếu cho nhiều đột phá y học cứu người",
+        "Các lựa chọn hiện tại chưa thể tái tạo đầy đủ hệ sinh học phức tạp",
+        "Quy định nghiêm ngặt đã giảm thiểu đau khổ của động vật trong nghiên cứu",
+      ],
+    },
+  },
+  "soc-05": {
+    title: "Phục vụ cộng đồng nên là điều kiện bắt buộc để tốt nghiệp",
+    context:
+      "Một số trường yêu cầu học sinh hoàn thành giờ phục vụ cộng đồng trước khi tốt nghiệp nhằm xây dựng trách nhiệm công dân và sự đồng cảm.",
+    suggestedPoints: {
+      proposition: [
+        "Phục vụ cộng đồng phát triển đồng cảm và trách nhiệm xã hội",
+        "Nó giúp học sinh tiếp xúc với cộng đồng đa dạng và vấn đề thực tế",
+        "Yêu cầu bắt buộc tạo văn hóa đóng góp kéo dài sau khi rời trường",
+      ],
+      opposition: [
+        "Tình nguyện bị ép buộc đi ngược tinh thần phục vụ cộng đồng chân thành",
+        "Nó tạo thêm gánh nặng cho học sinh vốn đã quá tải học thuật",
+        "Chất lượng phục vụ giảm khi học sinh chỉ làm để hoàn thành yêu cầu",
+      ],
+    },
+  },
+  "soc-06": {
+    title: "Văn hóa tẩy chay gây hại nhiều hơn lợi",
+    context:
+      "Văn hóa tẩy chay là việc rút lại ủng hộ đối với người nổi tiếng hoặc nhân vật công chúng vì lời nói hay hành động bị cho là sai trái, thường qua chiến dịch mạng xã hội.",
+    suggestedPoints: {
+      proposition: [
+        "Văn hóa tẩy chay bóp nghẹt tự do ngôn luận và đối thoại mở bằng không khí sợ hãi",
+        "Nó thường thiếu quy trình công bằng và trừng phạt không tương xứng",
+        "Nó cản trở sự trưởng thành và sửa sai khi định nghĩa con người mãi bằng lỗi lầm",
+      ],
+      opposition: [
+        "Nó buộc người có quyền lực chịu trách nhiệm khi hệ thống truyền thống thất bại",
+        "Cộng đồng yếu thế dùng nó để thách thức bất công hệ thống",
+        "Chỉ trích công khai cũng là một hình thức tự do ngôn luận, không phải kiểm duyệt",
+      ],
+    },
+  },
+  "env-01": {
+    title: "Năng lượng hạt nhân là giải pháp tốt nhất cho biến đổi khí hậu",
+    context:
+      "Điện hạt nhân tạo rất ít phát thải carbon nhưng gây lo ngại về an toàn, xử lý chất thải và nguy cơ tai nạn thảm khốc.",
+    suggestedPoints: {
+      proposition: [
+        "Hạt nhân tạo sản lượng điện lớn với phát thải carbon gần như bằng không",
+        "Nó cung cấp điện nền ổn định, khác với mặt trời và gió vốn gián đoạn",
+        "Thiết kế lò phản ứng hiện đại an toàn hơn nhiều so với thế hệ cũ",
+      ],
+      opposition: [
+        "Thảm họa như Chernobyl và Fukushima cho thấy rủi ro thảm khốc",
+        "Chất thải phóng xạ nguy hiểm hàng nghìn năm mà chưa có giải pháp vĩnh viễn",
+        "Năng lượng tái tạo kèm lưu trữ pin hiện rẻ hơn và triển khai nhanh hơn",
+      ],
+    },
+  },
+  "env-02": {
+    title: "Hành động cá nhân có thể tạo tác động đáng kể đến biến đổi khí hậu",
+    context:
+      "Dù doanh nghiệp tạo phần lớn phát thải, cá nhân vẫn được khuyến khích giảm dấu chân carbon thông qua thay đổi lối sống.",
+    suggestedPoints: {
+      proposition: [
+        "Lựa chọn tiêu dùng thúc đẩy hành vi doanh nghiệp; cầu giảm buộc họ thay đổi",
+        "Hành động cá nhân như đổi chế độ ăn và giảm bay có tác động đo được",
+        "Phong trào cơ sở bắt đầu từ cam kết cá nhân và truyền cảm hứng hành động tập thể",
+      ],
+      opposition: [
+        "100 công ty chịu trách nhiệm 71% phát thải toàn cầu; hành động cá nhân là sự đánh lạc hướng",
+        "Thay đổi hệ thống qua chính sách và quản lý có tác động lớn hơn nhiều",
+        "Đổ trách nhiệm lên cá nhân giúp doanh nghiệp né tránh trách nhiệm",
+      ],
+    },
+  },
+  "env-03": {
+    title: "Nên cấm hoàn toàn nhựa",
+    context:
+      "Hơn 300 triệu tấn nhựa được sản xuất mỗi năm, phần lớn kết thúc ở đại dương và bãi rác, mất hàng thế kỷ để phân hủy.",
+    suggestedPoints: {
+      proposition: [
+        "Ô nhiễm nhựa đang phá hủy hệ sinh thái biển và đi vào chuỗi thức ăn",
+        "Các lựa chọn bền vững như vật liệu phân hủy sinh học đã tồn tại",
+        "Lệnh cấm sẽ buộc đổi mới trong bao bì và khoa học vật liệu",
+      ],
+      opposition: [
+        "Nhựa thiết yếu trong thiết bị y tế, đồ bảo hộ và bảo quản thực phẩm",
+        "Cấm hoàn toàn thiếu thực tế; giải pháp là hạ tầng tái chế tốt hơn",
+        "Vật liệu thay thế thường có dấu chân carbon cao hơn trong sản xuất",
+      ],
+    },
+  },
+  "env-04": {
+    title: "Các nước phát triển nên bồi thường khí hậu cho các nước đang phát triển",
+    context:
+      "Các nước đang phát triển chịu tác động nặng nhất của biến đổi khí hậu dù đóng góp ít nhất vào phát thải lịch sử, làm dấy lên yêu cầu công lý khí hậu.",
+    suggestedPoints: {
+      proposition: [
+        "Các nước phát triển chịu trách nhiệm lịch sử cho phần lớn phát thải tích lũy",
+        "Biến đổi khí hậu gây hại nặng cho các nước đang phát triển ít khả năng thích ứng",
+        "Bồi thường sẽ tài trợ cho hạ tầng thích ứng và chuyển đổi xanh thiết yếu",
+      ],
+      opposition: [
+        "Thế hệ hiện tại không nên trả cho phát thải lịch sử họ không gây ra",
+        "Cơ chế bồi thường phức tạp, dễ tham nhũng và khó thực hiện công bằng",
+        "Chuyển giao công nghệ và hợp tác thương mại hiệu quả hơn thanh toán trực tiếp",
+      ],
+    },
+  },
+  "env-05": {
+    title: "Xe điện nên trở thành bắt buộc vào năm 2035",
+    context:
+      "Một số quốc gia đã công bố kế hoạch cấm bán xe động cơ đốt trong mới vào năm 2035, thúc đẩy chuyển đổi hoàn toàn sang xe điện.",
+    suggestedPoints: {
+      proposition: [
+        "Giao thông là nguồn phát thải carbon lớn mà xe điện có thể cắt giảm mạnh",
+        "Công nghệ xe điện đã đủ trưởng thành để phổ cập khi giá pin giảm",
+        "Mốc thời gian rõ ràng thúc đẩy đầu tư ngành và hạ tầng",
+      ],
+      opposition: [
+        "Hạ tầng xe điện chưa đủ ở nông thôn và vùng đang phát triển",
+        "Sản xuất pin có lo ngại môi trường và đạo đức lớn liên quan đến khai khoáng",
+        "Quy định bắt buộc tạo gánh nặng cho người thu nhập thấp không đủ tiền mua xe điện",
+      ],
+    },
+  },
+  "eth-01": {
+    title: "Mục đích biện minh cho phương tiện",
+    context:
+      "Cuộc tranh luận triết học kinh điển này đặt chủ nghĩa hệ quả đối lập với đạo đức bổn phận, hỏi liệu kết quả có quyết định toàn bộ tính đạo đức của hành động hay không.",
+    suggestedPoints: {
+      proposition: [
+        "Giá trị đạo đức nên được đo bằng kết quả và phúc lợi tổng thể tạo ra",
+        "Quy tắc đạo đức cứng nhắc có thể dẫn đến kết quả tệ hơn khi áp dụng máy móc",
+        "Quyết định đời thực luôn có đánh đổi giữa nguyên tắc và kết quả",
+      ],
+      opposition: [
+        "Cho phép phương tiện vô đạo đức tạo tiền lệ nguy hiểm bất kể kết quả",
+        "Ta không thể dự đoán kết quả đáng tin cậy, nên phải đánh giá hành động theo đạo đức nội tại",
+        "Nhân quyền và phẩm giá không bao giờ được hy sinh cho tính toán lợi ích",
+      ],
+    },
+  },
+  "eth-02": {
+    title: "Tự do ngôn luận không nên có bất kỳ giới hạn nào",
+    context:
+      "Tự do ngôn luận được xem là quyền cơ bản, nhưng tranh luận vẫn tiếp diễn về việc có nên hạn chế ngôn từ thù ghét, tin giả và kích động hay không.",
+    suggestedPoints: {
+      proposition: [
+        "Mọi hạn chế ngôn luận đều tạo độ dốc trượt về kiểm duyệt",
+        "Thị trường ý tưởng cần mọi quan điểm được lắng nghe và phản biện",
+        "Không thể tin chính phủ quyết định phát ngôn nào được chấp nhận",
+      ],
+      opposition: [
+        "Ngôn từ thù ghét và kích động bạo lực gây hại thật và đo lường được",
+        "Ngôn luận không kiểm soát cho phép thế lực mạnh lan truyền tin giả nguy hiểm",
+        "Phần lớn nền dân chủ cân bằng thành công giữa tự do biểu đạt và giới hạn hợp lý",
+      ],
+    },
+  },
+  "eth-03": {
+    title: "Ăn thịt là có đạo đức",
+    context:
+      "Đạo đức của việc ăn thịt được tranh luận từ góc độ phúc lợi động vật, tác động môi trường, truyền thống văn hóa và nhu cầu dinh dưỡng.",
+    suggestedPoints: {
+      proposition: [
+        "Con người tiến hóa như loài ăn tạp và thịt là một phần tự nhiên của chế độ ăn",
+        "Chăn nuôi có đạo đức có thể bảo đảm phúc lợi động vật đồng thời cung cấp dinh dưỡng",
+        "Ăn thịt gắn sâu với bản sắc văn hóa và truyền thống trên toàn thế giới",
+      ],
+      opposition: [
+        "Động vật là sinh vật có cảm giác, biết đau khổ và xứng đáng được cân nhắc đạo đức",
+        "Chế độ ăn thực vật có thể cung cấp dinh dưỡng đầy đủ mà không bóc lột động vật",
+        "Sản xuất thịt là nguyên nhân lớn của phá rừng và phát thải khí nhà kính",
+      ],
+    },
+  },
+  "eth-04": {
+    title: "Kiểm duyệt không bao giờ chính đáng trong nền dân chủ",
+    context:
+      "Dân chủ coi trọng tự do biểu đạt nhưng vẫn thường hạn chế nội dung liên quan đến an ninh quốc gia, an toàn công cộng hoặc nhóm dễ bị tổn thương.",
+    suggestedPoints: {
+      proposition: [
+        "Kiểm duyệt mâu thuẫn căn bản với giá trị dân chủ của thảo luận mở",
+        "Công dân cần tiếp cận mọi thông tin để đưa ra quyết định dân chủ sáng suốt",
+        "Lịch sử cho thấy kiểm duyệt thường được dùng để đàn áp bất đồng và thiểu số",
+      ],
+      opposition: [
+        "Bảo vệ an ninh quốc gia đôi khi cần hạn chế thông tin nhạy cảm",
+        "Nội dung bóc lột trẻ em phải bị kiểm duyệt không ngoại lệ",
+        "Dân chủ có trách nhiệm bảo vệ công dân khỏi tin giả nguy hại trong khủng hoảng",
+      ],
+    },
+  },
+  "eth-05": {
+    title: "Bất tuân dân sự là một hình thức phản đối hợp lệ",
+    context:
+      "Từ Gandhi đến Martin Luther King Jr., bất tuân dân sự được dùng để thách thức luật bất công, nhưng người phản đối cho rằng nó làm suy yếu pháp quyền.",
+    suggestedPoints: {
+      proposition: [
+        "Lịch sử cho thấy bất tuân dân sự thiết yếu để đạt công lý xã hội",
+        "Khi kênh pháp lý thất bại, phá luật ôn hòa là lựa chọn cuối cho người bị áp bức",
+        "Bất tuân dân sự thu hút chú ý công chúng đến bất công theo cách biểu tình hợp pháp không thể",
+      ],
+      opposition: [
+        "Phá luật, dù vì lý do chính nghĩa, làm suy yếu khung pháp lý dân chủ",
+        "Bất tuân dân sự có thể leo thang thành bạo lực và rối loạn công cộng",
+        "Hệ thống dân chủ có cơ chế hợp pháp để thay đổi và cần dùng hết trước",
+      ],
+    },
+  },
+  "vn-01": {
+    title: "Việt Nam nên áp dụng tuần làm việc 4 ngày",
+    context:
+      "Một số quốc gia đang thử tuần làm việc 4 ngày với kết quả tích cực, nhưng nền kinh tế đang phát triển của Việt Nam đặt ra câu hỏi về tính thực tế.",
+    suggestedPoints: {
+      proposition: [
+        "Nghiên cứu cho thấy tuần 4 ngày tăng năng suất và giảm kiệt sức",
+        "Lực lượng lao động trẻ của Việt Nam coi trọng cân bằng sống và làm việc, giúp thu hút nhân tài",
+        "Giảm đi lại giúp giảm phát thải carbon và ùn tắc đô thị",
+      ],
+      opposition: [
+        "Kinh tế Việt Nam vẫn đang phát triển và khó chịu được việc giảm giờ làm",
+        "Nhiều ngành như sản xuất cần vận hành liên tục",
+        "Áp lực cạnh tranh từ các nền kinh tế khu vực sẽ tăng nếu Việt Nam làm việc ít hơn",
+      ],
+    },
+  },
+  "vn-02": {
+    title: "Học sinh Việt Nam chịu quá nhiều áp lực học tập",
+    context:
+      "Học sinh Việt Nam thường học thêm nhiều lớp ngoài giờ, với áp lực lớn để đạt kết quả cao trong các kỳ thi quốc gia.",
+    suggestedPoints: {
+      proposition: [
+        "Áp lực quá mức gây vấn đề sức khỏe tinh thần, kiệt sức và mất tuổi thơ",
+        "Tập trung vào điểm thi không phát triển kỹ năng mà nhà tuyển dụng hiện đại cần",
+        "Các nước ít áp lực học tập hơn vẫn đạt kết quả giáo dục mạnh",
+      ],
+      opposition: [
+        "Sự nghiêm túc học thuật đã thúc đẩy thành tựu giáo dục ấn tượng của Việt Nam",
+        "Kỳ vọng cao thúc đẩy học sinh phát huy hết tiềm năng",
+        "Áp lực phản ánh giá trị văn hóa coi trọng giáo dục đã giúp hàng triệu người thoát nghèo",
+      ],
+    },
+  },
+  "vn-03": {
+    title: "Tiếng Anh nên trở thành ngôn ngữ chính thức thứ hai ở Việt Nam",
+    context:
+      "Việt Nam đầu tư mạnh vào giáo dục tiếng Anh, dạy tiếng Anh từ tiểu học, nhưng tiếng Anh chưa có địa vị ngôn ngữ chính thức.",
+    suggestedPoints: {
+      proposition: [
+        "Địa vị chính thức cho tiếng Anh sẽ thúc đẩy Việt Nam hội nhập kinh tế toàn cầu",
+        "Nó cải thiện khả năng tiếp cận giáo dục quốc tế và tài nguyên nghiên cứu",
+        "Ngành công nghệ và du lịch đang phát triển của Việt Nam sẽ hưởng lợi rất lớn",
+      ],
+      opposition: [
+        "Điều này có thể làm yếu vị thế tiếng Việt và bản sắc văn hóa",
+        "Triển khai sẽ cực kỳ tốn kém và tạo bất bình đẳng thành thị - nông thôn",
+        "Nhiều cường quốc kinh tế châu Á vẫn phát triển mà không biến tiếng Anh thành ngôn ngữ chính thức",
+      ],
+    },
+  },
+  "vn-04": {
+    title: "Hệ thống giáo dục Việt Nam quá chú trọng học thuộc",
+    context:
+      "Dù Việt Nam đạt kết quả tốt trong các bài kiểm tra quốc tế, nhiều người cho rằng hệ thống giáo dục ưu tiên học vẹt hơn tư duy phản biện và sáng tạo.",
+    suggestedPoints: {
+      proposition: [
+        "Học dựa trên ghi nhớ không chuẩn bị học sinh cho giải quyết vấn đề sáng tạo",
+        "Nhà tuyển dụng thường nhận xét sinh viên tốt nghiệp thiếu tư duy phản biện",
+        "Các nước nhấn mạnh kỹ năng phân tích thường nổi bật hơn về đổi mới và khởi nghiệp",
+      ],
+      opposition: [
+        "Kiến thức nền tảng vững qua ghi nhớ là cần thiết trước khi tư duy bậc cao",
+        "Điểm PISA của Việt Nam chứng minh hệ thống hiện tại hiệu quả theo chuẩn quốc tế",
+        "Hệ thống đang hiện đại hóa với các cải cách chương trình gần đây",
+      ],
+    },
+  },
+  "vn-05": {
+    title: "Du lịch gây hại nhiều hơn lợi cho văn hóa Việt Nam",
+    context:
+      "Ngành du lịch Việt Nam phát triển nhanh, mang lại lợi ích kinh tế nhưng cũng gây lo ngại về thương mại hóa văn hóa và tổn hại môi trường.",
+    suggestedPoints: {
+      proposition: [
+        "Du lịch đại chúng thương mại hóa địa điểm linh thiêng và thực hành truyền thống",
+        "Hạ tầng du lịch đẩy cộng đồng địa phương ra xa và làm tăng chi phí sống",
+        "Tổn hại môi trường ở danh thắng như Vịnh Hạ Long đe dọa di sản",
+      ],
+      opposition: [
+        "Du lịch mang lại thu nhập và việc làm thiết yếu cho hàng triệu người Việt",
+        "Trao đổi văn hóa tăng sự trân trọng toàn cầu đối với truyền thống Việt Nam",
+        "Doanh thu du lịch tài trợ bảo tồn di tích lịch sử và chương trình văn hóa",
+      ],
+    },
+  },
+};
+
+export function getTopicStableKey(topic: DebateTopic) {
+  return topic.topicKey ?? topic.id;
+}
+
+export function getTopicCategoryKey(topic: DebateTopic) {
+  return topic.categoryKey && isCategoryKey(topic.categoryKey)
+    ? topic.categoryKey
+    : getCategoryKey(topic.category);
+}
+
+export function getLocalizedTopic(
+  topic: DebateTopic,
+  language: PracticeLanguage
+): DebateTopic {
+  const topicKey = getTopicStableKey(topic);
+  const baseTopic = topics.find((candidate) => candidate.id === topicKey) ?? topic;
+  const categoryKey = getTopicCategoryKey(baseTopic);
+  const translation =
+    language === "vi" ? VI_TOPIC_TRANSLATIONS[baseTopic.id] : null;
+
+  return {
+    ...baseTopic,
+    topicKey,
+    categoryKey,
+    title: translation?.title ?? baseTopic.title,
+    category: getCategoryLabel(categoryKey, language),
+    context: translation?.context ?? baseTopic.context,
+    suggestedPoints: translation?.suggestedPoints ?? baseTopic.suggestedPoints,
+  };
+}
+
+export function getLocalizedTopics(language: PracticeLanguage): DebateTopic[] {
+  return topics.map((topic) => getLocalizedTopic(topic, language));
+}
+
+export function getTopicByKey(topicKey: string | null | undefined) {
+  if (!topicKey) return undefined;
+  return topics.find((topic) => topic.id === topicKey || topic.topicKey === topicKey);
+}

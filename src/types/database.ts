@@ -114,8 +114,10 @@ export interface DebateSessionRow {
   id: string;
   user_id: string;
   topic_id: string | null;
+  practice_topic_key: string | null;
   topic_title: string;
   topic_category: string;
+  topic_category_key: string | null;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   side: "proposition" | "opposition";
   practice_track: "speaking" | "debate";
@@ -138,8 +140,10 @@ export interface PracticeSessionDraftRow {
   id: string;
   user_id: string;
   topic_id: string | null;
+  practice_topic_key: string | null;
   topic_title: string;
   topic_category: string;
+  topic_category_key: string | null;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   side: "proposition" | "opposition";
   practice_track: "speaking" | "debate";
@@ -446,8 +450,10 @@ export interface DebateDuelRow {
   id: string;
   share_code: string;
   creator_id: string;
+  practice_topic_key: string | null;
   topic_title: string;
   topic_category: string;
+  topic_category_key: string | null;
   topic_difficulty: "beginner" | "intermediate" | "advanced";
   topic_description: string | null;
   practice_language: PracticeLanguage;

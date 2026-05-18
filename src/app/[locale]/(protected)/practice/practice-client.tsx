@@ -3,7 +3,7 @@
 import type { ElementType, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
@@ -29,11 +29,22 @@ import {
 import { SessionConfig } from "@/components/practice/session-config";
 import { TopicCard } from "@/components/practice/topic-card";
 import { PageTransition } from "@/components/shared/page-motion";
-import { topics, CATEGORIES } from "@/lib/topics";
-import { resolvePracticeTopic, readPracticePrefill } from "@/lib/practice-prefill";
+import {
+  getLocalizedCategoryOptions,
+  getLocalizedTopics,
+  getTopicCategoryKey,
+  type CategoryFilterKey,
+} from "@/lib/topics";
+import {
+  buildLegacyPracticeLanguageRedirect,
+  resolvePracticeTopic,
+  readPracticePrefill,
+} from "@/lib/practice-prefill";
 import { normalizeSettingsPreferences } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionStore } from "@/store/session-store";
+import { usePathname } from "@/i18n/navigation";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
 
 type PracticeSortOption = "popular" | "newest" | "easiest" | "hardest";
@@ -93,30 +104,41 @@ function TopPill({
 
 export default function PracticePage() {
   const t = useTranslations("dashboard.practice");
+  const locale = useLocale();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const practiceLanguage = coercePracticeLanguage(locale);
   const appliedPrefillRef = useRef<string | null>(null);
   const initialPrefill = useMemo(
     () => readPracticePrefill(searchParams),
     [searchParams]
   );
+  const localizedTopics = useMemo(
+    () => getLocalizedTopics(practiceLanguage),
+    [practiceLanguage]
+  );
   const initialTopic = useMemo(
     () =>
-      initialPrefill?.topicTitle
+      initialPrefill?.topicId || initialPrefill?.topicTitle
         ? resolvePracticeTopic({
-            topicTitle: initialPrefill.topicTitle,
+            topicId: initialPrefill.topicId,
+            topicTitle:
+              initialPrefill.topicTitle ??
+              initialPrefill.topicId ??
+              t("selected_motion"),
             topicCategory: initialPrefill.topicCategory,
             topicDescription: initialPrefill.topicDescription,
             practiceTrack: initialPrefill.practiceTrack,
-            practiceLanguage: initialPrefill.practiceLanguage,
+            practiceLanguage,
             mode: initialPrefill.mode,
             aiDifficulty: initialPrefill.aiDifficulty,
             side: initialPrefill.side,
-          })
+          }, practiceLanguage)
         : null,
-    [initialPrefill]
+    [initialPrefill, practiceLanguage, t]
   );
-  const [activeCategory, setActiveCategory] = useState(
-    () => initialTopic?.category ?? "All"
+  const [activeCategory, setActiveCategory] = useState<CategoryFilterKey>(
+    () => (initialTopic ? getTopicCategoryKey(initialTopic) : "all")
   );
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
     () => initialTopic?.id ?? null
@@ -156,16 +178,25 @@ export default function PracticePage() {
     setClubContext,
   } = useSessionStore();
 
-  const allDisplays = useMemo(() => buildPracticeTopicDisplays(topics), []);
+  const categoryOptions = useMemo(
+    () => getLocalizedCategoryOptions(practiceLanguage),
+    [practiceLanguage]
+  );
+  const allDisplays = useMemo(
+    () => buildPracticeTopicDisplays(localizedTopics, practiceLanguage),
+    [localizedTopics, practiceLanguage]
+  );
   const sortedDisplays = useMemo(
     () => sortDisplays(allDisplays, sortOption),
     [allDisplays, sortOption]
   );
   const filteredDisplays = useMemo(() => {
     const scoped =
-      activeCategory === "All"
+      activeCategory === "all"
         ? sortedDisplays
-        : sortedDisplays.filter((display) => display.topic.category === activeCategory);
+        : sortedDisplays.filter(
+            (display) => getTopicCategoryKey(display.topic) === activeCategory
+          );
 
     if (!savedOnly) {
       return scoped;
@@ -213,6 +244,31 @@ export default function PracticePage() {
   }, [bookmarkedIds]);
 
   useEffect(() => {
+    if (!initialPrefill?.practiceLanguage) {
+      return;
+    }
+
+    const legacyLanguage = initialPrefill.practiceLanguage;
+    const { finalHref, switchHref } = buildLegacyPracticeLanguageRedirect(
+      pathname,
+      legacyLanguage,
+      searchParams
+    );
+
+    if (legacyLanguage !== practiceLanguage) {
+      window.location.replace(switchHref);
+      return;
+    }
+
+    window.history.replaceState(window.history.state, "", finalHref);
+  }, [
+    initialPrefill?.practiceLanguage,
+    pathname,
+    practiceLanguage,
+    searchParams,
+  ]);
+
+  useEffect(() => {
     const prefillKey = searchParams.toString();
     if (!prefillKey || appliedPrefillRef.current === prefillKey) {
       return;
@@ -226,9 +282,7 @@ export default function PracticePage() {
     const practiceTrack = initialPrefill.practiceTrack ?? "speaking";
 
     setPracticeTrack(practiceTrack);
-    if (initialPrefill.practiceLanguage) {
-      setPracticeLanguage(initialPrefill.practiceLanguage);
-    }
+    setPracticeLanguage(practiceLanguage);
     setAiDifficulty(initialPrefill.aiDifficulty ?? "medium");
     setSide(initialPrefill.side ?? "proposition");
     setClubContext(initialPrefill.clubContext ?? null);
@@ -245,6 +299,7 @@ export default function PracticePage() {
     setPracticeTrack,
     setSide,
     setClubContext,
+    practiceLanguage,
   ]);
 
   useEffect(() => {
@@ -275,7 +330,7 @@ export default function PracticePage() {
       );
 
       setPracticeTrack(initialPrefill?.practiceTrack ?? "speaking");
-      setPracticeLanguage(initialPrefill?.practiceLanguage ?? defaults.practiceLanguage);
+      setPracticeLanguage(practiceLanguage);
       setMode(initialPrefill?.mode ?? "quick");
       setPrepTime(defaults.defaultPrepTime);
       setSpeechTime(defaults.defaultSpeechTime);
@@ -295,9 +350,9 @@ export default function PracticePage() {
     initialPrefill?.aiDifficulty,
     initialPrefill?.clubContext,
     initialPrefill?.mode,
-    initialPrefill?.practiceLanguage,
     initialPrefill?.practiceTrack,
     initialPrefill?.side,
+    practiceLanguage,
     setAiDifficulty,
     setMode,
     setPracticeLanguage,
@@ -332,7 +387,7 @@ export default function PracticePage() {
     setSelectedTopicId((current) => (current === topicId ? null : topicId));
   };
 
-  const handleCategorySelect = (category: string) => {
+  const handleCategorySelect = (category: CategoryFilterKey) => {
     setActiveCategory(category);
     setVisibleCount(INITIAL_VISIBLE_TOPICS);
   };
@@ -426,7 +481,7 @@ export default function PracticePage() {
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <CategoryTabs
-              categories={CATEGORIES}
+              categories={categoryOptions}
               active={activeCategory}
               onSelect={handleCategorySelect}
             />

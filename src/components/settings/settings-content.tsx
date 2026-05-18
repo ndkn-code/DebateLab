@@ -33,7 +33,6 @@ import {
 } from "@/lib/settings";
 import {
   coercePracticeLanguage,
-  PRACTICE_LANGUAGES,
 } from "@/lib/practice-language";
 import {
   SOLO_PREP_DURATION,
@@ -281,8 +280,16 @@ export function SettingsContent({
       snapshot.userId === userId &&
       JSON.stringify(snapshot.saved) === savedSignature
     ) {
+      const practiceLanguage = coercePracticeLanguage(
+        snapshot.draft.preferredLocale
+      );
       setDraft({
         ...snapshot.draft,
+        practiceLanguage,
+        ttsVoice: coerceVoiceForLanguage(
+          snapshot.draft.ttsVoice,
+          practiceLanguage
+        ),
         smartFeaturePopups:
           typeof snapshot.draft.smartFeaturePopups === "boolean"
             ? snapshot.draft.smartFeaturePopups
@@ -334,7 +341,13 @@ export function SettingsContent({
   }
 
   function handleLocaleChange(nextLocale: SettingsLocale) {
-    updateDraft("preferredLocale", nextLocale);
+    const practiceLanguage = coercePracticeLanguage(nextLocale);
+    setDraft((current) => ({
+      ...current,
+      preferredLocale: nextLocale,
+      practiceLanguage,
+      ttsVoice: coerceVoiceForLanguage(current.ttsVoice, practiceLanguage),
+    }));
     if (nextLocale === locale) {
       return;
     }
@@ -342,15 +355,6 @@ export function SettingsContent({
     startLocaleTransition(() => {
       router.replace(pathname, { locale: nextLocale });
     });
-  }
-
-  function handlePracticeLanguageChange(nextLanguage: string) {
-    const practiceLanguage = coercePracticeLanguage(nextLanguage);
-    setDraft((current) => ({
-      ...current,
-      practiceLanguage,
-      ttsVoice: coerceVoiceForLanguage(current.ttsVoice, practiceLanguage),
-    }));
   }
 
   async function handleAvatarFileChange(
@@ -571,24 +575,6 @@ export function SettingsContent({
                 {isLocalePending
                   ? t("language_switching")
                   : t("language_hint")}
-              </div>
-              <div>
-                <SettingLabel>{t("fields.practice_language")}</SettingLabel>
-                <Select
-                  value={draft.practiceLanguage}
-                  onChange={(event) =>
-                    handlePracticeLanguageChange(event.target.value)
-                  }
-                >
-                  {PRACTICE_LANGUAGES.map((language) => (
-                    <option key={language} value={language}>
-                      {t(`practice_languages.${language}`)}
-                    </option>
-                  ))}
-                </Select>
-                <p className="mt-2 text-sm text-[#64748b]">
-                  {t("practice_language_hint")}
-                </p>
               </div>
             </div>
           </SettingsCard>

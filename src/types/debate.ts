@@ -2,6 +2,8 @@ import type { DebateScore, PracticeLanguage, PracticeTrack } from "./feedback";
 
 export interface DebateTopic {
   id: string;
+  topicKey?: string;
+  categoryKey?: string;
   title: string;
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";

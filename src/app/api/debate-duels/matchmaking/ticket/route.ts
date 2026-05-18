@@ -5,6 +5,7 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   getEnum,
   getNumber,
+  getString,
   readJsonObject,
   RequestValidationError,
   isUuid,
@@ -14,7 +15,16 @@ import {
   enterDebateDuelMatchmaking,
   getCurrentDebateDuelMatchmakingTicket,
 } from "@/lib/api/debate-duels";
-import { CATEGORIES, topics, type Category } from "@/lib/topics";
+import {
+  CATEGORY_CONFIG,
+  getCategoryLabel,
+  getTopicCategoryKey,
+  getTopicStableKey,
+  getLocalizedTopic,
+  isCategoryKey,
+  topics,
+  type CategoryKey,
+} from "@/lib/topics";
 import {
   DUEL_OPENING_DURATION,
   DUEL_PREP_DURATION,
@@ -24,7 +34,7 @@ import {
 import type { DebateDuelTopicDifficulty, PracticeLanguage } from "@/types";
 
 type MatchmakingBody = {
-  topicCategory?: string;
+  topicCategoryKey?: CategoryKey;
   topicDifficulty?: DebateDuelTopicDifficulty;
   practiceLanguage?: PracticeLanguage;
   prepTimeSeconds?: number;
@@ -41,18 +51,21 @@ function normalizeDifficulty(
   return "beginner";
 }
 
-function normalizeCategory(category: string | undefined): Category {
-  if (CATEGORIES.includes(category as Category)) {
-    return category as Category;
-  }
-  return CATEGORIES[0];
+function normalizeCategoryKey(categoryKey: string | undefined): CategoryKey {
+  return isCategoryKey(categoryKey) ? categoryKey : CATEGORY_CONFIG[0].key;
 }
 
-function pickTopic(category: Category, difficulty: DebateDuelTopicDifficulty) {
+function pickTopic(
+  categoryKey: CategoryKey,
+  difficulty: DebateDuelTopicDifficulty
+) {
   const exact = topics.filter(
-    (topic) => topic.category === category && topic.difficulty === difficulty
+    (topic) =>
+      getTopicCategoryKey(topic) === categoryKey && topic.difficulty === difficulty
   );
-  const categoryFallback = topics.filter((topic) => topic.category === category);
+  const categoryFallback = topics.filter(
+    (topic) => getTopicCategoryKey(topic) === categoryKey
+  );
   const candidates = exact.length > 0 ? exact : categoryFallback;
   const index = Math.floor(Math.random() * Math.max(1, candidates.length));
   return candidates[index] ?? topics[0];
@@ -118,10 +131,11 @@ export async function POST(req: NextRequest) {
 
     const rawBody = await readJsonObject(req, { maxBytes: 4 * 1024 });
     const body: MatchmakingBody = {
-      topicCategory:
-        getEnum(rawBody, "topicCategory", CATEGORIES, {
-          defaultValue: CATEGORIES[0],
-        }) ?? CATEGORIES[0],
+      topicCategoryKey: normalizeCategoryKey(
+        getString(rawBody, "topicCategoryKey", {
+          maxLength: 80,
+        }) ?? undefined
+      ),
       topicDifficulty: getEnum(
         rawBody,
         "topicDifficulty",
@@ -138,15 +152,21 @@ export async function POST(req: NextRequest) {
       openingTimeSeconds: getNumber(rawBody, "openingTimeSeconds"),
       rebuttalTimeSeconds: getNumber(rawBody, "rebuttalTimeSeconds"),
     };
-    const topicCategory = normalizeCategory(body.topicCategory);
+    const practiceLanguage = body.practiceLanguage ?? "en";
+    const topicCategoryKey = normalizeCategoryKey(body.topicCategoryKey);
     const topicDifficulty = normalizeDifficulty(body.topicDifficulty);
-    const topic = pickTopic(topicCategory, topicDifficulty);
+    const topic = getLocalizedTopic(
+      pickTopic(topicCategoryKey, topicDifficulty),
+      practiceLanguage
+    );
     const ticket = await enterDebateDuelMatchmaking(user.id, {
-      topicCategory,
+      topicCategory: topic.category || getCategoryLabel(topicCategoryKey, practiceLanguage),
+      topicCategoryKey,
       topicDifficulty,
+      topicKey: getTopicStableKey(topic),
       topicTitle: topic.title,
       topicDescription: topic.context ?? "",
-      practiceLanguage: body.practiceLanguage ?? "en",
+      practiceLanguage,
       prepTimeSeconds: clampDurationSeconds(
         body.prepTimeSeconds,
         DUEL_PREP_DURATION

@@ -429,8 +429,10 @@ const fullRoundSession: DebateSession = {
 const mockDuelRoom: DebateDuelRoomView = {
   id: "dev-duel-room",
   shareCode: "DEVCLASH",
+  topicKey: "dev-duel-topic",
   topicTitle: "This House would ban smartphones in secondary school classrooms",
   topicCategory: "Education & School Life",
+  topicCategoryKey: "education",
   topicDifficulty: "intermediate",
   topicDescription:
     "A full classroom phone ban is being compared against flexible teacher-managed phone use.",

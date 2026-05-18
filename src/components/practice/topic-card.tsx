@@ -131,7 +131,10 @@ export function TopicCard({
             ))}
           </AvatarGroup>
           <span className="text-[12.5px] text-[#7383a4]">
-            {formatPracticeCountLabel(display.practiceCount)}
+            {formatPracticeCountLabel(
+              display.practiceCount,
+              t("practice_count_label")
+            )}
           </span>
         </div>
 

@@ -108,7 +108,7 @@ function getSupportedLocale(locale: string): SettingsLocale {
 
 function sanitizeDraft(input: SettingsDraft): SettingsDraft {
   const locale = getSupportedLocale(input.preferredLocale);
-  const practiceLanguage = coercePracticeLanguage(input.practiceLanguage);
+  const practiceLanguage = coercePracticeLanguage(locale);
   const displayName = input.displayName.trim();
   const defaultPrepTime = clampDurationSeconds(
     input.defaultPrepTime,

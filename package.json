@@ -17,6 +17,7 @@
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:practice-language": "tsx src/lib/practice-language.test.ts",
+    "test:topics": "tsx src/lib/topics.test.ts",
     "test:tts-voices": "tsx src/lib/tts-voices.test.ts",
     "test:smart-popups": "tsx src/lib/smart-popups/rules.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts",
