@@ -41,6 +41,7 @@ interface SpeakingPhaseProps {
   onResume: () => void;
   onEnd: () => void;
   isPaused: boolean;
+  hasDetectedAudio?: boolean;
   hasReceivedSpeech?: boolean;
 }
 
@@ -61,6 +62,7 @@ export function SpeakingPhase({
   onResume,
   onEnd,
   isPaused,
+  hasDetectedAudio = false,
   hasReceivedSpeech = false,
 }: SpeakingPhaseProps) {
   const t = useTranslations("dashboard.practice");
@@ -68,41 +70,60 @@ export function SpeakingPhase({
   const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noSpeechResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const wordCount = transcript
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
+  const hasHeardAudio = hasDetectedAudio || hasReceivedSpeech;
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript, interimTranscript]);
 
-  // Show "no speech detected" warning after 5 seconds if no transcript
+  // Show "no speech detected" only when neither local audio nor transcript has arrived.
   useEffect(() => {
-    if (hasReceivedSpeech || !isRecording || isPaused) {
+    if (hasHeardAudio || !isRecording || isPaused) {
       if (noSpeechTimerRef.current) {
         clearTimeout(noSpeechTimerRef.current);
         noSpeechTimerRef.current = null;
       }
+      if (noSpeechResetTimerRef.current) {
+        clearTimeout(noSpeechResetTimerRef.current);
+      }
+      noSpeechResetTimerRef.current = setTimeout(() => {
+        setShowNoSpeechWarning(false);
+        noSpeechResetTimerRef.current = null;
+      }, 0);
       return;
     }
 
     noSpeechTimerRef.current = setTimeout(() => {
-      if (!hasReceivedSpeech && isRecording && !isPaused) {
+      if (!hasHeardAudio && isRecording && !isPaused) {
         setShowNoSpeechWarning(true);
       }
-    }, 5000);
+    }, 9000);
 
     return () => {
       if (noSpeechTimerRef.current) {
         clearTimeout(noSpeechTimerRef.current);
         noSpeechTimerRef.current = null;
       }
+      if (noSpeechResetTimerRef.current) {
+        clearTimeout(noSpeechResetTimerRef.current);
+        noSpeechResetTimerRef.current = null;
+      }
     };
-  }, [hasReceivedSpeech, isRecording, isPaused]);
+  }, [hasHeardAudio, isRecording, isPaused]);
 
   const shouldShowNoSpeechWarning =
-    showNoSpeechWarning && !speechError && !hasReceivedSpeech && isRecording && !isPaused;
+    showNoSpeechWarning &&
+    !speechError &&
+    !hasHeardAudio &&
+    isRecording &&
+    !isPaused;
 
   const handleConfirmEnd = () => {
     setShowEndConfirm(false);
@@ -191,6 +212,8 @@ export function SpeakingPhase({
               {isRecording
                 ? hasReceivedSpeech
                   ? t("session.listening")
+                  : hasDetectedAudio
+                    ? t("session.waiting_for_transcript")
                   : t("session.waiting_for_speech")
                 : isPaused
                   ? t("session.paused")

@@ -841,6 +841,7 @@
       "ai_turn": "Lượt AI",
       "listening": "Đang nghe...",
       "waiting_for_speech": "Đang chờ giọng nói...",
+      "waiting_for_transcript": "Đã nghe âm thanh. Đang tạo bản ghi...",
       "paused": "Tạm dừng",
       "not_recording": "Chưa ghi âm",
       "no_speech_detected": "Chưa nghe thấy giọng nói. Kiểm tra micro nhé.",

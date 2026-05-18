@@ -8,6 +8,7 @@ import {
 import type { PracticeLanguage } from "@/types";
 
 const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
+const AUDIO_INPUT_LEVEL_THRESHOLD = 0.012;
 
 function createDebugId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -44,6 +45,14 @@ interface DeepgramResult {
     }>;
   };
 }
+
+interface DeepgramSpeechStarted {
+  type: "SpeechStarted";
+  channel?: number[];
+  timestamp?: number;
+}
+
+type DeepgramMessage = DeepgramResult | DeepgramSpeechStarted | { type: string };
 
 interface DeepgramTokenResponse {
   key?: string;
@@ -102,6 +111,7 @@ export function useDeepgramTranscription(
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [silenceWarning, setSilenceWarning] = useState(false);
+  const [hasDetectedAudio, setHasDetectedAudio] = useState(false);
   const [hasReceivedSpeech, setHasReceivedSpeech] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -117,8 +127,26 @@ export function useDeepgramTranscription(
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const debugIdRef = useRef<string>(createDebugId());
+  const hasDetectedAudioRef = useRef(false);
   const hasReceivedInterimRef = useRef(false);
   const hasReceivedFinalRef = useRef(false);
+
+  const markAudioDetected = useCallback(
+    (source: string, metadata: Record<string, unknown> = {}) => {
+      lastSpeechTimeRef.current = Date.now();
+      setSilenceWarning(false);
+
+      if (hasDetectedAudioRef.current) return;
+
+      hasDetectedAudioRef.current = true;
+      setHasDetectedAudio(true);
+      logSpeechDebug(debugIdRef.current, "audio_input_detected", {
+        source,
+        ...metadata,
+      });
+    },
+    []
+  );
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -283,6 +311,16 @@ export function useDeepgramTranscription(
           processor.onaudioprocess = (e) => {
             if (ws.readyState === WebSocket.OPEN) {
               const inputData = e.inputBuffer.getChannelData(0);
+              let level = 0;
+              for (let i = 0; i < inputData.length; i++) {
+                level += Math.abs(inputData[i] ?? 0);
+              }
+              level = level / inputData.length;
+              if (level > AUDIO_INPUT_LEVEL_THRESHOLD) {
+                markAudioDetected("audio_frame", {
+                  level: Number(level.toFixed(4)),
+                });
+              }
               const pcmData = float32ToInt16(inputData);
               ws.send(pcmData);
             }
@@ -301,15 +339,25 @@ export function useDeepgramTranscription(
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data as string) as DeepgramResult;
+          const data = JSON.parse(event.data as string) as DeepgramMessage;
+
+          if (data.type === "SpeechStarted") {
+            markAudioDetected("deepgram_speech_started", {
+              timestamp: (data as DeepgramSpeechStarted).timestamp,
+            });
+            return;
+          }
 
           if (data.type === "Results") {
-            const alt = data.channel?.alternatives?.[0];
+            const alt = (data as DeepgramResult).channel?.alternatives?.[0];
             if (!alt) return;
 
             const text = alt.transcript;
             if (!text) return;
 
+            markAudioDetected("deepgram_result", {
+              isFinal: (data as DeepgramResult).is_final,
+            });
             lastSpeechTimeRef.current = Date.now();
             setSilenceWarning(false);
 
@@ -318,13 +366,13 @@ export function useDeepgramTranscription(
               setHasReceivedSpeech(true);
             }
 
-            if (data.is_final) {
+            if ((data as DeepgramResult).is_final) {
               if (!hasReceivedFinalRef.current) {
                 hasReceivedFinalRef.current = true;
                 logSpeechDebug(debugId, "deepgram_first_final_result", {
                   transcriptLength: text.length,
                   confidence: alt.confidence,
-                  speechFinal: data.speech_final,
+                  speechFinal: (data as DeepgramResult).speech_final,
                 });
               }
               // Append finalized text to transcript
@@ -383,7 +431,12 @@ export function useDeepgramTranscription(
         }
       };
     },
-    [closeAudioProcessing, languageConfig.deepgramLanguage, practiceLanguage]
+    [
+      closeAudioProcessing,
+      languageConfig.deepgramLanguage,
+      markAudioDetected,
+      practiceLanguage,
+    ]
   );
 
   const startListening = useCallback(
@@ -401,9 +454,11 @@ export function useDeepgramTranscription(
 
       setError(null);
       reconnectCountRef.current = 0;
+      hasDetectedAudioRef.current = false;
       hasReceivedSpeechRef.current = false;
       hasReceivedInterimRef.current = false;
       hasReceivedFinalRef.current = false;
+      setHasDetectedAudio(false);
       setHasReceivedSpeech(false);
 
       shouldBeListeningRef.current = true;
@@ -440,7 +495,9 @@ export function useDeepgramTranscription(
     transcriptRef.current = "";
     setTranscript("");
     setInterimTranscript("");
+    hasDetectedAudioRef.current = false;
     hasReceivedSpeechRef.current = false;
+    setHasDetectedAudio(false);
     setHasReceivedSpeech(false);
   }, []);
 
@@ -468,6 +525,7 @@ export function useDeepgramTranscription(
     isSupported: true, // Deepgram works on all browsers with getUserMedia
     error,
     silenceWarning,
+    hasDetectedAudio,
     hasReceivedSpeech,
   };
 }

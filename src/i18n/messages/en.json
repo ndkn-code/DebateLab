@@ -841,6 +841,7 @@
       "ai_turn": "AI turn",
       "listening": "Listening...",
       "waiting_for_speech": "Waiting for speech...",
+      "waiting_for_transcript": "Audio detected. Waiting for transcript...",
       "paused": "Paused",
       "not_recording": "Not recording",
       "no_speech_detected": "No speech detected. Check your microphone.",

@@ -364,7 +364,7 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 
 ### App Shell
 - Protected app shells use `h-dvh w-screen overflow-hidden`; the main pane is `min-w-0 flex-1 overflow-y-auto overflow-x-hidden`.
-- Special live-practice flows may stay full-screen, but their top bars and panels still follow the same type, spacing, and container discipline.
+- Special live-practice flows may stay full-screen, but their phase body still owns `overflow-y-auto` below the top bar so growing notes, transcript, and action rails remain reachable.
 - Avoid page-level `min-h-screen` inside the protected shell unless a route deliberately replaces the app frame.
 - Do not allow horizontal document scrolling. If a surface needs overflow, it scrolls inside the relevant table, chart, or panel.
 
@@ -402,7 +402,7 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 - Full-screen debate and speaking sessions may replace the app sidebar, but they still use the product rhythm: `56px`-ish top bars, `max-w-6xl` content, compact chips, and no hero-scale titles.
 - Motion/topic panels should be readable workbench panels: compact metadata chips, `20px` to `22px` motion titles, one short context block, and row-like argument anchors.
 - Timer panels should stay secondary to the motion and notes. Desktop timer dials should usually land around `160px` to `190px`; avoid oversized circular timers that force scrolling on a 13-inch Safari viewport.
-- Notes and transcript panels use the same quiet card rhythm as the rest of the product: `p-4`, 8px radius, `14px` controls, and normal-flow action rails so buttons do not float over transcript text.
+- Notes and transcript panels use the same quiet card rhythm as the rest of the product: `p-4`, 8px radius, `14px` controls, and normal-flow action rails so buttons do not float over transcript text. Let the phase body scroll; do not trap note growth behind `overflow-hidden`.
 - Practice session labels, controls, and phase names must be checked in English and Vietnamese. Do not ship English-only mic/audio/prep/speaking labels on a Vietnamese route.
 
 ### QA Checklist

@@ -8,7 +8,7 @@ import {
   MessageCircle,
   Search,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   MAX_NOTES_LENGTH,
   appendPlainTextBlockToRichNotes,
@@ -21,7 +21,7 @@ import {
 import { MotionInfoPanel } from "./motion-info-panel";
 import type { DebateTopic, PracticeTrack } from "@/types";
 
-const TOPIC_STOP_WORDS = new Set([
+const EN_TOPIC_STOP_WORDS = new Set([
   "a",
   "an",
   "and",
@@ -39,6 +39,92 @@ const TOPIC_STOP_WORDS = new Set([
   "to",
 ]);
 
+const VI_TOPIC_STOP_WORDS = new Set([
+  "ban",
+  "cac",
+  "cho",
+  "cua",
+  "gay",
+  "hon",
+  "khi",
+  "la",
+  "loi",
+  "mot",
+  "nen",
+  "nhieu",
+  "thi",
+  "tren",
+  "trong",
+  "voi",
+  "và",
+  "các",
+  "cho",
+  "của",
+  "gây",
+  "hơn",
+  "khi",
+  "là",
+  "lợi",
+  "một",
+  "nên",
+  "nhiều",
+  "thì",
+  "trên",
+  "trong",
+  "với",
+]);
+
+const STARTER_BLOCK_COPY = {
+  en: {
+    keyTerms: "Key terms:",
+    fallbackTerms: ["Key term", "Impact", "Scope"],
+    mainArguments: "Main arguments:",
+    argumentFallback: [
+      "Main claim:",
+      "Why it matters:",
+      "Best example:",
+      "Closing line:",
+    ],
+    counterpoints: "Counterpoints to answer:",
+    counterpointFallback: [
+      "What the other side will say:",
+      "Why that claim is too broad:",
+      "Example that weakens it:",
+    ],
+    evidence: [
+      "Evidence to add:",
+      "- Example:",
+      "- Statistic or trend:",
+      "- Real-world group affected:",
+      "- Source or context:",
+    ],
+  },
+  vi: {
+    keyTerms: "Từ khóa:",
+    fallbackTerms: ["Khái niệm", "Tác động", "Phạm vi"],
+    mainArguments: "Luận điểm chính:",
+    argumentFallback: [
+      "Luận điểm trung tâm:",
+      "Vì sao quan trọng:",
+      "Ví dụ mạnh nhất:",
+      "Câu chốt:",
+    ],
+    counterpoints: "Phản biện cần trả lời:",
+    counterpointFallback: [
+      "Đối phương sẽ nói:",
+      "Vì sao lập luận đó quá rộng:",
+      "Ví dụ làm yếu lập luận:",
+    ],
+    evidence: [
+      "Dẫn chứng cần thêm:",
+      "- Ví dụ:",
+      "- Số liệu hoặc xu hướng:",
+      "- Nhóm chịu ảnh hưởng:",
+      "- Nguồn hoặc bối cảnh:",
+    ],
+  },
+} as const;
+
 function getSuggestedPoints(
   topic: DebateTopic,
   side: "proposition" | "opposition"
@@ -51,11 +137,14 @@ function getSuggestedPoints(
   return points?.filter(Boolean) ?? [];
 }
 
-function extractTopicTerms(title: string) {
+function extractTopicTerms(title: string, locale: "en" | "vi") {
+  const stopWords =
+    locale === "vi" ? VI_TOPIC_STOP_WORDS : EN_TOPIC_STOP_WORDS;
+  const minLength = locale === "vi" ? 2 : 3;
   const words = title
     .split(/\s+/)
-    .map((word) => word.replace(/[^a-zA-Z-]/g, "").toLowerCase())
-    .filter((word) => word.length > 3 && !TOPIC_STOP_WORDS.has(word));
+    .map((word) => word.replace(/[^\p{L}\p{M}-]/gu, "").toLowerCase())
+    .filter((word) => word.length > minLength && !stopWords.has(word));
 
   return Array.from(new Set(words)).slice(0, 4);
 }
@@ -63,34 +152,30 @@ function extractTopicTerms(title: string) {
 function buildStarterBlock(
   kind: "terms" | "arguments" | "counterpoints" | "evidence",
   topic: DebateTopic,
-  side: "proposition" | "opposition"
+  side: "proposition" | "opposition",
+  locale: "en" | "vi"
 ) {
+  const copy = STARTER_BLOCK_COPY[locale];
   const ownPoints = getSuggestedPoints(topic, side);
   const opposingSide = side === "proposition" ? "opposition" : "proposition";
   const opposingPoints = getSuggestedPoints(topic, opposingSide);
 
   if (kind === "terms") {
-    const terms = extractTopicTerms(topic.title);
-    const starterTerms = terms.length > 0 ? terms : ["Key term", "Impact", "Scope"];
+    const terms = extractTopicTerms(topic.title, locale);
+    const starterTerms = terms.length > 0 ? terms : copy.fallbackTerms;
 
-    return [
-      "Key terms:",
-      ...starterTerms.map((term) => `- ${term}: `),
-    ].join("\n");
+    return [copy.keyTerms, ...starterTerms.map((term) => `- ${term}: `)].join(
+      "\n"
+    );
   }
 
   if (kind === "arguments") {
     const points =
       ownPoints.length > 0
         ? ownPoints.slice(0, 4)
-        : [
-            "Main claim:",
-            "Why it matters:",
-            "Best example:",
-            "Closing line:",
-          ];
+        : copy.argumentFallback;
 
-    return ["Main arguments:", ...points.map((point) => `- ${point}`)].join(
+    return [copy.mainArguments, ...points.map((point) => `- ${point}`)].join(
       "\n"
     );
   }
@@ -99,25 +184,15 @@ function buildStarterBlock(
     const points =
       opposingPoints.length > 0
         ? opposingPoints.slice(0, 4)
-        : [
-            "What the other side will say:",
-            "Why that claim is too broad:",
-            "Example that weakens it:",
-          ];
+        : copy.counterpointFallback;
 
     return [
-      "Counterpoints to answer:",
+      copy.counterpoints,
       ...points.map((point) => `- ${point}`),
     ].join("\n");
   }
 
-  return [
-    "Evidence to add:",
-    "- Example:",
-    "- Statistic or trend:",
-    "- Real-world group affected:",
-    "- Source or context:",
-  ].join("\n");
+  return copy.evidence.join("\n");
 }
 
 interface PrepPhaseProps {
@@ -145,6 +220,7 @@ export function PrepPhase({
   onSkip,
 }: PrepPhaseProps) {
   const t = useTranslations("dashboard.practice");
+  const locale = useLocale() === "vi" ? "vi" : "en";
   const helperActions = [
     { label: t("session.define_key_terms"), icon: Search, kind: "terms" },
     { label: t("session.list_main_arguments"), icon: ListChecks, kind: "arguments" },
@@ -157,7 +233,7 @@ export function PrepPhase({
   ] as const;
 
   function appendStarterBlock(kind: (typeof helperActions)[number]["kind"]) {
-    const block = buildStarterBlock(kind, topic, side);
+    const block = buildStarterBlock(kind, topic, side, locale);
     onNotesChange(
       appendPlainTextBlockToRichNotes(prepNotes, block, MAX_NOTES_LENGTH)
     );

@@ -560,82 +560,87 @@ export default function SessionPage() {
         phase={currentPhase}
       />
 
-      {/* Round Progress (Full Round only, after prep) */}
-      {isFullRound &&
-        rounds.length > 0 &&
-        currentPhase !== "prep" &&
-        currentPhase !== "mic-check" && (
-          <RoundProgress rounds={rounds} currentRound={currentRound} />
-        )}
+      <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex min-h-full flex-col">
+          {/* Round Progress (Full Round only, after prep) */}
+          {isFullRound &&
+            rounds.length > 0 &&
+            currentPhase !== "prep" &&
+            currentPhase !== "mic-check" && (
+              <RoundProgress rounds={rounds} currentRound={currentRound} />
+            )}
 
-      {/* Audio Check (pre-session, for full round mode with TTS) */}
-      {currentPhase === "mic-check" && !audioChecked && isFullRound && (
-        <AudioCheck onPassed={() => setAudioChecked(true)} />
-      )}
+          {/* Audio Check (pre-session, for full round mode with TTS) */}
+          {currentPhase === "mic-check" && !audioChecked && isFullRound && (
+            <AudioCheck onPassed={() => setAudioChecked(true)} />
+          )}
 
-      {/* Mic Check Phase */}
-      {currentPhase === "mic-check" && (audioChecked || !isFullRound) && (
-        <MicCheck onReady={handleMicReady} onBack={handleMicBack} />
-      )}
+          {/* Mic Check Phase */}
+          {currentPhase === "mic-check" && (audioChecked || !isFullRound) && (
+            <MicCheck onReady={handleMicReady} onBack={handleMicBack} />
+          )}
 
-      {currentPhase === "prep" && (
-        <PrepPhase
-          topic={selectedTopic}
-          side={resolvedSide}
-          practiceTrack={practiceTrack}
-          aiHintsEnabled={aiHints}
-          timeLeft={prepTimer.timeLeft}
-          totalTime={prepTime}
-          progress={prepTimer.progress}
-          isRunning={prepTimer.isRunning}
-          prepNotes={prepNotes}
-          onNotesChange={setPrepNotes}
-          onSkip={handleSkipPrep}
-        />
-      )}
+          {currentPhase === "prep" && (
+            <PrepPhase
+              topic={selectedTopic}
+              side={resolvedSide}
+              practiceTrack={practiceTrack}
+              aiHintsEnabled={aiHints}
+              timeLeft={prepTimer.timeLeft}
+              totalTime={prepTime}
+              progress={prepTimer.progress}
+              isRunning={prepTimer.isRunning}
+              prepNotes={prepNotes}
+              onNotesChange={setPrepNotes}
+              onSkip={handleSkipPrep}
+            />
+          )}
 
-      {currentPhase === "speaking" && (
-        <SpeakingPhase
-          topic={selectedTopic}
-          side={resolvedSide}
-          timeLeft={speechTimer.timeLeft}
-          totalTime={speechTime}
-          progress={speechTimer.progress}
-          isRunning={speechTimer.isRunning}
-          isRecording={audio.isRecording}
-          transcript={speech.transcript}
-          interimTranscript={speech.interimTranscript}
-          prepNotes={prepNotes}
-          onNotesChange={setPrepNotes}
-          audioStream={micStream}
-          speechError={speech.error}
-          onPause={handlePause}
-          onResume={handleResume}
-          onEnd={handleEndSession}
-          isPaused={isPaused}
-          hasReceivedSpeech={speech.hasReceivedSpeech}
-        />
-      )}
+          {currentPhase === "speaking" && (
+            <SpeakingPhase
+              topic={selectedTopic}
+              side={resolvedSide}
+              timeLeft={speechTimer.timeLeft}
+              totalTime={speechTime}
+              progress={speechTimer.progress}
+              isRunning={speechTimer.isRunning}
+              isRecording={audio.isRecording}
+              transcript={speech.transcript}
+              interimTranscript={speech.interimTranscript}
+              prepNotes={prepNotes}
+              onNotesChange={setPrepNotes}
+              audioStream={micStream}
+              speechError={speech.error}
+              onPause={handlePause}
+              onResume={handleResume}
+              onEnd={handleEndSession}
+              isPaused={isPaused}
+              hasDetectedAudio={speech.hasDetectedAudio}
+              hasReceivedSpeech={speech.hasReceivedSpeech}
+            />
+          )}
 
-      {currentPhase === "ai-rebuttal" && isFullRound && currentRoundInfo && (
-        <AiRebuttalPhase
-          topic={selectedTopic.title}
-          side={resolvedSide}
-          userTranscript={latestUserTranscript}
-          roundLabel={currentRoundInfo.label}
-          difficulty={aiDifficulty}
-          practiceTrack={practiceTrack}
-          practiceLanguage={practiceLanguage}
-          previousRounds={previousRoundsForAi}
-          prepNotes={prepNotes}
-          onNotesChange={setPrepNotes}
-          onComplete={handleAiRebuttalComplete}
-          onGenerated={handleAiRebuttalGenerated}
-          initialResponse={currentRoundInfo.aiResponse}
-          initialHighlights={currentRoundInfo.aiHighlights}
-          ttsVoice={ttsVoice}
-        />
-      )}
+          {currentPhase === "ai-rebuttal" && isFullRound && currentRoundInfo && (
+            <AiRebuttalPhase
+              topic={selectedTopic.title}
+              side={resolvedSide}
+              userTranscript={latestUserTranscript}
+              roundLabel={currentRoundInfo.label}
+              difficulty={aiDifficulty}
+              practiceTrack={practiceTrack}
+              practiceLanguage={practiceLanguage}
+              previousRounds={previousRoundsForAi}
+              prepNotes={prepNotes}
+              onNotesChange={setPrepNotes}
+              onComplete={handleAiRebuttalComplete}
+              onGenerated={handleAiRebuttalGenerated}
+              initialResponse={currentRoundInfo.aiResponse}
+              initialHighlights={currentRoundInfo.aiHighlights}
+              ttsVoice={ttsVoice}
+            />
+          )}
+        </div>
+      </main>
 
       <AnimatePresence>
         {showTransition && (
