@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { AnimatePresence } from "framer-motion";
 import { useSessionStore, FULL_ROUND_STRUCTURE } from "@/store/session-store";
 import {
@@ -27,6 +28,7 @@ import type { AiHighlight } from "@/types";
 
 export default function SessionPage() {
   const router = useRouter();
+  const t = useTranslations("dashboard.practice");
   const {
     selectedTopic,
     side,
@@ -80,6 +82,20 @@ export default function SessionPage() {
   const currentRoundInfo = isFullRound
     ? rounds.find((r) => r.roundNumber === currentRound)
     : undefined;
+
+  const getRoundLabel = useCallback(
+    (label: string) => {
+      if (label === "Opening Statement") return t("session.round_opening");
+      if (label === "AI Rebuttal") return t("session.round_ai_rebuttal");
+      if (label === "Counter-Rebuttal") {
+        return t("session.round_counter_rebuttal");
+      }
+      if (label === "AI Closing") return t("session.round_ai_closing");
+      if (label === "Closing Statement") return t("session.round_closing");
+      return label;
+    },
+    [t]
+  );
 
   // Load TTS voice preference
   useEffect(() => {
@@ -201,8 +217,8 @@ export default function SessionPage() {
     (stream: MediaStream) => {
       micStreamRef.current = stream;
       setMicStream(stream);
-      setTransitionMessage("Let\u2019s go");
-      setTransitionSub("Your practice session is starting");
+      setTransitionMessage(t("session.transition_lets_go"));
+      setTransitionSub(t("session.transition_session_starting"));
       setShowTransition(true);
 
       const tid = setTimeout(() => {
@@ -211,7 +227,7 @@ export default function SessionPage() {
       }, 1200);
       transitionTimersRef.current.push(tid);
     },
-    [setPhase]
+    [setPhase, t]
   );
 
   /** Called when user presses Go Back during mic check */
@@ -251,11 +267,14 @@ export default function SessionPage() {
   const transitionToSpeaking = useCallback(async () => {
     const roundLabel =
       isFullRound && currentRoundInfo
-        ? `Round ${currentRound}: ${currentRoundInfo.label}`
-        : "Get Ready!";
+        ? t("session.transition_round_with_label", {
+            round: currentRound,
+            label: getRoundLabel(currentRoundInfo.label),
+          })
+        : t("session.transition_get_ready");
 
     setTransitionMessage(roundLabel);
-    setTransitionSub("Speaking phase begins now...");
+    setTransitionSub(t("session.transition_speaking_begins"));
     setShowTransition(true);
 
     // Ensure mic stream is ready
@@ -282,6 +301,8 @@ export default function SessionPage() {
     isFullRound,
     currentRound,
     currentRoundInfo,
+    getRoundLabel,
+    t,
   ]);
 
   const handleSkipPrep = useCallback(() => {
@@ -375,8 +396,14 @@ export default function SessionPage() {
 
       const nextRound = rounds.find((r) => r.roundNumber === currentRound + 1);
       if (nextRound?.type === "ai-rebuttal") {
-        setTransitionMessage(`Round ${currentRound + 1}`);
-        setTransitionSub(`${nextRound.label}...`);
+        setTransitionMessage(
+          t("session.transition_round_title", { round: currentRound + 1 })
+        );
+        setTransitionSub(
+          t("session.transition_round_subtitle", {
+            label: getRoundLabel(nextRound.label),
+          })
+        );
         setShowTransition(true);
 
         const tid = setTimeout(() => {
@@ -397,6 +424,8 @@ export default function SessionPage() {
       setPhase,
       getAllTranscripts,
       setTranscript,
+      getRoundLabel,
+      t,
     ]
   );
 
@@ -416,8 +445,14 @@ export default function SessionPage() {
         (r) => r.roundNumber === currentRound + 1
       );
       if (nextRound?.type === "user-speech") {
-        setTransitionMessage(`Round ${currentRound + 1}`);
-        setTransitionSub(`Your turn: ${nextRound.label}`);
+        setTransitionMessage(
+          t("session.transition_round_title", { round: currentRound + 1 })
+        );
+        setTransitionSub(
+          t("session.transition_your_turn", {
+            label: getRoundLabel(nextRound.label),
+          })
+        );
         setShowTransition(true);
 
         const tid = setTimeout(async () => {
@@ -452,6 +487,8 @@ export default function SessionPage() {
       acquireMicStream,
       getAllTranscripts,
       setTranscript,
+      getRoundLabel,
+      t,
     ]
   );
 
@@ -468,8 +505,8 @@ export default function SessionPage() {
       if (audio.audioBlob) setAudioBlob(audio.audioBlob);
       if (audio.audioUrl) setAudioUrl(audio.audioUrl);
 
-      setTransitionMessage("Analyzing...");
-      setTransitionSub("Processing your debate performance...");
+      setTransitionMessage(t("session.transition_analyzing"));
+      setTransitionSub(t("session.transition_analyzing_subtitle"));
       setShowTransition(true);
       setPhase("analyzing");
 
@@ -479,7 +516,7 @@ export default function SessionPage() {
       transitionTimersRef.current.push(tid2);
     }, 300);
     transitionTimersRef.current.push(tid1);
-  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream]);
+  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream, t]);
 
   /** Manual end button during speaking */
   const handleEndSession = useCallback(() => {
