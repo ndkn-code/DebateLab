@@ -1036,8 +1036,8 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
   );
 
   return (
-    <PageTransition className="h-[calc(100dvh-3.5rem)] overflow-hidden bg-background px-4 py-4 sm:px-6 md:h-screen lg:px-8 lg:py-6">
-      <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col">
+    <PageTransition className="min-h-[calc(100dvh-3.5rem)] bg-background px-4 py-4 sm:px-6 md:min-h-screen lg:px-8 lg:py-6">
+      <div className="mx-auto flex max-w-[1400px] flex-col">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-on-surface">
@@ -1055,7 +1055,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
           />
         </div>
 
-        <div className="mt-6 grid min-h-0 flex-1 grid-rows-[auto_auto_minmax(0,1fr)] gap-4">
+        <div className="mt-6 grid gap-4">
           <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
             <section className="rounded-[1.8rem] border border-outline-variant/15 bg-surface p-6 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)]">
               <div className="grid h-full grid-cols-1 gap-x-7 md:grid-cols-[10rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
@@ -1323,7 +1323,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             </section>
           </div>
 
-          <section className="flex min-h-0 flex-col rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
+          <section className="flex flex-col rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-on-surface">
@@ -1336,7 +1336,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             </div>
 
             {recentSessionsDisplay.length > 0 ? (
-              <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-[1.35rem] bg-surface px-1">
+              <div className="mt-4 space-y-3 rounded-[1.35rem] bg-surface px-1">
                 {recentSessionsDisplay.slice(0, 4).map((session, index) => (
                   <RecentSessionCard
                     key={`${session.kind}-${session.id}`}
@@ -1346,7 +1346,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                 ))}
               </div>
             ) : (
-              <div className="mt-5 flex min-h-[220px] flex-1 items-center rounded-[1.6rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-6 py-10 text-center">
+              <div className="mt-5 flex min-h-[220px] items-center rounded-[1.6rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-6 py-10 text-center">
                 <div className="mx-auto">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <CheckCircle2 className="h-6 w-6" />
