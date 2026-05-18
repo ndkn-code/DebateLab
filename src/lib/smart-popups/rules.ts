@@ -68,6 +68,39 @@ function isCooldownClear(
   return now.getTime() - lastShown >= cooldownHours * 60 * 60 * 1000;
 }
 
+function routeMatches(routeIncludes: string[] | undefined, route?: string) {
+  if (!routeIncludes || routeIncludes.length === 0) return true;
+  const normalized = (route ?? "").toLowerCase();
+  return routeIncludes.some((needle) =>
+    normalized.includes(needle.toLowerCase())
+  );
+}
+
+function isRepeatWindowClear(
+  campaign: SmartPopupCampaign,
+  state: SmartPopupCampaignStateEntry | undefined,
+  now: Date
+) {
+  if (campaign.campaign_type !== "feedback_survey") return true;
+
+  const submissions = asFiniteNumber(state?.submissions, 0);
+  const maxSubmissions = asFiniteNumber(
+    campaign.rules?.maxSubmissionsPerUser,
+    1
+  );
+
+  if (submissions >= maxSubmissions) return false;
+  if (!state?.submittedAt) return true;
+
+  const repeatDays = campaign.rules?.repeatIntervalDays;
+  if (typeof repeatDays !== "number" || repeatDays <= 0) return false;
+
+  const lastSubmitted = new Date(state.submittedAt).getTime();
+  if (!Number.isFinite(lastSubmitted)) return true;
+
+  return now.getTime() - lastSubmitted >= repeatDays * DAY_MS;
+}
+
 export function buildPopupSegments(
   traits: Omit<SmartPopupUserTraits, "segments">
 ): SmartPopupSegment[] {
@@ -114,6 +147,7 @@ export function isCampaignEligible(input: {
   campaignState?: SmartPopupCampaignState;
   impressionCounts?: SmartPopupImpressionCounts;
   surface?: string;
+  route?: string | null;
   now?: Date;
 }) {
   const now = input.now ?? new Date();
@@ -151,6 +185,10 @@ export function isCampaignEligible(input: {
     return false;
   }
 
+  if (!isRepeatWindowClear(campaign, state, now)) {
+    return false;
+  }
+
   if (
     asFiniteNumber(state?.impressions, 0) >=
     asFiniteNumber(campaign.max_impressions_per_user, 1)
@@ -174,6 +212,10 @@ export function isCampaignEligible(input: {
   }
 
   if (!hasAnySegment(rules.segments, traits.segments)) {
+    return false;
+  }
+
+  if (!routeMatches(rules.routeIncludes, input.route ?? undefined)) {
     return false;
   }
 
@@ -231,6 +273,7 @@ export function rankSmartPopupCandidates(input: {
   campaignState?: SmartPopupCampaignState;
   impressionCountsByCampaign?: Record<string, SmartPopupImpressionCounts>;
   surface?: string;
+  route?: string | null;
   now?: Date;
 }) {
   return input.campaigns
@@ -241,10 +284,15 @@ export function rankSmartPopupCandidates(input: {
         campaignState: input.campaignState,
         impressionCounts: input.impressionCountsByCampaign?.[campaign.key],
         surface: input.surface,
+        route: input.route,
         now: input.now,
       })
     )
     .sort((left, right) => {
+      if (left.delivery_mode !== right.delivery_mode) {
+        if (left.delivery_mode === "send_now") return -1;
+        if (right.delivery_mode === "send_now") return 1;
+      }
       if (left.priority !== right.priority) return left.priority - right.priority;
       return left.key.localeCompare(right.key);
     });
@@ -286,6 +334,7 @@ export function createSmartPopupPayload(input: {
   return {
     key: input.campaign.key,
     surface: input.campaign.surface,
+    campaignType: input.campaign.campaign_type,
     segment: pickPrimarySegment(input.campaign, input.traits),
     title,
     body,
@@ -312,7 +361,14 @@ export function createSmartPopupPayload(input: {
 export function updateCampaignStateForEvent(input: {
   campaignState: SmartPopupCampaignState;
   campaignKey: string;
-  eventType: "impression" | "dismissed" | "cta_clicked" | "dont_show_again";
+  eventType:
+    | "impression"
+    | "dismissed"
+    | "cta_clicked"
+    | "dont_show_again"
+    | "survey_started"
+    | "survey_submitted"
+    | "survey_abandoned";
   occurredAt?: string;
 }) {
   const occurredAt = input.occurredAt ?? new Date().toISOString();
@@ -332,6 +388,20 @@ export function updateCampaignStateForEvent(input: {
 
   if (input.eventType === "cta_clicked") {
     next.clickedAt = occurredAt;
+  }
+
+  if (input.eventType === "survey_started") {
+    next.surveyStartedAt = occurredAt;
+  }
+
+  if (input.eventType === "survey_submitted") {
+    next.submittedAt = occurredAt;
+    next.submissions = asFiniteNumber(current.submissions, 0) + 1;
+  }
+
+  if (input.eventType === "survey_abandoned") {
+    next.abandonedAt = occurredAt;
+    next.dismissedAt = occurredAt;
   }
 
   if (input.eventType === "dont_show_again") {

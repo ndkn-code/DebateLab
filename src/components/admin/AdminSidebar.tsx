@@ -2,7 +2,7 @@
 
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2, Mail } from "lucide-react";
+import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2, Mail, MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/classes", key: "classes" as const, icon: CalendarDays },
   { href: "/dashboard/admin/clubs", key: "clubs" as const, icon: Building2 },
   { href: "/dashboard/admin/emails", key: "emails" as const, icon: Mail },
+  { href: "/dashboard/admin/feedback-popups", key: "feedbackPopups" as const, icon: MessageSquareText },
   { href: "/dashboard/admin/courses", key: "courses" as const, icon: BookOpen },
   { href: "/dashboard/admin/duels", key: "duels" as const, icon: Swords },
 ] as const;

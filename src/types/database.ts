@@ -353,7 +353,10 @@ export interface AnalyticsEvent {
     | "popup_impression"
     | "popup_dismissed"
     | "popup_cta_clicked"
-    | "popup_dont_show_again";
+    | "popup_dont_show_again"
+    | "popup_survey_started"
+    | "popup_survey_submitted"
+    | "popup_survey_abandoned";
   feature_area:
     | "courses"
     | "activities"
@@ -377,6 +380,8 @@ export interface SmartPopupCampaign {
   key: string;
   surface: "dashboard" | "global";
   status: "active" | "paused" | "archived";
+  campaign_type: "feature_nudge" | "feedback_survey";
+  delivery_mode: "targeted" | "send_now" | "scheduled";
   priority: number;
   starts_at: string | null;
   ends_at: string | null;
@@ -384,12 +389,18 @@ export interface SmartPopupCampaign {
   max_impressions_per_user: number;
   daily_cap_per_user: number;
   weekly_cap_per_user: number;
+  reward_credits: number;
+  response_goal: number | null;
   cta_href: string;
   image_path: string;
   copy_en: Record<string, unknown>;
   copy_vi: Record<string, unknown>;
   rules: Record<string, unknown>;
   metadata: Record<string, unknown>;
+  published_at: string | null;
+  published_by: string | null;
+  created_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -412,11 +423,41 @@ export interface SmartPopupEvent {
     | "impression"
     | "dismissed"
     | "cta_clicked"
-    | "dont_show_again";
+    | "dont_show_again"
+    | "survey_started"
+    | "survey_submitted"
+    | "survey_abandoned";
   surface: string;
   route: string | null;
   metadata: Record<string, unknown>;
   occurred_at: string;
+}
+
+export interface SmartPopupSurveyVersion {
+  id: string;
+  campaign_key: string;
+  version: number;
+  questions: Record<string, unknown>[];
+  thank_you_copy: Record<string, unknown>;
+  created_by: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface SmartPopupSurveyResponse {
+  id: string;
+  user_id: string;
+  campaign_key: string;
+  survey_version_id: string;
+  impression_event_id: string | null;
+  submission_key: string;
+  locale: "en" | "vi";
+  answers: Record<string, unknown>[];
+  context: Record<string, unknown>;
+  reward_credits_awarded: number;
+  rewarded_at: string | null;
+  submitted_at: string;
+  created_at: string;
 }
 
 export interface SmartPopupCronRun {

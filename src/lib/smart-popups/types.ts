@@ -1,10 +1,17 @@
 import type { SkillMetricKey } from "@/lib/analytics/skill-snapshot";
+import type {
+  LocalizedSurveyQuestion,
+  SmartPopupSurveyThankYouCopy,
+} from "@/lib/smart-popups/survey";
 
 export const SMART_POPUP_EVENT_TYPES = [
   "impression",
   "dismissed",
   "cta_clicked",
   "dont_show_again",
+  "survey_started",
+  "survey_submitted",
+  "survey_abandoned",
 ] as const;
 
 export const SMART_POPUP_SEGMENTS = [
@@ -20,6 +27,8 @@ export type SmartPopupEventType = (typeof SMART_POPUP_EVENT_TYPES)[number];
 export type SmartPopupSegment = (typeof SMART_POPUP_SEGMENTS)[number];
 export type SmartPopupLocale = "en" | "vi";
 export type SmartPopupSurface = "dashboard" | "global";
+export type SmartPopupCampaignType = "feature_nudge" | "feedback_survey";
+export type SmartPopupDeliveryMode = "targeted" | "send_now" | "scheduled";
 
 export interface SmartPopupCopy {
   eyebrow?: string;
@@ -40,6 +49,10 @@ export interface SmartPopupRules {
   requiresWeakestSkill?: boolean;
   maxCourseProgressCount?: number;
   maxCoachEventCount?: number;
+  preferredLocales?: SmartPopupLocale[];
+  routeIncludes?: string[];
+  repeatIntervalDays?: number;
+  maxSubmissionsPerUser?: number;
 }
 
 export interface SmartPopupCampaign {
@@ -47,6 +60,8 @@ export interface SmartPopupCampaign {
   key: string;
   surface: SmartPopupSurface;
   status: "active" | "paused" | "archived";
+  campaign_type: SmartPopupCampaignType;
+  delivery_mode: SmartPopupDeliveryMode;
   priority: number;
   starts_at: string | null;
   ends_at: string | null;
@@ -54,6 +69,8 @@ export interface SmartPopupCampaign {
   max_impressions_per_user: number;
   daily_cap_per_user: number;
   weekly_cap_per_user: number;
+  reward_credits: number;
+  response_goal: number | null;
   cta_href: string;
   image_path: string;
   copy_en: SmartPopupCopy;
@@ -67,6 +84,10 @@ export interface SmartPopupCampaignStateEntry {
   lastShownAt?: string | null;
   dismissedAt?: string | null;
   clickedAt?: string | null;
+  surveyStartedAt?: string | null;
+  submittedAt?: string | null;
+  submissions?: number;
+  abandonedAt?: string | null;
   hidden?: boolean;
 }
 
@@ -95,9 +116,18 @@ export interface SmartPopupUserTraits {
   segments: SmartPopupSegment[];
 }
 
+export interface SmartPopupSurveyPayload {
+  versionId: string;
+  version: number;
+  rewardCredits: number;
+  questions: LocalizedSurveyQuestion[];
+  thankYou: SmartPopupSurveyThankYouCopy;
+}
+
 export interface SmartPopupPayload {
   key: string;
   surface: SmartPopupSurface;
+  campaignType: SmartPopupCampaignType;
   segment: SmartPopupSegment;
   title: string;
   body: string;
@@ -110,4 +140,5 @@ export interface SmartPopupPayload {
   imageAlt: string;
   priority: number;
   metadata: Record<string, unknown>;
+  survey?: SmartPopupSurveyPayload;
 }

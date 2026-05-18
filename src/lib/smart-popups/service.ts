@@ -8,6 +8,13 @@ import {
   rankSmartPopupCandidates,
   updateCampaignStateForEvent,
 } from "@/lib/smart-popups/rules";
+import {
+  getThankYouCopy,
+  localizeSurveyQuestions,
+  normalizeSurveyQuestions,
+  validateSurveyAnswers,
+  type SmartPopupSurveyAnswer,
+} from "@/lib/smart-popups/survey";
 import type {
   SmartPopupCampaign,
   SmartPopupCampaignState,
@@ -17,6 +24,7 @@ import type {
   SmartPopupLocale,
   SmartPopupPayload,
   SmartPopupRules,
+  SmartPopupSurveyPayload,
   SmartPopupSegment,
   SmartPopupSurface,
   SmartPopupUserTraits,
@@ -63,9 +71,18 @@ type AnalyticsRow = {
 };
 
 type PopupEventRow = {
+  id?: string;
   campaign_key: string;
   event_type: string;
   occurred_at: string;
+};
+
+type SurveyVersionRow = {
+  id: string;
+  campaign_key: string;
+  version: number;
+  questions: unknown;
+  thank_you_copy: unknown;
 };
 
 type UserStateRow = {
@@ -122,6 +139,16 @@ function normalizeRules(value: unknown): SmartPopupRules {
         : undefined,
     maxCourseProgressCount: asNullableNumber(source.maxCourseProgressCount),
     maxCoachEventCount: asNullableNumber(source.maxCoachEventCount),
+    preferredLocales: Array.isArray(source.preferredLocales)
+      ? source.preferredLocales.filter(
+          (item): item is "en" | "vi" => item === "en" || item === "vi"
+        )
+      : undefined,
+    routeIncludes: Array.isArray(source.routeIncludes)
+      ? source.routeIncludes.filter((item): item is string => typeof item === "string")
+      : undefined,
+    repeatIntervalDays: asNullableNumber(source.repeatIntervalDays),
+    maxSubmissionsPerUser: asNullableNumber(source.maxSubmissionsPerUser),
   };
 }
 
@@ -141,6 +168,14 @@ function normalizeCampaign(row: Record<string, unknown>): SmartPopupCampaign {
       row.status === "paused" || row.status === "archived"
         ? row.status
         : "active",
+    campaign_type:
+      row.campaign_type === "feedback_survey"
+        ? "feedback_survey"
+        : "feature_nudge",
+    delivery_mode:
+      row.delivery_mode === "send_now" || row.delivery_mode === "scheduled"
+        ? row.delivery_mode
+        : "targeted",
     priority: asNumber(row.priority, 100),
     starts_at: asNullableString(row.starts_at),
     ends_at: asNullableString(row.ends_at),
@@ -148,6 +183,11 @@ function normalizeCampaign(row: Record<string, unknown>): SmartPopupCampaign {
     max_impressions_per_user: asNumber(row.max_impressions_per_user, 3),
     daily_cap_per_user: asNumber(row.daily_cap_per_user, 1),
     weekly_cap_per_user: asNumber(row.weekly_cap_per_user, 3),
+    reward_credits: asNumber(row.reward_credits, 0),
+    response_goal:
+      typeof row.response_goal === "number" && Number.isFinite(row.response_goal)
+        ? row.response_goal
+        : null,
     cta_href: asString(row.cta_href, "/dashboard"),
     image_path: asString(row.image_path, "/images/smart-popups/first-practice.webp"),
     copy_en: normalizeCopy(row.copy_en),
@@ -168,6 +208,10 @@ function normalizeCampaignState(value: unknown): SmartPopupCampaignState {
         lastShownAt: asNullableString(entry.lastShownAt),
         dismissedAt: asNullableString(entry.dismissedAt),
         clickedAt: asNullableString(entry.clickedAt),
+        surveyStartedAt: asNullableString(entry.surveyStartedAt),
+        submittedAt: asNullableString(entry.submittedAt),
+        submissions: asNullableNumber(entry.submissions),
+        abandonedAt: asNullableString(entry.abandonedAt),
         hidden: entry.hidden === true,
       };
       return state;
@@ -359,6 +403,67 @@ async function fetchPopupEvents(
   return (data ?? []) as PopupEventRow[];
 }
 
+async function fetchCurrentSurveyVersion(
+  supabase: SupabaseClient,
+  campaignKey: string
+): Promise<SurveyVersionRow | null> {
+  const { data, error } = await supabase
+    .from("smart_popup_survey_versions")
+    .select("id, campaign_key, version, questions, thank_you_copy")
+    .eq("campaign_key", campaignKey)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as SurveyVersionRow | null) ?? null;
+}
+
+async function fetchSurveyVersionById(
+  supabase: SupabaseClient,
+  surveyVersionId: string
+): Promise<SurveyVersionRow | null> {
+  const { data, error } = await supabase
+    .from("smart_popup_survey_versions")
+    .select("id, campaign_key, version, questions, thank_you_copy")
+    .eq("id", surveyVersionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as SurveyVersionRow | null) ?? null;
+}
+
+function createSurveyPayload(input: {
+  version: SurveyVersionRow | null;
+  campaign: SmartPopupCampaign;
+  locale: SmartPopupLocale;
+}): SmartPopupSurveyPayload | undefined {
+  if (!input.version || input.campaign.campaign_type !== "feedback_survey") {
+    return undefined;
+  }
+
+  const questions = normalizeSurveyQuestions(input.version.questions);
+  if (questions.length === 0) return undefined;
+
+  return {
+    versionId: input.version.id,
+    version: asNumber(input.version.version, 1),
+    rewardCredits: input.campaign.reward_credits,
+    questions: localizeSurveyQuestions(questions, input.locale),
+    thankYou: getThankYouCopy(
+      input.version.thank_you_copy,
+      input.locale,
+      input.campaign.reward_credits
+    ),
+  };
+}
+
 async function saveUserState(input: {
   supabase: SupabaseClient;
   userId: string;
@@ -395,19 +500,25 @@ async function insertPopupEvent(input: {
   metadata?: Record<string, unknown>;
   occurredAt: string;
 }) {
-  const { error } = await input.supabase.from("smart_popup_events").insert({
-    user_id: input.userId,
-    campaign_key: input.campaignKey,
-    event_type: input.eventType,
-    surface: input.surface,
-    route: input.route ?? null,
-    metadata: input.metadata ?? {},
-    occurred_at: input.occurredAt,
-  });
+  const { data, error } = await input.supabase
+    .from("smart_popup_events")
+    .insert({
+      user_id: input.userId,
+      campaign_key: input.campaignKey,
+      event_type: input.eventType,
+      surface: input.surface,
+      route: input.route ?? null,
+      metadata: input.metadata ?? {},
+      occurred_at: input.occurredAt,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
   }
+
+  return (data as { id: string } | null)?.id ?? null;
 }
 
 async function recordPopupAnalytics(input: {
@@ -423,6 +534,9 @@ async function recordPopupAnalytics(input: {
     dismissed: "popup_dismissed",
     cta_clicked: "popup_cta_clicked",
     dont_show_again: "popup_dont_show_again",
+    survey_started: "popup_survey_started",
+    survey_submitted: "popup_survey_submitted",
+    survey_abandoned: "popup_survey_abandoned",
   } as const;
 
   await recordAnalyticsEvent(
@@ -480,6 +594,7 @@ export async function getNextSmartPopup(input: {
     campaignState,
     impressionCountsByCampaign,
     surface,
+    route: input.route,
     now,
   });
 
@@ -495,7 +610,24 @@ export async function getNextSmartPopup(input: {
     return { popup: null, segment: getPrimarySegment(traits.segments) };
   }
 
-  const popup = createSmartPopupPayload({ campaign, traits, locale });
+  const surveyVersion =
+    campaign.campaign_type === "feedback_survey"
+      ? await fetchCurrentSurveyVersion(input.supabase, campaign.key)
+      : null;
+  const survey = createSurveyPayload({
+    version: surveyVersion,
+    campaign,
+    locale,
+  });
+
+  if (campaign.campaign_type === "feedback_survey" && !survey) {
+    return { popup: null, segment: getPrimarySegment(traits.segments) };
+  }
+
+  let popup = {
+    ...createSmartPopupPayload({ campaign, traits, locale }),
+    survey,
+  };
 
   if (input.commit) {
     const occurredAt = now.toISOString();
@@ -506,7 +638,7 @@ export async function getNextSmartPopup(input: {
       occurredAt,
     });
 
-    await insertPopupEvent({
+    const impressionEventId = await insertPopupEvent({
       supabase: input.supabase,
       userId: input.userId,
       campaignKey: campaign.key,
@@ -516,6 +648,13 @@ export async function getNextSmartPopup(input: {
       metadata: popup.metadata,
       occurredAt,
     });
+    popup = {
+      ...popup,
+      metadata: {
+        ...popup.metadata,
+        impressionEventId,
+      },
+    };
     await saveUserState({
       supabase: input.supabase,
       userId: input.userId,
@@ -587,6 +726,200 @@ export async function recordSmartPopupEvent(input: {
   });
 
   return { ok: true };
+}
+
+async function fetchCampaignByKey(
+  supabase: SupabaseClient,
+  campaignKey: string
+) {
+  const { data, error } = await supabase
+    .from("smart_popup_campaigns")
+    .select("*")
+    .eq("key", campaignKey)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? normalizeCampaign(data as Record<string, unknown>) : null;
+}
+
+function normalizeSubmissionKey(input: {
+  userId: string;
+  campaignKey: string;
+  surveyVersionId: string;
+  impressionEventId?: string | null;
+}) {
+  return [
+    input.userId,
+    input.campaignKey,
+    input.surveyVersionId,
+    input.impressionEventId ?? "manual",
+  ].join(":");
+}
+
+async function findExistingSurveyResponse(input: {
+  supabase: SupabaseClient;
+  submissionKey: string;
+}) {
+  const { data, error } = await input.supabase
+    .from("smart_popup_survey_responses")
+    .select("id, reward_credits_awarded, rewarded_at")
+    .eq("submission_key", input.submissionKey)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as
+    | { id: string; reward_credits_awarded: number; rewarded_at: string | null }
+    | null;
+}
+
+export async function submitSmartPopupSurveyResponse(input: {
+  supabase: SupabaseClient;
+  userId: string;
+  campaignKey: string;
+  surveyVersionId: string;
+  answers: unknown;
+  locale?: string | null;
+  surface?: string | null;
+  route?: string | null;
+  impressionEventId?: string | null;
+  context?: Record<string, unknown>;
+  now?: Date;
+}) {
+  const now = input.now ?? new Date();
+  const locale = normalizeLocale(input.locale);
+  const surface = normalizeSurface(input.surface);
+  const [campaign, version] = await Promise.all([
+    fetchCampaignByKey(input.supabase, input.campaignKey),
+    fetchSurveyVersionById(input.supabase, input.surveyVersionId),
+  ]);
+
+  if (!campaign || campaign.campaign_type !== "feedback_survey") {
+    throw new Error("Feedback campaign not found.");
+  }
+
+  if (!version || version.campaign_key !== campaign.key) {
+    throw new Error("Feedback survey version not found.");
+  }
+
+  const questions = normalizeSurveyQuestions(version.questions);
+  const normalizedAnswers = validateSurveyAnswers(
+    questions,
+    input.answers
+  ) as SmartPopupSurveyAnswer[];
+  const submissionKey = normalizeSubmissionKey({
+    userId: input.userId,
+    campaignKey: campaign.key,
+    surveyVersionId: version.id,
+    impressionEventId: input.impressionEventId,
+  });
+  const existing = await findExistingSurveyResponse({
+    supabase: input.supabase,
+    submissionKey,
+  });
+
+  if (existing) {
+    return {
+      ok: true,
+      duplicate: true,
+      responseId: existing.id,
+      rewardCredits: existing.reward_credits_awarded,
+      rewardedAt: existing.rewarded_at,
+    };
+  }
+
+  const { data, error } = await input.supabase
+    .from("smart_popup_survey_responses")
+    .insert({
+      user_id: input.userId,
+      campaign_key: campaign.key,
+      survey_version_id: version.id,
+      impression_event_id: input.impressionEventId ?? null,
+      submission_key: submissionKey,
+      locale,
+      answers: normalizedAnswers,
+      context: {
+        route: input.route ?? null,
+        surface,
+        submittedAt: now.toISOString(),
+        ...(input.context ?? {}),
+      },
+      reward_credits_awarded: 0,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      const duplicate = await findExistingSurveyResponse({
+        supabase: input.supabase,
+        submissionKey,
+      });
+      if (duplicate) {
+        return {
+          ok: true,
+          duplicate: true,
+          responseId: duplicate.id,
+          rewardCredits: duplicate.reward_credits_awarded,
+          rewardedAt: duplicate.rewarded_at,
+        };
+      }
+    }
+    throw new Error(error.message);
+  }
+
+  const responseId = (data as { id: string }).id;
+  let newBalance: number | null = null;
+  if (campaign.reward_credits > 0) {
+    const { data: rewardData, error: rewardError } = await input.supabase.rpc(
+      "grant_feedback_popup_reward",
+      {
+        p_user_id: input.userId,
+        p_response_id: responseId,
+        p_amount: campaign.reward_credits,
+      }
+    );
+
+    if (rewardError) {
+      throw new Error(rewardError.message);
+    }
+
+    newBalance =
+      typeof rewardData === "number" && Number.isFinite(rewardData)
+        ? rewardData
+        : null;
+  }
+
+  await recordSmartPopupEvent({
+    supabase: input.supabase,
+    userId: input.userId,
+    campaignKey: campaign.key,
+    eventType: "survey_submitted",
+    surface,
+    route: input.route,
+    metadata: {
+      campaignKey: campaign.key,
+      surveyVersionId: version.id,
+      responseId,
+      rewardCredits: campaign.reward_credits,
+      answerCount: normalizedAnswers.length,
+    },
+    now,
+  });
+
+  return {
+    ok: true,
+    duplicate: false,
+    responseId,
+    rewardCredits: campaign.reward_credits,
+    newBalance,
+    thankYou: getThankYouCopy(version.thank_you_copy, locale, campaign.reward_credits),
+  };
 }
 
 export async function refreshSmartPopupUserStates(input: {

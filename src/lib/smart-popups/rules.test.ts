@@ -20,6 +20,8 @@ function campaign(
     key,
     surface: "dashboard",
     status: "active",
+    campaign_type: "feature_nudge",
+    delivery_mode: "targeted",
     priority,
     starts_at: null,
     ends_at: null,
@@ -27,6 +29,8 @@ function campaign(
     max_impressions_per_user: 3,
     daily_cap_per_user: 1,
     weekly_cap_per_user: 3,
+    reward_credits: 0,
+    response_goal: null,
     cta_href: "/practice",
     image_path: `/images/smart-popups/${key}.webp`,
     copy_en: {
@@ -234,4 +238,60 @@ run("preview ranking does not mutate state, commit impression does", () => {
     nextState["first-practice"]?.lastShownAt,
     "2026-05-10T09:00:00.000Z"
   );
+});
+
+run("send-now feedback surveys rank ahead of ordinary nudges", () => {
+  const user = traits({ totalSessionsCompleted: 3 });
+  const feedbackCampaign = campaign(
+    "app-experience-feedback",
+    99,
+    { maxSubmissionsPerUser: 1 },
+    {
+      campaign_type: "feedback_survey",
+      delivery_mode: "send_now",
+      surface: "global",
+      reward_credits: 50,
+      max_impressions_per_user: 1,
+    }
+  );
+  const [candidate] = rankSmartPopupCandidates({
+    campaigns: [...campaigns, feedbackCampaign],
+    traits: user,
+    surface: "global",
+    impressionCountsByCampaign: Object.fromEntries(
+      [...campaigns, feedbackCampaign].map((item) => [item.key, zeroCounts()])
+    ),
+  });
+
+  assert.equal(candidate?.key, "app-experience-feedback");
+});
+
+run("feedback surveys do not repeat after one submission by default", () => {
+  const user = traits({ totalSessionsCompleted: 3 });
+  const feedbackCampaign = campaign(
+    "app-experience-feedback",
+    10,
+    { maxSubmissionsPerUser: 1 },
+    {
+      campaign_type: "feedback_survey",
+      surface: "global",
+      reward_credits: 50,
+    }
+  );
+  const ranked = rankSmartPopupCandidates({
+    campaigns: [feedbackCampaign],
+    traits: user,
+    surface: "global",
+    campaignState: {
+      "app-experience-feedback": {
+        submissions: 1,
+        submittedAt: "2026-05-15T09:00:00.000Z",
+      },
+    },
+    impressionCountsByCampaign: {
+      "app-experience-feedback": zeroCounts(),
+    },
+  });
+
+  assert.equal(ranked.length, 0);
 });

@@ -20,6 +20,9 @@ export const ANALYTICS_EVENT_NAMES = [
   "popup_dismissed",
   "popup_cta_clicked",
   "popup_dont_show_again",
+  "popup_survey_started",
+  "popup_survey_submitted",
+  "popup_survey_abandoned",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [
