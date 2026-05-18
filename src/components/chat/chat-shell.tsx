@@ -39,7 +39,6 @@ export function ChatShell({
   initialConversationId,
   context,
   contextId,
-  initialCoachProfile,
   initialCoachEnvelope,
 }: ChatShellProps) {
   const t = useTranslations("dashboard.chat");
@@ -57,9 +56,9 @@ export function ChatShell({
   const [messages, setMessages] = useState<ChatMessageLocal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialMessageSent, setInitialMessageSent] = useState(false);
-  const [coachProfile, setCoachProfile] = useState(initialCoachProfile);
   const [coachEnvelope, setCoachEnvelope] = useState(initialCoachEnvelope);
 
   const refreshCoachView = useCallback(
@@ -93,10 +92,8 @@ export function ChatShell({
         }
 
         const data = (await res.json()) as {
-          profile: CoachProfile;
           envelope: CoachContextEnvelope;
         };
-        setCoachProfile(data.profile);
         setCoachEnvelope(data.envelope);
       } catch {
         // Keep current coach view on failure
@@ -111,39 +108,43 @@ export function ChatShell({
   const loadConversation = useCallback(async (conversationId: string) => {
     setActiveConversationId(conversationId);
     setIsLoading(true);
+    setLoadError(false);
     setSidebarOpen(false);
 
     try {
       const res = await fetch(
         `/api/chat/conversations/${conversationId}`
       );
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(
-          data.messages.map((m: ChatMessage) => ({
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            metadata: m.metadata,
-            status: "complete",
-            finalRenderMode: "markdown",
-            finishReason: null,
-            isTruncated: false,
-            created_at: m.created_at,
-          }))
-        );
-
-        const nextContextType = data.conversation.context_type ?? "coach-home";
-        const nextContextId = data.conversation.context_id ?? null;
-        setActiveContextType(nextContextType);
-        setActiveContextId(nextContextId);
-        void refreshCoachView({
-          nextContextType,
-          nextContextId,
-        });
+      if (!res.ok) {
+        throw new Error("Failed to load conversation");
       }
+
+      const data = await res.json();
+      setMessages(
+        data.messages.map((m: ChatMessage) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          metadata: m.metadata,
+          status: "complete",
+          finalRenderMode: "markdown",
+          finishReason: null,
+          isTruncated: false,
+          created_at: m.created_at,
+        }))
+      );
+
+      const nextContextType = data.conversation.context_type ?? "coach-home";
+      const nextContextId = data.conversation.context_id ?? null;
+      setActiveContextType(nextContextType);
+      setActiveContextId(nextContextId);
+      void refreshCoachView({
+        nextContextType,
+        nextContextId,
+      });
     } catch {
-      // Failed to load, keep empty
+      setMessages([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -153,15 +154,14 @@ export function ChatShell({
   const handleNewChat = useCallback(() => {
     setActiveConversationId(null);
     setMessages([]);
+    setLoadError(false);
     setSidebarOpen(false);
     setActiveContextType(initialContextType);
     setActiveContextId(contextId ?? null);
-    setCoachProfile(initialCoachProfile);
     setCoachEnvelope(initialCoachEnvelope);
   }, [
     contextId,
     initialCoachEnvelope,
-    initialCoachProfile,
     initialContextType,
   ]);
 
@@ -182,6 +182,7 @@ export function ChatShell({
     async (text: string) => {
       if (!text.trim()) return;
       const trimmedText = text.trim();
+      setLoadError(false);
 
       // Add user message to UI
       const userMsg: ChatMessageLocal = {
@@ -410,9 +411,16 @@ export function ChatShell({
         onSendMessage={sendMessage}
         onOpenSidebar={() => setSidebarOpen(true)}
         hasConversation={!!activeConversationId}
-        coachProfile={coachProfile}
         coachEnvelope={coachEnvelope}
         isInsightsLoading={isInsightsLoading}
+        loadError={loadError}
+        onRetryLoad={
+          activeConversationId
+            ? () => {
+                loadConversation(activeConversationId);
+              }
+            : undefined
+        }
       />
     </PageTransition>
   );

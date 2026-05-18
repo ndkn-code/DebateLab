@@ -8,10 +8,12 @@ import {
   AlertTriangle,
   WifiOff,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AudioVisualizer } from "./audio-visualizer";
 import { MotionInfoPanel } from "./motion-info-panel";
 import {
+  ActionRail,
   PauseButton,
   PhasePill,
   PracticePanel,
@@ -61,6 +63,7 @@ export function SpeakingPhase({
   isPaused,
   hasReceivedSpeech = false,
 }: SpeakingPhaseProps) {
+  const t = useTranslations("dashboard.practice");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -130,14 +133,14 @@ export function SpeakingPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-5 pb-24 pt-6 sm:px-6 lg:px-8">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 pb-20 pt-3 sm:px-5 lg:px-6">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_296px]">
         <MotionInfoPanel topic={topic} side={side} />
 
-        <PracticePanel className="flex min-h-[330px] flex-col items-center justify-center p-5">
-          <PhasePill tone="red">Speaking Phase</PhasePill>
+        <PracticePanel className="flex min-h-[260px] flex-col items-center justify-center p-4">
+          <PhasePill tone="red">{t("session.speaking_phase")}</PhasePill>
 
-          <div className="mt-5">
+          <div className="mt-3">
             <PracticeTimerDial
               timeLeft={timeLeft}
               totalTime={totalTime}
@@ -147,12 +150,12 @@ export function SpeakingPhase({
             />
           </div>
 
-          <div className="mt-4 flex flex-col items-center gap-3">
+          <div className="mt-3 flex flex-col items-center gap-2">
             <motion.div
               role="status"
               aria-label={isRecording ? "Microphone is recording" : isPaused ? "Recording is paused" : "Microphone is off"}
               className={cn(
-                "relative flex h-20 w-20 items-center justify-center rounded-full",
+                "relative flex h-14 w-14 items-center justify-center rounded-full",
                 isRecording
                   ? "bg-error-container"
                   : isPaused
@@ -172,10 +175,10 @@ export function SpeakingPhase({
               transition={
                 isRecording ? { duration: 1.5, repeat: Infinity } : {}
               }
-            >
-              <Mic
-                className={cn(
-                  "h-9 w-9",
+              >
+                <Mic
+                  className={cn(
+                  "h-6 w-6",
                   isRecording
                     ? "text-error"
                     : isPaused
@@ -187,20 +190,20 @@ export function SpeakingPhase({
             <span className="text-sm font-semibold text-on-surface">
               {isRecording
                 ? hasReceivedSpeech
-                  ? "Listening..."
-                  : "Waiting for speech..."
+                  ? t("session.listening")
+                  : t("session.waiting_for_speech")
                 : isPaused
-                  ? "Paused"
-              : "Not recording"}
+                  ? t("session.paused")
+              : t("session.not_recording")}
             </span>
           </div>
 
-          <div className="mt-4 w-full max-w-[330px]">
+          <div className="mt-3 w-full max-w-[240px]">
             <AudioVisualizer stream={audioStream} isRecording={isRecording} />
           </div>
 
           {speechError && (
-            <div className="mt-6 flex items-center gap-2 rounded-2xl bg-warning/10 px-4 py-3 text-sm font-medium text-[#9b6b00]" role="alert">
+            <div className="mt-4 flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm font-medium text-[#9b6b00]" role="alert">
               {speechError === "network" ? (
                 <WifiOff className="h-4 w-4 shrink-0" />
               ) : (
@@ -214,45 +217,45 @@ export function SpeakingPhase({
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6 flex items-center gap-2 rounded-2xl bg-surface-container px-4 py-3 text-sm font-medium text-on-surface-variant"
+              className="mt-4 flex items-center gap-2 rounded-md bg-surface-container px-3 py-2 text-sm font-medium text-on-surface-variant"
             >
               <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-              No speech detected. Make sure you&apos;re speaking in English.
+              {t("session.no_speech_detected")}
             </motion.div>
           )}
         </PracticePanel>
       </div>
 
-      <div className="grid flex-1 gap-6 lg:grid-cols-[minmax(300px,0.8fr)_minmax(0,1fr)]">
+      <div className="grid flex-1 gap-3 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <QuickNotesEditor
             value={prepNotes}
             onChange={onNotesChange}
-            minHeightClassName="min-h-[285px]"
+            minHeightClassName="min-h-[220px]"
           />
         </div>
 
-        <PracticePanel className="flex min-h-[285px] flex-1 flex-col p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold tracking-normal text-on-surface">
-              Live Transcript
+        <PracticePanel className="flex min-h-[220px] flex-1 flex-col p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold tracking-normal text-on-surface">
+              {t("session.live_transcript")}
             </h2>
             <span className="text-sm font-medium text-on-surface-variant">
-              {wordCount} words
+              {t("session.word_count", { count: wordCount })}
             </span>
           </div>
           <div
             role="log"
             aria-label="Live speech transcript"
             aria-live="polite"
-            className="min-h-[210px] flex-1 overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-5"
+            className="min-h-[162px] flex-1 overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4"
           >
             {!transcript && !interimTranscript ? (
-              <p className="text-base italic text-outline">
-                Start speaking to see your transcript here...
+              <p className="text-sm italic text-outline">
+                {t("session.transcript_placeholder")}
               </p>
             ) : (
-              <p className="font-serif text-[1.12rem] leading-8 text-on-surface">
+              <p className="font-serif text-base leading-7 text-on-surface">
                 <span>{transcript}</span>
                 {interimTranscript && (
                   <span className="italic text-on-surface-variant">
@@ -266,26 +269,20 @@ export function SpeakingPhase({
         </PracticePanel>
       </div>
 
-      <div
-        className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-4 px-4",
-          showEndConfirm && "invisible"
-        )}
-      >
+      <ActionRail className={cn("mx-auto w-fit", showEndConfirm && "invisible")}>
         <PauseButton
           isPaused={isPaused}
           onClick={isPaused ? onResume : onPause}
-          className="pointer-events-auto"
         />
         <Button
           onClick={() => setShowEndConfirm(true)}
           aria-label="End speech early"
-          className="pointer-events-auto h-14 min-w-[220px] gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary shadow-[inset_0_-4px_0_rgba(12,57,146,0.22),0_16px_28px_-18px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
+          className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-[inset_0_-2px_0_rgba(12,57,146,0.22),0_12px_22px_-16px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
         >
-          <Square className="h-5 w-5" />
-          End Speech
+          <Square className="h-4 w-4" />
+          {t("session.end_speech")}
         </Button>
-      </div>
+      </ActionRail>
 
       <AnimatePresence>
         {showEndConfirm && (
@@ -311,7 +308,7 @@ export function SpeakingPhase({
                   id="end-speech-confirm-title"
                   className="mb-3 text-sm font-medium text-on-surface-variant"
                 >
-                  End your speech early?
+                  {t("session.end_confirm_title")}
                 </p>
                 <div className="flex justify-center gap-2">
                   <Button
@@ -319,13 +316,13 @@ export function SpeakingPhase({
                     variant="outline"
                     className="rounded-xl border-outline-variant/70 bg-surface text-on-surface-variant"
                   >
-                    Cancel
+                    {t("session.cancel")}
                   </Button>
                   <Button
                     onClick={handleConfirmEnd}
                     className="rounded-xl bg-primary text-on-primary shadow-[inset_0_-3px_0_rgba(12,57,146,0.22),0_12px_24px_-16px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
                   >
-                    End Now
+                    {t("session.end_now")}
                   </Button>
                 </div>
               </div>

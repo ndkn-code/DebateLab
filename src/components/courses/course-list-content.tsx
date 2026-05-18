@@ -316,9 +316,6 @@ export function CourseListContent({ library }: CourseListContentProps) {
           <h1 className="text-[2rem] font-semibold text-[#14244a] sm:text-[2.25rem]">
             {t("page_headline")}
           </h1>
-          <p className="mt-1 text-[16px] leading-8 text-[#66758d]">
-            {t("page_subtitle")}
-          </p>
         </header>
 
         {library.featuredCourse ? (

@@ -1079,11 +1079,8 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             <h1 className="text-3xl font-semibold text-on-surface md:text-[2rem]">
               {t("title")}
             </h1>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-on-surface-variant">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
               {t("subtitle")}
-            </p>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-on-surface-variant">
-              {t("scope_note")}
             </p>
           </div>
           <RangeControl

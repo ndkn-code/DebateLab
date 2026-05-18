@@ -419,9 +419,6 @@ export function SettingsContent({
             <h1 className="text-3xl font-bold text-[#172554] sm:text-[2rem]">
               {t("headline")}
             </h1>
-            <p className="mt-2 text-sm text-[#64748b] sm:text-base">
-              {t("subtitle")}
-            </p>
           </div>
 
           <div className="flex items-center gap-3 self-start">

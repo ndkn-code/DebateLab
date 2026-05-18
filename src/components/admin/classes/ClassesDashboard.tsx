@@ -234,7 +234,6 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-on-surface">{t("title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">{t("subtitle")}</p>
         </div>
         {!isSchedulesView && (
           <button

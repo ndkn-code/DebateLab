@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -48,52 +47,52 @@ const BLOCK_STYLES: Record<
   }
 > = {
   opening_formula: {
-    label: "Opening Formula",
+    label: "Try this",
     icon: Target,
-    className: "border-primary/18 bg-[#F8FBFF]",
-    iconClassName: "bg-primary/10 text-primary",
+    className: "border-primary/18 bg-primary/5",
+    iconClassName: "text-primary",
   },
   template: {
-    label: "Try This Template",
+    label: "Try this",
     icon: PenLine,
     className: "border-primary/18 bg-white",
-    iconClassName: "bg-[#EEF4FF] text-primary-dim",
+    iconClassName: "text-primary-dim",
   },
   coach_tip: {
-    label: "Coach Tip",
+    label: "Tip",
     icon: Lightbulb,
     className: "border-[#F5B942]/35 bg-[#FFFBF1]",
-    iconClassName: "bg-[#FFF4D9] text-[#B87900]",
+    iconClassName: "text-[#B87900]",
   },
   common_mistake: {
-    label: "Common Mistake",
+    label: "Common mistake",
     icon: CircleAlert,
     className: "border-error/30 bg-[#FFF8F8]",
-    iconClassName: "bg-error-container text-error",
+    iconClassName: "text-error",
   },
   example: {
     label: "Example",
     icon: BookOpen,
     className: "border-primary-fixed/45 bg-[#FBFDFF]",
-    iconClassName: "bg-primary-container text-primary",
+    iconClassName: "text-primary",
   },
   drill: {
-    label: "Practice Drill",
+    label: "Practice",
     icon: Dumbbell,
     className: "border-secondary/25 bg-[#F7FEF9]",
-    iconClassName: "bg-secondary-container text-secondary-dim",
+    iconClassName: "text-secondary-dim",
   },
   next_steps: {
-    label: "Next Steps",
+    label: "Next steps",
     icon: ListChecks,
     className: "border-secondary/25 bg-white",
-    iconClassName: "bg-secondary-container text-secondary-dim",
+    iconClassName: "text-secondary-dim",
   },
   clarifying_question: {
     label: "Question",
     icon: CircleHelp,
     className: "border-primary/18 bg-primary/5",
-    iconClassName: "bg-white text-primary",
+    iconClassName: "text-primary",
   },
 };
 
@@ -342,11 +341,11 @@ function CoachOpeningBlueprint({
   if (steps.length < 3 || steps.length > 4) return null;
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-primary/18 bg-white shadow-[0_22px_54px_rgba(41,74,132,0.09)]">
-      <div className="bg-gradient-to-r from-primary/5 via-white to-[#F7FAFE] px-4 py-3 sm:px-5">
+    <section className="overflow-hidden rounded-xl border border-outline-variant/16 bg-white">
+      <div className="border-b border-outline-variant/12 bg-primary/5 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-[0_12px_24px_rgba(77,134,247,0.26)]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
               <OpeningBlueprintIcon className="h-[19px] w-[19px]" />
             </div>
             <div className="min-w-0">
@@ -361,7 +360,7 @@ function CoachOpeningBlueprint({
         </div>
       </div>
 
-      <div className="grid gap-3 p-3 sm:p-4 lg:grid-cols-[0.94fr_1.06fr]">
+      <div className="grid gap-2.5 p-3 lg:grid-cols-[0.94fr_1.06fr]">
         <div className="space-y-2.5">
           {steps.map((step, index) => {
             const StepIcon = OPENING_STEP_ICONS[index] ?? Target;
@@ -369,7 +368,7 @@ function CoachOpeningBlueprint({
             return (
               <div
                 key={`${formulaBlock.id}-step-${index}`}
-                className="flex min-h-[74px] gap-3 rounded-[18px] border border-outline-variant/12 bg-[#FBFDFF] p-3 shadow-[0_10px_24px_rgba(41,74,132,0.045)]"
+                className="flex min-h-[66px] gap-3 rounded-xl border border-outline-variant/12 bg-[#FBFDFF] p-3"
               >
                 <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.2)]">
                   {index + 1}
@@ -392,9 +391,9 @@ function CoachOpeningBlueprint({
 
         <div className="space-y-3">
           {templateBlock && (
-            <div className="rounded-[20px] border border-primary/16 bg-primary/5 p-4">
+            <div className="rounded-xl border border-primary/16 bg-primary/5 p-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-[0_8px_18px_rgba(77,134,247,0.14)]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-primary">
                   <PenLine className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -424,7 +423,7 @@ function CoachOpeningBlueprint({
 
           <div className="grid gap-3 sm:grid-cols-2">
             {tipBlock && (
-              <div className="rounded-[20px] border border-[#F5B942]/32 bg-[#FFFBF1] p-4">
+              <div className="rounded-xl border border-[#F5B942]/32 bg-[#FFFBF1] p-3">
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#956300]">
                   <Lightbulb className="h-4 w-4" />
                   Coach Tip
@@ -441,7 +440,7 @@ function CoachOpeningBlueprint({
             )}
 
             {mistakeBlock && (
-              <div className="rounded-[20px] border border-error/24 bg-[#FFF8F8] p-4">
+              <div className="rounded-xl border border-error/24 bg-[#FFF8F8] p-3">
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-error">
                   <CircleAlert className="h-4 w-4" />
                   Watch Out
@@ -462,8 +461,8 @@ function CoachOpeningBlueprint({
 
       {exampleBlock && (
         <div className="bg-[#FBFDFF] px-3 pb-3 sm:px-4 sm:pb-4">
-          <div className="flex items-start gap-3 rounded-[18px] border border-primary/12 bg-white p-3 shadow-[0_10px_24px_rgba(41,74,132,0.045)]">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-primary">
+          <div className="flex items-start gap-3 rounded-xl border border-primary/12 bg-white p-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
               <BookOpen className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
@@ -490,33 +489,28 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
   return (
     <section
       className={cn(
-        "rounded-[20px] border px-4 py-4 shadow-[0_14px_34px_rgba(11,20,36,0.045)]",
+        "rounded-xl border px-3.5 py-3",
         style.className
       )}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl",
-            style.iconClassName
-          )}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-        </div>
+      <div className="flex items-start gap-2.5">
+        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", style.iconClassName)} />
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
             {style.label}
           </div>
-          <h3 className="mt-1 text-[15px] font-semibold leading-6 text-on-surface">
-            {block.title}
-          </h3>
+          {block.title ? (
+            <h3 className="mt-1 text-sm font-semibold leading-5 text-on-surface">
+              {block.title}
+            </h3>
+          ) : null}
           {block.body && (
-            <MiniMarkdown className="mt-2 text-on-surface-variant">
+            <MiniMarkdown className="mt-1.5 text-on-surface-variant">
               {block.body}
             </MiniMarkdown>
           )}
           {block.items && block.items.length > 0 && (
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
+            <ul className="mt-2 space-y-1.5 text-sm leading-6 text-on-surface-variant">
               {block.items.map((item, itemIndex) => (
                 <li key={`${block.id}-item-${itemIndex}`} className="flex gap-2">
                   <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
@@ -654,25 +648,13 @@ function AssistantMessage({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="group flex gap-3 sm:gap-4"
+      className="group flex gap-3"
     >
-      <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-primary/12 bg-white shadow-[0_10px_22px_rgba(77,134,247,0.16)]">
-        <Image
-          src="/coach/coach-pet-clean.png"
-          alt="DebateLab Coach"
-          fill
-          sizes="40px"
-          className="object-cover"
-        />
-      </div>
+      <div className="mt-3 h-2 w-2 shrink-0 rounded-full bg-primary" />
 
       <div className="min-w-0 flex-1">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <div className="text-sm font-semibold text-on-surface">Coach</div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/12 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
-            <Sparkles className="h-3 w-3" />
-            AI Debate Coach
-          </div>
           {isStreaming && (
             <span className="text-xs font-medium text-on-surface-variant">
               writing...
@@ -723,7 +705,7 @@ function AssistantMessage({
           <motion.div
             layout
             transition={{ duration: 0.16, ease: "easeOut" }}
-            className="max-w-[760px] rounded-[22px] border border-outline-variant/14 bg-white px-4 py-4 text-sm shadow-[0_16px_36px_rgba(11,20,36,0.045)] sm:px-5"
+            className="max-w-[720px] px-0 py-1 text-sm"
           >
             <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mb-1 prose-headings:mt-3 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -763,10 +745,10 @@ function AssistantMessage({
 function UserMessage({ message }: { message: ChatMessageLocal }) {
   return (
     <div className="flex flex-row-reverse items-start gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-[0_10px_20px_rgba(77,134,247,0.22)]">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.18)]">
         <User className="h-4 w-4" />
       </div>
-      <div className="max-w-[min(76%,680px)] rounded-[18px] rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-[0_12px_24px_rgba(77,134,247,0.2)]">
+      <div className="max-w-[min(76%,680px)] rounded-2xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-[0_10px_20px_rgba(77,134,247,0.18)]">
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
     </div>

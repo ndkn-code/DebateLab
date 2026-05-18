@@ -14,6 +14,7 @@ import {
   Pause,
   Underline,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -171,7 +172,7 @@ export function PracticePanel({
   return (
     <section
       className={cn(
-        "rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]",
+        "rounded-lg border border-outline-variant/70 bg-surface-container-lowest shadow-[0_18px_46px_-38px_rgba(22,39,91,0.34)]",
         className
       )}
     >
@@ -192,7 +193,7 @@ export function PhasePill({
   return (
     <span
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold",
+        "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold",
         tone === "blue" && "bg-primary-container text-primary",
         tone === "red" && "bg-error-container text-error",
         tone === "ai" && "bg-primary-container text-primary",
@@ -234,12 +235,12 @@ export function PracticeTimerDial({
       className={cn(
         "relative mx-auto flex items-center justify-center",
         size === "xl"
-          ? "h-[390px] w-[390px]"
+          ? "h-[260px] w-[260px]"
           : size === "lg"
-            ? "h-[330px] w-[330px]"
+            ? "h-[220px] w-[220px]"
             : size === "md"
-              ? "h-[292px] w-[292px]"
-              : "h-[238px] w-[238px]"
+              ? "h-[188px] w-[188px]"
+              : "h-[160px] w-[160px]"
       )}
     >
       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 280 280">
@@ -277,7 +278,11 @@ export function PracticeTimerDial({
         <div
           className={cn(
             "font-mono font-bold leading-none tracking-normal text-on-surface",
-            size === "sm" ? "text-[3.55rem]" : "text-[4.65rem]"
+            size === "sm"
+              ? "text-[2.4rem]"
+              : size === "md"
+                ? "text-[2.75rem]"
+                : "text-[3.1rem]"
           )}
         >
           {formatPracticeTime(timeLeft)}
@@ -290,9 +295,9 @@ export function PracticeTimerDial({
 export function QuickNotesEditor({
   value,
   onChange,
-  label = "Quick Notes",
+  label,
   helper,
-  minHeightClassName = "min-h-[290px]",
+  minHeightClassName = "min-h-[220px]",
   className,
   footer,
   compact = false,
@@ -306,6 +311,7 @@ export function QuickNotesEditor({
   footer?: ReactNode;
   compact?: boolean;
 }) {
+  const t = useTranslations("dashboard.practice");
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [activeFormats, setActiveFormats] = useState<Set<string>>(
@@ -405,17 +411,20 @@ export function QuickNotesEditor({
     syncEditorValue();
   }
 
+  const resolvedLabel = label ?? t("session.quick_notes");
+  const placeholder = t("session.notes_placeholder");
+
   return (
-    <PracticePanel className={cn("p-8", className)}>
+    <PracticePanel className={cn("p-4", className)}>
       <div
         className={cn(
           "flex items-center justify-between gap-4",
-          compact ? "mb-4" : "mb-7"
+          compact ? "mb-3" : "mb-4"
         )}
       >
         <div>
-          <h2 className="text-xl font-semibold tracking-normal text-on-surface">
-            {label}
+          <h2 className="text-base font-semibold tracking-normal text-on-surface">
+            {resolvedLabel}
           </h2>
           {helper ? (
             <div className="mt-1 text-sm font-medium text-on-surface-variant">
@@ -435,18 +444,18 @@ export function QuickNotesEditor({
           <button
             type="button"
             aria-label="Expand notes"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant/70 bg-surface text-primary transition-colors hover:bg-primary-container"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant/70 bg-surface text-primary transition-colors hover:bg-primary-container"
           >
             <Expand className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface">
+      <div className="overflow-hidden rounded-lg border border-outline-variant/80 bg-surface">
         <div
           className={cn(
-            "flex items-center gap-4 border-b border-outline-variant/70 px-5 text-on-surface-variant",
-            compact ? "h-11" : "h-14"
+            "flex items-center gap-2 border-b border-outline-variant/70 px-3 text-on-surface-variant",
+            compact ? "h-9" : "h-10"
           )}
         >
           {toolbarItems.map(({ icon: Icon, label, action }) => (
@@ -458,7 +467,7 @@ export function QuickNotesEditor({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => applyToolbarAction(action)}
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                "flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
                 activeFormats.has(action) && "bg-primary-container text-primary"
               )}
             >
@@ -468,8 +477,8 @@ export function QuickNotesEditor({
         </div>
         <div className="relative">
           {plainTextLength === 0 && !isFocused ? (
-            <span className="pointer-events-none absolute left-5 top-5 text-base leading-8 text-outline">
-              Jot down your key arguments...
+            <span className="pointer-events-none absolute left-4 top-4 text-sm leading-6 text-outline">
+              {placeholder}
             </span>
           ) : null}
           <div
@@ -488,9 +497,9 @@ export function QuickNotesEditor({
             onKeyUp={updateActiveFormats}
             onMouseUp={updateActiveFormats}
             onPaste={handlePaste}
-            data-placeholder="Jot down your key arguments..."
+            data-placeholder={placeholder}
             className={cn(
-              "w-full overflow-y-auto bg-transparent px-5 py-5 text-base leading-8 text-on-surface outline-none empty:before:text-outline",
+              "w-full overflow-y-auto bg-transparent px-4 py-4 text-sm leading-6 text-on-surface outline-none empty:before:text-outline",
               "[&_a]:text-primary [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6",
               minHeightClassName
             )}
@@ -513,11 +522,11 @@ export function ActionRail({
   return (
     <div
       className={cn(
-        "relative rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_20px_55px_-48px_rgba(22,39,91,0.7)] backdrop-blur-xl",
+        "relative rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-[0_18px_42px_-34px_rgba(22,39,91,0.45)] backdrop-blur-xl",
         className
       )}
     >
-      <div className="flex flex-wrap items-center justify-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {children}
       </div>
     </div>
@@ -540,12 +549,12 @@ export function PrimaryActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-14 min-w-[260px] gap-3 rounded-2xl bg-primary px-8 text-base font-semibold text-on-primary shadow-[inset_0_-4px_0_rgba(12,57,146,0.22),0_16px_28px_-18px_rgba(77,134,247,0.95)] hover:bg-primary-dim",
+        "h-11 min-w-[210px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-[inset_0_-2px_0_rgba(12,57,146,0.2),0_12px_22px_-16px_rgba(77,134,247,0.85)] hover:bg-primary-dim",
         className
       )}
     >
       {children}
-      <ArrowRight className="h-5 w-5" />
+      <ArrowRight className="h-4 w-4" />
     </Button>
   );
 }
@@ -559,18 +568,20 @@ export function PauseButton({
   onClick: () => void;
   className?: string;
 }) {
+  const t = useTranslations("dashboard.practice");
+
   return (
     <Button
       type="button"
       onClick={onClick}
       variant="outline"
       className={cn(
-        "h-14 min-w-[160px] gap-3 rounded-2xl border-[#D7E4F8] bg-white text-base font-semibold text-[#0B1424] shadow-[inset_0_-4px_0_rgba(184,202,232,0.45),0_16px_28px_-22px_rgba(22,39,91,0.55)] hover:bg-[#F7FAFE]",
+        "h-11 min-w-[132px] gap-2 rounded-lg border-[#D7E4F8] bg-white text-sm font-semibold text-[#0B1424] shadow-[inset_0_-2px_0_rgba(184,202,232,0.35),0_12px_22px_-18px_rgba(22,39,91,0.45)] hover:bg-[#F7FAFE]",
         className
       )}
     >
-      {isPaused ? <Minimize2 className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
-      {isPaused ? "Resume" : "Pause"}
+      {isPaused ? <Minimize2 className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+      {isPaused ? t("session.resume") : t("session.pause")}
     </Button>
   );
 }

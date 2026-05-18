@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Check, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const AUDIO_THRESHOLD = 0.05;
 const AUDIO_CONFIRM_MS = 800;
 
 export function MicCheck({ onReady, onBack }: MicCheckProps) {
+  const t = useTranslations("dashboard.practice");
   const [status, setStatus] = useState<MicCheckStatus>("requesting");
   const [errorMessage, setErrorMessage] = useState("");
   const [levels, setLevels] = useState<number[]>(new Array(LEVEL_BAR_COUNT).fill(0));
@@ -193,7 +195,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-xl"
+        className="w-full max-w-lg"
       >
         <AnimatePresence mode="wait">
           {/* Requesting Permission */}
@@ -203,10 +205,10 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-6 py-4 text-center"
+              className="flex flex-col items-center gap-5 py-4 text-center"
             >
               <motion.div
-                className="flex h-28 w-28 items-center justify-center rounded-full bg-primary-container"
+                className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-container"
                 animate={{
                   boxShadow: [
                     "0 0 0 0px rgba(47,79,221,0.2)",
@@ -215,15 +217,15 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
-                <Mic className="h-12 w-12 text-primary" />
+                <Mic className="h-9 w-9 text-primary" />
               </motion.div>
 
               <div>
-                <h2 className="text-[2rem] font-bold tracking-normal text-on-surface">
-                  Microphone Access Required
+                <h2 className="text-2xl font-semibold tracking-normal text-on-surface">
+                  {t("session.mic_access_required")}
                 </h2>
-                <p className="mt-4 text-base font-medium text-on-surface-variant">
-                  Please allow microphone access when prompted by your browser.
+                <p className="mt-3 text-sm font-medium text-on-surface-variant">
+                  {t("session.mic_allow_prompt")}
                 </p>
               </div>
 
@@ -251,11 +253,11 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-6 py-4 text-center"
+              className="flex flex-col items-center gap-5 py-4 text-center"
             >
               <motion.div
                 className={cn(
-                  "flex h-32 w-32 items-center justify-center rounded-full transition-colors",
+                  "flex h-24 w-24 items-center justify-center rounded-full transition-colors",
                   audioDetected ? "bg-secondary-container/80" : "bg-primary-container"
                 )}
                 animate={
@@ -278,37 +280,36 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", damping: 15 }}
                   >
-                    <Check className="h-14 w-14 text-secondary-dim" />
+                    <Check className="h-10 w-10 text-secondary-dim" />
                   </motion.div>
                 ) : (
-                  <Mic className="h-14 w-14 text-primary" />
+                  <Mic className="h-10 w-10 text-primary" />
                 )}
               </motion.div>
 
               <div>
-                <h2 className="text-[2rem] font-bold tracking-normal text-on-surface">
+                <h2 className="text-2xl font-semibold tracking-normal text-on-surface">
                   {audioDetected
-                    ? "Microphone is working!"
-                    : "Test Your Microphone"}
+                    ? t("session.mic_working")
+                    : t("session.test_microphone")}
                 </h2>
-                <p className="mt-4 text-base font-medium text-on-surface-variant">
+                <p className="mt-3 text-sm font-medium text-on-surface-variant">
                   {audioDetected
-                    ? "Audio input detected. You're ready to begin."
-                    : "Speak something to test your microphone..."}
+                    ? t("session.mic_detected")
+                    : t("session.speak_to_test_mic")}
                 </p>
               </div>
 
-              {/* Audio level bars */}
-              <div className="flex h-14 items-end justify-center gap-2">
+              <div className="flex h-12 items-end justify-center gap-1.5">
                 {levels.map((level, i) => (
                   <motion.div
                     key={i}
                     className={cn(
-                      "w-3 rounded-full transition-colors",
+                      "w-2.5 rounded-full transition-colors",
                       audioDetected ? "bg-secondary" : "bg-primary"
                     )}
                     style={{
-                      height: `${Math.max(4, level * 48)}px`,
+                      height: `${Math.max(4, level * 40)}px`,
                       opacity: 0.3 + level * 0.7,
                     }}
                   />
@@ -321,14 +322,14 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                   onClick={handleStart}
                   disabled={!audioDetected}
                   className={cn(
-                    "h-14 w-full max-w-[340px] gap-3 rounded-2xl text-base font-semibold",
+                    "h-11 w-full max-w-[300px] gap-2 rounded-lg text-sm font-semibold",
                     audioDetected
                       ? "bg-primary text-on-primary hover:bg-primary/90"
                       : "cursor-not-allowed bg-primary/40 text-on-primary/60"
                   )}
                 >
-                  Start Session
-                    <ArrowRight className="h-5 w-5" />
+                  {t("session.start_session")}
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
 
                 {!audioDetected && (
@@ -336,7 +337,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                     onClick={handleSkipTest}
                     className="text-xs text-on-surface-variant transition-colors hover:text-on-surface"
                   >
-                    Skip audio test
+                    {t("session.skip_audio_test")}
                   </button>
                 )}
               </div>
@@ -358,25 +359,25 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
 
               <div className="text-center">
                 <h2 className="text-lg font-semibold text-on-surface">
-                  Microphone Access Denied
+                  {t("session.mic_access_denied")}
                 </h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
-                  Follow these steps to enable your microphone:
+                  {t("session.mic_enable_steps")}
                 </p>
               </div>
 
               <ol className="w-full space-y-2 rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
                 <li className="flex gap-2">
                   <span className="shrink-0 font-semibold text-on-surface">1.</span>
-                  Click the lock/camera icon in your browser&apos;s address bar
+                  {t("session.mic_step_1")}
                 </li>
                 <li className="flex gap-2">
                   <span className="shrink-0 font-semibold text-on-surface">2.</span>
-                  Find &quot;Microphone&quot; and change it to &quot;Allow&quot;
+                  {t("session.mic_step_2")}
                 </li>
                 <li className="flex gap-2">
                   <span className="shrink-0 font-semibold text-on-surface">3.</span>
-                  Reload the page and try again
+                  {t("session.mic_step_3")}
                 </li>
               </ol>
 
@@ -387,14 +388,14 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                   className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Go Back
+                  {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
                   className="flex-1 gap-2 bg-primary text-white"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Try Again
+                  {t("audioCheck.tryAgain")}
                 </Button>
               </div>
             </motion.div>
@@ -415,10 +416,10 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
 
               <div className="text-center">
                 <h2 className="text-lg font-semibold text-on-surface">
-                  No Microphone Detected
+                  {t("session.no_microphone_detected")}
                 </h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
-                  Please connect a microphone and try again.
+                  {t("session.connect_microphone")}
                 </p>
               </div>
 
@@ -429,14 +430,14 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                   className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Go Back
+                  {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
                   className="flex-1 gap-2 bg-primary text-white"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Try Again
+                  {t("audioCheck.tryAgain")}
                 </Button>
               </div>
             </motion.div>
@@ -457,7 +458,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
 
               <div className="text-center">
                 <h2 className="text-lg font-semibold text-on-surface">
-                  Microphone Error
+                  {t("session.microphone_error")}
                 </h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
                   {errorMessage || "An unexpected error occurred."}
@@ -471,14 +472,14 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                   className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Go Back
+                  {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
                   className="flex-1 gap-2 bg-primary text-white"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Try Again
+                  {t("audioCheck.tryAgain")}
                 </Button>
               </div>
             </motion.div>

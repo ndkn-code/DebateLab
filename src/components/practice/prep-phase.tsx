@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Search,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   MAX_NOTES_LENGTH,
   appendPlainTextBlockToRichNotes,
@@ -143,15 +144,16 @@ export function PrepPhase({
   onNotesChange,
   onSkip,
 }: PrepPhaseProps) {
+  const t = useTranslations("dashboard.practice");
   const helperActions = [
-    { label: "Define key terms", icon: Search, kind: "terms" },
-    { label: "List main arguments", icon: ListChecks, kind: "arguments" },
+    { label: t("session.define_key_terms"), icon: Search, kind: "terms" },
+    { label: t("session.list_main_arguments"), icon: ListChecks, kind: "arguments" },
     {
-      label: "Anticipate counterpoints",
+      label: t("session.anticipate_counterpoints"),
       icon: MessageCircle,
       kind: "counterpoints",
     },
-    { label: "Add evidence", icon: FileText, kind: "evidence" },
+    { label: t("session.add_evidence"), icon: FileText, kind: "evidence" },
   ] as const;
 
   function appendStarterBlock(kind: (typeof helperActions)[number]["kind"]) {
@@ -162,14 +164,14 @@ export function PrepPhase({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-5 py-4 sm:px-6 lg:px-8">
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 py-3 sm:px-5 lg:px-6">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_296px]">
         <MotionInfoPanel topic={topic} side={side} />
 
-        <PracticePanel className="overflow-hidden bg-gradient-to-b from-white via-white to-primary-container/35 p-4 shadow-[0_22px_72px_-54px_rgba(22,39,91,0.55)]">
+        <PracticePanel className="overflow-hidden p-3">
           <div className="flex h-full flex-col items-center justify-center">
             <PhasePill icon={<Clock3 className="h-4 w-4" />}>
-              Preparation Phase
+              {t("session.preparation_phase")}
             </PhasePill>
 
             <div className="mt-3">
@@ -182,22 +184,22 @@ export function PrepPhase({
               />
             </div>
 
-            <div className="mt-3 w-full rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-[0_18px_45px_-38px_rgba(22,39,91,0.45)]">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-container">
-                  <Lightbulb className="h-5 w-5 text-primary" />
+            <div className="mt-3 w-full rounded-md border border-outline-variant/70 bg-surface-container-lowest/95 p-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-container">
+                  <Lightbulb className="h-4 w-4 text-primary" />
                 </div>
-                <p className="text-sm font-medium leading-6 text-on-surface-variant">
-                  Use this time to plan a strong opening and organize your key points.
+                <p className="text-sm font-medium leading-5 text-on-surface-variant">
+                  {t("session.prep_prompt")}
                 </p>
               </div>
             </div>
 
             <PrimaryActionButton
               onClick={onSkip}
-              className="mt-4 h-12 w-full min-w-0 rounded-lg text-sm shadow-[0_18px_32px_-18px_rgba(37,99,235,0.85)]"
+              className="mt-3 h-10 w-full min-w-0 rounded-lg text-sm shadow-[0_12px_24px_-18px_rgba(37,99,235,0.85)]"
             >
-              Skip to Speaking
+              {t("session.skip_to_speaking")}
             </PrimaryActionButton>
           </div>
         </PracticePanel>
@@ -207,13 +209,13 @@ export function PrepPhase({
         <QuickNotesEditor
           value={prepNotes}
           onChange={onNotesChange}
-          minHeightClassName="min-h-[150px]"
-          className="p-5 sm:p-6"
+          minHeightClassName="min-h-[132px]"
+          className="p-4"
           compact
           footer={
             <div>
               <p className="mb-2 text-sm font-medium text-on-surface-variant">
-                Need a starting point?
+                {t("session.need_starting_point")}
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {helperActions.map(({ label, icon: Icon, kind }) => (
@@ -221,7 +223,7 @@ export function PrepPhase({
                     key={label}
                     type="button"
                     onClick={() => appendStarterBlock(kind)}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant/70 bg-surface-container px-3 text-sm font-medium text-on-surface-variant transition-colors hover:border-primary-fixed hover:bg-surface hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-outline-variant/70 bg-surface-container px-3 text-sm font-medium text-on-surface-variant transition-colors hover:border-primary-fixed hover:bg-surface hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="truncate">{label}</span>

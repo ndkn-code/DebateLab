@@ -398,6 +398,13 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 - Buttons and inputs should keep labels on one line at 13-inch Safari widths in both English and Vietnamese.
 - Four-column card grids should not appear at 13-inch laptop widths unless each card has enough measured width for its localized labels.
 
+### Live Practice Flow
+- Full-screen debate and speaking sessions may replace the app sidebar, but they still use the product rhythm: `56px`-ish top bars, `max-w-6xl` content, compact chips, and no hero-scale titles.
+- Motion/topic panels should be readable workbench panels: compact metadata chips, `20px` to `22px` motion titles, one short context block, and row-like argument anchors.
+- Timer panels should stay secondary to the motion and notes. Desktop timer dials should usually land around `160px` to `190px`; avoid oversized circular timers that force scrolling on a 13-inch Safari viewport.
+- Notes and transcript panels use the same quiet card rhythm as the rest of the product: `p-4`, 8px radius, `14px` controls, and normal-flow action rails so buttons do not float over transcript text.
+- Practice session labels, controls, and phase names must be checked in English and Vietnamese. Do not ship English-only mic/audio/prep/speaking labels on a Vietnamese route.
+
 ### QA Checklist
 - Check desktop widths `1280x720`, `1440x900`, and large desktop `2560x1440`; also check tablet `768x1024` and mobile `390x844`.
 - Verify `document.documentElement.scrollWidth <= document.documentElement.clientWidth`.
@@ -405,3 +412,51 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 - Verify analytics/dashboard cards do not collide or truncate awkwardly at 13-inch Safari size.
 - Verify English and Vietnamese labels fit the sidebar and primary controls.
 - Capture Browser screenshots for dashboard, profile/analytics, practice, history, courses, chat, settings, onboarding, auth, landing, and admin after proportion changes.
+
+## Quiet Product UX System
+
+### Purpose
+DebateLab product UI should feel calm, sparse, and action-led. The OnePrep lesson is not color or branding; it is that each screen has one obvious job, very little explanatory copy, and compact metadata in place of paragraphs.
+
+### Page Contract
+- Before designing a product page, name its primary object or action: start practice, ask the coach, review history, tune settings, choose a course, or inspect admin data.
+- Everything on the page must either operate on that object, provide metadata about it, or be removed.
+- Avoid using a subtitle to explain what the visible controls already say.
+- Marketing pages may keep persuasive copy, but protected product pages should default to workbench clarity.
+
+### Copy Budget
+- Page title: usually 2 to 5 words.
+- Page subtitle: optional, one line maximum, only when it resolves real uncertainty.
+- Card titles: 2 to 5 words.
+- Card descriptions: use only when the user needs the text to choose safely.
+- Empty states: one sentence plus a clear action. Do not stack headline, subtitle, helper paragraph, and prompt cards.
+- Preserve instructional lesson content, legal/security warnings, billing explanations, and destructive-action confirmations.
+
+### Metadata Over Prose
+- Replace explanatory sentences with compact metadata whenever possible: duration, score, progress, category, date, status, language, level, or cost.
+- Prefer inline labels, chips, row captions, and right-aligned values over paragraphs.
+- If a phrase is not needed for a decision, remove it before shrinking the font.
+
+### Row-First Surfaces
+- Suggestions, recent items, conversation history, next steps, and setup choices should usually be rows or list items.
+- Use cards for real objects that need grouping, not for every action prompt.
+- Rows should keep stable heights, predictable left/right alignment, and one-line labels at 13-inch Safari widths in English and Vietnamese.
+- Avoid stacked decorative icons, shadows, and descriptions when a simple label plus chevron works.
+
+### AI Coach Pattern
+- The chat canvas has no large page header. The input and conversation are the product.
+- Empty state uses a small mascot or mark, one sentence, 3 to 5 plain prompt rows, and the composer visible below.
+- The conversation rail is compact: new chat, title-only rows, quiet active state, and delete affordances only on hover/focus.
+- Assistant answers should read as plain text first. Use small callouts only when they add structure: `Tip`, `Common mistake`, `Try this`, `Example`, `Practice`, or `Next steps`.
+- Avoid assistant badges, large avatars, and repeated coach identity text inside every message.
+
+### Loading And Failure
+- Skeletons should match the final surface, not a generic card grid.
+- Chat, dashboard, and high-traffic pages must resolve, show useful empty state, or show a quiet retryable error. Do not leave users in an indefinite skeleton.
+- Failed background personalization should not block the primary action when the user can still continue.
+
+### QA Checklist
+- Compare DebateLab against OnePrep in Safari for `/chat`, `/home`, `/study-planner`, and `/question-bank` before shipping major quiet UX changes.
+- Check Browser viewports `1280x720`, `1440x900`, `2560x1440`, `768x1024`, and `390x844`.
+- Verify no horizontal overflow, clipped prompt rows, hidden composer controls, or text bleeding in English and Vietnamese.
+- Count copy density on every changed page: if a screen has title, subtitle, card title, card description, and helper text in the same viewport, remove one layer.

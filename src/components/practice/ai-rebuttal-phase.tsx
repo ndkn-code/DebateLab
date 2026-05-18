@@ -107,7 +107,7 @@ function HighlightedResponse({
   }
 
   return (
-    <p className="font-serif text-[1.2rem] leading-9 text-on-surface">
+    <p className="font-serif text-base leading-7 text-on-surface">
       {segments.map((segment, index) =>
         segment.highlight ? (
           <mark
@@ -311,14 +311,33 @@ export function AiRebuttalPhase({
     onComplete(fullText, highlights);
   };
 
+  const difficultyLabel =
+    difficulty === "easy"
+      ? t("easy")
+      : difficulty === "hard"
+        ? t("hard")
+        : t("medium");
+  const displayRoundLabel =
+    roundLabel === "Opening Statement"
+      ? t("session.round_opening")
+      : roundLabel === "AI Rebuttal"
+        ? t("session.round_ai_rebuttal")
+        : roundLabel === "Counter-Rebuttal"
+          ? t("session.round_counter_rebuttal")
+          : roundLabel === "AI Closing"
+            ? t("session.round_ai_closing")
+            : roundLabel === "Closing Statement"
+              ? t("session.round_closing")
+              : roundLabel;
+
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-7 lg:px-8">
-      <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.85fr)]">
-        <PracticePanel className="p-7">
-          <div className="flex items-start justify-between gap-5 border-b border-outline-variant/70 pb-7">
-            <div className="flex items-center gap-5">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 py-3 sm:px-5 lg:px-6">
+      <div className="grid flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.55fr)]">
+        <PracticePanel className="p-4">
+          <div className="flex items-start justify-between gap-4 border-b border-outline-variant/70 pb-4">
+            <div className="flex items-center gap-3">
               <motion.div
-                className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-primary-container"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-container"
                 animate={
                   status === "loading"
                     ? { scale: [1, 1.04, 1] }
@@ -340,15 +359,15 @@ export function AiRebuttalPhase({
                 }
               >
                 {status === "loading" ? (
-                  <Loader2 className="h-11 w-11 animate-spin text-primary" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 ) : (
-                  <Bot className="h-12 w-12 text-primary" />
+                  <Bot className="h-7 w-7 text-primary" />
                 )}
               </motion.div>
 
               <div>
-                <PhasePill tone="ai">{roundLabel}</PhasePill>
-                <div className="mt-4 flex items-center gap-2 text-base font-semibold text-on-surface">
+                <PhasePill tone="ai">{displayRoundLabel}</PhasePill>
+                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-on-surface">
                   {status === "done" ? (
                     <CheckCircle2 className="h-5 w-5 text-secondary" />
                   ) : status === "error" ? (
@@ -357,15 +376,15 @@ export function AiRebuttalPhase({
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   )}
                   {status === "loading"
-                    ? "AI is preparing a response..."
+                    ? t("session.ai_preparing")
                     : status === "typing"
-                      ? "AI is speaking..."
+                      ? t("session.ai_speaking")
                       : status === "done"
-                        ? "AI has finished"
-                        : "Error"}
+                        ? t("session.ai_finished")
+                        : t("session.error")}
                 </div>
-                <span className="mt-4 inline-flex rounded-xl bg-surface-container px-3 py-2 text-sm font-semibold capitalize text-on-surface-variant">
-                  {difficulty} difficulty
+                <span className="mt-2 inline-flex rounded-md bg-surface-container px-2.5 py-1.5 text-xs font-semibold capitalize text-on-surface-variant">
+                  {t("session.difficulty_label", { difficulty: difficultyLabel })}
                 </span>
               </div>
             </div>
@@ -376,25 +395,25 @@ export function AiRebuttalPhase({
                   <Button
                     variant="outline"
                     onClick={handleSkipAnimation}
-                    className="h-11 rounded-xl border-outline-variant/70 bg-surface text-primary"
+                    className="h-9 rounded-md border-outline-variant/70 bg-surface text-sm text-primary"
                   >
-                    Skip animation
+                    {t("session.skip_animation")}
                   </Button>
                 )}
                 {ttsLoading && (
-                  <span className="inline-flex h-11 items-center gap-2 rounded-xl bg-surface-container px-3 text-sm font-medium text-on-surface-variant">
+                  <span className="inline-flex h-9 items-center gap-2 rounded-md bg-surface-container px-3 text-sm font-medium text-on-surface-variant">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {t('tts.generating')}
                   </span>
                 )}
                 {ttsPlaying && (
-                  <Button variant="outline" onClick={ttsStop} className="h-11 gap-2 rounded-xl border-outline-variant/70 bg-surface">
+                  <Button variant="outline" onClick={ttsStop} className="h-9 gap-2 rounded-md border-outline-variant/70 bg-surface text-sm">
                     <Pause className="h-4 w-4" />
                     {t('tts.pause')}
                   </Button>
                 )}
                 {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
-                  <Button variant="outline" onClick={ttsReplay} className="h-11 gap-2 rounded-xl border-outline-variant/70 bg-surface">
+                  <Button variant="outline" onClick={ttsReplay} className="h-9 gap-2 rounded-md border-outline-variant/70 bg-surface text-sm">
                     <RotateCcw className="h-4 w-4" />
                     {t('tts.replay')}
                   </Button>
@@ -403,35 +422,35 @@ export function AiRebuttalPhase({
                   <Button
                     variant="outline"
                     onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }}
-                    className="h-11 gap-2 rounded-xl border-error/40 bg-error-container text-error"
+                    className="h-9 gap-2 rounded-md border-error/40 bg-error-container text-sm text-error"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Try audio again
+                    {t("session.try_audio_again")}
                   </Button>
                 )}
               </div>
             )}
           </div>
 
-          <div className="mt-6">
-            <div className="mb-4 flex items-center gap-3">
-              <MessageSquareText className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-semibold tracking-normal text-on-surface">
-                AI Response
+          <div className="mt-4">
+            <div className="mb-3 flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-semibold tracking-normal text-on-surface">
+                {t("session.ai_response")}
               </h2>
             </div>
-            <div className="min-h-[420px] overflow-y-auto rounded-2xl border border-outline-variant/80 bg-surface p-6">
+            <div className="min-h-[300px] overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4">
               {status === "loading" ? (
-                <div className="flex h-[360px] items-center justify-center">
+                <div className="flex h-[260px] items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-7 w-7 animate-spin text-primary/70" />
                     <p className="text-sm font-medium text-on-surface-variant">
-                      Generating {roundLabel.toLowerCase()}...
+                      {t("session.generating_round", { round: displayRoundLabel })}
                     </p>
                   </div>
                 </div>
               ) : status === "error" ? (
-                <div className="flex h-[360px] flex-col items-center justify-center gap-3 text-center">
+                <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center">
                   <AlertTriangle className="h-8 w-8 text-error" />
                   <p className="text-sm font-medium text-error">{error}</p>
                 </div>
@@ -462,27 +481,25 @@ export function AiRebuttalPhase({
           </div>
         </PracticePanel>
 
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-3">
           <QuickNotesEditor
             value={prepNotes}
             onChange={onNotesChange}
-            helper="Same notes from prep. Keep adding counterpoints while the AI debates."
-            minHeightClassName="min-h-[360px]"
+            helper={t("session.same_notes_helper")}
+            minHeightClassName="min-h-[246px]"
           />
 
-          <PracticePanel className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-warning/15">
-                <Volume2 className="h-6 w-6 text-warning" />
+          <PracticePanel className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/15">
+                <Volume2 className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <h3 className="text-base font-semibold tracking-normal text-on-surface">
-                  Tip
+                  {t("session.tip")}
                 </h3>
                 <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
-                  Highlighted phrases mark the AI&apos;s claim, evidence,
-                  impact, or assumption. Add your counter-rebuttal ideas in
-                  Quick Notes before continuing.
+                  {t("session.ai_highlight_tip")}
                 </p>
               </div>
             </div>
@@ -496,21 +513,21 @@ export function AiRebuttalPhase({
           onClick={ttsStop}
           disabled={!ttsPlaying}
           variant="outline"
-          className="h-14 min-w-[160px] gap-3 rounded-2xl border-outline-variant/80 bg-surface text-base font-semibold text-on-surface hover:bg-surface-container disabled:opacity-50"
+          className="h-11 min-w-[132px] gap-2 rounded-lg border-outline-variant/80 bg-surface text-sm font-semibold text-on-surface hover:bg-surface-container disabled:opacity-50"
         >
-          <Pause className="h-5 w-5" />
-          Pause
+          <Pause className="h-4 w-4" />
+          {t("session.pause")}
         </Button>
         {status === "error" ? (
           <PrimaryActionButton onClick={handleRetry}>
-            Try Again
+            {t("audioCheck.tryAgain")}
           </PrimaryActionButton>
         ) : (
           <PrimaryActionButton
             onClick={handleContinue}
             disabled={status !== "done"}
           >
-            {status === "done" ? "Continue to Next Round" : "Waiting..."}
+            {status === "done" ? t("session.continue_next_round") : t("session.waiting")}
           </PrimaryActionButton>
         )}
       </ActionRail>

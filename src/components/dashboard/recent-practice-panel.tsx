@@ -37,9 +37,6 @@ export function RecentPracticePanel({
           <h2 className="text-base font-semibold text-on-surface">
             {t("recent_practice")}
           </h2>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            {t("recent_practice_subtitle")}
-          </p>
         </div>
 
         <Link

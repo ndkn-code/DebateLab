@@ -104,9 +104,6 @@ export function PracticeLaunchpad({
           <h2 className="mt-4 text-2xl font-semibold text-on-surface">
             {t("launchpad_title")}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
-            {t("launchpad_subtitle")}
-          </p>
         </div>
 
         <Link

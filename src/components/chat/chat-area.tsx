@@ -4,20 +4,15 @@ import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
-  BookOpen,
   ChevronRight,
-  CircleHelp,
-  Lightbulb,
-  Menu,
+  MessageSquareText,
   Send,
-  Sparkles,
-  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
-import type { CoachContextEnvelope, CoachProfile } from "@/types";
+import type { CoachContextEnvelope } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface ChatAreaProps {
@@ -26,103 +21,89 @@ interface ChatAreaProps {
   onSendMessage: (text: string) => void;
   onOpenSidebar: () => void;
   hasConversation: boolean;
-  coachProfile: CoachProfile;
   coachEnvelope: CoachContextEnvelope;
   isInsightsLoading?: boolean;
+  loadError?: boolean;
+  onRetryLoad?: () => void;
 }
 
-const STARTER_STYLES = [
-  {
-    icon: CircleHelp,
-    iconClassName: "text-primary",
-    bubbleClassName: "bg-primary/10",
-  },
-  {
-    icon: Lightbulb,
-    iconClassName: "text-[#F5B942]",
-    bubbleClassName: "bg-[#FFF4D9]",
-  },
-  {
-    icon: BookOpen,
-    iconClassName: "text-[#4D86F7]",
-    bubbleClassName: "bg-[#EEF4FF]",
-  },
-  {
-    icon: Target,
-    iconClassName: "text-[#34C759]",
-    bubbleClassName: "bg-[#EAF8EF]",
-  },
-  {
-    icon: Sparkles,
-    iconClassName: "text-[#3E78EC]",
-    bubbleClassName: "bg-[#F1F6FD]",
-  },
-] as const;
-
 function CoachEmptyState({
-  coachProfile,
   coachEnvelope,
   onPromptSelect,
   isLoading,
 }: {
-  coachProfile: CoachProfile;
   coachEnvelope: CoachContextEnvelope;
   onPromptSelect: (prompt: string) => void;
   isLoading: boolean;
 }) {
   const t = useTranslations("dashboard.chat");
-  const subtitle =
-    coachProfile.brief.nextMove ||
-    coachEnvelope.focusSummary ||
-    t("welcome_subtitle");
 
   return (
-    <div className="flex w-full min-w-0 max-w-full flex-col items-center px-4 py-8 text-center sm:px-8 sm:py-12">
+    <div className="flex w-full min-w-0 max-w-[620px] flex-col items-center px-4 py-7 text-center sm:px-6 sm:py-10">
       <Image
         src="/coach/coach-pet-clean.png"
         alt="Debate Lab AI Coach"
-        width={168}
-        height={168}
-        className="h-[132px] w-[132px] select-none object-contain sm:h-[168px] sm:w-[168px]"
+        width={96}
+        height={96}
+        className="h-20 w-20 select-none object-contain sm:h-24 sm:w-24"
         priority
       />
 
-      <h1 className="mt-6 max-w-full text-[1.55rem] font-semibold leading-tight text-on-surface sm:text-[2rem]">
+      <h1 className="mt-5 max-w-full text-[1.45rem] font-semibold leading-tight text-on-surface sm:text-[1.6rem]">
         {t("welcome_title")}
       </h1>
-      <p className="mt-2 max-w-full text-[15px] leading-7 text-on-surface-variant sm:max-w-[540px]">
-        {subtitle}
+
+      <div className="mt-7 w-full min-w-0 space-y-1.5">
+        {coachEnvelope.starterPrompts.slice(0, 5).map((prompt) => (
+          <button
+            key={prompt}
+            onClick={() => onPromptSelect(prompt)}
+            disabled={isLoading}
+            className="group flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-outline-variant/14 bg-surface px-3.5 py-2.5 text-left transition-colors hover:border-primary/22 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="min-w-0 text-[14px] font-medium leading-5 text-on-surface">
+              {prompt}
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant/55 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatLoadError({ onRetryLoad }: { onRetryLoad?: () => void }) {
+  const t = useTranslations("dashboard.chat");
+
+  return (
+    <div className="mx-auto flex min-h-[360px] max-w-[420px] flex-col items-center justify-center px-4 text-center">
+      <div className="text-base font-semibold text-on-surface">
+        {t("load_error_title")}
+      </div>
+      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+        {t("load_error_body")}
       </p>
+      {onRetryLoad ? (
+        <Button
+          type="button"
+          onClick={onRetryLoad}
+          className="mt-5 h-9 rounded-xl bg-primary px-4 text-sm text-on-primary"
+        >
+          {t("retry")}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
-      <div className="mt-8 w-full min-w-0 max-w-[560px] space-y-3">
-        {coachEnvelope.starterPrompts.slice(0, 5).map((prompt, index) => {
-          const style = STARTER_STYLES[index % STARTER_STYLES.length];
-          const Icon = style.icon;
-
-          return (
-            <button
-              key={prompt}
-              onClick={() => onPromptSelect(prompt)}
-              disabled={isLoading}
-              className="group flex w-full min-w-0 items-center justify-between gap-3 rounded-[18px] border border-outline-variant/16 bg-surface px-4 py-3 text-left shadow-[0_16px_32px_rgba(11,20,36,0.03)] transition-colors hover:border-primary/20 hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-                    style.bubbleClassName
-                  )}
-                >
-                  <Icon className={cn("h-[18px] w-[18px]", style.iconClassName)} />
-                </div>
-                <span className="truncate text-[15px] font-medium text-on-surface">
-                  {prompt}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-            </button>
-          );
-        })}
+function ChatConversationLoading() {
+  return (
+    <div className="mx-auto max-w-[720px] space-y-4 px-1 py-4">
+      <div className="h-10 w-2/3 animate-pulse rounded-2xl bg-surface-container-high/70" />
+      <div className="ml-5 space-y-2">
+        <div className="h-4 w-24 animate-pulse rounded bg-surface-container-high/70" />
+        <div className="h-4 w-full animate-pulse rounded bg-surface-container-high/45" />
+        <div className="h-4 w-4/5 animate-pulse rounded bg-surface-container-high/45" />
       </div>
     </div>
   );
@@ -134,9 +115,10 @@ export function ChatArea({
   onSendMessage,
   onOpenSidebar,
   hasConversation,
-  coachProfile,
   coachEnvelope,
   isInsightsLoading = false,
+  loadError = false,
+  onRetryLoad,
 }: ChatAreaProps) {
   const t = useTranslations("dashboard.chat");
   const [input, setInput] = useState("");
@@ -191,6 +173,7 @@ export function ChatArea({
   };
 
   const showWelcome = messages.length === 0 && !hasConversation;
+  const showConversationLoading = isLoading && hasConversation && messages.length === 0;
 
   return (
     <div className="relative flex min-w-0 flex-1 bg-background">
@@ -198,8 +181,9 @@ export function ChatArea({
         <button
           onClick={onOpenSidebar}
           className="absolute left-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-surface-container lg:hidden"
+          aria-label={t("conversations")}
         >
-          <Menu className="h-5 w-5" />
+          <MessageSquareText className="h-5 w-5" />
         </button>
 
         <div
@@ -212,13 +196,16 @@ export function ChatArea({
           <div
             className={cn(
               "mx-auto w-full",
-              showWelcome ? "max-w-[980px]" : "max-w-[860px]"
+              showWelcome ? "max-w-[680px]" : "max-w-[800px]"
             )}
           >
-            {showWelcome ? (
+            {loadError ? (
+              <ChatLoadError onRetryLoad={onRetryLoad} />
+            ) : showConversationLoading ? (
+              <ChatConversationLoading />
+            ) : showWelcome ? (
               <div className="flex min-h-full items-center justify-center">
                 <CoachEmptyState
-                  coachProfile={coachProfile}
                   coachEnvelope={coachEnvelope}
                   onPromptSelect={handleSubmit}
                   isLoading={isLoading || isInsightsLoading}
@@ -245,6 +232,7 @@ export function ChatArea({
                         onSendMessage={handleSubmit}
                         onDraftMessage={handleDraftMessage}
                         actionsDisabled={isLoading || isInsightsLoading}
+                        renderStructuredMetadata
                       />
                     );
                   })}
@@ -255,8 +243,8 @@ export function ChatArea({
         </div>
 
         <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
-          <div className="mx-auto w-full max-w-[760px]">
-            <div className="flex items-end gap-3 rounded-[28px] border border-outline-variant/14 bg-surface px-4 py-3 shadow-[0_16px_36px_rgba(11,20,36,0.04)]">
+          <div className="mx-auto w-full max-w-[720px]">
+            <div className="flex items-end gap-2.5 rounded-[18px] border border-outline-variant/16 bg-surface px-3 py-2.5 shadow-[0_10px_26px_rgba(11,20,36,0.035)]">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -271,7 +259,7 @@ export function ChatArea({
                 onClick={() => handleSubmit()}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="h-11 w-11 shrink-0 rounded-2xl bg-primary text-on-primary shadow-[0_12px_24px_rgba(77,134,247,0.28)] disabled:opacity-40"
+                className="h-9 w-9 shrink-0 rounded-xl bg-primary text-on-primary shadow-[0_10px_18px_rgba(77,134,247,0.22)] disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </Button>

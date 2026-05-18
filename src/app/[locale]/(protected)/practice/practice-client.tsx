@@ -430,9 +430,6 @@ export default function PracticePage() {
               <h1 className="text-[1.75rem] font-semibold leading-[1.15] text-on-surface md:text-[1.9rem]">
                 {t("page_headline")}
               </h1>
-              <p className="mt-2 max-w-[590px] text-[0.96rem] leading-6 text-[#687997]">
-                {t("page_subtitle")}
-              </p>
             </div>
 
             <div className="mt-5 flex shrink-0 items-center gap-3 lg:absolute lg:right-0 lg:top-0 lg:mt-0">

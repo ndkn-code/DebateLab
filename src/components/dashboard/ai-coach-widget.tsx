@@ -26,13 +26,10 @@ export function AiCoachWidget({ compact = false }: AiCoachWidgetProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-container/30 to-surface-container-lowest soft-shadow",
+        "relative overflow-hidden rounded-2xl border border-primary/16 bg-surface-container-lowest",
         compact ? "p-5" : "p-6"
       )}
     >
-      {/* Accent glow */}
-      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
-
       <div className="relative">
         <div className={cn("flex items-center gap-3", compact ? "mb-3" : "mb-4")}>
           <div
@@ -47,9 +44,6 @@ export function AiCoachWidget({ compact = false }: AiCoachWidgetProps) {
             <h3 className={cn("font-semibold text-on-surface", compact ? "text-sm" : "text-base")}>
               {t("ask_ai_coach")}
             </h3>
-            <p className={cn("text-on-surface-variant", compact ? "text-[11px]" : "text-xs")}>
-              {t("ask_ai_coach_subtitle")}
-            </p>
           </div>
         </div>
 

@@ -84,9 +84,6 @@ export function WelcomeBanner({
                 <h3 className="text-lg font-bold text-on-surface">
                   {t("welcome_banner", { name: displayName })}
                 </h3>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  {t("welcome_banner_subtitle")}
-                </p>
               </div>
 
               <Link href="/practice" className="shrink-0">

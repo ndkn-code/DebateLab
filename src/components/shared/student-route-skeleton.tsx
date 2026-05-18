@@ -26,6 +26,43 @@ export function StudentRouteSkeleton({
   const isChat = variant === "chat";
   const isFeedback = variant === "feedback";
 
+  if (isChat) {
+    return (
+      <div className="flex min-h-full animate-pulse bg-background">
+        <aside className="hidden w-55 shrink-0 border-r border-outline-variant/12 bg-surface lg:block">
+          <div className="border-b border-outline-variant/12 p-3">
+            <div className="h-9 rounded-xl bg-surface-container-high" />
+          </div>
+          <div className="space-y-1 px-2 py-3">
+            {Array.from({ length: 7 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-10 rounded-xl bg-surface-container-high/55"
+              />
+            ))}
+          </div>
+        </aside>
+        <section className="flex min-w-0 flex-1 flex-col">
+          <div className="flex flex-1 items-center justify-center px-6">
+            <div className="w-full max-w-[520px] space-y-3">
+              <div className="mx-auto h-20 w-20 rounded-2xl bg-surface-container-high" />
+              <div className="mx-auto h-6 w-64 rounded bg-surface-container-high" />
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-11 rounded-xl border border-outline-variant/10 bg-surface-container-high/45"
+                />
+              ))}
+            </div>
+          </div>
+          <div className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="mx-auto h-14 w-full max-w-[720px] rounded-[18px] border border-outline-variant/12 bg-surface-container-high/45" />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div

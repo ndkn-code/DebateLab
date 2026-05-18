@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Trash2,
@@ -31,23 +31,6 @@ function SidebarContent({
 }: Omit<ConversationSidebarProps, "open" | "onOpenChange">) {
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("dashboard.chat");
-  const locale = useLocale();
-
-  const formatDate = (iso: string) => {
-    const date = new Date(iso);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return t("today");
-    if (diffDays === 1) return t("yesterday");
-    if (diffDays < 7) return t("days_ago", { count: diffDays });
-
-    return date.toLocaleDateString(locale, {
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const handleDelete = (event: React.MouseEvent, id: string) => {
     event.stopPropagation();
@@ -59,65 +42,48 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <div className="border-b border-outline-variant/12 p-4">
+      <div className="border-b border-outline-variant/12 p-3">
         <Button
           onClick={onNewChat}
-          className="h-12 w-full gap-2 rounded-[18px] bg-primary text-on-primary shadow-[0_10px_24px_rgba(77,134,247,0.22)]"
+          className="h-9 w-full gap-2 rounded-xl bg-primary text-sm font-semibold text-on-primary shadow-none"
         >
           <Plus className="h-4 w-4" />
           {t("new_chat")}
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-4">
+      <div className="flex-1 overflow-y-auto px-2 py-3">
         {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <p className="text-sm text-on-surface-variant">{t("sidebar_empty")}</p>
+          <div className="px-3 py-8">
+            <p className="text-sm leading-6 text-on-surface-variant">{t("sidebar_empty")}</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {conversations.map((conversation) => {
               return (
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group rounded-[18px] border px-3 py-3 transition-colors",
+                    "group flex min-w-0 items-center gap-1 rounded-xl border transition-colors",
                     activeId === conversation.id
-                      ? "border-primary/18 bg-primary/5 text-on-surface"
-                      : "border-outline-variant/12 bg-transparent text-on-surface hover:border-outline-variant/18 hover:bg-surface-container-low/55"
+                      ? "border-primary/16 bg-primary/5 text-on-surface"
+                      : "border-transparent bg-transparent text-on-surface hover:border-outline-variant/14 hover:bg-surface-container-low/70"
                   )}
                 >
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     onClick={() => onSelect(conversation.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelect(conversation.id);
-                      }
-                    }}
-                    className="flex min-w-0 cursor-pointer items-start gap-3"
+                    className="min-h-10 min-w-0 flex-1 px-3 py-2 text-left"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate text-sm font-semibold">
-                          {conversation.title || t("new_conversation")}
-                        </p>
-                        <span className="shrink-0 text-[11px] text-on-surface-variant">
-                          {formatDate(conversation.updated_at || conversation.created_at)}
-                        </span>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-on-surface-variant">
-                        {conversation.preview || t("preview_fallback")}
-                      </p>
-                    </div>
-                  </div>
+                    <span className="block truncate text-sm font-medium">
+                      {conversation.title || t("new_conversation")}
+                    </span>
+                  </button>
 
                   <button
                     onClick={(event) => handleDelete(event, conversation.id)}
                     disabled={isPending}
-                    className="mt-2 rounded-lg p-1 text-on-surface-variant opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
+                    className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-on-surface-variant opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-500 focus:opacity-100 group-hover:opacity-100"
                     aria-label={t("delete_conversation")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

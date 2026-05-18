@@ -55,9 +55,6 @@ function LoginContent() {
         <Link href="/" className="text-3xl font-extrabold text-primary tracking-tight">
           DebateLab
         </Link>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          {t('subtitle')}
-        </p>
       </div>
 
       {/* Invited by banner */}
