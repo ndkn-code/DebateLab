@@ -378,9 +378,10 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 ### Containers
 - Use the shared page container primitive for product pages.
 - `focused`: `max-w-3xl` for auth, onboarding, focused forms, and narrow review tasks.
-- `standard`: `max-w-5xl` for most product pages, profile, analytics, settings, history, and form/table hybrids.
-- `wide`: `max-w-6xl` for dashboards, practice selection, course pages, and dense-but-readable workflows.
-- `data`: `max-w-7xl` only for true admin data tables or special full-screen review surfaces that need the space.
+- `standard`: `max-w-5xl`, expanding to about `1504px` at `2xl`, for most product pages, profile, analytics, settings, history, and form/table hybrids.
+- `wide`: `max-w-6xl`, expanding to about `1680px` at `2xl`, for dashboards, practice selection, course pages, and dense-but-readable workflows.
+- `data`: `max-w-7xl`, expanding to about `1800px` at `2xl`, only for true admin data tables or special full-screen review surfaces that need the space.
+- Large desktop and 27-inch displays should not leave product pages as a small centered island. Keep the 13-inch rhythm unchanged up to `1440px`, then allow dashboard, analytics, and data surfaces to widen one step at `2xl` while preserving readable line lengths inside cards.
 - Remove ad hoc `max-w-[1400px]` style defaults unless the page is a real data-table surface.
 
 ### Type Scale
@@ -398,7 +399,7 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 - Four-column card grids should not appear at 13-inch laptop widths unless each card has enough measured width for its localized labels.
 
 ### QA Checklist
-- Check desktop widths `1280x720` and `1440x900`, tablet `768x1024`, and mobile `390x844`.
+- Check desktop widths `1280x720`, `1440x900`, and large desktop `2560x1440`; also check tablet `768x1024` and mobile `390x844`.
 - Verify `document.documentElement.scrollWidth <= document.documentElement.clientWidth`.
 - Verify no clipped labels, offscreen buttons, or text bleeding outside cards.
 - Verify analytics/dashboard cards do not collide or truncate awkwardly at 13-inch Safari size.

@@ -93,7 +93,7 @@ export function SkillSnapshotCard({
             <div className="mt-5">
               <svg
                 viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
-                className="mx-auto block h-[370px] w-full max-w-[418px]"
+                className="mx-auto block h-[370px] w-full max-w-[418px] 2xl:h-[320px] 2xl:max-w-[370px]"
                 aria-hidden="true"
               >
                 {[1, 2, 3, 4].map((step) => {
