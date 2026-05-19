@@ -2,7 +2,7 @@
 
 import type { ElementType, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Check, ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export function OnboardingShell({

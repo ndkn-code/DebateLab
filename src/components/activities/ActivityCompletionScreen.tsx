@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { Star, ArrowRight } from "lucide-react";
+import { Star, ArrowRight } from "@/components/ui/icons";
 import confetti from "canvas-confetti";
 import type { ActivityType } from "@/lib/types/admin";
 

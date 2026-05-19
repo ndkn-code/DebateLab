@@ -7,7 +7,7 @@ import {
   ChevronRight,
   MessageSquareText,
   Send,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";

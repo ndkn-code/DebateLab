@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Globe, Crown, Lock } from "lucide-react";
+import { ArrowLeft, Globe, Crown, Lock } from "@/components/ui/icons";
 import { updateCourseVisibility, updateModuleAccessLevel } from "@/app/actions/courses";
 import type { CourseVisibility, ModuleAccessLevel } from "@/lib/types/admin";
 import { StudentAssignment } from "./StudentAssignment";

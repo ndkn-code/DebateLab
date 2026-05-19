@@ -17,7 +17,7 @@ import {
   Repeat2,
   Search,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { createClass } from "@/app/actions/admin-classes";
 import { FadeInItem, PageTransition, StaggeredContainer } from "@/components/shared/page-motion";

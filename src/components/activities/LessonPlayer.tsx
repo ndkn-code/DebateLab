@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { Check, BookOpen, Play } from "lucide-react";
+import { Check, BookOpen, Play } from "@/components/ui/icons";
 import type { LessonContent, ActivityContent } from "@/lib/types/admin";
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false });

@@ -18,7 +18,7 @@ import {
   Search,
   Trash2,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   addStudentToClass,

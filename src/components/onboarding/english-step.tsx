@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Flame, MessageCircle, Smile, Sparkles } from "lucide-react";
+import { Flame, MessageCircle, Smile, Sparkles } from "@/components/ui/icons";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 

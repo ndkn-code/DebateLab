@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, RotateCcw } from "lucide-react";
+import { Check, RotateCcw } from "@/components/ui/icons";
 import type { FlashcardContent, ActivityContent } from "@/lib/types/admin";
 import { getElapsedSecondsSince } from "@/lib/time";
 

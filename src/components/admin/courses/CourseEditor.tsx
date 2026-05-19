@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Eye, EyeOff, ChevronDown, ChevronRight, ExternalLink, Loader2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { updateCourse, createModule, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, AdminCourseModule, Activity } from "@/lib/types/admin";

@@ -10,7 +10,7 @@ import {
   Send,
   Shield,
   UserRound,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { ChatBubble } from "@/components/chat/chat-bubble";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
 import type { ChatMessageLocal } from "@/components/chat/chat-shell";

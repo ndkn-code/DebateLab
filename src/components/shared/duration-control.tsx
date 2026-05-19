@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { ReactNode } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "@/components/ui/icons";
 import {
   clampDurationSeconds,
   formatDurationLabel,

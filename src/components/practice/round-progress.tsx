@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { User, Bot, Check } from "lucide-react";
+import { User, Bot, Check } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { DebateRound } from "@/types";

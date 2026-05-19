@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronDown, ChevronRight, GripVertical, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Trash2, Loader2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { updateModule, deleteModule } from "@/app/actions/courses";
 import type { AdminCourseModule, Activity } from "@/lib/types/admin";

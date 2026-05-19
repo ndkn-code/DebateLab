@@ -2,7 +2,7 @@
 
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2, Mail, MessageSquareText } from "lucide-react";
+import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2, Mail, MessageSquareText } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";

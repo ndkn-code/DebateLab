@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
+import { X, AlertTriangle, Info, CheckCircle2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export type ToastType = "info" | "warning" | "error" | "success";

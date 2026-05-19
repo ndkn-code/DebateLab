@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Plus,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";

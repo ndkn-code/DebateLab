@@ -19,7 +19,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   User,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type {
   CoachMessageMetadata,

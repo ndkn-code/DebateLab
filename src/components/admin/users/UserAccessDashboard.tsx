@@ -16,7 +16,7 @@ import {
   Sparkles,
   UserRound,
   XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useRouter } from "@/i18n/navigation";
 import {
   cancelUserSubscription,

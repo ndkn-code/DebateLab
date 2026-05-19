@@ -14,7 +14,7 @@ import {
   Save,
   Trash2,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   getAssignedCoursesForClass,
   saveClassSchedule,

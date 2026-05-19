@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { Activity, CalendarDays, TimerReset } from "lucide-react";
+import { Activity, CalendarDays, TimerReset } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry } from "@/lib/api/dashboard";
 

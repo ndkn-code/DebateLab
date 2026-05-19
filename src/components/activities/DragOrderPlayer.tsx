@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { GripVertical, ChevronUp, ChevronDown, Check, X } from "lucide-react";
+import { GripVertical, ChevronUp, ChevronDown, Check, X } from "@/components/ui/icons";
 import type { DragOrderContent, ActivityContent } from "@/lib/types/admin";
 import { getElapsedSecondsSince } from "@/lib/time";
 

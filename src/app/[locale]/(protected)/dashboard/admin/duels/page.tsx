@@ -5,7 +5,7 @@ import {
   Radar,
   ShieldCheck,
   Swords,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Admin - Duels" };

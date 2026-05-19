@@ -11,7 +11,7 @@ import {
   Pause,
   RotateCcw,
   Volume2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTranslations } from "next-intl";

@@ -14,7 +14,7 @@ import {
   Star,
   Trophy,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { getLandingCopy } from "./copy";
 import { LogoMark } from "./logo-mark";
 import { cn } from "@/lib/utils";

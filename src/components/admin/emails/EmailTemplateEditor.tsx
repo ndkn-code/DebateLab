@@ -16,7 +16,7 @@ import {
   Sparkles,
   Trophy,
   Wand2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";

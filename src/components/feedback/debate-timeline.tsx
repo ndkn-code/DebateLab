@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Bot, ChevronDown, Clock } from "lucide-react";
+import { User, Bot, ChevronDown, Clock } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { DebateRound } from "@/types";
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { Users, Wifi, BookOpen, GraduationCap } from "lucide-react";
+import { Users, Wifi, BookOpen, GraduationCap } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import type { AnalyticsOverview } from "@/lib/types/admin";
 import { StatCard } from "./StatCard";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { Search, X, UserPlus } from "lucide-react";
+import { Search, X, UserPlus } from "@/components/ui/icons";
 import { addStudentToCourse, removeStudentFromCourse, searchStudents } from "@/app/actions/courses";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 

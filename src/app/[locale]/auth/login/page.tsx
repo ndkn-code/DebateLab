@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Gift } from "lucide-react";
+import { Loader2, Gift } from "@/components/ui/icons";
 
 function LoginContent() {
   const t = useTranslations('auth.login');

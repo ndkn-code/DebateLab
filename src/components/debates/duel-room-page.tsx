@@ -19,7 +19,7 @@ import {
   Scale,
   Sparkles,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { DuelLobbySetupView } from "@/components/debates/duel-setup-flow";
 import { cn } from "@/lib/utils";

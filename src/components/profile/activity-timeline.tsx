@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { History } from "lucide-react";
+import { History } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { ActivityEntry } from "./profile-content";
 

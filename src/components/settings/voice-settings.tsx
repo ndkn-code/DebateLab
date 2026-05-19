@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Pause, Play, Sparkles, Waves } from "lucide-react";
+import { Check, Pause, Play, Sparkles, Waves } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";

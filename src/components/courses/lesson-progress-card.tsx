@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { BookOpen, CheckCircle2, Layers3 } from "lucide-react";
+import { BookOpen, CheckCircle2, Layers3 } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { LessonWithContext } from "@/lib/api/courses";

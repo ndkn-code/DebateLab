@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { Sparkles, BookOpen, Trophy, GraduationCap } from "lucide-react";
+import { Sparkles, BookOpen, Trophy, GraduationCap } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 

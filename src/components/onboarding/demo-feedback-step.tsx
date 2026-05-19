@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertCircle, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { OnboardingPreviewCard } from "./onboarding-primitives";
 

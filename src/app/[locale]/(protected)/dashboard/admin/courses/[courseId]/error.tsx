@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Link } from "@/i18n/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/ui/icons";
 
 export default function CourseEditorError({
   error,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
-import { RotateCcw, Plus, History, Sparkles, Gift, Copy, Check } from "lucide-react";
+import { RotateCcw, Plus, History, Sparkles, Gift, Copy, Check } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import confettiAnimation from "../../../../../../public/lottie/confetti.json";

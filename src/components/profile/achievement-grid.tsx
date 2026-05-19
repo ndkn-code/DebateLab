@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
-import { Lock } from "lucide-react";
+import { Lock } from "@/components/ui/icons";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import emptyAnimation from "../../../public/lottie/empty-search.json";
 import { Button } from "@/components/ui/button";

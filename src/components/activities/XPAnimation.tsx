@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star } from "@/components/ui/icons";
 
 interface Props {
   xp: number;

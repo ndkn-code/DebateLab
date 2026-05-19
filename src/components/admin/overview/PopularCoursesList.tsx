@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { BookOpen } from "lucide-react";
+import { BookOpen } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 
 const COLORS = ["#2f4fdd", "#7c3aed", "#059669", "#d97706", "#dc2626"];

@@ -8,7 +8,7 @@ import {
   Mic2,
   Scale,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

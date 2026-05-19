@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { Star, BookOpen, Layers } from "lucide-react";
+import { Star, BookOpen, Layers } from "@/components/ui/icons";
 import confetti from "canvas-confetti";
 import { Link } from "@/i18n/navigation";
 

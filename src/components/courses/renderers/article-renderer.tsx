@@ -8,7 +8,7 @@ import {
   Lightbulb,
   MessageCircle,
   PenTool,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { MarkdownRenderer } from "@/components/shared/markdown-renderer";
 import type { LessonWithContext } from "@/lib/api/courses";
 

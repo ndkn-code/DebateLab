@@ -15,7 +15,7 @@ import {
   Sparkles,
   Gift,
   Swords,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";

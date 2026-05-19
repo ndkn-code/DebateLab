@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { CalendarDays, CheckCircle2, Clock3, Download, MapPin, Plus, Repeat2, Save, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Download, MapPin, Plus, Repeat2, Save, Trash2, X } from "@/components/ui/icons";
 import { deleteClubEvent, saveClubEvent } from "@/app/actions/admin-clubs";
 import {
   DEFAULT_CLASS_TIMEZONE,

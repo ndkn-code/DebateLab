@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Copy, Check, Users } from "lucide-react";
+import { Gift, Copy, Check, Users } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";

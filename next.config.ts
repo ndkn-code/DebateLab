@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: {
     optimizePackageImports: [
-      "lucide-react",
+      "@phosphor-icons/react",
       "framer-motion",
       "recharts",
       "@base-ui/react",

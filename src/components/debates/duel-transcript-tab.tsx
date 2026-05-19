@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, FileText } from "lucide-react";
+import { Clock, FileText } from "@/components/ui/icons";
 import type { DebateDuelRoomView, DebateDuelSpeech } from "@/types";
 import { cn } from "@/lib/utils";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, Lightbulb, Scale, ShieldCheck } from "lucide-react";
+import { BookOpenText, Lightbulb, Scale, ShieldCheck } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import type { DebateTopic } from "@/types";
 import { cn } from "@/lib/utils";

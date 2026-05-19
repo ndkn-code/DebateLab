@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { BookOpenText, Brain, Compass, GraduationCap, Trophy } from "lucide-react";
+import { BookOpenText, Brain, Compass, GraduationCap, Trophy } from "@/components/ui/icons";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 

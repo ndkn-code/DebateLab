@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   MoreVertical,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   buildTranscriptChunks,
   estimateTranscriptTimestamp,

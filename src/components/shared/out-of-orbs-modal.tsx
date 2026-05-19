@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, Gift, Sparkles } from "lucide-react";
+import { Copy, Check, Gift, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "./orb-balance";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";

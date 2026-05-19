@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BookOpen, Plus, Search, Trash2, Users } from "lucide-react";
+import { BookOpen, Plus, Search, Trash2, Users } from "@/components/ui/icons";
 import { useRouter } from "@/i18n/navigation";
 import {
   assignCourseToClass,

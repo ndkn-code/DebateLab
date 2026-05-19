@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import posthog from "posthog-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Mic, Sparkles } from "lucide-react";
+import { Mic, Sparkles } from "@/components/ui/icons";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Button } from "@/components/ui/button";
 import { OnboardingPreviewCard } from "./onboarding-primitives";

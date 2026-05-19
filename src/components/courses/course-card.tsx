@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import {
   BarChart3,
   Layers3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import {
   CourseArtwork,

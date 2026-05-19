@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { getLandingCopy } from "./copy";
 import { LogoMark } from "./logo-mark";

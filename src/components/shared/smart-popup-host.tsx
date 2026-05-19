@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BellRing, CheckCircle2, Gift, Loader2, X } from "lucide-react";
+import { ArrowRight, BellRing, CheckCircle2, Gift, Loader2, X } from "@/components/ui/icons";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import {

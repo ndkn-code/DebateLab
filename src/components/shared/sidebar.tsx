@@ -18,7 +18,7 @@ import {
   Shield,
   Scale,
   Swords,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
   DropdownMenu,

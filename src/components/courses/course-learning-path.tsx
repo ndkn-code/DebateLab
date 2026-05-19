@@ -13,7 +13,7 @@ import {
   Mic2,
   PlayCircle,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";

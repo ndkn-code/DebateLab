@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { ArrowRight, Swords } from "lucide-react";
+import { ArrowRight, Swords } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";

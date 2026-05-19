@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown } from "@/components/ui/icons";
 import type { DragOrderContent, ActivityContent } from "@/lib/types/admin";
 
 interface Props {

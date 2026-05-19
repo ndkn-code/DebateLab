@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, Check, RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Volume2, Check, RefreshCw, ArrowRight, ArrowLeft } from '@/components/ui/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { usePostHog } from 'posthog-js/react';

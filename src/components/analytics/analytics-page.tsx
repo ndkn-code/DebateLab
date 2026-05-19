@@ -30,7 +30,7 @@ import {
   Target,
   Trophy,
   UsersRound,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";

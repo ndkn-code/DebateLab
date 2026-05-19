@@ -1,6 +1,8 @@
 # Debate Lab Icon Set
 
-This folder contains the first generated batch of Debate Lab SVG product icons.
+This folder contains an early generated batch of Debate Lab SVG product icons.
+
+Status: archived / not production-ready. Product UI should not import this set by default. The active v1 icon source is the Phosphor-backed registry in `src/components/ui/product-icon.tsx`, imported through `@/components/ui/icons`.
 
 Design rules are sourced from:
 - `C:\DebateLab\design.md`

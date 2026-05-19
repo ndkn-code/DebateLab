@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Lightbulb } from "lucide-react";
+import { Check, X, Lightbulb } from "@/components/ui/icons";
 import type { QuizContent, ActivityContent } from "@/lib/types/admin";
 import { getElapsedSecondsSince } from "@/lib/time";
 

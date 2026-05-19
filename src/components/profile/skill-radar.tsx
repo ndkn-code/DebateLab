@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { Brain } from "lucide-react";
+import { Brain } from "@/components/ui/icons";
 import type { SkillData } from "./profile-content";
 
 interface SkillRadarProps {

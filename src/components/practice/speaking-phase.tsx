@@ -7,7 +7,7 @@ import {
   Square,
   AlertTriangle,
   WifiOff,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AudioVisualizer } from "./audio-visualizer";

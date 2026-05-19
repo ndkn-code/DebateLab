@@ -8,7 +8,7 @@ import {
   Lightbulb,
   FileText,
   ChevronDown,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { DebateArgumentBreakdown, DebateScore } from "@/types/feedback";
 

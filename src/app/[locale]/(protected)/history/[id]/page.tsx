@@ -8,7 +8,7 @@ import {
   RotateCcw,
   Trash2,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { ResultActionButton } from "@/components/feedback/result-action-button";
 import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";

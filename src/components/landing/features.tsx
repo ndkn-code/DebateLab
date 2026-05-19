@@ -8,7 +8,7 @@ import {
   Sparkles,
   BarChart3,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 const features = [
   {

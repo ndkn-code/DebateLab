@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, BookOpen, Eye, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "@/components/ui/icons";
 import { enrollInCourse } from "@/app/actions/enrollment";
 import { cn } from "@/lib/utils";
 import type { ActivityType, ActivityPhase } from "@/lib/types/admin";

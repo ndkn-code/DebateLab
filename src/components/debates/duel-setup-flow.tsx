@@ -23,7 +23,7 @@ import {
   Sparkles,
   UserRound,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

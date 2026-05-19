@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from "@/components/ui/icons";
 
 export function Footer() {
   return (

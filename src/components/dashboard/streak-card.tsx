@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Check, Flame, Sparkles, Trophy, Zap } from "lucide-react";
+import { Check, Flame, Sparkles, Trophy, Zap } from "@/components/ui/icons";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry } from "@/lib/api/dashboard";

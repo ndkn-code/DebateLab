@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Plus, Search, MoreHorizontal, Copy, Archive, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Copy, Archive, Trash2, Eye, EyeOff } from "@/components/ui/icons";
 import { archiveCourse, deleteCourse, duplicateCourse, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, CourseVisibility } from "@/lib/types/admin";
 

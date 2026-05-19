@@ -27,8 +27,8 @@ import {
   TrendingUp,
   Trophy,
   UserRound,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+} from "@/components/ui/icons";
+import type { LucideIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";

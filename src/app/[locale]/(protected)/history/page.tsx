@@ -20,7 +20,7 @@ import {
   Star,
   Swords,
   UsersRound,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";
 import {

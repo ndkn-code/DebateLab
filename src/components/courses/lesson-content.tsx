@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Clock3,
   Layers3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LessonProgressCard } from "@/components/courses/lesson-progress-card";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import {

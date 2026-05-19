@@ -11,7 +11,7 @@ import {
   Mic2,
   Scale,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Progress } from "@/components/ui/progress";
 import { CourseCard } from "@/components/courses/course-card";
 import { PageTransition } from "@/components/shared/page-motion";

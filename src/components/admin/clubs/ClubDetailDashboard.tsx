@@ -16,7 +16,7 @@ import {
   Plus,
   Star,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { ClubSchedulePanel } from "@/components/admin/clubs/ClubSchedulePanel";
 import { buildPracticeHref } from "@/lib/practice-prefill";

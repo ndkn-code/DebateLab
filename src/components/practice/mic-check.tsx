@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Check, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
+import { Mic, MicOff, Check, ArrowRight, ArrowLeft, RotateCcw } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

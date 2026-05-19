@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Plus, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers } from "lucide-react";
+import { Plus, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { createActivity } from "@/app/actions/courses";
 import type { ActivityType } from "@/lib/types/admin";

@@ -11,7 +11,7 @@ import {
   Trophy,
   UserRound,
   UsersRound,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import type { DebateSession } from "@/types";
 import { cn } from "@/lib/utils";
 

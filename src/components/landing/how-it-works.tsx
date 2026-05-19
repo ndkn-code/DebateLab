@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ListChecks, Mic, Brain } from "lucide-react";
+import { ListChecks, Mic, Brain } from "@/components/ui/icons";
 
 const steps = [
   {

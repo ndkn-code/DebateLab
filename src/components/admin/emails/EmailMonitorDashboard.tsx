@@ -13,7 +13,7 @@ import {
   Send,
   ShieldCheck,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { EmailTemplateEditor } from "@/components/admin/emails/EmailTemplateEditor";
 import type { EmailAdminDashboardData, EmailAdminKpi } from "@/lib/email/admin";
 import { cn } from "@/lib/utils";

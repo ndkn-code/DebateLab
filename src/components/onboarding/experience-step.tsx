@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { BookOpen, Medal, Sprout } from "lucide-react";
+import { BookOpen, Medal, Sprout } from "@/components/ui/icons";
 import { SelectionCard } from "./selection-card";
 import { ReactiveResponse } from "./reactive-response";
 

@@ -11,7 +11,7 @@ import {
   ListFilter,
   Shuffle,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,

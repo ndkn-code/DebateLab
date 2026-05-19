@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { updateActivity } from "@/app/actions/courses";
 import { validateActivityContent } from "@/lib/activity/validators";

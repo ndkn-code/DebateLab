@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Compass, Mic2, Sparkles } from "lucide-react";
+import { Compass, Mic2, Sparkles } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

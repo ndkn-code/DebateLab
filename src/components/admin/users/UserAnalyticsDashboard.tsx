@@ -2,7 +2,7 @@
 
 import { type ReactNode, useMemo, useState } from "react";
 import useSWR, { mutate as mutateSWR } from "swr";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/ui/icons";
 import {
   ArrowLeft,
   BarChart3,
@@ -31,7 +31,7 @@ import {
   Trophy,
   Users,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

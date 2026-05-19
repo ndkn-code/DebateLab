@@ -48,6 +48,12 @@
   --color-on-error: #ffffff;
   --color-on-error-container: #b84747;
 
+  --color-success: #34c759;
+  --color-success-container: #e8f7ec;
+  --color-warning: #f5b942;
+  --color-warning-container: #fff4e2;
+  --color-on-warning-container: #9a640f;
+
   --color-surface: #ffffff;
   --color-surface-dim: #f1f6fd;
   --color-surface-bright: #ffffff;

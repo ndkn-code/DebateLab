@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Flame } from "lucide-react";
+import { Flame } from "@/components/ui/icons";
 import { PillSelector } from "./pill-selector";
 import { ReactiveResponse } from "./reactive-response";
 import { OnboardingPreviewCard } from "./onboarding-primitives";

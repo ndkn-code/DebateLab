@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send } from "@/components/ui/icons";
 import { CoachQuickActions } from "@/components/chat/coach-quick-actions";
 import { cn } from "@/lib/utils";
 

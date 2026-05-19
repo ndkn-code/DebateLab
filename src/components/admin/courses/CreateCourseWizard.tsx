@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Globe, Crown, Lock, ChevronRight, ChevronLeft } from "lucide-react";
+import { Globe, Crown, Lock, ChevronRight, ChevronLeft } from "@/components/ui/icons";
 import { createCourse } from "@/app/actions/courses";
 import type { CourseVisibility } from "@/lib/types/admin";
 

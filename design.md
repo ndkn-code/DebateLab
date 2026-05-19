@@ -151,6 +151,29 @@ Use for:
 
 ## Icon System
 
+### Product Icon Source
+DebateLab uses Phosphor as the production icon family for v1. The prior generated SVGs in `public/icons` are not production-ready and should not be used as the default product icon source unless a future designed asset pass explicitly replaces this rule.
+
+All product code should import icons from `@/components/ui/icons`, never from `lucide-react` and never directly from `@phosphor-icons/react`. The only file allowed to import Phosphor directly is the governed registry at `src/components/ui/product-icon.tsx`.
+
+### Registry Rule
+- Use `ProductIcon` when adding new UI. Choose a semantic `name`, not a one-off library glyph.
+- Existing migrated surfaces may use compatibility exports from `@/components/ui/icons`, but new work should prefer semantic names so icon meaning stays stable across sessions.
+- If a concept is missing, add it to the registry with an approved Phosphor icon before using it.
+- Do not introduce a second icon library without updating this document and the lint guard.
+
+### Sizes And Weights
+- Icon sizes are `xs: 14`, `sm: 16`, `md: 20`, `lg: 24`, `xl: 32`.
+- Sidebar nav icons are `20px`.
+- Compact buttons and metadata rows usually use `16px`.
+- Page-title leading icons and feature/status icons may use `20px` to `24px`.
+- Use Phosphor `regular` by default, `fill` only for selected/active/starred states, and `duotone` only for intentional feature or status emphasis.
+
+### Tone Rules
+- Icon color comes from the shared tone mapping: `current`, `muted`, `neutral`, `primary`, `success`, `warning`, `danger`, or `inverse`.
+- Avoid one-off icon colors in product UI. If a tone is genuinely missing, add the semantic tone once.
+- Keep sidebar icons quiet. Active state should read from the row highlight and text weight first, with icon tone as a secondary signal.
+
 ### Icon Direction
 DebateLab icons should feel:
 - clean
@@ -224,6 +247,10 @@ They should not feel:
 - Primary hover: slightly darker blue or subtle gradient depth
 - Secondary button: white background, `#DEE8F8` border, primary text
 - Text button / link: primary text with no heavy fill
+- Use one dominant primary CTA per surface.
+- Use `default` only for the primary action, `outline` for secondary actions, `ghost` for quiet utilities, and `destructive` only for destructive actions.
+- Icon-only buttons must use a stable square size and a tooltip or accessible label when the action is not obvious.
+- Do not hand-roll new button styles unless the shared `Button` variants cannot express the required state.
 
 ### Cards
 - Default card background: `#FFFFFF`

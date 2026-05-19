@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ListChecks, PlayCircle } from "lucide-react";
+import { ListChecks, PlayCircle } from "@/components/ui/icons";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface VideoRendererProps {

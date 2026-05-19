@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Mic, MicOff, Square } from "lucide-react";
+import { Mic, MicOff, Square } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { OnboardingPreviewCard } from "./onboarding-primitives";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";

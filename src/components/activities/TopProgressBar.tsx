@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Star } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 
 interface ActivitySummary {

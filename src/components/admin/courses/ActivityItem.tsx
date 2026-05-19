@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { GripVertical, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Trash2, Loader2 } from "lucide-react";
+import { GripVertical, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Trash2, Loader2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { deleteActivity } from "@/app/actions/courses";
 import type { Activity, ActivityType, ActivityPhase } from "@/lib/types/admin";

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, GitBranch, LayoutDashboard, Trophy } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { FileText, GitBranch, LayoutDashboard, Trophy } from "@/components/ui/icons";
+import type { LucideIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export type SessionReviewTab = "overall" | "verdict" | "transcript" | "clash";

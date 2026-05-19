@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bookmark, BookmarkCheck, Check } from "lucide-react";
+import { Bookmark, BookmarkCheck, Check } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import {
   Avatar,

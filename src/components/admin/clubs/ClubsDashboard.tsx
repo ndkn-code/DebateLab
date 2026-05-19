@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, CheckCircle2, ClipboardList, ExternalLink, Plus, Search, ShieldCheck, Users } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardList, ExternalLink, Plus, Search, ShieldCheck, Users } from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { PageTransition } from "@/components/shared/page-motion";
 import { CreateClubDialog } from "@/components/admin/clubs/CreateClubDialog";

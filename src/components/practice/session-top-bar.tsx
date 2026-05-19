@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { MessageSquareQuote } from "lucide-react";
+import { MessageSquareQuote } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { Phase } from "@/store/session-store";
 import type { PracticeLanguage, PracticeTrack } from "@/types";

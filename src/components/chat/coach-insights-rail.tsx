@@ -10,7 +10,7 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { CoachContextEnvelope, CoachProfile } from "@/types";
 

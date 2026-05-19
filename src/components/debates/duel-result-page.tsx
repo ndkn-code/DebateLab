@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Link } from "@/i18n/navigation";
-import { ArrowRight, RotateCcw, Scale, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, RotateCcw, Scale, Sparkles, Trophy } from "@/components/ui/icons";
 import { DuelClashMap } from "@/components/debates/duel-clash-map";
 import { DuelTranscriptTab } from "@/components/debates/duel-transcript-tab";
 import {

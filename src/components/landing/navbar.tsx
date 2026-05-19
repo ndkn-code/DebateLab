@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu, X, MessageSquare } from "lucide-react";
+import { Menu, X, MessageSquare } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {

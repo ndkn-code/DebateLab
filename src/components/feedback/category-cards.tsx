@@ -8,7 +8,7 @@ import {
   Languages,
   Megaphone,
   ChevronDown,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { DebateScore } from "@/types/feedback";
 

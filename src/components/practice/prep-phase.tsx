@@ -7,7 +7,7 @@ import {
   ListChecks,
   MessageCircle,
   Search,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useLocale, useTranslations } from "next-intl";
 import {
   MAX_NOTES_LENGTH,
