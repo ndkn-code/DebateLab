@@ -48,16 +48,41 @@ export interface FeedbackPopupCronRunSummary {
   errorMessage: string | null;
 }
 
+export type FeedbackPopupAdminHealthStatus = "ok" | "warning" | "error";
+
+export type FeedbackPopupAdminDataSource = "service_role" | "session" | "none";
+
+export interface FeedbackPopupAdminHealthCheck {
+  key: string;
+  label: string;
+  status: FeedbackPopupAdminHealthStatus;
+  detail: string;
+}
+
+export interface FeedbackPopupAdminHealth {
+  status: FeedbackPopupAdminHealthStatus;
+  message: string;
+  dataSource: FeedbackPopupAdminDataSource;
+  serviceRoleConfigured: boolean;
+  checks: FeedbackPopupAdminHealthCheck[];
+}
+
 export interface FeedbackPopupAdminData {
   campaigns: FeedbackPopupCampaignSummary[];
   responses: FeedbackPopupResponseSummary[];
   cronRuns: FeedbackPopupCronRunSummary[];
+  health: FeedbackPopupAdminHealth;
   kpis: Array<{
     key: string;
     label: string;
     value: string;
     tone: "neutral" | "success" | "warning";
   }>;
+}
+
+export interface FeedbackPopupAdminDataOptions {
+  dataSource?: FeedbackPopupAdminDataSource;
+  serviceRoleConfigured?: boolean;
 }
 
 export interface SaveFeedbackPopupCampaignInput {
@@ -105,6 +130,154 @@ function getCopy(row: Record<string, unknown>, key: "copy_en" | "copy_vi") {
 function getQuestionCount(row: Record<string, unknown> | undefined) {
   if (!row) return 0;
   return normalizeSurveyQuestions(row.questions).length;
+}
+
+function buildKpis(input: {
+  activeCampaigns: number;
+  totalResponses: number;
+  avgRating: number | null;
+}) {
+  return [
+    {
+      key: "active",
+      label: "Active campaigns",
+      value: String(input.activeCampaigns),
+      tone: "success" as const,
+    },
+    {
+      key: "responses",
+      label: "Recent responses",
+      value: String(input.totalResponses),
+      tone: "neutral" as const,
+    },
+    {
+      key: "rating",
+      label: "Avg rating",
+      value: input.avgRating == null ? "-" : String(input.avgRating),
+      tone: "success" as const,
+    },
+    { key: "reward", label: "Reward", value: "50 Credits", tone: "warning" as const },
+  ];
+}
+
+function resolveHealthStatus(
+  checks: FeedbackPopupAdminHealthCheck[]
+): FeedbackPopupAdminHealthStatus {
+  if (checks.some((check) => check.status === "error")) return "error";
+  if (checks.some((check) => check.status === "warning")) return "warning";
+  return "ok";
+}
+
+export function buildFeedbackPopupAdminHealth(input: {
+  dataSource?: FeedbackPopupAdminDataSource;
+  serviceRoleConfigured?: boolean;
+  campaignCount?: number;
+  surveyVersionCount?: number;
+  responseCount?: number;
+  cronRunCount?: number;
+  loadError?: string | null;
+}): FeedbackPopupAdminHealth {
+  const dataSource = input.dataSource ?? "service_role";
+  const serviceRoleConfigured = input.serviceRoleConfigured ?? dataSource === "service_role";
+  const campaignCount = input.campaignCount ?? 0;
+  const surveyVersionCount = input.surveyVersionCount ?? 0;
+  const responseCount = input.responseCount ?? 0;
+  const cronRunCount = input.cronRunCount ?? 0;
+  const checks: FeedbackPopupAdminHealthCheck[] = [
+    {
+      key: "service-role",
+      label: "Service-role env",
+      status: serviceRoleConfigured ? "ok" : "warning",
+      detail: serviceRoleConfigured
+        ? "SUPABASE_SERVICE_ROLE_KEY is available for admin writes."
+        : "SUPABASE_SERVICE_ROLE_KEY is missing; reads can fall back to the signed-in admin session.",
+    },
+    {
+      key: "data-source",
+      label: "Admin data source",
+      status: dataSource === "service_role" ? "ok" : dataSource === "session" ? "warning" : "error",
+      detail:
+        dataSource === "service_role"
+          ? "Reading with the service-role server client."
+          : dataSource === "session"
+            ? "Reading with the authenticated admin session."
+            : "No Supabase client was available for admin reads.",
+    },
+    {
+      key: "campaigns",
+      label: "Feedback campaigns",
+      status: input.loadError ? "error" : campaignCount > 0 ? "ok" : "warning",
+      detail: input.loadError ?? `${campaignCount} feedback campaign${campaignCount === 1 ? "" : "s"} found.`,
+    },
+    {
+      key: "survey-versions",
+      label: "Survey versions",
+      status:
+        input.loadError || (campaignCount > 0 && surveyVersionCount === 0)
+          ? "error"
+          : surveyVersionCount > 0
+            ? "ok"
+            : "warning",
+      detail: input.loadError
+        ? "Survey versions could not be loaded."
+        : `${surveyVersionCount} published survey version${surveyVersionCount === 1 ? "" : "s"} found.`,
+    },
+    {
+      key: "responses",
+      label: "Survey responses",
+      status: input.loadError ? "error" : "ok",
+      detail: input.loadError
+        ? "Responses could not be loaded."
+        : `${responseCount} recent response${responseCount === 1 ? "" : "s"} loaded.`,
+    },
+    {
+      key: "cron",
+      label: "Cron visibility",
+      status: input.loadError ? "error" : cronRunCount > 0 ? "ok" : "warning",
+      detail: input.loadError
+        ? "Cron health could not be loaded."
+        : cronRunCount > 0
+          ? `${cronRunCount} recent cron run${cronRunCount === 1 ? "" : "s"} loaded.`
+          : "No smart-popup cron runs are visible yet.",
+    },
+  ];
+  const status = resolveHealthStatus(checks);
+  const message =
+    input.loadError ??
+    (!serviceRoleConfigured
+      ? "Feedback popup reads are using a session fallback. Add SUPABASE_SERVICE_ROLE_KEY before publishing or sending campaigns."
+      : status === "ok"
+        ? "Feedback popup admin is connected."
+        : "Feedback popup admin is connected with warnings to review.");
+
+  return {
+    status,
+    message,
+    dataSource,
+    serviceRoleConfigured,
+    checks,
+  };
+}
+
+export function createEmptyFeedbackPopupAdminData(
+  health: Partial<FeedbackPopupAdminHealth> = {}
+): FeedbackPopupAdminData {
+  const generatedHealth = buildFeedbackPopupAdminHealth({
+    dataSource: health.dataSource ?? "none",
+    serviceRoleConfigured: health.serviceRoleConfigured ?? false,
+    loadError: health.message ?? "Feedback popup data could not be loaded.",
+  });
+  return {
+    campaigns: [],
+    responses: [],
+    cronRuns: [],
+    health: {
+      ...generatedHealth,
+      ...health,
+      checks: health.checks ?? generatedHealth.checks,
+    },
+    kpis: buildKpis({ activeCampaigns: 0, totalResponses: 0, avgRating: null }),
+  };
 }
 
 function normalizeAnswers(value: unknown): FeedbackPopupResponseSummary["answers"] {
@@ -192,7 +365,8 @@ function buildCampaignSummaries(input: {
 }
 
 export async function getFeedbackPopupAdminData(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  options: FeedbackPopupAdminDataOptions = {}
 ): Promise<FeedbackPopupAdminData> {
   const [campaignsRes, versionsRes, responsesRes, cronRes] = await Promise.all([
     supabase
@@ -244,25 +418,29 @@ export async function getFeedbackPopupAdminData(
     avgRatingValues.length > 0
       ? Math.round((avgRatingValues.reduce((sum, rating) => sum + rating, 0) / avgRatingValues.length) * 10) / 10
       : null;
+  const cronRuns: FeedbackPopupCronRunSummary[] = (cronRes.data ?? []).map((run) => ({
+    id: run.id,
+    status: run.status,
+    startedAt: run.started_at,
+    finishedAt: run.finished_at,
+    processedUsers: run.processed_users,
+    generatedOpportunities: run.generated_opportunities,
+    errorMessage: run.error_message,
+  }));
 
   return {
     campaigns,
     responses,
-    cronRuns: (cronRes.data ?? []).map((run) => ({
-      id: run.id,
-      status: run.status,
-      startedAt: run.started_at,
-      finishedAt: run.finished_at,
-      processedUsers: run.processed_users,
-      generatedOpportunities: run.generated_opportunities,
-      errorMessage: run.error_message,
-    })),
-    kpis: [
-      { key: "active", label: "Active campaigns", value: String(activeCampaigns), tone: "success" },
-      { key: "responses", label: "Recent responses", value: String(totalResponses), tone: "neutral" },
-      { key: "rating", label: "Avg rating", value: avgRating == null ? "-" : String(avgRating), tone: "success" },
-      { key: "reward", label: "Reward", value: "50 Credits", tone: "warning" },
-    ],
+    cronRuns,
+    health: buildFeedbackPopupAdminHealth({
+      dataSource: options.dataSource,
+      serviceRoleConfigured: options.serviceRoleConfigured,
+      campaignCount: campaigns.length,
+      surveyVersionCount: (versionsRes.data ?? []).length,
+      responseCount: responses.length,
+      cronRunCount: cronRuns.length,
+    }),
+    kpis: buildKpis({ activeCampaigns, totalResponses, avgRating }),
   };
 }
 

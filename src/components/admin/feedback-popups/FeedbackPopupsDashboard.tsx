@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import {
   BarChart3,
+  AlertTriangle,
   CheckCircle2,
   Clock3,
   Edit3,
@@ -134,6 +135,20 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function HealthBadge({ status }: { status: "ok" | "warning" | "error" }) {
+  const cls =
+    status === "ok"
+      ? "bg-[#E8F8EE] text-[#16833A]"
+      : status === "error"
+        ? "bg-[#FEEEEE] text-[#B3261E]"
+        : "bg-[#FFF7DF] text-[#9A6A08]";
+  return (
+    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-bold", cls)}>
+      {status}
+    </span>
+  );
+}
+
 function AnswerPreview({ value }: { value: unknown }) {
   if (Array.isArray(value)) return <>{value.join(", ")}</>;
   if (typeof value === "string" || typeof value === "number") return <>{value}</>;
@@ -154,6 +169,13 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
     responseGoal: 100,
   });
   const [questions, setQuestions] = useState<SmartPopupSurveyQuestion[]>(DEFAULT_QUESTIONS);
+  const health = data.health;
+  const writesDisabled = !health.serviceRoleConfigured || health.status === "error";
+  const writeDisabledMessage = !health.serviceRoleConfigured
+    ? "Publishing and send-now actions need SUPABASE_SERVICE_ROLE_KEY configured."
+    : health.status === "error"
+      ? "Resolve the feedback popup health error before changing campaigns."
+      : undefined;
 
   const latestResponses = data.responses.slice(0, 8);
   const ratingBuckets = useMemo(() => {
@@ -176,6 +198,10 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
   function mutate(body: Record<string, unknown>, successMessage: string) {
     setNotice(null);
+    if (writesDisabled) {
+      setNotice(writeDisabledMessage ?? "Feedback popup writes are currently disabled.");
+      return;
+    }
     startTransition(async () => {
       try {
         const res = await fetch("/api/admin/feedback-popups", {
@@ -264,6 +290,39 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         </div>
       </div>
 
+      {health.status !== "ok" ? (
+        <section
+          className={cn(
+            "rounded-lg border px-4 py-3 text-sm shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]",
+            health.status === "error"
+              ? "border-[#F6C7C2] bg-[#FFF7F6] text-[#5A1D18]"
+              : "border-[#F4D58D] bg-[#FFFBEA] text-[#614700]"
+          )}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/75">
+                <AlertTriangle className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="font-extrabold">
+                  {health.status === "error" ? "Feedback popup admin needs attention" : "Feedback popup admin warning"}
+                </p>
+                <p className="mt-1 leading-6">{health.message}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <span className="rounded-full bg-white/75 px-3 py-1 text-xs font-bold">
+                Source: {health.dataSource.replace("_", " ")}
+              </span>
+              <span className="rounded-full bg-white/75 px-3 py-1 text-xs font-bold">
+                Service role: {health.serviceRoleConfigured ? "configured" : "missing"}
+              </span>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {data.kpis.map((kpi) => (
           <div
@@ -351,7 +410,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                     <Button
                       type="button"
                       size="sm"
-                      disabled={isPending}
+                      disabled={isPending || writesDisabled}
+                      title={writeDisabledMessage}
                       onClick={() =>
                         mutate(
                           { action: "send_now", campaignKey: campaign.key },
@@ -366,7 +426,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={isPending}
+                      disabled={isPending || writesDisabled}
+                      title={writeDisabledMessage}
                       onClick={() =>
                         mutate(
                           {
@@ -385,7 +446,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                       type="button"
                       size="sm"
                       variant="ghost"
-                      disabled={isPending}
+                      disabled={isPending || writesDisabled}
+                      title={writeDisabledMessage}
                       onClick={() =>
                         mutate(
                           {
@@ -620,10 +682,26 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             </div>
 
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" disabled={isPending} onClick={() => saveCampaign("paused")}>
+              {writeDisabledMessage ? (
+                <p className="w-full text-right text-xs font-semibold text-[#9A6A08]">
+                  {writeDisabledMessage}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPending || writesDisabled}
+                title={writeDisabledMessage}
+                onClick={() => saveCampaign("paused")}
+              >
                 Save draft
               </Button>
-              <Button type="button" disabled={isPending} onClick={() => saveCampaign("active")}>
+              <Button
+                type="button"
+                disabled={isPending || writesDisabled}
+                title={writeDisabledMessage}
+                onClick={() => saveCampaign("active")}
+              >
                 <CheckCircle2 className="h-4 w-4" />
                 Publish
               </Button>
@@ -740,7 +818,18 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         <section className="rounded-lg border border-[#DEE8F8] bg-white">
           <div className="border-b border-[#DEE8F8] px-5 py-4">
             <h2 className="text-xl font-extrabold text-[#0B1424]">Cron And Health</h2>
-            <p className="mt-1 text-sm text-[#415069]">Current Vercel cron refreshes smart-popup user state once daily.</p>
+            <p className="mt-1 text-sm text-[#415069]">{health.message}</p>
+          </div>
+          <div className="grid gap-3 border-b border-[#DEE8F8] p-5 md:grid-cols-2">
+            {health.checks.map((check) => (
+              <div key={check.key} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-extrabold text-[#0B1424]">{check.label}</p>
+                  <HealthBadge status={check.status} />
+                </div>
+                <p className="mt-2 text-sm leading-6 text-[#415069]">{check.detail}</p>
+              </div>
+            ))}
           </div>
           {data.cronRuns.length === 0 ? (
             <p className="p-6 text-sm text-[#718096]">No cron runs recorded yet.</p>

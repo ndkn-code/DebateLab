@@ -11,12 +11,13 @@ import { isAdminUser } from "@/lib/auth/admin";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
+  createEmptyFeedbackPopupAdminData,
   getFeedbackPopupAdminData,
   saveFeedbackPopupCampaign,
   sendFeedbackPopupNow,
   setFeedbackPopupCampaignStatus,
 } from "@/lib/smart-popups/admin";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminClientConfigStatus, tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -79,16 +80,50 @@ function jsonError(error: unknown, fallback: string) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function getServiceRoleConfigStatus() {
+  const config = getAdminClientConfigStatus();
+  return config.hasUrl && config.hasServiceRoleKey;
+}
+
+function getAdminWriteClient() {
+  const admin = tryCreateAdminClient();
+  if (!admin) {
+    throw new RequestValidationError(
+      "Feedback popup admin writes need SUPABASE_SERVICE_ROLE_KEY configured.",
+      503
+    );
+  }
+  return admin;
+}
+
 export async function GET() {
   try {
     const { supabase, devBypass } = await requireAdmin();
     const limited = await rateLimitAdmin(supabase, { skip: devBypass });
     if (limited) return limited;
 
-    const data = await getFeedbackPopupAdminData(createAdminClient());
+    const admin = tryCreateAdminClient();
+    const serviceRoleConfigured = getServiceRoleConfigStatus();
+    const data = await getFeedbackPopupAdminData(admin ?? supabase, {
+      dataSource: admin ? "service_role" : "session",
+      serviceRoleConfigured,
+    });
     return NextResponse.json(data);
   } catch (error) {
-    return jsonError(error, "Unable to load feedback popups.");
+    if (error instanceof RequestValidationError) {
+      return jsonError(error, "Unable to load feedback popups.");
+    }
+    const message =
+      error instanceof Error ? error.message : "Unable to load feedback popups.";
+    console.error("[feedback-popups-admin-api] Unable to load data", { message });
+    return NextResponse.json(
+      createEmptyFeedbackPopupAdminData({
+        status: "error",
+        message,
+        dataSource: tryCreateAdminClient() ? "service_role" : "session",
+        serviceRoleConfigured: getServiceRoleConfigStatus(),
+      })
+    );
   }
 }
 
@@ -105,7 +140,7 @@ export async function POST(request: NextRequest) {
       ["save", "set_status", "send_now"] as const,
       { required: true }
     );
-    const admin = createAdminClient();
+    const admin = getAdminWriteClient();
 
     if (action === "save") {
       const result = await saveFeedbackPopupCampaign(admin, {

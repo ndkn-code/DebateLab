@@ -20,6 +20,7 @@
     "test:topics": "tsx src/lib/topics.test.ts",
     "test:tts-voices": "tsx src/lib/tts-voices.test.ts",
     "test:smart-popups": "tsx src/lib/smart-popups/rules.test.ts",
+    "test:smart-popup-admin": "tsx src/lib/smart-popups/admin.test.ts",
     "test:smart-popup-surveys": "tsx src/lib/smart-popups/survey.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts",
     "test:email-system": "tsx src/lib/email/email-system.test.ts",
