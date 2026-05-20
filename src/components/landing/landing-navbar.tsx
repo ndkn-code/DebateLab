@@ -29,11 +29,7 @@ export function LandingNavbar({ isLoggedIn }: LandingNavbarProps) {
     <header className="relative z-20 bg-[#F7FAFE]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 md:px-8">
         <Link href="/" className="shrink-0">
-          <LogoMark
-            className="gap-2.5"
-            bubbleClassName="h-8 w-8"
-            textClassName="text-[1.35rem]"
-          />
+          <LogoMark size="sm" priority />
         </Link>
 
         <nav className="hidden items-center gap-10 lg:flex">

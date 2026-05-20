@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Welcome to DebateLab",
+  title: "Welcome to Thinkfy",
 };
 
 export default async function OnboardingLayout({

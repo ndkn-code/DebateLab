@@ -22,8 +22,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "DebateLab — Master the Art of Debate",
-    template: "%s | DebateLab",
+    default: "Thinkfy — Master the Art of Debate",
+    template: "%s | Thinkfy",
   },
   description:
     "Practice solo, get AI-powered feedback, and sharpen your argumentation skills — all in English. Built for Vietnamese high school students.",
@@ -36,23 +36,32 @@ export const metadata: Metadata = {
     "speech practice",
   ],
   openGraph: {
-    title: "DebateLab — Master the Art of Debate",
+    title: "Thinkfy — Master the Art of Debate",
     description:
       "Practice solo, get AI-powered feedback, and sharpen your argumentation skills — all in English.",
     type: "website",
-    siteName: "DebateLab",
+    siteName: "Thinkfy",
+    images: [
+      {
+        url: "/brand/thinkfy/thinkfy-logo-light.png",
+        width: 640,
+        height: 226,
+        alt: "Thinkfy",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "DebateLab — Master the Art of Debate",
+    title: "Thinkfy — Master the Art of Debate",
     description:
       "Practice solo, get AI-powered feedback, and sharpen your argumentation skills.",
+    images: ["/brand/thinkfy/thinkfy-logo-light.png"],
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/brand/thinkfy/thinkfy-favicon.png", type: "image/png" },
     ],
+    apple: [{ url: "/brand/thinkfy/thinkfy-favicon.png", type: "image/png" }],
   },
 };
 

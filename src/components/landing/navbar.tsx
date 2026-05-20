@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu, X, MessageSquare } from "@/components/ui/icons";
+import { Menu, X } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "./logo-mark";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -18,8 +19,7 @@ export function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-blue-500" />
-          <span className="text-xl font-bold text-white">DebateLab</span>
+          <LogoMark size="sm" variant="dark" />
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">

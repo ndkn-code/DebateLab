@@ -455,7 +455,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   <option value="admin">Admin</option>
                 </Select>
                 <p className="mt-2 text-xs text-[#6d7c94]">
-                  Profiles keep DebateLab&apos;s current single-role model for v1.
+                  Profiles keep Thinkfy&apos;s current single-role model for v1.
                 </p>
               </div>
 

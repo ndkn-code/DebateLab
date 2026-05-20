@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { Sparkles, BookOpen, Trophy, GraduationCap } from "@/components/ui/icons";
+import { BookOpen, Trophy, GraduationCap } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -105,11 +106,16 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
       <div className="w-full max-w-md rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 soft-shadow">
         {/* Header */}
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
+          <Image
+            src="/brand/thinkfy/thinkfy-mascot-wave.png"
+            alt="Thinkfy mascot"
+            width={512}
+            height={607}
+            className="mb-3 h-24 w-24 object-contain drop-shadow-[0_14px_24px_rgba(35,64,96,0.14)]"
+            priority
+          />
           <h2 className="text-2xl font-bold text-on-surface">
-            Welcome to DebateLab!
+            Welcome to Thinkfy!
           </h2>
           <p className="mt-2 text-sm text-on-surface-variant">
             Let&apos;s personalize your experience. What&apos;s your debate background?

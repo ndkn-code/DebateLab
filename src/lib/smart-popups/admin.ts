@@ -704,7 +704,7 @@ export async function saveFeedbackPopupCampaign(
           ctaLabel: "Share feedback",
           dismissLabel: "Later",
           dontShowLabel: "Don't ask again",
-          alt: "DebateLab feedback prompt",
+          alt: "Thinkfy feedback prompt",
         },
         copy_vi: {
           eyebrow: "Góp ý nhanh",
@@ -713,7 +713,7 @@ export async function saveFeedbackPopupCampaign(
           ctaLabel: "Gửi góp ý",
           dismissLabel: "Để sau",
           dontShowLabel: "Đừng hỏi lại",
-          alt: "Hộp góp ý DebateLab",
+          alt: "Hộp góp ý Thinkfy",
         },
         rules: {
           maxSubmissionsPerUser: 1,
@@ -744,11 +744,11 @@ export async function saveFeedbackPopupCampaign(
       thank_you_copy: {
         en: {
           title: "Thanks for the feedback",
-          body: "You earned 50 Credits. We will use this to make DebateLab sharper.",
+          body: "You earned 50 Credits. We will use this to make Thinkfy sharper.",
         },
         vi: {
           title: "Cảm ơn bạn đã góp ý",
-          body: "Bạn đã nhận 50 Credits. Tụi mình sẽ dùng góp ý này để cải thiện DebateLab.",
+          body: "Bạn đã nhận 50 Credits. Tụi mình sẽ dùng góp ý này để cải thiện Thinkfy.",
         },
       },
       created_by: input.actorId,

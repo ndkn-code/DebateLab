@@ -174,7 +174,7 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
     },
     "feedback-survey": {
       eyebrow: vi ? "Góp ý nhanh" : "Quick feedback",
-      title: vi ? "DebateLab đang thế nào?" : "How is DebateLab feeling?",
+      title: vi ? "Thinkfy đang thế nào?" : "How is Thinkfy feeling?",
       body: vi
         ? "Ba câu trả lời nhanh giúp tụi mình cải thiện lần luyện tiếp theo."
         : "Three quick answers help us improve your next practice.",
@@ -278,7 +278,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4D86F7] text-white">
               <Shield className="h-5 w-5" />
             </div>
-            <span className="text-xl font-extrabold">DebateLab</span>
+            <span className="text-xl font-extrabold">Thinkfy</span>
           </div>
           <nav className="space-y-1">
             {navItems.map(([Icon, label], index) => (

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gift } from "@/components/ui/icons";
+import { LogoMark } from "@/components/landing/logo-mark";
 
 function LoginContent() {
   const t = useTranslations('auth.login');
@@ -52,8 +53,8 @@ function LoginContent() {
     <div className="w-full max-w-sm space-y-8">
       {/* Logo */}
       <div className="text-center">
-        <Link href="/" className="text-3xl font-extrabold text-primary tracking-tight">
-          DebateLab
+        <Link href="/" className="inline-flex justify-center">
+          <LogoMark size="lg" priority />
         </Link>
       </div>
 

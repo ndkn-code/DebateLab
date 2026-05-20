@@ -189,7 +189,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       items: [
         {
           quote:
-            "Debate Lab helped me organize my thoughts and speak with so much more confidence.",
+            "Thinkfy helped me organize my thoughts and speak with so much more confidence.",
           name: "Sarah Kim",
           role: "High School Debater",
           initials: "SK",
@@ -213,7 +213,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
     cta: {
       title: "Ready to become a better debater?",
       description:
-        "Join Debate Lab today and start your journey to stronger arguments and greater confidence.",
+        "Join Thinkfy today and start your journey to stronger arguments and greater confidence.",
       button: "Get Started Free",
       buttonLoggedIn: "Go to Dashboard",
     },
@@ -257,7 +257,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
         placeholder: "Enter your email",
         button: "Subscribe",
       },
-      copyright: "© 2025 Debate Lab. All rights reserved.",
+      copyright: "© 2025 Thinkfy. All rights reserved.",
     },
   },
   vi: {
@@ -362,7 +362,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       items: [
         {
           quote:
-            "Debate Lab giúp mình sắp xếp suy nghĩ rõ hơn và nói tự tin hơn rất nhiều.",
+            "Thinkfy giúp mình sắp xếp suy nghĩ rõ hơn và nói tự tin hơn rất nhiều.",
           name: "Sarah Kim",
           role: "Debater trung học",
           initials: "SK",
@@ -386,7 +386,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
     cta: {
       title: "Sẵn sàng",
       description:
-        "Tham gia Debate Lab ngay hôm nay để bắt đầu hành trình xây lập luận chắc hơn và nói tự tin hơn.",
+        "Tham gia Thinkfy ngay hôm nay để bắt đầu hành trình xây lập luận chắc hơn và nói tự tin hơn.",
       button: "Bắt đầu miễn phí",
       buttonLoggedIn: "Vào Dashboard",
     },
@@ -430,7 +430,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
         placeholder: "Nhập email của bạn",
         button: "Đăng ký",
       },
-      copyright: "© 2025 Debate Lab. Tất cả quyền được bảo lưu.",
+      copyright: "© 2025 Thinkfy. Tất cả quyền được bảo lưu.",
     },
   },
 };

@@ -621,7 +621,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       AI judge
                     </div>
                     <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                      After the last rebuttal, DebateLab compares burden, logic, clash, weighing, evidence, and delivery before deciding the winner.
+                      After the last rebuttal, Thinkfy compares burden, logic, clash, weighing, evidence, and delivery before deciding the winner.
                     </p>
                     <div className="mt-5 rounded-2xl border border-outline-variant/12 bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
                       Credits are deducted only once both debaters are ready and the duel officially starts.

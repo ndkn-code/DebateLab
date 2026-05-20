@@ -253,7 +253,7 @@ export async function synthesizeAzure(text: string, voice: TTSVoice): Promise<Ar
         "Ocp-Apim-Subscription-Key": apiKey,
         "Content-Type": "application/ssml+xml",
         "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-        "User-Agent": "DebateLab",
+        "User-Agent": "Thinkfy",
       },
       body: buildAzureSsml(text, voice),
     }

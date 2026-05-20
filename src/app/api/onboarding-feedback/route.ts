@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
           improvement:
             "Try speaking a little longer so we can hear your full idea.",
           encouragement:
-            "Everyone starts somewhere. DebateLab will help you find your voice!",
+            "Everyone starts somewhere. Thinkfy will help you find your voice!",
         },
         { status: 200 }
       );

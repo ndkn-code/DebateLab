@@ -57,8 +57,8 @@ const DEFAULT_QUESTIONS: SmartPopupSurveyQuestion[] = [
     min: 1,
     max: 5,
     label: {
-      en: "Overall, how useful is DebateLab for your practice?",
-      vi: "Nhìn chung, DebateLab hữu ích thế nào cho việc luyện tập của bạn?",
+      en: "Overall, how useful is Thinkfy for your practice?",
+      vi: "Nhìn chung, Thinkfy hữu ích thế nào cho việc luyện tập của bạn?",
     },
     minLabel: { en: "Not useful", vi: "Chưa hữu ích" },
     maxLabel: { en: "Very useful", vi: "Rất hữu ích" },
@@ -83,8 +83,8 @@ const DEFAULT_QUESTIONS: SmartPopupSurveyQuestion[] = [
     type: "text",
     required: false,
     label: {
-      en: "What would make DebateLab better for you?",
-      vi: "Điều gì sẽ làm DebateLab tốt hơn cho bạn?",
+      en: "What would make Thinkfy better for you?",
+      vi: "Điều gì sẽ làm Thinkfy tốt hơn cho bạn?",
     },
     placeholder: {
       en: "Share anything confusing, helpful, missing, or exciting.",
@@ -179,9 +179,9 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [form, setForm] = useState({
     campaignKey: "",
-    titleEn: "How is DebateLab feeling so far?",
+    titleEn: "How is Thinkfy feeling so far?",
     bodyEn: "Answer a few quick questions so we can improve the app for your next practice.",
-    titleVi: "Bạn thấy DebateLab thế nào?",
+    titleVi: "Bạn thấy Thinkfy thế nào?",
     bodyVi: "Trả lời vài câu ngắn để tụi mình cải thiện trải nghiệm luyện tập tiếp theo.",
     responseGoal: 100,
   });

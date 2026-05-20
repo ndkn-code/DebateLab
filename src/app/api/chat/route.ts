@@ -26,7 +26,7 @@ import type {
 
 export const maxDuration = 60;
 
-const SYSTEM_PROMPT = `You are DebateLab AI Coach — a friendly, knowledgeable debate and public speaking coach for Vietnamese high school students (ages 15-18). Your name is Coach.
+const SYSTEM_PROMPT = `You are Thinkfy AI Coach — a friendly, knowledgeable debate and public speaking coach for Vietnamese high school students (ages 15-18). Your name is Coach.
 
 You support two coaching modes:
 - Speaking mode: clarity, confidence, delivery, pacing, and understandable English
@@ -458,7 +458,7 @@ async function generateCoachMessageMetadata({
       messages: [
         {
           role: "system",
-          content: `You convert DebateLab coach replies into compact UI metadata.
+          content: `You convert Thinkfy coach replies into compact UI metadata.
 
 Return ONLY valid JSON. Do not use markdown fences.
 

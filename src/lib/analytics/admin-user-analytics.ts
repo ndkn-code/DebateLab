@@ -309,7 +309,7 @@ async function getCachedOrGeneratedInsights(params: {
     };
   }
 
-  const prompt = `You are DebateLab's admin analytics assistant. Return strict JSON only with this shape: {"insights":[{"id":"short-id","title":"short title","body":"one concise operational observation","priority":"low|medium|high","tone":"blue|green|amber|slate"}]}. Use at most 3 insights. Focus on coaching/admin action, risk, and progress. Data: ${JSON.stringify(promptInput)}`;
+  const prompt = `You are Thinkfy's admin analytics assistant. Return strict JSON only with this shape: {"insights":[{"id":"short-id","title":"short title","body":"one concise operational observation","priority":"low|medium|high","tone":"blue|green|amber|slate"}]}. Use at most 3 insights. Focus on coaching/admin action, risk, and progress. Data: ${JSON.stringify(promptInput)}`;
   const startedAt = Date.now();
 
   try {

@@ -350,7 +350,7 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
         </SummaryMeta>
         <SummaryMeta label="Entitlement">
           <Badge className="rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700">
-            {data.entitlement.hasPremiumAccess ? "DebateLab Pro" : "Free"}
+            {data.entitlement.hasPremiumAccess ? "Thinkfy Pro" : "Free"}
           </Badge>
         </SummaryMeta>
         <SummaryMeta label="Beta Access">

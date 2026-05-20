@@ -91,9 +91,7 @@ export function DashboardSidebarRail({
     <aside className="hidden h-full w-55 shrink-0 overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest lg:flex lg:flex-col">
       <div className="flex h-14 shrink-0 items-center border-b border-outline-variant/10 px-4">
         <LogoMark
-          className="shrink-0"
-          bubbleClassName="h-9 w-9 rounded-xl"
-          textClassName="text-[1.45rem]"
+          size="sm"
         />
       </div>
 

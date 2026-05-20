@@ -36,7 +36,7 @@ export function OutOfOrbsModal({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join me on DebateLab!",
+          title: "Join me on Thinkfy!",
           text: "Practice debate with AI feedback. Use my invite link to get bonus Credits!",
           url: referralLink,
         });

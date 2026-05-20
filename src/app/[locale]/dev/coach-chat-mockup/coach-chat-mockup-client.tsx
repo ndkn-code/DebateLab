@@ -203,7 +203,7 @@ export function CoachChatMockupClient() {
                 <Shield className="h-5 w-5" />
               </div>
               <div className="text-xl font-semibold tracking-[-0.01em] text-on-surface">
-                DebateLab
+                Thinkfy
               </div>
             </div>
             <button className="flex h-9 w-9 items-center justify-center rounded-xl text-on-surface-variant hover:bg-primary/5 hover:text-primary">

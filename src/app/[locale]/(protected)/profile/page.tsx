@@ -5,7 +5,7 @@ import { getAnalyticsPageData, normalizeRangePreset } from "@/lib/api/analytics-
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { AnalyticsPage } from "@/components/analytics/analytics-page";
 
-export const metadata = { title: "Analytics — DebateLab" };
+export const metadata = { title: "Analytics — Thinkfy" };
 export const dynamic = "force-dynamic";
 
 interface ProfilePageProps {

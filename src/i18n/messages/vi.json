@@ -85,13 +85,13 @@
     },
     "testimonials": {
       "0": {
-        "quote": "DebateLab cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!"
+        "quote": "Thinkfy cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!"
       },
       "1": {
-        "quote": "Mình luyện trên DebateLab mỗi tối 15 phút, sau 2 tuần là thấy khác biệt rõ. Feedback chi tiết hơn cả coach thật!"
+        "quote": "Mình luyện trên Thinkfy mỗi tối 15 phút, sau 2 tuần là thấy khác biệt rõ. Feedback chi tiết hơn cả coach thật!"
       },
       "2": {
-        "quote": "AI Coach giải thích WSDC format dễ hiểu hơn hẳn đọc sách. Cả team mình giờ dùng DebateLab để warm-up trước giải."
+        "quote": "AI Coach giải thích WSDC format dễ hiểu hơn hẳn đọc sách. Cả team mình giờ dùng Thinkfy để warm-up trước giải."
       },
       "headline": "Debater Nói Gì?"
     },
@@ -103,12 +103,12 @@
     },
     "faq": {
       "title": "Câu Hỏi Thường Gặp",
-      "q1": "DebateLab có miễn phí không?",
-      "a1": "Có! DebateLab hoàn toàn miễn phí. Bạn chỉ cần đăng ký tài khoản và bắt đầu luyện tập ngay.",
+      "q1": "Thinkfy có miễn phí không?",
+      "a1": "Có! Thinkfy hoàn toàn miễn phí. Bạn chỉ cần đăng ký tài khoản và bắt đầu luyện tập ngay.",
       "q2": "Cần chuẩn bị gì để bắt đầu?",
       "a2": "Chỉ cần máy tính có mic (hoặc tai nghe có mic) và trình duyệt Chrome. Vậy là đủ!",
       "q3": "AI chấm điểm chính xác không?",
-      "a3": "AI của DebateLab phân tích 4 tiêu chí: Nội dung, Cấu trúc, Ngôn ngữ, và Thuyết phục. Feedback chi tiết từng mục giúp bạn biết chính xác cần cải thiện gì."
+      "a3": "AI của Thinkfy phân tích 4 tiêu chí: Nội dung, Cấu trúc, Ngôn ngữ, và Thuyết phục. Feedback chi tiết từng mục giúp bạn biết chính xác cần cải thiện gì."
     },
     "finalCta": {
       "headline": "Sẵn sàng lên trình chưa?",
@@ -127,13 +127,13 @@
       "legal": "Pháp lý",
       "privacy": "Chính sách bảo mật",
       "terms": "Điều khoản dịch vụ",
-      "copyright": "© {year} DebateLab. Tất cả quyền được bảo lưu.",
+      "copyright": "© {year} Thinkfy. Tất cả quyền được bảo lưu.",
       "made_with_love": "Made with ❤️ in Vietnam 🇻🇳"
     }
   },
   "onboarding": {
     "welcome": {
-      "headline": "Chào mừng đến DebateLab",
+      "headline": "Chào mừng đến Thinkfy",
       "subheadline": "Luyện debate — lên trình mỗi ngày",
       "cta": "Bắt đầu thôi"
     },
@@ -207,19 +207,19 @@
     },
     "reactive_responses": {
       "goal": {
-        "compete": "Máu chiến ghê! DebateLab sẽ giúp bạn 🔥",
+        "compete": "Máu chiến ghê! Thinkfy sẽ giúp bạn 🔥",
         "english": "Hay lắm — debate là cách nhanh nhất để lên trình tiếng Anh",
         "critical": "Bạn đã suy nghĩ như một debater rồi đó",
         "interview": "Khôn đấy — kỹ năng debate là vũ khí phỏng vấn",
-        "explore": "Tuyệt — để DebateLab cho bạn xem debate hay cỡ nào"
+        "explore": "Tuyệt — để Thinkfy cho bạn xem debate hay cỡ nào"
       },
       "experience": {
         "beginner": "Ai cũng bắt đầu từ đây — bạn sẽ thích lắm",
         "intermediate": "Ngon! Giờ lên level tiếp thôi",
-        "experienced": "Đỉnh! DebateLab sẽ thử thách bạn với đề khó hơn"
+        "experienced": "Đỉnh! Thinkfy sẽ thử thách bạn với đề khó hơn"
       },
       "englishConfidence": {
-        "low": "Không sao — từ từ lên, DebateLab hỗ trợ bạn từng bước",
+        "low": "Không sao — từ từ lên, Thinkfy hỗ trợ bạn từng bước",
         "okay": "Nền tảng tốt rồi, giờ xây tiếp thôi",
         "good": "Xịn! Bạn sẵn sàng debate bằng tiếng Anh rồi",
         "high": "Quá đỉnh! Giờ thể hiện luôn đi!"
@@ -349,7 +349,7 @@
       "for": "ỦNG HỘ",
       "against": "PHẢN ĐỐI",
       "start_new_practice": "Bắt Đầu Luyện Mới",
-      "welcome_banner": "Chào mừng đến DebateLab, {name}! 🎉",
+      "welcome_banner": "Chào mừng đến Thinkfy, {name}! 🎉",
       "welcome_banner_subtitle": "Nhảy vào tranh biện và rèn luyện kỹ năng nào!",
       "start_practice": "Luyện tập ngay",
       "this_weeks_activity": "Hoạt Động Tuần Này",
@@ -686,7 +686,7 @@
         "summary_title": "Brief luyện tập",
         "summary_description": "Xem nhanh cấu hình trước khi mở studio luyện tập đầy đủ.",
         "focus_area": "Trọng tâm luyện",
-        "launch_note": "Thao tác này sẽ mở studio luyện tập chính của DebateLab với topic đã được điền sẵn, để flow học trong khóa vẫn liền mạch nhưng phần luyện diễn ra trong trải nghiệm đầy đủ.",
+        "launch_note": "Thao tác này sẽ mở studio luyện tập chính của Thinkfy với topic đã được điền sẵn, để flow học trong khóa vẫn liền mạch nhưng phần luyện diễn ra trong trải nghiệm đầy đủ.",
         "coach_prep": "Nhờ AI Coach chuẩn bị giúp"
       },
       "reader": {
@@ -1246,8 +1246,8 @@
   "settings": {
   "headline": "Cài đặt",
   "subtitle": "Quản lý tài khoản, tuỳ chọn và trải nghiệm luyện tập của bạn.",
-  "fallback_name": "Thành viên Debate Lab",
-  "hero_summary": "Cập nhật cách hồ sơ của bạn xuất hiện, giữ mặc định luyện tập thật gọn gàng và tinh chỉnh trải nghiệm Debate Lab cho mỗi lần quay lại.",
+  "fallback_name": "Thành viên Thinkfy",
+  "hero_summary": "Cập nhật cách hồ sơ của bạn xuất hiện, giữ mặc định luyện tập thật gọn gàng và tinh chỉnh trải nghiệm Thinkfy cho mỗi lần quay lại.",
   "avatar_upload": "Tải ảnh đại diện lên",
   "save_changes": "Lưu thay đổi",
     "status": {
@@ -1257,7 +1257,7 @@
     "cards": {
       "profile": {
         "title": "Hồ sơ",
-        "description": "Cập nhật cách tên và ảnh đại diện của bạn xuất hiện trong Debate Lab."
+        "description": "Cập nhật cách tên và ảnh đại diện của bạn xuất hiện trong Thinkfy."
       },
       "practice": {
         "title": "Mặc định luyện tập",
@@ -1286,7 +1286,7 @@
     },
     "fields": {
       "display_name": "Tên hiển thị",
-    "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Debate Lab",
+    "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Thinkfy",
     "avatar": "Ảnh đại diện",
     "default_prep_time": "Thời gian chuẩn bị mặc định",
     "default_speech_time": "Thời gian nói mặc định",
@@ -1448,7 +1448,7 @@
     }
   },
   "metadata": {
-    "title": "DebateLab — Luyện Debate Cùng AI",
+    "title": "Thinkfy — Luyện Debate Cùng AI",
     "description": "Luyện debate, nhận feedback AI tức thì, và nâng cao kỹ năng tranh biện bằng tiếng Anh. Dành cho học sinh Việt Nam."
   },
   "errors": {
@@ -1871,8 +1871,8 @@
     "tryAgain": "Thử lại",
     "share": "Chia sẻ kết quả",
     "shareCopied": "Đã sao chép!",
-    "shareTitle": "Kết quả DebateLab",
-    "shareText": "Mình vừa đạt {score}/100 cho chủ đề \"{topic}\" trên DebateLab.",
+    "shareTitle": "Kết quả Thinkfy",
+    "shareText": "Mình vừa đạt {score}/100 cho chủ đề \"{topic}\" trên Thinkfy.",
     "scoreLabel": "Điểm của bạn",
     "eyebrow": "Kết quả phiên luyện",
     "noFeedback": "Phiên này chưa có phản hồi để hiển thị.",
@@ -1981,8 +1981,8 @@
     "referral": {
       "title": "Thử thách bạn bè vượt điểm của bạn!",
       "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
-      "shareTitle": "Thử thách DebateLab",
-      "shareText": "Mình vừa đạt {score}/100 trên DebateLab! Bạn có vượt được không? {link}",
+      "shareTitle": "Thử thách Thinkfy",
+      "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
       "cta": "Chia sẻ thử thách",
       "copied": "Đã sao chép!"
     },

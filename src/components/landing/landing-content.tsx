@@ -198,19 +198,19 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
   return (
     <div className="bg-[#F7FAFE] text-[#0B1424]">
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
-        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
-          <div className="order-2 max-w-[560px] lg:order-1">
-            <h1 className="mt-[4.25rem] text-[3rem] font-bold leading-[0.98] text-[#0B1424] sm:text-[4rem]">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
+          <div className="order-2 w-full min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-[560px] lg:order-1">
+            <h1 className="mt-5 break-words text-[3rem] font-bold leading-[0.98] text-[#0B1424] sm:text-[4rem] lg:mt-[4.25rem]">
               {copy.hero.line1}
               <br />
               <span className="text-[#4D86F7]">{copy.hero.line2}</span>
             </h1>
 
-            <p className="mt-7 max-w-[500px] text-[1.15rem] leading-8 text-[#61718C]">
+            <p className="mt-7 w-full max-w-[320px] text-[1.05rem] leading-7 text-[#61718C] sm:max-w-[500px] sm:text-[1.15rem] sm:leading-8">
               {copy.hero.description}
             </p>
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row">
               <PrimaryButton
                 href={isLoggedIn ? "/dashboard" : "/auth/signup"}
                 label={isLoggedIn ? copy.hero.primaryCtaLoggedIn : copy.hero.primaryCta}
@@ -409,12 +409,12 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
 
               <div className="mx-auto w-full max-w-[476px] lg:-ml-14 lg:mr-0">
                 <Image
-                  src="/images/landing/trophy-reference.png"
-                  alt="Blue trophy standing on a podium with confetti"
-                  width={1365}
-                  height={1024}
-                  className="h-auto w-full object-contain"
-                  sizes="(max-width: 1024px) 370px, 476px"
+                  src="/brand/thinkfy/thinkfy-mascot-standing.png"
+                  alt="Thinkfy mascot ready to practice"
+                  width={512}
+                  height={654}
+                  className="mx-auto h-auto w-full max-w-[330px] object-contain drop-shadow-[0_22px_38px_rgba(35,64,96,0.16)]"
+                  sizes="(max-width: 1024px) 260px, 330px"
                 />
               </div>
             </div>
@@ -433,9 +433,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
           >
             <div>
               <LogoMark
-                className="gap-2.5"
-                bubbleClassName="h-9 w-9"
-                textClassName="text-[1.55rem]"
+                size="md"
               />
               <p className="mt-5 max-w-[300px] text-[0.98rem] leading-7 text-[#718096]">
                 {copy.footer.brandDescription}

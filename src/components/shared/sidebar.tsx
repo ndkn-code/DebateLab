@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
+import { LogoMark } from "@/components/landing/logo-mark";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
@@ -93,14 +94,7 @@ function NavContent({
           collapsed ? "justify-center" : "gap-2"
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary text-sm font-extrabold">
-          D
-        </div>
-        {!collapsed && (
-          <span className="truncate text-base font-extrabold text-on-surface">
-            DebateLab
-          </span>
-        )}
+        <LogoMark size={collapsed ? "icon" : "sm"} markOnly={collapsed} />
       </div>
 
       {/* Credit Balance */}
@@ -327,9 +321,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             />
           </SheetContent>
         </Sheet>
-        <span className="text-lg font-extrabold text-primary tracking-tight">
-          DebateLab
-        </span>
+        <LogoMark size="sm" />
         <div className="ml-auto">
           <Avatar size="sm">
             {profile?.avatar_url && (

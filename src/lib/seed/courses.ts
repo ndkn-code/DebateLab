@@ -448,7 +448,7 @@ Top debaters maintain a mental library of evidence they can use across multiple 
 
 - **In prepared debates** (WSDC prepared motions): You have time to research. Use specific, cited evidence.
 - **In impromptu debates** (BP, WSDC impromptu): You can't research, so use general knowledge, logical reasoning, and well-known examples.
-- **In practice** (like DebateLab): Focus on learning to integrate evidence smoothly into your speech flow.
+- **In practice** (like Thinkfy): Focus on learning to integrate evidence smoothly into your speech flow.
 
 Remember: evidence supports your argument, but it doesn't replace it. Always combine evidence with clear reasoning (warrant) and meaningful impact.`,
           },
@@ -824,7 +824,7 @@ Your closing is your last chance to persuade. Make it count.
 One of the biggest mistakes new debaters make is running out of time or having too much time left.
 
 **Tips:**
-- **Practice with a timer** — always (DebateLab's timer helps!)
+- **Practice with a timer** — always (Thinkfy's timer helps!)
 - **Know your pace** — most people speak about 130-150 words per minute
 - **Have a priority order** — if you're running short on time, know which argument to cut
 - **Watch the clock** — glance at the timer regularly, not just at the end
@@ -1601,8 +1601,8 @@ Ask a friend to give you a random opinion question. You have 15 seconds of think
 ### Exercise 3: Story from a Word
 Someone gives you a random word. Build a 2-minute story or argument that incorporates that word.
 
-### Exercise 4: DebateLab Quick Practice
-Use DebateLab's Quick Practice mode with minimal prep time. The AI will give you a topic, and you speak immediately. This is the most debate-specific impromptu practice you can get.
+### Exercise 4: Thinkfy Quick Practice
+Use Thinkfy's Quick Practice mode with minimal prep time. The AI will give you a topic, and you speak immediately. This is the most debate-specific impromptu practice you can get.
 
 ## Tips for Impromptu Success
 
@@ -1708,7 +1708,7 @@ Combine what you've learned across this entire course:
 
 Public speaking mastery isn't about being naturally gifted — it's about deliberate practice, honest self-reflection, and continuous improvement. You've now learned the foundational skills. The rest is up to practice.
 
-Congratulations on completing this course! Head to DebateLab's practice mode to put everything into action.`,
+Congratulations on completing this course! Head to Thinkfy's practice mode to put everything into action.`,
           },
         },
         {

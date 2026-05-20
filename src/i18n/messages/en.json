@@ -85,13 +85,13 @@
     },
     "testimonials": {
       "0": {
-        "quote": "DebateLab finally gave us the Truong Teen experience at home. The AI structure analysis helped me jump from regionals to the national finals!"
+        "quote": "Thinkfy finally gave us the Truong Teen experience at home. The AI structure analysis helped me jump from regionals to the national finals!"
       },
       "1": {
-        "quote": "I practiced on DebateLab 15 minutes every night, and saw a clear difference in 2 weeks. The feedback is more detailed than a real coach!"
+        "quote": "I practiced on Thinkfy 15 minutes every night, and saw a clear difference in 2 weeks. The feedback is more detailed than a real coach!"
       },
       "2": {
-        "quote": "The AI Coach explains WSDC format way better than textbooks. Our whole team now uses DebateLab to warm up before tournaments."
+        "quote": "The AI Coach explains WSDC format way better than textbooks. Our whole team now uses Thinkfy to warm up before tournaments."
       },
       "headline": "What Debaters Say"
     },
@@ -103,12 +103,12 @@
     },
     "faq": {
       "title": "Frequently Asked Questions",
-      "q1": "Is DebateLab free?",
-      "a1": "Yes! DebateLab is completely free. Just create an account and start practicing.",
+      "q1": "Is Thinkfy free?",
+      "a1": "Yes! Thinkfy is completely free. Just create an account and start practicing.",
       "q2": "What do I need to get started?",
       "a2": "Just a computer with a microphone (or headphones with a mic) and Chrome browser. That's it!",
       "q3": "How accurate is the AI scoring?",
-      "a3": "DebateLab's AI analyzes 4 criteria: Content, Structure, Language, and Persuasion. Detailed feedback for each category tells you exactly what to improve."
+      "a3": "Thinkfy's AI analyzes 4 criteria: Content, Structure, Language, and Persuasion. Detailed feedback for each category tells you exactly what to improve."
     },
     "finalCta": {
       "headline": "Ready to win your next debate?",
@@ -127,13 +127,13 @@
       "legal": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "copyright": "© {year} DebateLab. All rights reserved.",
+      "copyright": "© {year} Thinkfy. All rights reserved.",
       "made_with_love": "Made with ❤️ in Vietnam 🇻🇳"
     }
   },
   "onboarding": {
     "welcome": {
-      "headline": "Welcome to DebateLab",
+      "headline": "Welcome to Thinkfy",
       "subheadline": "Master the art of debate — one argument at a time",
       "cta": "Get Started"
     },
@@ -349,7 +349,7 @@
       "for": "FOR",
       "against": "AGAINST",
       "start_new_practice": "Start New Practice",
-      "welcome_banner": "Welcome to DebateLab, {name}! 🎉",
+      "welcome_banner": "Welcome to Thinkfy, {name}! 🎉",
       "welcome_banner_subtitle": "Jump into a practice debate and sharpen your skills.",
       "start_practice": "Start Practice",
       "this_weeks_activity": "This Week's Activity",
@@ -686,7 +686,7 @@
         "summary_title": "Practice Brief",
         "summary_description": "Review the setup before jumping into the full practice studio.",
         "focus_area": "Focus area",
-        "launch_note": "This opens the main practice studio with this topic prefilled, so you can keep learning flow inside the course but practice in the full DebateLab experience.",
+        "launch_note": "This opens the main practice studio with this topic prefilled, so you can keep learning flow inside the course but practice in the full Thinkfy experience.",
         "coach_prep": "Ask AI Coach to prep this"
       },
       "reader": {
@@ -1246,8 +1246,8 @@
   "settings": {
   "headline": "Settings",
   "subtitle": "Manage your account, preferences, and practice experience.",
-  "fallback_name": "Debate Lab Member",
-  "hero_summary": "Update how your profile appears, keep your practice defaults dialed in, and shape how Debate Lab feels every time you come back.",
+  "fallback_name": "Thinkfy Member",
+  "hero_summary": "Update how your profile appears, keep your practice defaults dialed in, and shape how Thinkfy feels every time you come back.",
   "avatar_upload": "Upload profile photo",
   "save_changes": "Save Changes",
     "status": {
@@ -1257,7 +1257,7 @@
     "cards": {
       "profile": {
         "title": "Profile",
-        "description": "Update how your name and avatar appear across Debate Lab."
+        "description": "Update how your name and avatar appear across Thinkfy."
       },
       "practice": {
         "title": "Practice Defaults",
@@ -1286,7 +1286,7 @@
     },
     "fields": {
       "display_name": "Display Name",
-    "display_name_placeholder": "Enter the name you want shown in Debate Lab",
+    "display_name_placeholder": "Enter the name you want shown in Thinkfy",
     "avatar": "Avatar",
     "default_prep_time": "Default Prep Time",
     "default_speech_time": "Default Speech Time",
@@ -1448,7 +1448,7 @@
     }
   },
   "metadata": {
-    "title": "DebateLab — Practice Debate With AI",
+    "title": "Thinkfy — Practice Debate With AI",
     "description": "Practice debate, get instant AI feedback, and sharpen your English speaking skills. Built for Vietnamese students."
   },
   "errors": {
@@ -1871,8 +1871,8 @@
     "tryAgain": "Try Again",
     "share": "Share Result",
     "shareCopied": "Copied!",
-    "shareTitle": "DebateLab Session Result",
-    "shareText": "I scored {score}/100 on \"{topic}\" in DebateLab.",
+    "shareTitle": "Thinkfy Session Result",
+    "shareText": "I scored {score}/100 on \"{topic}\" in Thinkfy.",
     "scoreLabel": "Your score",
     "eyebrow": "Session Result",
     "noFeedback": "No feedback is available for this session yet.",
@@ -1981,8 +1981,8 @@
     "referral": {
       "title": "Challenge a friend to beat your score!",
       "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
-      "shareTitle": "DebateLab Challenge",
-      "shareText": "I scored {score}/100 on DebateLab! Can you beat me? {link}",
+      "shareTitle": "Thinkfy Challenge",
+      "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
       "cta": "Share Challenge",
       "copied": "Copied!"
     },

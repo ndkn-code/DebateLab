@@ -210,7 +210,7 @@ export function getThankYouCopy(
         localized.body,
         asText(
           fallback.body,
-          `Bạn đã nhận ${rewardCredits} Credits. Tụi mình sẽ dùng góp ý này để cải thiện DebateLab.`
+          `Bạn đã nhận ${rewardCredits} Credits. Tụi mình sẽ dùng góp ý này để cải thiện Thinkfy.`
         )
       ),
     };
@@ -222,7 +222,7 @@ export function getThankYouCopy(
       localized.body,
       asText(
         fallback.body,
-        `You earned ${rewardCredits} Credits. We will use this to make DebateLab sharper.`
+        `You earned ${rewardCredits} Credits. We will use this to make Thinkfy sharper.`
       )
     ),
   };

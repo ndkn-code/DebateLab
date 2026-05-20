@@ -41,15 +41,15 @@ function CoachEmptyState({
   return (
     <div className="flex w-full min-w-0 max-w-[620px] flex-col items-center px-4 py-7 text-center sm:px-6 sm:py-10">
       <Image
-        src="/coach/coach-pet-clean.png"
-        alt="Debate Lab AI Coach"
-        width={96}
-        height={96}
-        className="h-20 w-20 select-none object-contain sm:h-24 sm:w-24"
+        src="/brand/thinkfy/thinkfy-mascot-book.png"
+        alt="Thinkfy AI Coach"
+        width={512}
+        height={654}
+        className="h-24 w-24 select-none object-contain drop-shadow-[0_14px_24px_rgba(35,64,96,0.14)] sm:h-28 sm:w-28"
         priority
       />
 
-      <h1 className="mt-5 max-w-full text-[1.45rem] font-semibold leading-tight text-on-surface sm:text-[1.6rem]">
+      <h1 className="mt-5 max-w-[320px] text-balance text-[1.45rem] font-semibold leading-tight text-on-surface sm:max-w-full sm:text-[1.6rem]">
         {t("welcome_title")}
       </h1>
 
