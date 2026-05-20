@@ -263,9 +263,9 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
   vi: {
     nav: {
       features: "Tính năng",
-      howItWorks: "Cách hoạt động",
-      pricing: "Bảng giá",
-      resources: "Tài nguyên",
+      howItWorks: "Phương pháp",
+      pricing: "Gói đăng kí",
+      resources: "Tài liệu",
       about: "Giới thiệu",
       login: "Đăng nhập",
       signup: "Bắt đầu miễn phí",
@@ -285,14 +285,14 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       lovedBySuffix: "người học yêu thích",
     },
     stats: [
-      { icon: "users", value: "10,000+", label: "Người học đang hoạt động" },
+      { icon: "users", value: "10,000+", label: "Người đang học" },
       { icon: "message", value: "50,000+", label: "Lượt debate đã hoàn thành" },
       { icon: "star", value: "95%", label: "Tỉ lệ hài lòng" },
       { icon: "clock", value: "24/7", label: "AI phản hồi liên tục" },
     ],
     features: {
       eyebrow: "TÍNH NĂNG",
-      title: "Mọi thứ bạn cần để nâng cấp kỹ năng debate",
+      title: "Nâng cấp khả năng debate ngay hôm nay với các công cụ AI tối tân",
       items: [
         {
           icon: "mic",
@@ -304,7 +304,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
           icon: "book",
           title: "Kho chủ đề",
           description:
-            "Khám phá hàng trăm chủ đề debate thuộc nhiều nhóm khác nhau.",
+            "Khám phá hàng trăm motion debate từ nhiều chủ đề khác nhau.",
         },
         {
           icon: "users",
@@ -322,25 +322,25 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
           icon: "message",
           title: "Feedback thông minh",
           description:
-            "AI phân tích bài debate và đưa ra gợi ý cải thiện cụ thể.",
+            "AI phân tích và đưa ra gợi ý cải thiện cụ thể.",
         },
         {
           icon: "trophy",
           title: "Giữ chuỗi luyện tập",
           description:
-            "Duy trì thói quen luyện đều và mở khóa phần thưởng theo tiến độ.",
+            "Tạo thói quen luyện đều và mở khóa phần thưởng theo tiến độ.",
         },
       ],
     },
     steps: {
-      eyebrow: "CÁCH HOẠT ĐỘNG",
-      title: "Bắt đầu tiến bộ chỉ với 3 bước đơn giản",
+      eyebrow: "PHƯƠNG PHÁP",
+      title: "Tiến bộ chỉ với 3 bước đơn giản.",
       items: [
         {
           icon: "book",
           title: "Học & luyện",
           description:
-            "Chọn topic, nắm ý chính, rồi luyện tập với AI hoặc tự luyện.",
+            "Chọn motion, rồi luyện tập với AI hoặc tự luyện.",
         },
         {
           icon: "users",
@@ -352,13 +352,13 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
           icon: "chart",
           title: "Tiến bộ & chiến thắng",
           description:
-            "Theo dõi quá trình, mài sắc kỹ năng và trở thành debater nổi bật.",
+            "Theo dõi quá trình, mài dũa kĩ năng và đánh bại mọi đối thủ.",
         },
       ],
     },
     testimonials: {
       eyebrow: "ĐƯỢC NGƯỜI HỌC TIN DÙNG",
-      title: "Được debater khắp nơi yêu thích",
+      title: "Chia sẻ từ người dùng",
       items: [
         {
           quote:
@@ -384,7 +384,7 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
       ],
     },
     cta: {
-      title: "Sẵn sàng trở thành debater tốt hơn?",
+      title: "Sẵn sàng",
       description:
         "Tham gia Debate Lab ngay hôm nay để bắt đầu hành trình xây lập luận chắc hơn và nói tự tin hơn.",
       button: "Bắt đầu miễn phí",
@@ -399,12 +399,12 @@ const landingCopy: Record<LandingLocale, LandingCopy> = {
           { label: "Tính năng", href: "#features" },
           { label: "Luyện tập", href: "/practice" },
           { label: "Debate trực tiếp", href: "/practice?track=debate&mode=full&difficulty=medium" },
-          { label: "Bảng giá", href: "#pricing" },
+          { label: "Gói đăng kí", href: "#pricing" },
           { label: "Cập nhật", href: "#" },
         ],
       },
       resources: {
-        title: "Tài nguyên",
+        title: "Tài liệu",
         links: [
           { label: "Blog", href: "#" },
           { label: "Chủ đề debate", href: "/practice" },

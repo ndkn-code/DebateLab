@@ -15,9 +15,9 @@ set copy_en = $json$
   $json$::jsonb,
     copy_vi = $json$
   {
-    "eyebrow": "Bắt đầu nhẹ nhàng",
+    "eyebrow": "Khởi động chút nhé",
     "title": "Bắt đầu với một bài nói 10 phút.",
-    "body": "Một lượt ngắn sẽ mở khóa phản hồi thật.",
+    "body": "Thử một lượt ngắn và nhận gợi ý cải thiện ngay sau đó.",
     "ctaLabel": "Bắt đầu luyện tập",
     "dismissLabel": "Để sau",
     "dontShowLabel": "Đừng hiện lại",
@@ -36,7 +36,7 @@ set copy_en = $json$
       ],
       "vi": [
         { "icon": "clock", "label": "Thời gian", "value": "{durationMinutes} phút" },
-        { "icon": "chart", "label": "Mở khóa", "value": "Phản hồi" }
+        { "icon": "chart", "label": "Nhận", "value": "Gợi ý" }
       ]
     }
   }

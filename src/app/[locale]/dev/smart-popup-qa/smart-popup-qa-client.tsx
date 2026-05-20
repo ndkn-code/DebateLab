@@ -129,12 +129,12 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
       href: "/practice?track=debate",
     },
     "first-practice": {
-      eyebrow: vi ? "Bắt đầu nhẹ nhàng" : "Start strong",
+      eyebrow: vi ? "Khởi động chút nhé" : "Start strong",
       title: vi
         ? "Bắt đầu với một bài nói 10 phút."
         : "Start with a 10-minute speaking drill.",
       body: vi
-        ? "Một lượt ngắn sẽ mở khóa phản hồi thật."
+        ? "Thử một lượt ngắn và nhận gợi ý cải thiện ngay sau đó."
         : "One short round unlocks real feedback.",
       cta: vi ? "Bắt đầu luyện tập" : "Start practice",
       href: "/practice?track=speaking",
