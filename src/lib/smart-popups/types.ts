@@ -29,6 +29,20 @@ export type SmartPopupLocale = "en" | "vi";
 export type SmartPopupSurface = "dashboard" | "global";
 export type SmartPopupCampaignType = "feature_nudge" | "feedback_survey";
 export type SmartPopupDeliveryMode = "targeted" | "send_now" | "scheduled";
+export type SmartPopupFactIcon =
+  | "target"
+  | "chart"
+  | "clock"
+  | "gift"
+  | "book"
+  | "chat"
+  | "flame";
+
+export interface SmartPopupFact {
+  icon: SmartPopupFactIcon;
+  label: string;
+  value?: string;
+}
 
 export interface SmartPopupCopy {
   eyebrow?: string;
@@ -113,6 +127,8 @@ export interface SmartPopupUserTraits {
   courseProgressCount: number;
   coachEventCount: number;
   weakestSkill: SkillMetricKey | null;
+  lastScoredSessionScore: number | null;
+  lastPracticeMinutes: number | null;
   segments: SmartPopupSegment[];
 }
 
@@ -138,6 +154,7 @@ export interface SmartPopupPayload {
   ctaHref: string;
   imageSrc: string;
   imageAlt: string;
+  facts: SmartPopupFact[];
   priority: number;
   metadata: Record<string, unknown>;
   survey?: SmartPopupSurveyPayload;

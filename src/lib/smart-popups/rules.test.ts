@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildPopupSegments,
+  createSmartPopupPayload,
   rankSmartPopupCandidates,
   updateCampaignStateForEvent,
 } from "@/lib/smart-popups/rules";
@@ -91,6 +92,8 @@ function traits(
     courseProgressCount: 0,
     coachEventCount: 0,
     weakestSkill: null,
+    lastScoredSessionScore: null,
+    lastPracticeMinutes: null,
     ...overrides,
   };
 
@@ -294,4 +297,52 @@ run("feedback surveys do not repeat after one submission by default", () => {
   });
 
   assert.equal(ranked.length, 0);
+});
+
+run("formats smart popup facts and new copy templates", () => {
+  const user = traits({
+    totalSessionsCompleted: 4,
+    weakestSkill: "rebuttal",
+    lastScoredSessionScore: 63,
+    lastPracticeMinutes: 12,
+  });
+  const popup = createSmartPopupPayload({
+    campaign: campaign(
+      "weakest-skill",
+      30,
+      {
+        segments: ["skill_focus"],
+        minSessions: 2,
+        requiresWeakestSkill: true,
+      },
+      {
+        copy_en: {
+          eyebrow: "Next best step",
+          title: "Drill {skillFocus} for {durationMinutes} minutes.",
+          body: "Fastest improvement from your recent rounds.",
+          ctaLabel: "Start {skillFocus} drill",
+          dismissLabel: "Later",
+          dontShowLabel: "Don't show again",
+          alt: "Skill nudge",
+        },
+        metadata: {
+          facts: {
+            en: [
+              { icon: "target", label: "Weakest skill", value: "{skillFocus}" },
+              { icon: "chart", label: "Last score", value: "{lastScore}/100" },
+            ],
+          },
+        },
+      }
+    ),
+    traits: user,
+    locale: "en",
+  });
+
+  assert.equal(popup.title, "Drill rebuttal for 12 minutes.");
+  assert.equal(popup.ctaLabel, "Start rebuttal drill");
+  assert.deepEqual(popup.facts, [
+    { icon: "target", label: "Weakest skill", value: "rebuttal" },
+    { icon: "chart", label: "Last score", value: "63/100" },
+  ]);
 });

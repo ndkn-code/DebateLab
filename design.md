@@ -384,6 +384,49 @@ Feedback popups collect immediate product feedback without interrupting core pra
 - Builder previews should show English and Vietnamese side by side on desktop and stacked on mobile.
 - Campaign status, delivery mode, response counts, average rating, and send-now actions must be visible without opening a detail page.
 
+## Smart Popup Notification Pattern
+
+### Purpose
+Smart popups should feel like a Duolingo-style product nudge: compact, celebratory, practical, and easy to dismiss. This pattern applies to feature nudges, feedback surveys, rewards, and future notification modals. It replaces large hero art, pill-heavy labels, and paragraph copy with a small code-native celebration cluster, short action-first copy, and one tactile primary CTA.
+
+### Modal Frame
+- Desktop modal width is `560px` to `620px`; mobile uses `92vw`.
+- Modal max height must stay inside the viewport with internal scrolling when survey content grows.
+- Use a blurred/dimmed app backdrop, compact white surface, `24px` to `28px` radius, and a reachable circular close button.
+- Do not place large square illustrations or generated mascot art at the top of smart popups in v1.
+- Keep the frame visually light: no nested cards, no heavy header block, no extra eyebrow pill.
+
+### Visual System
+- Top decoration is a small celebration cluster only: target, check, star, chart, gift, clock, book, chat, or flame symbols.
+- Eyebrow text is plain blue text, not a pill.
+- Title is action-first and preferably one line: `Drill rebuttal for 10 minutes.`
+- Body is one sentence max and explains why now.
+- Show `1` to `2` fact chips/rows, such as `Weakest skill`, `63/100`, `10 min`, or `+50 Credits`.
+- Fact chips use quiet blue-tinted surfaces, compact icons, and truncation-safe labels.
+
+### Actions
+- Primary CTA is full-width, blue-filled, and tactile: light top, darker bottom shadow, strong active press state.
+- Secondary action is quiet outline text such as `Later`.
+- Suppression action is link-weight text such as `Don't show again`; it must be visually quieter than the primary and secondary actions.
+- CTA labels should name the next action: `Start rebuttal drill`, `Share feedback`, `Continue course`.
+
+### Copy And Data Rules
+- Feature nudge copy uses this formula: `Eyebrow` + `Action title` + `one why sentence` + `two facts` + `one CTA`.
+- Feedback surveys use this formula: `Quick feedback` + `short ask` + `reward/time facts` + concise questions.
+- Thank-you states show reward confirmation, one sentence, and one `Done` action.
+- Template fields supported by popup copy and fact metadata: `{skillFocus}`, `{weakestSkill}`, `{lastScore}`, `{durationMinutes}`, and `{rewardCredits}`.
+- Keep legacy `imageSrc` payload fields for compatibility, but do not render them by default in smart popup v1.
+
+### QA Checklist
+- No horizontal overflow at `390x844`, `768x1024`, `1280x720`, `1440x900`, `1728x1117`, or `2560x1440`.
+- Modal never exceeds viewport height; if content grows, only the modal body scrolls.
+- Primary CTA is visible without scrolling for feature nudges.
+- Close button remains reachable.
+- Vietnamese strings fit in titles, fact chips, action buttons, and survey controls.
+- `Don't show again` remains quiet and never competes with the primary CTA.
+- Survey validation is inline and preserves entered answers.
+- Future visual directions that need artwork must use imagegen with the selected popup reference first, then store production assets as `.webp` under `public/images/smart-popups/`.
+
 ## Product Proportion System
 
 ### Purpose

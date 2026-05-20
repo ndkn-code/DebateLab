@@ -359,6 +359,14 @@ async function fetchUserTraits(
   const preferences = isRecord(profile.preferences) ? profile.preferences : {};
   const snapshot = computeSkillSnapshot(sessions);
   const lastPracticeAt = sessions[0]?.created_at ?? null;
+  const lastScoredSession = sessions.find((session) =>
+    typeof session.total_score === "number" && Number.isFinite(session.total_score)
+  );
+  const lastPracticeMinutes =
+    typeof sessions[0]?.duration_seconds === "number" &&
+    Number.isFinite(sessions[0].duration_seconds)
+      ? Math.max(1, Math.round(sessions[0].duration_seconds / 60))
+      : null;
   const totalSessionsCompleted = Math.max(
     asNumber(profile.total_sessions_completed, 0),
     sessions.length
@@ -376,6 +384,11 @@ async function fetchUserTraits(
     courseProgressCount: getCourseProgressCount(enrollments),
     coachEventCount: getCoachEventCount(analyticsEvents),
     weakestSkill: snapshot.weakestSkill,
+    lastScoredSessionScore:
+      typeof lastScoredSession?.total_score === "number"
+        ? Math.round(lastScoredSession.total_score)
+        : null,
+    lastPracticeMinutes,
   };
 
   return {

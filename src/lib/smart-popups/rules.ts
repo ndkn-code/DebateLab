@@ -3,6 +3,8 @@ import type {
   SmartPopupCampaign,
   SmartPopupCampaignState,
   SmartPopupCampaignStateEntry,
+  SmartPopupFact,
+  SmartPopupFactIcon,
   SmartPopupImpressionCounts,
   SmartPopupLocale,
   SmartPopupPayload,
@@ -29,8 +31,43 @@ const SKILL_LABELS: Record<SmartPopupLocale, Record<SkillMetricKey, string>> = {
   },
 };
 
+const SKILL_FOCUS_LABELS: Record<SmartPopupLocale, Record<SkillMetricKey, string>> = {
+  en: {
+    clarity: "clarity",
+    logic: "logic",
+    rebuttal: "rebuttal",
+    evidence: "evidence",
+    delivery: "delivery",
+  },
+  vi: {
+    clarity: "độ rõ",
+    logic: "logic",
+    rebuttal: "phản biện",
+    evidence: "dẫn chứng",
+    delivery: "trình bày",
+  },
+};
+
+const VALID_FACT_ICONS: SmartPopupFactIcon[] = [
+  "target",
+  "chart",
+  "clock",
+  "gift",
+  "book",
+  "chat",
+  "flame",
+];
+
 function asFiniteNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function asText(value: unknown) {
+  return typeof value === "string" ? value : "";
 }
 
 function hasAnySegment(
@@ -298,12 +335,182 @@ export function rankSmartPopupCandidates(input: {
     });
 }
 
-function applyTemplate(value: string | undefined, traits: SmartPopupUserTraits, locale: SmartPopupLocale) {
-  const weakestSkill = traits.weakestSkill
-    ? SKILL_LABELS[locale][traits.weakestSkill]
-    : SKILL_LABELS[locale].logic;
+function getTemplateValue(input: {
+  key: string;
+  traits: SmartPopupUserTraits;
+  locale: SmartPopupLocale;
+  metadata: Record<string, unknown>;
+  rewardCredits: number;
+}) {
+  const weakestSkill = input.traits.weakestSkill
+    ? SKILL_LABELS[input.locale][input.traits.weakestSkill]
+    : SKILL_LABELS[input.locale].logic;
+  const skillFocus = input.traits.weakestSkill
+    ? SKILL_FOCUS_LABELS[input.locale][input.traits.weakestSkill]
+    : SKILL_FOCUS_LABELS[input.locale].logic;
+  const metadataDuration = asFiniteNumber(input.metadata.durationMinutes, 10);
+  const durationMinutes =
+    input.traits.lastPracticeMinutes != null
+      ? String(input.traits.lastPracticeMinutes)
+      : String(metadataDuration);
+  const lastScore =
+    input.traits.lastScoredSessionScore != null
+      ? String(input.traits.lastScoredSessionScore)
+      : asText(input.metadata.fallbackScore) || "-";
 
-  return (value ?? "").replaceAll("{weakestSkill}", weakestSkill);
+  switch (input.key) {
+    case "weakestSkill":
+      return weakestSkill;
+    case "skillFocus":
+      return skillFocus;
+    case "lastScore":
+      return lastScore;
+    case "durationMinutes":
+      return durationMinutes;
+    case "rewardCredits":
+      return String(input.rewardCredits);
+    default:
+      return "";
+  }
+}
+
+function applyTemplate(
+  value: string | undefined,
+  traits: SmartPopupUserTraits,
+  locale: SmartPopupLocale,
+  metadata: Record<string, unknown> = {},
+  rewardCredits = 0
+) {
+  return (value ?? "").replace(
+    /\{(weakestSkill|skillFocus|lastScore|durationMinutes|rewardCredits)\}/g,
+    (_match, key: string) =>
+      getTemplateValue({ key, traits, locale, metadata, rewardCredits })
+  );
+}
+
+function normalizeFactIcon(value: unknown): SmartPopupFactIcon {
+  return VALID_FACT_ICONS.includes(value as SmartPopupFactIcon)
+    ? (value as SmartPopupFactIcon)
+    : "target";
+}
+
+function getMetadataFacts(
+  metadata: Record<string, unknown>,
+  locale: SmartPopupLocale
+) {
+  const source = metadata.facts;
+  if (isRecord(source)) {
+    const localized = source[locale] ?? source.en;
+    return Array.isArray(localized) ? localized : null;
+  }
+  return Array.isArray(source) ? source : null;
+}
+
+function buildDefaultFacts(input: {
+  campaign: SmartPopupCampaign;
+  traits: SmartPopupUserTraits;
+  locale: SmartPopupLocale;
+}): SmartPopupFact[] {
+  const metadata = input.campaign.metadata ?? {};
+  const duration = applyTemplate(
+    "{durationMinutes} min",
+    input.traits,
+    input.locale,
+    metadata,
+    input.campaign.reward_credits
+  );
+
+  if (input.campaign.campaign_type === "feedback_survey") {
+    return [
+      {
+        icon: "gift",
+        label: input.locale === "vi" ? "Phần thưởng" : "Reward",
+        value: `+${input.campaign.reward_credits} Credits`,
+      },
+      {
+        icon: "clock",
+        label: input.locale === "vi" ? "Thời gian" : "Time",
+        value: duration,
+      },
+    ];
+  }
+
+  const weakestSkill = input.traits.weakestSkill
+    ? SKILL_LABELS[input.locale][input.traits.weakestSkill]
+    : SKILL_LABELS[input.locale].logic;
+  const score = applyTemplate(
+    "{lastScore}/100",
+    input.traits,
+    input.locale,
+    metadata,
+    input.campaign.reward_credits
+  );
+
+  if (input.campaign.key === "weakest-skill") {
+    return [
+      {
+        icon: "target",
+        label: input.locale === "vi" ? "Kỹ năng yếu nhất" : "Weakest skill",
+        value: weakestSkill,
+      },
+      {
+        icon: "chart",
+        label: input.locale === "vi" ? "Điểm gần nhất" : "Last score",
+        value: score,
+      },
+    ];
+  }
+
+  return [
+    {
+      icon: "clock",
+      label: input.locale === "vi" ? "Thời gian" : "Time",
+      value: duration,
+    },
+    {
+      icon: "target",
+      label: input.locale === "vi" ? "Bước tiếp theo" : "Next step",
+      value: input.locale === "vi" ? "Luyện tập" : "Practice",
+    },
+  ];
+}
+
+function buildPopupFacts(input: {
+  campaign: SmartPopupCampaign;
+  traits: SmartPopupUserTraits;
+  locale: SmartPopupLocale;
+}): SmartPopupFact[] {
+  const metadata = input.campaign.metadata ?? {};
+  const metadataFacts = getMetadataFacts(metadata, input.locale);
+  const facts = metadataFacts
+    ?.filter((item): item is Record<string, unknown> => isRecord(item))
+    .map((item) => {
+      const label = applyTemplate(
+        asText(item.label),
+        input.traits,
+        input.locale,
+        metadata,
+        input.campaign.reward_credits
+      );
+      const value = applyTemplate(
+        asText(item.value),
+        input.traits,
+        input.locale,
+        metadata,
+        input.campaign.reward_credits
+      );
+      return {
+        icon: normalizeFactIcon(item.icon),
+        label,
+        value: value || undefined,
+      };
+    })
+    .filter((fact) => fact.label.length > 0 && fact.value !== "-/100")
+    .slice(0, 2);
+
+  return facts && facts.length > 0
+    ? facts
+    : buildDefaultFacts(input).slice(0, 2);
 }
 
 function pickPrimarySegment(
@@ -328,8 +535,21 @@ export function createSmartPopupPayload(input: {
   const copy =
     locale === "vi" ? input.campaign.copy_vi : input.campaign.copy_en;
   const fallbackCopy = input.campaign.copy_en;
-  const title = applyTemplate(copy.title ?? fallbackCopy.title, input.traits, locale);
-  const body = applyTemplate(copy.body ?? fallbackCopy.body, input.traits, locale);
+  const metadata = input.campaign.metadata ?? {};
+  const title = applyTemplate(
+    copy.title ?? fallbackCopy.title,
+    input.traits,
+    locale,
+    metadata,
+    input.campaign.reward_credits
+  );
+  const body = applyTemplate(
+    copy.body ?? fallbackCopy.body,
+    input.traits,
+    locale,
+    metadata,
+    input.campaign.reward_credits
+  );
 
   return {
     key: input.campaign.key,
@@ -338,22 +558,51 @@ export function createSmartPopupPayload(input: {
     segment: pickPrimarySegment(input.campaign, input.traits),
     title,
     body,
-    eyebrow: applyTemplate(copy.eyebrow ?? fallbackCopy.eyebrow, input.traits, locale) || null,
-    ctaLabel: applyTemplate(copy.ctaLabel ?? fallbackCopy.ctaLabel ?? "Continue", input.traits, locale),
-    dismissLabel: applyTemplate(copy.dismissLabel ?? fallbackCopy.dismissLabel ?? "Later", input.traits, locale),
+    eyebrow: applyTemplate(
+      copy.eyebrow ?? fallbackCopy.eyebrow,
+      input.traits,
+      locale,
+      metadata,
+      input.campaign.reward_credits
+    ) || null,
+    ctaLabel: applyTemplate(
+      copy.ctaLabel ?? fallbackCopy.ctaLabel ?? "Continue",
+      input.traits,
+      locale,
+      metadata,
+      input.campaign.reward_credits
+    ),
+    dismissLabel: applyTemplate(
+      copy.dismissLabel ?? fallbackCopy.dismissLabel ?? "Later",
+      input.traits,
+      locale,
+      metadata,
+      input.campaign.reward_credits
+    ),
     dontShowAgainLabel: applyTemplate(
       copy.dontShowLabel ?? fallbackCopy.dontShowLabel ?? "Don't show this again",
       input.traits,
-      locale
+      locale,
+      metadata,
+      input.campaign.reward_credits
     ),
     ctaHref: input.campaign.cta_href,
     imageSrc: input.campaign.image_path,
-    imageAlt: applyTemplate(copy.alt ?? fallbackCopy.alt ?? input.campaign.key, input.traits, locale),
+    imageAlt: applyTemplate(
+      copy.alt ?? fallbackCopy.alt ?? input.campaign.key,
+      input.traits,
+      locale,
+      metadata,
+      input.campaign.reward_credits
+    ),
+    facts: buildPopupFacts({ campaign: input.campaign, traits: input.traits, locale }),
     priority: input.campaign.priority,
     metadata: {
       campaignKey: input.campaign.key,
       segment: pickPrimarySegment(input.campaign, input.traits),
       weakestSkill: input.traits.weakestSkill,
+      lastScoredSessionScore: input.traits.lastScoredSessionScore,
+      lastPracticeMinutes: input.traits.lastPracticeMinutes,
     },
   };
 }

@@ -1,0 +1,28 @@
+{
+  "interactionResults": [
+    {
+      "action": "close",
+      "result": "closed"
+    },
+    {
+      "action": "later",
+      "result": "closed"
+    },
+    {
+      "action": "dont-show-again",
+      "result": "closed"
+    },
+    {
+      "action": "cta-route",
+      "result": "http://localhost:3000/en/auth/login"
+    },
+    {
+      "action": "survey-required-validation",
+      "result": "inline-error-visible"
+    },
+    {
+      "action": "survey-submit-thank-you",
+      "result": "thank-you-visible"
+    }
+  ]
+}

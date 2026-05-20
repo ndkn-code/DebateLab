@@ -1,0 +1,2547 @@
+{
+  "results": [
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 153.5730438232422,
+          "height": 41.79999542236328,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 111.7730484008789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 748.3769607543945,
+          "height": 652.75390625,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 95.62305450439453,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 618.2269287109375,
+          "height": 53.199951171875,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 565.0269775390625,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 153.5730438232422,
+          "height": 41.79999542236328,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 111.7730484008789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 748.3769607543945,
+          "height": 652.75390625,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 95.62305450439453,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 618.2269287109375,
+          "height": 53.199951171875,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 565.0269775390625,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 90.45000457763672,
+          "height": 41.79999923706055,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 48.65000534057617,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 811.5000038146973,
+          "height": 779,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 32.500003814697266,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 989.2984008789062,
+          "height": 53.199951171875,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 936.0984497070312,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 90.45000457763672,
+          "height": 41.79999923706055,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 48.65000534057617,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 811.5000038146973,
+          "height": 779,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 32.500003814697266,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 989.2984008789062,
+          "height": 53.199951171875,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 936.0984497070312,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.72305297851562,
+          "height": 41.80000305175781,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 203.9230499267578,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 656.2269134521484,
+          "height": 468.453857421875,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 187.77305603027344,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 636.2769775390625,
+          "height": 53.20001220703125,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 583.0769653320312,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 150.45957946777344,
+          "height": 41.80000305175781,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 108.65957641601562,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 751.4904098510742,
+          "height": 658.9808349609375,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 92.50957489013672,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 621.3404541015625,
+          "height": 53.20001220703125,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 568.1404418945312,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 137.15957641601562,
+          "height": 41.80000305175781,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 95.35957336425781,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 764.7903823852539,
+          "height": 685.580810546875,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 79.2095718383789,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 634.6404418945312,
+          "height": 53.20001220703125,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 581.4404296875,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 153.5730438232422,
+          "height": 41.79999542236328,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 111.7730484008789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 748.3769607543945,
+          "height": 652.75390625,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 95.62305450439453,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 618.2269287109375,
+          "height": 53.199951171875,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 565.0269775390625,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "390x844",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 390,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 137.15957641601562,
+          "height": 41.80000305175781,
+          "left": 307.1000061035156,
+          "right": 348.8999938964844,
+          "top": 95.35957336425781,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 390,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 764.7903823852539,
+          "height": 685.580810546875,
+          "left": 24.950002670288086,
+          "right": 365.0499782562256,
+          "top": 79.2095718383789,
+          "width": 340.0999755859375
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 634.6404418945312,
+          "height": 53.20001220703125,
+          "left": 44.900001525878906,
+          "right": 345.10001373291016,
+          "top": 581.4404296875,
+          "width": 300.20001220703125
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 844,
+          "width": 390
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 324.50860595703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 282.7085876464844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 757.44140625,
+          "height": 490.8828125,
+          "left": 99,
+          "right": 669,
+          "top": 266.55859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 669.0914306640625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 615.8914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 307.06719970703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 265.2671813964844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 774.8828125,
+          "height": 525.765625,
+          "left": 99,
+          "right": 669,
+          "top": 249.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 686.5328369140625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 633.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 106.39082336425781,
+          "height": 41.79999542236328,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 64.59082794189453,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 975.5592346191406,
+          "height": 927.118408203125,
+          "left": 99,
+          "right": 669,
+          "top": 48.440826416015625,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 887.2091674804688,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 834.0091552734375,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 94.95000457763672,
+          "height": 41.79999923706055,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 53.15000534057617,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 987.0000076293945,
+          "height": 950,
+          "left": 99,
+          "right": 669,
+          "top": 37.00000762939453,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 902.3683471679688,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 849.1683349609375,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.00860595703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 311.2085876464844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 728.94140625,
+          "height": 433.8828125,
+          "left": 99,
+          "right": 669,
+          "top": 295.05859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 697.5914306640625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 644.3914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 307.06719970703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 265.2671813964844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 774.8828125,
+          "height": 525.765625,
+          "left": 99,
+          "right": 669,
+          "top": 249.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 686.5328369140625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 633.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 307.06719970703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 265.2671813964844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 774.8828125,
+          "height": 525.765625,
+          "left": 99,
+          "right": 669,
+          "top": 249.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 686.5328369140625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 633.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 307.06719970703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 265.2671813964844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 774.8828125,
+          "height": 525.765625,
+          "left": 99,
+          "right": 669,
+          "top": 249.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 686.5328369140625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 633.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "768x1024",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 768,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 307.06719970703125,
+          "height": 41.800018310546875,
+          "left": 611.0499877929688,
+          "right": 652.8499755859375,
+          "top": 265.2671813964844,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 768,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 774.8828125,
+          "height": 525.765625,
+          "left": 99,
+          "right": 669,
+          "top": 249.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 686.5328369140625,
+          "height": 53.20001220703125,
+          "left": 153.15000915527344,
+          "right": 614.8499603271484,
+          "top": 633.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 1024,
+          "width": 768
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 172.5085906982422,
+          "height": 41.79998779296875,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 130.70860290527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 605.44140625,
+          "height": 490.8828125,
+          "left": 355,
+          "right": 925,
+          "top": 114.55859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 517.0914306640625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 463.89141845703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 155.0671844482422,
+          "height": 41.79999542236328,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 113.2671890258789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 622.8828125,
+          "height": 525.765625,
+          "left": 355,
+          "right": 925,
+          "top": 97.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 534.5328369140625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 481.33282470703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 87.35000610351562,
+          "height": 41.80000305175781,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 45.55000305175781,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 690.5999546051025,
+          "height": 661.199951171875,
+          "left": 355,
+          "right": 925,
+          "top": 29.40000343322754,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 868.1683349609375,
+          "height": 53.199951171875,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 814.9683837890625,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 87.35000610351562,
+          "height": 41.80000305175781,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 45.55000305175781,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 690.5999546051025,
+          "height": 661.199951171875,
+          "left": 355,
+          "right": 925,
+          "top": 29.40000343322754,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.7683715820312,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 841.568359375,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 201.0085906982422,
+          "height": 41.79998779296875,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 159.20860290527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 576.94140625,
+          "height": 433.8828125,
+          "left": 355,
+          "right": 925,
+          "top": 143.05859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 545.5914306640625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 492.39141845703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 155.0671844482422,
+          "height": 41.79999542236328,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 113.2671890258789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 622.8828125,
+          "height": 525.765625,
+          "left": 355,
+          "right": 925,
+          "top": 97.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 534.5328369140625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 481.33282470703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 155.0671844482422,
+          "height": 41.79999542236328,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 113.2671890258789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 622.8828125,
+          "height": 525.765625,
+          "left": 355,
+          "right": 925,
+          "top": 97.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 534.5328369140625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 481.33282470703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 155.0671844482422,
+          "height": 41.79999542236328,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 113.2671890258789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 622.8828125,
+          "height": 525.765625,
+          "left": 355,
+          "right": 925,
+          "top": 97.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 534.5328369140625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 481.33282470703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1280x720",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1280,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 155.0671844482422,
+          "height": 41.79999542236328,
+          "left": 867.0499877929688,
+          "right": 908.8499755859375,
+          "top": 113.2671890258789,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1280,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 622.8828125,
+          "height": 525.765625,
+          "left": 355,
+          "right": 925,
+          "top": 97.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 534.5328369140625,
+          "height": 53.20001220703125,
+          "left": 409.1499938964844,
+          "right": 870.8499755859375,
+          "top": 481.33282470703125,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 720,
+          "width": 1280
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 262.50860595703125,
+          "height": 41.80000305175781,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 220.70860290527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 695.44140625,
+          "height": 490.8828125,
+          "left": 435,
+          "right": 1005,
+          "top": 204.55859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 607.0914306640625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 553.8914184570312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.0671844482422,
+          "height": 41.79998779296875,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 203.26719665527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 712.8828125,
+          "height": 525.765625,
+          "left": 435,
+          "right": 1005,
+          "top": 187.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 624.5328369140625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 571.3328247070312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 91.85000610351562,
+          "height": 41.79999923706055,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 50.05000686645508,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 866.0999565124512,
+          "height": 832.199951171875,
+          "left": 435,
+          "right": 1005,
+          "top": 33.90000534057617,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 872.6683349609375,
+          "height": 53.199951171875,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 819.4683837890625,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 91.85000610351562,
+          "height": 41.79999923706055,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 50.05000686645508,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 866.0999565124512,
+          "height": 832.199951171875,
+          "left": 435,
+          "right": 1005,
+          "top": 33.90000534057617,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 899.2683715820312,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 846.068359375,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 291.00860595703125,
+          "height": 41.80000305175781,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 249.20860290527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 666.94140625,
+          "height": 433.8828125,
+          "left": 435,
+          "right": 1005,
+          "top": 233.05859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 635.5914306640625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 582.3914184570312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.0671844482422,
+          "height": 41.79998779296875,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 203.26719665527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 712.8828125,
+          "height": 525.765625,
+          "left": 435,
+          "right": 1005,
+          "top": 187.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 624.5328369140625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 571.3328247070312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.0671844482422,
+          "height": 41.79998779296875,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 203.26719665527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 712.8828125,
+          "height": 525.765625,
+          "left": 435,
+          "right": 1005,
+          "top": 187.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 624.5328369140625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 571.3328247070312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.0671844482422,
+          "height": 41.79998779296875,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 203.26719665527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 712.8828125,
+          "height": 525.765625,
+          "left": 435,
+          "right": 1005,
+          "top": 187.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 624.5328369140625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 571.3328247070312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1440x900",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1440,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 245.0671844482422,
+          "height": 41.79998779296875,
+          "left": 947.0499877929688,
+          "right": 988.8499755859375,
+          "top": 203.26719665527344,
+          "width": 41.79998779296875
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1440,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 712.8828125,
+          "height": 525.765625,
+          "left": 435,
+          "right": 1005,
+          "top": 187.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 624.5328369140625,
+          "height": 53.20001220703125,
+          "left": 489.1499938964844,
+          "right": 950.8499755859375,
+          "top": 571.3328247070312,
+          "width": 461.6999816894531
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 900,
+          "width": 1440
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 371.00860595703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 329.2085876464844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 803.94140625,
+          "height": 490.8828125,
+          "left": 579,
+          "right": 1149,
+          "top": 313.05859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 715.5914306640625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 662.3914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.56719970703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 311.7671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 821.3828125,
+          "height": 525.765625,
+          "left": 579,
+          "right": 1149,
+          "top": 295.6171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 733.0328369140625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 679.8328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 152.8908233642578,
+          "height": 41.79999542236328,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 111.09082794189453,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 1022.0592346191406,
+          "height": 927.118408203125,
+          "left": 579,
+          "right": 1149,
+          "top": 94.94082641601562,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 933.7091674804688,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 880.5091552734375,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 139.5908203125,
+          "height": 41.79999542236328,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 97.79082489013672,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 1035.359146118164,
+          "height": 953.7183227539062,
+          "left": 579,
+          "right": 1149,
+          "top": 81.64082336425781,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 947.0091552734375,
+          "height": 53.199951171875,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 893.8092041015625,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 399.50860595703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 357.7085876464844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 775.44140625,
+          "height": 433.8828125,
+          "left": 579,
+          "right": 1149,
+          "top": 341.55859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 744.0914306640625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 690.8914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.56719970703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 311.7671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 821.3828125,
+          "height": 525.765625,
+          "left": 579,
+          "right": 1149,
+          "top": 295.6171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 733.0328369140625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 679.8328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.56719970703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 311.7671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 821.3828125,
+          "height": 525.765625,
+          "left": 579,
+          "right": 1149,
+          "top": 295.6171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 733.0328369140625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 679.8328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.56719970703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 311.7671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 821.3828125,
+          "height": 525.765625,
+          "left": 579,
+          "right": 1149,
+          "top": 295.6171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 733.0328369140625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 679.8328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "1728x1117",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 1728,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 353.56719970703125,
+          "height": 41.800018310546875,
+          "left": 1091.050048828125,
+          "right": 1132.8499755859375,
+          "top": 311.7671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 1728,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 821.3828125,
+          "height": 525.765625,
+          "left": 579,
+          "right": 1149,
+          "top": 295.6171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 733.0328369140625,
+          "height": 53.20001220703125,
+          "left": 633.1500244140625,
+          "right": 1094.8499755859375,
+          "top": 679.8328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 1117,
+          "width": 1728
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "en",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 532.5086059570312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 490.7085876464844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 965.44140625,
+          "height": 490.8828125,
+          "left": 995,
+          "right": 1565,
+          "top": 474.55859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 877.0914306640625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 823.8914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "weakest-skill",
+      "locale": "vi",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 515.0671997070312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 473.2671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 982.8828125,
+          "height": 525.765625,
+          "left": 995,
+          "right": 1565,
+          "top": 457.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.5328369140625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 841.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=weakest-skill",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "en",
+      "feature": false,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 314.3908386230469,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 272.5908203125,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 1183.5592346191406,
+          "height": 927.118408203125,
+          "left": 995,
+          "right": 1565,
+          "top": 256.4408264160156,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 1095.209228515625,
+          "height": 53.2000732421875,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 1042.0091552734375,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "feedback-survey",
+      "locale": "vi",
+      "feature": false,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 301.0908203125,
+          "height": 41.79998779296875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 259.29083251953125,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 1196.859146118164,
+          "height": 953.7183227539062,
+          "left": 995,
+          "right": 1565,
+          "top": 243.1408233642578,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 1108.5091552734375,
+          "height": 53.199951171875,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 1055.3092041015625,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/dev/smart-popup-qa?state=feedback-survey",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "thank-you",
+      "locale": "en",
+      "feature": false,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 561.0086059570312,
+          "height": 41.79998779296875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 519.2086181640625,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 1,
+        "frameRect": {
+          "bottom": 936.94140625,
+          "height": 433.8828125,
+          "left": 995,
+          "right": 1565,
+          "top": 503.05859375,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 905.5914306640625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 852.3914184570312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=thank-you",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "first-practice",
+      "locale": "en",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 515.0671997070312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 473.2671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 982.8828125,
+          "height": 525.765625,
+          "left": 995,
+          "right": 1565,
+          "top": 457.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.5328369140625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 841.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=first-practice",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "resume-streak",
+      "locale": "en",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 515.0671997070312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 473.2671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 982.8828125,
+          "height": 525.765625,
+          "left": 995,
+          "right": 1565,
+          "top": 457.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.5328369140625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 841.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=resume-streak",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "course",
+      "locale": "en",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 515.0671997070312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 473.2671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 982.8828125,
+          "height": 525.765625,
+          "left": 995,
+          "right": 1565,
+          "top": 457.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.5328369140625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 841.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=course",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    },
+    {
+      "state": "ask-coach",
+      "locale": "en",
+      "feature": true,
+      "viewport": "2560x1440",
+      "checks": {
+        "bodyOverflow": false,
+        "bodyScrollWidth": 2560,
+        "clippedControls": [],
+        "closeReachable": true,
+        "closeRect": {
+          "bottom": 515.0671997070312,
+          "height": 41.800018310546875,
+          "left": 1507.050048828125,
+          "right": 1548.8499755859375,
+          "top": 473.2671813964844,
+          "width": 41.7999267578125
+        },
+        "documentOverflow": false,
+        "documentScrollWidth": 2560,
+        "factCount": 2,
+        "frameRect": {
+          "bottom": 982.8828125,
+          "height": 525.765625,
+          "left": 995,
+          "right": 1565,
+          "top": 457.1171875,
+          "width": 570
+        },
+        "modalInsideViewport": true,
+        "offscreen": [],
+        "primaryRect": {
+          "bottom": 894.5328369140625,
+          "height": 53.20001220703125,
+          "left": 1049.1500244140625,
+          "right": 1510.8499755859375,
+          "top": 841.3328247070312,
+          "width": 461.699951171875
+        },
+        "primaryVisibleWithoutScroll": true,
+        "url": "http://localhost:3000/en/dev/smart-popup-qa?state=ask-coach",
+        "viewport": {
+          "height": 1440,
+          "width": 2560
+        }
+      }
+    }
+  ],
+  "summary": {
+    "totalStatesChecked": 54,
+    "failedCount": 0,
+    "failed": []
+  }
+}
