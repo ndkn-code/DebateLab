@@ -13,13 +13,13 @@ let queueClientKey: string | null = null;
 
 function getQueueSend() {
   const token = process.env.VERCEL_QUEUE_API_TOKEN;
-  const region = (process.env.VERCEL_REGION || "iad1") as VercelRegion;
+  const region = (process.env.VERCEL_REGION || "sin1") as VercelRegion;
   const clientKey = `${region}:${token ?? ""}`;
 
   if (!queueClient || queueClientKey !== clientKey) {
     queueClient = new QueueClient({
       region,
-      ...(token ? { token } : {}),
+      ...(token ? { deploymentId: null, token } : {}),
     });
     queueClientKey = clientKey;
   }

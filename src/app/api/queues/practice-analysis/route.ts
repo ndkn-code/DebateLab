@@ -17,9 +17,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const maxDuration = 60;
 
 const queue = new QueueClient({
-  region: (process.env.VERCEL_REGION || "iad1") as VercelRegion,
+  region: (process.env.VERCEL_REGION || "sin1") as VercelRegion,
   ...(process.env.VERCEL_QUEUE_API_TOKEN
-    ? { token: process.env.VERCEL_QUEUE_API_TOKEN }
+    ? { deploymentId: null, token: process.env.VERCEL_QUEUE_API_TOKEN }
     : {}),
 });
 
