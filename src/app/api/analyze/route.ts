@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
+import {
+  createPracticeAnalysisRecords,
+  markPracticeAnalysisCompleted,
+  markPracticeAnalysisFailed,
+  markPracticeAnalysisProcessing,
+} from "@/lib/practice-analysis/service";
 import {
   getBoolean,
   getEnum,
@@ -20,6 +27,7 @@ import {
 export const maxDuration = 60;
 
 import type { DebateRound, PracticeLanguage, PracticeTrack } from "@/types";
+import type { AnalysisJobRecord, PracticeAttemptRecord } from "@/lib/practice-analysis/types";
 
 interface AnalyzeRequest {
   transcript: string;
@@ -258,6 +266,44 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const writeClient = tryCreateAdminClient() ?? supabase;
+    let durableAnalysis:
+      | { attempt: PracticeAttemptRecord; job: AnalysisJobRecord }
+      | null = null;
+    try {
+      durableAnalysis = await createPracticeAnalysisRecords(writeClient, authUser.id, {
+        transcript,
+        topic,
+        side,
+        speechType: speechType || "Opening Statement",
+        timeLimit: timeLimit || 2,
+        actualDuration: actualDuration || 0,
+        practiceTrack: practiceTrack || "debate",
+        practiceLanguage,
+        isFullRound: Boolean(isFullRound),
+        rounds,
+        mode:
+          practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
+            ? "full"
+            : "quick",
+        prepTime: 0,
+        speechTime: Math.round((timeLimit || 2) * 60),
+        topicCategory: "Practice",
+        topicDifficulty: "intermediate",
+      });
+      await markPracticeAnalysisProcessing(writeClient, {
+        jobId: durableAnalysis.job.id,
+        attemptId: durableAnalysis.attempt.id,
+        deliveryCount: 1,
+      });
+    } catch (error) {
+      durableAnalysis = null;
+      console.warn(
+        "Failed to create durable sync analysis record",
+        error instanceof Error ? error.message : error
+      );
+    }
+
     // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("TIMEOUT")), 55000);
@@ -298,12 +344,39 @@ export async function POST(req: NextRequest) {
           debug_id: requestId,
         },
       });
+      if (durableAnalysis) {
+        await markPracticeAnalysisCompleted(writeClient, {
+          attemptId: durableAnalysis.attempt.id,
+          jobId: durableAnalysis.job.id,
+          feedback,
+          modelName: modelUsed,
+          legacySessionId: null,
+        }).catch((error) => {
+          console.warn(
+            "Failed to complete durable sync analysis record",
+            error instanceof Error ? error.message : error
+          );
+        });
+      }
       logAnalyzeRequest(requestId, "completed", {
         durationMs: Date.now() - startedAt,
         model: modelUsed,
       });
-      return NextResponse.json({ ...feedback, _model: modelUsed });
+      return NextResponse.json({
+        ...feedback,
+        _model: modelUsed,
+        _attemptId: durableAnalysis?.attempt.id,
+        _analysisJobId: durableAnalysis?.job.id,
+      });
     } catch (err) {
+      if (durableAnalysis) {
+        await markPracticeAnalysisFailed(writeClient, {
+          jobId: durableAnalysis.job.id,
+          attemptId: durableAnalysis.attempt.id,
+          errorCode: "SYNC_ANALYSIS_FAILED",
+          errorMessage: err instanceof Error ? err.message : String(err),
+        }).catch(() => {});
+      }
       console.error(JSON.stringify({
         scope: "api/analyze",
         requestId,

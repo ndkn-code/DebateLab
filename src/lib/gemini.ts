@@ -15,7 +15,16 @@ import {
 import { normalizeTranscriptAnnotations } from "./feedback/annotations";
 import { getPostHogServer } from "./posthog-server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+let genAI: GoogleGenerativeAI | null = null;
+
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+  genAI ??= new GoogleGenerativeAI(apiKey);
+  return genAI;
+}
 
 export async function analyzeDebate(params: {
   transcript: string;
@@ -30,7 +39,7 @@ export async function analyzeDebate(params: {
   rounds?: DebateRound[];
 }, userId?: string): Promise<DebateScore> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const model = genAI.getGenerativeModel({
+  const model = getGeminiClient().getGenerativeModel({
     model: modelName,
     generationConfig: {
       responseMimeType: "application/json",
@@ -125,7 +134,7 @@ export async function judgeDebateDuel(params: {
   }>;
 }, userId?: string): Promise<DebateDuelJudgment> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const model = genAI.getGenerativeModel({
+  const model = getGeminiClient().getGenerativeModel({
     model: modelName,
     generationConfig: {
       responseMimeType: "application/json",

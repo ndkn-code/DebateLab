@@ -1,6 +1,7 @@
 import type { SettingsPreferences } from "@/lib/settings";
 import type { CoachMessageMetadata } from "./coach";
-import type { PracticeLanguage } from "./feedback";
+import type { DebateScore, PracticeLanguage, PracticeTrack } from "./feedback";
+import type { AiDifficulty, DebateRound } from "./debate";
 
 export interface Profile {
   id: string;
@@ -158,6 +159,74 @@ export interface PracticeSessionDraftRow {
   transcript: string;
   rounds: Record<string, unknown>[] | null;
   session_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PracticeAttemptRow {
+  id: string;
+  user_id: string;
+  status: "draft" | "submitted" | "analyzing" | "completed" | "failed";
+  practice_track: PracticeTrack;
+  practice_language: PracticeLanguage;
+  topic_id: string | null;
+  practice_topic_key: string | null;
+  topic_title: string;
+  topic_category: string;
+  topic_category_key: string | null;
+  topic_difficulty: "beginner" | "intermediate" | "advanced";
+  side: "proposition" | "opposition";
+  mode: "quick" | "full";
+  prep_time: number;
+  speech_time: number;
+  duration_seconds: number;
+  transcript: string;
+  prep_notes: string | null;
+  ai_difficulty: AiDifficulty | null;
+  rounds: DebateRound[] | null;
+  audio_storage_path: string | null;
+  attempt_snapshot: Record<string, unknown>;
+  input_hash: string | null;
+  prompt_hash: string | null;
+  prompt_bundle_key: string;
+  prompt_bundle_version: number;
+  rubric_key: string;
+  rubric_version: number;
+  model_provider: string | null;
+  model_name: string | null;
+  feedback: DebateScore | null;
+  total_score: number | null;
+  overall_band: string | null;
+  legacy_debate_session_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  submitted_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnalysisJobRow {
+  id: string;
+  attempt_id: string;
+  user_id: string;
+  job_type: string;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  queue_topic: string;
+  queue_message_id: string | null;
+  idempotency_key: string;
+  delivery_count: number;
+  max_attempts: number;
+  input_hash: string | null;
+  prompt_hash: string | null;
+  model_provider: string | null;
+  model_name: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  next_retry_at: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  result: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,0 +1,112 @@
+import { QueueClient } from "@vercel/queue";
+import type { VercelRegion } from "@vercel/queue";
+import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import { getPracticeFeedbackModelName } from "@/lib/practice-analysis/constants";
+import { evaluatePracticeFeedback } from "@/lib/practice-analysis/evaluators";
+import { saveCompletedPracticeAttempt } from "@/lib/practice-analysis/persistence";
+import {
+  getAnalysisJobForProcessing,
+  markPracticeAnalysisCompleted,
+  markPracticeAnalysisFailed,
+  markPracticeAnalysisProcessing,
+  practiceAttemptRowToInput,
+} from "@/lib/practice-analysis/service";
+import type { PracticeAnalysisQueueMessage } from "@/lib/practice-analysis/types";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export const maxDuration = 60;
+
+const queue = new QueueClient({
+  region: (process.env.VERCEL_REGION || "iad1") as VercelRegion,
+  ...(process.env.VERCEL_QUEUE_API_TOKEN
+    ? { token: process.env.VERCEL_QUEUE_API_TOKEN }
+    : {}),
+});
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
+  async (message, metadata) => {
+    const supabase = createAdminClient();
+    const { job, attempt } = await getAnalysisJobForProcessing(
+      supabase,
+      message.jobId,
+      message.attemptId
+    );
+
+    if (job.status === "completed" && attempt.status === "completed") {
+      return;
+    }
+
+    if (job.status === "cancelled") {
+      return;
+    }
+
+    await markPracticeAnalysisProcessing(supabase, {
+      jobId: job.id,
+      attemptId: attempt.id,
+      deliveryCount: metadata.deliveryCount,
+    });
+
+    try {
+      const input = practiceAttemptRowToInput(attempt);
+      const feedback = await evaluatePracticeFeedback(input, attempt.user_id);
+      const modelName = getPracticeFeedbackModelName();
+      const savedSession = await saveCompletedPracticeAttempt(supabase, {
+        attempt,
+        feedback,
+        modelName,
+      });
+
+      await markPracticeAnalysisCompleted(supabase, {
+        attemptId: attempt.id,
+        jobId: job.id,
+        feedback,
+        modelName,
+        legacySessionId: savedSession.sessionId,
+      });
+
+      await recordAnalyticsEvent(supabase, attempt.user_id, {
+        eventName: "ai_feedback_completed",
+        featureArea: "ai_feedback",
+        durationMs: attempt.duration_seconds
+          ? attempt.duration_seconds * 1000
+          : null,
+        metadata: {
+          topic: attempt.topic_title,
+          side: attempt.side,
+          speech_type: input.speechType,
+          practice_track: attempt.practice_track,
+          practice_language: attempt.practice_language,
+          model: modelName,
+          practice_attempt_id: attempt.id,
+          analysis_job_id: job.id,
+          queue_message_id: metadata.messageId,
+        },
+      });
+    } catch (error) {
+      const deliveryLimit = job.max_attempts || 3;
+      const retryAfterSeconds =
+        metadata.deliveryCount >= deliveryLimit
+          ? undefined
+          : Math.min(300, 2 ** metadata.deliveryCount * 5);
+      await markPracticeAnalysisFailed(supabase, {
+        jobId: job.id,
+        attemptId: attempt.id,
+        errorCode: "ANALYSIS_FAILED",
+        errorMessage: getErrorMessage(error).slice(0, 1000),
+        retryAfterSeconds,
+      }).catch(() => {});
+      throw error;
+    }
+  },
+  {
+    visibilityTimeoutSeconds: 60,
+    retry: (_error, metadata) => {
+      if (metadata.deliveryCount >= 3) return { acknowledge: true };
+      return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
+    },
+  }
+);

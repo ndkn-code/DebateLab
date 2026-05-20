@@ -73,8 +73,10 @@ export type {
   ApiUsage,
   AnalyticsEvent,
   AiInsightsCache,
+  AnalysisJobRow,
   ChatConversation,
   ChatMessage,
+  PracticeAttemptRow,
   PracticeSessionDraftRow,
 } from "./database";
 export type { SkillMetricKey } from "@/lib/analytics/skill-snapshot";

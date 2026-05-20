@@ -16,7 +16,7 @@ import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
 import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
-import { storage, supabaseStorage } from "@/lib/storage";
+import { PRACTICE_AUDIO_BUCKET } from "@/lib/practice-analysis/constants";
 import {
   clearLocalPracticeSessionDraft,
   deletePracticeSessionDraft,
@@ -26,8 +26,29 @@ import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/refe
 import type { DebateSession } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 
-const ANALYZE_CLIENT_TIMEOUT_MS = 65000;
+const ANALYSIS_SUBMIT_TIMEOUT_MS = 30000;
+const ANALYSIS_POLL_INTERVAL_MS = 2000;
+const ANALYSIS_POLL_TIMEOUT_MS = 180000;
 const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+interface CreatePracticeAttemptResponse {
+  attemptId: string;
+  jobId: string;
+  status: "queued";
+}
+
+interface AnalysisJobResponse {
+  id: string;
+  attemptId: string;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  attemptStatus: "draft" | "submitted" | "analyzing" | "completed" | "failed";
+  feedback: DebateScore | null;
+  modelName: string | null;
+  legacySessionId: string | null;
+  error: string | null;
+}
 
 function createAnalyzeDebugId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -52,6 +73,34 @@ function logAnalyzeDebug(
   console.info("[analyze-debug]", { debugId, event, ...metadata });
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function uploadPracticeAudio(params: {
+  attemptId: string;
+  audioBlob: Blob | null;
+  userId: string;
+}) {
+  if (!params.audioBlob || params.audioBlob.size === 0) return null;
+
+  const supabase = createClient();
+  const storagePath = `${params.userId}/${params.attemptId}/source.webm`;
+  const { error } = await supabase.storage
+    .from(PRACTICE_AUDIO_BUCKET)
+    .upload(storagePath, params.audioBlob, {
+      contentType: params.audioBlob.type || "audio/webm",
+      upsert: true,
+    });
+
+  if (error) {
+    console.warn("Practice audio upload skipped", error.message);
+    return null;
+  }
+
+  return storagePath;
+}
+
 export default function FeedbackPage() {
   const router = useRouter();
   const t = useTranslations("sessionResult");
@@ -68,6 +117,7 @@ export default function FeedbackPage() {
     sessionStartTime,
     rounds,
     prepNotes,
+    audioBlob,
     draftId,
     clubContext,
     setDraftId,
@@ -144,10 +194,10 @@ export default function FeedbackPage() {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
       logAnalyzeDebug(debugId, "client_timeout", {
-        timeoutMs: ANALYZE_CLIENT_TIMEOUT_MS,
+        timeoutMs: ANALYSIS_SUBMIT_TIMEOUT_MS,
       });
       controller.abort();
-    }, ANALYZE_CLIENT_TIMEOUT_MS);
+    }, ANALYSIS_SUBMIT_TIMEOUT_MS);
 
     try {
       const wordCount = transcript
@@ -161,7 +211,20 @@ export default function FeedbackPage() {
         isFullRound,
       });
 
-      const res = await fetch("/api/analyze", {
+      const supabase = createClient();
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        throw new Error("Please sign in again before requesting feedback.");
+      }
+
+      const attemptId = crypto.randomUUID();
+      const audioStoragePath = await uploadPracticeAudio({
+        attemptId,
+        audioBlob,
+        userId: authData.user.id,
+      });
+
+      const res = await fetch("/api/practice-attempts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,6 +232,7 @@ export default function FeedbackPage() {
         },
         signal: controller.signal,
         body: JSON.stringify({
+          attemptId,
           transcript,
           topic: selectedTopic.title,
           side: resolvedSide,
@@ -179,6 +243,21 @@ export default function FeedbackPage() {
           actualDuration,
           isFullRound,
           rounds: isFullRound ? rounds : undefined,
+          mode,
+          prepTime,
+          speechTime,
+          prepNotes: useSessionStore.getState().prepNotes,
+          aiDifficulty:
+            practiceTrack === "debate" && mode === "full"
+              ? aiDifficulty
+              : undefined,
+          topicId: UUID_PATTERN.test(selectedTopic.id) ? selectedTopic.id : undefined,
+          practiceTopicKey: selectedTopic.topicKey ?? selectedTopic.id,
+          topicCategory: selectedTopic.category,
+          topicCategoryKey: selectedTopic.categoryKey,
+          topicDifficulty: selectedTopic.difficulty,
+          audioStoragePath,
+          clubContext: useSessionStore.getState().clubContext ?? undefined,
         }),
       });
       logAnalyzeDebug(debugId, "response_received", {
@@ -198,23 +277,56 @@ export default function FeedbackPage() {
       }
 
       const responseText = await res.text();
-      console.log("API response:", responseText.substring(0, 200));
-
-      let data: DebateScore & { _model?: string };
+      let createdJob: CreatePracticeAttemptResponse;
       try {
-        data = JSON.parse(responseText) as DebateScore & { _model?: string };
+        createdJob = JSON.parse(responseText) as CreatePracticeAttemptResponse;
       } catch {
         console.error("Failed to parse response as JSON:", responseText.substring(0, 500));
         throw new Error("Received invalid response from server. Please try again.");
       }
 
-      const responseModel = data._model ?? null;
-      if (responseModel) {
-        setModelUsed(responseModel);
-        delete data._model;
+      setSavedSessionId(createdJob.attemptId);
+      logAnalyzeDebug(debugId, "job_queued", {
+        attemptId: createdJob.attemptId,
+        jobId: createdJob.jobId,
+      });
+
+      let job: AnalysisJobResponse | null = null;
+      const pollStartedAt = Date.now();
+      while (Date.now() - pollStartedAt < ANALYSIS_POLL_TIMEOUT_MS) {
+        await wait(ANALYSIS_POLL_INTERVAL_MS);
+        const statusRes = await fetch(`/api/analysis-jobs/${createdJob.jobId}`, {
+          cache: "no-store",
+        });
+        if (!statusRes.ok) {
+          throw new Error(`Could not load analysis status (${statusRes.status}).`);
+        }
+        job = (await statusRes.json()) as AnalysisJobResponse;
+        logAnalyzeDebug(debugId, "job_status", {
+          jobId: createdJob.jobId,
+          status: job.status,
+          attemptStatus: job.attemptStatus,
+        });
+        if (job.status === "completed" && job.feedback) break;
+        if (job.status === "failed" || job.status === "cancelled") {
+          throw new Error(
+            job.error || "Analysis failed. Your transcript is saved, so please try again."
+          );
+        }
       }
 
-      const normalizedFeedback = normalizeFeedback(data);
+      if (!job?.feedback) {
+        throw new Error(
+          "Analysis is taking longer than expected. Your transcript is saved, so please try again in a moment."
+        );
+      }
+
+      const responseModel = job.modelName;
+      if (responseModel) {
+        setModelUsed(responseModel);
+      }
+
+      const normalizedFeedback = normalizeFeedback(job.feedback);
       setResultDuration(actualDuration);
       logAnalyzeDebug(debugId, "feedback_parsed", {
         model: responseModel,
@@ -227,56 +339,22 @@ export default function FeedbackPage() {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
 
-      // Save session
+      const sessionId = job.legacySessionId ?? createdJob.attemptId;
+      setSavedSessionId(sessionId);
+      setResultDate(new Date().toISOString());
+
       if (!hasSaved.current) {
         hasSaved.current = true;
-        const sessionId = crypto.randomUUID();
-        const sessionData = {
-          id: sessionId,
-          date: new Date().toISOString(),
-          topic: selectedTopic,
-          side: resolvedSide,
-          practiceTrack,
-          practiceLanguage,
-          mode,
-          prepTime,
-          speechTime,
-          transcript,
-          feedback: normalizedFeedback,
-          duration: actualDuration,
-          prepNotes: useSessionStore.getState().prepNotes,
-          clubContext: useSessionStore.getState().clubContext ?? undefined,
-          modelName: responseModel,
-          aiDifficulty:
-            practiceTrack === "debate" && mode === "full"
-              ? aiDifficulty
-              : undefined,
-          rounds: isFullRound ? rounds : undefined,
-        };
-        setSavedSessionId(sessionId);
-        setResultDate(sessionData.date);
-
-        // Save to Supabase if authenticated, otherwise localStorage
-        const supabase = createClient();
-        const { data: authData } = await supabase.auth.getUser();
-        if (authData.user) {
-          await supabaseStorage.saveSession(sessionData, authData.user.id);
-          if (draftId) {
-            await deletePracticeSessionDraft(draftId, authData.user.id).catch(
-              () => {}
-            );
-            setDraftId(null);
-          }
-          clearLocalPracticeSessionDraft();
-          // Qualify referral if this is user's first real practice
-          const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
-          qualifyReferralAction(wordCount).catch((error) => {
-            console.error("Failed to qualify referral", error);
-          });
-        } else {
-          storage.saveSession(sessionData);
-          clearLocalPracticeSessionDraft();
+        if (draftId) {
+          await deletePracticeSessionDraft(draftId, authData.user.id).catch(
+            () => {}
+          );
+          setDraftId(null);
         }
+        clearLocalPracticeSessionDraft();
+        qualifyReferralAction(wordCount).catch((error) => {
+          console.error("Failed to qualify referral", error);
+        });
       }
     } catch (err) {
       logAnalyzeDebug(debugId, "request_failed", {
@@ -306,6 +384,7 @@ export default function FeedbackPage() {
     setPhase,
     isFullRound,
     rounds,
+    audioBlob,
     draftId,
     aiDifficulty,
     setDraftId,
@@ -349,9 +428,9 @@ export default function FeedbackPage() {
     setError(null);
     setLoading(true);
     hasCalledApi.current = false;
-    hasSaved.current = Boolean(savedSessionId);
+    hasSaved.current = false;
     fetchFeedback();
-  }, [fetchFeedback, savedSessionId]);
+  }, [fetchFeedback]);
 
   const handleRetrySameTopic = () => {
     const topic = selectedTopic;
