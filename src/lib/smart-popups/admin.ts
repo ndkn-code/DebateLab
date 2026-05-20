@@ -1,13 +1,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createSmartPopupPayload } from "@/lib/smart-popups/rules";
 import {
+  getThankYouCopy,
+  localizeSurveyQuestions,
   normalizeSurveyQuestions,
 } from "@/lib/smart-popups/survey";
+import type {
+  SmartPopupCampaign,
+  SmartPopupLocale,
+  SmartPopupPayload,
+  SmartPopupRules,
+  SmartPopupUserTraits,
+} from "@/lib/smart-popups/types";
+
+export type SmartPopupAdminPreviewSet = Record<SmartPopupLocale, SmartPopupPayload>;
 
 export interface FeedbackPopupCampaignSummary {
   key: string;
   title: string;
   body: string;
   titleVi: string;
+  bodyVi: string;
   status: "active" | "paused" | "archived";
   deliveryMode: "targeted" | "send_now" | "scheduled";
   priority: number;
@@ -22,6 +35,22 @@ export interface FeedbackPopupCampaignSummary {
   averageRating: number | null;
   lastResponseAt: string | null;
   updatedAt: string;
+  previews: SmartPopupAdminPreviewSet;
+}
+
+export interface SmartPopupSystemCampaignSummary {
+  key: string;
+  title: string;
+  body: string;
+  titleVi: string;
+  bodyVi: string;
+  status: "active" | "paused" | "archived";
+  deliveryMode: "targeted" | "send_now" | "scheduled";
+  surface: "dashboard" | "global";
+  priority: number;
+  ctaHref: string;
+  updatedAt: string;
+  previews: SmartPopupAdminPreviewSet;
 }
 
 export interface FeedbackPopupResponseSummary {
@@ -69,6 +98,7 @@ export interface FeedbackPopupAdminHealth {
 
 export interface FeedbackPopupAdminData {
   campaigns: FeedbackPopupCampaignSummary[];
+  systemCampaigns: SmartPopupSystemCampaignSummary[];
   responses: FeedbackPopupResponseSummary[];
   cronRuns: FeedbackPopupCronRunSummary[];
   health: FeedbackPopupAdminHealth;
@@ -125,6 +155,15 @@ function slugify(value: string) {
 
 function getCopy(row: Record<string, unknown>, key: "copy_en" | "copy_vi") {
   return asRecord(row[key]);
+}
+
+function getCopyText(
+  row: Record<string, unknown>,
+  key: "copy_en" | "copy_vi",
+  field: string,
+  fallback = ""
+) {
+  return asText(getCopy(row, key)[field], fallback);
 }
 
 function getQuestionCount(row: Record<string, unknown> | undefined) {
@@ -269,6 +308,7 @@ export function createEmptyFeedbackPopupAdminData(
   });
   return {
     campaigns: [],
+    systemCampaigns: [],
     responses: [],
     cronRuns: [],
     health: {
@@ -299,6 +339,133 @@ function extractRoute(context: unknown) {
   return typeof source.route === "string" ? source.route : null;
 }
 
+function normalizeCampaign(row: Record<string, unknown>): SmartPopupCampaign {
+  return {
+    id: asText(row.id) || undefined,
+    key: asText(row.key),
+    surface: row.surface === "global" ? "global" : "dashboard",
+    status:
+      row.status === "active" || row.status === "archived"
+        ? row.status
+        : "paused",
+    campaign_type:
+      row.campaign_type === "feedback_survey" ? "feedback_survey" : "feature_nudge",
+    delivery_mode:
+      row.delivery_mode === "send_now" || row.delivery_mode === "scheduled"
+        ? row.delivery_mode
+        : "targeted",
+    priority: asNumber(row.priority, 100),
+    starts_at: asText(row.starts_at) || null,
+    ends_at: asText(row.ends_at) || null,
+    cooldown_hours: asNumber(row.cooldown_hours, 24),
+    max_impressions_per_user: asNumber(row.max_impressions_per_user, 3),
+    daily_cap_per_user: asNumber(row.daily_cap_per_user, 1),
+    weekly_cap_per_user: asNumber(row.weekly_cap_per_user, 2),
+    reward_credits: asNumber(row.reward_credits, 0),
+    response_goal:
+      typeof row.response_goal === "number" && Number.isFinite(row.response_goal)
+        ? row.response_goal
+        : null,
+    cta_href: asText(row.cta_href, "/dashboard"),
+    image_path: asText(row.image_path, "/images/smart-popups/first-practice.webp"),
+    copy_en: getCopy(row, "copy_en") as SmartPopupCampaign["copy_en"],
+    copy_vi: getCopy(row, "copy_vi") as SmartPopupCampaign["copy_vi"],
+    rules: asRecord(row.rules) as SmartPopupRules,
+    metadata: asRecord(row.metadata),
+  };
+}
+
+function buildAdminPreviewTraits(): SmartPopupUserTraits {
+  return {
+    role: "student",
+    onboardingCompleted: true,
+    smartFeaturePopupsEnabled: true,
+    firstDashboardVisit: false,
+    totalSessionsCompleted: 7,
+    daysSinceSignup: 14,
+    daysSinceLastPractice: 1,
+    currentStreak: 7,
+    courseProgressCount: 1,
+    coachEventCount: 0,
+    weakestSkill: "rebuttal",
+    lastScoredSessionScore: 63,
+    lastPracticeMinutes: 10,
+    segments: [
+      "active_user",
+      "returning_user",
+      "skill_focus",
+      "course_discovery",
+      "coach_candidate",
+    ],
+  };
+}
+
+function buildSurveyPayload(input: {
+  campaign: SmartPopupCampaign;
+  latestVersion: Record<string, unknown> | undefined;
+  locale: SmartPopupLocale;
+}) {
+  if (!input.latestVersion) return undefined;
+
+  const questions = normalizeSurveyQuestions(input.latestVersion.questions);
+  if (questions.length === 0) return undefined;
+
+  return {
+    versionId: asText(input.latestVersion.id, "admin-preview-survey"),
+    version: asNumber(input.latestVersion.version, 1),
+    rewardCredits: input.campaign.reward_credits,
+    questions: localizeSurveyQuestions(questions, input.locale),
+    thankYou: getThankYouCopy(
+      input.latestVersion.thank_you_copy,
+      input.locale,
+      input.campaign.reward_credits
+    ),
+  };
+}
+
+function buildPreviewSet(input: {
+  campaign: SmartPopupCampaign;
+  latestVersion?: Record<string, unknown>;
+}): SmartPopupAdminPreviewSet {
+  const traits = buildAdminPreviewTraits();
+  const en = createSmartPopupPayload({
+    campaign: input.campaign,
+    traits,
+    locale: "en",
+  });
+  const vi = createSmartPopupPayload({
+    campaign: input.campaign,
+    traits,
+    locale: "vi",
+  });
+
+  if (input.campaign.campaign_type === "feedback_survey") {
+    en.survey = buildSurveyPayload({
+      campaign: input.campaign,
+      latestVersion: input.latestVersion,
+      locale: "en",
+    });
+    vi.survey = buildSurveyPayload({
+      campaign: input.campaign,
+      latestVersion: input.latestVersion,
+      locale: "vi",
+    });
+  }
+
+  en.metadata = {
+    ...en.metadata,
+    previewOnly: true,
+    previewSource: "admin",
+  };
+  vi.metadata = {
+    ...vi.metadata,
+    previewOnly: true,
+    previewSource: "admin",
+  };
+
+  return { en, vi };
+}
+
 function getNumericRatings(answers: FeedbackPopupResponseSummary["answers"]) {
   return answers
     .filter((answer) => answer.type === "rating" || answer.type === "nps")
@@ -322,6 +489,7 @@ function buildCampaignSummaries(input: {
 
   return input.campaigns.map((campaign) => {
     const key = asText(campaign.key);
+    const normalizedCampaign = normalizeCampaign(campaign);
     const copyEn = getCopy(campaign, "copy_en");
     const copyVi = getCopy(campaign, "copy_vi");
     const latestVersion = versionsByCampaign.get(key);
@@ -337,6 +505,7 @@ function buildCampaignSummaries(input: {
       title: asText(copyEn.title, key),
       body: asText(copyEn.body),
       titleVi: asText(copyVi.title, asText(copyEn.title, key)),
+      bodyVi: asText(copyVi.body, asText(copyEn.body)),
       status:
         campaign.status === "active" || campaign.status === "archived"
           ? campaign.status
@@ -360,6 +529,35 @@ function buildCampaignSummaries(input: {
       averageRating,
       lastResponseAt: responses[0]?.submittedAt ?? null,
       updatedAt: asText(campaign.updated_at, asText(campaign.created_at)),
+      previews: buildPreviewSet({
+        campaign: normalizedCampaign,
+        latestVersion,
+      }),
+    };
+  });
+}
+
+function buildSystemCampaignSummaries(
+  campaigns: Record<string, unknown>[]
+): SmartPopupSystemCampaignSummary[] {
+  return campaigns.map((campaign) => {
+    const normalizedCampaign = normalizeCampaign(campaign);
+    const fallbackTitle = getCopyText(campaign, "copy_en", "title", normalizedCampaign.key);
+    const fallbackBody = getCopyText(campaign, "copy_en", "body");
+
+    return {
+      key: normalizedCampaign.key,
+      title: fallbackTitle,
+      body: fallbackBody,
+      titleVi: getCopyText(campaign, "copy_vi", "title", fallbackTitle),
+      bodyVi: getCopyText(campaign, "copy_vi", "body", fallbackBody),
+      status: normalizedCampaign.status,
+      deliveryMode: normalizedCampaign.delivery_mode,
+      surface: normalizedCampaign.surface,
+      priority: normalizedCampaign.priority,
+      ctaHref: normalizedCampaign.cta_href,
+      updatedAt: asText(campaign.updated_at, asText(campaign.created_at)),
+      previews: buildPreviewSet({ campaign: normalizedCampaign }),
     };
   });
 }
@@ -372,13 +570,12 @@ export async function getFeedbackPopupAdminData(
     supabase
       .from("smart_popup_campaigns")
       .select(
-        "key, status, delivery_mode, priority, reward_credits, response_goal, starts_at, ends_at, copy_en, copy_vi, updated_at, created_at"
+        "id, key, surface, status, campaign_type, delivery_mode, priority, starts_at, ends_at, cooldown_hours, max_impressions_per_user, daily_cap_per_user, weekly_cap_per_user, reward_credits, response_goal, cta_href, image_path, copy_en, copy_vi, rules, metadata, updated_at, created_at"
       )
-      .eq("campaign_type", "feedback_survey")
       .order("updated_at", { ascending: false }),
     supabase
       .from("smart_popup_survey_versions")
-      .select("id, campaign_key, version, questions, created_at")
+      .select("id, campaign_key, version, questions, thank_you_copy, created_at")
       .order("version", { ascending: false }),
     supabase
       .from("smart_popup_survey_responses")
@@ -406,11 +603,19 @@ export async function getFeedbackPopupAdminData(
     route: extractRoute(row.context),
     answers: normalizeAnswers(row.answers),
   }));
+  const campaignRows = (campaignsRes.data ?? []) as Record<string, unknown>[];
+  const feedbackRows = campaignRows.filter(
+    (campaign) => campaign.campaign_type === "feedback_survey"
+  );
+  const systemRows = campaignRows.filter(
+    (campaign) => campaign.campaign_type === "feature_nudge"
+  );
   const campaigns = buildCampaignSummaries({
-    campaigns: (campaignsRes.data ?? []) as Record<string, unknown>[],
+    campaigns: feedbackRows,
     versions: (versionsRes.data ?? []) as Record<string, unknown>[],
     responses,
   });
+  const systemCampaigns = buildSystemCampaignSummaries(systemRows);
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === "active").length;
   const totalResponses = responses.length;
   const avgRatingValues = responses.flatMap((response) => getNumericRatings(response.answers));
@@ -430,6 +635,7 @@ export async function getFeedbackPopupAdminData(
 
   return {
     campaigns,
+    systemCampaigns,
     responses,
     cronRuns,
     health: buildFeedbackPopupAdminHealth({

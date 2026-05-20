@@ -19,14 +19,31 @@ import {
   Trash2,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import {
+  FeatureNudgePopup,
+  SmartPopupFrame,
+  SurveyPopup,
+  SurveyThankYou,
+} from "@/components/shared/smart-popup-host";
 import { cn } from "@/lib/utils";
 import type { FeedbackPopupAdminData } from "@/lib/smart-popups/admin";
+import type { LocalizedSurveyQuestion } from "@/lib/smart-popups/survey";
 import type {
   SmartPopupSurveyQuestion,
   SmartPopupSurveyQuestionType,
 } from "@/lib/smart-popups/survey";
+import type {
+  SmartPopupLocale,
+  SmartPopupPayload,
+  SmartPopupSurveyPayload,
+} from "@/lib/smart-popups/types";
 
-type AdminTab = "campaigns" | "builder" | "responses" | "analytics" | "health";
+type AdminTab = "campaigns" | "system" | "builder" | "responses" | "analytics" | "health";
+type PreviewAnswer = number | string | string[];
+type PreviewState = {
+  popup: SmartPopupPayload;
+  locale: SmartPopupLocale;
+};
 
 interface Props {
   initialData: FeedbackPopupAdminData;
@@ -169,6 +186,10 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
     responseGoal: 100,
   });
   const [questions, setQuestions] = useState<SmartPopupSurveyQuestion[]>(DEFAULT_QUESTIONS);
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [previewAnswers, setPreviewAnswers] = useState<Record<string, PreviewAnswer>>({});
+  const [previewSubmitted, setPreviewSubmitted] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const health = data.health;
   const writesDisabled = !health.serviceRoleConfigured || health.status === "error";
   const writeDisabledMessage = !health.serviceRoleConfigured
@@ -189,6 +210,136 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
     }
     return Array.from(buckets.entries()).sort((a, b) => a[0] - b[0]);
   }, [data.responses]);
+
+  function openPreview(popup: SmartPopupPayload, locale: SmartPopupLocale) {
+    setPreview({ popup, locale });
+    setPreviewAnswers({});
+    setPreviewSubmitted(false);
+    setPreviewError(null);
+  }
+
+  function closePreview() {
+    setPreview(null);
+    setPreviewAnswers({});
+    setPreviewSubmitted(false);
+    setPreviewError(null);
+  }
+
+  function setPreviewAnswer(questionId: string, value: PreviewAnswer) {
+    setPreviewAnswers((current) => ({
+      ...current,
+      [questionId]: value,
+    }));
+  }
+
+  function renderPreviewQuestion(question: LocalizedSurveyQuestion) {
+    const value = previewAnswers[question.id];
+
+    if (question.type === "rating" || question.type === "nps") {
+      const min = question.min ?? (question.type === "nps" ? 0 : 1);
+      const max = question.max ?? (question.type === "nps" ? 10 : 5);
+      const values = Array.from({ length: max - min + 1 }, (_, index) => min + index);
+
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
+            {values.map((rating) => {
+              const selected = value === rating;
+              return (
+                <button
+                  key={rating}
+                  type="button"
+                  onClick={() => setPreviewAnswer(question.id, rating)}
+                  className={cn(
+                    "flex h-10 items-center justify-center rounded-lg border text-sm font-extrabold transition",
+                    selected
+                      ? "border-[#4D86F7] bg-[#4D86F7] text-white shadow-sm"
+                      : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB] hover:bg-[#F7FAFE]"
+                  )}
+                >
+                  {rating}
+                </button>
+              );
+            })}
+          </div>
+          {(question.minLabel || question.maxLabel) ? (
+            <div className="flex justify-between gap-3 text-xs font-semibold text-[#718096]">
+              <span>{question.minLabel}</span>
+              <span>{question.maxLabel}</span>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (question.type === "single_choice" || question.type === "multi_choice") {
+      const selected = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+      return (
+        <div className="grid gap-2">
+          {(question.options ?? []).map((option) => {
+            const active = selected.includes(option.id);
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  if (question.type === "single_choice") {
+                    setPreviewAnswer(question.id, option.id);
+                    return;
+                  }
+                  setPreviewAnswer(
+                    question.id,
+                    active
+                      ? selected.filter((item) => item !== option.id)
+                      : [...selected, option.id]
+                  );
+                }}
+                className={cn(
+                  "flex min-h-11 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition",
+                  active
+                    ? "border-[#4D86F7] bg-[#EDF4FF] text-[#0B1424]"
+                    : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB]"
+                )}
+              >
+                <span>{option.label}</span>
+                {active ? <CheckCircle2 className="h-4 w-4 text-[#4D86F7]" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <textarea
+        value={typeof value === "string" ? value : ""}
+        onChange={(event) => setPreviewAnswer(question.id, event.target.value)}
+        placeholder={question.placeholder}
+        className="min-h-24 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-sm text-[#162033] outline-none transition placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-2 focus:ring-[#A9C6FB]/40"
+      />
+    );
+  }
+
+  function submitPreviewSurvey(survey: SmartPopupSurveyPayload, locale: SmartPopupLocale) {
+    const missing = survey.questions.find((question) => {
+      if (!question.required) return false;
+      const value = previewAnswers[question.id];
+      if (Array.isArray(value)) return value.length === 0;
+      return value == null || value === "";
+    });
+
+    if (missing) {
+      setPreviewError(
+        locale === "vi"
+          ? "Vui lòng trả lời các câu bắt buộc."
+          : "Please answer the required questions."
+      );
+      return;
+    }
+
+    setPreviewError(null);
+    setPreviewSubmitted(true);
+  }
 
   async function refresh() {
     const res = await fetch("/api/admin/feedback-popups", { cache: "no-store" });
@@ -250,6 +401,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
   }
 
   return (
+    <>
     <div className="mx-auto max-w-7xl min-w-0 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -349,6 +501,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-[#DEE8F8] bg-[#F1F6FD] p-1">
         {[
           ["campaigns", "Campaigns", Megaphone],
+          ["system", "System nudges", Eye],
           ["builder", "Builder", Edit3],
           ["responses", "Responses", MessageSquareText],
           ["analytics", "Analytics", BarChart3],
@@ -410,6 +563,24 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                     <Button
                       type="button"
                       size="sm"
+                      variant="outline"
+                      onClick={() => openPreview(campaign.previews.en, "en")}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview EN
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openPreview(campaign.previews.vi, "vi")}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview VI
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
                       disabled={isPending || writesDisabled}
                       title={writeDisabledMessage}
                       onClick={() =>
@@ -467,6 +638,81 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
               ))
             )}
           </div>
+        </section>
+      ) : null}
+
+      {activeTab === "system" ? (
+        <section className="space-y-4">
+          <div className="rounded-lg border border-[#DEE8F8] bg-white p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#0B1424]">System nudges</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#415069]">
+                  Preview the system-managed feature nudges that can appear in the app. These are read-only here, so preview clicks never record events or change delivery state.
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center rounded-full bg-[#EDF4FF] px-3 py-1 text-xs font-bold text-[#3E78EC]">
+                {data.systemCampaigns.length} system managed
+              </span>
+            </div>
+          </div>
+          {data.systemCampaigns.length === 0 ? (
+            <div className="rounded-lg border border-[#DEE8F8] bg-white p-6 text-sm text-[#718096]">
+              No system nudges are visible from Supabase yet.
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {data.systemCampaigns.map((campaign) => (
+                <article
+                  key={campaign.key}
+                  className="rounded-lg border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_42px_-34px_rgba(11,20,36,0.35)]"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-extrabold text-[#0B1424]">{campaign.title}</p>
+                        <span className="rounded-full bg-[#F3F7FF] px-2.5 py-1 text-xs font-bold text-[#4D86F7]">
+                          System managed
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#718096]">{campaign.key}</p>
+                    </div>
+                    <StatusBadge status={campaign.status} />
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#415069]">
+                    {campaign.body}
+                  </p>
+                  <div className="mt-4 grid gap-2 text-xs font-semibold text-[#718096] sm:grid-cols-3">
+                    <span>Surface: {campaign.surface}</span>
+                    <span>Mode: {campaign.deliveryMode.replace("_", " ")}</span>
+                    <span>Priority: {campaign.priority}</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openPreview(campaign.previews.en, "en")}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview EN
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openPreview(campaign.previews.vi, "vi")}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview VI
+                    </Button>
+                    <span className="inline-flex min-h-9 items-center rounded-lg bg-[#F7FAFE] px-3 text-xs font-bold text-[#64748B]">
+                      CTA: {campaign.ctaHref}
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 
@@ -851,5 +1097,46 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         </section>
       ) : null}
     </div>
+    {preview ? (
+      <SmartPopupFrame
+        open
+        closeLabel={preview.popup.dismissLabel}
+        onClose={closePreview}
+        onOpenChange={(open) => {
+          if (!open) closePreview();
+        }}
+      >
+        {previewSubmitted && preview.popup.survey ? (
+          <SurveyThankYou
+            title={preview.popup.survey.thankYou.title}
+            body={preview.popup.survey.thankYou.body}
+            rewardCredits={preview.popup.survey.rewardCredits}
+            doneLabel={preview.locale === "vi" ? "Xong" : "Done"}
+            onDone={closePreview}
+          />
+        ) : preview.popup.campaignType === "feedback_survey" && preview.popup.survey ? (
+          <SurveyPopup
+            popup={preview.popup}
+            survey={preview.popup.survey}
+            submitError={previewError}
+            renderQuestion={renderPreviewQuestion}
+            onSubmit={() => submitPreviewSurvey(preview.popup.survey!, preview.locale)}
+            onDismiss={closePreview}
+            onDontShowAgain={closePreview}
+          />
+        ) : (
+          <FeatureNudgePopup
+            popup={preview.popup}
+            onCta={() => {
+              setNotice(`Preview only: CTA would open ${preview.popup.ctaHref}.`);
+              closePreview();
+            }}
+            onDismiss={closePreview}
+            onDontShowAgain={closePreview}
+          />
+        )}
+      </SmartPopupFrame>
+    ) : null}
+    </>
   );
 }

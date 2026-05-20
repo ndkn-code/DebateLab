@@ -41,6 +41,7 @@ function testEmptyDataPreservesFallbackContext() {
   });
 
   assert.deepEqual(data.campaigns, []);
+  assert.deepEqual(data.systemCampaigns, []);
   assert.deepEqual(data.responses, []);
   assert.deepEqual(data.cronRuns, []);
   assert.equal(data.health.status, "error");
