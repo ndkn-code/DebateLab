@@ -880,6 +880,12 @@
       "info": "Thông tin",
       "argument_anchors": "Luận điểm gợi ý",
       "motion_default_context": "Xác định clash, chọn burden mạnh nhất và giải thích vì sao phe của bạn quan trọng hơn.",
+      "motion_brief": "Brief của motion",
+      "motion_scope": "Phạm vi",
+      "your_burden": "Burden của bạn",
+      "model_clarification": "Mô hình",
+      "show_motion_brief": "Mở brief motion",
+      "hide_motion_brief": "Ẩn brief motion",
       "preparation_phase": "Chuẩn bị",
       "prep_prompt": "Lên mở bài và các ý chính.",
       "skip_to_speaking": "Bỏ qua để nói",
@@ -1951,6 +1957,18 @@
       "focusCta": "Ưu tiên phần này lần tới"
     },
     "skillBreakdown": "Chi tiết kỹ năng",
+    "scoreRationale": {
+      "heading": "Vì sao có điểm này",
+      "total": "Tổng {score}/100",
+      "whyNotHigher": "Vì sao chưa cao hơn",
+      "nextStep": "Bước tiếp theo",
+      "categories": {
+        "content": "Nội dung",
+        "structure": "Cấu trúc",
+        "language": "Ngôn ngữ",
+        "persuasion": "Thuyết phục"
+      }
+    },
     "casework": {
       "heading": "Chẩn đoán bài tranh biện",
       "subheading": "Phần này tập trung vào chất lượng lập luận, lớp lập luận còn thiếu, đối đầu lập luận và cách xây lại luận điểm mạnh hơn.",

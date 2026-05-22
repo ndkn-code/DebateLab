@@ -75,6 +75,22 @@ export interface DebateClashLink {
   tag: DebateClashTag;
 }
 
+export interface ScoreRationaleCategory {
+  score: number;
+  maxScore: number;
+  rationale: string;
+  whyNotHigher: string;
+  nextStep: string;
+}
+
+export interface ScoreRationale {
+  overall: string;
+  content: ScoreRationaleCategory;
+  structure: ScoreRationaleCategory;
+  language: ScoreRationaleCategory;
+  persuasion: ScoreRationaleCategory;
+}
+
 export interface DebateScore {
   content: {
     score: number;
@@ -123,6 +139,7 @@ export interface DebateScore {
   transcriptAnnotations?: TranscriptAnnotation[];
   debateVerdict?: DebateVerdict;
   clashLinks?: DebateClashLink[];
+  scoreRationale?: ScoreRationale;
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;

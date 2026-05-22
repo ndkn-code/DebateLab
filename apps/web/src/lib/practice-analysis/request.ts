@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/request-validation";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 import type { PracticeAnalysisInput } from "./types";
-import type { ClubPracticeContext } from "@/types";
+import type { ClubPracticeContext, DebateMemory, MotionBrief } from "@/types";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -60,6 +60,78 @@ function getOptionalUuid(body: JsonRecord, key: string) {
 
 function getOptionalString(body: JsonRecord, key: string, maxLength: number) {
   return getString(body, key, { maxLength });
+}
+
+function readStringArray(value: unknown, maxItems: number, maxLength: number) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim().slice(0, maxLength) : ""))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function parseMotionBrief(value: unknown): MotionBrief | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const keyTerms = readStringArray(value.keyTerms, 8, 240);
+  const scope = typeof value.scope === "string" ? value.scope.trim().slice(0, 1200) : "";
+  const propositionBurden =
+    typeof value.propositionBurden === "string"
+      ? value.propositionBurden.trim().slice(0, 1200)
+      : "";
+  const oppositionBurden =
+    typeof value.oppositionBurden === "string"
+      ? value.oppositionBurden.trim().slice(0, 1200)
+      : "";
+  const modelClarification =
+    typeof value.modelClarification === "string"
+      ? value.modelClarification.trim().slice(0, 1200)
+      : "";
+
+  if (
+    keyTerms.length === 0 ||
+    !scope ||
+    !propositionBurden ||
+    !oppositionBurden ||
+    !modelClarification
+  ) {
+    return undefined;
+  }
+
+  return {
+    keyTerms,
+    scope,
+    propositionBurden,
+    oppositionBurden,
+    modelClarification,
+  };
+}
+
+function parseDebateMemory(value: unknown): DebateMemory | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const aiSide =
+    value.aiSide === "proposition" || value.aiSide === "opposition"
+      ? value.aiSide
+      : null;
+  const studentSide =
+    value.studentSide === "proposition" || value.studentSide === "opposition"
+      ? value.studentSide
+      : null;
+  const policyModel =
+    typeof value.policyModel === "string"
+      ? value.policyModel.trim().slice(0, 1200)
+      : "";
+
+  if (!aiSide || !studentSide || !policyModel) return undefined;
+
+  return {
+    aiSide,
+    studentSide,
+    policyModel,
+    priorAiClaims: readStringArray(value.priorAiClaims, 12, 500),
+    concessions: readStringArray(value.concessions, 8, 500),
+    activeClashes: readStringArray(value.activeClashes, 12, 500),
+    droppedClaims: readStringArray(value.droppedClaims, 8, 500),
+  };
 }
 
 function parseClubContext(body: JsonRecord): ClubPracticeContext | undefined {
@@ -142,6 +214,8 @@ export function parsePracticeAnalysisInput(body: JsonRecord): PracticeAnalysisIn
     practiceLanguage,
     isFullRound: Boolean(getBoolean(body, "isFullRound", false)),
     rounds,
+    motionBrief: parseMotionBrief(body.motionBrief),
+    debateMemory: parseDebateMemory(body.debateMemory),
     mode,
     prepTime: getNumber(body, "prepTime", {
       min: 0,

@@ -12,6 +12,7 @@ import { getTopicCategoryKey, getTopicStableKey } from "@/lib/topics";
 import type { Mode, Phase } from "@/store/session-store";
 import type {
   AiDifficulty,
+  DebateMemory,
   DebateRound,
   DebateTopic,
   PracticeLanguage,
@@ -35,6 +36,7 @@ export interface PracticeSessionDraftPayload {
   prepNotes: string;
   transcript: string;
   rounds: DebateRound[];
+  debateMemory?: DebateMemory | null;
   sessionStartTime: number | null;
 }
 
@@ -114,6 +116,9 @@ function rowToPayload(row: PracticeSessionDraftRow): PracticeSessionDraftPayload
     prepNotes: row.prep_notes ?? "",
     transcript: row.transcript ?? "",
     rounds: row.rounds ?? [],
+    debateMemory:
+      row.rounds?.slice().reverse().find((round) => round.debateMemory)
+        ?.debateMemory ?? null,
     sessionStartTime: row.session_started_at
       ? new Date(row.session_started_at).getTime()
       : null,

@@ -48,6 +48,7 @@ export function usePracticeSessionDraft() {
   const prepNotes = useSessionStore((state) => state.prepNotes);
   const transcript = useSessionStore((state) => state.transcript);
   const rounds = useSessionStore((state) => state.rounds);
+  const debateMemory = useSessionStore((state) => state.debateMemory);
   const sessionStartTime = useSessionStore((state) => state.sessionStartTime);
   const draftId = useSessionStore((state) => state.draftId);
   const setDraftId = useSessionStore((state) => state.setDraftId);
@@ -74,6 +75,7 @@ export function usePracticeSessionDraft() {
       prepNotes,
       transcript,
       rounds: rounds as DebateRound[],
+      debateMemory,
       sessionStartTime,
     };
   }, [
@@ -87,6 +89,7 @@ export function usePracticeSessionDraft() {
     prepTime,
     resolvedSide,
     rounds,
+    debateMemory,
     selectedTopic,
     sessionStartTime,
     speechTime,

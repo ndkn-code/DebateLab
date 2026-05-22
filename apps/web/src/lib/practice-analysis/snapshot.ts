@@ -51,6 +51,8 @@ export function buildPracticeAttemptSnapshot(
       practiceLanguage: input.practiceLanguage,
       isFullRound: input.isFullRound,
       rounds: input.rounds,
+      motionBrief: input.motionBrief,
+      debateMemory: input.debateMemory ?? null,
     },
     session: {
       mode: input.mode,
@@ -81,6 +83,8 @@ export function createPracticeInputHash(input: PracticeAnalysisInput) {
     practiceLanguage: input.practiceLanguage,
     isFullRound: input.isFullRound,
     rounds: input.rounds ?? [],
+    motionBrief: input.motionBrief ?? null,
+    debateMemory: input.debateMemory ?? null,
     promptBundleVersion: PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
     rubricKey: getRubricKeyForPracticeTrack(input.practiceTrack),
   });

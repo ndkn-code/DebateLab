@@ -29,7 +29,13 @@ import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 // the common Vercel serverless ceiling.
 export const maxDuration = 60;
 
-import type { DebateRound, PracticeLanguage, PracticeTrack } from "@/types";
+import type {
+  DebateMemory,
+  DebateRound,
+  MotionBrief,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 import type { AnalysisJobRecord, PracticeAttemptRecord } from "@/lib/practice-analysis/types";
 
 interface AnalyzeRequest {
@@ -43,6 +49,8 @@ interface AnalyzeRequest {
   practiceLanguage: PracticeLanguage;
   isFullRound?: boolean;
   rounds?: DebateRound[];
+  motionBrief?: MotionBrief;
+  debateMemory?: DebateMemory;
 }
 
 function createAnalyzeRequestId() {
@@ -88,6 +96,72 @@ function parseRound(value: unknown, index: number): DebateRound {
       : undefined;
 
   return { roundNumber, type, label, transcript, aiResponse, duration };
+}
+
+function readStringArray(value: unknown, maxItems: number, maxLength: number) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim().slice(0, maxLength) : ""))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function parseMotionBrief(value: unknown): MotionBrief | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const keyTerms = readStringArray(value.keyTerms, 8, 240);
+  const scope = typeof value.scope === "string" ? value.scope.trim().slice(0, 1200) : "";
+  const propositionBurden =
+    typeof value.propositionBurden === "string"
+      ? value.propositionBurden.trim().slice(0, 1200)
+      : "";
+  const oppositionBurden =
+    typeof value.oppositionBurden === "string"
+      ? value.oppositionBurden.trim().slice(0, 1200)
+      : "";
+  const modelClarification =
+    typeof value.modelClarification === "string"
+      ? value.modelClarification.trim().slice(0, 1200)
+      : "";
+
+  if (!keyTerms.length || !scope || !propositionBurden || !oppositionBurden || !modelClarification) {
+    return undefined;
+  }
+
+  return {
+    keyTerms,
+    scope,
+    propositionBurden,
+    oppositionBurden,
+    modelClarification,
+  };
+}
+
+function parseDebateMemory(value: unknown): DebateMemory | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const aiSide =
+    value.aiSide === "proposition" || value.aiSide === "opposition"
+      ? value.aiSide
+      : null;
+  const studentSide =
+    value.studentSide === "proposition" || value.studentSide === "opposition"
+      ? value.studentSide
+      : null;
+  const policyModel =
+    typeof value.policyModel === "string"
+      ? value.policyModel.trim().slice(0, 1200)
+      : "";
+
+  if (!aiSide || !studentSide || !policyModel) return undefined;
+
+  return {
+    aiSide,
+    studentSide,
+    policyModel,
+    priorAiClaims: readStringArray(value.priorAiClaims, 12, 500),
+    concessions: readStringArray(value.concessions, 8, 500),
+    activeClashes: readStringArray(value.activeClashes, 12, 500),
+    droppedClaims: readStringArray(value.droppedClaims, 8, 500),
+  };
 }
 
 function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
@@ -151,6 +225,8 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     practiceLanguage,
     isFullRound: getBoolean(body, "isFullRound", false),
     rounds,
+    motionBrief: parseMotionBrief(body.motionBrief),
+    debateMemory: parseDebateMemory(body.debateMemory),
   };
 }
 
@@ -212,6 +288,8 @@ export async function POST(req: NextRequest) {
       practiceLanguage,
       isFullRound,
       rounds,
+      motionBrief,
+      debateMemory,
     } =
       body;
 
@@ -280,6 +358,8 @@ export async function POST(req: NextRequest) {
         practiceLanguage,
         isFullRound: Boolean(isFullRound),
         rounds,
+        motionBrief,
+        debateMemory,
         mode:
           practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
             ? "full"
@@ -323,6 +403,8 @@ export async function POST(req: NextRequest) {
           practiceLanguage,
           isFullRound,
           rounds,
+          motionBrief,
+          debateMemory,
         }, authUser.id),
         timeoutPromise,
       ]);

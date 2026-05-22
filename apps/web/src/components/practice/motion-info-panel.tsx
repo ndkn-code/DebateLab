@@ -1,8 +1,9 @@
 "use client";
 
 import { BookOpenText, Lightbulb, Scale, ShieldCheck } from "@/components/ui/icons";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { DebateTopic } from "@/types";
+import { getMotionBrief } from "@/lib/motion-brief";
 import { cn } from "@/lib/utils";
 
 interface MotionInfoPanelProps {
@@ -29,6 +30,7 @@ export function MotionInfoPanel({
   className,
 }: MotionInfoPanelProps) {
   const t = useTranslations("dashboard.practice");
+  const locale = useLocale();
   const sideLabel = side === "proposition" ? t("for") : t("against");
   const difficultyLabel =
     topic.difficulty === "beginner"
@@ -37,6 +39,11 @@ export function MotionInfoPanel({
         ? t("difficulty_advanced")
         : t("difficulty_intermediate");
   const points = getSidePoints(topic, side);
+  const motionBrief = getMotionBrief(topic, locale === "vi" ? "vi" : "en");
+  const sideBurden =
+    side === "proposition"
+      ? motionBrief.propositionBurden
+      : motionBrief.oppositionBurden;
 
   return (
     <section
@@ -82,6 +89,34 @@ export function MotionInfoPanel({
           <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-[#415069]">
             {topic.context ||
               t("session.motion_default_context")}
+          </p>
+        </div>
+
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <div className="rounded-md border border-[#DEE8F8] bg-white px-3 py-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+              {t("session.motion_scope")}
+            </div>
+            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-[#415069]">
+              {motionBrief.scope}
+            </p>
+          </div>
+          <div className="rounded-md border border-[#DEE8F8] bg-white px-3 py-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+              {t("session.your_burden")}
+            </div>
+            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-[#415069]">
+              {sideBurden}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-md border border-[#DEE8F8] bg-[#FBFCFF] px-3 py-2.5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+            {t("session.model_clarification")}
+          </div>
+          <p className="mt-1.5 text-sm leading-5 text-[#415069]">
+            {motionBrief.modelClarification}
           </p>
         </div>
 

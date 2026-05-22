@@ -295,6 +295,31 @@ export function SessionResultDashboard({
       Boolean(item.value)
   );
   const argumentBreakdowns = viewModel.feedback.argumentBreakdowns ?? [];
+  const scoreRationale = viewModel.feedback.scoreRationale;
+  const scoreRationaleCategories = scoreRationale
+    ? [
+        {
+          key: "content" as const,
+          value: scoreRationale.content,
+          icon: Scale,
+        },
+        {
+          key: "structure" as const,
+          value: scoreRationale.structure,
+          icon: Target,
+        },
+        {
+          key: "language" as const,
+          value: scoreRationale.language,
+          icon: Mic2,
+        },
+        {
+          key: "persuasion" as const,
+          value: scoreRationale.persuasion,
+          icon: Trophy,
+        },
+      ]
+    : [];
   const hasCasework =
     viewModel.practiceTrack === "debate" &&
     (caseworkItems.length > 0 || argumentBreakdowns.length > 0);
@@ -714,6 +739,66 @@ export function SessionResultDashboard({
           })}
         </div>
       </div>
+
+      {scoreRationale && (
+        <section className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-[#071159]">
+                {t("scoreRationale.heading")}
+              </h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-[#30427A]">
+                {scoreRationale.overall}
+              </p>
+            </div>
+            <span className="rounded-xl bg-[#EAF1FF] px-3 py-2 text-sm font-bold text-primary ring-1 ring-[#CFE0FF]">
+              {t("scoreRationale.total", {
+                score: viewModel.feedback.totalScore,
+              })}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {scoreRationaleCategories.map(({ key, value, icon: Icon }) => (
+              <article
+                key={key}
+                className="rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+                    <Icon className="h-4 w-4 text-primary" />
+                    {t(`scoreRationale.categories.${key}`)}
+                  </div>
+                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-[#071159] ring-1 ring-[#DEE8F8]">
+                    {value.score}/{value.maxScore}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                  {value.rationale}
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg bg-[#FFF8F2] p-3 ring-1 ring-[#FFD7B3]">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#C96A18]">
+                      {t("scoreRationale.whyNotHigher")}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                      {value.whyNotHigher}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-[#F4FCF7] p-3 ring-1 ring-[#CDEED9]">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1A9153]">
+                      {t("scoreRationale.nextStep")}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                      {value.nextStep}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {hasCasework && (
         <div className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">

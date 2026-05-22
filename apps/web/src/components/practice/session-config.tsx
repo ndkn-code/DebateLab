@@ -4,7 +4,7 @@ import type { ElementType, ReactNode } from "react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowRight,
   Bookmark,
@@ -27,6 +27,7 @@ import {
   SOLO_SPEECH_DURATION,
 } from "@/lib/practice-durations";
 import { useSessionStore } from "@/store/session-store";
+import { getMotionBrief } from "@/lib/motion-brief";
 import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
 
@@ -207,6 +208,7 @@ export function SessionConfig({
 }: SessionConfigProps) {
   const router = useRouter();
   const t = useTranslations("dashboard.practice");
+  const locale = useLocale();
   const [showOrbModal, setShowOrbModal] = useState(false);
   const [isDeducting, setIsDeducting] = useState(false);
   const [showBeginTransition, setShowBeginTransition] = useState(false);
@@ -231,6 +233,7 @@ export function SessionConfig({
 
   const orbCost = practiceTrack === "debate" ? 200 : 100;
   const isDesktop = layout === "desktop";
+  const motionBrief = getMotionBrief(topic, locale === "vi" ? "vi" : "en");
 
   const handleBegin = async () => {
     if (orbBalance !== null && orbBalance < orbCost) {
@@ -290,6 +293,19 @@ export function SessionConfig({
         </div>
 
         <div className="mt-5 border-t border-[#e7edf8] pt-5">
+          <div className="mb-5 rounded-xl border border-[#DDE8F8] bg-[#F8FBFF] p-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+              <Scale className="h-4 w-4 text-primary" />
+              {t("session.motion_brief")}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[#30427A]">
+              {motionBrief.scope}
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#52658D]">
+              {motionBrief.modelClarification}
+            </p>
+          </div>
+
           <div className="space-y-5">
             <ConfigSection label={t("practice_track")} icon={Mic2}>
               <div className="grid gap-3 sm:grid-cols-2">

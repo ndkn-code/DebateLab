@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   AiHighlight,
   ClubPracticeContext,
+  DebateMemory,
   DebateTopic,
   DebateRound,
   AiDifficulty,
@@ -22,6 +23,11 @@ import {
   normalizeRebuttalText,
   normalizeStructuredRebuttalResponse,
 } from "@/lib/rebuttal/structured-response";
+import {
+  createInitialDebateMemory,
+  updateDebateMemoryFromAiSpeech,
+  updateDebateMemoryFromUserSpeech,
+} from "@/lib/rebuttal/debate-continuity";
 
 export type Side = "proposition" | "opposition" | "random";
 export type Mode = "quick" | "full";
@@ -60,6 +66,7 @@ interface SessionDraftSnapshot {
   rounds: DebateRound[];
   sessionStartTime: number | null;
   clubContext?: ClubPracticeContext;
+  debateMemory?: DebateMemory | null;
 }
 
 interface SessionState {
@@ -88,6 +95,7 @@ interface SessionState {
   // Full Round data
   currentRound: number;
   rounds: DebateRound[];
+  debateMemory: DebateMemory | null;
 
   // Actions
   setTopic: (topic: DebateTopic | null) => void;
@@ -144,6 +152,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   currentRound: 1,
   rounds: [],
+  debateMemory: null,
 
   setTopic: (topic) => set({ selectedTopic: topic }),
   setSide: (side) => set({ side }),
@@ -185,6 +194,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         state.practiceTrack === "debate" && resolvedMode === "full"
           ? FULL_ROUND_STRUCTURE.map((r) => ({ ...r }))
           : [];
+      const debateMemory =
+        state.practiceTrack === "debate" && state.selectedTopic
+          ? createInitialDebateMemory({
+              topic: state.selectedTopic,
+              side: resolvedSide,
+              practiceLanguage: state.practiceLanguage,
+            })
+          : null;
 
       return {
         currentPhase: "mic-check",
@@ -199,6 +216,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         mode: resolvedMode,
         currentRound: 1,
         rounds,
+        debateMemory,
       };
     }),
   restoreSessionDraft: (draft) =>
@@ -216,6 +234,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       transcript: draft.transcript,
       prepNotes: draft.prepNotes,
       rounds: draft.rounds,
+      debateMemory: draft.debateMemory ?? null,
       sessionStartTime: draft.sessionStartTime,
       draftId: draft.draftId,
       clubContext: draft.clubContext ?? null,
@@ -245,16 +264,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       clubContext: null,
       currentRound: 1,
       rounds: [],
+      debateMemory: null,
     }),
 
   setCurrentRound: (round) => set({ currentRound: round }),
 
   saveRoundTranscript: (roundNumber, transcript, duration) =>
-    set((state) => ({
-      rounds: state.rounds.map((r) =>
-        r.roundNumber === roundNumber ? { ...r, transcript, duration } : r
-      ),
-    })),
+    set((state) => {
+      const round =
+        state.rounds.find((r) => r.roundNumber === roundNumber) ??
+        ({
+          roundNumber,
+          label: `Round ${roundNumber}`,
+        } as Pick<DebateRound, "roundNumber" | "label">);
+      const debateMemory = updateDebateMemoryFromUserSpeech(
+        state.debateMemory,
+        round,
+        transcript
+      );
+
+      return {
+        rounds: state.rounds.map((r) =>
+          r.roundNumber === roundNumber ? { ...r, transcript, duration } : r
+        ),
+        debateMemory,
+      };
+    }),
 
   saveAiRebuttal: (roundNumber, aiResponse, aiHighlights) =>
     set((state) => {
@@ -262,6 +297,19 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         aiResponse,
         aiHighlights
       );
+      const round =
+        state.rounds.find((r) => r.roundNumber === roundNumber) ??
+        ({
+          roundNumber,
+          label: `Round ${roundNumber}`,
+        } as Pick<DebateRound, "roundNumber" | "label">);
+      const debateMemory = updateDebateMemoryFromAiSpeech(
+        state.debateMemory,
+        round,
+        normalized.rebuttal,
+        normalized.highlights
+      );
+
       return {
         rounds: state.rounds.map((r) =>
           r.roundNumber === roundNumber
@@ -269,9 +317,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 ...r,
                 aiResponse: normalized.rebuttal,
                 aiHighlights: normalized.highlights,
+                debateMemory: debateMemory ?? undefined,
               }
             : r
         ),
+        debateMemory,
       };
     }),
 

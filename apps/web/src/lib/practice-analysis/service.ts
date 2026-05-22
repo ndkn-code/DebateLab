@@ -46,6 +46,8 @@ export function practiceAttemptRowToInput(
     practiceLanguage: attempt.practice_language,
     isFullRound: attempt.attempt_snapshot.analysisParams.isFullRound,
     rounds: attempt.rounds ?? undefined,
+    motionBrief: attempt.attempt_snapshot.analysisParams.motionBrief,
+    debateMemory: attempt.attempt_snapshot.analysisParams.debateMemory ?? undefined,
     mode: attempt.mode,
     prepTime: attempt.prep_time,
     speechTime: attempt.speech_time,

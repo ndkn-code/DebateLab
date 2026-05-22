@@ -880,6 +880,12 @@
         "info": "Info",
         "argument_anchors": "Argument anchors",
         "motion_default_context": "Define the clash, choose your strongest burden, and explain why your side matters more.",
+        "motion_brief": "Motion brief",
+        "motion_scope": "Scope",
+        "your_burden": "Your burden",
+        "model_clarification": "Model",
+        "show_motion_brief": "Show motion brief",
+        "hide_motion_brief": "Hide motion brief",
         "preparation_phase": "Prep",
         "prep_prompt": "Plan your opening and key points.",
         "skip_to_speaking": "Skip to speaking",
@@ -1951,6 +1957,18 @@
       "focusCta": "Focus this next time"
     },
     "skillBreakdown": "Your Skills Breakdown",
+    "scoreRationale": {
+      "heading": "Why this score",
+      "total": "{score}/100 overall",
+      "whyNotHigher": "Why not higher",
+      "nextStep": "Next step",
+      "categories": {
+        "content": "Content",
+        "structure": "Structure",
+        "language": "Language",
+        "persuasion": "Persuasion"
+      }
+    },
     "casework": {
       "heading": "Debate Case Diagnosis",
       "subheading": "These notes focus on argument quality, missing reasoning layers, clash, and stronger rebuilds.",

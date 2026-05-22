@@ -5,8 +5,8 @@ export const PRACTICE_ANALYSIS_JOB_TYPE = "practice_feedback";
 export const PRACTICE_AUDIO_BUCKET = "practice-audio";
 
 export const PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY = "practice_feedback";
-export const PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION = 1;
-export const PRACTICE_FEEDBACK_RUBRIC_VERSION = 1;
+export const PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION = 2;
+export const PRACTICE_FEEDBACK_RUBRIC_VERSION = 2;
 export const PRACTICE_FEEDBACK_MODEL_PROVIDER = "google";
 
 export function getRubricKeyForPracticeTrack(track: PracticeTrack) {

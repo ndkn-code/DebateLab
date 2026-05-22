@@ -39,6 +39,23 @@ assert.match(
   vietnamesePhoneTopic?.suggestedPoints?.proposition[0] ?? "",
   /Điện thoại/
 );
+assert.match(englishPhoneTopic?.motionBrief?.scope ?? "", /personal smartphones/);
+assert.match(
+  vietnamesePhoneTopic?.motionBrief?.modelClarification ?? "",
+  /điện thoại cá nhân/i
+);
+
+const homeworkTopic = englishTopics.find((topic) => topic.id === "edu-01");
+const cancelCultureTopic = englishTopics.find((topic) => topic.id === "soc-06");
+const vietnameseRoteLearningTopic = vietnameseTopics.find(
+  (topic) => topic.id === "vn-04"
+);
+assert.match(homeworkTopic?.motionBrief?.scope ?? "", /compulsory homework/);
+assert.match(cancelCultureTopic?.motionBrief?.scope ?? "", /online accountability/);
+assert.match(
+  vietnameseRoteLearningTopic?.motionBrief?.scope ?? "",
+  /học thuộc/
+);
 
 assert.equal(getCategoryKey("Technology & Social Media"), "technology");
 assert.equal(getCategoryKey("Công Nghệ & Mạng Xã Hội"), "technology");

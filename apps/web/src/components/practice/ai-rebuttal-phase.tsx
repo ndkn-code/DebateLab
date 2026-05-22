@@ -27,6 +27,8 @@ import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-r
 import type {
   AiDifficulty,
   AiHighlight,
+  DebateMemory,
+  MotionBrief,
   PracticeLanguage,
   PracticeTrack,
 } from "@/types";
@@ -40,6 +42,10 @@ interface AiRebuttalPhaseProps {
   practiceTrack?: PracticeTrack;
   practiceLanguage: PracticeLanguage;
   previousRounds?: { label: string; speaker: string; text: string }[];
+  speechTimeSeconds?: number;
+  currentRoundNumber?: number;
+  motionBrief?: MotionBrief;
+  debateMemory?: DebateMemory | null;
   prepNotes: string;
   onNotesChange: (notes: string) => void;
   onComplete: (rebuttal: string, highlights: AiHighlight[]) => void;
@@ -145,6 +151,10 @@ export function AiRebuttalPhase({
   practiceTrack = "debate",
   practiceLanguage,
   previousRounds,
+  speechTimeSeconds,
+  currentRoundNumber,
+  motionBrief,
+  debateMemory,
   prepNotes,
   onNotesChange,
   onComplete,
@@ -197,7 +207,7 @@ export function AiRebuttalPhase({
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch("/api/rebuttal", {
         method: "POST",
@@ -212,6 +222,10 @@ export function AiRebuttalPhase({
           practiceTrack,
           practiceLanguage,
           previousRounds,
+          speechTimeSeconds,
+          currentRoundNumber,
+          motionBrief,
+          debateMemory,
         }),
       });
 
@@ -257,6 +271,10 @@ export function AiRebuttalPhase({
     practiceTrack,
     practiceLanguage,
     previousRounds,
+    speechTimeSeconds,
+    currentRoundNumber,
+    motionBrief,
+    debateMemory,
     onGenerated,
     ttsSpeak,
   ]);
@@ -274,7 +292,7 @@ export function AiRebuttalPhase({
     if (status !== "typing" || !fullText) return;
 
     let charIndex = 0;
-    const speed = 25; // ms per character
+    const speed = fullText.length > 5000 ? 5 : fullText.length > 3000 ? 8 : 18;
 
     const typeNext = () => {
       if (charIndex < fullText.length) {

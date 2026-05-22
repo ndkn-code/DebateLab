@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  BookOpenText,
+  Clock3,
   Mic,
   Square,
   AlertTriangle,
@@ -17,6 +19,7 @@ import {
   PauseButton,
   PhasePill,
   PracticePanel,
+  formatPracticeTime,
   PracticeTimerDial,
   QuickNotesEditor,
 } from "./practice-session-ui";
@@ -68,6 +71,7 @@ export function SpeakingPhase({
   const t = useTranslations("dashboard.practice");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
+  const [showBriefUtility, setShowBriefUtility] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noSpeechResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -155,6 +159,42 @@ export function SpeakingPhase({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 pb-20 pt-3 sm:px-5 lg:px-6">
+      <div className="fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2 lg:bottom-auto lg:right-5 lg:top-28">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-[#D8E5FF] bg-white/95 px-3 py-2 text-sm font-bold text-[#071159] shadow-[0_18px_42px_-28px_rgba(22,39,91,0.45)] backdrop-blur">
+          <Clock3 className="h-4 w-4 text-primary" />
+          <span className="tabular-nums">{formatPracticeTime(timeLeft)}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowBriefUtility((value) => !value)}
+          aria-label={
+            showBriefUtility
+              ? t("session.hide_motion_brief")
+              : t("session.show_motion_brief")
+          }
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#D8E5FF] bg-white/95 text-primary shadow-[0_18px_42px_-28px_rgba(22,39,91,0.45)] backdrop-blur transition hover:bg-[#F4F8FF]"
+        >
+          <BookOpenText className="h-5 w-5" />
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {showBriefUtility && (
+          <motion.div
+            initial={{ opacity: 0, x: 10, y: 8 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={{ opacity: 0, x: 10, y: 8 }}
+            className="fixed bottom-24 right-16 z-40 max-h-[62vh] w-[min(88vw,440px)] overflow-y-auto lg:bottom-auto lg:right-20 lg:top-28"
+          >
+            <MotionInfoPanel
+              topic={topic}
+              side={side}
+              className="shadow-[0_22px_62px_-34px_rgba(22,39,91,0.58)]"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_296px]">
         <MotionInfoPanel topic={topic} side={side} />
 
@@ -278,7 +318,7 @@ export function SpeakingPhase({
                 {t("session.transcript_placeholder")}
               </p>
             ) : (
-              <p className="font-serif text-base leading-7 text-on-surface">
+              <p className="font-sans text-base leading-7 text-on-surface">
                 <span>{transcript}</span>
                 {interimTranscript && (
                   <span className="italic text-on-surface-variant">

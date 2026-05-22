@@ -20,13 +20,27 @@ import {
   normalizeDebateClashLinks,
   normalizeDebateVerdict,
 } from "./feedback/debate-review";
+import {
+  getDebateFeedbackDepthTarget,
+  isFeedbackBelowDepthTarget,
+  normalizeScoreRationale,
+} from "./feedback/depth";
+import { needsVietnameseProseRepair } from "./feedback/language-repair";
 import { normalizeDebateDuelClashLinks } from "./debate-duels/clash-links";
+import { getMotionBrief } from "./motion-brief";
+import {
+  createInitialDebateMemory,
+  getRebuttalMaxOutputTokens,
+  getRebuttalWordTarget,
+  updateDebateMemoryFromAiSpeech,
+} from "./rebuttal/debate-continuity";
 import {
   normalizeRebuttalText,
   normalizeStructuredRebuttalResponse,
 } from "./rebuttal/structured-response";
 import { getFullRoundWinnerResult } from "./results/session-result";
-import type { DebateSession } from "@/types";
+import { getLocalizedTopics } from "./topics";
+import type { DebateScore, DebateSession } from "@/types";
 
 assert.equal(clampDurationSeconds(0, SOLO_PREP_DURATION), 60);
 assert.equal(clampDurationSeconds(999, SOLO_PREP_DURATION), 600);
@@ -244,6 +258,234 @@ assert.equal(
   ).length,
   1
 );
+
+const fullDepthTarget = getDebateFeedbackDepthTarget({
+  isFullRound: true,
+  actualDuration: 589,
+  roundCount: 5,
+});
+assert.equal(fullDepthTarget.minArgumentBreakdowns, 5);
+assert.equal(fullDepthTarget.minAnnotations, 10);
+assert.equal(fullDepthTarget.minClashLinks, 5);
+assert.equal(
+  isFeedbackBelowDepthTarget(
+    {
+      argumentBreakdowns: [{ name: "one" }],
+      transcriptAnnotations: [{ quote: "short", feedback: "thin" }],
+      clashLinks: [{ id: "c1" }],
+    } as DebateScore,
+    fullDepthTarget
+  ),
+  true
+);
+
+const normalizedRationale = normalizeScoreRationale(
+  {
+    overall: "The score rewards clear claims but caps the result for thin weighing.",
+    content: {
+      score: 28,
+      maxScore: 40,
+      rationale: "The main claims were understandable.",
+      whyNotHigher: "The mechanism was not fully explained.",
+      nextStep: "Add one causal chain before examples.",
+    },
+    structure: {
+      score: 18,
+      maxScore: 25,
+      rationale: "The speech had a visible order.",
+      whyNotHigher: "Transitions did not show priority.",
+      nextStep: "Signpost the weighing before closing.",
+    },
+    language: {
+      score: 20,
+      maxScore: 25,
+      rationale: "The wording was clear enough for the judge.",
+      whyNotHigher: "Some key terms stayed vague.",
+      nextStep: "Define the policy terms early.",
+    },
+    persuasion: {
+      score: 6,
+      maxScore: 10,
+      rationale: "The speech gave the judge a reason to care.",
+      whyNotHigher: "It did not compare impacts directly.",
+      nextStep: "Weigh probability against magnitude.",
+    },
+  },
+  {
+    content: {
+      claimClarity: 7,
+      evidenceSupport: 7,
+      logicCoherence: 7,
+      counterArgument: 7,
+      score: 28,
+    },
+    structure: {
+      introduction: 6,
+      bodyOrganization: 6,
+      conclusion: 6,
+      score: 18,
+    },
+    language: {
+      vocabulary: 7,
+      grammar: 7,
+      fluency: 6,
+      score: 20,
+    },
+    persuasion: {
+      audienceAwareness: 3,
+      impactfulness: 3,
+      score: 6,
+    },
+  }
+);
+assert.equal(normalizedRationale?.content.maxScore, 40);
+assert.match(normalizedRationale?.persuasion.nextStep ?? "", /Weigh/);
+
+const baseFeedbackForLanguageRepair = {
+  content: {
+    claimClarity: 7,
+    evidenceSupport: 7,
+    logicCoherence: 7,
+    counterArgument: 7,
+    score: 28,
+  },
+  structure: {
+    introduction: 6,
+    bodyOrganization: 6,
+    conclusion: 6,
+    score: 18,
+  },
+  language: {
+    vocabulary: 7,
+    grammar: 7,
+    fluency: 6,
+    score: 20,
+  },
+  persuasion: {
+    audienceAwareness: 3,
+    impactfulness: 3,
+    score: 6,
+  },
+  totalScore: 72,
+  overallBand: "Competent",
+  summary: "Fixture summary.",
+  strengths: [],
+  improvements: [],
+  sampleArguments: [],
+  detailedFeedback: {
+    contentFeedback: "",
+    structureFeedback: "",
+    languageFeedback: "",
+    persuasionFeedback: "",
+  },
+} as DebateScore;
+
+assert.equal(
+  needsVietnameseProseRepair({
+    ...baseFeedbackForLanguageRepair,
+    summary:
+      "The student has a clear claim, but the argument is weak because the impact weighing is too compressed.",
+    scoreRationale: {
+      overall:
+        "This score rewards clarity, but the judge cannot credit the full logic because the speech skips mechanisms.",
+      content: {
+        score: 28,
+        maxScore: 40,
+        rationale: "The claim is understandable.",
+        whyNotHigher: "The argument misses the causal chain.",
+        nextStep: "Explain the mechanism before the impact.",
+      },
+      structure: normalizedRationale!.structure,
+      language: normalizedRationale!.language,
+      persuasion: normalizedRationale!.persuasion,
+    },
+  }),
+  true
+);
+
+assert.equal(
+  needsVietnameseProseRepair({
+    ...baseFeedbackForLanguageRepair,
+    summary:
+      "Bài nói có luận điểm rõ, nhưng cần giải thích cơ chế tác động trước khi so sánh impact.",
+    scoreRationale: {
+      overall:
+        "Điểm này phản ánh việc bạn có hướng lập luận tốt nhưng phần weighing chưa đủ cụ thể.",
+      content: {
+        score: 28,
+        maxScore: 40,
+        rationale: "Luận điểm chính dễ hiểu và có liên hệ với motion.",
+        whyNotHigher: "Cơ chế tác động chưa được nối đủ từng bước.",
+        nextStep: "Thêm một chuỗi vì sao trước khi chốt tác hại.",
+      },
+      structure: {
+        score: 18,
+        maxScore: 25,
+        rationale: "Bố cục có trật tự và người nghe theo được mạch chính.",
+        whyNotHigher: "Các đoạn chuyển chưa chỉ ra ưu tiên tranh luận.",
+        nextStep: "Báo trước phần so sánh trước khi kết luận.",
+      },
+      language: {
+        score: 20,
+        maxScore: 25,
+        rationale: "Cách diễn đạt đủ rõ để giám khảo hiểu ý.",
+        whyNotHigher: "Một số thuật ngữ còn chung chung.",
+        nextStep: "Định nghĩa thuật ngữ chính ngay đầu bài.",
+      },
+      persuasion: {
+        score: 6,
+        maxScore: 10,
+        rationale: "Bài nói đã cho người nghe lý do để quan tâm.",
+        whyNotHigher: "Phần so sánh tác động chưa đủ trực diện.",
+        nextStep: "So sánh xác suất và mức độ ảnh hưởng trong cùng một câu.",
+      },
+    },
+  }),
+  false
+);
+
+const sevenMinuteTarget = getRebuttalWordTarget(420, "AI Rebuttal");
+assert.deepEqual(sevenMinuteTarget, {
+  min: 850,
+  max: 1100,
+  label: "7-minute",
+});
+assert.ok(getRebuttalMaxOutputTokens(sevenMinuteTarget) >= 2400);
+
+const englishPhoneBrief = getMotionBrief(
+  getLocalizedTopics("en").find((topic) => topic.id === "tech-03")!,
+  "en"
+);
+assert.match(englishPhoneBrief.scope, /personal smartphones/);
+assert.match(englishPhoneBrief.modelClarification, /complete school-day ban/);
+
+const vietnameseRoteBrief = getMotionBrief(
+  getLocalizedTopics("vi").find((topic) => topic.id === "vn-04")!,
+  "vi"
+);
+assert.match(vietnameseRoteBrief.scope, /học thuộc/);
+
+const memory = createInitialDebateMemory({
+  topic: getLocalizedTopics("en").find((topic) => topic.id === "tech-03")!,
+  side: "proposition",
+  practiceLanguage: "en",
+});
+assert.equal(memory.aiSide, "opposition");
+assert.match(memory.policyModel, /complete school-day ban/);
+const nextMemory = updateDebateMemoryFromAiSpeech(
+  memory,
+  { roundNumber: 2, label: "AI Rebuttal" },
+  "A complete ban overreaches because schools can regulate learning uses instead.",
+  [
+    {
+      type: "claim",
+      quote: "schools can regulate learning uses instead",
+      note: "AI model should stay consistent.",
+    },
+  ]
+);
+assert.equal(nextMemory?.aiSide, "opposition");
+assert.match(nextMemory?.priorAiClaims.join(" ") ?? "", /regulate learning uses/);
 
 const structuredRebuttal = normalizeStructuredRebuttalResponse(`{
   "rebuttal": "Bên Phản đối thắng vì cơ chế của bên Ủng hộ chưa chứng minh được tác động trực tiếp.",

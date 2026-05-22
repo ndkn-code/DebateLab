@@ -55,7 +55,7 @@ export interface PracticeCategoryOption {
 
 type TopicTranslation = Pick<
   DebateTopic,
-  "title" | "context" | "suggestedPoints"
+  "title" | "context" | "motionBrief" | "suggestedPoints"
 >;
 
 const CATEGORY_KEY_BY_LABEL = new Map<string, CategoryKey>(
@@ -111,6 +111,21 @@ export const topics: DebateTopic[] = [
     difficulty: "beginner",
     context:
       "Many educators debate whether homework improves learning outcomes or simply adds unnecessary stress to students' lives.",
+    motionBrief: {
+      keyTerms: [
+        "homework: assigned academic work completed outside class time",
+        "abolished: removed as a regular requirement, not banning optional revision",
+        "high schools: students in the final years before university",
+      ],
+      scope:
+        "The debate is about regular compulsory homework across high school subjects, not short in-class practice, optional revision, or exam accommodations.",
+      propositionBurden:
+        "Show that compulsory homework creates more educational and wellbeing harm than benefit, and that class time or targeted support can replace it.",
+      oppositionBurden:
+        "Show that homework adds learning, discipline, feedback, or family visibility that schools cannot reliably replace during class.",
+      modelClarification:
+        "If defending abolition, keep the model as removal of mandatory take-home assignments while allowing optional revision and targeted catch-up support.",
+    },
     suggestedPoints: {
       proposition: [
         "Homework causes excessive stress and reduces time for extracurricular development",
@@ -274,6 +289,21 @@ export const topics: DebateTopic[] = [
     difficulty: "beginner",
     context:
       "Several countries have implemented smartphone bans in schools, citing improved focus and social interaction among students.",
+    motionBrief: {
+      keyTerms: [
+        "smartphones: personal internet-connected phones owned by students",
+        "banned in schools: not accessible during the school day on campus",
+        "schools: classrooms, breaks, and school-supervised activities",
+      ],
+      scope:
+        "The motion concerns students' personal smartphones during the school day. It does not ban school-owned devices, medical exceptions, disability accommodations, or emergency office contact.",
+      propositionBurden:
+        "Defend a school-day ban and prove it improves attention, learning, safety, or student wellbeing more than managed phone use.",
+      oppositionBurden:
+        "Show that a blanket school-day ban is unnecessary or harmful, and that regulated/educational use solves distractions with fewer costs.",
+      modelClarification:
+        "A consistent proposition model is a complete school-day ban on personal student smartphones, with narrow exceptions for medical needs, disability access, or emergencies handled through staff.",
+    },
     suggestedPoints: {
       proposition: [
         "Smartphones are the primary source of distraction in classrooms",
@@ -456,6 +486,21 @@ export const topics: DebateTopic[] = [
     difficulty: "advanced",
     context:
       "Cancel culture refers to the practice of withdrawing support from public figures who have done or said something objectionable, often via social media campaigns.",
+    motionBrief: {
+      keyTerms: [
+        "cancel culture: public campaigns to withdraw support or impose reputational consequences",
+        "harm: unfair punishment, fear, polarization, or loss of dialogue",
+        "good: accountability, victim protection, and social norm enforcement",
+      ],
+      scope:
+        "The debate is about informal public and online accountability campaigns, not formal legal punishment or private criticism between individuals.",
+      propositionBurden:
+        "Show that cancellation usually produces disproportionate, unfair, or chilling effects that outweigh its accountability benefits.",
+      oppositionBurden:
+        "Show that public pressure is a necessary accountability tool, especially when institutions fail, and that harms can be limited.",
+      modelClarification:
+        "Keep the debate comparative: the question is whether the social practice overall does more harm than good, not whether every public criticism is illegitimate.",
+    },
     suggestedPoints: {
       proposition: [
         "Cancel culture stifles free speech and open dialogue by creating a climate of fear",
@@ -744,6 +789,21 @@ export const topics: DebateTopic[] = [
     difficulty: "beginner",
     context:
       "While Vietnam performs well on international tests, critics argue the education system prioritizes rote learning over critical thinking and creativity.",
+    motionBrief: {
+      keyTerms: [
+        "Vietnam's education system: mainstream K-12 schooling and exam culture",
+        "memorization: learning by recall and repetition without enough application",
+        "too much: the balance crowds out critical thinking, creativity, or problem solving",
+      ],
+      scope:
+        "The motion is not saying memorization has no value. It asks whether the current balance in Vietnamese schooling over-prioritizes rote recall compared with analytical and creative learning.",
+      propositionBurden:
+        "Show that the current emphasis on memorization causes concrete harms to students' skills, motivation, or workforce readiness.",
+      oppositionBurden:
+        "Show that memorization is a necessary foundation, that the system is changing, or that claimed harms come from other pressures rather than memorization itself.",
+      modelClarification:
+        "A consistent proposition should argue for rebalancing assessment and classroom methods, not abolishing all memorization.",
+    },
     suggestedPoints: {
       proposition: [
         "Memorization-based learning doesn't prepare students for creative problem-solving",
@@ -784,6 +844,21 @@ const VI_TOPIC_TRANSLATIONS: Record<string, TopicTranslation> = {
     title: "Nên bãi bỏ bài tập về nhà ở bậc trung học",
     context:
       "Nhiều nhà giáo dục tranh luận liệu bài tập về nhà có thật sự cải thiện kết quả học tập hay chỉ tạo thêm căng thẳng không cần thiết cho học sinh.",
+    motionBrief: {
+      keyTerms: [
+        "bài tập về nhà: nhiệm vụ học tập bắt buộc làm ngoài giờ lên lớp",
+        "bãi bỏ: bỏ yêu cầu thường xuyên, không cấm ôn tập tự nguyện",
+        "bậc trung học: học sinh ở giai đoạn trước đại học",
+      ],
+      scope:
+        "Tranh luận xoay quanh bài tập bắt buộc đem về nhà, không phải luyện tập ngắn trên lớp, ôn tập tự chọn hay hỗ trợ riêng cho học sinh cần bắt kịp.",
+      propositionBurden:
+        "Chứng minh bài tập bắt buộc gây hại cho học tập và sức khỏe tinh thần nhiều hơn lợi ích, và lớp học hoặc hỗ trợ mục tiêu có thể thay thế.",
+      oppositionBurden:
+        "Chứng minh bài tập tạo thêm học tập, kỷ luật, phản hồi hoặc sự theo dõi từ gia đình mà lớp học khó thay thế ổn định.",
+      modelClarification:
+        "Nếu ủng hộ bãi bỏ, giữ mô hình là bỏ bài tập về nhà bắt buộc nhưng vẫn cho phép ôn tập tự nguyện và hỗ trợ bắt kịp có mục tiêu.",
+    },
     suggestedPoints: {
       proposition: [
         "Bài tập về nhà gây căng thẳng quá mức và làm giảm thời gian phát triển ngoại khóa",
@@ -920,6 +995,21 @@ const VI_TOPIC_TRANSLATIONS: Record<string, TopicTranslation> = {
     title: "Nên cấm điện thoại thông minh trong trường học",
     context:
       "Một số quốc gia đã cấm điện thoại trong trường, với lý do cải thiện sự tập trung và tương tác xã hội của học sinh.",
+    motionBrief: {
+      keyTerms: [
+        "điện thoại thông minh: điện thoại cá nhân có kết nối internet của học sinh",
+        "cấm trong trường: không được dùng hoặc mang theo trong ngày học tại trường",
+        "trường học: lớp học, giờ nghỉ và hoạt động do trường giám sát",
+      ],
+      scope:
+        "Motion nói về điện thoại cá nhân của học sinh trong ngày học. Không cấm thiết bị do trường quản lý, ngoại lệ y tế, hỗ trợ khuyết tật hoặc liên lạc khẩn qua nhà trường.",
+      propositionBurden:
+        "Bảo vệ lệnh cấm trong ngày học và chứng minh nó cải thiện tập trung, học tập, an toàn hoặc sức khỏe tinh thần hơn cách quản lý có điều kiện.",
+      oppositionBurden:
+        "Chứng minh lệnh cấm toàn diện là không cần thiết hoặc gây hại, và quản lý/cách dùng có mục đích giải quyết xao nhãng với chi phí thấp hơn.",
+      modelClarification:
+        "Mô hình Ủng hộ nhất quán là cấm hoàn toàn điện thoại cá nhân của học sinh trong ngày học, chỉ có ngoại lệ hẹp cho y tế, tiếp cận khuyết tật hoặc khẩn cấp qua nhân viên trường.",
+    },
     suggestedPoints: {
       proposition: [
         "Điện thoại là nguồn gây xao nhãng chính trong lớp học",
@@ -1073,6 +1163,21 @@ const VI_TOPIC_TRANSLATIONS: Record<string, TopicTranslation> = {
     title: "Văn hóa tẩy chay gây hại nhiều hơn lợi",
     context:
       "Văn hóa tẩy chay là việc rút lại ủng hộ đối với người nổi tiếng hoặc nhân vật công chúng vì lời nói hay hành động bị cho là sai trái, thường qua chiến dịch mạng xã hội.",
+    motionBrief: {
+      keyTerms: [
+        "văn hóa tẩy chay: chiến dịch công khai rút ủng hộ hoặc tạo hậu quả danh tiếng",
+        "gây hại: trừng phạt bất công, tạo sợ hãi, phân cực hoặc mất đối thoại",
+        "lợi ích: trách nhiệm giải trình, bảo vệ nạn nhân và thiết lập chuẩn mực xã hội",
+      ],
+      scope:
+        "Tranh luận về các chiến dịch trách nhiệm giải trình không chính thức trên công chúng/mạng xã hội, không phải trừng phạt pháp lý hay phê bình cá nhân riêng tư.",
+      propositionBurden:
+        "Chứng minh tẩy chay thường tạo hậu quả quá mức, thiếu công bằng hoặc làm im lặng thảo luận nhiều hơn lợi ích trách nhiệm giải trình.",
+      oppositionBurden:
+        "Chứng minh áp lực công chúng là công cụ cần thiết khi hệ thống thất bại, nhất là cho nhóm yếu thế, và tác hại có thể được hạn chế.",
+      modelClarification:
+        "Giữ cuộc tranh luận ở mức so sánh tổng thể: motion hỏi thực hành xã hội này hại nhiều hơn lợi hay không, không phải mọi lời chỉ trích công khai đều sai.",
+    },
     suggestedPoints: {
       proposition: [
         "Văn hóa tẩy chay bóp nghẹt tự do ngôn luận và đối thoại mở bằng không khí sợ hãi",
@@ -1311,6 +1416,21 @@ const VI_TOPIC_TRANSLATIONS: Record<string, TopicTranslation> = {
     title: "Hệ thống giáo dục Việt Nam quá chú trọng học thuộc",
     context:
       "Dù Việt Nam đạt kết quả tốt trong các bài kiểm tra quốc tế, nhiều người cho rằng hệ thống giáo dục ưu tiên học vẹt hơn tư duy phản biện và sáng tạo.",
+    motionBrief: {
+      keyTerms: [
+        "hệ thống giáo dục Việt Nam: giáo dục phổ thông và văn hóa thi cử chủ đạo",
+        "học thuộc: ghi nhớ và lặp lại kiến thức mà thiếu áp dụng/phân tích",
+        "quá chú trọng: sự cân bằng hiện tại lấn át tư duy phản biện, sáng tạo hoặc giải quyết vấn đề",
+      ],
+      scope:
+        "Motion không nói học thuộc hoàn toàn vô giá trị. Nó hỏi liệu giáo dục Việt Nam hiện nay có đặt nặng ghi nhớ hơn mức hợp lý so với năng lực phân tích và sáng tạo hay không.",
+      propositionBurden:
+        "Chứng minh trọng tâm học thuộc hiện tại gây hại cụ thể cho kỹ năng, động lực hoặc khả năng thích ứng của học sinh.",
+      oppositionBurden:
+        "Chứng minh ghi nhớ là nền tảng cần thiết, hệ thống đang cải cách, hoặc tác hại đến từ áp lực khác chứ không phải bản thân việc ghi nhớ.",
+      modelClarification:
+        "Phe Ủng hộ nên lập luận về tái cân bằng đánh giá và phương pháp dạy học, không phải xóa bỏ toàn bộ việc ghi nhớ.",
+    },
     suggestedPoints: {
       proposition: [
         "Học dựa trên ghi nhớ không chuẩn bị học sinh cho giải quyết vấn đề sáng tạo",
@@ -1370,6 +1490,7 @@ export function getLocalizedTopic(
     title: translation?.title ?? baseTopic.title,
     category: getCategoryLabel(categoryKey, language),
     context: translation?.context ?? baseTopic.context,
+    motionBrief: translation?.motionBrief ?? baseTopic.motionBrief,
     suggestedPoints: translation?.suggestedPoints ?? baseTopic.suggestedPoints,
   };
 }

@@ -8,6 +8,7 @@ export interface DebateTopic {
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   context?: string;
+  motionBrief?: MotionBrief;
   suggestedPoints?: {
     proposition: string[];
     opposition: string[];
@@ -15,6 +16,14 @@ export interface DebateTopic {
 }
 
 export type AiDifficulty = "easy" | "medium" | "hard";
+
+export interface MotionBrief {
+  keyTerms: string[];
+  scope: string;
+  propositionBurden: string;
+  oppositionBurden: string;
+  modelClarification: string;
+}
 
 export type AiHighlightType = "claim" | "evidence" | "impact" | "assumption";
 
@@ -32,6 +41,17 @@ export interface DebateRound {
   aiResponse?: string;
   aiHighlights?: AiHighlight[];
   duration?: number;
+  debateMemory?: DebateMemory;
+}
+
+export interface DebateMemory {
+  aiSide: "proposition" | "opposition";
+  studentSide: "proposition" | "opposition";
+  policyModel: string;
+  priorAiClaims: string[];
+  concessions: string[];
+  activeClashes: string[];
+  droppedClaims: string[];
 }
 
 export interface ClubPracticeContext {
@@ -59,4 +79,5 @@ export interface DebateSession {
   modelName?: string | null;
   aiDifficulty?: AiDifficulty;
   rounds?: DebateRound[];
+  debateMemory?: DebateMemory | null;
 }

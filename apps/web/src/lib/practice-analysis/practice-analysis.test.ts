@@ -19,6 +19,7 @@ assert.deepEqual(firstSnapshot, secondSnapshot);
 assert.equal(firstSnapshot.schemaVersion, 1);
 assert.equal(firstSnapshot.analysisParams.practiceTrack, "debate");
 assert.equal(firstSnapshot.session.topicCategory, "Education");
+assert.equal(firstSnapshot.analysisParams.debateMemory ?? null, null);
 
 const baseHash = createPracticeInputHash(englishDebateInput);
 const changedHash = createPracticeInputHash({
@@ -30,11 +31,13 @@ assert.notEqual(baseHash, changedHash);
 
 const debateManifest = getPracticeFeedbackPromptManifest(englishDebateInput);
 assert.equal(debateManifest.promptBundleKey, "practice_feedback");
-assert.equal(debateManifest.promptBundleVersion, 1);
+assert.equal(debateManifest.promptBundleVersion, 2);
 assert.equal(debateManifest.rubricKey, "debate_v1");
 assert.equal(debateManifest.evaluatorKey, "debate_feedback_v1");
 assert.equal(debateManifest.promptHash.length, 64);
 assert.ok(debateManifest.prompt.includes("Schools should ban phones"));
+assert.ok(debateManifest.prompt.includes("Motion Definition"));
+assert.ok(debateManifest.prompt.includes("scoreRationale"));
 
 const speakingManifest = getPracticeFeedbackPromptManifest(vietnameseSpeakingInput);
 assert.equal(speakingManifest.rubricKey, "speaking_v1");

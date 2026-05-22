@@ -9,6 +9,7 @@ import {
   DEFAULT_VOICE,
   coerceVoiceForLanguage,
 } from "@/lib/tts-voices";
+import { getMotionBrief } from "@/lib/motion-brief";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 import { createClient } from "@/lib/supabase/client";
 import { useCountdown } from "@/hooks/use-countdown";
@@ -42,6 +43,7 @@ export default function SessionPage() {
     aiDifficulty,
     currentPhase,
     prepNotes,
+    debateMemory,
     currentRound,
     rounds,
     setPhase,
@@ -550,6 +552,7 @@ export default function SessionPage() {
     side === "random"
       ? "proposition"
       : (side as "proposition" | "opposition");
+  const motionBrief = getMotionBrief(selectedTopic, practiceLanguage);
 
   // Build previousRounds context for AI rebuttal
   const previousRoundsForAi = rounds
@@ -671,6 +674,10 @@ export default function SessionPage() {
               practiceTrack={practiceTrack}
               practiceLanguage={practiceLanguage}
               previousRounds={previousRoundsForAi}
+              speechTimeSeconds={speechTime}
+              currentRoundNumber={currentRound}
+              motionBrief={motionBrief}
+              debateMemory={debateMemory}
               prepNotes={prepNotes}
               onNotesChange={setPrepNotes}
               onComplete={handleAiRebuttalComplete}

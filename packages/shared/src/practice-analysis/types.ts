@@ -1,8 +1,10 @@
 import type {
   AiDifficulty,
   ClubPracticeContext,
+  DebateMemory,
   DebateScore,
   DebateRound,
+  MotionBrief,
   PracticeLanguage,
   PracticeTrack,
 } from "../practice";
@@ -33,6 +35,8 @@ export interface PracticeAnalysisInput {
   practiceLanguage: PracticeLanguage;
   isFullRound: boolean;
   rounds?: DebateRound[];
+  motionBrief?: MotionBrief;
+  debateMemory?: DebateMemory | null;
   mode: "quick" | "full";
   prepTime: number;
   speechTime: number;
@@ -61,6 +65,8 @@ export interface PracticeAttemptSnapshot {
     practiceLanguage: PracticeLanguage;
     isFullRound: boolean;
     rounds?: DebateRound[];
+    motionBrief?: MotionBrief;
+    debateMemory?: DebateMemory | null;
   };
   session: {
     mode: "quick" | "full";

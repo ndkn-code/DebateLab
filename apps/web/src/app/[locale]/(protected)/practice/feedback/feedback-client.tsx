@@ -17,6 +17,7 @@ import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
 import { PRACTICE_AUDIO_BUCKET } from "@/lib/practice-analysis/constants";
+import { getMotionBrief } from "@/lib/motion-brief";
 import {
   clearLocalPracticeSessionDraft,
   deletePracticeSessionDraft,
@@ -116,6 +117,7 @@ export default function FeedbackPage() {
     feedback: storeFeedback,
     sessionStartTime,
     rounds,
+    debateMemory,
     prepNotes,
     audioBlob,
     draftId,
@@ -243,6 +245,8 @@ export default function FeedbackPage() {
           actualDuration,
           isFullRound,
           rounds: isFullRound ? rounds : undefined,
+          motionBrief: getMotionBrief(selectedTopic, practiceLanguage),
+          debateMemory,
           mode,
           prepTime,
           speechTime,
@@ -384,6 +388,7 @@ export default function FeedbackPage() {
     setPhase,
     isFullRound,
     rounds,
+    debateMemory,
     audioBlob,
     draftId,
     aiDifficulty,
@@ -485,6 +490,7 @@ export default function FeedbackPage() {
           ? aiDifficulty
           : undefined,
       rounds: isFullRound ? rounds : undefined,
+      debateMemory,
     };
   }, [
     aiDifficulty,
@@ -498,6 +504,7 @@ export default function FeedbackPage() {
     resultDate,
     resultDuration,
     rounds,
+    debateMemory,
     savedSessionId,
     selectedTopic,
     speechTime,

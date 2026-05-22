@@ -1,6 +1,19 @@
 import { getPracticeLanguageConfig } from "@/lib/practice-language";
+import {
+  formatMotionBriefForPrompt,
+  getMotionBrief,
+} from "@/lib/motion-brief";
+import { getDebateFeedbackDepthTarget } from "@/lib/feedback/depth";
+import { formatDebateMemoryForPrompt } from "@/lib/rebuttal/debate-continuity";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
-import type { DebateRound, PracticeLanguage, PracticeTrack } from "@/types";
+import type {
+  DebateMemory,
+  DebateRound,
+  DebateTopic,
+  MotionBrief,
+  PracticeLanguage,
+  PracticeTrack,
+} from "@/types";
 
 interface AnalysisPromptParams {
   transcript: string;
@@ -13,6 +26,8 @@ interface AnalysisPromptParams {
   practiceLanguage?: PracticeLanguage;
   isFullRound?: boolean;
   rounds?: DebateRound[];
+  motionBrief?: MotionBrief;
+  debateMemory?: DebateMemory | null;
 }
 
 function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
@@ -22,6 +37,7 @@ function buildPracticeLanguageInstructions(language?: PracticeLanguage): string 
     return `## Practice Language
 - The student is practicing debate/speaking in Vietnamese.
 - Return all user-facing prose values in Vietnamese: summaries, strengths, improvements, detailed feedback, suggestions, rebuilt arguments, verdict summaries, and highlight notes.
+- Critical: do not write English explanatory sentences in any user-facing prose field. Use natural Vietnamese coaching language; common debate terms like motion, clash, weighing, impact, rebuttal, and burden may remain only when they sound natural in Vietnamese.
 - Preserve this JSON schema exactly. Keep schema keys and enum literal values in English exactly as specified.
 - Copy transcript quotes exactly as written, including Vietnamese diacritics. If an exact quote is hard to match, choose a shorter exact contiguous quote.`;
   }
@@ -142,6 +158,37 @@ function debateJsonSchema(): string {
   },
   "totalScore": <number 0-100, sum of all category scores>,
   "overallBand": "<one of: Novice, Developing, Competent, Proficient, Expert>",
+  "scoreRationale": {
+    "overall": "<plain-language explanation of how the score was reached and what standard was applied>",
+    "content": {
+      "score": <number 0-40>,
+      "maxScore": 40,
+      "rationale": "<why the Content score fits the student's argument quality>",
+      "whyNotHigher": "<the concrete missing reasoning layer that capped the score>",
+      "nextStep": "<one concrete practice move for Content>"
+    },
+    "structure": {
+      "score": <number 0-25>,
+      "maxScore": 25,
+      "rationale": "<why the Structure score fits the speech/round organization>",
+      "whyNotHigher": "<the concrete structural issue that capped the score>",
+      "nextStep": "<one concrete practice move for Structure>"
+    },
+    "language": {
+      "score": <number 0-25>,
+      "maxScore": 25,
+      "rationale": "<why the Language score fits clarity and expression>",
+      "whyNotHigher": "<the concrete language/delivery issue that capped the score>",
+      "nextStep": "<one concrete practice move for Language>"
+    },
+    "persuasion": {
+      "score": <number 0-10>,
+      "maxScore": 10,
+      "rationale": "<why the Persuasion score fits weighing and judge appeal>",
+      "whyNotHigher": "<the concrete persuasion issue that capped the score>",
+      "nextStep": "<one concrete practice move for Persuasion>"
+    }
+  },
   "practiceTrack": "debate",
   "summary": "<2-3 sentence overall assessment of the student's debate case and strategic depth>",
   "strengths": ["<specific debate strength 1>", "<specific debate strength 2>", "<specific debate strength 3>"],
@@ -162,7 +209,7 @@ function debateJsonSchema(): string {
   "weighingFeedback": "<1-2 sentence evaluation of comparison, prioritization, and impact calculus>",
   "clashFeedback": "<1-2 sentence evaluation of how well the student engaged opposition arguments or likely opposition responses>",
   "strongerRebuilds": ["<stronger rebuilt argument 1>", "<stronger rebuilt argument 2>", "<stronger rebuilt argument 3>"],
-  "debateVerdict": {
+  "debateVerdict": null | {
     "winner": "<user|ai|tie, full rounds only; use tie if no clear winner>",
     "confidence": <number 0.0-1.0>,
     "summary": "<2-3 sentence verdict explaining whether the student beat the AI opponent>",
@@ -284,11 +331,37 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     practiceLanguage,
     isFullRound,
     rounds,
+    motionBrief,
+    debateMemory,
   } = params;
 
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
   const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
+  const resolvedMotionBrief =
+    motionBrief ??
+    getMotionBrief(
+      {
+        id: "analysis-motion",
+        title: topic,
+        category: "Debate",
+        difficulty: "intermediate",
+      } satisfies DebateTopic,
+      practiceLanguage ?? "en"
+    );
+  const motionBriefContext = formatMotionBriefForPrompt(resolvedMotionBrief);
+  const debateMemoryContext = formatDebateMemoryForPrompt(
+    debateMemory,
+    resolvedMotionBrief
+  );
+  const depthTarget = getDebateFeedbackDepthTarget({
+    isFullRound,
+    actualDuration,
+    roundCount: rounds?.length,
+  });
+  const coverageInstruction = isFullRound
+    ? `- Full/long-round coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns, ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations, and ${depthTarget.minClashLinks}-${depthTarget.maxClashLinks} clashLinks.`
+    : `- Quick/short coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns and ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations; keep clashLinks as [] unless this is a full round.`;
 
   return `You are an expert debate coach and judge for Vietnamese high school students practicing ${languageConfig.aiName} debate. Analyze this debate speech and provide rigorous, debate-specific feedback.
 
@@ -298,6 +371,8 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
 - Speech Type: ${speechType}
 - Time Limit: ${timeLimit} minutes
 - Actual Duration: ${actualDuration} seconds
+${motionBriefContext}
+${debateMemoryContext}
 ${roundsContext}
 ${languageInstructions}
 
@@ -307,6 +382,8 @@ ${transcript}
 """
 
 ## Debate Standard
+Judge from the perspective of an average intelligent person: reward arguments that a thoughtful judge can understand and believe, not only speeches that sound concise or rhetorically polished.
+
 The student should ideally build arguments in this order:
 1. Argument name
 2. Explanation / mechanism
@@ -315,6 +392,7 @@ The student should ideally build arguments in this order:
 5. Link back to the motion or team stance
 
 If the speech sounds polished but the reasoning is thin, score the reasoning lower. Do NOT reward fancy wording over strong logic.
+If the speech is long and detailed, do NOT compress away nuance. Credit developed logic when the chain is clear; if it becomes confusing, identify exactly which step stopped being intelligible.
 When you criticize an argument, identify the exact missing debate layer and explain why that layer changes the judge's decision.
 
 ## Evaluation Priorities
@@ -339,23 +417,27 @@ When you criticize an argument, identify the exact missing debate layer and expl
 - Impactfulness (0-5): Does the student actually weigh consequences and explain why their side matters more?
 
 ## Required Feedback Behavior
+${coverageInstruction}
 - Identify the student's stance and whether the case holds together as one system
+- Use the Motion Definition above as the shared interpretation of the motion; flag any place where the student or AI drifted from that definition
+- Use Debate Memory to check whether the AI opponent changed position, conceded something, dropped a claim, or shifted from the original model
+- For each major round in a full debate, include a consistency note somewhere in argumentBreakdowns, clashLinks, detailedFeedback, or transcriptAnnotations
 - Point out where arguments are missing mechanism, comparison, impact, clash, evidence, or motion linkage
 - Separate strong ideas from underdeveloped ones
 - In stronger rebuilds, rewrite arguments using the required debate structure: argument label -> mechanism -> comparison/weighing -> impact -> motion link
 - Make each rebuild concrete enough that the student can say it in their next round, not just understand the idea
 - For each argumentBreakdown, name the claim, explain what the student was trying to prove, state the exact missing layer, and provide a betterVersion that fixes it
-- In weighingFeedback, compare probability, magnitude, affected groups, reversibility, and time frame when the transcript gives you material
+- In weighingFeedback, compare probability, magnitude, affected groups, reversibility, and time frame against the core clash, then say which issue should matter most
 - In clashFeedback, say which opposing claim was answered, dropped, or misanswered, and how that affected the round
 - In detailedFeedback paragraphs, avoid generic praise; reference the student's actual case, mechanism, clash, and impact choices
 - For full rounds, comment on consistency across rounds, not just isolated moments
 - Keep overallFeedback focused on speech quality and coaching priorities; put win/loss/tie outcome language only in debateVerdict
+- Always include scoreRationale. It must make the scoring methodology understandable across Content 40, Structure 25, Language 25, and Persuasion 10, with a whyNotHigher and one nextStep per category
 - For non-full debate sessions, set debateVerdict to null and clashLinks to []
-- Include 4-8 transcriptAnnotations that quote exact contiguous words from the relevant transcript
 - Each annotation must connect the quote to a debate layer: stance, mechanism, evidence, logic, clash, weighing, impact, structure, or delivery
 - Each annotation feedback must explain why the quoted moment matters to a judge, and each suggestion must give a specific rewrite or next strategic move
 - Include at least one annotation about reasoning depth or missing mechanism, and one about weighing or clash when the transcript gives you material
-- For full rounds, include debateVerdict and 3-6 clashLinks that judge whether the student beat, lost to, or tied the AI opponent
+- For full rounds, include debateVerdict and enough clashLinks to judge whether the student beat, lost to, or tied the AI opponent
 - For full rounds, debateVerdict must decide user, ai, or tie based on comparative debating; if one side is even slightly ahead, choose that side and explain the deciding reasons
 - For full rounds, annotate both user and AI speeches when useful; set speaker to "user" for student quotes and "ai" for AI opponent quotes
 - For full rounds, set roundNumber to the exact labeled round number; use null only when round location is unclear

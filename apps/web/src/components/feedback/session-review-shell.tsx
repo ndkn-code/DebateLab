@@ -55,11 +55,11 @@ export function SessionReviewShell({
         className
       )}
     >
-      <div className="grid gap-5 lg:grid-cols-[178px_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-5 lg:self-start lg:pt-[72px]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[178px_minmax(0,1fr)]">
+        <aside className="min-w-0 lg:sticky lg:top-5 lg:self-start lg:pt-[72px]">
           <nav
             aria-label={t("sections")}
-            className="flex gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible"
+            className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto rounded-2xl border border-[#DEE8F8] bg-white p-2 shadow-[0_18px_45px_rgba(16,32,72,0.035)] lg:flex-col lg:overflow-visible"
           >
             {availableTabs.map(({ id, icon: Icon }) => {
               const isActive = resolvedActiveTab === id;

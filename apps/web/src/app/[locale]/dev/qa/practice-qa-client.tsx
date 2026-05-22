@@ -90,6 +90,50 @@ const annotatedSession: DebateSession = {
     },
     totalScore: 76,
     overallBand: "Proficient",
+    scoreRationale: {
+      overall:
+        "The score rewards a clear stance and usable case line, but it is capped because the mechanism and comparative weighing are still underdeveloped.",
+      content: {
+        score: 26,
+        maxScore: 40,
+        rationale:
+          "The student explains the attention harm and names fairness, so the core content is understandable.",
+        whyNotHigher:
+          "The causal chain from notification to repeated learning loss needs more proof and scale.",
+        nextStep:
+          "Build one full mechanism before moving to the next claim: trigger, behavior change, learning harm, and impact.",
+      },
+      structure: {
+        score: 20,
+        maxScore: 25,
+        rationale:
+          "The speech moves from stance to two arguments and ends with a clear conclusion.",
+        whyNotHigher:
+          "The second argument is introduced before the first argument is fully weighed.",
+        nextStep:
+          "Use signposting to separate attention, fairness, and final weighing.",
+      },
+      language: {
+        score: 22,
+        maxScore: 25,
+        rationale:
+          "The wording is simple, direct, and easy for a judge to follow.",
+        whyNotHigher:
+          "Some debate terms like teacher discretion and school-wide rule need sharper definition.",
+        nextStep:
+          "Define the key policy terms in one short sentence before applying them.",
+      },
+      persuasion: {
+        score: 8,
+        maxScore: 10,
+        rationale:
+          "The judge can see why attention matters, and the conclusion links back to equal learning time.",
+        whyNotHigher:
+          "The speech does not yet compare the ban world against responsible educational phone use.",
+        nextStep:
+          "Add one weighing sentence that says why protected class time outweighs limited phone convenience.",
+      },
+    },
     practiceTrack: "debate",
     practiceLanguage: "en",
     summary:

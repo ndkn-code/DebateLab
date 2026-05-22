@@ -1,4 +1,4 @@
-export type { AiHighlight, AiHighlightType, DebateTopic, DebateSession, DebateRound, AiDifficulty, ClubPracticeContext, PracticeLanguage, PracticeTrack } from "./debate";
+export type { AiHighlight, AiHighlightType, DebateMemory, DebateTopic, DebateSession, DebateRound, AiDifficulty, ClubPracticeContext, MotionBrief, PracticeLanguage, PracticeTrack } from "./debate";
 export type {
   DebateScore,
   DebateArgumentBreakdown,
@@ -7,6 +7,8 @@ export type {
   DebateClashTag,
   DebateReviewSpeaker,
   DebateVerdict,
+  ScoreRationale,
+  ScoreRationaleCategory,
   TranscriptAnnotation,
   TranscriptAnnotationSeverity,
   TranscriptAnnotationTag,

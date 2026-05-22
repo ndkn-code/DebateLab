@@ -9,20 +9,30 @@ import {
 import { getPracticeLanguageConfig } from "@/lib/practice-language";
 import {
   getEnum,
+  getNumber,
   getString,
+  getStringArray,
   isPlainRecord,
   readJsonObject,
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
+import { formatMotionBriefForPrompt } from "@/lib/motion-brief";
+import {
+  formatDebateMemoryForPrompt,
+  getRebuttalMaxOutputTokens,
+  getRebuttalWordTarget,
+} from "@/lib/rebuttal/debate-continuity";
 import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-response";
 import type {
   AiDifficulty,
+  DebateMemory,
+  MotionBrief,
   PracticeLanguage,
   PracticeTrack,
 } from "@/types";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 interface RebuttalRequest {
   topic: string;
@@ -33,6 +43,10 @@ interface RebuttalRequest {
   practiceTrack?: PracticeTrack;
   practiceLanguage: PracticeLanguage;
   previousRounds?: { label: string; speaker: string; text: string }[];
+  speechTimeSeconds?: number;
+  currentRoundNumber?: number;
+  motionBrief?: MotionBrief;
+  debateMemory?: DebateMemory;
 }
 
 function parsePreviousRounds(value: unknown) {
@@ -61,6 +75,103 @@ function parsePreviousRounds(value: unknown) {
 
     return { label, speaker, text };
   });
+}
+
+function readLimitedString(
+  source: JsonRecord,
+  key: string,
+  maxLength: number
+) {
+  const value = source[key];
+  if (value == null || value === "") return "";
+  if (typeof value !== "string") {
+    throw new RequestValidationError(`${key} must be a string.`);
+  }
+  return value.trim().slice(0, maxLength);
+}
+
+function parseMotionBrief(value: unknown): MotionBrief | undefined {
+  if (value == null) return undefined;
+  if (!isPlainRecord(value)) {
+    throw new RequestValidationError("motionBrief is invalid.");
+  }
+
+  const keyTerms = getStringArray(value.keyTerms, "motionBrief.keyTerms", {
+    maxItems: 10,
+    maxItemLength: 220,
+  }).filter(Boolean);
+  const scope = readLimitedString(value, "scope", 1200);
+  const propositionBurden = readLimitedString(
+    value,
+    "propositionBurden",
+    1200
+  );
+  const oppositionBurden = readLimitedString(
+    value,
+    "oppositionBurden",
+    1200
+  );
+  const modelClarification = readLimitedString(
+    value,
+    "modelClarification",
+    1200
+  );
+
+  if (
+    keyTerms.length === 0 ||
+    !scope ||
+    !propositionBurden ||
+    !oppositionBurden ||
+    !modelClarification
+  ) {
+    throw new RequestValidationError("motionBrief is incomplete.");
+  }
+
+  return {
+    keyTerms,
+    scope,
+    propositionBurden,
+    oppositionBurden,
+    modelClarification,
+  };
+}
+
+function parseDebateMemory(value: unknown): DebateMemory | undefined {
+  if (value == null) return undefined;
+  if (!isPlainRecord(value)) {
+    throw new RequestValidationError("debateMemory is invalid.");
+  }
+
+  const aiSide = value.aiSide;
+  const studentSide = value.studentSide;
+  if (aiSide !== "proposition" && aiSide !== "opposition") {
+    throw new RequestValidationError("debateMemory.aiSide is invalid.");
+  }
+  if (studentSide !== "proposition" && studentSide !== "opposition") {
+    throw new RequestValidationError("debateMemory.studentSide is invalid.");
+  }
+
+  return {
+    aiSide,
+    studentSide,
+    policyModel: readLimitedString(value, "policyModel", 1200),
+    priorAiClaims: getStringArray(value.priorAiClaims, "debateMemory.priorAiClaims", {
+      maxItems: 12,
+      maxItemLength: 500,
+    }).filter(Boolean),
+    concessions: getStringArray(value.concessions, "debateMemory.concessions", {
+      maxItems: 8,
+      maxItemLength: 500,
+    }).filter(Boolean),
+    activeClashes: getStringArray(value.activeClashes, "debateMemory.activeClashes", {
+      maxItems: 12,
+      maxItemLength: 500,
+    }).filter(Boolean),
+    droppedClaims: getStringArray(value.droppedClaims, "debateMemory.droppedClaims", {
+      maxItems: 10,
+      maxItemLength: 500,
+    }).filter(Boolean),
+  };
 }
 
 function parseRebuttalRequest(body: JsonRecord): RebuttalRequest {
@@ -99,6 +210,17 @@ function parseRebuttalRequest(body: JsonRecord): RebuttalRequest {
       { defaultValue: "en" }
     ) as PracticeLanguage,
     previousRounds: parsePreviousRounds(body.previousRounds),
+    speechTimeSeconds: getNumber(body, "speechTimeSeconds", {
+      min: 60,
+      max: 900,
+      defaultValue: 180,
+    }),
+    currentRoundNumber: getNumber(body, "currentRoundNumber", {
+      min: 1,
+      max: 20,
+    }),
+    motionBrief: parseMotionBrief(body.motionBrief),
+    debateMemory: parseDebateMemory(body.debateMemory),
   };
 }
 
@@ -107,7 +229,7 @@ const difficultyPrompts: Record<AiDifficulty, string> = {
 - Use simple but complete counter-arguments
 - Challenge the student's main idea without attacking every possible layer
 - Use basic vocabulary appropriate for ESL students
-- Be 80-120 words long
+- Follow the duration-aware word target given later in the prompt
 - Leave some strategic openings that the student can answer`,
 
   medium: `You are a COMPETENT debate opponent. Your rebuttals should:
@@ -115,7 +237,7 @@ const difficultyPrompts: Record<AiDifficulty, string> = {
 - Address the opponent's logic, not just their wording
 - Do at least one layer of comparison or impact weighing
 - Use intermediate academic vocabulary
-- Be 100-150 words long
+- Follow the duration-aware word target given later in the prompt
 - Challenge the student while remaining fair`,
 
   hard: `You are an EXPERT debate opponent (national championship level). Your rebuttals should:
@@ -123,7 +245,7 @@ const difficultyPrompts: Record<AiDifficulty, string> = {
 - Test assumptions, attack the mechanism, and compare impacts explicitly
 - Reframe the judge's choice around comparative weighing
 - Use precise, advanced but still spoken vocabulary
-- Be 120-180 words long
+- Follow the duration-aware word target given later in the prompt
 - Force the student to think deeply and defend their position rigorously`,
 };
 
@@ -161,7 +283,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = parseRebuttalRequest(
-      await readJsonObject(req, { maxBytes: 64 * 1024 })
+      await readJsonObject(req, { maxBytes: 160 * 1024 })
     );
     const {
       topic,
@@ -172,6 +294,10 @@ export async function POST(req: NextRequest) {
       practiceTrack,
       practiceLanguage,
       previousRounds,
+      speechTimeSeconds,
+      currentRoundNumber,
+      motionBrief,
+      debateMemory,
     } = body;
 
     if (!topic || !userTranscript || !roundLabel) {
@@ -181,10 +307,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const aiSide = side === "proposition" ? "Opposition (AGAINST)" : "Proposition (FOR)";
+    const memoryAiSide =
+      debateMemory?.aiSide ?? (side === "proposition" ? "opposition" : "proposition");
+    const aiSide =
+      memoryAiSide === "proposition"
+        ? "Proposition (FOR)"
+        : "Opposition (AGAINST)";
     const difficultyInstructions = difficultyPrompts[difficulty || "medium"];
     const track = practiceTrack || "debate";
     const languageConfig = getPracticeLanguageConfig(practiceLanguage);
+    const wordTarget = getRebuttalWordTarget(speechTimeSeconds, roundLabel);
+    const maxOutputTokens = getRebuttalMaxOutputTokens(wordTarget);
+    const timeoutMs =
+      wordTarget.max >= 1000 ? 55000 : wordTarget.max >= 800 ? 45000 : 30000;
+    const motionBriefContext = motionBrief
+      ? `\n${formatMotionBriefForPrompt(motionBrief)}`
+      : "";
+    const debateMemoryContext = formatDebateMemoryForPrompt(
+      debateMemory,
+      motionBrief
+    );
     const responseLanguageInstruction =
       practiceLanguage === "vi"
         ? "Write the rebuttal and highlight notes in Vietnamese. Preserve Vietnamese diacritics and use natural spoken Vietnamese debate language."
@@ -211,11 +353,16 @@ export async function POST(req: NextRequest) {
 
 ## Topic/Motion
 "${topic}"
+${motionBriefContext}
+${debateMemoryContext}
 
 ${difficultyInstructions}
 ${contextSection}
 
 ## Current Round: ${roundLabel}
+${currentRoundNumber ? `Round number: ${currentRoundNumber}` : ""}
+Opponent speech time setting: ${speechTimeSeconds ?? 180} seconds
+Target length for your spoken response: ${wordTarget.min}-${wordTarget.max} words for a ${wordTarget.label} speech format
 ## Practice Track
 ${track}
 
@@ -237,7 +384,10 @@ Rules:
 - Directly address and counter specific points from the opponent's speech
 - Structure your logic around: argument label -> explanation or mechanism -> comparison or weighing -> impact -> link back to your side
 - Prioritize depth over fancy wording
-- Maintain your side (${aiSide}) consistently
+- Maintain your side (${aiSide}) and policy/model consistently across the whole debate
+- Do not shift from a full ban/model to a partial ban/model, or vice versa, unless the Motion Definition explicitly defines that exception
+- Review the previous rounds and Debate Memory before answering so you do not drop your own claims, contradict earlier concessions, or ignore active clashes
+- Make the response proportional to the opponent's allocated speaking time; longer speeches need fuller engagement with mechanisms, examples, impacts, and weighing
 - Be respectful but firm
 - ${learnerContext}
 
@@ -262,12 +412,12 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.7,
-        maxOutputTokens: 700,
+        maxOutputTokens,
       },
     });
 
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("TIMEOUT")), 25000);
+      setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
     });
 
     const startTime = Date.now();
@@ -293,6 +443,9 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         $ai_is_error: false,
         $ai_trace_id: crypto.randomUUID(),
         route: "/api/rebuttal",
+        speech_time_seconds: speechTimeSeconds,
+        rebuttal_word_target_min: wordTarget.min,
+        rebuttal_word_target_max: wordTarget.max,
       },
     });
 
