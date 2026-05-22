@@ -5,8 +5,8 @@ loadEnvConfig(process.cwd());
 async function main() {
   const [{ createClient }, ttsVoices, ttsProviders] = await Promise.all([
     import("@supabase/supabase-js"),
-    import("../src/lib/tts-voices"),
-    import("../src/lib/tts-providers"),
+    import("../apps/web/src/lib/tts-voices"),
+    import("../apps/web/src/lib/tts-providers"),
   ]);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

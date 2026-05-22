@@ -1,149 +1,104 @@
-# DebateLab
+# Thinkfy
 
-A comprehensive edtech platform for Vietnamese high school students to learn debate, practice public speaking, and get AI-powered coaching. Features structured courses, solo debate practice with live transcription, AI feedback scoring, and a personal AI debate coach.
+Thinkfy is an edtech platform for Vietnamese high school students to learn debate, practice public speaking, and get AI-powered coaching. The repo is now an npm workspace monorepo with the production Next.js web app, an Expo iOS app foundation, and shared TypeScript contracts.
 
-## Features
+## Workspace Layout
 
-- **Structured Courses** — Guided learning paths with articles, videos, quizzes, and practice exercises
-- **Solo Debate Practice** — 33+ topics across 6 categories with configurable prep/speech times
-- **Full-Round Debates** — Multi-round debates against an AI opponent at 3 difficulty levels
-- **Real-time Transcription** — Live speech-to-text via Deepgram during practice sessions
-- **AI-Powered Feedback** — Detailed scoring across Content, Structure, Language, and Persuasion
-- **AI Debate Coach** — Chat assistant for tips, explanations, argument brainstorming, and practice
-- **XP & Level System** — Earn XP from lessons, debates, and quizzes to track your progress
-- **Streak Tracking** — Daily streak counter to build consistent practice habits
-- **Session History** — Review past debates with scores, filters, and detailed feedback
-- **User Accounts** — Email/password and Google OAuth authentication via Supabase
-
-## Tech Stack
-
-- **Framework:** Next.js 16 (App Router, Turbopack) with TypeScript
-- **Backend:** Supabase (PostgreSQL, Auth, Storage)
-- **Styling:** Tailwind CSS v4 + shadcn/ui (Material Design 3 theme)
-- **State:** Zustand
-- **Animations:** Framer Motion
-- **AI:** Google Gemini 2.5 Flash (analysis, chat, rebuttals)
-- **Speech:** Deepgram SDK (real-time transcription)
-- **Charts:** Recharts
-- **Markdown:** react-markdown + remark-gfm
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- A [Supabase](https://supabase.com) project
-- A [Google AI Studio](https://aistudio.google.com/apikey) API key
-- A [Deepgram](https://deepgram.com) API key (for speech transcription)
-
-### Environment Variables
-
-Create `.env.local` with:
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-# Google Gemini
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-2.5-flash        # optional, defaults to gemini-2.5-flash
-
-# Deepgram
-DEEPGRAM_API_KEY=your-deepgram-api-key
+```text
+apps/
+  web/        Next.js app, API routes, server actions, web UI
+  mobile/     Expo React Native app, iOS native project
+packages/
+  shared/     Pure TypeScript contracts and helpers for web/mobile
+supabase/     Database migrations and Supabase project assets
+docs/         Repo-level docs
+design-artifacts/
 ```
 
-### Database Setup
+## Core Commands
 
-1. Create a new Supabase project
-2. Run the database migration SQL (see `supabase/migrations/`) to create all required tables:
-   - `profiles`, `courses`, `course_modules`, `lessons`, `quiz_questions`
-   - `enrollments`, `lesson_progress`, `debate_sessions`
-   - `activity_logs`, `daily_stats`
-   - `chat_conversations`, `chat_messages`
-3. Seed the course data:
+Install from the repo root:
 
 ```bash
-npx tsx src/lib/seed/run-seed.ts
-```
-
-### Install & Run
-
-```bash
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Build
+Web:
 
 ```bash
-npm run build
-npm start
+npm run dev:web
+npm run lint:web
+npm run typecheck:web
+npm run build:web
 ```
 
-## Project Structure
+Mobile:
 
-```
-src/
-  app/
-    (protected)/              # Auth-required routes (dashboard, courses, etc.)
-      chat/                   # AI Coach chat interface
-      courses/                # Course listing, detail, lesson pages
-      dashboard/              # Main dashboard with stats & activity
-      history/                # Debate session history & review
-      practice/               # Topic selection, session, feedback
-      settings/               # User profile & preferences
-    api/
-      analyze/                # Debate transcript analysis (Gemini)
-      chat/                   # AI Coach streaming chat (Gemini)
-      rebuttal/               # AI opponent rebuttal generation
-      deepgram-token/         # Deepgram API key endpoint
-    auth/                     # Login, signup, OAuth callback
-  components/
-    chat/                     # Chat UI (bubbles, sidebar, typing indicator)
-    dashboard/                # Dashboard widgets (chart, stats, AI coach)
-    feedback/                 # Score display, category cards, timeline
-    onboarding/               # Welcome modal for new users
-    settings/                 # Settings form components
-    shared/                   # Sidebar, toast, confirm dialog, score ring
-    ui/                       # shadcn/ui primitives
-  hooks/                      # useCountdown, useSpeechRecognition, useUser
-  lib/
-    api/                      # Server-side data fetching (dashboard, courses, chat)
-    seed/                     # Course seed data & seed script
-    supabase/                 # Supabase client helpers (browser, server, middleware)
-  store/                      # Zustand stores
-  types/                      # TypeScript type definitions
+```bash
+npm run dev:mobile
+npm run ios:mobile
+npm run lint:mobile
+npm run typecheck:mobile
 ```
 
-## Scoring Rubric
+Shared:
 
-| Category | Max Score | Sub-categories |
-|----------|-----------|----------------|
-| Content & Argumentation | 40 | Claim Clarity, Evidence, Logic, Counter-Arguments |
-| Structure & Organization | 25 | Introduction, Body, Conclusion |
-| Language & Delivery | 25 | Vocabulary, Grammar, Fluency |
-| Persuasiveness | 10 | Audience Awareness, Impactfulness |
+```bash
+npm run typecheck:shared
+```
 
-Band descriptors: Expert (85-100), Proficient (70-84), Competent (50-69), Developing (30-49), Novice (0-29)
+Focused web tests are still available from the root, for example:
 
-## XP System
+```bash
+npm run test:topics
+npm run test:practice-language
+npm run test:practice-analysis
+```
 
-| Activity | XP Earned |
-|----------|-----------|
-| Complete a debate session | 25 XP |
-| Full-round debate bonus | +10 XP |
-| Complete a lesson | 10-25 XP |
-| Quiz perfect score bonus | +10 XP |
-| 7-day streak milestone | +50 XP |
+## Environment
 
-Level formula: `level = floor(xp / 500) + 1`
+Use the root `.env.example` as the source of truth.
 
-## Browser Support
+- Web local env: copy relevant values into `apps/web/.env.local`.
+- Mobile local env: copy the `EXPO_PUBLIC_*` values into `apps/mobile/.env.local`.
+- Mobile env details live in [docs/mobile-env.md](docs/mobile-env.md).
 
-Speech transcription uses Deepgram's streaming API and works in all modern browsers. Google Chrome recommended for best experience.
+Never expose server secrets through `EXPO_PUBLIC_*`.
+
+## Web App
+
+The web app remains the production app and includes courses, solo practice, Deepgram transcription, async AI feedback, coach chat, profile, history, settings, admin tools, email, and smart popups.
+
+The web source moved from `src/` to `apps/web/src/`. The `@/*` alias still points at the web `src` folder inside the web workspace.
+
+## Mobile App
+
+The mobile app lives in `apps/mobile` and uses:
+
+- Expo SDK 55
+- Expo Router
+- iOS bundle identifier `net.thinkfy.app`
+- URL scheme `thinkfy`
+- `@thinkfy/shared` for pure practice contracts
+
+Phase 1 is a foundation only. Auth, dashboard, practice, audio recording, transcription, and feedback implementation happen in later phases.
+
+## Vercel Deployment
+
+Before the next web deploy, update the Vercel project root directory to:
+
+```text
+apps/web
+```
+
+The web `vercel.json` now lives in `apps/web/vercel.json`, so cron paths and the practice-analysis queue trigger stay relative to the web app root.
+
+## Database
+
+Supabase migrations remain at the repo root under `supabase/migrations`.
+
+Utility scripts run through the web workspace:
+
+```bash
+npm run generate:tts-samples
+```
