@@ -6,7 +6,6 @@ import {
   ChartColumnBig,
   ChevronRight,
   Clock3,
-  HelpCircle,
   Home,
   Lock,
   Scale,
@@ -19,9 +18,10 @@ import {
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
+import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
+import type { Profile } from "@/types/database";
 
 const NAV_ICONS = {
   dashboard: Home,
@@ -38,6 +38,8 @@ interface DashboardSidebarRailProps {
   referralCode: string | null;
   inviteReward: number;
   isAdmin: boolean;
+  profile: Profile | null;
+  userEmail: string | null;
 }
 
 export function DashboardSidebarRail({
@@ -45,6 +47,8 @@ export function DashboardSidebarRail({
   referralCode,
   inviteReward,
   isAdmin,
+  profile,
+  userEmail,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
@@ -193,14 +197,7 @@ export function DashboardSidebarRail({
             <Settings className="h-5 w-5 shrink-0" />
             <span className="truncate">{t("settings_label")}</span>
           </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-8 w-full justify-start rounded-lg px-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-          >
-            <HelpCircle className="mr-3 h-5 w-5 shrink-0" />
-            <span className="truncate">{t("help_support")}</span>
-          </Button>
+          <SupportIssueDialog profile={profile} userEmail={userEmail} />
         </div>
       </div>
     </aside>
