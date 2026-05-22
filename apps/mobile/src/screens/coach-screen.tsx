@@ -432,9 +432,12 @@ export function CoachScreen() {
       const remembered = response.conversations.find(
         (conversation) => conversation.id === lastConversationId,
       );
+      const fallbackConversation = response.conversations[0] ?? null;
 
-      if (remembered) {
-        await loadConversation(remembered.id, { track: false });
+      if (remembered || fallbackConversation) {
+        await loadConversation((remembered ?? fallbackConversation).id, {
+          track: false,
+        });
       } else {
         setActiveConversation(null);
         setMessages([]);

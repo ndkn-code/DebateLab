@@ -16,6 +16,7 @@ This phase intentionally does not solve the broader mismatch between current mob
 - Existing web coach profile/context helpers can now run against the bearer-authenticated Supabase client.
 - Mobile Coach tab loads live context, saved conversations, active threads, composer, send/retry states, structured cards, suggested actions, and dev-preview mocks.
 - Mobile analytics events were added for coach view, conversation open, message sent, response received/failed, and suggested-action taps.
+- Local simulator E2E login has a development-only filesystem auth fallback for unsigned dev-client builds when SecureStore cannot persist between restarts.
 - Three ImageGen reference boards were generated for Phase 8 UI direction.
 
 ## Live Supabase Verification
@@ -49,6 +50,10 @@ API smoke checks completed:
 - `GET /api/mobile/coach` with malformed bearer returned `401`.
 - `GET /api/mobile/coach/conversations/[id]` with no auth returned `401`.
 - `POST /api/mobile/coach/messages` with no auth returned `401`.
+- Signed-in Google simulator E2E loaded `GET /api/mobile/dashboard` with `200`.
+- Signed-in Google simulator E2E loaded `GET /api/mobile/coach` with `200`.
+- Signed-in Google simulator E2E sent `POST /api/mobile/coach/messages` with `200`.
+- Restart restore loaded `GET /api/mobile/coach/conversations/3a8adbf1-e8e0-414e-8aa8-c5381dc91849` with `200`.
 
 Visual checks completed:
 
@@ -56,10 +61,8 @@ Visual checks completed:
 - iPhone 17e dev-preview Coach screen.
 - iPhone 17e active conversation/composer state after fixing a long-preview overflow.
 - iPhone 17 Pro live-env signed-out guard.
-
-Remaining manual QA gate:
-
-- A valid signed-in Google session was not available after the laptop reset, so the live valid-bearer send-message path still needs one signed-in simulator or physical-device pass. No test auth user was created and no Supabase data was mutated.
+- iPhone 17e signed-in Google live Coach response with structured cards and suggested actions.
+- iPhone 17e app restart kept the signed-in session and restored the most recent saved Coach conversation.
 
 ## Artifact Index
 
@@ -71,3 +74,7 @@ Remaining manual QA gate:
 - `qa/iphone-17e-coach-retry.png`
 - `qa/iphone-17e-coach-conversation-fixed.png`
 - `qa/iphone-17-pro-coach-live-attempt.png`
+- `qa/iphone-17e-coach-live-response.png`
+- `qa/iphone-17e-coach-live-persisted-conversation.png`
+- `qa/iphone-17e-coach-live-restart-restore-fixed.png`
+- `qa/iphone-17e-coach-live-restart-thread-visible.png`
