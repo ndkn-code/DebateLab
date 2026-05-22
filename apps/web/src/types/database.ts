@@ -28,6 +28,35 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface SupportIssueReportRow {
+  id: string;
+  tally_event_id: string;
+  tally_response_id: string | null;
+  tally_submission_id: string | null;
+  tally_form_id: string | null;
+  tally_form_name: string | null;
+  user_id: string | null;
+  user_email: string | null;
+  locale: string | null;
+  route: string | null;
+  source: string;
+  issue_type: string | null;
+  severity: string | null;
+  title: string | null;
+  description: string | null;
+  expected_behavior: string | null;
+  steps_to_reproduce: string | null;
+  contact_permission: string | null;
+  attachments: Record<string, unknown>[];
+  environment: Record<string, unknown>;
+  hidden_fields: Record<string, unknown>;
+  raw_payload: Record<string, unknown>;
+  status: "new" | "triaged" | "in_progress" | "resolved" | "closed";
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Course {
   id: string;
   title: string;

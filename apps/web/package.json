@@ -26,6 +26,7 @@
     "test:smart-popup-surveys": "tsx src/lib/smart-popups/survey.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts",
     "test:email-system": "tsx src/lib/email/email-system.test.ts",
+    "test:support-reports": "tsx src/lib/support/tally-url.test.ts && tsx src/lib/support/tally-webhook.test.ts",
     "generate:tts-samples": "tsx ../../scripts/generate-tts-voice-samples.ts",
     "test:email-templates": "tsx src/lib/email/template-overrides.test.ts"
   },
