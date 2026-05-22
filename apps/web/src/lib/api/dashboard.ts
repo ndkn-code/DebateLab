@@ -1,0 +1,727 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { createClient } from "@/lib/supabase/server";
+import type {
+  DailyStatEntry,
+  DashboardCourseContinuation,
+  DashboardGoalSummary,
+  DashboardHomeData,
+  DashboardNavItem,
+  DashboardProgressMetric,
+  DashboardQuickAction,
+  DashboardRecentItem,
+  DashboardRecommendedDrill,
+  DashboardSkillSnapshot,
+  DashboardTodayPlanItem,
+} from "@thinkfy/shared/dashboard";
+import type { Profile } from "@/types/database";
+import type { DebateScore, PracticeTrack } from "@/types/feedback";
+import { normalizeCourseCategory } from "@/lib/api/courses";
+import {
+  computeSkillSnapshot as computeSharedSkillSnapshot,
+  roundToTenth,
+} from "@/lib/analytics/skill-snapshot";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
+
+export type {
+  DailyStatEntry,
+  DashboardCourseContinuation,
+  DashboardGoalSummary,
+  DashboardHomeData,
+  EnrollmentWithCourse,
+  DashboardNavItem,
+  DashboardProgressMetric,
+  DashboardQuickAction,
+  DashboardRecentItem,
+  DashboardRecommendedDrill,
+  DashboardSkillSnapshot,
+  DashboardTodayPlanItem,
+  RecentSession,
+} from "@thinkfy/shared/dashboard";
+
+const USER_TIMEZONE = "America/New_York";
+const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
+const DAYS_IN_WEEK = 7;
+const RECOMMENDED_SKILL_TARGET = 75;
+
+type SessionScoreRow = {
+  id: string;
+  topic_title: string;
+  category: string | null;
+  topic_difficulty: string | null;
+  side: string;
+  mode: string;
+  ai_difficulty: string | null;
+  feedback: DebateScore | null;
+  total_score: number | null;
+  overall_band: string | null;
+  duration_seconds: number;
+  created_at: string;
+};
+
+type EnrollmentRow = {
+  id: string;
+  course_id: string;
+  status: string;
+  progress_pct: number;
+  courses: {
+    title: string;
+    category: string;
+    thumbnail_url: string | null;
+  } | null;
+};
+
+type DashboardRpcPayload = {
+  profile?: unknown;
+  enrollments?: unknown;
+  recent_sessions?: unknown;
+  scored_sessions?: unknown;
+  stats?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+async function getDashboardPayloadFromRpc(
+  supabase: SupabaseClient
+): Promise<DashboardRpcPayload | null> {
+  const { data, error } = await supabase.rpc("get_dashboard_payload");
+  if (error || !isRecord(data)) return null;
+  return data as DashboardRpcPayload;
+}
+
+function getDateFormatter() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: USER_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+function formatDateInZone(date: Date) {
+  return getDateFormatter().format(date);
+}
+
+function getTodayDateString() {
+  return formatDateInZone(new Date());
+}
+
+function getCurrentWeekDates() {
+  const dates: string[] = [];
+  const now = new Date();
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: USER_TIMEZONE,
+    weekday: "short",
+  }).format(now);
+  const weekdayIndexMap: Record<string, number> = {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 0,
+  };
+  const dayIndex = weekdayIndexMap[weekday] ?? 0;
+  const mondayOffset = dayIndex === 0 ? -6 : 1 - dayIndex;
+
+  for (let index = 0; index < DAYS_IN_WEEK; index += 1) {
+    const current = new Date(now);
+    current.setDate(now.getDate() + mondayOffset + index);
+    dates.push(formatDateInZone(current));
+  }
+
+  return dates;
+}
+
+function getTrailingDates(totalDays: number) {
+  const dates: string[] = [];
+  const now = new Date();
+
+  for (let index = totalDays - 1; index >= 0; index -= 1) {
+    const current = new Date(now);
+    current.setDate(now.getDate() - index);
+    dates.push(formatDateInZone(current));
+  }
+
+  return dates;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getPracticeTrack(feedback: DebateScore | null): PracticeTrack {
+  return feedback?.practiceTrack === "speaking" ? "speaking" : "debate";
+}
+
+function isStrongBand(band: string | null | undefined) {
+  return band ? STRONG_BANDS.has(band) : false;
+}
+
+function getDailyGoalMinutes(profile: Profile | null) {
+  const preferences = (profile?.preferences as Record<string, unknown> | null) ?? {};
+  const explicitGoal = preferences.daily_goal_minutes;
+  if (typeof explicitGoal === "number" && explicitGoal > 0) {
+    return explicitGoal;
+  }
+
+  const onboardingGoal = preferences.dailyCommitment;
+  if (typeof onboardingGoal === "number" && onboardingGoal > 0) {
+    return onboardingGoal;
+  }
+
+  return 30;
+}
+
+function getXpGoal() {
+  return 500;
+}
+
+function getStrongRate(sessions: SessionScoreRow[]) {
+  const scored = sessions.filter((session) => session.total_score != null);
+  if (scored.length === 0) return 0;
+  const strongCount = scored.filter((session) =>
+    isStrongBand(session.overall_band)
+  ).length;
+  return Math.round((strongCount / scored.length) * 100);
+}
+
+function getAverageArgumentScore(sessions: SessionScoreRow[]) {
+  const scored = sessions.filter((session) => session.total_score != null);
+  if (scored.length === 0) return 0;
+  const average =
+    scored.reduce((sum, session) => sum + (session.total_score ?? 0), 0) /
+    scored.length;
+  return roundToTenth(average);
+}
+
+function buildGoalSummary(
+  practicedMinutes: number,
+  goalMinutes: number
+): DashboardGoalSummary {
+  const safeGoal = goalMinutes > 0 ? goalMinutes : 30;
+
+  return {
+    goalMinutes: safeGoal,
+    practicedMinutes,
+    progressPercent: Math.round(clamp((practicedMinutes / safeGoal) * 100, 0, 100)),
+    metGoal: practicedMinutes >= safeGoal,
+  };
+}
+
+function computeSkillSnapshot(scoredSessions: SessionScoreRow[]): DashboardSkillSnapshot {
+  return computeSharedSkillSnapshot(scoredSessions) as DashboardSkillSnapshot;
+}
+
+function computePeriodDelta(currentValue: number, previousValue: number) {
+  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return null;
+  return roundToTenth(currentValue - previousValue);
+}
+
+function buildProgressMetrics(
+  profile: Profile | null,
+  scoredSessions: SessionScoreRow[],
+  recent14Dates: string[],
+  statsByDate: Map<string, DailyStatEntry>
+): DashboardProgressMetric[] {
+  const previousDates = recent14Dates.slice(0, 7);
+  const currentDates = recent14Dates.slice(7);
+  const currentDateSet = new Set(currentDates);
+  const previousDateSet = new Set(previousDates);
+
+  const currentPeriodSessions = scoredSessions.filter((session) =>
+    currentDateSet.has(session.created_at.slice(0, 10))
+  );
+  const previousPeriodSessions = scoredSessions.filter((session) =>
+    previousDateSet.has(session.created_at.slice(0, 10))
+  );
+
+  const currentPracticeMinutes = currentDates.reduce(
+    (sum, date) => sum + (statsByDate.get(date)?.practice_minutes ?? 0),
+    0
+  );
+  const previousPracticeMinutes = previousDates.reduce(
+    (sum, date) => sum + (statsByDate.get(date)?.practice_minutes ?? 0),
+    0
+  );
+
+  const totalSessions = profile?.total_sessions_completed ?? 0;
+  const currentSessionCount = currentPeriodSessions.length;
+  const previousSessionCount = previousPeriodSessions.length;
+  const currentStrongRate = getStrongRate(
+    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions
+  );
+  const previousStrongRate = getStrongRate(previousPeriodSessions);
+  const currentAverageScore = getAverageArgumentScore(
+    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions
+  );
+  const previousAverageScore = getAverageArgumentScore(previousPeriodSessions);
+
+  return [
+    {
+      key: "total-sessions",
+      value: totalSessions,
+      displayValue: String(totalSessions),
+      delta: computePeriodDelta(currentSessionCount, previousSessionCount),
+    },
+    {
+      key: "strong-rate",
+      value: currentStrongRate,
+      displayValue: `${currentStrongRate}%`,
+      delta: computePeriodDelta(currentStrongRate, previousStrongRate),
+    },
+    {
+      key: "average-score",
+      value: currentAverageScore,
+      displayValue: `${Math.round(currentAverageScore)} /100`,
+      delta: computePeriodDelta(currentAverageScore, previousAverageScore),
+    },
+    {
+      key: "practice-time",
+      value: currentPracticeMinutes,
+      displayValue: `${currentPracticeMinutes} min`,
+      delta: computePeriodDelta(currentPracticeMinutes, previousPracticeMinutes),
+    },
+  ];
+}
+
+function buildRecentActivity(
+  recentSessions: SessionScoreRow[]
+): DashboardRecentItem[] {
+  return recentSessions.slice(0, 4).map((session) => {
+    const practiceTrack = getPracticeTrack(session.feedback);
+    return {
+      id: `session-${session.id}`,
+      kind: practiceTrack,
+      title: session.topic_title,
+      subtitle: practiceTrack === "speaking" ? "Speaking Practice" : "Debate Practice",
+      createdAt: session.created_at,
+      href: `/history/${session.id}`,
+      scoreOutOf100: session.total_score != null ? Math.round(session.total_score) : null,
+      statusLabel: session.overall_band,
+      progressPercent: null,
+    };
+  });
+}
+
+function getUnderusedTrack(recentSessions: SessionScoreRow[]): PracticeTrack {
+  const practiceCounts = recentSessions.reduce(
+    (summary, session) => {
+      const practiceTrack = getPracticeTrack(session.feedback);
+      summary[practiceTrack] += 1;
+      return summary;
+    },
+    { speaking: 0, debate: 0 }
+  );
+
+  return practiceCounts.speaking < practiceCounts.debate ? "speaking" : "debate";
+}
+
+function buildCoursePlanItem(
+  courseContinuation: DashboardCourseContinuation | null
+): DashboardTodayPlanItem | null {
+  if (!courseContinuation) return null;
+
+  return {
+    id: "continue-course",
+    key: "continue-course",
+    href: courseContinuation.href,
+    detailHref: courseContinuation.href,
+    ctaKey: "continue",
+    durationMinutes: 12,
+    context: courseContinuation.title,
+    progressLabel: `${courseContinuation.progressPercent}%`,
+  };
+}
+
+function buildWeakestSkillPlanItem(
+  skillSnapshot: DashboardSkillSnapshot
+): DashboardTodayPlanItem | null {
+  if (!skillSnapshot.weakestSkill) return null;
+
+  const weakestMetric = skillSnapshot.metrics.find(
+    (metric) => metric.key === skillSnapshot.weakestSkill
+  );
+  const score =
+    weakestMetric && weakestMetric.coverage > 0
+      ? Math.round(weakestMetric.value)
+      : null;
+
+  if (score != null && score >= RECOMMENDED_SKILL_TARGET) {
+    return null;
+  }
+
+  const track = skillSnapshot.weakestSkill === "delivery" ? "speaking" : "debate";
+
+  return {
+    id: `weakest-${skillSnapshot.weakestSkill}`,
+    key: "weakest-skill",
+    href: `/practice?track=${track}`,
+    detailHref: "/profile",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    scoreOutOf100: score,
+    skillKey: skillSnapshot.weakestSkill,
+    track,
+  };
+}
+
+function buildReviewPlanItem(
+  recentSessions: SessionScoreRow[]
+): DashboardTodayPlanItem | null {
+  const latestScored = recentSessions.find((session) => session.total_score != null);
+  if (!latestScored) return null;
+
+  return {
+    id: `review-${latestScored.id}`,
+    key: "review-feedback",
+    href: `/history/${latestScored.id}`,
+    detailHref: `/history/${latestScored.id}`,
+    ctaKey: "review",
+    durationMinutes: 7,
+    context: latestScored.topic_title,
+    scoreOutOf100:
+      latestScored.total_score != null ? Math.round(latestScored.total_score) : null,
+    track: getPracticeTrack(latestScored.feedback),
+  };
+}
+
+function buildUnderusedPlanItem(
+  recentSessions: SessionScoreRow[]
+): DashboardTodayPlanItem {
+  const track = getUnderusedTrack(recentSessions);
+
+  return {
+    id: `underused-${track}`,
+    key: "underused-track",
+    href: `/practice?track=${track}`,
+    detailHref: "/practice",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    track,
+  };
+}
+
+function buildStarterPlanItem(track: PracticeTrack): DashboardTodayPlanItem {
+  return {
+    id: `start-${track}`,
+    key: track === "speaking" ? "start-speaking" : "start-debate",
+    href: `/practice?track=${track}`,
+    detailHref: "/practice",
+    ctaKey: "start",
+    durationMinutes: 10,
+    context: null,
+    track,
+  };
+}
+
+function buildCoachPlanItem(): DashboardTodayPlanItem {
+  return {
+    id: "coach-check",
+    key: "coach-check",
+    href: "/chat?context=coach-home",
+    detailHref: "/chat?context=coach-home",
+    ctaKey: "ask-coach",
+    durationMinutes: 5,
+    context: null,
+  };
+}
+
+function buildDashboardPlan(
+  skillSnapshot: DashboardSkillSnapshot,
+  recentSessions: SessionScoreRow[],
+  courseContinuation: DashboardCourseContinuation | null
+): {
+  recommendedDrill: DashboardRecommendedDrill;
+  todayPlanItems: DashboardTodayPlanItem[];
+} {
+  const weakestSkillPlan = buildWeakestSkillPlanItem(skillSnapshot);
+  const coursePlan = buildCoursePlanItem(courseContinuation);
+  const reviewPlan = buildReviewPlanItem(recentSessions);
+  const underusedPlan = buildUnderusedPlanItem(recentSessions);
+
+  const recommendedDrill =
+    weakestSkillPlan ?? coursePlan ?? reviewPlan ?? underusedPlan;
+
+  const candidateItems = [
+    coursePlan,
+    reviewPlan,
+    weakestSkillPlan,
+    underusedPlan,
+    buildStarterPlanItem("speaking"),
+    buildStarterPlanItem("debate"),
+    buildCoachPlanItem(),
+  ].filter((item): item is DashboardTodayPlanItem => Boolean(item));
+
+  const seen = new Set<string>();
+  const todayPlanItems = candidateItems.filter((item) => {
+    const signature = `${item.key}:${item.href}`;
+    const duplicatesHero =
+      item.key === recommendedDrill.key && item.href === recommendedDrill.href;
+    if (duplicatesHero || seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+
+  return {
+    recommendedDrill,
+    todayPlanItems: todayPlanItems.slice(0, 3),
+  };
+}
+
+export async function getDashboardData(
+  userId: string,
+  authenticatedClient?: SupabaseClient
+): Promise<DashboardHomeData> {
+  const supabase = authenticatedClient ?? (await createClient());
+  const weekDates = getCurrentWeekDates();
+  const trailing14Dates = getTrailingDates(14);
+  const today = getTodayDateString();
+  const skillSnapshotStartDate = new Date();
+  skillSnapshotStartDate.setDate(skillSnapshotStartDate.getDate() - 29);
+  skillSnapshotStartDate.setHours(0, 0, 0, 0);
+  const skillSnapshotStartIso = skillSnapshotStartDate.toISOString();
+
+  const rpcPayload = await getDashboardPayloadFromRpc(supabase);
+  const fallbackPayload = rpcPayload
+    ? null
+    : await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
+          )
+          .eq("id", userId)
+          .single(),
+
+        supabase
+          .from("enrollments")
+          .select("*, courses(title, category, thumbnail_url)")
+          .eq("user_id", userId)
+          .eq("status", "active"),
+
+        supabase
+          .from("debate_sessions")
+          .select(
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+          )
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(8),
+
+        supabase
+          .from("debate_sessions")
+          .select(
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+          )
+          .eq("user_id", userId)
+          .not("total_score", "is", null)
+          .gte("created_at", skillSnapshotStartIso)
+          .order("created_at", { ascending: false }),
+
+        supabase
+          .from("daily_stats")
+          .select("date, sessions_completed, minutes_studied, xp_earned")
+          .eq("user_id", userId)
+          .gte("date", trailing14Dates[0])
+          .lte("date", trailing14Dates[trailing14Dates.length - 1])
+          .order("date"),
+      ]);
+
+  const profile = (rpcPayload?.profile ??
+    fallbackPayload?.[0].data) as Profile | null;
+  const isAdmin = profile?.role === "admin";
+  const enrollmentRows = rpcPayload
+    ? asArray(rpcPayload.enrollments)
+    : fallbackPayload?.[1].data ?? [];
+  const enrollments: EnrollmentRow[] = (enrollmentRows as Array<{
+    id: string;
+    course_id: string;
+    status: string;
+    progress_percent?: number;
+    progress_pct?: number;
+    courses?: { title?: string; category?: string; thumbnail_url?: string | null } | Array<{ title?: string; category?: string; thumbnail_url?: string | null }> | null;
+  }>)
+    .map((entry) => {
+      const course = Array.isArray(entry.courses) ? entry.courses[0] : entry.courses;
+      const progressPercent =
+        typeof entry.progress_percent === "number"
+          ? entry.progress_percent
+          : typeof entry.progress_pct === "number"
+            ? entry.progress_pct
+            : 0;
+
+      return {
+        id: entry.id,
+        course_id: entry.course_id,
+        status: entry.status,
+        progress_pct: progressPercent,
+        courses: course
+          ? {
+              title: course.title ?? "Course",
+              category: normalizeCourseCategory(course.category),
+              thumbnail_url: course.thumbnail_url ?? null,
+            }
+          : null,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.progress_pct - left.progress_pct ||
+        (left.courses?.title ?? "").localeCompare(right.courses?.title ?? "")
+    );
+  const recentSessions = (rpcPayload
+    ? asArray(rpcPayload.recent_sessions)
+    : fallbackPayload?.[2].data ?? []) as SessionScoreRow[];
+  const scoredSessions = (rpcPayload
+    ? asArray(rpcPayload.scored_sessions)
+    : fallbackPayload?.[3].data ?? []) as SessionScoreRow[];
+
+  const statsByDate = new Map<string, DailyStatEntry>();
+  for (const date of trailing14Dates) {
+    statsByDate.set(date, {
+      date,
+      sessions_completed: 0,
+      practice_minutes: 0,
+      xp_earned: 0,
+    });
+  }
+
+  const statRows = rpcPayload
+    ? asArray(rpcPayload.stats)
+    : fallbackPayload?.[4].data ?? [];
+  for (const stat of statRows as Array<{
+    date: string;
+    sessions_completed: number;
+    minutes_studied: number;
+    xp_earned: number;
+  }>) {
+    statsByDate.set(stat.date, {
+      date: stat.date,
+      sessions_completed: stat.sessions_completed,
+      practice_minutes: stat.minutes_studied,
+      xp_earned: stat.xp_earned,
+    });
+  }
+
+  const weeklyStats = weekDates.map((date) => {
+    return (
+      statsByDate.get(date) ?? {
+        date,
+        sessions_completed: 0,
+        practice_minutes: 0,
+        xp_earned: 0,
+      }
+    );
+  });
+
+  const dailyGoalMinutes = getDailyGoalMinutes(profile);
+  const todayMinutes = statsByDate.get(today)?.practice_minutes ?? 0;
+  const todayGoal = buildGoalSummary(todayMinutes, dailyGoalMinutes);
+  const skillSnapshot = computeSkillSnapshot(scoredSessions);
+  const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
+
+  const featuredEnrollment = enrollments[0];
+  const courseContinuation =
+    featuredEnrollment
+      ? {
+          courseId: featuredEnrollment.course_id,
+          title: featuredEnrollment.courses?.title ?? "Continue course",
+          category: featuredEnrollment.courses?.category ?? "debate",
+          progressPercent: featuredEnrollment.progress_pct,
+          href: "/courses",
+        }
+      : null;
+
+  const nav: DashboardNavItem[] = [
+    { key: "dashboard", href: "/dashboard", status: "live" },
+    { key: "practice", href: "/practice", status: "live" },
+    {
+      key: "duel",
+      href: isAdmin ? "/debates" : undefined,
+      status: isAdmin ? "live" : "coming-soon",
+    },
+    {
+      key: "courses",
+      href: "/courses",
+      status: "live",
+    },
+    { key: "coach", href: "/chat?context=coach-home", status: "live" },
+    { key: "history", href: "/history", status: "live" },
+    { key: "analytics", href: "/profile", status: "live" },
+  ];
+
+  const quickActions: DashboardQuickAction[] = [
+    {
+      key: "speaking",
+      href: "/practice?track=speaking",
+      status: "live",
+      descriptionKey: "action_speaking_desc",
+    },
+    {
+      key: "debate",
+      href: "/practice?track=debate",
+      status: "live",
+      descriptionKey: "action_debate_desc",
+    },
+    {
+      key: "course",
+      href: "/courses",
+      status: "live",
+      descriptionKey: courseContinuation
+        ? "action_course_desc"
+        : "action_course_browse_desc",
+    },
+    {
+      key: "coach",
+      href: "/chat?context=coach-home",
+      status: "live",
+      descriptionKey: "action_coach_desc",
+    },
+  ];
+
+  const recentActivity = buildRecentActivity(recentSessions);
+  const { recommendedDrill, todayPlanItems } = buildDashboardPlan(
+    skillSnapshot,
+    recentSessions,
+    courseContinuation
+  );
+
+  return {
+    profile,
+    nav,
+    topBar: {
+      currentStreak: profile?.streak_current ?? 0,
+      orbBalance: profile?.orb_balance ?? 0,
+      level: profile?.level ?? 1,
+      xpCurrent: profile?.xp ?? 0,
+      xpGoal: getXpGoal(),
+      pendingNotifications: 0,
+    },
+    hero: {
+      weeklyStats,
+      todayGoal,
+    },
+    skillSnapshot,
+    recommendedDrill,
+    quickActions,
+    recentActivity,
+    todayPlanItems,
+    progress,
+    sidebarCards: {
+      dailyGoal: todayGoal,
+      inviteOrbs: REFERRAL_REWARD_CREDITS,
+      referralCode: profile?.referral_code ?? null,
+    },
+    courseContinuation,
+  };
+}

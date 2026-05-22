@@ -1,0 +1,2164 @@
+{
+  "landing": {
+    "nav": {
+      "home": "Trang chủ",
+      "features": "Tính năng",
+      "howItWorks": "Phương pháp",
+      "pricing": "Gói đăng kí",
+      "login": "Đăng nhập",
+      "signup": "Bắt đầu ngay",
+      "dashboard": "Vào Dashboard",
+      "history": "Lịch sử"
+    },
+    "hero": {
+      "badge": "Luyện Với AI",
+      "headline": "Luyện Debate Với AI. Lên Trình Mỗi Ngày.",
+      "headline_rich": "Luyện Debate Với <gradient>AI</gradient>. Lên Trình Mỗi Ngày.",
+      "subheadline": "Nói, nhận feedback ngay, crush cuộc thi tiếp theo. Dành cho debater Việt Nam.",
+      "cta": "Bắt đầu miễn phí",
+      "cta_logged_in": "Vào Luyện Tập",
+      "social_proof": "Gia nhập 500+ debater Việt Nam",
+      "announcement_badge": "Mới",
+      "announcement": "AI Coach tranh luận trực tiếp với bạn",
+      "session_timer": "Đồng Hồ",
+      "live_analysis": "ĐANG PHÂN TÍCH"
+    },
+    "features": {
+      "headline": "Mọi Thứ Bạn Cần Để Lên Trình",
+      "subheadline": "Từ luyện tập đến chấm điểm — AI lo hết.",
+      "solo_practice": {
+        "title": "Luyện Tập Solo",
+        "description": "Chọn motion, chọn phe, bấm giờ. WSDC & BP đều có."
+      },
+      "transcription": {
+        "title": "Phiên Âm Trực Tiếp",
+        "description": "Giọng nói → văn bản, chuẩn từng từ. Review lại bài nói dễ hơn."
+      },
+      "ai_analysis": {
+        "title": "Phân Tích AI",
+        "description": "Nói xong là có điểm. Nội dung, Cấu trúc, Ngôn ngữ, Thuyết phục — đều chấm hết.",
+        "content": "Nội dung",
+        "style": "Phong cách"
+      },
+      "growth": {
+        "title": "Lên Trình Nhanh",
+        "description": "Feedback cụ thể + lập luận mẫu. Biết sai ở đâu, sửa ngay.",
+        "progress": "Tiến độ"
+      }
+    },
+    "courses": {
+      "headline": "Khóa Học Debate Bài Bản",
+      "subheadline": "Không chỉ luyện — học debate từ gốc với khóa học cho học sinh Việt Nam.",
+      "foundations": {
+        "title": "Foundations of Competitive Debate",
+        "description": "Nắm vững lập luận, nghiên cứu, trình bày. Cho bạn mới bắt đầu.",
+        "modules": "4 Phần",
+        "lessons": "16 Bài"
+      },
+      "speaking": {
+        "title": "Public Speaking Mastery",
+        "description": "Tự tin hơn, trình bày xịn hơn, thuyết phục đỉnh hơn.",
+        "modules": "3 Phần",
+        "lessons": "11 Bài"
+      },
+      "browse": "Xem Tất Cả Khóa Học",
+      "signup_to_access": "Đăng Ký Để Học Ngay"
+    },
+    "howItWorks": {
+      "headline": "Cách Hoạt Động",
+      "step1": {
+        "title": "Học",
+        "description": "Khóa học bài bản: bài viết, quiz, video — từ cơ bản đến nâng cao."
+      },
+      "step2": {
+        "title": "Luyện Tập",
+        "description": "Chọn đề, nói vào mic, bài nói chuyển thành text ngay."
+      },
+      "step3": {
+        "title": "Nhận Feedback",
+        "description": "AI chấm điểm + feedback chi tiết. Biết mình mạnh yếu ở đâu."
+      },
+      "step4": {
+        "title": "Hỏi AI Coach",
+        "description": "Chat với AI Coach 24/7. Hỏi gì cũng được, trả lời ngay."
+      }
+    },
+    "testimonials": {
+      "0": {
+        "quote": "Thinkfy cuối cùng cũng cho tụi mình cảm giác Trường Teen tại nhà. AI phân tích cấu trúc giúp mình nhảy từ vòng khu vực lên chung kết quốc gia!"
+      },
+      "1": {
+        "quote": "Mình luyện trên Thinkfy mỗi tối 15 phút, sau 2 tuần là thấy khác biệt rõ. Feedback chi tiết hơn cả coach thật!"
+      },
+      "2": {
+        "quote": "AI Coach giải thích WSDC format dễ hiểu hơn hẳn đọc sách. Cả team mình giờ dùng Thinkfy để warm-up trước giải."
+      },
+      "headline": "Debater Nói Gì?"
+    },
+    "stats": {
+      "debaters": "Debater đang luyện",
+      "sessions": "Phiên tranh luận",
+      "improvement": "Điểm cải thiện TB",
+      "rating": "Đánh giá từ học sinh"
+    },
+    "faq": {
+      "title": "Câu Hỏi Thường Gặp",
+      "q1": "Thinkfy có miễn phí không?",
+      "a1": "Có! Thinkfy hoàn toàn miễn phí. Bạn chỉ cần đăng ký tài khoản và bắt đầu luyện tập ngay.",
+      "q2": "Cần chuẩn bị gì để bắt đầu?",
+      "a2": "Chỉ cần máy tính có mic (hoặc tai nghe có mic) và trình duyệt Chrome. Vậy là đủ!",
+      "q3": "AI chấm điểm chính xác không?",
+      "a3": "AI của Thinkfy phân tích 4 tiêu chí: Nội dung, Cấu trúc, Ngôn ngữ, và Thuyết phục. Feedback chi tiết từng mục giúp bạn biết chính xác cần cải thiện gì."
+    },
+    "finalCta": {
+      "headline": "Sẵn sàng lên trình chưa?",
+      "subheadline": "Hết thời luyện một mình trong phòng. Có AI Coach rồi.",
+      "cta": "Bắt Đầu Ngay",
+      "cta_logged_in": "Vào Dashboard",
+      "secondary": "Xem Lịch Sử",
+      "secondary_logged_out": "Đăng Nhập"
+    },
+    "footer": {
+      "tagline": "Luyện debate thông minh. Made in Vietnam 🇻🇳",
+      "product": "Sản phẩm",
+      "courses": "Khóa học",
+      "practice": "Luyện tập",
+      "history": "Lịch sử",
+      "legal": "Pháp lý",
+      "privacy": "Chính sách bảo mật",
+      "terms": "Điều khoản dịch vụ",
+      "copyright": "© {year} Thinkfy. Tất cả quyền được bảo lưu.",
+      "made_with_love": "Made with ❤️ in Vietnam 🇻🇳"
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "headline": "Chào mừng đến Thinkfy",
+      "subheadline": "Luyện debate — lên trình mỗi ngày",
+      "cta": "Bắt đầu thôi"
+    },
+    "goal": {
+      "headline": "Mục tiêu chính của bạn là gì?",
+      "options": {
+        "compete": {
+          "title": "Thắng giải debate",
+          "description": "Chuẩn bị cho Trường Teen và các cuộc thi"
+        },
+        "english": {
+          "title": "Nói tiếng Anh tốt hơn",
+          "description": "Tự tin hơn khi nói tiếng Anh"
+        },
+        "critical": {
+          "title": "Tư duy sắc bén hơn",
+          "description": "Mài giũa lập luận và tư duy phản biện"
+        },
+        "interview": {
+          "title": "Chuẩn bị phỏng vấn",
+          "description": "Đại học, học bổng, tất tần tật"
+        },
+        "explore": {
+          "title": "Tìm hiểu thử",
+          "description": "Tò mò muốn biết debate là gì"
+        }
+      }
+    },
+    "experience": {
+      "headline": "Bạn đã từng debate chưa?",
+      "options": {
+        "beginner": {
+          "title": "Chưa bao giờ",
+          "description": "Mới toanh, chưa debate lần nào"
+        },
+        "intermediate": {
+          "title": "Có một chút",
+          "description": "Đã thử vài lần ở lớp hoặc CLB"
+        },
+        "experienced": {
+          "title": "Pro rồi",
+          "description": "Đã thi giải debate nhiều lần"
+        }
+      }
+    },
+    "english": {
+      "headline": "Tự tin nói tiếng Anh đến đâu?",
+      "options": {
+        "low": {
+          "title": "Chưa tự tin lắm",
+          "description": "Chủ yếu nói tiếng Việt"
+        },
+        "okay": {
+          "title": "Tạm ổn",
+          "description": "Diễn đạt được ý cơ bản"
+        },
+        "good": {
+          "title": "Khá tốt",
+          "description": "Nói tiếng Anh thoải mái"
+        },
+        "high": {
+          "title": "Tự tin lắm luôn",
+          "description": "Tiếng Anh như ngôn ngữ thứ hai"
+        }
+      }
+    },
+    "commitment": {
+      "headline": "Mỗi ngày luyện được bao lâu?",
+      "subheadline": "10 phút mỗi ngày cũng đủ lên trình rồi",
+      "minutes_label": "phút"
+    },
+    "reactive_responses": {
+      "goal": {
+        "compete": "Máu chiến ghê! Thinkfy sẽ giúp bạn 🔥",
+        "english": "Hay lắm — debate là cách nhanh nhất để lên trình tiếng Anh",
+        "critical": "Bạn đã suy nghĩ như một debater rồi đó",
+        "interview": "Khôn đấy — kỹ năng debate là vũ khí phỏng vấn",
+        "explore": "Tuyệt — để Thinkfy cho bạn xem debate hay cỡ nào"
+      },
+      "experience": {
+        "beginner": "Ai cũng bắt đầu từ đây — bạn sẽ thích lắm",
+        "intermediate": "Ngon! Giờ lên level tiếp thôi",
+        "experienced": "Đỉnh! Thinkfy sẽ thử thách bạn với đề khó hơn"
+      },
+      "englishConfidence": {
+        "low": "Không sao — từ từ lên, Thinkfy hỗ trợ bạn từng bước",
+        "okay": "Nền tảng tốt rồi, giờ xây tiếp thôi",
+        "good": "Xịn! Bạn sẵn sàng debate bằng tiếng Anh rồi",
+        "high": "Quá đỉnh! Giờ thể hiện luôn đi!"
+      },
+      "dailyCommitment": {
+        "5": "5 phút mỗi ngày — ít mà chất, kiên trì là được",
+        "10": "10 phút mỗi ngày, vài tuần là thấy khác biệt luôn",
+        "15": "Chăm chỉ ghê! Kết quả sẽ đến nhanh lắm",
+        "20": "All in luôn! Chuẩn bị lên trình vù vù 🚀"
+      }
+    },
+    "demo_intro": {
+      "headline": "Thử một vòng warm-up nhanh nhé!",
+      "subheadline": "Bạn có 45 giây để nói từ một phe. Đây là bài warm-up nói, không phải trải nghiệm debate đầy đủ.",
+      "cta": "Sẵn sàng rồi",
+      "for": "ỦNG HỘ",
+      "against": "PHẢN ĐỐI"
+    },
+    "demo_speak": {
+      "headline": "Nói đi!",
+      "done": "Xong rồi",
+      "time_remaining": "Còn {seconds} giây",
+      "mic_error": "Không thể truy cập mic. Kiểm tra quyền truy cập nhé!",
+      "skip": "Bỏ qua",
+      "recording": "Đang ghi âm...",
+      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây"
+    },
+    "demo_feedback": {
+      "headline": "Kết quả nè!",
+      "analyzing": "Đang phân tích lập luận...",
+      "strength": "Điểm mạnh",
+      "improvement": "Cần cải thiện",
+      "cta": "Xem lộ trình học",
+      "fallback_strength": "Bạn đã chủ động luyện tập!",
+      "fallback_improvement": "Lần sau thử thêm ví dụ cụ thể nhé.",
+      "fallback_encouragement": "Mọi nhà vô địch đều bắt đầu từ đây!"
+    },
+    "path_reveal": {
+      "headline": "Lộ trình học của bạn đã sẵn sàng!",
+      "recommended": "Đề xuất cho bạn",
+      "cta": "Vào Dashboard",
+      "course_foundations": "Foundations of Competitive Debate",
+      "course_foundations_desc": "Học những nền tảng xây dựng lập luận mạnh",
+      "course_speaking": "Public Speaking Mastery",
+      "course_speaking_desc": "Xây dựng sự tự tin và kỹ năng trình bày",
+      "course_daily": "Daily Debate Practice",
+      "course_daily_desc": "Luyện tập với AI để mài giũa kỹ năng",
+      "lets_go": "Chiến thôi!",
+      "ready_to_practice": "Sẵn sàng rồi! Bắt đầu luyện tranh biện với AI nào."
+    },
+    "back": "Quay lại"
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Trang chủ",
+      "courses": "Khóa học",
+      "practice": "Luyện tập",
+      "duel": "Đấu 1v1",
+      "chat": "HLV AI",
+      "history": "Lịch sử",
+      "profile": "Hồ sơ",
+      "settings": "Cài đặt",
+      "switchToAdmin": "Chuyển sang Quản trị",
+      "adminShort": "Quản trị",
+      "speaking": "Luyện Nói",
+      "debate": "Luyện tranh biện",
+      "coach": "HLV AI",
+      "feedback": "Phản hồi",
+      "bookmarks": "Đánh dấu",
+      "analytics": "Phân tích"
+    },
+    "home": {
+      "greeting_morning": "Chào buổi sáng",
+      "greeting_afternoon": "Chào buổi chiều",
+      "greeting_evening": "Chào buổi tối",
+      "motivations": [
+        "Sẵn sàng mài giũa lập luận chưa?",
+        "Hôm nay luyện gì nào!",
+        "Kỹ năng debate đang lên từng ngày!",
+        "Lên trình rhetoric thôi!",
+        "Thêm một ngày, thêm một chiến thắng!"
+      ],
+      "streak_title": "Chuỗi Hiện Tại",
+      "best_run": "Chuỗi Tốt Nhất",
+      "week_activity": "Tuần Này",
+      "week_minutes": "Đã luyện {count} phút",
+      "streak_week_title": "Nhịp luyện trong 7 ngày",
+      "active_days_this_week": "{count}/7 ngày có hoạt động trong tuần này",
+      "minutes_practiced": "Phút đã luyện",
+      "sessions_completed": "Phiên đã hoàn thành",
+      "xp_progress": "Tiến độ XP",
+      "continue_course": "Tiếp Tục Khóa Học",
+      "continue_learning_subtitle": "Quay lại khóa học đang học dở, giữ nhịp luyện tập và tiến thêm một bài nữa trong lộ trình của bạn.",
+      "active_courses": "{count} khóa học đang hoạt động",
+      "course_progress_label": "Tiến độ khóa học",
+      "open_course": "Mở Khóa Học",
+      "course_preview_note": "Tiếp tục lộ trình bài học có cấu trúc của bạn và nhảy thẳng vào bước tiếp theo từ thư viện khóa học.",
+      "browse_admin_courses": "Mở Quản Trị Khóa Học",
+      "browse_courses": "Xem Khóa Học",
+      "course_empty_admin_note": "Khi bạn đăng ký hoặc thiết lập một khóa học, nó sẽ xuất hiện ở đây như thẻ tiếp tục chính.",
+      "course_empty_student_note": "Khi bạn đăng ký một khóa học, nó sẽ hiện ở đây như thẻ tiếp tục chính của bạn.",
+      "course_access_limited": "Mở thư viện khóa học để chọn bước học tiếp theo phù hợp nhất.",
+      "single_active_course": "Hiện bạn chỉ có một khóa học đang hoạt động nên nó được ghim làm trọng tâm ở đây.",
+      "streak_messages": {
+        "zero": "Bắt đầu chuỗi hôm nay và biến buổi luyện tiếp theo thành đà tiến bộ.",
+        "building": "Đã vào nhịp {count} ngày. Cố giữ chuỗi này nhé.",
+        "steady": "Liên tiếp {count} ngày rồi. Sự đều đặn của bạn đang có tác dụng.",
+        "on_fire": "{count} ngày liên tiếp. Đúng nghĩa đang cháy luôn."
+      },
+      "days": "ngày",
+      "longest": "Dài nhất: {count}",
+      "min": "phút",
+      "this_week_min": "+{count}phút tuần này",
+      "this_week_sessions": "+{count} tuần này",
+      "level": "Level {level}",
+      "continue_learning": "Tiếp Tục Học",
+      "see_all": "Xem tất cả",
+      "start_first_course": "Bắt đầu khóa học đầu tiên!",
+      "explore_courses": "Khám phá các bài học debate có cấu trúc",
+      "continue": "Tiếp tục",
+      "recent_practice": "Luyện Tập Gần Đây",
+      "recent_practice_subtitle": "Xem nhanh các phiên luyện nói và debate gần nhất của bạn.",
+      "quick_practice": "Luyện Nhanh",
+      "view_all": "Xem tất cả",
+      "first_debate": "Hoàn thành debate đầu tiên!",
+      "practice_get_feedback": "Luyện tập và nhận feedback từ AI",
+      "for": "ỦNG HỘ",
+      "against": "PHẢN ĐỐI",
+      "start_new_practice": "Bắt Đầu Luyện Mới",
+      "welcome_banner": "Chào mừng đến Thinkfy, {name}! 🎉",
+      "welcome_banner_subtitle": "Nhảy vào tranh biện và rèn luyện kỹ năng nào!",
+      "start_practice": "Luyện tập ngay",
+      "this_weeks_activity": "Hoạt Động Tuần Này",
+      "total_hours": "{hours}giờ tổng",
+      "ask_ai_coach": "Hỏi AI Coach",
+      "ask_ai_coach_subtitle": "Được trợ giúp ngay về kỹ thuật debate",
+      "ask_placeholder": "Hỏi bất cứ gì về debate...",
+      "focus_eyebrow": "Hành động chính",
+      "focus_title": "Chọn bước tiếp theo",
+      "focus_tabs": {
+        "practice": "Luyện tập",
+        "courses": "Khóa học",
+        "coach": "Coach"
+      },
+      "focus_level_label": "Tiến độ level",
+      "focus_orbs_label": "Credits",
+      "focus_orbs_subtitle": "Dùng Credits để bắt đầu các phiên luyện và mở những hành động cao cấp.",
+      "launchpad_eyebrow": "Bắt đầu luyện",
+      "launchpad_title": "Chọn đúng kiểu phiên bạn muốn ngay lúc này",
+      "launchpad_subtitle": "Vào thẳng luyện nói hoặc debate với cấu hình khởi đầu sẵn có, rồi chọn topic trong studio luyện tập.",
+      "launchpad_open": "Mở cấu hình",
+      "launchpad_full_cost": "200 Credits",
+      "launchpad_options": {
+        "speaking": {
+          "title": "Luyện Nói",
+          "description": "Một bài nói gọn với feedback về độ rõ, cấu trúc, sự tự tin và tiếng Anh dễ hiểu."
+        },
+        "debate_quick": {
+          "title": "Debate Nhanh",
+          "description": "Một vòng debate ngắn khi bạn muốn đào sâu lập luận mà chưa cần chạy đủ năm lượt."
+        },
+        "debate_full": {
+          "title": "Full Round",
+          "description": "Chạy trọn flow debate kiểu Trường Teen với AI đối thủ và phần clash sâu hơn."
+        }
+      },
+      "weekly_chart_subtitle": "Một góc nhìn gọn hơn về mức độ đều đặn của bạn trong tuần này.",
+      "weekly_chart_empty_subtitle": "Thẻ này sẽ đầy lên ngay khi bạn có phiên luyện đầu tiên trong tuần.",
+      "weekly_chart_empty_note": "Tuần này bạn chưa có phiên nào. Bắt đầu một phiên luyện nói hoặc debate để làm đầy biểu đồ.",
+      "weekly_active_days_label": "Ngày có hoạt động",
+      "weekly_sessions_label": "Phiên trong tuần",
+      "weekly_best_day_label": "Ngày tốt nhất",
+      "referral_remaining": "còn lại",
+      "referral_subtitle": "Mời bạn bè để nhận 600 Credits mỗi lượt",
+      "referral_copy": "Sao chép link mời",
+      "referral_copy_short": "Sao chép link",
+      "referral_copied": "Đã sao chép!",
+      "suggestion_rebuttal": "Cách cấu trúc phản biện?",
+      "suggestion_wsdc": "Giải thích format WSDC",
+      "suggestion_review": "Review bài debate vừa rồi",
+      "student": "học sinh",
+      "days_labels": {
+        "mon": "T2",
+        "tue": "T3",
+        "wed": "T4",
+        "thu": "T5",
+        "fri": "T6",
+        "sat": "T7",
+        "sun": "CN"
+      },
+      "topbar_streak": "Chuỗi ngày",
+      "topbar_streak_value": "Chuỗi {count} ngày",
+      "topbar_orbs": "Credits",
+      "topbar_level": "Level",
+      "hero_title": "Hôm nay mình làm một ngày debate thật chất nhé.",
+      "hero_subtitle": "Giữ chuỗi luyện tập và tiếp tục nâng cấp kỹ năng lập luận của bạn.",
+      "streak_widget_note": "Giữ nhịp này nhé!",
+      "today_practice_title": "Thời Gian Luyện Hôm Nay",
+      "today_practice_note": "Vào nhịp và chạm mục tiêu trong ngày.",
+      "goal_minutes": "Mục tiêu: {count} phút",
+      "skill_snapshot_title": "Ảnh Chụp Kỹ Năng",
+      "skill_snapshot_hint": "Được tính từ các phiên luyện tập có chấm điểm gần đây và đã điều chỉnh theo độ khó chủ đề lẫn AI.",
+      "skill_snapshot_empty_title": "Cần thêm vài phiên có chấm điểm để mở khóa biểu đồ kỹ năng",
+      "skill_snapshot_empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc debate có feedback, rồi biểu đồ này sẽ bắt đầu phản ánh thế mạnh dài hạn của bạn.",
+      "overall_score": "Điểm Tổng Quan",
+      "view_details": "Xem chi tiết",
+      "today_goal_title": "Mục Tiêu Hôm Nay",
+      "today_goal_subtitle": "Thời gian luyện tập",
+      "goal_complete": "Tốt lắm! Bạn đã đạt mục tiêu hôm nay.",
+      "goal_keep_going": "Cố thêm chút nữa là chốt được mục tiêu rồi.",
+      "invite_friend_title": "Mời bạn bè",
+      "invite_friend_reward": "Nhận {count} Credits",
+      "invite_friend_cta": "Sao chép link mời",
+      "sidebar_title_hint": "Tiếp tục luyện để lên hạng Champion!",
+      "help_support": "Trợ giúp & Hỗ trợ",
+      "action_speaking_title": "Bắt Đầu Luyện Nói",
+      "action_debate_title": "Bắt Đầu Debate",
+      "action_course_title": "Khóa Học Của Tôi",
+      "action_coach_title": "Hỏi AI Coach",
+      "action_speaking_desc": "Luyện bài nói và cải thiện cách trình bày.",
+      "action_debate_desc": "Debate với AI hoặc đối thủ thật.",
+      "action_course_desc": "Quay lại lộ trình học có cấu trúc của bạn.",
+      "action_course_browse_desc": "Xem các khóa học bài bản và bắt đầu bài tiếp theo.",
+      "action_course_coming_soon_desc": "Quyền truy cập khóa học cho học sinh sẽ sớm mở.",
+      "action_coach_desc": "Nhận feedback và cải thiện nhanh hơn.",
+      "recent_activity_title": "Luyện Tập & Feedback Gần Đây",
+      "recent_activity_subtitle": "Quay lại các phiên luyện và dấu mốc học gần nhất của bạn.",
+      "empty_recent_activity": "Hoàn thành phiên đầu tiên rồi hoạt động gần đây sẽ hiện ở đây.",
+      "track_speaking": "Luyện Nói",
+      "track_debate": "Debate",
+      "next_steps_title": "Bước Tiếp Theo",
+      "next_steps_subtitle": "Giữ đà tiến bộ bằng một bước rõ ràng ở mỗi lần mở app.",
+      "review": "Xem lại",
+      "open_setup": "Mở cấu hình",
+      "join_now": "Tham gia",
+      "next_step_continue_course": "Tiếp tục khóa học",
+      "next_step_skill_title": "Tăng lực cho {skill}",
+      "next_step_skill_title_generic": "Đánh vào điểm yếu",
+      "next_step_underused_speaking": "Kéo luyện nói trở lại nhịp",
+      "next_step_underused_debate": "Kéo debate trở lại nhịp",
+      "next_step_review_feedback": "Xem lại feedback gần nhất",
+      "next_step_live_match": "Vào live debate",
+      "next_step_skill_desc": "Điểm dài hạn hiện tại: {score}",
+      "next_step_underused_speaking_desc": "Một phiên luyện nói sẽ cân bằng lại nhịp luyện gần đây của bạn.",
+      "next_step_underused_debate_desc": "Một phiên debate sẽ cân bằng lại nhịp luyện gần đây của bạn.",
+      "next_step_live_match_desc": "Ghép live debate vẫn chưa được mở ở phiên bản này.",
+      "recommended_label": "Gợi ý cho bạn",
+      "recommended_meta_duration": "Drill {count} phút",
+      "recommended_meta_target_skill": "Mục tiêu: {skill}",
+      "recommended_meta_track": "Mảng: {track}",
+      "recommended_meta_score": "Điểm gần nhất: {score}/100",
+      "recommended_meta_progress": "Đã xong {progress}",
+      "recommended_detail_reason": "Vì sao",
+      "recommended_detail_context": "Ngữ cảnh",
+      "recommended_detail_time": "Thời lượng",
+      "recommended_context_fallback": "Nhịp luyện",
+      "recommended_secondary_cta": "Xem chi tiết",
+      "recommended_desc_weakest": "{skill} là điểm nên tập trung nhất từ các phiên có chấm điểm gần đây.",
+      "recommended_desc_weakest_generic": "Drill này đánh vào khoảng trống kỹ năng rõ nhất trong các phiên gần đây.",
+      "recommended_desc_underused_speaking": "Nhịp luyện gần đây hơi thiếu luyện nói, nên phiên này giúp cân bằng lại.",
+      "recommended_desc_underused_debate": "Nhịp luyện gần đây hơi thiếu debate, nên phiên này giúp cân bằng lại.",
+      "recommended_desc_start_speaking": "Làm nóng cách trình bày bằng một phiên luyện nói ngắn.",
+      "recommended_desc_start_debate": "Tăng rep lập luận bằng một phiên debate tập trung.",
+      "recommended_desc_coach": "Hỏi coach để chốt nhanh một mục tiêu cải thiện trước khi luyện.",
+      "today_plan_title": "Kế hoạch hôm nay",
+      "today_plan_tip": "Luyện ngắn mỗi ngày sẽ tạo tự tin thật.",
+      "today_plan_meta": "{duration} phút · {context}",
+      "quick_actions_label": "Lối tắt luyện tập",
+      "plan_cta_start": "Bắt đầu",
+      "plan_cta_continue": "Học tiếp",
+      "plan_cta_review": "Xem lại",
+      "plan_cta_ask_coach": "Hỏi",
+      "plan_detail_minutes": "{count} phút",
+      "plan_title_continue_course": "Tiếp tục khóa học",
+      "plan_title_weakest_skill": "Tăng lực {skill}",
+      "plan_title_weakest_skill_generic": "Tăng lực điểm yếu",
+      "plan_title_review_feedback": "Xem lại feedback",
+      "plan_title_underused_speaking": "Luyện nói",
+      "plan_title_underused_debate": "Luyện debate",
+      "plan_title_start_speaking": "Bắt đầu luyện nói",
+      "plan_title_start_debate": "Bắt đầu debate",
+      "plan_title_coach": "Hỏi AI Coach",
+      "plan_reason_course": "Học tiếp",
+      "plan_reason_feedback": "Từ feedback",
+      "plan_reason_skill": "Điểm yếu nhất",
+      "plan_reason_rebalance": "Cân bằng nhịp",
+      "plan_reason_start": "Bắt đầu nhanh",
+      "plan_reason_coach": "Hỏi coach",
+      "plan_context_course_fallback": "Lộ trình học",
+      "plan_context_feedback_fallback": "Phiên gần nhất",
+      "progress_title": "Tiến Độ Của Bạn",
+      "progress_subtitle": "Góc nhìn gọn về các chỉ số đáng chú ý nhất lúc này.",
+      "delta_none": "Chưa có kỳ trước",
+      "delta_vs_last_week": "so với tuần trước",
+      "settings_label": "Cài đặt",
+      "coming_soon": "Sắp ra mắt",
+      "skill_labels": {
+        "clarity": "Độ rõ",
+        "logic": "Logic",
+        "rebuttal": "Phản biện",
+        "evidence": "Dẫn chứng",
+        "delivery": "Trình bày"
+      },
+      "progress_metrics": {
+        "total-sessions": {
+          "title": "Tổng Phiên",
+          "subtitle": "Tất cả phiên đã hoàn thành"
+        },
+        "strong-rate": {
+          "title": "Tỷ Lệ Phiên Tốt",
+          "subtitle": "Từ mức Competent trở lên"
+        },
+        "average-score": {
+          "title": "Điểm Lập Luận TB",
+          "subtitle": "Form có chấm điểm gần đây"
+        },
+        "practice-time": {
+          "title": "Thời Gian Luyện (7N)",
+          "subtitle": "Trong 7 ngày gần nhất"
+        }
+      }
+    },
+    "support": {
+      "trigger_label": "Trợ giúp & Hỗ trợ",
+      "modal_title": "Báo lỗi",
+      "modal_description": "Gửi cho team sản phẩm lỗi, chỗ UI gây khó hiểu, hoặc bất cứ trải nghiệm nào chưa ổn.",
+      "iframe_title": "Form báo lỗi Thinkfy",
+      "loading": "Đang tải form báo lỗi...",
+      "open_external": "Mở form trong tab mới",
+      "unavailable_title": "Form báo lỗi đang chưa khả dụng.",
+      "unavailable_body": "Vui lòng email support@thinkfy.net trong lúc tụi mình hoàn tất cấu hình form hỗ trợ."
+    },
+    "courses": {
+      "page_headline": "Khóa Học",
+      "page_subtitle": "Đi theo các lộ trình học có cấu trúc để xây sự tự tin và thắng nhiều vòng debate hơn.",
+      "tab_all": "Tất cả",
+      "tab_debate": "Debate",
+      "tab_speaking": "Thuyết trình",
+      "empty": "Chưa có khóa học nào",
+      "empty_subtitle": "Quay lại sau để xem nội dung mới nhé!",
+      "start": "Bắt đầu",
+      "continue": "Học tiếp",
+      "review": "Xem lại khóa học",
+      "completed": "Hoàn thành",
+      "progress": "Tiến độ",
+      "lessons_count": "{count} Bài",
+      "modules_count": "{count} Phần",
+      "modules_label": "phần",
+      "estimated_hours": "{hours} giờ tổng",
+      "estimated_minutes": "Ước tính {minutes} phút",
+      "description_fallback": "Chưa có mô tả cho khóa học này.",
+      "mock_badge": "Khóa mẫu",
+      "mock_cta": "Sắp có",
+      "mock_note": "Khóa giữ chỗ để xem trước bố cục thư viện khóa học.",
+      "status": {
+        "in_progress": "Đang Học",
+        "not_started": "Chưa Bắt Đầu",
+        "completed": "Hoàn Thành"
+      },
+      "sections": {
+        "browse": "Thư Viện Khóa Học"
+      },
+      "hero": {
+        "next_up": "Bài Tiếp Theo",
+        "complete": "hoàn thành",
+        "continue_learning": "Tiếp Tục Học",
+        "progress_summary": "{completed}/{total} bài đã hoàn thành",
+        "completed_title": "Đã Hoàn Thành Khóa Học",
+        "completed_description": "Bạn đã hoàn thành lộ trình này. Xem lại bất kỳ bài nào hoặc chọn một khóa mới để giữ đà tiến bộ."
+      },
+      "recommendation": {
+        "title": "Gợi Ý Tiếp Theo Cho Bạn",
+        "why_course": "Vì sao nên học khóa này?",
+        "reasons": {
+          "debate": {
+            "beginner": {
+              "one": "Xây nền tảng chắc cho lập luận rõ ràng và logic.",
+              "two": "Tạo thói quen cốt lõi để phản biện dễ hơn về sau.",
+              "three": "Đi từ nói theo cảm tính sang tranh biện có cấu trúc."
+            },
+            "intermediate": {
+              "one": "Củng cố clash, so sánh và cách chốt impact.",
+              "two": "Luyện biến lập luận tốt thành những vòng debate thuyết phục hơn.",
+              "three": "Mài sắc các quyết định nhỏ thường quyết định những trận sát nút."
+            },
+            "advanced": {
+              "one": "Tinh chỉnh chiến thuật, weighing và cách xử lý cuối round.",
+              "two": "Thử lửa kỹ thuật nâng cao với tình huống khó hơn.",
+              "three": "Rèn những chi tiết tạo khác biệt giữa người giỏi và người nổi bật."
+            }
+          },
+          "public-speaking": {
+            "beginner": {
+              "one": "Tạo sự thoải mái với giọng nói, nhịp điệu và sự hiện diện sân khấu.",
+              "two": "Cải thiện độ rõ để ý tưởng của bạn chạm được người nghe ngay từ lần đầu.",
+              "three": "Xây sự tự tin quay lại hỗ trợ cả những vòng debate."
+            },
+            "intermediate": {
+              "one": "Biến phần thể hiện ổn định thành cách nói đáng nhớ và thuyết phục hơn.",
+              "two": "Luyện chuyển ý, nhấn nhá và kiểm soát khán giả tốt hơn.",
+              "three": "Xây độ mượt giúp lập luận của bạn nghe tự nhiên và chắc chắn hơn."
+            },
+            "advanced": {
+              "one": "Tinh chỉnh phần trình bày cho các tình huống thi đấu hay thuyết trình quan trọng.",
+              "two": "Đi xa hơn mức tự tin để đạt độ chính xác và làm chủ sân khấu.",
+              "three": "Rèn thói quen nói nâng cao giúp mọi round đều sắc hơn."
+            }
+          }
+        }
+      },
+      "detail": {
+        "back": "Tất cả khóa học",
+        "completed": "Hoàn thành",
+        "total_hours": "{hours} giờ tổng",
+        "self_paced": "Tự học theo tốc độ riêng",
+        "learning_steps": "{count} bước học",
+        "modules": "{count} phần",
+        "unlock_title": "Mở khóa lộ trình học có hướng dẫn",
+        "unlock_subtitle": "Đăng ký để mở điều hướng bài học, theo dõi hoàn thành, và lộ trình module có cấu trúc.",
+        "enroll": "Đăng ký ngay",
+        "enrolling": "Đang đăng ký...",
+        "course_progress": "Tiến độ khóa học",
+        "complete": "Hoàn thành {progress}%",
+        "completed_lessons": "{completed}/{total} bài học",
+        "activities": "Hoạt động",
+        "activities_available": "{count} hoạt động",
+        "guided_progression": "Lộ trình có hướng dẫn",
+        "follow_title": "Đi theo lộ trình học",
+        "follow_subtitle": "Đi qua từng module theo thứ tự, theo dõi các bài đã hoàn thành, và quay lại đúng bước chưa xong đầu tiên.",
+        "module": "Phần học",
+        "lessons_completed": "{completed}/{total} bài đã hoàn thành",
+        "steps": "{count} bước",
+        "current": "Hiện tại",
+        "locked": "Đã khóa",
+        "lesson": "Bài học",
+        "activity": "Hoạt động"
+      },
+      "lesson": {
+        "completed": "Hoàn thành",
+        "subtitle": "Tiếp tục {course} với cái nhìn rõ hơn về vị trí của bài học này trong module và toàn bộ khóa học.",
+        "minute_lesson": "Bài học {minutes} phút",
+        "module_position": "Bài {current} trên {total} trong module",
+        "course_completed": "Hoàn thành {completed}/{total} bài học của khóa",
+        "previous": "Trước",
+        "next": "Tiếp",
+        "back_to_course": "Về khóa học",
+        "this_module": "Module này",
+        "module_lessons_completed": "Hoàn thành {completed}/{total} bài trong module",
+        "course_progress": "Tiến độ khóa học",
+        "lessons_completed": "Hoàn thành {completed}/{total} bài học",
+        "complete": "Hoàn thành {progress}%"
+      },
+      "types": {
+        "article": "Bài đọc",
+        "video": "Video",
+        "quiz": "Trắc nghiệm",
+        "practice": "Luyện tập"
+      },
+      "activities": {
+        "lesson": "Bài học",
+        "quiz": "Trắc nghiệm",
+        "matching": "Nối đáp án",
+        "fill_blank": "Điền chỗ trống",
+        "drag_order": "Sắp xếp",
+        "flashcard": "Flashcard"
+      },
+      "practice": {
+        "title_fallback": "Phiên luyện tập",
+        "start_now": "Bắt đầu luyện ngay",
+        "preview_brief": "Xem brief luyện tập",
+        "completed": "Đã hoàn thành phần luyện tập",
+        "mark_complete": "Đánh dấu hoàn thành",
+        "saving": "Đang lưu...",
+        "summary_title": "Brief luyện tập",
+        "summary_description": "Xem nhanh cấu hình trước khi mở studio luyện tập đầy đủ.",
+        "focus_area": "Trọng tâm luyện",
+        "launch_note": "Thao tác này sẽ mở studio luyện tập chính của Thinkfy với topic đã được điền sẵn, để flow học trong khóa vẫn liền mạch nhưng phần luyện diễn ra trong trải nghiệm đầy đủ.",
+        "coach_prep": "Nhờ AI Coach chuẩn bị giúp"
+      },
+      "reader": {
+        "preview_badge": "Xem trước",
+        "preview_title": "Chế độ xem trước",
+        "preview_description": "Bạn có thể xem trước giao diện trình đọc bài học ở đây, nhưng đăng ký khóa sẽ mở toàn bộ lộ trình bài học, theo dõi tiến độ và điều hướng bước tiếp theo.",
+        "lesson_count": "{count} bài học",
+        "current_focus": "Trọng tâm hiện tại",
+        "keep_momentum": "Giữ nhịp học tiếp",
+        "current_focus_description": "Bạn đang ở bài {lesson} trên {total}. Hoàn thành bước này để mở phần tiếp theo của lộ trình khóa học.",
+        "course_complete_description": "Bạn đã hoàn thành lộ trình đang mở của khóa học này. Hãy xem lại bất kỳ bài nào hoặc quay về thư viện khóa học.",
+        "whats_next": "Tiếp theo là gì",
+        "lesson_number": "Bài {current} trên {total}",
+        "stepper_description": "Đi từng bước qua khóa học và giữ đúng vị trí của bạn bằng URL bài học ổn định.",
+        "lesson_kicker": "Bài {lesson}",
+        "empty_title": "Chưa có bài học nào được xuất bản",
+        "empty_state": "Hiện chưa có bài học nào được xuất bản cho khóa học này.",
+        "view_next_lesson": "Mở bài tiếp theo",
+        "course_complete_title": "Đã hoàn thành lộ trình khóa học",
+        "lesson_outline": "Dàn bài khóa học",
+        "need_help": "Cần trợ giúp?",
+        "need_help_description": "Hỏi AI Coach để xin tóm tắt, ví dụ, hoặc lời giải thích rõ hơn về bài học bạn đang học.",
+        "ask_ai_coach": "Hỏi AI Coach",
+        "progress_actions": "Hành động tiến độ",
+        "ready_for_next": "Làm tốt lắm. Bài học này đã hoàn thành, nên bạn có thể đi thẳng sang bài tiếp theo.",
+        "complete_quiz_to_continue": "Hoàn thành bài trắc nghiệm phía trên để mở khóa bài tiếp theo trong chuỗi.",
+        "mark_complete_prompt": "Khi đã sẵn sàng, hãy đánh dấu bài {lesson} là hoàn thành để tiếp tục lộ trình.",
+        "continue_to_lesson": "Tiếp tục tới bài {lesson}",
+        "next_locked": "Hoàn thành bài này trước",
+        "back_to_library": "Quay về thư viện khóa học",
+        "article_summary_fallback": "Hãy đọc kỹ bài học và chú ý cách mỗi phần hỗ trợ những lập luận rõ ràng, mạnh mẽ hơn.",
+        "video_summary_fallback": "Xem cách khung lập luận được giải thích trong thực tế, rồi mang cấu trúc đó quay lại phần nói của bạn.",
+        "practice_summary_fallback": "Dùng bài luyện có hướng dẫn này để biến nội dung bài học thành lập luận nói và phản hồi trực tiếp.",
+        "quiz_summary": "{count} câu hỏi để kiểm tra mức độ hiểu bài trước khi bạn đi tiếp.",
+        "article_key_idea": "Ý chính",
+        "article_example": "Ví dụ",
+        "article_common_mistake": "Lỗi thường gặp",
+        "article_try_this": "Thử làm",
+        "article_full_notes": "Mở ghi chú đầy đủ",
+        "article_full_notes_description": "Mở toàn bộ bài viết khi bạn muốn xem lời giải thích và chi tiết hỗ trợ đầy đủ.",
+        "article_common_mistake_fallback": "Hãy cẩn thận với việc nhảy từ claim sang evidence quá nhanh mà chưa giải thích reasoning ở giữa.",
+        "article_try_this_fallback": "Hãy diễn đạt lại ý chính theo cách của bạn, rồi biến nó thành một claim, một reason và một impact.",
+        "article_example_claim_label": "Claim",
+        "article_example_reason_label": "Reasoning",
+        "article_example_impact_label": "Impact",
+        "article_in_this_lesson": "Trong bài này",
+        "article_outline_fallback": "Đọc kỹ bài học, rồi dùng các hành động bên dưới để đánh dấu tiến độ và chuyển sang bước tiếp theo.",
+        "article_reading_title": "Đọc có hướng dẫn",
+        "article_reading_description": "Hãy dành thời gian với các ví dụ, định nghĩa và phần lập luận bên dưới.",
+        "video_panel_title": "Video bài học",
+        "video_panel_description": "Xem phần giải thích đầy đủ, rồi dùng các ghi chú bên dưới để chốt lại cấu trúc chính.",
+        "video_missing_title": "Video sẽ sớm có",
+        "video_missing_description": "Bài học này chưa có video nhúng, nhưng phần còn lại của trình đọc khóa học đã sẵn sàng.",
+        "video_why_matters": "Vì sao điều này quan trọng",
+        "video_why_matters_fallback": "Dùng bài học này để nghe cách khung lập luận được triển khai trong thực tế, rồi mang cấu trúc đó vào bài nói của bạn.",
+        "video_watch_for": "Hãy chú ý",
+        "video_watch_for_fallback": "Quan sát cách người nói giới thiệu claim, xây reasoning và giải thích impact trước khi chuyển ý.",
+        "quiz_empty": "Chưa có câu hỏi trắc nghiệm nào.",
+        "quiz_result_great": "Làm rất tốt!",
+        "quiz_result_good": "Bạn đang tiến bộ tốt.",
+        "quiz_result_retry": "Tiếp tục rèn thêm nhé.",
+        "quiz_result_summary": "Bạn trả lời đúng {correct} trên {total} câu hỏi.",
+        "quiz_completed": "Đã hoàn thành trắc nghiệm",
+        "quiz_kicker": "Kiểm tra kiến thức",
+        "quiz_question_progress": "Câu {current} trên {total}",
+        "quiz_explanation_label": "Vì sao đáp án này đúng:",
+        "quiz_check_answer": "Kiểm tra đáp án",
+        "quiz_finish": "Hoàn thành trắc nghiệm",
+        "quiz_next_question": "Câu tiếp theo",
+        "practice_setup_title": "Thiết lập phiên",
+        "practice_setup_description": "Mở studio luyện tập đầy đủ với bài học này đã được chuẩn bị sẵn.",
+        "practice_description_fallback": "Dùng bài luyện có hướng dẫn này để biến nội dung bài học thành lập luận nói và phản hồi trực tiếp."
+      }
+    },
+    "practice": {
+      "page_eyebrow": "Phòng Luyện Tập",
+      "page_headline": "Chọn Kiểu Luyện",
+      "page_subtitle": "Chọn một chủ đề, chọn cách bạn muốn luyện, cấu hình phiên và bắt đầu cải thiện.",
+      "credits_label": "Credits",
+      "how_it_works": "Cách hoạt động",
+      "how_it_works_title": "Phiên luyện tập hoạt động như thế nào",
+      "how_it_works_description": "Chọn motion, tinh chỉnh cấu hình, rồi bắt đầu một phiên luyện solo với hỗ trợ AI được tích hợp sẵn.",
+      "how_it_works_step_kicker": "Bước {step}",
+      "how_it_works_step_1_title": "Chọn motion mà bạn thật sự muốn tranh luận.",
+      "how_it_works_step_1_body": "Duyệt theo danh mục, sắp xếp theo độ phổ biến hoặc độ khó, và lưu lại các chủ đề bạn muốn quay lại sau.",
+      "how_it_works_step_2_title": "Thiết lập kiểu phiên phù hợp với lúc này.",
+      "how_it_works_step_2_body": "Chuyển giữa luyện nói và debate, rồi chỉnh phe, thời gian chuẩn bị, thời gian nói, gợi ý và độ khó AI.",
+      "how_it_works_step_3_title": "Bắt đầu phiên và giữ đà tiến bộ.",
+      "how_it_works_step_3_body": "Credits chỉ bị trừ khi phiên thật sự bắt đầu, và bạn vẫn có thể chỉnh cấu hình ngay trước khi vào bài.",
+      "tab_all": "Tất cả",
+      "tab_education": "Giáo Dục & Đời Sống",
+      "tab_technology": "Công Nghệ & Mạng Xã Hội",
+      "tab_society": "Xã Hội & Văn Hóa",
+      "tab_environment": "Môi Trường & Bền Vững",
+      "tab_ethics": "Đạo Đức & Triết Học",
+      "tab_vietnam": "Vấn Đề Việt Nam",
+      "browse_topics": "Duyệt Chủ Đề",
+      "topic_count": "{count} chủ đề",
+      "sort_popular": "Phổ biến nhất",
+      "sort_newest_practice": "Mới nhất",
+      "sort_easiest": "Dễ trước",
+      "sort_hardest": "Khó trước",
+      "show_saved": "Hiện chủ đề đã lưu",
+      "load_more_topics": "Tải thêm chủ đề",
+      "difficulty_beginner": "Cơ bản",
+      "difficulty_intermediate": "Trung cấp",
+      "difficulty_advanced": "Nâng cao",
+      "card_easy": "Dễ",
+      "card_medium": "Trung bình",
+      "card_hard": "Khó",
+      "practice_count_label": "đã luyện",
+      "surprise_me": "Ngẫu nhiên",
+      "no_topics": "Không tìm thấy đề nào",
+      "no_topics_body": "Thử danh mục khác hoặc tắt bộ lọc chỉ hiện mục đã lưu để xem thêm motion.",
+      "saved_empty_title": "Chưa có chủ đề đã lưu",
+      "saved_empty_body": "Hãy đánh dấu chủ đề từ danh sách để tạo shortlist cho những phiên luyện sau.",
+      "saved_empty_panel_title": "Hãy chọn một chủ đề để bắt đầu",
+      "saved_empty_panel_body": "Tắt bộ lọc chỉ hiện mục đã lưu hoặc đánh dấu một chủ đề trong danh sách để mở lại bảng thiết lập.",
+      "session_config": "Cấu Hình Phiên",
+      "selected_motion": "Motion Bạn Đã Chọn",
+      "practice_track": "Kiểu",
+      "practice_language": "Ngôn ngữ luyện tập",
+      "practice_language_options": {
+        "en": "Tiếng Anh",
+        "vi": "Tiếng Việt"
+      },
+      "debate_mode": "Chế Độ Debate",
+      "solo_debate": "Debate Solo",
+      "one_vs_one_debate": "Debate 1v1",
+      "speaking_practice": "Luyện Nói",
+      "debate_practice": "Debate",
+      "speaking_desc": "Tập trung vào độ rõ ràng, sự tự tin và tiếng Anh dễ hiểu trong một bài nói.",
+      "debate_desc": "Tập trung vào stance, clash, so sánh và impact trong các vòng debate.",
+      "mode": "Chế độ",
+      "session_mode": "Chế Độ",
+      "single_speech": "Một Bài Nói",
+      "single_speech_desc": "Một lượt chuẩn bị + nói với feedback thiên về luyện nói.",
+      "quick_practice": "Luyện Nhanh",
+      "full_round": "Trận Đầy Đủ",
+      "quick_desc": "Một vòng chuẩn bị + nói",
+      "full_desc": "5 vòng debate với AI (kiểu Trường Teen)",
+      "ai_difficulty": "Độ Khó AI",
+      "easy": "Dễ",
+      "medium": "Trung bình",
+      "hard": "Khó",
+      "easy_desc": "AI thân thiện — lập luận đơn giản",
+      "medium_desc": "AI cân bằng — phản biện chắc",
+      "hard_desc": "AI chuyên gia — phản biện cấp giải",
+      "your_side": "Phe Của Bạn",
+      "random": "Ngẫu nhiên",
+      "side_affirmative": "Khẳng định",
+      "side_negative": "Phủ định",
+      "selected_side_summary": "Phe hiện tại: {side}",
+      "for": "Ủng hộ",
+      "against": "Phản đối",
+      "prep_time": "Thời Gian Chuẩn Bị",
+      "speech_time": "Thời Gian Nói",
+      "prep_time_helper": "Chọn số phút bất kỳ từ 1 đến 10.",
+      "speech_time_helper": "Chọn số phút bất kỳ từ 2 đến 7.",
+      "ai_hints": "Gợi ý AI khi chuẩn bị",
+      "ai_hints_desc": "Hiện gợi ý brainstorm trong lúc chuẩn bị",
+      "session_cost": "Chi Phí",
+      "session_cost_description": "Luyện nói tốn 100 Credits. Debate tốn 200 Credits.",
+      "begin_session": "Bắt Đầu",
+      "starting": "Đang bắt đầu...",
+      "settings_note": "Bạn có thể thay đổi cấu hình bất cứ lúc nào trước khi bắt đầu.",
+      "save_topic": "Lưu chủ đề",
+      "remove_bookmark": "Bỏ lưu chủ đề",
+      "recording": "Đang ghi âm...",
+      "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây",
+    "audioCheck": {
+      "title": "Kiểm tra âm thanh",
+      "description": "Bật loa hoặc cắm tai nghe rồi nhấn nút bên dưới để kiểm tra nha!",
+      "playTest": "Phát thử âm thanh",
+      "playing": "Đang phát...",
+      "tryAgain": "Thử lại",
+      "confirm": "Nghe được rồi, bắt đầu!"
+    },
+    "session": {
+      "motion": "Motion",
+      "info": "Thông tin",
+      "argument_anchors": "Luận điểm gợi ý",
+      "motion_default_context": "Xác định clash, chọn burden mạnh nhất và giải thích vì sao phe của bạn quan trọng hơn.",
+      "preparation_phase": "Chuẩn bị",
+      "prep_prompt": "Lên mở bài và các ý chính.",
+      "skip_to_speaking": "Bỏ qua để nói",
+      "quick_notes": "Ghi chú nhanh",
+      "notes_placeholder": "Ghi các luận điểm chính...",
+      "need_starting_point": "Cần gợi ý bắt đầu?",
+      "define_key_terms": "Định nghĩa",
+      "list_main_arguments": "Luận điểm chính",
+      "anticipate_counterpoints": "Phản biện trước",
+      "add_evidence": "Thêm dẫn chứng",
+      "speaking_phase": "Đang nói",
+      "speaking": "Đang nói",
+      "ai_turn": "Lượt AI",
+      "listening": "Đang nghe...",
+      "waiting_for_speech": "Đang chờ giọng nói...",
+      "waiting_for_transcript": "Đã nghe âm thanh. Đang tạo bản ghi...",
+      "paused": "Tạm dừng",
+      "not_recording": "Chưa ghi âm",
+      "no_speech_detected": "Chưa nghe thấy giọng nói. Kiểm tra micro nhé.",
+      "live_transcript": "Transcript trực tiếp",
+      "word_count": "{count} từ",
+      "transcript_placeholder": "Bắt đầu nói để xem transcript ở đây...",
+      "audio_sample_hint": "Bạn sẽ nghe một âm thử ngắn",
+      "exit_practice": "Thoát luyện tập",
+      "next_mic_check": "Tiếp theo: kiểm tra micro",
+      "mic_access_required": "Cần quyền truy cập micro",
+      "mic_allow_prompt": "Hãy cho phép truy cập micro khi trình duyệt hỏi.",
+      "test_microphone": "Kiểm tra micro",
+      "mic_working": "Micro hoạt động rồi!",
+      "mic_detected": "Đã nhận âm thanh. Bạn sẵn sàng bắt đầu.",
+      "speak_to_test_mic": "Nói một câu để kiểm tra micro...",
+      "start_session": "Bắt đầu phiên",
+      "skip_audio_test": "Bỏ qua kiểm tra âm thanh",
+      "mic_access_denied": "Micro bị chặn",
+      "mic_enable_steps": "Làm theo các bước này để bật micro:",
+      "mic_step_1": "Nhấn biểu tượng khóa hoặc camera trên thanh địa chỉ",
+      "mic_step_2": "Tìm Microphone và đổi sang Allow",
+      "mic_step_3": "Tải lại trang rồi thử lại",
+      "go_back": "Quay lại",
+      "no_microphone_detected": "Không tìm thấy micro",
+      "connect_microphone": "Hãy kết nối micro rồi thử lại.",
+      "microphone_error": "Lỗi micro",
+      "pause": "Tạm dừng",
+      "resume": "Tiếp tục",
+      "end_speech": "Kết thúc bài nói",
+      "end_confirm_title": "Kết thúc bài nói sớm?",
+      "cancel": "Hủy",
+      "end_now": "Kết thúc ngay",
+      "transition_lets_go": "Bắt đầu nào",
+      "transition_session_starting": "Phiên luyện tập của bạn đang bắt đầu",
+      "transition_get_ready": "Sẵn sàng",
+      "transition_speaking_begins": "Phần nói bắt đầu ngay...",
+      "transition_round_with_label": "Vòng {round}: {label}",
+      "transition_round_title": "Vòng {round}",
+      "transition_round_subtitle": "{label}...",
+      "transition_your_turn": "Lượt của bạn: {label}",
+      "transition_analyzing": "Đang phân tích...",
+      "transition_analyzing_subtitle": "Đang xử lý bài tranh biện của bạn...",
+      "round_opening": "Mở bài",
+      "round_ai_rebuttal": "AI phản biện",
+      "round_counter_rebuttal": "Phản biện lại",
+      "round_ai_closing": "AI kết luận",
+      "round_closing": "Kết luận",
+      "ai_preparing": "AI đang chuẩn bị phản hồi...",
+      "ai_speaking": "AI đang nói...",
+      "ai_finished": "AI đã nói xong",
+      "error": "Lỗi",
+      "difficulty_label": "Độ khó: {difficulty}",
+      "skip_animation": "Bỏ qua hiệu ứng",
+      "try_audio_again": "Thử âm thanh lại",
+      "ai_response": "Phản hồi của AI",
+      "generating_round": "Đang tạo {round}...",
+      "same_notes_helper": "Ghi chú từ phần chuẩn bị. Thêm ý phản biện khi AI tranh luận.",
+      "tip": "Gợi ý",
+      "ai_highlight_tip": "Phần được tô sáng đánh dấu claim, evidence, impact hoặc assumption. Ghi ý phản biện trước khi tiếp tục.",
+      "continue_next_round": "Tiếp tục vòng tiếp theo",
+      "waiting": "Đang chờ..."
+    },
+    "tts": {
+      "generating": "Đang tạo giọng nói...",
+      "pause": "Tạm dừng",
+        "replay": "Nghe lại",
+        "error": "Lỗi phát âm thanh"
+      }
+    },
+    "chat": {
+      "new_chat": "Chat Mới",
+      "header_title": "HLV tranh biện AI",
+      "header_subtitle": "Luôn sẵn sàng giúp bạn",
+      "sidebar_empty": "Bắt đầu một đoạn chat mới với HLV AI.",
+      "welcome_title": "Hỏi mình bất cứ điều gì về tranh biện",
+      "welcome_subtitle": "Mình sẽ dùng các phiên gần đây và dữ liệu chấm điểm của bạn để coach sát hơn.",
+      "suggestion_opening": "Cách mở bài ấn tượng?",
+      "suggestion_wsdc": "Giải thích thể thức WSDC",
+      "suggestion_fallacies": "Lỗi ngụy biện thường gặp?",
+      "suggestion_rebuttals": "Giúp mình luyện phản biện",
+      "suggestion_review": "Xem lại bài tranh biện vừa rồi",
+      "suggestion_impromptu": "Mẹo nói ứng biến",
+      "quick_actions": {
+        "debate_stance": {
+          "label": "Củng cố lập trường",
+          "prompt": "Giúp mình củng cố lập trường cho đề này."
+        },
+        "weighing": {
+          "label": "So sánh tác động",
+          "prompt": "Cho mình phần so sánh tác động quan trọng nhất nên dùng trong bài tranh biện này."
+        },
+        "clearer_english": {
+          "label": "Nói rõ hơn",
+          "prompt": "Giúp mình diễn đạt ý này bằng tiếng Anh đơn giản và rõ hơn."
+        },
+        "stronger_opening": {
+          "label": "Mở bài mạnh hơn",
+          "prompt": "Cho mình một phần mở bài mạnh hơn cho chủ đề này."
+        },
+        "rebuild_argument": {
+          "label": "Xây lại luận điểm",
+          "prompt": "Xây lại luận điểm này để phần cơ chế, weighing và impact chắc hơn."
+        },
+        "test_assumptions": {
+          "label": "Kiểm tra giả định",
+          "prompt": "Giúp mình kiểm tra các giả định trong hệ lập luận này và chỉ ra mắt xích yếu nhất."
+        },
+        "speech_structure": {
+          "label": "Sắp xếp bài nói",
+          "prompt": "Giúp mình sắp bài nói này thành mở bài, thân bài và kết bài rõ ràng."
+        },
+        "sound_confident": {
+          "label": "Tự tin hơn",
+          "prompt": "Giúp mình làm bài nói này nghe tự tin và tự nhiên hơn."
+        },
+        "lesson_key_idea": {
+          "label": "Ý chính là gì",
+          "prompt": "Tóm tắt ý quan trọng nhất của bài học này trước khi mình vào phần luyện."
+        },
+        "lesson_examples": {
+          "label": "Cho ví dụ luôn",
+          "prompt": "Cho mình vài ví dụ cụ thể có thể dùng từ bài học này."
+        },
+        "lesson_quiz": {
+          "label": "Kiểm tra mình đi",
+          "prompt": "Kiểm tra mình về các ý chính của bài học này trước khi luyện."
+        },
+        "lesson_drill": {
+          "label": "Biến thành bài luyện",
+          "prompt": "Biến bài học này thành một bài luyện ngắn để mình luyện."
+        }
+      },
+      "input_placeholder": "Hỏi HLV AI bất cứ gì...",
+      "new_conversation": "Cuộc hội thoại mới",
+      "conversations": "Hội thoại",
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "days_ago": "{count} ngày trước",
+      "preview_fallback": "Mở cuộc hội thoại này để tiếp tục với HLV AI.",
+      "delete_conversation": "Xóa cuộc hội thoại",
+      "load_error_title": "Không tải được hội thoại",
+      "load_error_body": "Thử lại, hoặc bắt đầu một đoạn chat mới.",
+      "retry": "Thử lại",
+      "context": {
+        "general_coaching": "Coach tổng quát",
+        "course_help": "Hỗ trợ khóa học",
+        "session_review": "Review phiên luyện",
+        "duel_review": "Xem lại trận 1v1"
+      },
+      "coach": {
+        "personalized_brief_badge": "Tóm tắt cá nhân hóa",
+        "personalized_brief_title": "{name}, đây là những gì hồ sơ debate của bạn đang cho thấy.",
+        "strongest_skill": "Kỹ năng mạnh nhất",
+        "focus_next": "Nên tập trung tiếp",
+        "recent_trend": "Xu hướng gần đây",
+        "recurring_strength_description": "Điểm mạnh lặp lại: {strength}",
+        "strongest_skill_fallback": "Luyện thêm vài phiên nữa, phần này sẽ hiện rõ hơn.",
+        "get_scored_session": "Hãy có một phiên được chấm điểm",
+        "no_scored_trend": "Chưa có đủ dữ liệu chấm điểm",
+        "ask_about_this": "Hỏi thêm về phần này",
+        "skill_snapshot_title": "Ảnh chụp kỹ năng",
+        "skill_snapshot_subtitle": "Được xây từ lịch sử các phiên debate có chấm điểm, không chỉ riêng tuần này.",
+        "overall_score": "Điểm tổng quan",
+        "not_enough_data": "Chưa đủ dữ liệu",
+        "strongest_label": "Mạnh nhất: {skill}",
+        "weakest_label": "Yếu nhất: {skill}",
+        "current_focus": "Trọng tâm hiện tại",
+        "speaking_practice": "Luyện nói",
+        "debate_practice": "Luyện debate",
+        "course_progress_complete": "Hoàn thành {progress}%",
+        "course_progress_unavailable": "Tiến độ sẽ hiện khi bạn bắt đầu.",
+        "winner_side": "Phe thắng: {side}",
+        "pending": "Đang chờ",
+        "recommended_next_steps": "Bước tiếp theo nên làm",
+        "open_action": "Mở",
+        "ask_action": "Hỏi",
+        "recent_sessions": "Phiên gần đây",
+        "unscored": "Chưa chấm",
+        "no_recent_sessions": "Hoàn thành một phiên có chấm điểm và nó sẽ hiện ở đây.",
+        "refreshing_insights": "Đang làm mới insight...",
+        "unrated": "Chưa xếp hạng",
+        "skill_names": {
+          "clarity": "Độ rõ",
+          "logic": "Logic",
+          "rebuttal": "Phản biện",
+          "evidence": "Dẫn chứng",
+          "delivery": "Trình bày"
+        }
+      },
+      "error_message": "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại."
+    },
+    "history": {
+      "page_headline": "Lịch Sử Luyện Tập",
+      "page_subtitle": "Xem lại các phiên luyện nói và tranh biện. Mỗi lần luyện giúp bạn tốt hơn.",
+      "language_scope_en": "Chỉ hiển thị phiên tiếng Anh.",
+      "language_scope_vi": "Chỉ hiển thị phiên tiếng Việt.",
+      "empty": "Chưa có phiên luyện nào",
+      "empty_subtitle": "Bắt đầu phiên luyện đầu tiên, lịch sử sẽ hiện ở đây!",
+      "start_practicing": "Bắt Đầu Luyện",
+      "no_match": "Không có phiên nào khớp",
+      "no_match_subtitle": "Thử thay đổi tìm kiếm hoặc bộ lọc",
+      "total_sessions": "Tổng Phiên",
+      "average_score": "Điểm TB",
+      "best_score": "Điểm Cao Nhất",
+      "most_practiced": "Luyện Nhiều Nhất",
+      "export_history": "Xuất Lịch Sử",
+      "search_placeholder": "Tìm chủ đề hoặc từ khóa...",
+      "filters": "Bộ lọc",
+      "filter_more": "Thêm",
+      "sessions_this_month": "+ {count} trong tháng này",
+      "score_delta": "{sign} {count} điểm so với tháng trước",
+      "achieved_on": "Đạt được vào {date}",
+      "sessions_count": "{count} phiên",
+      "not_available": "Chưa có dữ liệu",
+      "score": "Điểm",
+      "not_recorded": "Chưa ghi nhận",
+      "minutes_short": "{count} phút",
+      "sort_newest": "Mới nhất",
+      "sort_oldest": "Cũ nhất",
+      "sort_highest": "Điểm cao nhất",
+      "sort_lowest": "Điểm thấp nhất",
+      "for": "ỦNG HỘ",
+      "against": "PHẢN ĐỐI",
+      "speaking": "Luyện Nói",
+      "debate": "Tranh biện",
+      "duel": "Đấu 1v1",
+      "speaking_practice": "Luyện Nói",
+      "debate_practice": "Luyện tranh biện",
+      "quick_practice": "Luyện Nhanh",
+      "persuasive_speech": "Bài nói thuyết phục",
+      "constructive_focus": "Xây luận điểm",
+      "rebuttal_focus": "Phản biện",
+      "solo_debate": "Tranh biện solo",
+      "one_v_one_debate": "Tranh biện 1v1",
+      "affirmative": "Ủng hộ",
+      "negative": "Phản đối",
+      "new_badge": "Mới",
+      "review": "Xem lại",
+      "options_label": "Tùy chọn phiên",
+      "score_fallback": "Đã chấm",
+      "status_proficient": "Thành thạo",
+      "status_competent": "Khá vững",
+      "unscored": "Chưa chấm",
+      "no_feedback_yet": "Chưa có feedback",
+      "great_job": "Rất tốt!",
+      "excellent": "Xuất sắc!",
+      "very_good": "Rất tốt",
+      "great": "Tốt",
+      "good": "Ổn",
+      "solid": "Khá chắc",
+      "keep_going": "Cố lên",
+      "judged": "Đã chấm",
+      "duel_won": "Bạn thắng",
+      "duel_lost": "Bạn thua",
+      "progress_title": "Tiến Độ Của Bạn",
+      "view_full_report": "Xem báo cáo",
+      "progress_headline": "Bạn đang tiến bộ!",
+      "progress_body": "Điểm trung bình của bạn tăng {count} điểm trong tháng này.",
+      "no_score_trend": "Biểu đồ điểm sẽ hiện sau vài phiên có phản hồi.",
+      "strongest_recent_area": "Mảng Mạnh Gần Đây",
+      "logic_reasoning": "Logic & Lập luận",
+      "structure_strategy": "Cấu trúc & Chiến lược",
+      "language_delivery": "Ngôn ngữ & Trình bày",
+      "persuasion_weighing": "Thuyết phục & So sánh tác động",
+      "avg_score": "Điểm TB",
+      "points_delta": "{sign} {count} điểm",
+      "strong_area_hint": "Tiếp tục dùng khung lập luận logic thật chắc nhé!",
+      "suggested_next_move": "Bước Tiếp Theo",
+      "try_1v1_debate": "Thử tranh biện 1v1",
+      "suggested_next_move_body": "Luyện phản hồi thời gian thực và cải thiện phản biện.",
+      "start_1v1_debate": "Bắt đầu tranh biện 1v1",
+      "load_more_sessions": "Tải thêm phiên",
+      "recommended_title": "Gợi ý luyện tiếp theo",
+      "recommended_subtitle": "Tiếp tục xây kỹ năng nhé!",
+      "recommended_rebuttals_title": "Phản biện rõ và dính",
+      "recommended_rebuttals_body": "Luyện cách đáp lại đối thủ bằng phản biện rõ, mạnh và trực diện.",
+      "recommended_delivery_title": "Bài luyện trình bày tự tin",
+      "recommended_delivery_body": "Luyện nhịp nói, độ rõ và nhấn ý trong một vòng nói ngắn có hướng dẫn.",
+      "recommended_case_title": "Xây hệ lập luận mở đầu chắc",
+      "recommended_case_body": "Củng cố luận điểm mở đầu bằng ý chính rõ hơn và so sánh tác động sắc hơn.",
+      "single_speech": "Một Bài Nói",
+      "full": "Đầy đủ",
+      "quick": "Nhanh",
+      "delete_title": "Xóa Phiên",
+      "delete_description": "Bạn có chắc muốn xóa phiên này? Hành động này không thể hoàn tác.",
+      "category_all": "Tất cả",
+      "category_education": "Giáo dục",
+      "category_technology": "Công nghệ",
+      "category_society": "Xã hội",
+      "category_environment": "Môi trường",
+      "category_ethics": "Đạo đức",
+      "category_vietnam": "Việt Nam"
+    },
+    "profile": {
+      "level": "Level {level}",
+      "xp_display": "{current} / {max} XP",
+      "day_streak": "Chuỗi ngày",
+      "debates": "Trận debate",
+      "practiced": "Đã luyện",
+      "courses": "Khóa học",
+      "change_title": "Đổi Danh Hiệu",
+      "edit_profile": "Sửa Hồ Sơ",
+      "skill_breakdown": "Phân Tích Kỹ Năng",
+      "skill_content": "Nội dung",
+      "skill_structure": "Cấu trúc",
+      "skill_language": "Ngôn ngữ",
+      "skill_persuasion": "Thuyết phục",
+      "skill_empty": "Hoàn thành vài trận debate để xem biểu đồ kỹ năng!",
+      "skill_min_sessions": "Cần ít nhất 3 phiên luyện",
+      "achievements_title": "Thành Tích",
+      "unlocked_count": "{count}/{total} đã mở",
+      "no_achievements": "Chưa có thành tích nào",
+      "unlocked_date": "Mở khóa {date}",
+      "title_reward": "Danh hiệu: \"{title}\"",
+      "view_all": "Xem Tất Cả ({count})",
+      "show_less": "Thu Gọn",
+      "recent_activity": "Hoạt Động Gần Đây",
+      "no_activity": "Chưa có hoạt động nào",
+      "no_activity_subtitle": "Bắt đầu debate để xem hoạt động ở đây",
+      "time_just_now": "vừa xong",
+      "time_minutes_ago": "{count} phút trước",
+      "time_hours_ago": "{count} giờ trước",
+      "time_days_ago": "{count} ngày trước",
+      "time_weeks_ago": "{count} tuần trước",
+      "time_months_ago": "{count} tháng trước",
+      "time_years_ago": "{count} năm trước",
+      "activity_session_completed": "Hoàn thành debate \"{topic}\"",
+      "activity_session_completed_no_topic": "Hoàn thành một trận debate",
+      "activity_session_started": "Bắt đầu debate \"{topic}\"",
+      "activity_session_started_no_topic": "Bắt đầu phiên debate",
+      "activity_achievement_unlocked": "Mở khóa thành tích: {title}",
+      "activity_level_up": "Đạt Level {level}",
+      "activity_course_enrolled": "Đăng ký khóa {course}",
+      "activity_course_completed": "Hoàn thành khóa \"{course}\"",
+      "activity_lesson_completed": "Hoàn thành bài học: {lesson}",
+      "activity_lesson_completed_no_title": "Hoàn thành một bài học"
+    }
+  },
+  "chat": {
+    "headline": "AI Debate Coach",
+    "placeholder": "Hỏi Coach bất cứ điều gì...",
+    "thinking": "Coach đang suy nghĩ..."
+  },
+  "profile": {
+    "headline": "Hồ sơ",
+    "edit": "Chỉnh sửa",
+    "achievements": "Thành tích",
+    "title_label": "Danh hiệu",
+    "change_title": "Đổi Danh Hiệu",
+    "stats": {
+      "total_sessions": "Tổng phiên",
+      "total_time": "Tổng thời gian",
+      "best_score": "Điểm cao nhất",
+      "avg_score": "Điểm TB"
+    },
+    "skill_chart": "Biểu Đồ Kỹ Năng"
+  },
+  "settings": {
+  "headline": "Cài đặt",
+  "subtitle": "Quản lý tài khoản, tuỳ chọn và trải nghiệm luyện tập của bạn.",
+  "fallback_name": "Thành viên Thinkfy",
+  "hero_summary": "Cập nhật cách hồ sơ của bạn xuất hiện, giữ mặc định luyện tập thật gọn gàng và tinh chỉnh trải nghiệm Thinkfy cho mỗi lần quay lại.",
+  "avatar_upload": "Tải ảnh đại diện lên",
+  "save_changes": "Lưu thay đổi",
+    "status": {
+      "unsaved": "Có thay đổi chưa lưu",
+      "saved": "Mọi thay đổi đã được lưu"
+    },
+    "cards": {
+      "profile": {
+        "title": "Hồ sơ",
+        "description": "Cập nhật cách tên và ảnh đại diện của bạn xuất hiện trong Thinkfy."
+      },
+      "practice": {
+        "title": "Mặc định luyện tập",
+        "description": "Thiết lập bộ hẹn giờ và độ khó dùng cho các phiên luyện tập cá nhân mới."
+      },
+      "language": {
+        "title": "Ngôn ngữ",
+        "description": "Chọn ngôn ngữ hiển thị bạn muốn dùng ngay bây giờ và lưu cho những lần sau."
+      },
+      "voice": {
+        "title": "Giọng AI",
+        "description": "Chọn giọng dùng cho phần phản biện, phát lại và lời nhắc bằng giọng nói."
+      },
+      "preferences": {
+        "title": "Tuỳ chọn phản hồi",
+        "description": "Điều chỉnh cách phản hồi sau mỗi phiên luyện tập được giải thích cho bạn."
+      },
+      "notifications": {
+        "title": "Thông báo & Nhắc nhở",
+        "description": "Giữ nhịp học với những lời nhắc nhẹ nhàng và cập nhật cột mốc."
+      },
+      "privacy": {
+        "title": "Quyền riêng tư & Dữ liệu",
+        "description": "Kiểm soát analytics, xuất dữ liệu và lịch sử luyện tập cá nhân đã lưu."
+      }
+    },
+    "fields": {
+      "display_name": "Tên hiển thị",
+    "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Thinkfy",
+    "avatar": "Ảnh đại diện",
+    "default_prep_time": "Thời gian chuẩn bị mặc định",
+    "default_speech_time": "Thời gian nói mặc định",
+    "default_difficulty": "Độ khó AI mặc định",
+    "app_language": "Ngôn ngữ ứng dụng",
+    "practice_language": "Ngôn ngữ luyện tập"
+  },
+    "time_option": "{count, plural, one {# phút} other {# phút}}",
+    "duration_helper": {
+      "prep": "Chọn số phút bất kỳ từ 1 đến 10.",
+      "speech": "Chọn số phút bất kỳ từ 2 đến 7."
+    },
+    "difficulty": {
+      "easy": "Dễ",
+      "medium": "Trung bình",
+      "hard": "Khó"
+    },
+    "languages": {
+      "en": "Tiếng Anh (English)",
+      "vi": "Tiếng Việt (Vietnamese)"
+    },
+    "practice_languages": {
+      "en": "Luyện tập bằng tiếng Anh",
+      "vi": "Luyện tập bằng tiếng Việt"
+    },
+    "language_switching": "Đang chuyển ngôn ngữ...",
+    "language_hint": "Ngôn ngữ đổi ngay lập tức, và khi lưu trang này hệ thống sẽ ghi nhớ lựa chọn của bạn.",
+    "practice_language_hint": "Mục này điều khiển nhận diện giọng nói, giọng AI, phản biện và ngôn ngữ phản hồi trong phiên luyện tập.",
+    "toggles": {
+      "detailed_feedback": {
+        "title": "Hiện phản hồi chi tiết",
+        "description": "Nhận phân tích sâu hơn và ghi chú coaching đầy đủ hơn sau mỗi phiên."
+      },
+      "highlight_weak_areas": {
+        "title": "Làm nổi bật điểm yếu",
+        "description": "Chỉ ra những mẫu lỗi tôi nên sửa trước trong các vòng tiếp theo."
+      },
+      "explain_like_im_learning": {
+        "title": "Giải thích theo kiểu đang học",
+        "description": "Ưu tiên cách diễn giải đơn giản hơn, ví dụ rõ hơn và giọng điệu dễ tiếp cận hơn."
+      },
+      "advanced_terminology": {
+        "title": "Dùng thuật ngữ nâng cao",
+        "description": "Sử dụng ngôn ngữ tranh biện chuyên sâu và cách diễn đạt sắc bén hơn."
+      },
+      "practice_reminders": {
+        "title": "Nhắc luyện tập",
+        "description": "Nhận lời nhắc để bắt đầu thêm một phiên và giữ đà tiến bộ."
+      },
+      "streak_reminders": {
+        "title": "Nhắc streak hằng ngày",
+        "description": "Nhận lời nhắc trước khi streak luyện tập hiện tại bị gián đoạn."
+      },
+      "achievement_updates": {
+        "title": "Thành tích & cập nhật",
+        "description": "Nhận thông tin về cột mốc mới, tính năng mới và tiến bộ của bạn."
+      },
+      "smart_feature_popups": {
+        "title": "Popup gợi ý thông minh",
+        "description": "Cho phép gợi ý trong app được cá nhân hoá cho luyện tập, khoá học, streak và AI Coach."
+      },
+      "email_notifications": {
+        "title": "Thông báo qua email",
+        "description": "Cho phép gửi lời nhắc quan trọng và cập nhật sản phẩm qua email."
+      },
+      "analytics": {
+        "title": "Cookie analytics",
+        "description": "Cho phép thu thập analytics sản phẩm để chúng tôi hiểu cách sử dụng và cải thiện ứng dụng."
+      }
+    },
+    "privacy": {
+      "download": {
+        "title": "Tải dữ liệu của tôi",
+        "description": "Xuất hồ sơ, tuỳ chọn, lịch sử luyện tập, tóm tắt duel, tiến độ khoá học và lịch sử chat dưới dạng JSON."
+      },
+      "clear_history": {
+        "title": "Xoá lịch sử luyện tập",
+        "description": "Xoá các phiên luyện tập cá nhân đã lưu và làm mới analytics hiển thị mà không ảnh hưởng tới duel.",
+        "confirm_title": "Xoá lịch sử luyện tập cá nhân?",
+        "confirm_description": "Thao tác này sẽ xoá các phiên luyện tập cá nhân đã lưu khỏi lịch sử và làm mới các trang liên quan. Kết quả duel vẫn được giữ nguyên.",
+        "confirm_action": "Xoá lịch sử"
+      }
+    },
+    "sign_out": "Đăng xuất",
+    "sign_out_description": "Đăng xuất khỏi tài khoản của bạn trên thiết bị này.",
+    "voice": {
+      "title": "Giọng AI",
+      "description": "Chọn giọng dùng cho phản biện, phát lại coaching và các lời nhắc bằng giọng nói.",
+      "female": "Nữ",
+      "male": "Nam",
+      "more_voices": "Thêm giọng khác",
+      "more_voices_description": "Giữ sẵn các giọng nổi bật hoặc chọn từ toàn bộ danh sách tại đây.",
+      "preview_button": "Nghe thử",
+      "selected_label": "Giọng đang chọn",
+      "high_quality": "Chất lượng cao",
+      "accents": {
+        "american": "Mỹ",
+        "british": "Anh",
+        "irish": "Ireland",
+        "vietnamese": "Việt Nam"
+      }
+    },
+  "toast": {
+    "saved": "Đã lưu cài đặt.",
+    "save_error": "Hiện chưa thể lưu cài đặt của bạn.",
+    "avatar_invalid": "Hãy chọn một tệp ảnh hợp lệ cho ảnh đại diện.",
+    "avatar_too_large": "Hãy chọn ảnh đại diện nhỏ hơn 8 MB.",
+      "history_cleared": "{count, plural, =0 {Lịch sử luyện tập cá nhân đã trống.} one {Đã xoá # phiên luyện tập cá nhân.} other {Đã xoá # phiên luyện tập cá nhân.}}",
+      "history_error": "Hiện chưa thể xoá lịch sử luyện tập cá nhân."
+    }
+  },
+  "achievements": {
+    "unlocked": "Mở khóa thành tích!",
+    "level_up": "Lên Level {level}!",
+    "level_up_subtitle": "Quá đỉnh! Tiếp tục phát huy nhé!",
+    "streak_fire": "Chuỗi {count} ngày 🔥",
+    "titles": {
+      "The Unstoppable": "Không Thể Cản",
+      "The Unkillable": "Bất Khả Chiến Bại",
+      "The Untouchable": "Đỉnh Của Chóp",
+      "Rising Star": "Ngôi Sao Mới",
+      "Debate Master": "Bậc Thầy Debate",
+      "Word Smith": "Phù Thủy Ngôn Từ",
+      "Quick Thinker": "Tư Duy Nhanh",
+      "Iron Will": "Ý Chí Sắt Đá"
+    }
+  },
+  "auth": {
+    "login": {
+      "headline": "Đăng nhập",
+      "subtitle": "Đăng nhập vào tài khoản của bạn",
+      "email": "Email",
+      "email_placeholder": "you@example.com",
+      "password": "Mật khẩu",
+      "password_placeholder": "Mật khẩu của bạn",
+      "submit": "Đăng nhập",
+      "submitting": "Đang đăng nhập...",
+      "google": "Tiếp tục với Google",
+      "or": "hoặc",
+      "no_account": "Chưa có tài khoản?",
+      "signup_link": "Đăng ký ngay",
+      "error_generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+    },
+    "signup": {
+      "headline": "Tạo tài khoản",
+      "subtitle": "Tạo tài khoản của bạn",
+      "name": "Tên hiển thị",
+      "name_placeholder": "Tên của bạn",
+      "email": "Email",
+      "email_placeholder": "you@example.com",
+      "password": "Mật khẩu",
+      "password_placeholder": "Ít nhất 6 ký tự",
+      "submit": "Tạo tài khoản",
+      "submitting": "Đang tạo tài khoản...",
+      "google": "Tiếp tục với Google",
+      "or": "hoặc",
+      "has_account": "Đã có tài khoản?",
+      "login_link": "Đăng nhập"
+    }
+  },
+  "metadata": {
+    "title": "Thinkfy — Luyện Debate Cùng AI",
+    "description": "Luyện debate, nhận feedback AI tức thì, và nâng cao kỹ năng tranh biện bằng tiếng Anh. Dành cho học sinh Việt Nam."
+  },
+  "errors": {
+    "generic": "Ối dồi ôi! Có lỗi rồi.",
+    "network": "Mất kết nối. Kiểm tra mạng nhé!",
+    "not_found": "Trang này không tồn tại",
+    "unauthorized": "Bạn cần đăng nhập",
+    "session_expired": "Phiên đã hết hạn. Đăng nhập lại nhé!"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Ối dồi ôi! Có lỗi rồi.",
+    "retry": "Thử lại",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "continue": "Tiếp tục",
+    "back": "Quay lại",
+    "skip": "Bỏ qua",
+    "done": "Xong",
+    "or": "hoặc",
+    "minutes": "phút",
+    "hours": "giờ",
+    "days": "ngày",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "see_more": "Xem thêm",
+    "close": "Đóng",
+    "navigation": "Navigation",
+    "sign_out": "Đăng xuất"
+  },
+  "admin": {
+    "title": "Quản trị",
+    "switchToAdmin": "Chuyển sang Quản trị",
+    "backToDashboard": "Quay lại Dashboard",
+      "nav": {
+        "overview": "Tổng quan",
+        "users": "Người dùng & truy cập",
+        "classes": "Classes",
+        "clubs": "Câu lạc bộ",
+        "emails": "Email",
+        "feedbackPopups": "Popup góp ý",
+        "courses": "Khóa học",
+        "duels": "Đấu đối kháng"
+      },
+    "comingSoon": "Sắp ra mắt",
+    "unauthorized": "Bạn không có quyền truy cập trang này.",
+    "overview": {
+      "title": "Tổng quan",
+      "totalUsers": "Tổng người dùng",
+      "onlineNow": "Đang online",
+      "totalCourses": "Tổng khóa học",
+      "totalEnrollments": "Tổng đăng ký",
+      "userGrowth": "Tăng trưởng người dùng",
+      "sessionTrend": "Xu hướng phiên",
+      "popularCourses": "Khóa học phổ biến",
+      "apiUsage": "Sử dụng API (7 ngày)",
+      "last7Days": "7 ngày",
+      "last30Days": "30 ngày",
+      "last90Days": "90 ngày",
+      "noData": "Chưa có dữ liệu",
+      "refreshing": "Đang cập nhật..."
+    },
+    "classes": {
+      "title": "Classes",
+      "subtitle": "Create and manage classes, assign courses, and track attendance.",
+      "newClass": "New Class",
+      "searchPlaceholder": "Search classes",
+      "filters": "Filters",
+      "empty": "No classes match these filters.",
+      "showing": "Showing {current} of {total} classes",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save",
+      "archive": "Archive",
+      "kpis": {
+        "totalClasses": "Total Classes",
+        "totalStudents": "Total Students",
+        "assignedCourses": "Assigned Courses",
+        "attendance": "Attendance (30d)",
+        "sessions": "Sessions (30d)",
+        "active": "{count} active",
+        "acrossAll": "Across all classes",
+        "averageRate": "Average rate"
+      },
+      "status": {
+        "all": "Status: All",
+        "active": "Active",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "sort": {
+        "newest": "Sort: Newest",
+        "oldest": "Sort: Oldest",
+        "title": "Sort: Title",
+        "attendance": "Sort: Attendance"
+      },
+      "table": {
+        "class": "Class",
+        "status": "Status",
+        "dates": "Dates",
+        "students": "Students",
+        "courses": "Assigned Courses",
+        "attendance": "Attendance (30d)"
+      },
+      "create": {
+        "title": "Create Class",
+        "subtitle": "Set up the roster shell now, then assign courses from the class detail page.",
+        "submit": "Create Class"
+      },
+      "fields": {
+        "title": "Class title",
+        "code": "Class code",
+        "grade": "Level",
+        "program": "Program",
+        "level": "Level",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "meeting": "Meeting schedule",
+        "room": "Room",
+        "description": "Description"
+      },
+      "detail": {
+        "back": "Classes",
+        "edit": "Edit Class",
+        "editClass": "Edit Class",
+        "takeAttendance": "Take Attendance",
+        "viewAll": "View All",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save",
+        "archive": "Archive",
+        "fields": {
+          "title": "Class title",
+          "code": "Class code",
+          "grade": "Level",
+          "program": "Program",
+          "level": "Level",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "meeting": "Meeting schedule",
+          "room": "Room",
+          "description": "Description"
+        },
+        "facts": {
+          "code": "Class Code",
+          "grade": "Level",
+          "time": "Time",
+          "dateRange": "Date Range",
+          "room": "Room"
+        },
+        "tabs": {
+          "overview": "Overview",
+          "students": "Students",
+          "courses": "Courses",
+          "schedule": "Schedule",
+          "attendance": "Attendance"
+        },
+        "metrics": {
+          "students": "Students",
+          "activeStudents": "{count} active",
+          "attendance": "Avg Attendance",
+          "courses": "Assigned Courses",
+          "sessions": "Sessions",
+          "thisMonth": "This month",
+          "classRestricted": "Class restricted"
+        },
+        "roster": {
+          "title": "Roster ({count} Students)",
+          "empty": "No students assigned yet.",
+          "search": "Search students to add"
+        },
+        "courses": {
+          "title": "Assigned Courses ({count})",
+          "assign": "Assign Course",
+          "empty": "No courses assigned yet.",
+          "search": "Search courses to assign",
+          "visibilityNote": "Assigning a course immediately restricts it to this class."
+        },
+        "attendance": {
+          "title": "Attendance",
+          "recent": "Recent Attendance Sessions",
+          "empty": "No attendance sessions yet.",
+          "date": "Date",
+          "course": "Course",
+          "present": "Present",
+          "late": "Late",
+          "absent": "Absent",
+          "rate": "Attendance",
+          "student": "Student"
+        },
+        "attendanceSheet": {
+          "title": "Take Attendance",
+          "course": "Select Course (required)",
+          "date": "Session Date",
+          "present": "Present",
+          "late": "Late",
+          "absent": "Absent",
+          "total": "Total",
+          "student": "Student",
+          "status": "Status",
+          "note": "Note",
+          "sessionNote": "Session note",
+          "save": "Save Attendance",
+          "saving": "Saving..."
+        }
+      }
+    },
+    "courses": {
+      "title": "Khóa học",
+      "newCourse": "Tạo khóa học",
+      "searchPlaceholder": "Tìm khóa học...",
+      "filterVisibility": "Hiển thị",
+      "filterStatus": "Trạng thái",
+      "all": "Tất cả",
+      "published": "Đã xuất bản",
+      "draft": "Nháp",
+      "archived": "Đã lưu trữ",
+      "public": "Công khai",
+      "premium": "Premium",
+      "classRestricted": "Riêng tư",
+      "modules": "Module",
+      "enrolled": "Đăng ký",
+      "noCoursesYet": "Chưa có khóa học nào. Tạo khóa học đầu tiên!",
+      "createCourse": "Tạo khóa học",
+      "editCourse": "Chỉnh sửa",
+      "duplicateCourse": "Nhân bản",
+      "archiveCourse": "Lưu trữ",
+      "deleteCourse": "Xóa",
+      "confirmDelete": "Bạn chắc chắn? Khóa học sẽ bị xóa vĩnh viễn.",
+      "confirmDeleteModule": "Xóa module này và tất cả hoạt động?",
+      "cannotDeleteEnrolled": "Không thể xóa khóa học có người đăng ký.",
+      "courseCreated": "Tạo khóa học thành công!",
+      "courseSaved": "Đã lưu thay đổi",
+      "unsavedChanges": "Bạn có thay đổi chưa lưu",
+      "preview": "Xem trước",
+      "addModule": "Thêm Module",
+      "moduleName": "Tên module",
+      "addActivity": "Thêm hoạt động",
+      "publish": "Xuất bản",
+      "unpublish": "Gỡ xuất bản",
+      "publishRequirement": "Cần ít nhất 1 module với 1 hoạt động để xuất bản",
+      "activityTypes": {
+        "lesson": "Bài giảng",
+        "quiz": "Trắc nghiệm",
+        "matching": "Ghép cặp",
+        "fill_blank": "Điền vào chỗ trống",
+        "drag_order": "Sắp xếp thứ tự",
+        "flashcard": "Thẻ ghi nhớ"
+      },
+      "phases": {
+        "learn": "Học",
+        "practice": "Luyện tập",
+        "apply": "Áp dụng"
+      },
+      "wizard": {
+        "step1Title": "Thông tin cơ bản",
+        "step2Title": "Quyền truy cập",
+        "step3Title": "Xem lại & Tạo",
+        "title": "Tên khóa học",
+        "titlePlaceholder": "VD: Nhập môn Tranh biện",
+        "description": "Mô tả",
+        "descriptionPlaceholder": "Học viên sẽ học được gì?",
+        "category": "Danh mục",
+        "difficulty": "Độ khó",
+        "thumbnail": "Ảnh bìa",
+        "next": "Tiếp",
+        "back": "Quay lại",
+        "create": "Tạo khóa học",
+        "creating": "Đang tạo..."
+      },
+      "visibility": {
+        "publicTitle": "Công khai",
+        "publicDesc": "Ai cũng có thể đăng ký và học.",
+        "premiumTitle": "Premium",
+        "premiumDesc": "Chỉ dành cho người dùng trả phí.",
+        "restrictedTitle": "Riêng tư",
+        "restrictedDesc": "Chỉ lớp được chỉ định hoặc học viên riêng lẻ mới có thể truy cập."
+      },
+      "builders": {
+        "lesson": {
+          "contentType": "Loại nội dung",
+          "article": "Bài viết",
+          "video": "Video",
+          "writeTab": "Viết",
+          "previewTab": "Xem trước",
+          "bodyPlaceholder": "Viết nội dung bài giảng bằng Markdown...",
+          "videoUrl": "Link video",
+          "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+          "videoDuration": "Thời lượng (giây)"
+        },
+        "quiz": {
+          "questions": "Câu hỏi",
+          "addQuestion": "Thêm câu hỏi",
+          "questionNumber": "Câu {number} / {total}",
+          "questionType": "Loại",
+          "multipleChoice": "Trắc nghiệm",
+          "trueFalse": "Đúng / Sai",
+          "questionText": "Câu hỏi",
+          "questionPlaceholder": "Nhập câu hỏi...",
+          "options": "Đáp án",
+          "addOption": "Thêm đáp án",
+          "correctAnswer": "Đáp án đúng",
+          "explanation": "Giải thích",
+          "explanationPlaceholder": "Giải thích tại sao đây là đáp án đúng..."
+        },
+        "matching": {
+          "pairs": "Cặp ghép",
+          "addPair": "Thêm cặp",
+          "term": "Thuật ngữ",
+          "definition": "Định nghĩa",
+          "shuffleHint": "Học viên sẽ thấy các cặp bị xáo trộn."
+        },
+        "fillBlank": {
+          "passages": "Đoạn văn",
+          "addPassage": "Thêm đoạn",
+          "instruction": "Nhập đoạn văn. Dùng __BLANK_1__, __BLANK_2__ cho chỗ trống.",
+          "passagePlaceholder": "Mục đích chính của __BLANK_1__ là phản bác __BLANK_2__ của đối phương.",
+          "blanks": "Chỗ trống",
+          "blankAnswer": "Đáp án",
+          "altAnswers": "Đáp án thay thế",
+          "addAltAnswer": "Thêm đáp án",
+          "caseSensitive": "Phân biệt hoa thường"
+        },
+        "dragOrder": {
+          "items": "Mục",
+          "addItem": "Thêm mục",
+          "instruction": "Hướng dẫn (tùy chọn)",
+          "instructionPlaceholder": "Sắp xếp các mục theo đúng thứ tự.",
+          "orderHint": "Nhập mục theo thứ tự đúng. Học viên sẽ thấy bị xáo trộn.",
+          "itemPlaceholder": "Nhập nội dung..."
+        },
+        "flashcard": {
+          "cards": "Thẻ ghi nhớ",
+          "addCard": "Thêm thẻ",
+          "front": "Mặt trước",
+          "back": "Mặt sau",
+          "frontPlaceholder": "Thuật ngữ hoặc câu hỏi...",
+          "backPlaceholder": "Định nghĩa hoặc đáp án...",
+          "preview": "Xem thẻ"
+        },
+        "common": {
+          "save": "Lưu hoạt động",
+          "saving": "Đang lưu...",
+          "cancel": "Hủy",
+          "delete": "Xóa",
+          "preview": "Xem trước học viên",
+          "validationErrors": "Vui lòng sửa các lỗi sau:",
+          "unsavedChanges": "Thay đổi chưa lưu",
+          "phase": "Giai đoạn",
+          "duration": "Thời lượng (phút)"
+        }
+      }
+    }
+  },
+  "courses": {
+    "player": {
+      "backToCourse": "Quay lại khóa học",
+      "startActivity": "Bắt đầu",
+      "continueActivity": "Tiếp tục",
+      "completed": "Hoàn thành",
+      "locked": "Khóa",
+      "premium": "Premium",
+      "free": "Miễn phí",
+      "checkAnswer": "Kiểm tra",
+      "checkAnswers": "Kiểm tra đáp án",
+      "checkOrder": "Kiểm tra thứ tự",
+      "checkMatches": "Kiểm tra ghép đôi",
+      "continue": "Tiếp tục",
+      "nextQuestion": "Câu tiếp",
+      "nextActivity": "Hoạt động tiếp",
+      "previousActivity": "Quay lại",
+      "correct": "Đúng rồi!",
+      "incorrect": "Chưa đúng!",
+      "whyCorrect": "Tại sao?",
+      "results": "{score} / {total} đúng",
+      "score": "Điểm: {score}/{total}",
+      "questionOf": "Câu {current} / {total}",
+      "cardOf": "Thẻ {current} / {total}",
+      "tapToFlip": "Chạm để lật",
+      "gotIt": "Đã hiểu",
+      "reviewAgain": "Xem lại",
+      "matchTerms": "Ghép mỗi thuật ngữ với định nghĩa đúng",
+      "matched": "Đã ghép: {count} / {total}",
+      "arrangeOrder": "Sắp xếp theo đúng thứ tự",
+      "completePassage": "Hoàn thành đoạn văn",
+      "readAndContinue": "Đã đọc xong — Tiếp tục",
+      "watchAndContinue": "Đã xem xong — Tiếp tục",
+      "markComplete": "Đánh dấu hoàn thành",
+      "activityComplete": "Hoàn thành hoạt động!",
+      "moduleComplete": "Hoàn thành Module!",
+      "courseComplete": "Hoàn thành Khóa học!",
+      "moduleUnlocked": "{moduleName} đã được mở khóa!",
+      "upNext": "Tiếp theo: {title}",
+      "continueToModule": "Tiếp tục đến {moduleName}",
+      "backToCourseOverview": "Quay lại tổng quan khóa học",
+      "exploreMore": "Khám phá thêm khóa học",
+      "backToDashboard": "Quay lại Dashboard",
+      "youMastered": "Bạn đã hoàn thành khóa học!",
+      "skipActivity": "Bỏ qua",
+      "retryActivity": "Thử lại",
+      "progress": "{completed} / {total} đã hoàn thành",
+      "enroll": "Đăng ký",
+      "enrolled": "Đã đăng ký",
+      "unenroll": "Hủy đăng ký",
+      "restrictedAccess": "Khóa học này chỉ dành cho học viên được mời.",
+      "premiumRequired": "Cần đăng ký Premium.",
+      "unlockAfterPurchase": "Mở khóa sau khi mua",
+      "backToEditor": "Quay lại trình chỉnh sửa",
+      "adminPreview": "Xem trước quản trị",
+      "previewDraft": "Bản nháp",
+      "previewPublished": "Đã xuất bản",
+      "previewSavedVersion": "Bản xem trước này phản ánh phiên bản đã lưu của khóa học. Hãy lưu thay đổi trong trình chỉnh sửa để cập nhật.",
+      "previewNoTracking": "Chế độ xem trước không ghi nhận tiến độ, đăng ký hay hoàn thành. Hãy mở một hoạt động để kiểm tra trải nghiệm của học viên."
+    }
+  },
+  "sessionResult": {
+    "backToPractice": "Quay lại Luyện tập",
+    "backToHistory": "Quay lại Lịch sử",
+    "backToTopics": "Quay lại chủ đề",
+    "tryAgain": "Thử lại",
+    "share": "Chia sẻ kết quả",
+    "shareCopied": "Đã sao chép!",
+    "shareTitle": "Kết quả Thinkfy",
+    "shareText": "Mình vừa đạt {score}/100 cho chủ đề \"{topic}\" trên Thinkfy.",
+    "scoreLabel": "Điểm của bạn",
+    "eyebrow": "Kết quả phiên luyện",
+    "noFeedback": "Phiên này chưa có phản hồi để hiển thị.",
+    "notFoundTitle": "Không tìm thấy phiên luyện",
+    "notFoundBody": "Phiên này có thể đã bị xóa hoặc không còn tồn tại.",
+    "cards": {
+      "side": "Phe của bạn",
+      "track": "Loại luyện",
+      "mode": "Chế độ",
+      "category": "Danh mục",
+      "difficulty": "Độ khó AI"
+    },
+    "tabs": {
+      "sections": "Các mục trong phiên",
+      "overall": "Tổng quan",
+      "verdict": "Phán quyết",
+      "transcript": "Bản ghi",
+      "clash": "Bản đồ đối đầu"
+    },
+    "sides": {
+      "proposition": "Ủng hộ",
+      "opposition": "Phản đối"
+    },
+    "winner": {
+      "label": "Bên thắng",
+      "tieLabel": "Kết quả",
+      "tie": "Hòa",
+      "confidence": "Độ tin cậy {confidence}%",
+      "sides": {
+        "proposition": "Ủng hộ",
+        "opposition": "Phản đối"
+      }
+    },
+    "tracks": {
+      "speaking": "Luyện Nói",
+      "debate": "Luyện Debate"
+    },
+    "modes": {
+      "singleSpeech": "Một bài nói",
+      "quick": "Luyện nhanh",
+      "full": "Full Round"
+    },
+    "difficulty": {
+      "easy": "Dễ",
+      "medium": "Trung bình",
+      "hard": "Khó"
+    },
+    "bands": {
+      "novice": "Mới bắt đầu",
+      "developing": "Đang phát triển",
+      "competent": "Ổn định",
+      "proficient": "Vững vàng",
+      "expert": "Xuất sắc"
+    },
+    "encouragement": {
+      "novice": "Khởi đầu tốt rồi.",
+      "developing": "Bạn đang vào nhịp rất tốt.",
+      "competent": "Tiến bộ khá chắc chắn.",
+      "proficient": "Làm rất tốt.",
+      "expert": "Một phiên cực kỳ ấn tượng."
+    },
+    "insights": {
+      "strongest": "Điểm mạnh nhất",
+      "needsWork": "Cần cải thiện nhất",
+      "nextFocus": "Tập trung tiếp theo",
+      "focusCta": "Ưu tiên phần này lần tới"
+    },
+    "skillBreakdown": "Chi tiết kỹ năng",
+    "casework": {
+      "heading": "Chẩn đoán bài tranh biện",
+      "subheading": "Phần này tập trung vào chất lượng lập luận, lớp lập luận còn thiếu, đối đầu lập luận và cách xây lại luận điểm mạnh hơn.",
+      "caseSummary": "Mạch case",
+      "stance": "Lập trường",
+      "weighing": "So sánh tác động",
+      "clash": "Đối đầu lập luận",
+      "argument": "Luận điểm {number}",
+      "rebuild": "Xây lại",
+      "worked": "Điểm hiệu quả",
+      "missing": "Lớp còn thiếu",
+      "betterVersion": "Phiên bản tốt hơn"
+    },
+    "annotations": {
+      "title": "Bản ghi có chú thích",
+      "description": "Xem lại đúng những đoạn cần siết chặt lập luận.",
+      "speaker": "Người nói",
+      "you": "Bạn",
+      "ai": "AI",
+      "view": "Chế độ xem",
+      "speechPart": "Phần trình bày",
+      "allSpeechParts": "Tất cả phần trình bày",
+      "filterAll": "Tất cả chú thích",
+      "filterStrength": "Điểm mạnh",
+      "filterImprovement": "Cần cải thiện",
+      "filterWarning": "Cảnh báo",
+      "emptyFilter": "Không có chú thích nào khớp chế độ xem này.",
+      "tags": {
+        "stance": "Lập trường",
+        "clarity": "Độ rõ",
+        "mechanism": "Cơ chế",
+        "evidence": "Bằng chứng",
+        "logic": "Logic",
+        "rebuttal": "Phản biện",
+        "clash": "Đối đầu",
+        "weighing": "So sánh",
+        "impact": "Tác động",
+        "structure": "Cấu trúc",
+        "delivery": "Trình bày"
+      },
+      "suggestion": "Thử sửa như sau",
+      "unmatched": "Không tìm thấy quote",
+      "round": "Vòng {round}"
+    },
+    "timeline": {
+      "heading": "Diễn biến tranh biện",
+      "round": "Vòng {round}",
+      "you": "Bạn",
+      "ai": "AI",
+      "words": "{count} từ"
+    },
+    "skillDescriptions": {
+      "clarity": "Nêu ý chính thật rõ ngay từ những câu đầu tiên.",
+      "logic": "Nối từng luận điểm bằng một chuỗi lý do và tác động rõ ràng.",
+      "rebuttal": "Trả lời trực diện phe còn lại và cho thấy case của bạn vẫn đứng vững.",
+      "evidence": "Thêm ví dụ, cơ chế và bằng chứng để lập luận cụ thể hơn.",
+      "delivery": "Giữ nhịp nói chắc, chính xác và dễ theo dõi cho người nghe."
+      },
+      "detail": {
+        "heading": "Phản hồi chi tiết",
+        "strengths": "Bạn làm tốt ở đâu",
+        "improvements": "Cần cải thiện gì",
+      "modelAnswer": "Bài mẫu",
+      "strongerRebuild": "Phiên bản mạnh hơn",
+      "showTranscript": "Xem bản ghi",
+      "hideTranscript": "Ẩn bản ghi",
+      "showTimeline": "Xem timeline các lượt",
+      "hideTimeline": "Ẩn timeline các lượt",
+      "transcript": "Xem lại bản ghi",
+      "timeline": "Xem lại timeline tranh luận",
+      "emptyStrengths": "Điểm mạnh sẽ hiện ở đây sau khi phân tích xong.",
+      "emptyImprovements": "Gợi ý cải thiện sẽ hiện ở đây sau khi phân tích xong.",
+      "emptyTranscript": "Phiên này không có transcript được lưu."
+    },
+    "fallbacks": {
+      "strongest": "Đây là kỹ năng nổi bật nhất của bạn trong phiên này.",
+      "needsWork": "Đây là phần rõ nhất để siết lại ở phiên tiếp theo.",
+      "focus": "Lần tới hãy dành nhiều sự chú ý hơn cho kỹ năng này."
+    },
+    "actions": {
+      "practiceAgain": "Luyện lại",
+      "newTopic": "Chủ đề mới",
+      "viewHistory": "Xem lịch sử",
+      "askCoach": "Hỏi AI Coach",
+      "retryTopic": "Luyện lại chủ đề này",
+      "deleteSession": "Xóa phiên"
+    },
+    "referral": {
+      "title": "Thử thách bạn bè vượt điểm của bạn!",
+      "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
+      "shareTitle": "Thử thách Thinkfy",
+      "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
+      "cta": "Chia sẻ thử thách",
+      "copied": "Đã sao chép!"
+    },
+    "modelUsed": "Được phân tích bằng {model}",
+    "duration": {
+      "seconds": "{count} giây",
+      "minutes": "{count} phút",
+      "hours": "{count} giờ",
+      "hoursMinutes": "{hours} giờ {minutes} phút"
+    }
+  },
+  "duelHub": {
+    "badge": "Tranh biện 1v1",
+    "title": "Chọn kiểu đấu",
+    "subtitle": "Ghép đối thủ đang ở giai đoạn beta có giám sát, dùng trình độ ẩn để tạo trận công bằng. Phòng bạn bè thoải mái hơn, dễ chia sẻ và không tính điểm xếp hạng.",
+    "unavailable": "Chưa mở",
+    "match": {
+      "title": "Tìm đối thủ",
+      "description": "Vào hàng chờ gặp một đối thủ thật với điểm trình độ ẩn, tín hiệu công bằng và bước xác nhận sẵn sàng trước khi bắt đầu."
+    },
+    "friend": {
+      "title": "Thách đấu bạn bè",
+      "description": "Tạo phòng có thể chia sẻ, gửi mã phòng và tranh biện thoải mái. Những trận này không ảnh hưởng điểm xếp hạng ẩn."
+    }
+  },
+  "analyticsPage": {
+    "title": "Phân tích",
+    "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng tranh biện của bạn.",
+    "scope_note": "Điểm và xu hướng kỹ năng theo ngôn ngữ hiện tại. Chuỗi ngày, XP và thời gian luyện vẫn tính chung mọi ngôn ngữ.",
+    "range_7d": "7 ngày",
+    "range_30d": "30 ngày",
+    "range_90d": "90 ngày",
+    "range_label": "Khoảng thời gian phân tích",
+    "loading_range": "Đang cập nhật",
+    "default_title": "Người tranh biện đang lên",
+    "level": "Cấp {level}",
+    "xp_total": "Tổng {count} XP",
+    "xp_progress": "{current} / {total} XP",
+    "hero_streak": "Chuỗi ngày",
+    "hero_sessions": "Phiên luyện",
+    "hero_practice_time": "Thời gian luyện",
+    "skill_snapshot_title": "Hồ sơ kỹ năng",
+    "skill_snapshot_subtitle": "Được tính từ lịch sử các phiên có chấm điểm, không chỉ tuần này.",
+    "overall_score": "Điểm tổng quan",
+    "lifetime": "Trọn thời gian",
+    "skills": {
+      "clarity": "Độ rõ",
+      "logic": "Logic",
+      "rebuttal": "Phản biện",
+      "evidence": "Bằng chứng",
+      "delivery": "Trình bày"
+    },
+    "cards": {
+      "practice_minutes": {
+        "title": "Phút luyện tập hàng tuần",
+        "scope": "Thói quen tính chung mọi ngôn ngữ",
+        "unit": "phút",
+        "delta": "{sign}{count}% so với kỳ trước",
+        "no_delta": "Cần thêm lịch sử để so sánh"
+      },
+    "mix": {
+      "title": "Tỷ lệ luyện nói vs tranh biện",
+      "scope": "Tỷ lệ luyện theo ngôn ngữ hiện tại",
+      "debate": "Tranh biện",
+      "speaking": "Luyện nói",
+      "breakdown": "{debate} phiên tranh biện • {speaking} phiên luyện nói",
+      "view_breakdown": "Xem chi tiết"
+      },
+      "average_score": {
+        "title": "Điểm trung bình gần đây",
+        "scope": "Điểm theo ngôn ngữ hiện tại",
+        "delta": "{sign}{count} điểm so với kỳ trước",
+        "no_delta": "Hoàn thành thêm phiên có điểm để mở trend này"
+      },
+      "strongest_focus": {
+        "title": "Mạnh nhất / Cần tập trung",
+        "scope": "Ảnh chụp kỹ năng theo ngôn ngữ hiện tại",
+        "strongest": "Mạnh nhất",
+        "focus_next": "Tập trung tiếp"
+      }
+    },
+  "recent_sessions_title": "Phiên gần đây",
+  "recent_sessions_subtitle": "Xem lại các phiên solo và 1v1 có AI chấm gần nhất.",
+  "recent_speaking_badge": "Luyện nói",
+  "recent_debate_badge": "Luyện tranh biện",
+  "recent_duel_badge": "Đấu 1v1",
+  "recent_full_debate": "Tranh biện 1v1",
+    "recent_rebuttal": "Phản biện",
+    "recent_constructive": "Xây luận điểm",
+    "recent_won": "Bạn thắng",
+    "recent_lost": "Bạn thua",
+    "recent_completed": "Hoàn thành",
+    "review": "Xem lại",
+    "view_all": "Xem tất cả",
+    "minutes_short": "{count} phút",
+    "hours_short": "{count} giờ",
+    "hours_minutes_short": "{hours} giờ {minutes} phút",
+    "duration_unknown": "Chưa có thời lượng",
+    "confidence": "Độ tin cậy {count}%",
+    "score_trend_chart": "Xu hướng điểm trung bình gần đây",
+    "score_status": {
+      "completed": "Hoàn thành",
+      "proficient": "Thành thạo",
+      "competent": "Khá vững",
+      "developing": "Đang phát triển"
+    },
+    "score_note": {
+    "reviewed": "Đã xem lại",
+      "excellent": "Xuất sắc",
+      "very_good": "Rất tốt",
+      "good": "Ổn",
+      "solid": "Khá chắc",
+      "keep_going": "Cố lên"
+    },
+    "empty_title": "Trang phân tích đang chờ dữ liệu",
+  "empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc tranh biện để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
+    "start_practicing": "Bắt đầu luyện tập"
+  }
+}
