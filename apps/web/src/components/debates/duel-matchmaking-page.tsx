@@ -21,7 +21,6 @@ import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   getLocalizedCategoryOptions,
-  getLocalizedTopics,
   getTopicCategoryKey,
   type CategoryKey,
 } from "@/lib/topics";
@@ -35,6 +34,7 @@ import { cn } from "@/lib/utils";
 import type {
   DebateDuelMatchmakingTicket,
   DebateDuelTopicDifficulty,
+  DebateTopic,
   PracticeLanguage,
 } from "@/types";
 import {
@@ -85,24 +85,37 @@ function formatQueueTimer(seconds: number) {
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
-export function DuelMatchmakingPage() {
+export function DuelMatchmakingPage({
+  initialTopics,
+}: {
+  initialTopics: DebateTopic[];
+}) {
   const router = useRouter();
   const locale = useLocale();
   const practiceLanguage = coercePracticeLanguage(locale);
   const localizedTopics = useMemo(
-    () => getLocalizedTopics(practiceLanguage),
-    [practiceLanguage]
+    () => initialTopics,
+    [initialTopics]
   );
   const categoryOptions = useMemo(
     () =>
       getLocalizedCategoryOptions(practiceLanguage).filter(
         (category): category is { key: CategoryKey; label: string } =>
-          category.key !== "all"
+          category.key !== "all" &&
+          localizedTopics.some(
+            (topic) => getTopicCategoryKey(topic) === category.key
+          )
       ),
-    [practiceLanguage]
+    [localizedTopics, practiceLanguage]
   );
+  const defaultCategoryKey = categoryOptions[0]?.key ?? "education";
   const [topicCategoryKey, setTopicCategoryKey] =
-    useState<CategoryKey>("education");
+    useState<CategoryKey>(defaultCategoryKey);
+  const effectiveTopicCategoryKey = categoryOptions.some(
+    (category) => category.key === topicCategoryKey
+  )
+    ? topicCategoryKey
+    : defaultCategoryKey;
   const [topicDifficulty, setTopicDifficulty] =
     useState<DebateDuelTopicDifficulty>("beginner");
   const [prepTimeSeconds, setPrepTimeSeconds] = useState(120);
@@ -133,18 +146,20 @@ export function DuelMatchmakingPage() {
     return (
       localizedTopics.find(
         (topic) =>
-          getTopicCategoryKey(topic) === topicCategoryKey &&
+          getTopicCategoryKey(topic) === effectiveTopicCategoryKey &&
           topic.difficulty === topicDifficulty
       ) ??
       localizedTopics.find(
-        (topic) => getTopicCategoryKey(topic) === topicCategoryKey
+        (topic) => getTopicCategoryKey(topic) === effectiveTopicCategoryKey
       ) ??
-      localizedTopics[0]
+      localizedTopics[0] ??
+      null
     );
-  }, [localizedTopics, topicCategoryKey, topicDifficulty]);
+  }, [effectiveTopicCategoryKey, localizedTopics, topicDifficulty]);
   const selectedCategoryLabel =
-    categoryOptions.find((category) => category.key === topicCategoryKey)?.label ??
-    previewTopic.category;
+    categoryOptions.find((category) => category.key === effectiveTopicCategoryKey)?.label ??
+    previewTopic?.category ??
+    "Category";
   const timerControls = [
     {
       label: "Prep",
@@ -186,12 +201,17 @@ export function DuelMatchmakingPage() {
 
   const enterQueue = () => {
     setActionError(null);
+    if (!previewTopic) {
+      setActionError("No active motions are available for this language yet.");
+      return;
+    }
+
     startTransition(async () => {
       const response = await fetch("/api/debate-duels/matchmaking/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topicCategoryKey,
+          topicCategoryKey: effectiveTopicCategoryKey,
           topicDifficulty,
           practiceLanguage,
           prepTimeSeconds,
@@ -231,6 +251,31 @@ export function DuelMatchmakingPage() {
       await mutate(null, { revalidate: false });
     });
   };
+
+  if (!previewTopic) {
+    return (
+      <PageTransition className="min-h-full bg-background">
+        <div className="mx-auto max-w-xl px-4 py-16 text-center">
+          <div className="rounded-[28px] border border-outline-variant/20 bg-surface p-6">
+            <h1 className="text-2xl font-bold text-on-surface">
+              No active motions available
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+              Import the Calico catalog or enable at least one motion before
+              entering matchmaking.
+            </p>
+            <Button
+              type="button"
+              onClick={() => router.push("/debates")}
+              className="mt-5 h-11 rounded-2xl"
+            >
+              Back to arena
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition className="min-h-full bg-background">
@@ -377,7 +422,7 @@ export function DuelMatchmakingPage() {
                         onClick={() => setTopicCategoryKey(category.key)}
                         className={cn(
                           "rounded-[20px] border px-4 py-4 text-left text-sm font-semibold transition-all",
-                          topicCategoryKey === category.key
+                          effectiveTopicCategoryKey === category.key
                             ? "border-primary bg-primary/8 text-primary"
                             : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
                         )}

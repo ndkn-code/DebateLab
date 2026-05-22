@@ -41,6 +41,8 @@
     "test:email-system": "npm run test:email-system -w @thinkfy/web",
     "test:support-reports": "npm run test:support-reports -w @thinkfy/web",
     "test:email-templates": "npm run test:email-templates -w @thinkfy/web",
+    "test:calico-motions": "tsx scripts/ingest-calico-motions.test.ts",
+    "ingest:calico-motions": "tsx scripts/ingest-calico-motions.ts",
     "generate:tts-samples": "npm run generate:tts-samples -w @thinkfy/web"
   },
   "overrides": {

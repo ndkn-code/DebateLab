@@ -960,8 +960,8 @@ export function DevPracticeQaPage() {
 
       {activeTab === "duels" && (
         <div className="space-y-8 pb-12">
-          <DuelCreatePage />
-          <DuelMatchmakingPage />
+          <DuelCreatePage initialTopics={[mockTopic]} />
+          <DuelMatchmakingPage initialTopics={[mockTopic]} />
         </div>
       )}
 

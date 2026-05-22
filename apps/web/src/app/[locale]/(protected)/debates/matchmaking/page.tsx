@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/auth/admin";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { getActivePracticeTopics } from "@/lib/practice-topics/catalog";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import { DuelMatchmakingPage } from "@/components/debates/duel-matchmaking-page";
 
 export const metadata = {
@@ -10,7 +12,11 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DebateMatchmakingRoute() {
+export default async function DebateMatchmakingRoute({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,5 +33,11 @@ export default async function DebateMatchmakingRoute() {
     redirect("/dashboard");
   }
 
-  return <DuelMatchmakingPage />;
+  const { locale } = await params;
+  const initialTopics = await getActivePracticeTopics(
+    coercePracticeLanguage(locale),
+    { allowAdminFallback: true }
+  );
+
+  return <DuelMatchmakingPage initialTopics={initialTopics} />;
 }

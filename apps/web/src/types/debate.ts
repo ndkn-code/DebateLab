@@ -7,6 +7,14 @@ export interface DebateTopic {
   title: string;
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
+  displayOrder?: number;
+  sourceKind?: "legacy" | "calico";
+  sourceLanguage?: PracticeLanguage;
+  sourceCount?: number;
+  sourceTags?: string[];
+  tournamentNames?: string[];
+  hasInfoSlide?: boolean;
+  hasStats?: boolean;
   context?: string;
   motionBrief?: MotionBrief;
   suggestedPoints?: {

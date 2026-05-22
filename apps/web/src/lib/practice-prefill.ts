@@ -117,10 +117,18 @@ function slugify(value: string) {
 
 export function findPracticeTopicByTitle(
   title?: string | null,
-  language: PracticeLanguage = "en"
+  language: PracticeLanguage = "en",
+  catalogTopics?: DebateTopic[]
 ) {
   if (!title) return undefined;
   const normalizedTitle = normalizeText(title);
+
+  if (catalogTopics?.length) {
+    return catalogTopics.find(
+      (candidate) => normalizeText(candidate.title) === normalizedTitle
+    );
+  }
+
   const languages: PracticeLanguage[] =
     language === "vi" ? ["vi", "en"] : ["en", "vi"];
 
@@ -134,13 +142,28 @@ export function findPracticeTopicByTitle(
   return undefined;
 }
 
+function findPracticeTopicByKey(
+  topicKey: string | null | undefined,
+  catalogTopics?: DebateTopic[]
+) {
+  if (!topicKey || !catalogTopics?.length) {
+    return undefined;
+  }
+
+  return catalogTopics.find(
+    (topic) => topic.id === topicKey || topic.topicKey === topicKey
+  );
+}
+
 export function resolvePracticeTopic(
   prefill: PracticePrefill,
-  language: PracticeLanguage = prefill.practiceLanguage ?? "en"
+  language: PracticeLanguage = prefill.practiceLanguage ?? "en",
+  catalogTopics?: DebateTopic[]
 ): DebateTopic {
   const existingTopic =
-    getTopicByKey(prefill.topicId) ??
-    findPracticeTopicByTitle(prefill.topicTitle, language);
+    findPracticeTopicByKey(prefill.topicId, catalogTopics) ??
+    (catalogTopics?.length ? undefined : getTopicByKey(prefill.topicId)) ??
+    findPracticeTopicByTitle(prefill.topicTitle, language, catalogTopics);
   if (existingTopic) return getLocalizedTopic(existingTopic, language);
 
   const categoryKey = getCategoryKey(prefill.topicCategory ?? DEFAULT_CATEGORY);

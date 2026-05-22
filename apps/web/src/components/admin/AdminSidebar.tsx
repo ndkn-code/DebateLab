@@ -2,7 +2,20 @@
 
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3, BookOpen, ArrowLeft, Shield, Menu, Swords, Users, CalendarDays, Building2, Mail, MessageSquareText } from "@/components/ui/icons";
+import {
+  ArrowLeft,
+  BarChart3,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  FileText,
+  Mail,
+  Menu,
+  MessageSquareText,
+  Shield,
+  Swords,
+  Users,
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -17,6 +30,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/feedback-popups", key: "feedbackPopups" as const, icon: MessageSquareText },
   { href: "/dashboard/admin/courses", key: "courses" as const, icon: BookOpen },
   { href: "/dashboard/admin/duels", key: "duels" as const, icon: Swords },
+  { href: "/dashboard/admin/motions", key: "motions" as const, icon: FileText },
 ] as const;
 
 function NavLinks({ onNavClick }: { onNavClick?: () => void }) {

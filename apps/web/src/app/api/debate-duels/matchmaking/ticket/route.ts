@@ -23,11 +23,10 @@ import {
   getCategoryLabel,
   getTopicCategoryKey,
   getTopicStableKey,
-  getLocalizedTopic,
   isCategoryKey,
-  topics,
   type CategoryKey,
 } from "@/lib/topics";
+import { getActivePracticeTopicsWithClient } from "@/lib/practice-topics/catalog";
 import {
   DUEL_OPENING_DURATION,
   DUEL_PREP_DURATION,
@@ -58,20 +57,28 @@ function normalizeCategoryKey(categoryKey: string | undefined): CategoryKey {
   return isCategoryKey(categoryKey) ? categoryKey : CATEGORY_CONFIG[0].key;
 }
 
-function pickTopic(
+async function pickTopic(
+  supabase: RequestAuthSuccess["supabase"],
+  language: PracticeLanguage,
   categoryKey: CategoryKey,
   difficulty: DebateDuelTopicDifficulty
 ) {
-  const exact = topics.filter(
+  const activeTopics = await getActivePracticeTopicsWithClient(supabase, language);
+  const exact = activeTopics.filter(
     (topic) =>
       getTopicCategoryKey(topic) === categoryKey && topic.difficulty === difficulty
   );
-  const categoryFallback = topics.filter(
+  const categoryFallback = activeTopics.filter(
     (topic) => getTopicCategoryKey(topic) === categoryKey
   );
-  const candidates = exact.length > 0 ? exact : categoryFallback;
+  const candidates =
+    exact.length > 0
+      ? exact
+      : categoryFallback.length > 0
+        ? categoryFallback
+        : activeTopics;
   const index = Math.floor(Math.random() * Math.max(1, candidates.length));
-  return candidates[index] ?? topics[0];
+  return candidates[index] ?? null;
 }
 
 async function getAdminUser(request: NextRequest): Promise<{
@@ -161,14 +168,25 @@ export async function POST(req: NextRequest) {
     const practiceLanguage = body.practiceLanguage ?? "en";
     const topicCategoryKey = normalizeCategoryKey(body.topicCategoryKey);
     const topicDifficulty = normalizeDifficulty(body.topicDifficulty);
-    const topic = getLocalizedTopic(
-      pickTopic(topicCategoryKey, topicDifficulty),
-      practiceLanguage
-    );
-    const ticket = await enterDebateDuelMatchmaking(auth.user.id, {
-      topicCategory: topic.category || getCategoryLabel(topicCategoryKey, practiceLanguage),
+    const topic = await pickTopic(
+      auth.supabase,
+      practiceLanguage,
       topicCategoryKey,
-      topicDifficulty,
+      topicDifficulty
+    );
+    if (!topic) {
+      return NextResponse.json(
+        { error: "No active motions are available for matchmaking." },
+        { status: 409 }
+      );
+    }
+
+    const selectedCategoryKey = getTopicCategoryKey(topic);
+    const ticket = await enterDebateDuelMatchmaking(auth.user.id, {
+      topicCategory:
+        topic.category || getCategoryLabel(selectedCategoryKey, practiceLanguage),
+      topicCategoryKey: selectedCategoryKey,
+      topicDifficulty: topic.difficulty,
       topicKey: getTopicStableKey(topic),
       topicTitle: topic.title,
       topicDescription: topic.context ?? "",

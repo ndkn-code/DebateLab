@@ -214,6 +214,9 @@ export function buildPracticeTopicDisplays(
   sourceTopics: DebateTopic[],
   language: PracticeLanguage = "en"
 ): PracticeTopicDisplay[] {
+  const sourceIndexById = new Map(
+    sourceTopics.map((topic, index) => [topic.id, index])
+  );
   const orderedTopics = [...sourceTopics].sort((left, right) => {
     const leftIndex = FEATURED_ORDER_INDEX[left.id];
     const rightIndex = FEATURED_ORDER_INDEX[right.id];
@@ -230,7 +233,17 @@ export function buildPracticeTopicDisplays(
       return 1;
     }
 
-    return left.title.localeCompare(right.title);
+    if (
+      left.displayOrder !== undefined &&
+      right.displayOrder !== undefined &&
+      left.displayOrder !== right.displayOrder
+    ) {
+      return left.displayOrder - right.displayOrder;
+    }
+
+    return (
+      (sourceIndexById.get(left.id) ?? 0) - (sourceIndexById.get(right.id) ?? 0)
+    );
   });
 
   return orderedTopics.map((topic, index, allTopics) => ({

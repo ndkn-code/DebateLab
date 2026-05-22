@@ -21,7 +21,6 @@ import { PageTransition } from "@/components/shared/page-motion";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import {
   getLocalizedCategoryOptions,
-  getLocalizedTopics,
   getTopicCategoryKey,
   getTopicStableKey,
   type CategoryFilterKey,
@@ -37,6 +36,7 @@ import { cn } from "@/lib/utils";
 import type {
   DebateDuelRoomView,
   DebateDuelTopicDifficulty,
+  DebateTopic,
 } from "@/types";
 import {
   DuelFlowStepper,
@@ -46,6 +46,7 @@ import {
 } from "./duel-setup-flow";
 
 interface DuelCreatePageProps {
+  initialTopics: DebateTopic[];
   initialTopicTitle?: string;
   initialRoomShareCode?: string;
 }
@@ -74,6 +75,7 @@ function shortCategoryLabel(category: string) {
 }
 
 export function DuelCreatePage({
+  initialTopics,
   initialTopicTitle,
   initialRoomShareCode,
 }: DuelCreatePageProps) {
@@ -81,8 +83,8 @@ export function DuelCreatePage({
   const locale = useLocale();
   const practiceLanguage = coercePracticeLanguage(locale);
   const localizedTopics = useMemo(
-    () => getLocalizedTopics(practiceLanguage),
-    [practiceLanguage]
+    () => initialTopics,
+    [initialTopics]
   );
   const categoryFilters = useMemo(
     () => getLocalizedCategoryOptions(practiceLanguage),
@@ -94,7 +96,7 @@ export function DuelCreatePage({
   const [activeRoomCode, setActiveRoomCode] = useState(
     initialRoomShareCode?.trim().toUpperCase() || null
   );
-  const [topicId, setTopicId] = useState(initialTopic.id);
+  const [topicId, setTopicId] = useState(initialTopic?.id ?? "");
   const [categoryFilter, setCategoryFilter] =
     useState<CategoryFilterKey>("all");
   const [difficultyFilter, setDifficultyFilter] =
@@ -119,7 +121,10 @@ export function DuelCreatePage({
   } = useDebateDuelRoom(activeRoomCode);
 
   const selectedTopic = useMemo(
-    () => localizedTopics.find((topic) => topic.id === topicId) ?? localizedTopics[0],
+    () =>
+      localizedTopics.find((topic) => topic.id === topicId) ??
+      localizedTopics[0] ??
+      null,
     [localizedTopics, topicId]
   );
 
@@ -143,6 +148,11 @@ export function DuelCreatePage({
 
   const handleCreate = () => {
     setError(null);
+    if (!selectedTopic) {
+      setError("No active motions are available for this language yet.");
+      return;
+    }
+
     startTransition(async () => {
       const response = await fetch("/api/debate-duels", {
         method: "POST",
@@ -245,6 +255,31 @@ export function DuelCreatePage({
         mutate={mutate}
         onEditSetup={activeRoom.viewer.isCreator ? editFromRoom : undefined}
       />
+    );
+  }
+
+  if (!selectedTopic) {
+    return (
+      <PageTransition className="min-h-full bg-background">
+        <div className="mx-auto max-w-xl px-4 py-16 text-center">
+          <div className="rounded-[28px] border border-outline-variant/20 bg-surface p-6">
+            <h1 className="text-2xl font-bold text-on-surface">
+              No active motions available
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+              Import the Calico catalog or enable at least one motion before
+              creating a duel room.
+            </p>
+            <Button
+              type="button"
+              onClick={() => router.push("/debates")}
+              className="mt-5 h-11 rounded-2xl"
+            >
+              Back to arena
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
     );
   }
 

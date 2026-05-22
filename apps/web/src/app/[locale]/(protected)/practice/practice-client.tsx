@@ -35,7 +35,6 @@ import {
 } from "@/components/shared/product-layout";
 import {
   getLocalizedCategoryOptions,
-  getLocalizedTopics,
   getTopicCategoryKey,
   type CategoryFilterKey,
 } from "@/lib/topics";
@@ -50,6 +49,7 @@ import { useSessionStore } from "@/store/session-store";
 import { usePathname } from "@/i18n/navigation";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
+import type { DebateTopic } from "@/types";
 
 type PracticeSortOption = "popular" | "newest" | "easiest" | "hardest";
 
@@ -106,7 +106,11 @@ function TopPill({
   );
 }
 
-export default function PracticePage() {
+export default function PracticePage({
+  initialTopics,
+}: {
+  initialTopics: DebateTopic[];
+}) {
   const t = useTranslations("dashboard.practice");
   const locale = useLocale();
   const pathname = usePathname();
@@ -118,8 +122,8 @@ export default function PracticePage() {
     [searchParams]
   );
   const localizedTopics = useMemo(
-    () => getLocalizedTopics(practiceLanguage),
-    [practiceLanguage]
+    () => initialTopics,
+    [initialTopics]
   );
   const initialTopic = useMemo(
     () =>
@@ -137,9 +141,9 @@ export default function PracticePage() {
             mode: initialPrefill.mode,
             aiDifficulty: initialPrefill.aiDifficulty,
             side: initialPrefill.side,
-          }, practiceLanguage)
+          }, practiceLanguage, localizedTopics)
         : null,
-    [initialPrefill, practiceLanguage, t]
+    [initialPrefill, localizedTopics, practiceLanguage, t]
   );
   const [activeCategory, setActiveCategory] = useState<CategoryFilterKey>(
     () => (initialTopic ? getTopicCategoryKey(initialTopic) : "all")
