@@ -542,6 +542,16 @@
         }
       }
     },
+    "support": {
+      "trigger_label": "Help & Support",
+      "modal_title": "Report an issue",
+      "modal_description": "Send the product team a bug, confusing UI moment, or anything that felt off.",
+      "iframe_title": "Thinkfy issue report form",
+      "loading": "Loading report form...",
+      "open_external": "Open form in a new tab",
+      "unavailable_title": "The report form is unavailable.",
+      "unavailable_body": "Please email support@thinkfy.net while we finish the support form setup."
+    },
     "courses": {
       "page_headline": "Courses",
       "page_subtitle": "Follow structured learning paths to build confidence and win more debates.",

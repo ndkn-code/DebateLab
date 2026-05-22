@@ -40,6 +40,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
 import { LogoMark } from "@/components/landing/logo-mark";
+import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
@@ -177,7 +178,10 @@ function NavContent({
       </nav>
 
       {/* User section */}
-      <div className="shrink-0 border-t border-outline-variant/10 p-2">
+      <div className="shrink-0 space-y-1 border-t border-outline-variant/10 p-2">
+        {!collapsed ? (
+          <SupportIssueDialog profile={profile} userEmail={userEmail} />
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
@@ -273,6 +277,8 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           referralCode={profile?.referral_code ?? null}
           inviteReward={REFERRAL_REWARD_CREDITS}
           isAdmin={isAdmin}
+          profile={profile}
+          userEmail={userEmail}
         />
       ) : (
         <aside
@@ -305,7 +311,10 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       {/* Mobile top bar + sheet */}
       <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">
         <Sheet>
-          <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
+          <SheetTrigger
+            aria-label={tc("navigation")}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container"
+          >
             <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-55 p-0" showCloseButton={false}>

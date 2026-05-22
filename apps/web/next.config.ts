@@ -40,7 +40,7 @@ const contentSecurityPolicy = [
   "font-src 'self' data:",
   "media-src 'self' blob: data: https://api.deepgram.com",
   `connect-src ${connectSrc}`,
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://tally.so https://*.tally.so",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
