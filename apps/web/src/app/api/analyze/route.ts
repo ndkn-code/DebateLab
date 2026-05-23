@@ -14,6 +14,10 @@ import {
   markPracticeAnalysisProcessing,
 } from "@/lib/practice-analysis/service";
 import {
+  getPracticeFeedbackModelProvider,
+  getPracticeFeedbackModelName,
+} from "@/lib/practice-analysis/constants";
+import {
   getBoolean,
   getEnum,
   getNumber,
@@ -25,7 +29,7 @@ import {
 } from "@/lib/api/request-validation";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 
-// Give Gemini enough room for annotation-heavy feedback while staying inside
+// Give model providers enough room for annotation-heavy feedback while staying inside
 // the common Vercel serverless ceiling.
 export const maxDuration = 60;
 
@@ -244,6 +248,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { supabase, user: authUser } = auth;
+    const shouldPersistAnalysis = auth.authSource !== "dev-bypass";
     if (shouldConsumeUserRateLimit(auth)) {
       const rateLimit = await consumeRateLimit(supabase, {
         scope: "analyze",
@@ -264,11 +269,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const body = parseAnalyzeRequest(await readJsonObject(req, { maxBytes: 96 * 1024 }));
+    const configuredProvider = getPracticeFeedbackModelProvider(
+      body.practiceTrack || "debate"
+    );
+    const hasConfiguredProvider =
+      configuredProvider === "deepseek"
+        ? Boolean(process.env.DEEPSEEK_API_KEY)
+        : Boolean(process.env.GEMINI_API_KEY);
+
+    if (!hasConfiguredProvider) {
       console.error(JSON.stringify({
         scope: "api/analyze",
         requestId,
-        event: "missing_gemini_api_key",
+        event: "missing_ai_provider_key",
+        provider: configuredProvider,
       }));
       return NextResponse.json(
         { error: "Something went wrong. Please try again." },
@@ -276,7 +291,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = parseAnalyzeRequest(await readJsonObject(req, { maxBytes: 96 * 1024 }));
     const {
       transcript,
       topic,
@@ -328,25 +342,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await recordAnalyticsEvent(supabase, authUser.id, {
-      eventName: "ai_feedback_requested",
-      featureArea: "ai_feedback",
-      metadata: {
-        topic,
-        side,
-        speech_type: speechType || "Opening Statement",
-        practice_track: practiceTrack || "debate",
-        practice_language: practiceLanguage,
-        word_count: wordCount,
-        debug_id: requestId,
-      },
-    });
+    if (shouldPersistAnalysis) {
+      await recordAnalyticsEvent(supabase, authUser.id, {
+        eventName: "ai_feedback_requested",
+        featureArea: "ai_feedback",
+        metadata: {
+          topic,
+          side,
+          speech_type: speechType || "Opening Statement",
+          practice_track: practiceTrack || "debate",
+          practice_language: practiceLanguage,
+          word_count: wordCount,
+          debug_id: requestId,
+        },
+      });
+    }
 
     const writeClient = tryCreateAdminClient() ?? supabase;
     let durableAnalysis:
       | { attempt: PracticeAttemptRecord; job: AnalysisJobRecord }
       | null = null;
     try {
+      if (!shouldPersistAnalysis) {
+        throw new Error("Skipping durable analysis records for dev auth bypass");
+      }
       durableAnalysis = await createPracticeAnalysisRecords(writeClient, authUser.id, {
         transcript,
         topic,
@@ -376,10 +395,12 @@ export async function POST(req: NextRequest) {
       });
     } catch (error) {
       durableAnalysis = null;
-      console.warn(
-        "Failed to create durable sync analysis record",
-        error instanceof Error ? error.message : error
-      );
+      if (shouldPersistAnalysis) {
+        console.warn(
+          "Failed to create durable sync analysis record",
+          error instanceof Error ? error.message : error
+        );
+      }
     }
 
     // Call Gemini with a server-side timeout that leaves a small response buffer.
@@ -388,8 +409,8 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-      logAnalyzeRequest(requestId, "gemini_started", {
-        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      logAnalyzeRequest(requestId, "analysis_started", {
+        model: getPracticeFeedbackModelName(practiceTrack || "debate"),
       });
       const feedback = await Promise.race([
         analyzeDebate({
@@ -409,21 +430,23 @@ export async function POST(req: NextRequest) {
         timeoutPromise,
       ]);
 
-      const modelUsed = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-      await recordAnalyticsEvent(supabase, authUser.id, {
-        eventName: "ai_feedback_completed",
-        featureArea: "ai_feedback",
-        durationMs: actualDuration ? actualDuration * 1000 : null,
-        metadata: {
-          topic,
-          side,
-          speech_type: speechType || "Opening Statement",
-          practice_track: practiceTrack || "debate",
-          practice_language: practiceLanguage,
-          model: modelUsed,
-          debug_id: requestId,
-        },
-      });
+      const modelUsed = getPracticeFeedbackModelName(practiceTrack || "debate");
+      if (shouldPersistAnalysis) {
+        await recordAnalyticsEvent(supabase, authUser.id, {
+          eventName: "ai_feedback_completed",
+          featureArea: "ai_feedback",
+          durationMs: actualDuration ? actualDuration * 1000 : null,
+          metadata: {
+            topic,
+            side,
+            speech_type: speechType || "Opening Statement",
+            practice_track: practiceTrack || "debate",
+            practice_language: practiceLanguage,
+            model: modelUsed,
+            debug_id: requestId,
+          },
+        });
+      }
       if (durableAnalysis) {
         await markPracticeAnalysisCompleted(writeClient, {
           attemptId: durableAnalysis.attempt.id,
@@ -460,7 +483,7 @@ export async function POST(req: NextRequest) {
       console.error(JSON.stringify({
         scope: "api/analyze",
         requestId,
-        event: "gemini_failed",
+        event: "analysis_failed",
         durationMs: Date.now() - startedAt,
         message: err instanceof Error ? err.message : String(err),
       }));

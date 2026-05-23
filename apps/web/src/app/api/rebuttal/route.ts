@@ -19,6 +19,17 @@ import {
 } from "@/lib/api/request-validation";
 import { formatMotionBriefForPrompt } from "@/lib/motion-brief";
 import {
+  createDeepSeekChatCompletion,
+  type DeepSeekMessage,
+  type DeepSeekUsage,
+} from "@/lib/ai/deepseek";
+import {
+  getProviderLabel,
+  getProviderModelName,
+  getRebuttalProvider,
+  type AiProvider,
+} from "@/lib/ai/provider-selection";
+import {
   formatDebateMemoryForPrompt,
   getRebuttalMaxOutputTokens,
   getRebuttalWordTarget,
@@ -249,6 +260,208 @@ const difficultyPrompts: Record<AiDifficulty, string> = {
 - Force the student to think deeply and defend their position rigorously`,
 };
 
+interface RebuttalUsageSummary {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheHitTokens?: number;
+  cacheMissTokens?: number;
+  reasoningTokens?: number;
+}
+
+interface RebuttalGeneration {
+  provider: AiProvider;
+  modelName: string;
+  text: string;
+  usage?: RebuttalUsageSummary;
+  latency: number;
+  fallbackUsed: boolean;
+}
+
+interface DeepSeekRebuttalMessageParams {
+  aiSide: string;
+  topic: string;
+  motionBriefContext: string;
+  debateMemoryContext: string;
+  difficultyInstructions: string;
+  previousRounds?: { label: string; speaker: string; text: string }[];
+  roundLabel: string;
+  currentRoundNumber?: number;
+  speechTimeSeconds?: number;
+  wordTarget: { min: number; max: number; label: string };
+  track: PracticeTrack;
+  languageLabel: string;
+  responseLanguageInstruction: string;
+  userTranscript: string;
+  roundInstructions: string;
+  learnerContext: string;
+}
+
+function buildDeepSeekRebuttalMessages(
+  params: DeepSeekRebuttalMessageParams
+): DeepSeekMessage[] {
+  const messages: DeepSeekMessage[] = [
+    {
+      role: "system",
+      content: `You are a debate AI playing an opponent in a Trường Teen-style practice debate.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "rebuttal": "the spoken rebuttal text only",
+  "highlights": [
+    {
+      "type": "claim" | "evidence" | "impact" | "assumption",
+      "quote": "an exact quote copied from the rebuttal text",
+      "note": "short student-friendly reason this phrase matters"
+    }
+  ]
+}
+
+Rules:
+- Do not judge the round.
+- Do not coach the student directly.
+- Highlight 3-5 exact quotes that appear verbatim in "rebuttal".
+- Avoid literal translated idioms that sound unnatural in Vietnamese debate speech.`,
+    },
+    {
+      role: "user",
+      content: `## Debate Setup
+- Format: Trường Teen-style practice debate
+- AI side: ${params.aiSide}
+- Motion: "${params.topic}"
+${params.motionBriefContext}
+${params.debateMemoryContext}
+
+${params.difficultyInstructions}
+
+## Practice Track
+${params.track}
+
+## Practice Language
+${params.languageLabel}
+${params.responseLanguageInstruction}`,
+    },
+  ];
+
+  params.previousRounds?.forEach((round) => {
+    messages.push({
+      role: round.speaker.toLowerCase().includes("ai") ? "assistant" : "user",
+      content: `## Previous Round: ${round.label} (${round.speaker})
+${round.text}`,
+    });
+  });
+
+  messages.push({
+    role: "user",
+    content: `## Current Round: ${params.roundLabel}
+${params.currentRoundNumber ? `Round number: ${params.currentRoundNumber}` : ""}
+Opponent speech time setting: ${params.speechTimeSeconds ?? 180} seconds
+Target length for your spoken response: ${params.wordTarget.min}-${params.wordTarget.max} words for a ${params.wordTarget.label} speech format
+
+## Opponent's Latest Speech
+"""
+${params.userTranscript}
+"""
+
+## Your Task
+Write a ${params.roundLabel.toLowerCase()} responding to the opponent's speech. This is a spoken debate, so write in a natural speaking style — conversational but academically sharp.
+
+${params.roundInstructions}
+
+Rules:
+- Directly address and counter specific points from the opponent's speech
+- Structure your logic around: argument label -> explanation or mechanism -> comparison or weighing -> impact -> link back to your side
+- Prioritize depth over fancy wording
+- Maintain your side (${params.aiSide}) and policy/model consistently across the whole debate
+- Do not shift from a full ban/model to a partial ban/model, or vice versa, unless the Motion Definition explicitly defines that exception
+- Review the previous rounds and Debate Memory before answering so you do not drop your own claims, contradict earlier concessions, or ignore active clashes
+- Make the response proportional to the opponent's allocated speaking time; longer speeches need fuller engagement with mechanisms, examples, impacts, and weighing
+- Be respectful but firm
+- ${params.learnerContext}`,
+  });
+
+  return messages;
+}
+
+async function generateGeminiRebuttal(
+  prompt: string,
+  maxOutputTokens: number,
+  timeoutMs: number,
+  fallbackUsed = false
+): Promise<RebuttalGeneration> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.7,
+      maxOutputTokens,
+    },
+  });
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+
+  const startTime = Date.now();
+  const result = await Promise.race([
+    model.generateContent(prompt),
+    timeoutPromise,
+  ]);
+  const latency = Date.now() - startTime;
+  const usage = result.response.usageMetadata;
+
+  return {
+    provider: "gemini",
+    modelName,
+    text: result.response.text().trim(),
+    usage: {
+      inputTokens: usage?.promptTokenCount,
+      outputTokens: usage?.candidatesTokenCount,
+    },
+    latency,
+    fallbackUsed,
+  };
+}
+
+async function generateDeepSeekRebuttal(
+  messages: DeepSeekMessage[],
+  maxOutputTokens: number,
+  timeoutMs: number,
+  userId: string
+): Promise<RebuttalGeneration> {
+  const startTime = Date.now();
+  const result = await createDeepSeekChatCompletion({
+    messages,
+    thinking: { type: "disabled" },
+    responseFormat: "json_object",
+    maxTokens: maxOutputTokens,
+    temperature: 0.7,
+    timeoutMs,
+    userId,
+  });
+  const latency = Date.now() - startTime;
+  const usage: DeepSeekUsage | undefined = result.usage;
+
+  return {
+    provider: "deepseek",
+    modelName: result.model,
+    text: result.content,
+    usage: {
+      inputTokens: usage?.prompt_tokens,
+      outputTokens: usage?.completion_tokens,
+      cacheHitTokens: usage?.prompt_cache_hit_tokens,
+      cacheMissTokens: usage?.prompt_cache_miss_tokens,
+      reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens,
+    },
+    latency,
+    fallbackUsed: false,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireRequestAuth(req);
@@ -275,7 +488,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const requestedProvider = getRebuttalProvider();
+    const hasConfiguredProvider =
+      requestedProvider === "deepseek"
+        ? Boolean(process.env.DEEPSEEK_API_KEY || process.env.GEMINI_API_KEY)
+        : Boolean(process.env.GEMINI_API_KEY);
+
+    if (!hasConfiguredProvider) {
       return NextResponse.json(
         { error: "API key not configured." },
         { status: 500 }
@@ -405,43 +624,68 @@ Return ONLY valid JSON in this exact shape:
 
 Highlight 3-5 exact quotes that a student should notice. Use only quote strings that appear verbatim in "rebuttal".`;
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7,
-        maxOutputTokens,
-      },
-    });
+    let generation: RebuttalGeneration;
+    if (requestedProvider === "deepseek" && process.env.DEEPSEEK_API_KEY) {
+      try {
+        generation = await generateDeepSeekRebuttal(
+          buildDeepSeekRebuttalMessages({
+            aiSide,
+            topic,
+            motionBriefContext,
+            debateMemoryContext,
+            difficultyInstructions,
+            previousRounds,
+            roundLabel,
+            currentRoundNumber,
+            speechTimeSeconds,
+            wordTarget,
+            track,
+            languageLabel: languageConfig.label,
+            responseLanguageInstruction,
+            userTranscript,
+            roundInstructions,
+            learnerContext,
+          }),
+          maxOutputTokens,
+          timeoutMs,
+          authUser.id
+        );
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "DeepSeek rebuttal failed; falling back to Gemini:",
+            error instanceof Error ? error.message : error
+          );
+        }
+        generation = await generateGeminiRebuttal(
+          prompt,
+          maxOutputTokens,
+          timeoutMs,
+          true
+        );
+      }
+    } else {
+      generation = await generateGeminiRebuttal(prompt, maxOutputTokens, timeoutMs);
+    }
 
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-    });
-
-    const startTime = Date.now();
-    const result = await Promise.race([
-      model.generateContent(prompt),
-      timeoutPromise,
-    ]);
-    const latency = Date.now() - startTime;
-
-    const text = result.response.text().trim();
-    const structuredResponse = normalizeStructuredRebuttalResponse(text);
-    const usage = result.response.usageMetadata;
+    const structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
 
     getPostHogServer().capture({
       distinctId: authUser.id,
       event: "$ai_generation",
       properties: {
-        $ai_provider: "google",
-        $ai_model: modelName,
-        $ai_input_tokens: usage?.promptTokenCount,
-        $ai_output_tokens: usage?.candidatesTokenCount,
-        $ai_latency: latency,
+        $ai_provider: getProviderLabel(generation.provider),
+        $ai_model: generation.modelName || getProviderModelName(generation.provider),
+        $ai_input_tokens: generation.usage?.inputTokens,
+        $ai_output_tokens: generation.usage?.outputTokens,
+        $ai_cache_hit_tokens: generation.usage?.cacheHitTokens,
+        $ai_cache_miss_tokens: generation.usage?.cacheMissTokens,
+        $ai_reasoning_tokens: generation.usage?.reasoningTokens,
+        $ai_latency: generation.latency,
         $ai_is_error: false,
         $ai_trace_id: crypto.randomUUID(),
+        $ai_fallback_used: generation.fallbackUsed,
+        $ai_requested_provider: requestedProvider,
         route: "/api/rebuttal",
         speech_time_seconds: speechTimeSeconds,
         rebuttal_word_target_min: wordTarget.min,

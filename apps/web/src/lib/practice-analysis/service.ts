@@ -4,11 +4,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   PRACTICE_ANALYSIS_JOB_TYPE,
   PRACTICE_ANALYSIS_QUEUE_TOPIC,
-  PRACTICE_FEEDBACK_MODEL_PROVIDER,
   PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
   PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
   PRACTICE_FEEDBACK_RUBRIC_VERSION,
   createPracticeAnalysisIdempotencyKey,
+  getPracticeFeedbackModelProvider,
   getPracticeFeedbackModelName,
   getRubricKeyForPracticeTrack,
 } from "./constants";
@@ -105,8 +105,8 @@ export async function createPracticeAnalysisRecords(
     prompt_bundle_version: PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
     rubric_key: getRubricKeyForPracticeTrack(input.practiceTrack),
     rubric_version: PRACTICE_FEEDBACK_RUBRIC_VERSION,
-    model_provider: PRACTICE_FEEDBACK_MODEL_PROVIDER,
-    model_name: getPracticeFeedbackModelName(),
+    model_provider: getPracticeFeedbackModelProvider(input.practiceTrack),
+    model_name: getPracticeFeedbackModelName(input.practiceTrack),
     submitted_at: now,
     updated_at: now,
   };
@@ -128,8 +128,8 @@ export async function createPracticeAnalysisRecords(
     idempotency_key: idempotencyKey,
     input_hash: inputHash,
     prompt_hash: promptManifest.promptHash,
-    model_provider: PRACTICE_FEEDBACK_MODEL_PROVIDER,
-    model_name: getPracticeFeedbackModelName(),
+    model_provider: getPracticeFeedbackModelProvider(input.practiceTrack),
+    model_name: getPracticeFeedbackModelName(input.practiceTrack),
     updated_at: now,
   };
 
@@ -267,6 +267,7 @@ export async function markPracticeAnalysisCompleted(
 ) {
   const now = new Date().toISOString();
   const feedback = result.feedback as DebateScore;
+  const feedbackTrack = feedback.practiceTrack ?? "debate";
   const [{ error: attemptError }, { error: jobError }] = await Promise.all([
     supabase
       .from("practice_attempts")
@@ -275,7 +276,7 @@ export async function markPracticeAnalysisCompleted(
         feedback,
         total_score: feedback.totalScore,
         overall_band: feedback.overallBand,
-        model_provider: PRACTICE_FEEDBACK_MODEL_PROVIDER,
+        model_provider: getPracticeFeedbackModelProvider(feedbackTrack),
         model_name: result.modelName,
         legacy_debate_session_id: result.legacySessionId,
         completed_at: now,
@@ -288,7 +289,7 @@ export async function markPracticeAnalysisCompleted(
       .from("analysis_jobs")
       .update({
         status: "completed",
-        model_provider: PRACTICE_FEEDBACK_MODEL_PROVIDER,
+        model_provider: getPracticeFeedbackModelProvider(feedbackTrack),
         model_name: result.modelName,
         finished_at: now,
         updated_at: now,

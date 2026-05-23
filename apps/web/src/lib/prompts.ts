@@ -38,6 +38,7 @@ function buildPracticeLanguageInstructions(language?: PracticeLanguage): string 
 - The student is practicing debate/speaking in Vietnamese.
 - Return all user-facing prose values in Vietnamese: summaries, strengths, improvements, detailed feedback, suggestions, rebuilt arguments, verdict summaries, and highlight notes.
 - Critical: do not write English explanatory sentences in any user-facing prose field. Use natural Vietnamese coaching language; common debate terms like motion, clash, weighing, impact, rebuttal, and burden may remain only when they sound natural in Vietnamese.
+- Avoid literal translated idioms that sound unnatural in Vietnamese debate coaching.
 - Preserve this JSON schema exactly. Keep schema keys and enum literal values in English exactly as specified.
 - Copy transcript quotes exactly as written, including Vietnamese diacritics. If an exact quote is hard to match, choose a shorter exact contiguous quote.`;
   }
@@ -369,6 +370,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
 - Motion: "${topic}"
 - Side: ${side === "proposition" ? "Proposition (FOR)" : "Opposition (AGAINST)"}
 - Speech Type: ${speechType}
+- Debate Format: Trường Teen-style practice round
 - Time Limit: ${timeLimit} minutes
 - Actual Duration: ${actualDuration} seconds
 ${motionBriefContext}
@@ -394,6 +396,16 @@ The student should ideally build arguments in this order:
 If the speech sounds polished but the reasoning is thin, score the reasoning lower. Do NOT reward fancy wording over strong logic.
 If the speech is long and detailed, do NOT compress away nuance. Credit developed logic when the chain is clear; if it becomes confusing, identify exactly which step stopped being intelligible.
 When you criticize an argument, identify the exact missing debate layer and explain why that layer changes the judge's decision.
+
+## Scoring Calibration
+- Scores evaluate the USER/STUDENT performance only, not the quality of the whole debate.
+- The AI opponent may win while the student still receives a high score only if the student made strong, structured, well-evidenced arguments.
+- If the student loses because of repetition, unclear structure, weak evidence, or failure to answer the main clash, totalScore should usually be below 65.
+- Do not give Content above 25/40 unless the student clearly proves the motion with mechanisms, examples, and impact weighing.
+- Do not give Structure above 17/25 if the student repeats large portions of earlier speeches instead of advancing the round.
+- Do not give Language above 18/25 if speech-to-text errors or phrasing make multiple claims hard to follow.
+- Do not give Persuasion above 7/10 unless the student directly compares worlds and gives the judge a clear reason why their side wins.
+- Be fair but strict. This is a training score, not encouragement.
 
 ## Evaluation Priorities
 ### 1. Content & Argumentation (0-40 points)
@@ -570,6 +582,7 @@ ${speech.transcript}
 - Opposition: ${params.participants.opposition.displayName} (id: ${params.participants.opposition.participantId ?? "unknown"})
 
 ## Format
+- Debate format: Trường Teen-style 1v1 practice duel
 - Shared prep
 - Proposition opening
 - Opposition opening

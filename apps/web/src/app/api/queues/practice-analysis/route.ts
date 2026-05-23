@@ -53,7 +53,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     try {
       const input = practiceAttemptRowToInput(attempt);
       const feedback = await evaluatePracticeFeedback(input, attempt.user_id);
-      const modelName = getPracticeFeedbackModelName();
+      const modelName = getPracticeFeedbackModelName(input.practiceTrack);
       const savedSession = await saveCompletedPracticeAttempt(supabase, {
         attempt,
         feedback,

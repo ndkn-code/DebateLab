@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   getCategoryLabel,
+  getLocalizedTopics,
   isCategoryKey,
   type CategoryKey,
 } from "@/lib/topics";
@@ -119,6 +120,26 @@ function mapCatalogRow(
   };
 }
 
+function getBundledPracticeTopics(language: PracticeLanguage): ActivePracticeTopic[] {
+  return getLocalizedTopics(language).map((topic, index) => {
+    const categoryKey = normalizeCategoryKey(topic.categoryKey ?? "");
+
+    return {
+      ...topic,
+      categoryKey,
+      category: getCategoryLabel(categoryKey, language),
+      displayOrder: topic.displayOrder ?? index + 1,
+      sourceKind: topic.sourceKind ?? "legacy",
+      sourceLanguage: topic.sourceLanguage,
+      sourceCount: topic.sourceCount ?? 0,
+      sourceTags: topic.sourceTags ?? [],
+      tournamentNames: topic.tournamentNames ?? [],
+      hasInfoSlide: Boolean(topic.hasInfoSlide),
+      hasStats: Boolean(topic.hasStats),
+    };
+  });
+}
+
 async function queryActivePracticeTopics(
   supabase: SupabaseClient,
   language: PracticeLanguage
@@ -175,10 +196,11 @@ export async function getActivePracticeTopics(
   language: PracticeLanguage,
   options: { allowAdminFallback?: boolean } = {}
 ) {
+  const bundledTopics = getBundledPracticeTopics(language);
   const supabase = await createClient();
   const result = await queryActivePracticeTopics(supabase, language);
   if (!result.error && (result.topics.length > 0 || !options.allowAdminFallback)) {
-    return result.topics;
+    return result.topics.length > 0 ? result.topics : bundledTopics;
   }
 
   if (options.allowAdminFallback) {
@@ -186,15 +208,18 @@ export async function getActivePracticeTopics(
     if (admin) {
       const adminResult = await queryActivePracticeTopics(admin, language);
       if (!adminResult.error) {
-        return adminResult.topics;
+        return adminResult.topics.length > 0 ? adminResult.topics : bundledTopics;
       }
     }
   }
 
   if (!result.error) {
-    return result.topics;
+    return result.topics.length > 0 ? result.topics : bundledTopics;
   }
 
-  console.error("Failed to load active practice topics", result.error.message);
-  return [];
+  console.warn(
+    "Failed to load active practice topics; using bundled topic catalog",
+    result.error.message
+  );
+  return bundledTopics;
 }
