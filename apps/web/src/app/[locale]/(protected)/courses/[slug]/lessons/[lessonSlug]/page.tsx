@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 
 export async function generateMetadata({
   params,
@@ -15,5 +16,9 @@ export default async function LessonPage({
   params: Promise<{ locale: string; slug: string; lessonSlug: string }>;
 }) {
   const { locale, slug, lessonSlug } = await params;
+  if (!STUDENT_COURSES_ENABLED) {
+    redirect(`/${locale}/dashboard`);
+  }
+
   redirect(`/${locale}/courses/${slug}?lesson=${encodeURIComponent(lessonSlug)}`);
 }

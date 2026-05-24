@@ -23,6 +23,7 @@ import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,
 } from "@/lib/analytics/skill-snapshot";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 export type {
@@ -894,7 +895,7 @@ export async function getDashboardData(
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
   const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
 
-  const featuredEnrollment = enrollments[0];
+  const featuredEnrollment = STUDENT_COURSES_ENABLED ? enrollments[0] : null;
   const courseContinuation =
     featuredEnrollment
       ? {
@@ -914,11 +915,15 @@ export async function getDashboardData(
       href: isAdmin ? "/debates" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
-    {
-      key: "courses",
-      href: "/courses",
-      status: "live",
-    },
+    ...(STUDENT_COURSES_ENABLED
+      ? ([
+          {
+            key: "courses",
+            href: "/courses",
+            status: "live",
+          },
+        ] satisfies DashboardNavItem[])
+      : []),
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
@@ -937,14 +942,18 @@ export async function getDashboardData(
       status: "live",
       descriptionKey: "action_debate_desc",
     },
-    {
-      key: "course",
-      href: "/courses",
-      status: "live",
-      descriptionKey: courseContinuation
-        ? "action_course_desc"
-        : "action_course_browse_desc",
-    },
+    ...(STUDENT_COURSES_ENABLED
+      ? ([
+          {
+            key: "course",
+            href: "/courses",
+            status: "live",
+            descriptionKey: courseContinuation
+              ? "action_course_desc"
+              : "action_course_browse_desc",
+          },
+        ] satisfies DashboardQuickAction[])
+      : []),
     {
       key: "coach",
       href: "/chat?context=coach-home",

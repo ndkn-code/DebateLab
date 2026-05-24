@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCourseBySlug, getCourseReaderBySlug } from "@/lib/api/courses";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 
 export async function generateMetadata({
   params,
@@ -39,6 +40,10 @@ export default async function CourseDetailPage({
     .single();
 
   if (!profile) redirect("/dashboard");
+
+  if (!STUDENT_COURSES_ENABLED) {
+    redirect(profile.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
+  }
 
   const course = await getCourseReaderBySlug(slug, user.id, lessonSlug);
   if (!course) notFound();

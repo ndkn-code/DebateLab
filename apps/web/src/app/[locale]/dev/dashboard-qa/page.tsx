@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 import type {
   DashboardHomeData,
   DashboardRecommendedDrill,
@@ -86,7 +87,7 @@ function trackTitle(track: PracticeTrack) {
 function makeDashboardData(state: DashboardQaState): DashboardHomeData {
   const hasActivity = state !== "empty";
   const recommendedDrill =
-    state === "course"
+    state === "course" && STUDENT_COURSES_ENABLED
       ? makeRecommendedDrill({
           key: "continue-course",
           href: "/courses",
@@ -116,22 +117,26 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
               scoreOutOf100: null,
               skillKey: undefined,
               track: "speaking",
-            })
-          : makeRecommendedDrill();
+          })
+        : makeRecommendedDrill();
 
   const todayPlanItems: DashboardTodayPlanItem[] = [
-    makePlanItem("continue-course", {
-      key: "continue-course",
-      href: "/courses",
-      detailHref: "/courses",
-      ctaKey: "continue",
-      durationMinutes: 12,
-      context: "Persuasive Speaking 101",
-      progressLabel: "42%",
-      scoreOutOf100: null,
-      skillKey: undefined,
-      track: undefined,
-    }),
+    ...(STUDENT_COURSES_ENABLED
+      ? [
+          makePlanItem("continue-course", {
+            key: "continue-course",
+            href: "/courses",
+            detailHref: "/courses",
+            ctaKey: "continue",
+            durationMinutes: 12,
+            context: "Persuasive Speaking 101",
+            progressLabel: "42%",
+            scoreOutOf100: null,
+            skillKey: undefined,
+            track: undefined,
+          }),
+        ]
+      : []),
     makePlanItem("review-feedback", {
       key: "review-feedback",
       href: "/history/qa-feedback",
@@ -170,7 +175,9 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       { key: "dashboard", href: "/dashboard", status: "live" },
       { key: "practice", href: "/practice", status: "live" },
       { key: "duel", href: "/debates", status: "live" },
-      { key: "courses", href: "/courses", status: "live" },
+      ...(STUDENT_COURSES_ENABLED
+        ? ([{ key: "courses", href: "/courses", status: "live" }] as const)
+        : []),
       { key: "coach", href: "/chat?context=coach-home", status: "live" },
       { key: "history", href: "/history", status: "live" },
       { key: "analytics", href: "/profile", status: "live" },
@@ -244,12 +251,16 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
         status: "live",
         descriptionKey: "action_debate_desc",
       },
-      {
-        key: "course",
-        href: "/courses",
-        status: "live",
-        descriptionKey: "action_course_desc",
-      },
+      ...(STUDENT_COURSES_ENABLED
+        ? ([
+            {
+              key: "course",
+              href: "/courses",
+              status: "live",
+              descriptionKey: "action_course_desc",
+            },
+          ] as const)
+        : []),
       {
         key: "coach",
         href: "/chat?context=coach-home",
@@ -337,7 +348,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       inviteOrbs: 500,
       referralCode: "QA-DEBATE",
     },
-    courseContinuation: state === "course"
+    courseContinuation: state === "course" && STUDENT_COURSES_ENABLED
       ? {
           courseId: "qa-course",
           title: "Persuasive Speaking 101",

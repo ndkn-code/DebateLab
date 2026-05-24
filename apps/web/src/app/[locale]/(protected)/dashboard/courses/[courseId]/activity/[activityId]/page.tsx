@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ActivityPlayerWrapper } from "@/components/activities/ActivityPlayerWrapper";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 
 export default async function ActivityPlayerPage({
   params,
@@ -25,6 +26,10 @@ export default async function ActivityPlayerPage({
     .single();
   if (!profile) redirect("/dashboard");
   const isAdmin = profile.role === "admin";
+
+  if (!STUDENT_COURSES_ENABLED && !isAdmin) {
+    redirect("/dashboard");
+  }
 
   const { data: course } = await supabase
     .from("courses")

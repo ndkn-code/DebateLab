@@ -37,6 +37,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
 import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
@@ -272,11 +273,15 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       href: isAdmin ? "/debates" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
-    {
-      key: "courses",
-      href: "/courses",
-      status: "live",
-    },
+    ...(STUDENT_COURSES_ENABLED
+      ? ([
+          {
+            key: "courses",
+            href: "/courses",
+            status: "live",
+          },
+        ] satisfies DashboardNavItem[])
+      : []),
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "history", href: "/history", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
