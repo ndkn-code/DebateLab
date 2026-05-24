@@ -278,21 +278,21 @@ values (
   '/images/smart-popups/ask-coach.webp',
   '{
     "eyebrow": "Quick feedback",
-    "title": "How is DebateLab feeling so far?",
+    "title": "How is Thinkfy feeling so far?",
     "body": "Answer a few quick questions so we can improve the app for your next practice.",
-    "ctaLabel": "Share feedback",
+    "ctaLabel": "Submit",
     "dismissLabel": "Later",
     "dontShowLabel": "Don''t ask again",
-    "alt": "DebateLab feedback prompt"
+    "alt": "Thinkfy feedback prompt"
   }'::jsonb,
   '{
     "eyebrow": "Góp ý nhanh",
-    "title": "Bạn thấy DebateLab thế nào?",
+    "title": "Bạn thấy Thinkfy thế nào?",
     "body": "Trả lời vài câu ngắn để tụi mình cải thiện trải nghiệm luyện tập tiếp theo.",
-    "ctaLabel": "Gửi góp ý",
+    "ctaLabel": "Gửi",
     "dismissLabel": "Để sau",
     "dontShowLabel": "Đừng hỏi lại",
-    "alt": "Hộp góp ý DebateLab"
+    "alt": "Hộp góp ý Thinkfy"
   }'::jsonb,
   '{"segments":["active_user"],"minSessions":1,"maxSubmissionsPerUser":1}'::jsonb,
   '{"adminLabel":"Overall app experience pulse","source":"seed"}'::jsonb
@@ -323,8 +323,8 @@ values (
       "min": 1,
       "max": 5,
       "label": {
-        "en": "Overall, how useful is DebateLab for your practice?",
-        "vi": "Nhìn chung, DebateLab hữu ích thế nào cho việc luyện tập của bạn?"
+        "en": "Overall, how useful is Thinkfy for your practice?",
+        "vi": "Nhìn chung, Thinkfy hữu ích thế nào cho việc luyện tập của bạn?"
       },
       "minLabel": {
         "en": "Not useful",
@@ -355,8 +355,8 @@ values (
       "type": "text",
       "required": false,
       "label": {
-        "en": "What would make DebateLab better for you?",
-        "vi": "Điều gì sẽ làm DebateLab tốt hơn cho bạn?"
+        "en": "What would make Thinkfy better for you?",
+        "vi": "Điều gì sẽ làm Thinkfy tốt hơn cho bạn?"
       },
       "placeholder": {
         "en": "Share anything confusing, helpful, missing, or exciting.",
@@ -367,11 +367,11 @@ values (
   '{
     "en": {
       "title": "Thanks for the feedback",
-      "body": "You earned 50 Credits. We will use this to make DebateLab sharper."
+      "body": "You earned 50 Credits. We will use this to make Thinkfy sharper."
     },
     "vi": {
       "title": "Cảm ơn bạn đã góp ý",
-      "body": "Bạn đã nhận 50 Credits. Tụi mình sẽ dùng góp ý này để cải thiện DebateLab."
+      "body": "Bạn đã nhận 50 Credits. Tụi mình sẽ dùng góp ý này để cải thiện Thinkfy."
     }
   }'::jsonb,
   now()

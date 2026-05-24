@@ -220,40 +220,31 @@ update public.smart_popup_campaigns
 set copy_en = $json$
   {
     "eyebrow": "Quick feedback",
-    "title": "How is DebateLab feeling?",
+    "title": "How is Thinkfy feeling?",
     "body": "Three quick answers help us improve your next practice.",
-    "ctaLabel": "Share feedback",
+    "ctaLabel": "Submit",
     "dismissLabel": "Later",
     "dontShowLabel": "Don't ask again",
-    "alt": "Compact DebateLab feedback prompt"
+    "alt": "Compact Thinkfy feedback prompt"
   }
   $json$::jsonb,
     copy_vi = $json$
   {
     "eyebrow": "Góp ý nhanh",
-    "title": "Bạn thấy DebateLab thế nào?",
+    "title": "Bạn thấy Thinkfy thế nào?",
     "body": "Ba câu trả lời nhanh giúp tụi mình cải thiện lần luyện tiếp theo.",
-    "ctaLabel": "Gửi góp ý",
+    "ctaLabel": "Gửi",
     "dismissLabel": "Để sau",
     "dontShowLabel": "Đừng hỏi lại",
-    "alt": "Hộp góp ý ngắn của DebateLab"
+    "alt": "Hộp góp ý ngắn của Thinkfy"
   }
   $json$::jsonb,
     metadata = coalesce(metadata, '{}'::jsonb) || $json$
   {
     "notificationPattern": "duolingo_compact_v1",
-    "factStrategy": "reward_time",
-    "durationMinutes": 2,
-    "facts": {
-      "en": [
-        { "icon": "gift", "label": "Reward", "value": "+{rewardCredits} Credits" },
-        { "icon": "clock", "label": "Time", "value": "{durationMinutes} min" }
-      ],
-      "vi": [
-        { "icon": "gift", "label": "Phần thưởng", "value": "+{rewardCredits} Credits" },
-        { "icon": "clock", "label": "Thời gian", "value": "{durationMinutes} phút" }
-      ]
-    }
+    "factStrategy": "cta_reward",
+    "durationMinutes": null,
+    "facts": []
   }
   $json$::jsonb,
     updated_at = now()

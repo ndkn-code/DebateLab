@@ -76,6 +76,7 @@ const factIcons: Record<SmartPopupFactIcon, typeof Target> = {
 interface SmartPopupFrameProps {
   open?: boolean;
   closeLabel: string;
+  placement?: "center" | "top";
   onOpenChange?: (open: boolean) => void;
   onClose: () => void;
   children: ReactNode;
@@ -84,6 +85,7 @@ interface SmartPopupFrameProps {
 export function SmartPopupFrame({
   open = true,
   closeLabel,
+  placement = "center",
   onOpenChange,
   onClose,
   children,
@@ -93,7 +95,11 @@ export function SmartPopupFrame({
       <DialogContent
         showCloseButton={false}
         data-smart-popup-frame
-        className="max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-[#D6E3FA] bg-white p-0 text-[#172554] shadow-[0_32px_90px_-52px_rgba(11,20,36,0.75)] sm:w-[600px] sm:max-w-[600px]"
+        className={cn(
+          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-[#D6E3FA] bg-white p-0 text-[#172554] shadow-[0_32px_90px_-52px_rgba(11,20,36,0.75)] sm:w-[600px] sm:max-w-[600px]",
+          placement === "top" &&
+            "top-4 translate-y-0 sm:top-[7vh] sm:max-h-[calc(100dvh-14vh)]"
+        )}
       >
         <button
           type="button"
@@ -104,7 +110,12 @@ export function SmartPopupFrame({
           <X className="h-5 w-5" />
           <span className="sr-only">{closeLabel}</span>
         </button>
-        <div className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto px-5 pb-5 pt-7 sm:px-14 sm:pb-8 sm:pt-9">
+        <div
+          className={cn(
+            "max-h-[calc(100dvh-1.5rem)] overflow-y-auto px-5 pb-5 pt-7 sm:px-14 sm:pb-8 sm:pt-9",
+            placement === "top" && "sm:max-h-[calc(100dvh-14vh)]"
+          )}
+        >
           {children}
         </div>
       </DialogContent>
@@ -287,16 +298,9 @@ export function SurveyPopup({
   onDismiss,
   onDontShowAgain,
 }: SurveyPopupProps) {
-  const surveyFacts =
-    popup.facts.length > 0
-      ? popup.facts
-      : [
-          {
-            icon: "gift" as const,
-            label: "Reward",
-            value: `+${survey.rewardCredits} Credits`,
-          },
-        ];
+  const rewardLabel =
+    survey.rewardCredits > 0 ? ` +${survey.rewardCredits} Credits` : "";
+  const submitLabel = submitting ? "Submitting..." : `${popup.ctaLabel}${rewardLabel}`;
 
   return (
     <div>
@@ -311,14 +315,9 @@ export function SurveyPopup({
         <DialogDescription className="mx-auto mt-3 max-w-[430px] text-base font-medium leading-7 text-[#52627A]">
           {popup.body}
         </DialogDescription>
-        <div className="mx-auto mt-5 grid max-w-[420px] grid-cols-1 gap-3 sm:grid-cols-2">
-          {surveyFacts.slice(0, 2).map((fact, index) => (
-            <SmartPopupFact key={`${fact.icon}-${fact.label}-${index}`} fact={fact} />
-          ))}
-        </div>
       </div>
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-5 space-y-4">
         {survey.questions.map((question, index) => (
           <div key={question.id} className="space-y-2">
             <div>
@@ -347,7 +346,7 @@ export function SurveyPopup({
       ) : null}
 
       <SmartPopupActions
-        primaryLabel={popup.ctaLabel}
+        primaryLabel={submitLabel}
         secondaryLabel={popup.dismissLabel}
         dontShowLabel={popup.dontShowAgainLabel}
         primaryIcon={
@@ -743,6 +742,7 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
     <SmartPopupFrame
       open={open}
       closeLabel={popup.dismissLabel}
+      placement={isSurveyPopup ? "top" : "center"}
       onClose={() => closeWithEvent(getCloseEvent())}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
