@@ -193,7 +193,15 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       todayGoal: {
         goalMinutes: 30,
         practicedMinutes: hasActivity ? 12 : 0,
+        remainingMinutes: hasActivity ? 18 : 30,
         progressPercent: hasActivity ? 40 : 0,
+        metGoal: false,
+      },
+      weeklyGoal: {
+        goalMinutes: 100,
+        practicedMinutes: hasActivity ? 86 : 0,
+        remainingMinutes: hasActivity ? 14 : 100,
+        progressPercent: hasActivity ? 86 : 0,
         metGoal: false,
       },
     },
@@ -322,6 +330,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       dailyGoal: {
         goalMinutes: 30,
         practicedMinutes: hasActivity ? 12 : 0,
+        remainingMinutes: hasActivity ? 18 : 30,
         progressPercent: hasActivity ? 40 : 0,
         metGoal: false,
       },

@@ -165,7 +165,7 @@ function isStrongBand(band: string | null | undefined) {
   return band ? STRONG_BANDS.has(band) : false;
 }
 
-function getDailyGoalMinutes(profile: Profile | null) {
+function getDailyGoalMinutes(profile: Pick<Profile, "preferences"> | null) {
   const preferences = (profile?.preferences as Record<string, unknown> | null) ?? {};
   const explicitGoal = preferences.daily_goal_minutes;
   if (typeof explicitGoal === "number" && explicitGoal > 0) {
@@ -178,6 +178,26 @@ function getDailyGoalMinutes(profile: Profile | null) {
   }
 
   return 30;
+}
+
+function getWeeklyGoalMinutes(profile: Pick<Profile, "preferences"> | null) {
+  const preferences = (profile?.preferences as Record<string, unknown> | null) ?? {};
+  const explicitWeeklyGoal = preferences.weekly_goal_minutes;
+  if (typeof explicitWeeklyGoal === "number" && explicitWeeklyGoal > 0) {
+    return explicitWeeklyGoal;
+  }
+
+  const explicitDailyGoal = preferences.daily_goal_minutes;
+  if (typeof explicitDailyGoal === "number" && explicitDailyGoal > 0) {
+    return explicitDailyGoal * DAYS_IN_WEEK;
+  }
+
+  const onboardingGoal = preferences.dailyCommitment;
+  if (typeof onboardingGoal === "number" && onboardingGoal > 0) {
+    return onboardingGoal * DAYS_IN_WEEK;
+  }
+
+  return 100;
 }
 
 function getXpGoal() {
@@ -211,9 +231,22 @@ function buildGoalSummary(
   return {
     goalMinutes: safeGoal,
     practicedMinutes,
+    remainingMinutes: Math.max(safeGoal - practicedMinutes, 0),
     progressPercent: Math.round(clamp((practicedMinutes / safeGoal) * 100, 0, 100)),
     metGoal: practicedMinutes >= safeGoal,
   };
+}
+
+export function buildWeeklyGoalSummary(
+  profile: Pick<Profile, "preferences"> | null,
+  weeklyStats: DailyStatEntry[]
+): DashboardGoalSummary {
+  const practicedMinutes = weeklyStats.reduce(
+    (sum, entry) => sum + entry.practice_minutes,
+    0
+  );
+
+  return buildGoalSummary(practicedMinutes, getWeeklyGoalMinutes(profile));
 }
 
 function computeSkillSnapshot(scoredSessions: SessionScoreRow[]): DashboardSkillSnapshot {
@@ -627,6 +660,7 @@ export async function getDashboardData(
   const dailyGoalMinutes = getDailyGoalMinutes(profile);
   const todayMinutes = statsByDate.get(today)?.practice_minutes ?? 0;
   const todayGoal = buildGoalSummary(todayMinutes, dailyGoalMinutes);
+  const weeklyGoal = buildWeeklyGoalSummary(profile, weeklyStats);
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
   const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
 
@@ -710,6 +744,7 @@ export async function getDashboardData(
     hero: {
       weeklyStats,
       todayGoal,
+      weeklyGoal,
     },
     skillSnapshot,
     recommendedDrill,

@@ -41,7 +41,15 @@ export const previewDashboardData: DashboardHomeData = {
     todayGoal: {
       goalMinutes: 30,
       practicedMinutes: 18,
+      remainingMinutes: 12,
       progressPercent: 60,
+      metGoal: false,
+    },
+    weeklyGoal: {
+      goalMinutes: 100,
+      practicedMinutes: 86,
+      remainingMinutes: 14,
+      progressPercent: 86,
       metGoal: false,
     },
   },
@@ -169,6 +177,7 @@ export const previewDashboardData: DashboardHomeData = {
     dailyGoal: {
       goalMinutes: 30,
       practicedMinutes: 18,
+      remainingMinutes: 12,
       progressPercent: 60,
       metGoal: false,
     },

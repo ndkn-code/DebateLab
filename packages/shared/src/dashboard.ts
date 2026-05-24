@@ -18,6 +18,14 @@ export type DashboardSkillKey =
   | "evidence"
   | "delivery";
 
+export const DASHBOARD_SKILL_ORDER: DashboardSkillKey[] = [
+  "clarity",
+  "logic",
+  "rebuttal",
+  "evidence",
+  "delivery",
+];
+
 export type DashboardTopicDifficulty = "beginner" | "intermediate" | "advanced";
 
 export type DashboardAiDifficulty = "easy" | "medium" | "hard";
@@ -177,6 +185,7 @@ export interface DashboardProgressMetric {
 export interface DashboardGoalSummary {
   goalMinutes: number;
   practicedMinutes: number;
+  remainingMinutes: number;
   progressPercent: number;
   metGoal: boolean;
 }
@@ -203,6 +212,7 @@ export interface DashboardHomeData {
   hero: {
     weeklyStats: DailyStatEntry[];
     todayGoal: DashboardGoalSummary;
+    weeklyGoal: DashboardGoalSummary;
   };
   skillSnapshot: DashboardSkillSnapshot;
   recommendedDrill: DashboardRecommendedDrill;
