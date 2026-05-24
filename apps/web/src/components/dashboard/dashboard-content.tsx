@@ -32,7 +32,6 @@ import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { cn } from "@/lib/utils";
 import type {
   DashboardHomeData,
-  DashboardQuickAction,
   DashboardRecommendedDrill,
   DashboardTodayPlanItem,
 } from "@/lib/api/dashboard";
@@ -43,20 +42,6 @@ import {
   type DashboardSkillMetric,
 } from "@thinkfy/shared/dashboard";
 import fireAnimation from "../../../public/lottie/fire.json";
-
-const ACTION_ICONS = {
-  speaking: Mic,
-  debate: Users2,
-  course: BookOpen,
-  coach: Sparkles,
-} as const;
-
-const ACTION_ORDER: DashboardQuickAction["key"][] = [
-  "speaking",
-  "debate",
-  "coach",
-  "course",
-];
 
 const TASK_ICONS = {
   "continue-course": BookOpen,
@@ -234,21 +219,6 @@ function getMetricTone(metric: DashboardSkillMetric | null) {
 function formatMetricValue(metric: DashboardSkillMetric | null) {
   if (!metric || metric.coverage <= 0) return "— / 100";
   return `${Math.round(metric.value)} / 100`;
-}
-
-function getDockTone(key: DashboardQuickAction["key"]) {
-  switch (key) {
-    case "speaking":
-      return "bg-[#EEF4FF] text-primary";
-    case "debate":
-      return "bg-[#F3EEFF] text-[#7B61FF]";
-    case "coach":
-      return "bg-[#EAF8F3] text-[#00A085]";
-    case "course":
-      return "bg-[#FFF5E4] text-[#C77C0C]";
-    default:
-      return "bg-primary-container text-primary";
-  }
 }
 
 function UtilityChip({
@@ -697,47 +667,6 @@ function TrainingMap({
   );
 }
 
-function LaunchDock({ actions }: { actions: DashboardQuickAction[] }) {
-  const t = useTranslations("dashboard.home");
-  const sortedActions = ACTION_ORDER.map((key) =>
-    actions.find((action) => action.key === key)
-  ).filter((action): action is DashboardQuickAction => Boolean(action));
-
-  return (
-    <nav
-      aria-label={t("launch_actions_label")}
-      className="fixed bottom-4 left-1/2 z-50 grid w-[calc(100vw-2rem)] max-w-[760px] -translate-x-1/2 grid-cols-4 gap-1 rounded-[2rem] border border-[#DCE8FA] bg-white/[0.92] p-2 shadow-[0_26px_66px_-42px_rgba(11,20,36,0.45)] backdrop-blur-md md:left-[calc(13.75rem+(100vw-13.75rem)/2)] md:gap-2"
-    >
-      {sortedActions.map((action) => {
-        const Icon = ACTION_ICONS[action.key];
-        const content = (
-            <div className="group flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-[1.45rem] px-1 text-[0.72rem] font-semibold text-[#0B1424] transition-colors hover:bg-[#F1F6FD] md:min-h-[50px] md:flex-row md:gap-3 md:px-3 md:text-sm">
-              <span
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full md:h-10 md:w-10",
-                  getDockTone(action.key)
-                )}
-              >
-              <Icon className="h-4 w-4 md:h-5 md:w-5" />
-            </span>
-            <span className="truncate">{t(`launch_action_${action.key}`)}</span>
-          </div>
-        );
-
-        if (action.href && action.status === "live") {
-          return (
-            <Link key={action.key} href={action.href}>
-              {content}
-            </Link>
-          );
-        }
-
-        return <div key={action.key}>{content}</div>;
-      })}
-    </nav>
-  );
-}
-
 function MobileSupportCards({
   referralCode,
   inviteReward,
@@ -884,7 +813,6 @@ export function DashboardContent({
           </PageContainer>
         </ProductPageShell>
       </PageTransition>
-      <LaunchDock actions={data.quickActions} />
     </>
   );
 }
