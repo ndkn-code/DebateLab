@@ -360,7 +360,7 @@ function DrillIllustration() {
   return (
     <div
       data-testid="dashboard-recommended-illustration"
-      className="relative mx-auto min-h-[250px] w-full max-w-[660px] overflow-visible sm:min-h-[320px] lg:min-h-[360px] xl:min-h-[410px]"
+      className="relative mx-auto min-h-[250px] w-full max-w-[660px] overflow-hidden sm:min-h-[320px] lg:min-h-[360px] xl:min-h-[410px]"
     >
       <div className="absolute left-[8%] right-[5%] top-[3%] h-[78%] rounded-full border border-[#A9C6FB]/38 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.72),rgba(238,244,255,0.34)_58%,rgba(238,244,255,0)_78%)]" />
       <Image
@@ -431,10 +431,6 @@ function NextMoveRail({ items }: { items: DashboardTodayPlanItem[] }) {
         })}
       </div>
 
-      <p className="mt-4 inline-flex items-center gap-2 text-sm text-[#415069]">
-        <Sparkles className="h-4 w-4 text-primary" />
-        {t("next_move_tip")}
-      </p>
     </section>
   );
 }
@@ -534,9 +530,6 @@ function TrainingMap({
           <GitBranch className="h-4 w-4" />
           {t("training_map")}
         </h2>
-        <p className="text-sm text-[#718096] lg:text-base">
-          {t("training_map_subtitle")}
-        </p>
       </div>
 
       <div className="rounded-[2rem] border border-[#DCE8FA] bg-white/[0.56] px-4 py-4 shadow-[0_28px_90px_-66px_rgba(11,20,36,0.35)] backdrop-blur sm:px-5 lg:hidden">

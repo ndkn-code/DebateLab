@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import type {
+import {
+  DASHBOARD_SKILL_ORDER,
+  type DashboardSkillKey,
   DailyStatEntry,
   DashboardCourseContinuation,
   DashboardGoalSummary,
@@ -43,6 +45,17 @@ const USER_TIMEZONE = "America/New_York";
 const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
 const DAYS_IN_WEEK = 7;
 const RECOMMENDED_SKILL_TARGET = 75;
+const MIN_RECOMMENDATION_COVERAGE = 25;
+const CLOSE_PRIORITY_WINDOW = 8;
+const RECENT_FOCUS_WINDOW_DAYS = 10;
+
+const SKILL_TRACK: Record<DashboardSkillKey, PracticeTrack> = {
+  clarity: "debate",
+  logic: "debate",
+  rebuttal: "debate",
+  evidence: "debate",
+  delivery: "speaking",
+};
 
 type SessionScoreRow = {
   id: string;
@@ -56,6 +69,11 @@ type SessionScoreRow = {
   total_score: number | null;
   overall_band: string | null;
   duration_seconds: number;
+  created_at: string;
+};
+
+export type DashboardImprovementSession = {
+  feedback: DebateScore | null;
   created_at: string;
 };
 
@@ -77,6 +95,16 @@ type DashboardRpcPayload = {
   recent_sessions?: unknown;
   scored_sessions?: unknown;
   stats?: unknown;
+};
+
+export type DashboardImprovementPriority = {
+  key: DashboardSkillKey;
+  score: number;
+  metricValue: number;
+  coverage: number;
+  track: PracticeTrack;
+  recentFocusCount: number;
+  daysSinceTrackPractice: number | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -155,6 +183,10 @@ function getTrailingDates(totalDays: number) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function readFiniteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function getPracticeTrack(feedback: DebateScore | null): PracticeTrack {
@@ -251,6 +283,201 @@ export function buildWeeklyGoalSummary(
 
 function computeSkillSnapshot(scoredSessions: SessionScoreRow[]): DashboardSkillSnapshot {
   return computeSharedSkillSnapshot(scoredSessions) as DashboardSkillSnapshot;
+}
+
+function normalizeFeedbackScore(value: unknown, max: number) {
+  const numeric = readFiniteNumber(value);
+  if (numeric == null || max <= 0) return null;
+  return roundToTenth((numeric / max) * 100);
+}
+
+function getFeedbackSkillScores(feedback: DebateScore | null) {
+  if (!feedback) return {};
+
+  const deliveryValues = [
+    normalizeFeedbackScore(feedback.language?.vocabulary, 8),
+    normalizeFeedbackScore(feedback.language?.grammar, 9),
+    normalizeFeedbackScore(feedback.language?.fluency, 8),
+  ].filter((value): value is number => value != null);
+
+  return {
+    clarity: normalizeFeedbackScore(feedback.content?.claimClarity, 10),
+    logic: normalizeFeedbackScore(feedback.content?.logicCoherence, 10),
+    rebuttal: normalizeFeedbackScore(feedback.content?.counterArgument, 10),
+    evidence: normalizeFeedbackScore(feedback.content?.evidenceSupport, 10),
+    delivery:
+      deliveryValues.length > 0
+        ? roundToTenth(
+            deliveryValues.reduce((sum, value) => sum + value, 0) /
+              deliveryValues.length
+          )
+        : null,
+  } satisfies Partial<Record<DashboardSkillKey, number | null>>;
+}
+
+function getSessionTimestamp(session: DashboardImprovementSession) {
+  const timestamp = new Date(session.created_at).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function getDaysSince(timestamp: number | null, now: number) {
+  if (timestamp == null) return null;
+  return Math.max(0, (now - timestamp) / (1000 * 60 * 60 * 24));
+}
+
+function getSessionLowestSkill(session: DashboardImprovementSession) {
+  const scores = getFeedbackSkillScores(session.feedback);
+  const candidates = DASHBOARD_SKILL_ORDER.flatMap((key) => {
+    const value = scores[key];
+    return value == null ? [] : [{ key, value }];
+  });
+
+  if (candidates.length === 0) return null;
+
+  return candidates.sort((left, right) => left.value - right.value)[0]?.key ?? null;
+}
+
+function getRecentFocusCounts(
+  sessions: DashboardImprovementSession[],
+  now: number
+) {
+  const counts = DASHBOARD_SKILL_ORDER.reduce(
+    (summary, key) => {
+      summary[key] = 0;
+      return summary;
+    },
+    {} as Record<DashboardSkillKey, number>
+  );
+
+  for (const session of sessions) {
+    const daysSince = getDaysSince(getSessionTimestamp(session), now);
+    if (daysSince == null || daysSince > RECENT_FOCUS_WINDOW_DAYS) continue;
+
+    const lowestSkill = getSessionLowestSkill(session);
+    if (lowestSkill) counts[lowestSkill] += 1;
+  }
+
+  return counts;
+}
+
+function getDaysSinceTrackPractice(
+  skill: DashboardSkillKey,
+  sessions: DashboardImprovementSession[],
+  now: number
+) {
+  const targetTrack = SKILL_TRACK[skill];
+  let latestTimestamp: number | null = null;
+
+  for (const session of sessions) {
+    if (getPracticeTrack(session.feedback) !== targetTrack) continue;
+
+    const scores = getFeedbackSkillScores(session.feedback);
+    if (scores[skill] == null) continue;
+
+    const timestamp = getSessionTimestamp(session);
+    if (timestamp != null && (latestTimestamp == null || timestamp > latestTimestamp)) {
+      latestTimestamp = timestamp;
+    }
+  }
+
+  return getDaysSince(latestTimestamp, now);
+}
+
+function scoreImprovementPriority(params: {
+  metricValue: number;
+  coverage: number;
+  recentFocusCount: number;
+  daysSinceTrackPractice: number | null;
+  weeklyGoal: DashboardGoalSummary;
+}) {
+  const weaknessGap = Math.max(RECOMMENDED_SKILL_TARGET - params.metricValue, 0);
+  const coverageConfidence =
+    params.coverage >= MIN_RECOMMENDATION_COVERAGE
+      ? 1
+      : clamp(params.coverage / MIN_RECOMMENDATION_COVERAGE, 0.2, 0.72);
+  const recencyBonus =
+    params.daysSinceTrackPractice == null
+      ? 6
+      : params.daysSinceTrackPractice >= 14
+        ? 8
+        : params.daysSinceTrackPractice >= 7
+          ? 5
+          : params.daysSinceTrackPractice >= 3
+            ? 2
+            : 0;
+  const weeklyGoalBoost = params.weeklyGoal.metGoal
+    ? 0
+    : clamp((100 - params.weeklyGoal.progressPercent) / 12, 0, 8);
+  const repeatPenalty =
+    params.recentFocusCount >= 2 ? Math.min(params.recentFocusCount * 4, 12) : 0;
+
+  return roundToTenth(
+    weaknessGap * 1.5 * coverageConfidence +
+      recencyBonus +
+      weeklyGoalBoost -
+      repeatPenalty
+  );
+}
+
+export function selectDashboardImprovementSkill(
+  skillSnapshot: DashboardSkillSnapshot,
+  scoredSessions: DashboardImprovementSession[],
+  weeklyGoal: DashboardGoalSummary,
+  now = Date.now()
+): DashboardImprovementPriority | null {
+  const supportedMetrics = skillSnapshot.metrics.filter(
+    (metric) => metric.coverage >= MIN_RECOMMENDATION_COVERAGE
+  );
+  const candidateMetrics =
+    supportedMetrics.length > 0
+      ? supportedMetrics
+      : skillSnapshot.metrics.filter((metric) => metric.coverage > 0);
+
+  if (candidateMetrics.length === 0) return null;
+
+  const recentFocusCounts = getRecentFocusCounts(scoredSessions, now);
+  const priorities = candidateMetrics
+    .map((metric) => {
+      const daysSinceTrackPractice = getDaysSinceTrackPractice(
+        metric.key,
+        scoredSessions,
+        now
+      );
+      const score = scoreImprovementPriority({
+        metricValue: metric.value,
+        coverage: metric.coverage,
+        recentFocusCount: recentFocusCounts[metric.key],
+        daysSinceTrackPractice,
+        weeklyGoal,
+      });
+
+      return {
+        key: metric.key,
+        score,
+        metricValue: metric.value,
+        coverage: metric.coverage,
+        track: SKILL_TRACK[metric.key],
+        recentFocusCount: recentFocusCounts[metric.key],
+        daysSinceTrackPractice,
+      } satisfies DashboardImprovementPriority;
+    })
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return left.metricValue - right.metricValue;
+    });
+
+  const topPriority = priorities[0];
+  if (!topPriority) return null;
+
+  const closeAlternative = priorities.find(
+    (priority) =>
+      priority.key !== topPriority.key &&
+      topPriority.recentFocusCount >= 2 &&
+      topPriority.score - priority.score <= CLOSE_PRIORITY_WINDOW &&
+      priority.metricValue < RECOMMENDED_SKILL_TARGET
+  );
+
+  return closeAlternative ?? topPriority;
 }
 
 function computePeriodDelta(currentValue: number, previousValue: number) {
@@ -374,36 +601,33 @@ function buildCoursePlanItem(
   };
 }
 
-function buildWeakestSkillPlanItem(
-  skillSnapshot: DashboardSkillSnapshot
+function buildImprovementSkillPlanItem(
+  skillSnapshot: DashboardSkillSnapshot,
+  scoredSessions: DashboardImprovementSession[],
+  weeklyGoal: DashboardGoalSummary
 ): DashboardTodayPlanItem | null {
-  if (!skillSnapshot.weakestSkill) return null;
-
-  const weakestMetric = skillSnapshot.metrics.find(
-    (metric) => metric.key === skillSnapshot.weakestSkill
+  const improvementSkill = selectDashboardImprovementSkill(
+    skillSnapshot,
+    scoredSessions,
+    weeklyGoal
   );
-  const score =
-    weakestMetric && weakestMetric.coverage > 0
-      ? Math.round(weakestMetric.value)
-      : null;
+  if (!improvementSkill) return null;
 
-  if (score != null && score >= RECOMMENDED_SKILL_TARGET) {
+  if (improvementSkill.metricValue >= RECOMMENDED_SKILL_TARGET) {
     return null;
   }
 
-  const track = skillSnapshot.weakestSkill === "delivery" ? "speaking" : "debate";
-
   return {
-    id: `weakest-${skillSnapshot.weakestSkill}`,
+    id: `improve-${improvementSkill.key}`,
     key: "weakest-skill",
-    href: `/practice?track=${track}`,
+    href: `/practice?track=${improvementSkill.track}`,
     detailHref: "/profile",
     ctaKey: "start",
     durationMinutes: 10,
     context: null,
-    scoreOutOf100: score,
-    skillKey: skillSnapshot.weakestSkill,
-    track,
+    scoreOutOf100: Math.round(improvementSkill.metricValue),
+    skillKey: improvementSkill.key,
+    track: improvementSkill.track,
   };
 }
 
@@ -472,23 +696,29 @@ function buildCoachPlanItem(): DashboardTodayPlanItem {
 function buildDashboardPlan(
   skillSnapshot: DashboardSkillSnapshot,
   recentSessions: SessionScoreRow[],
-  courseContinuation: DashboardCourseContinuation | null
+  courseContinuation: DashboardCourseContinuation | null,
+  weeklyGoal: DashboardGoalSummary,
+  scoredSessions: DashboardImprovementSession[]
 ): {
   recommendedDrill: DashboardRecommendedDrill;
   todayPlanItems: DashboardTodayPlanItem[];
 } {
-  const weakestSkillPlan = buildWeakestSkillPlanItem(skillSnapshot);
+  const improvementSkillPlan = buildImprovementSkillPlanItem(
+    skillSnapshot,
+    scoredSessions,
+    weeklyGoal
+  );
   const coursePlan = buildCoursePlanItem(courseContinuation);
   const reviewPlan = buildReviewPlanItem(recentSessions);
   const underusedPlan = buildUnderusedPlanItem(recentSessions);
 
   const recommendedDrill =
-    weakestSkillPlan ?? coursePlan ?? reviewPlan ?? underusedPlan;
+    improvementSkillPlan ?? coursePlan ?? reviewPlan ?? underusedPlan;
 
   const candidateItems = [
     coursePlan,
     reviewPlan,
-    weakestSkillPlan,
+    improvementSkillPlan,
     underusedPlan,
     buildStarterPlanItem("speaking"),
     buildStarterPlanItem("debate"),
@@ -727,7 +957,9 @@ export async function getDashboardData(
   const { recommendedDrill, todayPlanItems } = buildDashboardPlan(
     skillSnapshot,
     recentSessions,
-    courseContinuation
+    courseContinuation,
+    weeklyGoal,
+    scoredSessions
   );
 
   return {

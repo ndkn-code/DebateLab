@@ -194,9 +194,18 @@
     display: none;
   }
   .dashboard-home-scroll-lock {
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
     overflow-x: hidden !important;
   }
   .dashboard-home-scroll-lock::-webkit-scrollbar:horizontal {
+    display: none;
+    height: 0;
+  }
+  .dashboard-home-scroll-lock * {
+    overscroll-behavior-x: none;
+  }
+  .dashboard-home-scroll-lock *::-webkit-scrollbar:horizontal {
     display: none;
     height: 0;
   }

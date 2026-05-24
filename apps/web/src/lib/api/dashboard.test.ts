@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 
-import { DASHBOARD_SKILL_ORDER, type DailyStatEntry } from "@thinkfy/shared/dashboard";
+import {
+  DASHBOARD_SKILL_ORDER,
+  type DailyStatEntry,
+  type DashboardGoalSummary,
+  type DashboardSkillKey,
+  type DashboardSkillSnapshot,
+} from "@thinkfy/shared/dashboard";
+import type { DebateScore, PracticeTrack } from "@/types/feedback";
 
-import { buildWeeklyGoalSummary } from "./dashboard";
+import { buildWeeklyGoalSummary, selectDashboardImprovementSkill } from "./dashboard";
 
 function stat(minutes: number): DailyStatEntry {
   return {
@@ -15,6 +22,113 @@ function stat(minutes: number): DailyStatEntry {
 
 function profile(preferences: Record<string, unknown>) {
   return { preferences };
+}
+
+function goal(progressPercent: number): DashboardGoalSummary {
+  return {
+    goalMinutes: 100,
+    practicedMinutes: progressPercent,
+    remainingMinutes: Math.max(100 - progressPercent, 0),
+    progressPercent,
+    metGoal: progressPercent >= 100,
+  };
+}
+
+function metric(
+  key: DashboardSkillKey,
+  value: number,
+  coverage = 100
+): DashboardSkillSnapshot["metrics"][number] {
+  return {
+    key,
+    rawValue: value,
+    challengeAdjustedValue: value,
+    value,
+    effectiveSessions: coverage >= 100 ? 3 : coverage / 100,
+    coverage,
+  };
+}
+
+function snapshot(
+  overrides: Partial<Record<DashboardSkillKey, { value: number; coverage?: number }>>
+): DashboardSkillSnapshot {
+  const metrics = DASHBOARD_SKILL_ORDER.map((key) => {
+    const entry = overrides[key] ?? { value: 80 };
+    return metric(key, entry.value, entry.coverage ?? 100);
+  });
+  const covered = metrics.filter((entry) => entry.coverage > 0);
+  const sorted = [...covered].sort((left, right) => left.value - right.value);
+
+  return {
+    metrics,
+    overallScore: null,
+    weakestSkill: sorted[0]?.key ?? null,
+    strongestSkill: sorted[sorted.length - 1]?.key ?? null,
+    sourceSessions: 3,
+    confidence: 100,
+    trackBreakdown: { speaking: 1, debate: 2 },
+    difficultyBreakdown: {
+      topic: { beginner: 0, intermediate: 3, advanced: 0 },
+      ai: { easy: 0, medium: 2, hard: 0, none: 1 },
+    },
+  };
+}
+
+function feedback(params: {
+  track?: PracticeTrack;
+  clarity?: number;
+  logic?: number;
+  rebuttal?: number;
+  evidence?: number;
+  delivery?: number;
+}): DebateScore {
+  const delivery = params.delivery ?? 8;
+
+  return {
+    content: {
+      score: 8,
+      claimClarity: params.clarity ?? 8,
+      evidenceSupport: params.evidence ?? 8,
+      logicCoherence: params.logic ?? 8,
+      counterArgument: params.rebuttal ?? 8,
+    },
+    structure: {
+      score: 8,
+      introduction: 8,
+      bodyOrganization: 8,
+      conclusion: 8,
+    },
+    language: {
+      score: 8,
+      vocabulary: delivery,
+      grammar: Math.min(9, delivery),
+      fluency: delivery,
+    },
+    persuasion: {
+      score: 8,
+      audienceAwareness: 8,
+      impactfulness: 8,
+    },
+    totalScore: 80,
+    overallBand: "Competent",
+    summary: "Test score",
+    strengths: [],
+    improvements: [],
+    sampleArguments: [],
+    practiceTrack: params.track,
+    detailedFeedback: {
+      contentFeedback: "",
+      structureFeedback: "",
+      languageFeedback: "",
+      persuasionFeedback: "",
+    },
+  };
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
 }
 
 {
@@ -64,6 +178,85 @@ function profile(preferences: Record<string, unknown>) {
   assert.equal(summary.remainingMinutes, 55);
   assert.equal(summary.progressPercent, 45);
   assert.equal(summary.metGoal, false);
+}
+
+{
+  const selected = selectDashboardImprovementSkill(
+    snapshot({
+      clarity: { value: 30, coverage: 10 },
+      evidence: { value: 65, coverage: 100 },
+    }),
+    [],
+    goal(40)
+  );
+
+  assert.equal(selected?.key, "evidence");
+}
+
+{
+  const selected = selectDashboardImprovementSkill(
+    snapshot({
+      rebuttal: { value: 62 },
+      evidence: { value: 64 },
+      logic: { value: 74 },
+    }),
+    [
+      {
+        feedback: feedback({ track: "debate", rebuttal: 3, evidence: 8 }),
+        created_at: daysAgo(1),
+      },
+      {
+        feedback: feedback({ track: "debate", rebuttal: 4, evidence: 8 }),
+        created_at: daysAgo(3),
+      },
+      {
+        feedback: feedback({ track: "debate", rebuttal: 4, evidence: 8 }),
+        created_at: daysAgo(5),
+      },
+    ],
+    goal(55)
+  );
+
+  assert.equal(selected?.key, "evidence");
+}
+
+{
+  const selected = selectDashboardImprovementSkill(
+    snapshot({
+      rebuttal: { value: 45 },
+      evidence: { value: 69 },
+    }),
+    [
+      {
+        feedback: feedback({ track: "debate", rebuttal: 3, evidence: 8 }),
+        created_at: daysAgo(1),
+      },
+      {
+        feedback: feedback({ track: "debate", rebuttal: 4, evidence: 8 }),
+        created_at: daysAgo(3),
+      },
+      {
+        feedback: feedback({ track: "debate", rebuttal: 4, evidence: 8 }),
+        created_at: daysAgo(5),
+      },
+    ],
+    goal(55)
+  );
+
+  assert.equal(selected?.key, "rebuttal");
+}
+
+{
+  const skillSnapshot = snapshot({
+    logic: { value: 70 },
+    evidence: { value: 82 },
+  });
+  const behindGoal = selectDashboardImprovementSkill(skillSnapshot, [], goal(15));
+  const metGoal = selectDashboardImprovementSkill(skillSnapshot, [], goal(100));
+
+  assert.equal(behindGoal?.key, "logic");
+  assert.equal(metGoal?.key, "logic");
+  assert.ok((behindGoal?.score ?? 0) > (metGoal?.score ?? 0));
 }
 
 assert.deepEqual(DASHBOARD_SKILL_ORDER, [
