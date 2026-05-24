@@ -65,6 +65,12 @@
   --color-surface-container-highest: #dee8f8;
   --color-surface-container-lowest: #ffffff;
 
+  --color-sidebar: #0b1424;
+  --color-sidebar-soft: #162033;
+  --color-sidebar-foreground: #ffffff;
+  --color-sidebar-muted: #a9c6fb;
+  --color-sidebar-accent: #4d86f7;
+
   --color-on-surface: #162033;
   --color-on-surface-variant: #415069;
   --color-on-background: #162033;

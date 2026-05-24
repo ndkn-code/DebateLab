@@ -284,6 +284,11 @@
       "settings": "Settings",
       "switchToAdmin": "Switch to Administration",
       "adminShort": "Admin",
+      "debate_mode": "Debate mode",
+      "vietnamese_debate": "Vietnamese Debate",
+      "english_debate": "English Debate",
+      "switching_debate_mode": "Switching...",
+      "debate_mode_save_error": "Could not switch debate mode. Please try again.",
       "speaking": "Speaking Practice",
       "debate": "Debate Practice",
       "coach": "AI Coach",
@@ -1281,7 +1286,7 @@
       },
       "language": {
         "title": "Language",
-        "description": "Choose the app language you want to use right now and save for later."
+        "description": "The sidebar debate switcher is the fastest way to move between Vietnamese and English. Use this page for account-level language defaults."
       },
       "voice": {
         "title": "AI Voice",
@@ -1329,7 +1334,7 @@
       "vi": "Vietnamese practice"
     },
     "language_switching": "Switching language...",
-    "language_hint": "Language changes apply immediately, and saving this page remembers your preferred locale.",
+    "language_hint": "Use the sidebar debate switcher for quick changes. Saving here remembers your preferred default.",
     "practice_language_hint": "This controls speech recognition, AI voice, rebuttals, and feedback language during practice.",
     "toggles": {
       "detailed_feedback": {

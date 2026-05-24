@@ -18,10 +18,12 @@ import {
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
+import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
 import { cn } from "@/lib/utils";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import type { Profile } from "@/types/database";
+import type { AppLocale } from "@/lib/locale-switch";
 
 const NAV_ICONS = {
   dashboard: Home,
@@ -40,6 +42,7 @@ interface DashboardSidebarRailProps {
   isAdmin: boolean;
   profile: Profile | null;
   userEmail: string | null;
+  currentLocale: AppLocale;
 }
 
 export function DashboardSidebarRail({
@@ -49,6 +52,7 @@ export function DashboardSidebarRail({
   isAdmin,
   profile,
   userEmail,
+  currentLocale,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
@@ -92,10 +96,18 @@ export function DashboardSidebarRail({
   };
 
   return (
-    <aside className="hidden h-full w-55 shrink-0 overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest lg:flex lg:flex-col">
-      <div className="flex h-14 shrink-0 items-center border-b border-outline-variant/10 px-4">
+    <aside className="hidden h-full w-55 shrink-0 overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex md:flex-col">
+      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-muted/15 px-4">
         <LogoMark
           size="sm"
+          variant="dark"
+        />
+      </div>
+
+      <div className="px-2 pt-3">
+        <DebateModeSwitcher
+          variant="sidebar"
+          currentLocale={currentLocale}
         />
       </div>
 
@@ -113,14 +125,14 @@ export function DashboardSidebarRail({
                 <span className="truncate">{tNav(item.key)}</span>
               </span>
               {isUnavailable ? (
-                <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-container px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+                <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-muted/75">
                   <Lock className="h-3 w-3" />
                   {t("coming_soon")}
                 </span>
               ) : (
                 <span
                   className={cn(
-                    "h-6 w-1 rounded-full bg-primary transition-opacity",
+                    "h-6 w-1 rounded-full bg-sidebar-muted transition-opacity",
                     isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
                   )}
                 />
@@ -133,7 +145,7 @@ export function DashboardSidebarRail({
               <div
                 key={item.key}
                 aria-disabled="true"
-                className="flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium text-on-surface-variant/65 opacity-75"
+                className="flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75"
               >
                 {content}
               </div>
@@ -147,8 +159,8 @@ export function DashboardSidebarRail({
               className={cn(
                 "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)]"
-                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
+                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
               )}
             >
               {content}
@@ -157,7 +169,7 @@ export function DashboardSidebarRail({
         })}
       </nav>
 
-      <div className="shrink-0 border-t border-outline-variant/10 p-2">
+      <div className="shrink-0 border-t border-sidebar-muted/15 p-2">
         <div className="space-y-1">
           <button
             type="button"
@@ -169,10 +181,10 @@ export function DashboardSidebarRail({
               setCopied(true);
               window.setTimeout(() => setCopied(false), 1800);
             }}
-            className="flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="flex min-w-0 items-center gap-3">
-              <Gift className="h-5 w-5 shrink-0 text-primary" />
+              <Gift className="h-5 w-5 shrink-0 text-sidebar-muted" />
               <span className="truncate">
                 {copied
                   ? t("referral_copied")
@@ -184,7 +196,7 @@ export function DashboardSidebarRail({
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="flex h-8 items-center gap-3 rounded-lg bg-primary/10 px-2 text-sm font-semibold text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)] transition-colors hover:bg-primary/15"
+              className="flex h-8 items-center gap-3 rounded-lg bg-white/[0.12] px-2 text-sm font-semibold text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] transition-colors hover:bg-white/[0.16]"
             >
               <Shield className="h-5 w-5 shrink-0" />
               <span>{tNav("adminShort")}</span>
@@ -192,12 +204,16 @@ export function DashboardSidebarRail({
           ) : null}
           <Link
             href="/settings"
-            className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+            className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground"
           >
             <Settings className="h-5 w-5 shrink-0" />
             <span className="truncate">{t("settings_label")}</span>
           </Link>
-          <SupportIssueDialog profile={profile} userEmail={userEmail} />
+          <SupportIssueDialog
+            profile={profile}
+            userEmail={userEmail}
+            triggerClassName="text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+          />
         </div>
       </div>
     </aside>

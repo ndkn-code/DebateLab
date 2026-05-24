@@ -9,6 +9,10 @@ import {
 } from "./tts-voices";
 import { normalizeSettingsPreferences } from "./settings";
 import { buildPracticeHref, readPracticePrefill } from "./practice-prefill";
+import {
+  buildLocaleSwitchPath,
+  buildLocalizedLocaleSwitchHref,
+} from "./locale-switch";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
 import { buildCoachStarterPrompts } from "./coach-starter-prompts";
 import { filterSessionsByPracticeLanguage } from "./storage";
@@ -37,8 +41,25 @@ const href = buildPracticeHref({
   side: "proposition",
 });
 const parsedPrefill = readPracticePrefill(new URLSearchParams(href.split("?")[1]));
-assert.equal(parsedPrefill?.practiceLanguage, "vi");
+assert.equal(new URL(href, "https://thinkfy.test").searchParams.has("language"), false);
+assert.equal(parsedPrefill?.practiceLanguage, undefined);
 assert.equal(parsedPrefill?.practiceTrack, "debate");
+
+assert.equal(
+  buildLocaleSwitchPath(
+    "/practice",
+    new URLSearchParams("language=vi&track=debate&topicId=tech-03")
+  ),
+  "/practice?track=debate&topicId=tech-03"
+);
+assert.equal(
+  buildLocalizedLocaleSwitchHref(
+    "/vi/practice",
+    "en",
+    new URLSearchParams("language=en&topicId=tech-03")
+  ),
+  "/en/practice?topicId=tech-03"
+);
 
 const viSpeakingPrompt = buildAnalysisPrompt({
   transcript:

@@ -13,6 +13,7 @@ import type {
   PracticeLanguage,
   PracticeTrack,
 } from "@/types";
+import { buildLocalizedLocaleSwitchHref } from "@/lib/locale-switch";
 
 export type PracticeMode = "quick" | "full";
 export type PracticeSide = "proposition" | "opposition" | "random";
@@ -230,19 +231,15 @@ export function buildLegacyPracticeLanguageRedirect(
   const nextParams = new URLSearchParams(searchParams.toString());
   nextParams.delete("language");
 
-  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  const pathWithoutLocale =
-    normalizedPathname.replace(/^\/(en|vi)(?=\/|$)/, "") || "/";
-  const pathSuffix = nextParams.toString() ? `?${nextParams.toString()}` : "";
-  const finalPath =
-    legacyLanguage === "en"
-      ? `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`
-      : pathWithoutLocale;
-  const switchPath = `/${legacyLanguage}${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`;
+  const finalHref = buildLocalizedLocaleSwitchHref(
+    pathname,
+    legacyLanguage,
+    nextParams
+  );
 
   return {
-    finalHref: `${finalPath}${pathSuffix}`,
-    switchHref: `${switchPath}${pathSuffix}`,
+    finalHref,
+    switchHref: finalHref,
   };
 }
 
@@ -264,10 +261,6 @@ export function buildPracticeHref(prefill: PracticePrefill) {
 
   if (prefill.practiceTrack) {
     searchParams.set("track", prefill.practiceTrack);
-  }
-
-  if (prefill.practiceLanguage) {
-    searchParams.set("language", prefill.practiceLanguage);
   }
 
   if (prefill.mode) {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   BarChart3,
   LayoutDashboard,
@@ -39,9 +39,11 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
+import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
+import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 const NAV_ITEMS = [
@@ -64,12 +66,14 @@ function NavContent({
   userEmail,
   onSignOut,
   onNavClick,
+  currentLocale,
 }: {
   collapsed: boolean;
   profile: SidebarProps["profile"];
   userEmail: SidebarProps["userEmail"];
   onSignOut: () => void;
   onNavClick?: () => void;
+  currentLocale: AppLocale;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -91,24 +95,37 @@ function NavContent({
       {/* Logo */}
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center border-b border-outline-variant/10 px-4",
+          "flex h-14 shrink-0 items-center border-b border-sidebar-muted/15 px-4",
           collapsed ? "justify-center" : "gap-2"
         )}
       >
-        <LogoMark size={collapsed ? "icon" : "sm"} markOnly={collapsed} />
+        <LogoMark
+          size={collapsed ? "icon" : "sm"}
+          markOnly={collapsed}
+          variant="dark"
+        />
       </div>
+
+      {!collapsed ? (
+        <div className="px-2 pt-3">
+          <DebateModeSwitcher
+            variant="sidebar"
+            currentLocale={currentLocale}
+          />
+        </div>
+      ) : null}
 
       {/* Credit Balance */}
       {profile?.orb_balance !== undefined && (
         <div
           className={cn(
-            "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-[#F5B942]/20 bg-[#FFF8E8] px-3 py-2",
+            "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-warning/25 bg-white/[0.08] px-3 py-2 text-sidebar-foreground",
             collapsed && "justify-center px-2"
           )}
         >
           <OrbBalance balance={profile.orb_balance} size="sm" />
           {!collapsed && (
-            <span className="text-xs text-on-surface-variant">Credits</span>
+            <span className="text-xs text-sidebar-muted">Credits</span>
           )}
         </div>
       )}
@@ -131,7 +148,7 @@ function NavContent({
                 <>
                   <span className="truncate">{label}</span>
                   {isUnavailable ? (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-container px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-muted/75">
                       <Lock className="h-3 w-3" />
                       {ts("coming_soon")}
                     </span>
@@ -147,7 +164,7 @@ function NavContent({
                 key={item.href}
                 aria-disabled="true"
                 className={cn(
-                  "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant/65 opacity-75",
+                  "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75",
                   collapsed && "justify-center px-0"
                 )}
                 title={collapsed ? `${label} - ${ts("coming_soon")}` : undefined}
@@ -166,8 +183,8 @@ function NavContent({
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 collapsed && "justify-center px-0",
                 isActive
-                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.12)]"
-                  : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
+                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
               )}
               title={collapsed ? label : undefined}
             >
@@ -178,14 +195,18 @@ function NavContent({
       </nav>
 
       {/* User section */}
-      <div className="shrink-0 space-y-1 border-t border-outline-variant/10 p-2">
+      <div className="shrink-0 space-y-1 border-t border-sidebar-muted/15 p-2">
         {!collapsed ? (
-          <SupportIssueDialog profile={profile} userEmail={userEmail} />
+          <SupportIssueDialog
+            profile={profile}
+            userEmail={userEmail}
+            triggerClassName="text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+          />
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-surface-container",
+              "flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-white/[0.08]",
               collapsed && "justify-center px-0"
             )}
           >
@@ -199,10 +220,10 @@ function NavContent({
             </Avatar>
             {!collapsed && (
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-medium text-on-surface">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {displayName}
                 </p>
-                <p className="truncate text-xs text-on-surface-variant">
+                <p className="truncate text-xs text-sidebar-muted/75">
                   {profile?.role ?? ts("student")}
                 </p>
               </div>
@@ -239,6 +260,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const currentLocale = coerceAppLocale(useLocale());
   const tc = useTranslations('common');
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isAdmin = profile?.role === "admin";
@@ -279,11 +301,12 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           isAdmin={isAdmin}
           profile={profile}
           userEmail={userEmail}
+          currentLocale={currentLocale}
         />
       ) : (
         <aside
           className={cn(
-            "hidden h-full shrink-0 flex-col overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest transition-all duration-200 md:flex",
+            "relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
             collapsed ? "w-16" : "w-55"
           )}
         >
@@ -292,11 +315,12 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             profile={profile}
             userEmail={userEmail}
             onSignOut={handleSignOut}
+            currentLocale={currentLocale}
           />
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="absolute right-2 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container"
+            className="absolute right-2 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-muted/20 bg-white/[0.08] text-sidebar-muted shadow-sm transition-colors hover:bg-white/[0.12] hover:text-sidebar-foreground"
           >
             <ChevronLeft
               className={cn(
@@ -309,29 +333,35 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       )}
 
       {/* Mobile top bar + sheet */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">
+      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
         <Sheet>
           <SheetTrigger
             aria-label={tc("navigation")}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-foreground"
           >
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-55 p-0" showCloseButton={false}>
+          <SheetContent
+            side="left"
+            className="w-55 border-sidebar-muted/15 bg-sidebar p-0 text-sidebar-foreground"
+            showCloseButton={false}
+          >
             <SheetTitle className="sr-only">{tc('navigation')}</SheetTitle>
             <NavContent
               collapsed={false}
               profile={profile}
               userEmail={userEmail}
               onSignOut={handleSignOut}
+              currentLocale={currentLocale}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}
             />
           </SheetContent>
         </Sheet>
-        <LogoMark size="sm" />
-        <div className="ml-auto">
+        <LogoMark size="icon" markOnly variant="dark" />
+        <DebateModeSwitcher variant="mobile" currentLocale={currentLocale} />
+        <div className="shrink-0">
           <Avatar size="sm">
             {profile?.avatar_url && (
               <AvatarImage src={profile.avatar_url} alt="User" />

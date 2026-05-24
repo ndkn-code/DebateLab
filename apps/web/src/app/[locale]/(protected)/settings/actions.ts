@@ -39,6 +39,10 @@ const SETTINGS_REVALIDATE_PATHS = [
   "/en/practice",
   "/chat",
   "/en/chat",
+  "/courses",
+  "/en/courses",
+  "/debates",
+  "/en/debates",
 ] as const;
 
 interface ActivityLogRow {
@@ -453,6 +457,56 @@ export async function saveSettings(input: SettingsDraft) {
       currentLocale: draft.preferredLocale,
     }),
   };
+}
+
+export async function saveDebateModePreference(nextLocaleInput: SettingsLocale) {
+  const locale = getSupportedLocale(nextLocaleInput);
+  const practiceLanguage = coercePracticeLanguage(locale);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
+
+  if (!user && !devAuthBypassUser) {
+    throw new Error("Not authenticated");
+  }
+
+  if (!user && devAuthBypassUser) {
+    revalidateSettingsRoutes();
+    return { preferredLocale: locale, practiceLanguage };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("preferences")
+    .eq("id", user!.id)
+    .single();
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  const preferences = {
+    ...((profile?.preferences as Record<string, unknown> | null | undefined) ??
+      {}),
+    preferred_locale: locale,
+    practice_language: practiceLanguage,
+  };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ preferences })
+    .eq("id", user!.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateSettingsRoutes();
+  return { preferredLocale: locale, practiceLanguage };
 }
 
 export async function clearSoloPracticeHistory() {

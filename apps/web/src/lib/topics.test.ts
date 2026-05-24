@@ -96,7 +96,8 @@ const href = buildPracticeHref({
 });
 const parsedPrefill = readPracticePrefill(new URLSearchParams(href.split("?")[1]));
 assert.equal(parsedPrefill?.topicId, "tech-03");
-assert.equal(parsedPrefill?.practiceLanguage, "vi");
+assert.equal(new URL(href, "https://thinkfy.test").searchParams.has("language"), false);
+assert.equal(parsedPrefill?.practiceLanguage, undefined);
 
 assert.deepEqual(
   buildLegacyPracticeLanguageRedirect(
@@ -116,7 +117,7 @@ assert.deepEqual(
     new URLSearchParams("language=vi&topicId=tech-03")
   ),
   {
-    finalHref: "/practice?topicId=tech-03",
+    finalHref: "/vi/practice?topicId=tech-03",
     switchHref: "/vi/practice?topicId=tech-03",
   }
 );
