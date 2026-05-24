@@ -96,8 +96,10 @@ export function DashboardSidebarRail({
   };
 
   return (
-    <aside className="hidden h-full w-55 shrink-0 overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex md:flex-col">
-      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-muted/15 px-4">
+    <>
+      <div aria-hidden="true" className="hidden h-dvh w-55 shrink-0 md:block" />
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-55 shrink-0 overflow-hidden overscroll-none border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex md:flex-col">
+      <div className="flex h-14 shrink-0 items-center px-4">
         <LogoMark
           size="sm"
           variant="dark"
@@ -111,7 +113,7 @@ export function DashboardSidebarRail({
         />
       </div>
 
-      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-hidden overscroll-none px-2 py-3">
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.key];
           const href = item.href;
@@ -162,7 +164,7 @@ export function DashboardSidebarRail({
         })}
       </nav>
 
-      <div className="shrink-0 border-t border-sidebar-muted/15 p-2">
+      <div className="shrink-0 p-2">
         <div className="space-y-1">
           <button
             type="button"
@@ -209,6 +211,7 @@ export function DashboardSidebarRail({
           />
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -95,7 +95,7 @@ function NavContent({
       {/* Logo */}
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center border-b border-sidebar-muted/15 px-4",
+          "flex h-14 shrink-0 items-center px-4",
           collapsed ? "justify-center" : "gap-2"
         )}
       >
@@ -131,7 +131,7 @@ function NavContent({
       )}
 
       {/* Nav Links */}
-      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
+      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -195,7 +195,7 @@ function NavContent({
       </nav>
 
       {/* User section */}
-      <div className="shrink-0 space-y-1 border-t border-sidebar-muted/15 p-2">
+      <div className="shrink-0 space-y-1 p-2">
         {!collapsed ? (
           <SupportIssueDialog
             profile={profile}
@@ -306,7 +306,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       ) : (
         <aside
           className={cn(
-            "relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
+            "relative hidden h-dvh shrink-0 self-start flex-col overflow-hidden overscroll-none border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground transition-all duration-200 md:sticky md:top-0 md:flex",
             collapsed ? "w-16" : "w-55"
           )}
         >
