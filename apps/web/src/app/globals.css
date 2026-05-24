@@ -193,6 +193,13 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .dashboard-home-scroll-lock {
+    overflow-x: hidden !important;
+  }
+  .dashboard-home-scroll-lock::-webkit-scrollbar:horizontal {
+    display: none;
+    height: 0;
+  }
   .glass-nav {
     background: rgba(255, 255, 255, 0.84);
     backdrop-filter: blur(12px);

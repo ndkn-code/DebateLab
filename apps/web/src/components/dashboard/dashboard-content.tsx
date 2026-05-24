@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowRight,
   BookOpen,
@@ -283,8 +283,10 @@ function UtilityChip({
 }
 
 function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
+  const locale = useLocale();
   const t = useTranslations("dashboard.home");
   const Icon = TASK_ICONS[drill.key];
+  const isVietnamese = locale === "vi";
   const targetLabel = drill.skillKey
     ? t("recommended_meta_target_skill", {
         skill: t(`skill_labels.${drill.skillKey}`),
@@ -310,7 +312,12 @@ function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
 
       <h1
         data-testid="dashboard-daily-focus-title"
-        className="mt-4 max-w-[8.8ch] text-[2.85rem] font-bold leading-[0.98] text-[#0B1424] sm:text-[3.45rem] lg:max-w-[13ch] lg:text-[3.8rem] xl:text-[4rem]"
+        className={cn(
+          "mt-4 font-bold text-[#0B1424]",
+          isVietnamese
+            ? "max-w-[11ch] text-[2.65rem] leading-[1.04] sm:max-w-[12ch] sm:text-[3rem] lg:max-w-[420px] lg:text-[3.25rem] xl:text-[3.35rem]"
+            : "max-w-[8.8ch] text-[2.85rem] leading-[0.98] sm:text-[3.45rem] lg:max-w-[13ch] lg:text-[3.8rem] xl:text-[4rem]"
+        )}
       >
         {getPlanTitle(drill, t)}
       </h1>
@@ -517,7 +524,7 @@ function TrainingMap({
     <section
       data-testid="dashboard-training-map"
       aria-labelledby="dashboard-training-map-heading"
-      className="relative mt-2"
+      className="relative mt-8 lg:mt-6"
     >
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <h2
@@ -779,12 +786,29 @@ interface DashboardContentProps {
   showWelcome: boolean;
 }
 
+function useDashboardScrollLock() {
+  useEffect(() => {
+    const root = document.querySelector("[data-dashboard-home]");
+    const main = root?.closest("main");
+
+    if (!main) return;
+
+    main.classList.add("dashboard-home-scroll-lock");
+
+    return () => {
+      main.classList.remove("dashboard-home-scroll-lock");
+    };
+  }, []);
+}
+
 export function DashboardContent({
   data,
   displayName,
   userId,
   showWelcome,
 }: DashboardContentProps) {
+  useDashboardScrollLock();
+
   const t = useTranslations("dashboard.home");
   const topBar = data.topBar;
   const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
@@ -793,7 +817,7 @@ export function DashboardContent({
 
   return (
     <>
-      <PageTransition className="min-h-full bg-background">
+      <PageTransition data-dashboard-home className="min-h-full bg-background">
         <ProductPageShell className="overflow-x-hidden">
           <PageContainer size="wide" className="flex flex-col py-4 pb-32 lg:py-5 lg:pb-36">
           <div className="flex flex-wrap items-center justify-between gap-3 text-on-surface">
