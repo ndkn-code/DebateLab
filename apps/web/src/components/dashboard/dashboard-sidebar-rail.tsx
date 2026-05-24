@@ -129,14 +129,7 @@ export function DashboardSidebarRail({
                   <Lock className="h-3 w-3" />
                   {t("coming_soon")}
                 </span>
-              ) : (
-                <span
-                  className={cn(
-                    "h-6 w-1 rounded-full bg-sidebar-muted transition-opacity",
-                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-20"
-                  )}
-                />
-              )}
+              ) : null}
             </>
           );
 

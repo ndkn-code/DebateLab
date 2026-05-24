@@ -425,10 +425,11 @@ export default function PracticePage({
       <div
         className={cn(
           "relative flex flex-col gap-5",
-          selectedDisplay && "2xl:flex-row 2xl:items-start 2xl:gap-6"
+          selectedDisplay &&
+            "xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-6"
         )}
       >
-        <section className="min-w-0 flex-1 2xl:max-w-[760px]">
+        <section className="min-w-0 flex-1">
           <div className="relative min-h-[88px] lg:static">
             <div className="max-w-[620px] pt-1">
               <h1 className="text-[1.75rem] font-semibold leading-[1.15] text-on-surface md:text-[1.9rem]">
@@ -601,7 +602,7 @@ export default function PracticePage({
                 duration: 0.28,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="w-full 2xl:w-[360px] 2xl:flex-none 2xl:pt-[100px]"
+              className="w-full xl:w-[380px] xl:pt-[100px]"
             >
               <SessionConfig
                 topic={selectedDisplay.topic}
