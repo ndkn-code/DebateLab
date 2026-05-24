@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import type { PracticeTrack } from "@/types/feedback";
 
 const CREDIT_COSTS: Record<PracticeTrack, number> = {
@@ -13,9 +15,17 @@ export async function deductOrbsAction(practiceTrack: PracticeTrack) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, newBalance: 0, error: "Not authenticated" };
 
   const cost = CREDIT_COSTS[practiceTrack];
+  const devAuthBypassUser = user ? null : await getDevAuthBypassUserFromServerContext();
+  if (!user && (devAuthBypassUser || isDevAdminBypassEnabled())) {
+    return {
+      success: true,
+      newBalance: Math.max(0, (DEV_ADMIN_PROFILE.orb_balance ?? 0) - cost),
+    };
+  }
+
+  if (!user) return { success: false, newBalance: 0, error: "Not authenticated" };
 
   // Check balance
   const { data: profile } = await supabase
@@ -50,6 +60,11 @@ export async function getOrbBalanceAction() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const devAuthBypassUser = user ? null : await getDevAuthBypassUserFromServerContext();
+  if (!user && (devAuthBypassUser || isDevAdminBypassEnabled())) {
+    return DEV_ADMIN_PROFILE.orb_balance ?? 0;
+  }
+
   if (!user) return 0;
 
   const { data } = await supabase

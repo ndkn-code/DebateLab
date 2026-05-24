@@ -96,6 +96,7 @@ export interface CompletedPracticeAnalysis {
   feedback: DebateScore;
   modelName: string;
   legacySessionId: string | null;
+  aiQualityRunId?: string | null;
 }
 
 export interface PracticeAnalysisJobResponse {
@@ -106,6 +107,7 @@ export interface PracticeAnalysisJobResponse {
   feedback: DebateScore | null;
   modelName: string | null;
   legacySessionId: string | null;
+  aiQualityRunId: string | null;
   error: string | null;
 }
 

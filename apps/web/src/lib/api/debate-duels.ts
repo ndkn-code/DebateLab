@@ -3,6 +3,14 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { judgeDebateDuel } from "@/lib/gemini";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import { recordAiQualityRun } from "@/lib/ai/quality";
+import {
+  getDuelJudgeProvider,
+  getProviderLabel,
+  getProviderModelName,
+} from "@/lib/ai/provider-selection";
+import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import {
   DUEL_ENTRY_COST,
   DUEL_XP_REWARD,
@@ -886,48 +894,117 @@ async function judgeAndFinalizeDebateDuel(
       .map((participant) => [participant.role as DebateDuelSide, participant])
   );
 
-  const judgment = await judgeDebateDuel({
-    motion: duel.topic_title,
-    topicCategory: duel.topic_category,
-    practiceLanguage: coercePracticeLanguage(duel.practice_language),
-    participants: {
-      proposition: {
-        participantId: participantBySide.get("proposition")?.id ?? null,
-        displayName:
-          participantBySide.get("proposition")?.displayName ?? "Proposition",
+  const writeClient = tryCreateAdminClient() ?? supabase;
+  const judgeStartedAt = Date.now();
+  let telemetry: AiQualityTelemetry | null = null;
+  let judgment: DebateDuelJudgment;
+  try {
+    judgment = await judgeDebateDuel({
+      motion: duel.topic_title,
+      topicCategory: duel.topic_category,
+      practiceLanguage: coercePracticeLanguage(duel.practice_language),
+      participants: {
+        proposition: {
+          participantId: participantBySide.get("proposition")?.id ?? null,
+          displayName:
+            participantBySide.get("proposition")?.displayName ?? "Proposition",
+        },
+        opposition: {
+          participantId: participantBySide.get("opposition")?.id ?? null,
+          displayName:
+            participantBySide.get("opposition")?.displayName ?? "Opposition",
+        },
       },
-      opposition: {
-        participantId: participantBySide.get("opposition")?.id ?? null,
-        displayName:
-          participantBySide.get("opposition")?.displayName ?? "Opposition",
+      speeches: orderedSpeeches.map((speech) => ({
+        id: speech.id,
+        roundNumber: speech.roundNumber,
+        speechType: speech.speechType,
+        side: speech.side,
+        label:
+          speech.roundNumber === 1
+            ? "Proposition Opening"
+            : speech.roundNumber === 2
+              ? "Opposition Opening"
+              : speech.roundNumber === 3
+                ? "Proposition Rebuttal"
+                : "Opposition Rebuttal",
+        transcript: speech.transcript,
+        durationSeconds: speech.durationSeconds,
+        qualityFlags:
+          speech.transcript.trim().split(/\s+/).filter(Boolean).length < 20
+            ? ["short_transcript"]
+            : [],
+      })),
+    }, duel.creator_id, (nextTelemetry) => {
+      telemetry = nextTelemetry;
+    });
+  } catch (error) {
+    const provider = getDuelJudgeProvider();
+    await recordAiQualityRun(writeClient, {
+      userId: duel.creator_id,
+      outputType: "duel_judging",
+      status: "error",
+      sourceRoute: "/api/debate-duels/[shareCode]/speeches/[roundNumber]",
+      provider: getProviderLabel(provider),
+      requestedProvider: getProviderLabel(provider),
+      model: getProviderModelName(provider),
+      practiceTrack: "debate",
+      practiceLanguage: coercePracticeLanguage(duel.practice_language),
+      difficulty: duel.topic_difficulty,
+      debateFormat: "duel",
+      topicTitle: duel.topic_title,
+      latencyMs: Date.now() - judgeStartedAt,
+      errorCode: "DUEL_JUDGING_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      inputPreview: orderedSpeeches
+        .map((speech) => `${speech.side} ${speech.speechType}: ${speech.transcript}`)
+        .join("\n\n"),
+      debateDuelId: duelId,
+      metadata: {
+        shareCode: duel.share_code,
+        topicCategory: duel.topic_category,
+        duelKind: duel.duel_kind,
+        speechCount: orderedSpeeches.length,
+        participantIds: participants.map((participant) => participant.id),
       },
-    },
-    speeches: orderedSpeeches.map((speech) => ({
-      id: speech.id,
-      roundNumber: speech.roundNumber,
-      speechType: speech.speechType,
-      side: speech.side,
-      label:
-        speech.roundNumber === 1
-          ? "Proposition Opening"
-          : speech.roundNumber === 2
-            ? "Opposition Opening"
-            : speech.roundNumber === 3
-              ? "Proposition Rebuttal"
-              : "Opposition Rebuttal",
-      transcript: speech.transcript,
-      durationSeconds: speech.durationSeconds,
-      qualityFlags:
-        speech.transcript.trim().split(/\s+/).filter(Boolean).length < 20
-          ? ["short_transcript"]
-          : [],
-    })),
-  });
+    }).catch(() => null);
+    throw error;
+  }
 
   const winnerParticipantId =
     judgment.winnerSide === "proposition"
       ? participantBySide.get("proposition")?.id ?? null
       : participantBySide.get("opposition")?.id ?? null;
+
+  const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+  const aiQualityRunId = aiQualityTelemetry
+    ? await recordAiQualityRun(writeClient, {
+        ...aiQualityTelemetry,
+        userId: duel.creator_id,
+        outputType: "duel_judging",
+        sourceRoute: "/api/debate-duels/[shareCode]/speeches/[roundNumber]",
+        practiceTrack: "debate",
+        practiceLanguage: coercePracticeLanguage(duel.practice_language),
+        difficulty: duel.topic_difficulty,
+        debateFormat: "duel",
+        topicTitle: duel.topic_title,
+        winner: judgment.winnerSide,
+        confidence: judgment.confidence,
+        outputText: JSON.stringify(judgment),
+        inputPreview: orderedSpeeches
+          .map((speech) => `${speech.side} ${speech.speechType}: ${speech.transcript}`)
+          .join("\n\n"),
+        debateDuelId: duelId,
+        metadata: {
+          shareCode: duel.share_code,
+          topicCategory: duel.topic_category,
+          duelKind: duel.duel_kind,
+          speechCount: orderedSpeeches.length,
+          participantIds: participants.map((participant) => participant.id),
+        },
+      })
+    : null;
+  judgment.aiQualityRunId = aiQualityRunId;
 
   const { error: insertError } = await supabase.rpc(
     "store_debate_duel_judgment",

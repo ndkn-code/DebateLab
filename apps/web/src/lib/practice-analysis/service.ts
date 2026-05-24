@@ -196,6 +196,10 @@ export async function getAnalysisJobForUser(
     feedback: attemptRecord.feedback,
     modelName: attemptRecord.model_name,
     legacySessionId: attemptRecord.legacy_debate_session_id ?? attemptRecord.id,
+    aiQualityRunId:
+      typeof jobRecord.result?.aiQualityRunId === "string"
+        ? jobRecord.result.aiQualityRunId
+        : null,
     error: jobRecord.error_message ?? attemptRecord.error_message,
   };
 }
@@ -296,6 +300,7 @@ export async function markPracticeAnalysisCompleted(
         result: {
           attemptId: result.attemptId,
           legacySessionId: result.legacySessionId,
+          aiQualityRunId: result.aiQualityRunId ?? null,
           totalScore: feedback.totalScore,
           overallBand: feedback.overallBand,
         },

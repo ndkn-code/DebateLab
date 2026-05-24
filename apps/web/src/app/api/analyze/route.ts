@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeDebate } from "@/lib/gemini";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { recordAiQualityRun } from "@/lib/ai/quality";
+import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
@@ -412,6 +414,7 @@ export async function POST(req: NextRequest) {
       logAnalyzeRequest(requestId, "analysis_started", {
         model: getPracticeFeedbackModelName(practiceTrack || "debate"),
       });
+      let telemetry: AiQualityTelemetry | null = null;
       const feedback = await Promise.race([
         analyzeDebate({
           transcript,
@@ -426,11 +429,49 @@ export async function POST(req: NextRequest) {
           rounds,
           motionBrief,
           debateMemory,
-        }, authUser.id),
+        }, authUser.id, (nextTelemetry) => {
+          telemetry = nextTelemetry;
+        }),
         timeoutPromise,
       ]);
 
       const modelUsed = getPracticeFeedbackModelName(practiceTrack || "debate");
+      const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+      const aiQualityRunId =
+        shouldPersistAnalysis && aiQualityTelemetry
+          ? await recordAiQualityRun(writeClient, {
+              ...aiQualityTelemetry,
+              userId: authUser.id,
+              outputType: "practice_judging",
+              sourceRoute: "/api/analyze",
+              promptBundleKey: durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",
+              promptBundleVersion:
+                durableAnalysis?.attempt.prompt_bundle_version ?? null,
+              promptHash: durableAnalysis?.attempt.prompt_hash ?? null,
+              rubricKey: durableAnalysis?.attempt.rubric_key ?? null,
+              rubricVersion: durableAnalysis?.attempt.rubric_version ?? null,
+              practiceTrack: practiceTrack || "debate",
+              practiceLanguage,
+              difficulty: durableAnalysis?.attempt.ai_difficulty ?? undefined,
+              debateFormat: isFullRound ? "full" : "quick",
+              side,
+              topicTitle: topic,
+              winner: feedback.debateVerdict?.winner ?? null,
+              score: feedback.totalScore,
+              confidence: feedback.debateVerdict?.confidence ?? null,
+              outputText: JSON.stringify(feedback),
+              inputPreview: transcript,
+              practiceAttemptId: durableAnalysis?.attempt.id ?? null,
+              analysisJobId: durableAnalysis?.job.id ?? null,
+              debateSessionId: null,
+              metadata: {
+                debugId: requestId,
+                speechType,
+                isFullRound,
+                roundCount: rounds?.length ?? 0,
+              },
+            })
+          : null;
       if (shouldPersistAnalysis) {
         await recordAnalyticsEvent(supabase, authUser.id, {
           eventName: "ai_feedback_completed",
@@ -454,6 +495,7 @@ export async function POST(req: NextRequest) {
           feedback,
           modelName: modelUsed,
           legacySessionId: null,
+          aiQualityRunId,
         }).catch((error) => {
           console.warn(
             "Failed to complete durable sync analysis record",
@@ -470,8 +512,47 @@ export async function POST(req: NextRequest) {
         _model: modelUsed,
         _attemptId: durableAnalysis?.attempt.id,
         _analysisJobId: durableAnalysis?.job.id,
+        _aiRunId: aiQualityRunId,
       });
     } catch (err) {
+      if (shouldPersistAnalysis) {
+        await recordAiQualityRun(writeClient, {
+          userId: authUser.id,
+          outputType: "practice_judging",
+          status: "error",
+          sourceRoute: "/api/analyze",
+          provider: configuredProvider,
+          requestedProvider: configuredProvider,
+          model: getPracticeFeedbackModelName(practiceTrack || "debate"),
+          promptBundleKey: durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",
+          promptBundleVersion:
+            durableAnalysis?.attempt.prompt_bundle_version ?? null,
+          promptHash: durableAnalysis?.attempt.prompt_hash ?? null,
+          rubricKey: durableAnalysis?.attempt.rubric_key ?? null,
+          rubricVersion: durableAnalysis?.attempt.rubric_version ?? null,
+          practiceTrack: practiceTrack || "debate",
+          practiceLanguage,
+          difficulty: durableAnalysis?.attempt.ai_difficulty ?? undefined,
+          debateFormat: isFullRound ? "full" : "quick",
+          side,
+          topicTitle: topic,
+          latencyMs: Date.now() - startedAt,
+          errorCode:
+            err instanceof Error && err.message === "TIMEOUT"
+              ? "TIMEOUT"
+              : "ANALYSIS_FAILED",
+          errorMessage: err instanceof Error ? err.message : String(err),
+          inputPreview: transcript,
+          practiceAttemptId: durableAnalysis?.attempt.id ?? null,
+          analysisJobId: durableAnalysis?.job.id ?? null,
+          metadata: {
+            debugId: requestId,
+            speechType,
+            isFullRound,
+            roundCount: rounds?.length ?? 0,
+          },
+        }).catch(() => null);
+      }
       if (durableAnalysis) {
         await markPracticeAnalysisFailed(writeClient, {
           jobId: durableAnalysis.job.id,

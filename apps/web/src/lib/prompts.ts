@@ -6,6 +6,12 @@ import {
 import { getDebateFeedbackDepthTarget } from "@/lib/feedback/depth";
 import { formatDebateMemoryForPrompt } from "@/lib/rebuttal/debate-continuity";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
+import {
+  buildFuzzyEvidenceHintBlock,
+  buildTruongTeenDuelJudgingPromptAddendum,
+  buildTruongTeenJudgingPromptAddendum,
+  shouldUseTruongTeenPrompt,
+} from "@/lib/truong-teen/debate-dna";
 import type {
   DebateMemory,
   DebateRound,
@@ -339,6 +345,20 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
   const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
+  const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+    practiceLanguage,
+    practiceTrack: "debate",
+  });
+  const transcriptCorpus = [
+    transcript,
+    ...(rounds?.map((round) => round.transcript || round.aiResponse || "") ?? []),
+  ];
+  const truongTeenJudgingContext = useTruongTeenPrompt
+    ? buildTruongTeenJudgingPromptAddendum()
+    : "";
+  const evidenceHintContext = useTruongTeenPrompt
+    ? buildFuzzyEvidenceHintBlock(transcriptCorpus)
+    : "";
   const resolvedMotionBrief =
     motionBrief ??
     getMotionBrief(
@@ -377,11 +397,13 @@ ${motionBriefContext}
 ${debateMemoryContext}
 ${roundsContext}
 ${languageInstructions}
+${truongTeenJudgingContext}
 
 ## ${isFullRound ? "Combined " : ""}Transcript
 """
 ${transcript}
 """
+${evidenceHintContext}
 
 ## Debate Standard
 Judge from the perspective of an average intelligent person: reward arguments that a thoughtful judge can understand and believe, not only speeches that sound concise or rhetorically polished.
@@ -556,6 +578,16 @@ export function buildDuelJudgmentPrompt(
   const languageInstructions = buildPracticeLanguageInstructions(
     params.practiceLanguage
   );
+  const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+    practiceLanguage: params.practiceLanguage,
+    practiceTrack: "debate",
+  });
+  const truongTeenJudgingContext = useTruongTeenPrompt
+    ? buildTruongTeenDuelJudgingPromptAddendum()
+    : "";
+  const evidenceHintContext = useTruongTeenPrompt
+    ? buildFuzzyEvidenceHintBlock(params.speeches.map((speech) => speech.transcript))
+    : "";
   const speechBlock = params.speeches
     .map(
         (speech) => `### Round ${speech.roundNumber}: ${speech.label}
@@ -591,6 +623,7 @@ ${speech.transcript}
 - Opposition rebuttal
 
 ${languageInstructions}
+${truongTeenJudgingContext}
 
 ## Evaluation Standard
 Judge comparatively, not absolutely.
@@ -620,6 +653,7 @@ Important judging rules:
 
 ## Debate Transcript
 ${speechBlock}
+${evidenceHintContext}
 
 Return a JSON object with this exact structure:
 ${duelJudgmentJsonSchema()}

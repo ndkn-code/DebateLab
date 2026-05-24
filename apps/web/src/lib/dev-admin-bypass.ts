@@ -28,7 +28,7 @@ export const DEV_ADMIN_PROFILE: Profile = {
   unlocked_titles: ["Super Admin"],
   banner_color: "#4d86f7",
   referral_code: null,
-  orb_balance: 0,
+  orb_balance: 600,
   referred_by: null,
   created_at: "2026-05-01T00:00:00.000Z",
   updated_at: "2026-05-01T00:00:00.000Z",

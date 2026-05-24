@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BarChart3,
   BookOpen,
+  BrainCircuit,
   Building2,
   CalendarDays,
   FileText,
@@ -23,6 +24,7 @@ import { Link } from "@/i18n/navigation";
 
 const ADMIN_NAV = [
   { href: "/dashboard/admin/overview", key: "overview" as const, icon: BarChart3 },
+  { href: "/dashboard/admin/ai-quality", key: "aiQuality" as const, icon: BrainCircuit },
   { href: "/dashboard/admin/users", key: "users" as const, icon: Users },
   { href: "/dashboard/admin/classes", key: "classes" as const, icon: CalendarDays },
   { href: "/dashboard/admin/clubs", key: "clubs" as const, icon: Building2 },

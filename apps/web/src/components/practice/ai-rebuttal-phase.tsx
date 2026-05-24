@@ -24,6 +24,7 @@ import {
 } from "./practice-session-ui";
 import { cn } from "@/lib/utils";
 import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-response";
+import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
 import type {
   AiDifficulty,
   AiHighlight,
@@ -178,6 +179,7 @@ export function AiRebuttalPhase({
   const [highlights, setHighlights] = useState<AiHighlight[]>(
     normalizedInitialResponse.highlights
   );
+  const [aiRunId, setAiRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasFetched = useRef(Boolean(normalizedInitialResponse.rebuttal));
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -239,6 +241,7 @@ export function AiRebuttalPhase({
       const data = (await res.json()) as {
         rebuttal: string;
         highlights?: AiHighlight[];
+        _aiRunId?: string | null;
       };
       const normalizedResponse = normalizeStructuredRebuttalResponse(
         data.rebuttal,
@@ -246,6 +249,7 @@ export function AiRebuttalPhase({
       );
       setFullText(normalizedResponse.rebuttal);
       setHighlights(normalizedResponse.highlights);
+      setAiRunId(data._aiRunId ?? null);
       onGenerated?.(
         normalizedResponse.rebuttal,
         normalizedResponse.highlights
@@ -562,6 +566,13 @@ export function AiRebuttalPhase({
           </PrimaryActionButton>
         )}
       </ActionRail>
+      {status === "done" && (
+        <AiQualityRatingWidget
+          runId={aiRunId}
+          outputType="rebuttal"
+          locale={practiceLanguage}
+        />
+      )}
     </div>
   );
 }

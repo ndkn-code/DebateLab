@@ -61,7 +61,7 @@ export function getRebuttalWordTarget(
 }
 
 export function getRebuttalMaxOutputTokens(target: RebuttalWordTarget) {
-  return clamp(Math.ceil(target.max * 2.2), 900, 2600);
+  return clamp(Math.ceil(target.max * 3.4), 900, 5200);
 }
 
 function firstSentence(value: string) {

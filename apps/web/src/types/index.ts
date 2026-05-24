@@ -73,6 +73,8 @@ export type {
   ActivityLog,
   DailyStats,
   ApiUsage,
+  AiQualityRating,
+  AiQualityRun,
   AnalyticsEvent,
   AiInsightsCache,
   AnalysisJobRow,

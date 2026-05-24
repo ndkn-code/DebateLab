@@ -7,6 +7,7 @@ import {
   ListChecks,
   MessageCircle,
   Search,
+  type LucideIcon,
 } from "@/components/ui/icons";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -19,181 +20,11 @@ import {
   QuickNotesEditor,
 } from "./practice-session-ui";
 import { MotionInfoPanel } from "./motion-info-panel";
+import {
+  buildPrepStarterBlock,
+  type PrepStarterKind,
+} from "@/lib/practice-prep-helpers";
 import type { DebateTopic, PracticeTrack } from "@/types";
-
-const EN_TOPIC_STOP_WORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "are",
-  "be",
-  "completely",
-  "does",
-  "for",
-  "good",
-  "harm",
-  "more",
-  "should",
-  "than",
-  "the",
-  "to",
-]);
-
-const VI_TOPIC_STOP_WORDS = new Set([
-  "ban",
-  "cac",
-  "cho",
-  "cua",
-  "gay",
-  "hon",
-  "khi",
-  "la",
-  "loi",
-  "mot",
-  "nen",
-  "nhieu",
-  "thi",
-  "tren",
-  "trong",
-  "voi",
-  "và",
-  "các",
-  "cho",
-  "của",
-  "gây",
-  "hơn",
-  "khi",
-  "là",
-  "lợi",
-  "một",
-  "nên",
-  "nhiều",
-  "thì",
-  "trên",
-  "trong",
-  "với",
-]);
-
-const STARTER_BLOCK_COPY = {
-  en: {
-    keyTerms: "Key terms:",
-    fallbackTerms: ["Key term", "Impact", "Scope"],
-    mainArguments: "Main arguments:",
-    argumentFallback: [
-      "Main claim:",
-      "Why it matters:",
-      "Best example:",
-      "Closing line:",
-    ],
-    counterpoints: "Counterpoints to answer:",
-    counterpointFallback: [
-      "What the other side will say:",
-      "Why that claim is too broad:",
-      "Example that weakens it:",
-    ],
-    evidence: [
-      "Evidence to add:",
-      "- Example:",
-      "- Statistic or trend:",
-      "- Real-world group affected:",
-      "- Source or context:",
-    ],
-  },
-  vi: {
-    keyTerms: "Từ khóa:",
-    fallbackTerms: ["Khái niệm", "Tác động", "Phạm vi"],
-    mainArguments: "Luận điểm chính:",
-    argumentFallback: [
-      "Luận điểm trung tâm:",
-      "Vì sao quan trọng:",
-      "Ví dụ mạnh nhất:",
-      "Câu chốt:",
-    ],
-    counterpoints: "Phản biện cần trả lời:",
-    counterpointFallback: [
-      "Đối phương sẽ nói:",
-      "Vì sao lập luận đó quá rộng:",
-      "Ví dụ làm yếu lập luận:",
-    ],
-    evidence: [
-      "Dẫn chứng cần thêm:",
-      "- Ví dụ:",
-      "- Số liệu hoặc xu hướng:",
-      "- Nhóm chịu ảnh hưởng:",
-      "- Nguồn hoặc bối cảnh:",
-    ],
-  },
-} as const;
-
-function getSuggestedPoints(
-  topic: DebateTopic,
-  side: "proposition" | "opposition"
-) {
-  const points =
-    side === "proposition"
-      ? topic.suggestedPoints?.proposition
-      : topic.suggestedPoints?.opposition;
-
-  return points?.filter(Boolean) ?? [];
-}
-
-function extractTopicTerms(title: string, locale: "en" | "vi") {
-  const stopWords =
-    locale === "vi" ? VI_TOPIC_STOP_WORDS : EN_TOPIC_STOP_WORDS;
-  const minLength = locale === "vi" ? 2 : 3;
-  const words = title
-    .split(/\s+/)
-    .map((word) => word.replace(/[^\p{L}\p{M}-]/gu, "").toLowerCase())
-    .filter((word) => word.length > minLength && !stopWords.has(word));
-
-  return Array.from(new Set(words)).slice(0, 4);
-}
-
-function buildStarterBlock(
-  kind: "terms" | "arguments" | "counterpoints" | "evidence",
-  topic: DebateTopic,
-  side: "proposition" | "opposition",
-  locale: "en" | "vi"
-) {
-  const copy = STARTER_BLOCK_COPY[locale];
-  const ownPoints = getSuggestedPoints(topic, side);
-  const opposingSide = side === "proposition" ? "opposition" : "proposition";
-  const opposingPoints = getSuggestedPoints(topic, opposingSide);
-
-  if (kind === "terms") {
-    const terms = extractTopicTerms(topic.title, locale);
-    const starterTerms = terms.length > 0 ? terms : copy.fallbackTerms;
-
-    return [copy.keyTerms, ...starterTerms.map((term) => `- ${term}: `)].join(
-      "\n"
-    );
-  }
-
-  if (kind === "arguments") {
-    const points =
-      ownPoints.length > 0
-        ? ownPoints.slice(0, 4)
-        : copy.argumentFallback;
-
-    return [copy.mainArguments, ...points.map((point) => `- ${point}`)].join(
-      "\n"
-    );
-  }
-
-  if (kind === "counterpoints") {
-    const points =
-      opposingPoints.length > 0
-        ? opposingPoints.slice(0, 4)
-        : copy.counterpointFallback;
-
-    return [
-      copy.counterpoints,
-      ...points.map((point) => `- ${point}`),
-    ].join("\n");
-  }
-
-  return copy.evidence.join("\n");
-}
 
 interface PrepPhaseProps {
   topic: DebateTopic;
@@ -221,19 +52,24 @@ export function PrepPhase({
 }: PrepPhaseProps) {
   const t = useTranslations("dashboard.practice");
   const locale = useLocale() === "vi" ? "vi" : "en";
-  const helperActions = [
-    { label: t("session.define_key_terms"), icon: Search, kind: "terms" },
-    { label: t("session.list_main_arguments"), icon: ListChecks, kind: "arguments" },
+  const helperActions: Array<{
+    label: string;
+    icon: LucideIcon;
+    kind: PrepStarterKind;
+  }> = [
+    { label: t("session.lock_burden"), icon: Search, kind: "burden" },
+    { label: t("session.create_clash_axes"), icon: MessageCircle, kind: "clash" },
     {
-      label: t("session.anticipate_counterpoints"),
-      icon: MessageCircle,
-      kind: "counterpoints",
+      label: t("session.deepen_mechanism"),
+      icon: ListChecks,
+      kind: "mechanism",
     },
-    { label: t("session.add_evidence"), icon: FileText, kind: "evidence" },
-  ] as const;
+    { label: t("session.weigh_impacts"), icon: FileText, kind: "weighing" },
+    { label: t("session.polish_style"), icon: Lightbulb, kind: "rhetoric" },
+  ];
 
-  function appendStarterBlock(kind: (typeof helperActions)[number]["kind"]) {
-    const block = buildStarterBlock(kind, topic, side, locale);
+  function appendStarterBlock(kind: PrepStarterKind) {
+    const block = buildPrepStarterBlock(kind, topic, side, locale);
     onNotesChange(
       appendPlainTextBlockToRichNotes(prepNotes, block, MAX_NOTES_LENGTH)
     );
@@ -293,7 +129,7 @@ export function PrepPhase({
               <p className="mb-2 text-sm font-medium text-on-surface-variant">
                 {t("session.need_starting_point")}
               </p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                 {helperActions.map(({ label, icon: Icon, kind }) => (
                   <button
                     key={label}

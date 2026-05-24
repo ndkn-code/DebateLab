@@ -7,7 +7,13 @@ import {
 } from "@/lib/api/request-validation";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const LOCAL_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "[::1]",
+  "::1",
+]);
 export const DEV_AUTH_BYPASS_COOKIE = "debate_dev_auth_bypass";
 export const DEV_AUTH_BYPASS_COOKIE_VALUE = "enabled";
 

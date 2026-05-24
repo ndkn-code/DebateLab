@@ -23,18 +23,27 @@ import {
   type DeepSeekMessage,
   type DeepSeekUsage,
 } from "@/lib/ai/deepseek";
+import { recordAiQualityRun } from "@/lib/ai/quality";
 import {
   getProviderLabel,
   getProviderModelName,
   getRebuttalProvider,
   type AiProvider,
 } from "@/lib/ai/provider-selection";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import {
   formatDebateMemoryForPrompt,
   getRebuttalMaxOutputTokens,
   getRebuttalWordTarget,
 } from "@/lib/rebuttal/debate-continuity";
 import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-response";
+import {
+  TRUONG_TEEN_PROMPT_VERSION,
+  buildFuzzyEvidenceHintBlock,
+  buildTruongTeenRebuttalPromptAddendum,
+  getTruongTeenWordTarget,
+  shouldUseTruongTeenPrompt,
+} from "@/lib/truong-teen/debate-dna";
 import type {
   AiDifficulty,
   DebateMemory,
@@ -277,6 +286,40 @@ interface RebuttalGeneration {
   fallbackUsed: boolean;
 }
 
+function modeFromRoundLabel(roundLabel: string) {
+  return roundLabel.toLowerCase().includes("closing") ? "closing" : "rebuttal";
+}
+
+function countWords(text: string) {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+function shouldRetryTruongTeenLength(params: {
+  enabled: boolean;
+  difficulty?: AiDifficulty;
+  wordTarget: { label: string; min: number };
+  rebuttal: string;
+}) {
+  if (!params.enabled) return false;
+  if (params.difficulty !== "hard") return false;
+  if (params.wordTarget.label !== "7-minute") return false;
+
+  return countWords(params.rebuttal) < Math.max(720, params.wordTarget.min - 80);
+}
+
+function buildTruongTeenLengthRetryInstruction(wordTarget: {
+  min: number;
+  max: number;
+}) {
+  return `The previous JSON was structurally valid but too short for hard 7-minute Vietnamese mode.
+
+Return an expanded replacement with the same JSON schema.
+The "rebuttal" value must be ${wordTarget.min}-${wordTarget.max} Vietnamese words across 9-12 substantial spoken paragraphs.
+Do not add Markdown headings inside the rebuttal.
+Keep the same side and core stance, but add the missing depth: more mechanism attack inside each clash, clearer weighing, a short rebuild of your world, and a final crystallization.
+Keep highlights as 3-5 exact quotes copied from the new rebuttal text.`;
+}
+
 interface DeepSeekRebuttalMessageParams {
   aiSide: string;
   topic: string;
@@ -294,6 +337,8 @@ interface DeepSeekRebuttalMessageParams {
   userTranscript: string;
   roundInstructions: string;
   learnerContext: string;
+  truongTeenPromptContext?: string;
+  evidenceHintContext?: string;
 }
 
 function buildDeepSeekRebuttalMessages(
@@ -332,6 +377,7 @@ ${params.motionBriefContext}
 ${params.debateMemoryContext}
 
 ${params.difficultyInstructions}
+${params.truongTeenPromptContext ?? ""}
 
 ## Practice Track
 ${params.track}
@@ -361,6 +407,7 @@ Target length for your spoken response: ${params.wordTarget.min}-${params.wordTa
 """
 ${params.userTranscript}
 """
+${params.evidenceHintContext ?? ""}
 
 ## Your Task
 Write a ${params.roundLabel.toLowerCase()} responding to the opponent's speech. This is a spoken debate, so write in a natural speaking style — conversational but academically sharp.
@@ -463,6 +510,8 @@ async function generateDeepSeekRebuttal(
 }
 
 export async function POST(req: NextRequest) {
+  let recordGenerationError: ((error: unknown) => Promise<void>) | null = null;
+
   try {
     const auth = await requireRequestAuth(req);
 
@@ -535,7 +584,50 @@ export async function POST(req: NextRequest) {
     const difficultyInstructions = difficultyPrompts[difficulty || "medium"];
     const track = practiceTrack || "debate";
     const languageConfig = getPracticeLanguageConfig(practiceLanguage);
-    const wordTarget = getRebuttalWordTarget(speechTimeSeconds, roundLabel);
+    const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+      practiceLanguage,
+      practiceTrack: track,
+    });
+    const wordTarget = getTruongTeenWordTarget({
+      enabled: useTruongTeenPrompt,
+      difficulty,
+      target: getRebuttalWordTarget(speechTimeSeconds, roundLabel),
+    });
+    const debateFormat = modeFromRoundLabel(roundLabel);
+    const requestStartedAt = Date.now();
+    recordGenerationError = async (error: unknown) => {
+      if (auth.authSource === "dev-bypass") return;
+      const message = error instanceof Error ? error.message : String(error);
+      await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
+        userId: authUser.id,
+        outputType: "rebuttal",
+        status: "error",
+        sourceRoute: "/api/rebuttal",
+        provider: getProviderLabel(requestedProvider),
+        requestedProvider,
+        model: getProviderModelName(requestedProvider),
+        practiceTrack: track,
+        practiceLanguage,
+        difficulty,
+        debateFormat,
+        side,
+        aiSide: memoryAiSide,
+        topicTitle: topic,
+        latencyMs: Date.now() - requestStartedAt,
+        errorCode: message === "TIMEOUT" ? "TIMEOUT" : "REBUTTAL_FAILED",
+        errorMessage: message,
+        inputPreview: userTranscript,
+        metadata: {
+          roundLabel,
+          currentRoundNumber,
+          speechTimeSeconds,
+          wordTarget,
+          truongTeenPromptVersion: useTruongTeenPrompt
+            ? TRUONG_TEEN_PROMPT_VERSION
+            : undefined,
+        },
+      });
+    };
     const maxOutputTokens = getRebuttalMaxOutputTokens(wordTarget);
     const timeoutMs =
       wordTarget.max >= 1000 ? 55000 : wordTarget.max >= 800 ? 45000 : 30000;
@@ -554,6 +646,16 @@ export async function POST(req: NextRequest) {
       practiceLanguage === "vi"
         ? "This is for Vietnamese high school students practicing debate in Vietnamese, so be a challenging but fair practice partner."
         : "This is for Vietnamese high school students practicing debate in English, so be a challenging but fair practice partner.";
+    const transcriptCorpus = [
+      userTranscript,
+      ...(previousRounds?.map((round) => round.text) ?? []),
+    ];
+    const truongTeenPromptContext = useTruongTeenPrompt
+      ? buildTruongTeenRebuttalPromptAddendum({ difficulty, wordTarget })
+      : "";
+    const evidenceHintContext = useTruongTeenPrompt
+      ? buildFuzzyEvidenceHintBlock(transcriptCorpus)
+      : "";
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -576,6 +678,7 @@ ${motionBriefContext}
 ${debateMemoryContext}
 
 ${difficultyInstructions}
+${truongTeenPromptContext}
 ${contextSection}
 
 ## Current Round: ${roundLabel}
@@ -593,6 +696,7 @@ ${responseLanguageInstruction}
 """
 ${userTranscript}
 """
+${evidenceHintContext}
 
 ## Your Task
 Write a ${roundLabel.toLowerCase()} responding to the opponent's speech. This is a spoken debate, so write in a natural speaking style — conversational but academically sharp.
@@ -624,28 +728,32 @@ Return ONLY valid JSON in this exact shape:
 
 Highlight 3-5 exact quotes that a student should notice. Use only quote strings that appear verbatim in "rebuttal".`;
 
+    const deepSeekMessages = buildDeepSeekRebuttalMessages({
+      aiSide,
+      topic,
+      motionBriefContext,
+      debateMemoryContext,
+      difficultyInstructions,
+      previousRounds,
+      roundLabel,
+      currentRoundNumber,
+      speechTimeSeconds,
+      wordTarget,
+      track,
+      languageLabel: languageConfig.label,
+      responseLanguageInstruction,
+      userTranscript,
+      roundInstructions,
+      learnerContext,
+      truongTeenPromptContext,
+      evidenceHintContext,
+    });
+
     let generation: RebuttalGeneration;
     if (requestedProvider === "deepseek" && process.env.DEEPSEEK_API_KEY) {
       try {
         generation = await generateDeepSeekRebuttal(
-          buildDeepSeekRebuttalMessages({
-            aiSide,
-            topic,
-            motionBriefContext,
-            debateMemoryContext,
-            difficultyInstructions,
-            previousRounds,
-            roundLabel,
-            currentRoundNumber,
-            speechTimeSeconds,
-            wordTarget,
-            track,
-            languageLabel: languageConfig.label,
-            responseLanguageInstruction,
-            userTranscript,
-            roundInstructions,
-            learnerContext,
-          }),
+          deepSeekMessages,
           maxOutputTokens,
           timeoutMs,
           authUser.id
@@ -668,7 +776,91 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       generation = await generateGeminiRebuttal(prompt, maxOutputTokens, timeoutMs);
     }
 
-    const structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
+    let structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
+    let truongTeenLengthRetryUsed = false;
+    if (
+      shouldRetryTruongTeenLength({
+        enabled: useTruongTeenPrompt,
+        difficulty,
+        wordTarget,
+        rebuttal: structuredResponse.rebuttal,
+      })
+    ) {
+      const retryInstruction = buildTruongTeenLengthRetryInstruction(wordTarget);
+      try {
+        const retryGeneration =
+          generation.provider === "deepseek" && process.env.DEEPSEEK_API_KEY
+            ? await generateDeepSeekRebuttal(
+                [
+                  ...deepSeekMessages,
+                  { role: "assistant", content: generation.text },
+                  { role: "user", content: retryInstruction },
+                ],
+                maxOutputTokens,
+                timeoutMs,
+                authUser.id
+              )
+            : await generateGeminiRebuttal(
+                `${prompt}\n\n${retryInstruction}`,
+                maxOutputTokens,
+                timeoutMs,
+                generation.fallbackUsed
+              );
+        generation = {
+          ...retryGeneration,
+          fallbackUsed: generation.fallbackUsed || retryGeneration.fallbackUsed,
+        };
+        structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
+        truongTeenLengthRetryUsed = true;
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "Trường Teen length retry failed; keeping first rebuttal:",
+            error instanceof Error ? error.message : error
+          );
+        }
+      }
+    }
+    const aiQualityRunId =
+      auth.authSource === "dev-bypass"
+        ? null
+        : await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
+            userId: authUser.id,
+            outputType: "rebuttal",
+            sourceRoute: "/api/rebuttal",
+            provider: getProviderLabel(generation.provider),
+            requestedProvider,
+            model: generation.modelName || getProviderModelName(generation.provider),
+            practiceTrack: track,
+            practiceLanguage,
+            difficulty,
+            debateFormat,
+            side,
+            aiSide: memoryAiSide,
+            topicTitle: topic,
+            latencyMs: generation.latency,
+            usage: {
+              inputTokens: generation.usage?.inputTokens,
+              outputTokens: generation.usage?.outputTokens,
+              cacheHitTokens: generation.usage?.cacheHitTokens,
+              cacheMissTokens: generation.usage?.cacheMissTokens,
+              reasoningTokens: generation.usage?.reasoningTokens,
+            },
+            fallbackUsed: generation.fallbackUsed,
+            outputText: structuredResponse.rebuttal,
+            inputPreview: userTranscript,
+            metadata: {
+              roundLabel,
+              currentRoundNumber,
+              speechTimeSeconds,
+              highlightCount: structuredResponse.highlights.length,
+              wordTarget,
+              truongTeenLengthRetryUsed,
+              truongTeenPromptVersion: useTruongTeenPrompt
+                ? TRUONG_TEEN_PROMPT_VERSION
+                : undefined,
+            },
+          });
 
     getPostHogServer().capture({
       distinctId: authUser.id,
@@ -690,14 +882,24 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         speech_time_seconds: speechTimeSeconds,
         rebuttal_word_target_min: wordTarget.min,
         rebuttal_word_target_max: wordTarget.max,
+        truong_teen_prompt_version: useTruongTeenPrompt
+          ? TRUONG_TEEN_PROMPT_VERSION
+          : undefined,
       },
     });
 
-    return NextResponse.json(structuredResponse);
+    return NextResponse.json({
+      ...structuredResponse,
+      _aiRunId: aiQualityRunId,
+      _provider: getProviderLabel(generation.provider),
+      _model: generation.modelName || getProviderModelName(generation.provider),
+      _latencyMs: generation.latency,
+    });
   } catch (err) {
     if (err instanceof RequestValidationError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
+    await recordGenerationError?.(err).catch(() => {});
     if (process.env.NODE_ENV === 'development') console.error("Rebuttal API error:", err);
 
     if (err instanceof Error) {

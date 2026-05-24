@@ -16,6 +16,7 @@ import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
 import { SessionReviewShell } from "@/components/feedback/session-review-shell";
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
+import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
 import { PRACTICE_AUDIO_BUCKET } from "@/lib/practice-analysis/constants";
 import { getMotionBrief } from "@/lib/motion-brief";
 import {
@@ -48,6 +49,7 @@ interface AnalysisJobResponse {
   feedback: DebateScore | null;
   modelName: string | null;
   legacySessionId: string | null;
+  aiQualityRunId: string | null;
   error: string | null;
 }
 
@@ -144,6 +146,7 @@ export default function FeedbackPage() {
     storeFeedback
   );
   const [modelUsed, setModelUsed] = useState<string | null>(null);
+  const [aiQualityRunId, setAiQualityRunId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [referralCode, setReferralCode] = useState<string>("");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -329,6 +332,7 @@ export default function FeedbackPage() {
       if (responseModel) {
         setModelUsed(responseModel);
       }
+      setAiQualityRunId(job.aiQualityRunId ?? null);
 
       const normalizedFeedback = normalizeFeedback(job.feedback);
       setResultDuration(actualDuration);
@@ -690,6 +694,13 @@ export default function FeedbackPage() {
                 ) : undefined
               }
             />
+            {practiceTrack === "debate" && (
+              <AiQualityRatingWidget
+                runId={aiQualityRunId}
+                outputType="practice_judging"
+                locale={practiceLanguage}
+              />
+            )}
           </motion.div>
         )}
       </div>

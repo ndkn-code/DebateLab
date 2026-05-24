@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 export default async function AdminLayout({
   children,
@@ -13,9 +14,12 @@ export default async function AdminLayout({
     data: { user },
   } = await supabase.auth.getUser();
   const devAdminBypass = isDevAdminBypassEnabled();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
 
   if (!user) {
-    if (devAdminBypass) {
+    if (devAdminBypass || devAuthBypassUser) {
       return (
         <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
           <AdminSidebar />

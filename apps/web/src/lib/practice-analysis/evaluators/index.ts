@@ -1,6 +1,9 @@
 import { debatePracticeEvaluator } from "./debate";
 import { speakingPracticeEvaluator } from "./speaking";
-import type { PracticeFeedbackEvaluator } from "./types";
+import type {
+  PracticeFeedbackEvaluator,
+  PracticeFeedbackTelemetryCallback,
+} from "./types";
 import type { PracticeAnalysisInput } from "../types";
 
 const evaluators = {
@@ -14,7 +17,8 @@ export function getPracticeFeedbackEvaluator(input: PracticeAnalysisInput) {
 
 export async function evaluatePracticeFeedback(
   input: PracticeAnalysisInput,
-  userId?: string
+  userId?: string,
+  onTelemetry?: PracticeFeedbackTelemetryCallback
 ) {
-  return getPracticeFeedbackEvaluator(input).evaluate(input, userId);
+  return getPracticeFeedbackEvaluator(input).evaluate(input, userId, onTelemetry);
 }

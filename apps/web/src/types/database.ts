@@ -2,6 +2,13 @@ import type { SettingsPreferences } from "@/lib/settings";
 import type { CoachMessageMetadata } from "./coach";
 import type { DebateScore, PracticeLanguage, PracticeTrack } from "./feedback";
 import type { AiDifficulty, DebateRound } from "./debate";
+import type {
+  AiQualityFairness,
+  AiQualityOutputType,
+  AiQualityReasonTag,
+  AiQualityReviewStatus,
+  AiQualityUsefulness,
+} from "@/lib/ai/quality-model";
 
 export interface Profile {
   id: string;
@@ -424,6 +431,72 @@ export interface ApiUsage {
   estimated_cost_usd: number;
   metadata: Record<string, unknown>;
   created_at: string;
+}
+
+export interface AiQualityRun {
+  id: string;
+  user_id: string;
+  output_type: AiQualityOutputType;
+  status: "success" | "error";
+  review_status: AiQualityReviewStatus;
+  source_route: string | null;
+  provider: string;
+  requested_provider: string | null;
+  model: string;
+  prompt_bundle_key: string | null;
+  prompt_bundle_version: number | null;
+  prompt_hash: string | null;
+  rubric_key: string | null;
+  rubric_version: number | null;
+  practice_track: PracticeTrack | null;
+  practice_language: PracticeLanguage | null;
+  difficulty: string | null;
+  debate_format: string | null;
+  side: "proposition" | "opposition" | null;
+  ai_side: "proposition" | "opposition" | null;
+  topic_title: string | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  cache_hit_tokens: number | null;
+  cache_miss_tokens: number | null;
+  reasoning_tokens: number | null;
+  estimated_cost_usd: number;
+  fallback_used: boolean;
+  error_code: string | null;
+  error_message: string | null;
+  winner: "user" | "ai" | "tie" | "proposition" | "opposition" | null;
+  score: number | null;
+  confidence: number | null;
+  output_preview: string | null;
+  output_text: string | null;
+  input_preview: string | null;
+  practice_attempt_id: string | null;
+  analysis_job_id: string | null;
+  debate_session_id: string | null;
+  debate_duel_id: string | null;
+  debate_duel_judgment_id: string | null;
+  metadata: Record<string, unknown>;
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiQualityRating {
+  id: string;
+  run_id: string;
+  user_id: string;
+  usefulness: AiQualityUsefulness | null;
+  fairness: AiQualityFairness | null;
+  reason_tags: AiQualityReasonTag[];
+  comment: string | null;
+  locale: PracticeLanguage | null;
+  route: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AnalyticsEvent {

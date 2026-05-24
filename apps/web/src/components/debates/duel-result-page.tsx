@@ -9,6 +9,7 @@ import {
   SessionReviewShell,
   type SessionReviewTab,
 } from "@/components/feedback/session-review-shell";
+import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
 import { Button } from "@/components/ui/button";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import type { DebateDuelRoomView } from "@/types";
@@ -289,6 +290,11 @@ export function DuelResultContent({
           </div>
           </section>
         }
+      />
+      <AiQualityRatingWidget
+        runId={judgment.aiQualityRunId}
+        outputType="duel_judging"
+        locale={room.practiceLanguage}
       />
     </div>
   );

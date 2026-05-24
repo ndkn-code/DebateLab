@@ -13,7 +13,13 @@ import {
   getPracticeFeedbackProvider,
   getProviderLabel,
 } from "@/lib/ai/provider-selection";
+import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import {
+  buildFuzzyEvidenceHintBlock,
+  buildTruongTeenJudgingPromptAddendum,
+  shouldUseTruongTeenPrompt,
+} from "./truong-teen/debate-dna";
 import { normalizeDebateDuelClashLinks } from "./debate-duels/clash-links";
 import {
   normalizeDebateClashLinks,
@@ -65,6 +71,10 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
     params.practiceLanguage === "vi"
       ? "Write all user-facing prose in natural Vietnamese with diacritics. Keep JSON keys and enum literals in English."
       : "Write all user-facing prose in natural English. Keep JSON keys and enum literals in English.";
+  const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+    practiceLanguage: params.practiceLanguage,
+    practiceTrack: params.practiceTrack ?? "debate",
+  });
   const rounds = params.rounds?.length
     ? params.rounds
         .map((round) => {
@@ -74,6 +84,17 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
         })
         .join("\n\n")
     : params.transcript;
+  const truongTeenJudgingContext = useTruongTeenPrompt
+    ? buildTruongTeenJudgingPromptAddendum()
+    : "";
+  const evidenceHintContext = useTruongTeenPrompt
+    ? buildFuzzyEvidenceHintBlock([
+        params.transcript,
+        ...(params.rounds?.map(
+          (round) => round.transcript || round.aiResponse || ""
+        ) ?? []),
+      ])
+    : "";
   const motionBrief = params.motionBrief
     ? `Key terms: ${params.motionBrief.keyTerms.join("; ")}
 Scope: ${params.motionBrief.scope}
@@ -102,6 +123,7 @@ Full round: ${Boolean(params.isFullRound)}
 Time setting: ${params.timeLimit} minutes
 Actual duration: ${params.actualDuration} seconds
 ${language}
+${truongTeenJudgingContext}
 
 ## Motion Brief
 ${motionBrief}
@@ -111,6 +133,7 @@ ${debateMemory}
 
 ## Transcript
 ${rounds}
+${evidenceHintContext}
 
 ## Judge Verdict To Preserve
 ${verdictDraft ? JSON.stringify(verdictDraft) : "No prior verdict draft."}
@@ -184,6 +207,10 @@ function buildDeepSeekVerdictPrompt(params: {
     params.practiceLanguage === "vi"
       ? "Write Vietnamese prose with diacritics."
       : "Write English prose.";
+  const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+    practiceLanguage: params.practiceLanguage,
+    practiceTrack: "debate",
+  });
   const rounds = params.rounds?.length
     ? params.rounds
         .map((round) => {
@@ -193,6 +220,17 @@ function buildDeepSeekVerdictPrompt(params: {
         })
         .join("\n\n")
     : params.transcript;
+  const truongTeenJudgingContext = useTruongTeenPrompt
+    ? buildTruongTeenJudgingPromptAddendum()
+    : "";
+  const evidenceHintContext = useTruongTeenPrompt
+    ? buildFuzzyEvidenceHintBlock([
+        params.transcript,
+        ...(params.rounds?.map(
+          (round) => round.transcript || round.aiResponse || ""
+        ) ?? []),
+      ])
+    : "";
   const motionBrief = params.motionBrief
     ? `Scope: ${params.motionBrief.scope}
 Proposition burden: ${params.motionBrief.propositionBurden}
@@ -214,6 +252,7 @@ Format: Trường Teen-style 1v1 practice debate; use WSDC-style clash, weighing
 Full round: ${Boolean(params.isFullRound)}
 Speech type: ${params.speechType}
 Actual duration: ${params.actualDuration} seconds
+${truongTeenJudgingContext}
 
 Motion brief:
 ${motionBrief}
@@ -223,6 +262,7 @@ ${debateMemory}
 
 Transcript:
 ${rounds}
+${evidenceHintContext}
 
 Calibration:
 - Judge the debate, but score the student/user only.
@@ -616,7 +656,7 @@ function buildScoreRationaleCategory(
   };
 }
 
-export async function analyzeDebate(params: {
+type AnalyzeDebateParams = {
   transcript: string;
   topic: string;
   side: "proposition" | "opposition";
@@ -629,12 +669,29 @@ export async function analyzeDebate(params: {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
-}, userId?: string): Promise<DebateScore> {
+};
+
+type AiTelemetryCallback = (telemetry: AiQualityTelemetry) => void | Promise<void>;
+
+async function emitAiTelemetry(
+  onTelemetry: AiTelemetryCallback | undefined,
+  telemetry: AiQualityTelemetry
+) {
+  if (!onTelemetry) return;
+  await onTelemetry(telemetry);
+}
+
+export async function analyzeDebate(
+  params: AnalyzeDebateParams,
+  userId?: string,
+  onTelemetry?: AiTelemetryCallback
+): Promise<DebateScore> {
   const provider = getPracticeFeedbackProvider(params.practiceTrack ?? "debate");
+  let fallbackFromDeepSeek = false;
 
   if (provider === "deepseek") {
     try {
-      return await analyzeDebateWithDeepSeek(params, userId);
+      return await analyzeDebateWithDeepSeek(params, userId, onTelemetry);
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
         console.warn(
@@ -647,26 +704,19 @@ export async function analyzeDebate(params: {
       if (process.env.DEEPSEEK_ANALYSIS_FALLBACK !== "gemini") {
         throw error;
       }
+      fallbackFromDeepSeek = true;
     }
   }
 
-  return analyzeDebateWithGemini(params, userId);
+  return analyzeDebateWithGemini(params, userId, onTelemetry, fallbackFromDeepSeek);
 }
 
-async function analyzeDebateWithGemini(params: {
-  transcript: string;
-  topic: string;
-  side: "proposition" | "opposition";
-  speechType: string;
-  timeLimit: number;
-  actualDuration: number;
-  practiceTrack?: PracticeTrack;
-  practiceLanguage?: PracticeLanguage;
-  isFullRound?: boolean;
-  rounds?: DebateRound[];
-  motionBrief?: MotionBrief;
-  debateMemory?: DebateMemory | null;
-}, userId?: string): Promise<DebateScore> {
+async function analyzeDebateWithGemini(
+  params: AnalyzeDebateParams,
+  userId?: string,
+  onTelemetry?: AiTelemetryCallback,
+  fallbackUsed = false
+): Promise<DebateScore> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const model = getGeminiClient().getGenerativeModel({
     model: modelName,
@@ -701,6 +751,17 @@ async function analyzeDebateWithGemini(params: {
       },
     });
   }
+  await emitAiTelemetry(onTelemetry, {
+    provider: "google",
+    requestedProvider: getProviderLabel(getPracticeFeedbackProvider(params.practiceTrack ?? "debate")),
+    model: modelName,
+    latencyMs: latency,
+    fallbackUsed,
+    usage: {
+      inputTokens: result.response.usageMetadata?.promptTokenCount,
+      outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+    },
+  });
 
   let parsed = await parseGeminiFeedbackWithRetry(model, prompt, text);
 
@@ -779,20 +840,11 @@ Hard rules:
   return parsed;
 }
 
-async function analyzeDebateWithDeepSeek(params: {
-  transcript: string;
-  topic: string;
-  side: "proposition" | "opposition";
-  speechType: string;
-  timeLimit: number;
-  actualDuration: number;
-  practiceTrack?: PracticeTrack;
-  practiceLanguage?: PracticeLanguage;
-  isFullRound?: boolean;
-  rounds?: DebateRound[];
-  motionBrief?: MotionBrief;
-  debateMemory?: DebateMemory | null;
-}, userId?: string): Promise<DebateScore> {
+async function analyzeDebateWithDeepSeek(
+  params: AnalyzeDebateParams,
+  userId?: string,
+  onTelemetry?: AiTelemetryCallback
+): Promise<DebateScore> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
   const isDebateFeedback = params.practiceTrack !== "speaking";
   const verdictPrompt = isDebateFeedback
@@ -814,13 +866,10 @@ async function analyzeDebateWithDeepSeek(params: {
       userId,
       timeoutMs: 18000,
     }).then((retryResult) => retryResult.content);
-  const verdictDraft =
-    isDebateFeedback && verdictPrompt
-      ? await parseDeepSeekJsonObjectWithRetry(
-          generateVerdictText,
-          verdictPrompt,
-          (
-            await createDeepSeekChatCompletion({
+  let verdictDraft: Record<string, unknown> | null = null;
+  if (isDebateFeedback && verdictPrompt) {
+    const verdictStart = Date.now();
+    const verdictResult = await createDeepSeekChatCompletion({
               messages: [
                 {
                   role: "system",
@@ -834,10 +883,29 @@ async function analyzeDebateWithDeepSeek(params: {
               maxTokens: 4096,
               userId,
               timeoutMs: 28000,
-            })
-          ).content
-        )
-      : null;
+    });
+    const verdictLatency = Date.now() - verdictStart;
+    await emitAiTelemetry(onTelemetry, {
+      provider: getProviderLabel("deepseek"),
+      requestedProvider: getProviderLabel("deepseek"),
+      model: verdictResult.model,
+      latencyMs: verdictLatency,
+      usage: {
+        inputTokens: verdictResult.usage?.prompt_tokens,
+        outputTokens: verdictResult.usage?.completion_tokens,
+        totalTokens: verdictResult.usage?.total_tokens,
+        cacheHitTokens: verdictResult.usage?.prompt_cache_hit_tokens,
+        cacheMissTokens: verdictResult.usage?.prompt_cache_miss_tokens,
+        reasoningTokens:
+          verdictResult.usage?.completion_tokens_details?.reasoning_tokens,
+      },
+    });
+    verdictDraft = await parseDeepSeekJsonObjectWithRetry(
+      generateVerdictText,
+      verdictPrompt,
+      verdictResult.content
+    );
+  }
 
   if (isDebateFeedback && verdictDraft) {
     return normalizeDebateScore(
@@ -905,6 +973,20 @@ async function analyzeDebateWithDeepSeek(params: {
       },
     });
   }
+  await emitAiTelemetry(onTelemetry, {
+    provider: getProviderLabel("deepseek"),
+    requestedProvider: getProviderLabel("deepseek"),
+    model: result.model,
+    latencyMs: latency,
+    usage: {
+      inputTokens: result.usage?.prompt_tokens,
+      outputTokens: result.usage?.completion_tokens,
+      totalTokens: result.usage?.total_tokens,
+      cacheHitTokens: result.usage?.prompt_cache_hit_tokens,
+      cacheMissTokens: result.usage?.prompt_cache_miss_tokens,
+      reasoningTokens: result.usage?.completion_tokens_details?.reasoning_tokens,
+    },
+  });
 
   let parsed = await parseDeepSeekFeedbackWithRetry(
     generateText,
@@ -1129,12 +1211,13 @@ export async function judgeDebateDuel(params: {
     durationSeconds: number;
     qualityFlags?: string[];
   }>;
-}, userId?: string): Promise<DebateDuelJudgment> {
+}, userId?: string, onTelemetry?: AiTelemetryCallback): Promise<DebateDuelJudgment> {
   const provider = getDuelJudgeProvider();
+  let fallbackFromDeepSeek = false;
 
   if (provider === "deepseek") {
     try {
-      return await judgeDebateDuelWithDeepSeek(params, userId);
+      return await judgeDebateDuelWithDeepSeek(params, userId, onTelemetry);
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
         console.warn(
@@ -1142,10 +1225,16 @@ export async function judgeDebateDuel(params: {
           error instanceof Error ? error.message : error
         );
       }
+      fallbackFromDeepSeek = true;
     }
   }
 
-  return judgeDebateDuelWithGemini(params, userId);
+  return judgeDebateDuelWithGemini(
+    params,
+    userId,
+    onTelemetry,
+    fallbackFromDeepSeek
+  );
 }
 
 async function judgeDebateDuelWithGemini(params: {
@@ -1166,7 +1255,7 @@ async function judgeDebateDuelWithGemini(params: {
     durationSeconds: number;
     qualityFlags?: string[];
   }>;
-}, userId?: string): Promise<DebateDuelJudgment> {
+}, userId?: string, onTelemetry?: AiTelemetryCallback, fallbackUsed = false): Promise<DebateDuelJudgment> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const model = getGeminiClient().getGenerativeModel({
     model: modelName,
@@ -1199,6 +1288,17 @@ async function judgeDebateDuelWithGemini(params: {
       },
     });
   }
+  await emitAiTelemetry(onTelemetry, {
+    provider: "google",
+    requestedProvider: getProviderLabel(getDuelJudgeProvider()),
+    model: modelName,
+    latencyMs: latency,
+    fallbackUsed,
+    usage: {
+      inputTokens: result.response.usageMetadata?.promptTokenCount,
+      outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+    },
+  });
 
   let parsed: DebateDuelJudgment;
   try {
@@ -1247,7 +1347,7 @@ async function judgeDebateDuelWithDeepSeek(params: {
     durationSeconds: number;
     qualityFlags?: string[];
   }>;
-}, userId?: string): Promise<DebateDuelJudgment> {
+}, userId?: string, onTelemetry?: AiTelemetryCallback): Promise<DebateDuelJudgment> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
   const prompt = buildDuelJudgmentPrompt(params);
   const startTime = Date.now();
@@ -1287,6 +1387,20 @@ async function judgeDebateDuelWithDeepSeek(params: {
       },
     });
   }
+  await emitAiTelemetry(onTelemetry, {
+    provider: getProviderLabel("deepseek"),
+    requestedProvider: getProviderLabel("deepseek"),
+    model: result.model,
+    latencyMs: latency,
+    usage: {
+      inputTokens: result.usage?.prompt_tokens,
+      outputTokens: result.usage?.completion_tokens,
+      totalTokens: result.usage?.total_tokens,
+      cacheHitTokens: result.usage?.prompt_cache_hit_tokens,
+      cacheMissTokens: result.usage?.prompt_cache_miss_tokens,
+      reasoningTokens: result.usage?.completion_tokens_details?.reasoning_tokens,
+    },
+  });
 
   let parsed: DebateDuelJudgment;
   try {

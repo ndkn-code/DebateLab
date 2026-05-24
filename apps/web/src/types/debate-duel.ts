@@ -152,6 +152,7 @@ export interface DebateDuelJudgment {
   qualityWarnings: string[];
   model: string;
   judgedAt: string;
+  aiQualityRunId?: string | null;
 }
 
 export interface DebateDuelRoomView {
