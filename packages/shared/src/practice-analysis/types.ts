@@ -37,6 +37,7 @@ export interface PracticeAnalysisInput {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  corpusContext?: string;
   mode: "quick" | "full";
   prepTime: number;
   speechTime: number;

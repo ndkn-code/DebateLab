@@ -10,6 +10,10 @@ import {
 } from "@/lib/practice-analysis/constants";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import {
+  linkDebateCorpusRetrievalLogToAiRun,
+  retrieveDebateCorpusContext,
+} from "@/lib/corpus/retrieval";
 import { evaluatePracticeFeedback } from "@/lib/practice-analysis/evaluators";
 import { saveCompletedPracticeAttempt } from "@/lib/practice-analysis/persistence";
 import {
@@ -60,9 +64,26 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
 
     try {
       const input = practiceAttemptRowToInput(attempt);
+      const corpusRetrieval = await retrieveDebateCorpusContext({
+        purpose: "judging",
+        practiceLanguage: input.practiceLanguage,
+        practiceTrack: input.practiceTrack,
+        topic: input.topic,
+        side: input.side,
+        transcript: input.transcript,
+        roundsText: input.rounds?.map(
+          (round) => round.transcript || round.aiResponse || ""
+        ),
+        userId: attempt.user_id,
+        sourceRoute: "/api/queues/practice-analysis",
+        supabase,
+      });
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await evaluatePracticeFeedback(
-        input,
+        {
+          ...input,
+          corpusContext: corpusRetrieval.contextBlock,
+        },
         attempt.user_id,
         (nextTelemetry) => {
           telemetry = nextTelemetry;
@@ -106,9 +127,22 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
               isFullRound: input.isFullRound,
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
+              corpusRagEnabled: corpusRetrieval.enabled,
+              corpusRagSkippedReason: corpusRetrieval.skippedReason,
+              corpusRetrievalLogId: corpusRetrieval.logId,
+              corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
+              retrievedCorpusItemIds: corpusRetrieval.items.map(
+                (item) => item.item_id
+              ),
+              retrievedCorpusCount: corpusRetrieval.items.length,
             },
           })
         : null;
+      await linkDebateCorpusRetrievalLogToAiRun(
+        corpusRetrieval.logId,
+        aiQualityRunId,
+        supabase
+      );
 
       await markPracticeAnalysisCompleted(supabase, {
         attemptId: attempt.id,
@@ -135,6 +169,8 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           practice_attempt_id: attempt.id,
           analysis_job_id: job.id,
           queue_message_id: metadata.messageId,
+          corpus_rag_enabled: corpusRetrieval.enabled,
+          retrieved_corpus_count: corpusRetrieval.items.length,
         },
       });
     } catch (error) {
