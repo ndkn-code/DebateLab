@@ -56,6 +56,7 @@ export interface AiQualityTelemetry {
   status?: AiQualityStatus;
   errorCode?: string | null;
   errorMessage?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AiQualityRunInput extends AiQualityTelemetry {

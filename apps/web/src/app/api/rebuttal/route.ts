@@ -25,6 +25,10 @@ import {
 } from "@/lib/ai/deepseek";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import {
+  linkDebateCorpusRetrievalLogToAiRun,
+  retrieveDebateCorpusContext,
+} from "@/lib/corpus/retrieval";
+import {
   getProviderLabel,
   getProviderModelName,
   getRebuttalProvider,
@@ -338,6 +342,7 @@ interface DeepSeekRebuttalMessageParams {
   roundInstructions: string;
   learnerContext: string;
   truongTeenPromptContext?: string;
+  corpusContext?: string;
   evidenceHintContext?: string;
 }
 
@@ -378,6 +383,7 @@ ${params.debateMemoryContext}
 
 ${params.difficultyInstructions}
 ${params.truongTeenPromptContext ?? ""}
+${params.corpusContext ?? ""}
 
 ## Practice Track
 ${params.track}
@@ -511,6 +517,7 @@ async function generateDeepSeekRebuttal(
 
 export async function POST(req: NextRequest) {
   let recordGenerationError: ((error: unknown) => Promise<void>) | null = null;
+  let corpusRagMetadata: Record<string, unknown> = {};
 
   try {
     const auth = await requireRequestAuth(req);
@@ -622,6 +629,7 @@ export async function POST(req: NextRequest) {
           currentRoundNumber,
           speechTimeSeconds,
           wordTarget,
+          ...corpusRagMetadata,
           truongTeenPromptVersion: useTruongTeenPrompt
             ? TRUONG_TEEN_PROMPT_VERSION
             : undefined,
@@ -656,6 +664,27 @@ export async function POST(req: NextRequest) {
     const evidenceHintContext = useTruongTeenPrompt
       ? buildFuzzyEvidenceHintBlock(transcriptCorpus)
       : "";
+    const adminClient = tryCreateAdminClient();
+    const corpusRetrieval = await retrieveDebateCorpusContext({
+      purpose: "rebuttal",
+      practiceLanguage,
+      practiceTrack: track,
+      topic,
+      side,
+      transcript: userTranscript,
+      roundsText: previousRounds?.map((round) => round.text),
+      userId: auth.authSource === "dev-bypass" ? null : authUser.id,
+      sourceRoute: "/api/rebuttal",
+      supabase: adminClient ?? undefined,
+    });
+    corpusRagMetadata = {
+      corpusRagEnabled: corpusRetrieval.enabled,
+      corpusRagSkippedReason: corpusRetrieval.skippedReason,
+      corpusRetrievalLogId: corpusRetrieval.logId,
+      corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
+      retrievedCorpusItemIds: corpusRetrieval.items.map((item) => item.item_id),
+      retrievedCorpusCount: corpusRetrieval.items.length,
+    };
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -679,6 +708,7 @@ ${debateMemoryContext}
 
 ${difficultyInstructions}
 ${truongTeenPromptContext}
+${corpusRetrieval.contextBlock}
 ${contextSection}
 
 ## Current Round: ${roundLabel}
@@ -746,6 +776,7 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       roundInstructions,
       learnerContext,
       truongTeenPromptContext,
+      corpusContext: corpusRetrieval.contextBlock,
       evidenceHintContext,
     });
 
@@ -856,11 +887,17 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               highlightCount: structuredResponse.highlights.length,
               wordTarget,
               truongTeenLengthRetryUsed,
+              ...corpusRagMetadata,
               truongTeenPromptVersion: useTruongTeenPrompt
                 ? TRUONG_TEEN_PROMPT_VERSION
                 : undefined,
             },
           });
+    await linkDebateCorpusRetrievalLogToAiRun(
+      corpusRetrieval.logId,
+      aiQualityRunId,
+      adminClient ?? undefined
+    );
 
     getPostHogServer().capture({
       distinctId: authUser.id,
@@ -882,6 +919,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         speech_time_seconds: speechTimeSeconds,
         rebuttal_word_target_min: wordTarget.min,
         rebuttal_word_target_max: wordTarget.max,
+        corpus_rag_enabled: corpusRetrieval.enabled,
+        retrieved_corpus_count: corpusRetrieval.items.length,
         truong_teen_prompt_version: useTruongTeenPrompt
           ? TRUONG_TEEN_PROMPT_VERSION
           : undefined,

@@ -34,6 +34,7 @@ interface AnalysisPromptParams {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  corpusContext?: string;
 }
 
 function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
@@ -340,6 +341,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     rounds,
     motionBrief,
     debateMemory,
+    corpusContext,
   } = params;
 
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
@@ -398,6 +400,7 @@ ${debateMemoryContext}
 ${roundsContext}
 ${languageInstructions}
 ${truongTeenJudgingContext}
+${corpusContext ?? ""}
 
 ## ${isFullRound ? "Combined " : ""}Transcript
 """

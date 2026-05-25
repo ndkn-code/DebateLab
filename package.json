@@ -32,6 +32,7 @@
     "test:practice-feedback-plan": "npm run test:practice-feedback-plan -w @thinkfy/web",
     "test:practice-analysis": "npm run test:practice-analysis -w @thinkfy/web",
     "test:ai-quality": "npm run test:ai-quality -w @thinkfy/web",
+    "test:debate-corpus": "npm run test:debate-corpus -w @thinkfy/web",
     "test:truong-teen": "npm run test:truong-teen -w @thinkfy/web",
     "test:practice-language": "npm run test:practice-language -w @thinkfy/web",
     "test:topics": "npm run test:topics -w @thinkfy/web",
@@ -46,6 +47,10 @@
     "test:email-templates": "npm run test:email-templates -w @thinkfy/web",
     "test:calico-motions": "tsx scripts/ingest-calico-motions.test.ts",
     "ingest:calico-motions": "tsx scripts/ingest-calico-motions.ts",
+    "test:truong-teen-corpus": "tsx scripts/normalize-truong-teen-corpus.test.ts",
+    "corpus:truong-teen:normalize": "tsx scripts/normalize-truong-teen-corpus.ts",
+    "corpus:truong-teen:import": "tsx scripts/import-truong-teen-corpus.ts",
+    "corpus:debate:embed": "tsx scripts/embed-debate-corpus.ts",
     "generate:tts-samples": "npm run generate:tts-samples -w @thinkfy/web"
   },
   "overrides": {

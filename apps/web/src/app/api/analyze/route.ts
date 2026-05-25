@@ -3,6 +3,10 @@ import { analyzeDebate } from "@/lib/gemini";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import {
+  linkDebateCorpusRetrievalLogToAiRun,
+  retrieveDebateCorpusContext,
+} from "@/lib/corpus/retrieval";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
@@ -360,7 +364,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const writeClient = tryCreateAdminClient() ?? supabase;
+    const adminClient = tryCreateAdminClient();
+    const writeClient = adminClient ?? supabase;
     let durableAnalysis:
       | { attempt: PracticeAttemptRecord; job: AnalysisJobRecord }
       | null = null;
@@ -405,6 +410,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const corpusRetrieval = await retrieveDebateCorpusContext({
+      purpose: "judging",
+      practiceLanguage,
+      practiceTrack: practiceTrack || "debate",
+      topic,
+      side,
+      transcript,
+      roundsText: rounds?.map(
+        (round) => round.transcript || round.aiResponse || ""
+      ),
+      userId: shouldPersistAnalysis ? authUser.id : null,
+      sourceRoute: "/api/analyze",
+      supabase: adminClient ?? undefined,
+    });
+
     // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("TIMEOUT")), 55000);
@@ -429,6 +449,7 @@ export async function POST(req: NextRequest) {
           rounds,
           motionBrief,
           debateMemory,
+          corpusContext: corpusRetrieval.contextBlock,
         }, authUser.id, (nextTelemetry) => {
           telemetry = nextTelemetry;
         }),
@@ -465,13 +486,27 @@ export async function POST(req: NextRequest) {
               analysisJobId: durableAnalysis?.job.id ?? null,
               debateSessionId: null,
               metadata: {
+                ...(aiQualityTelemetry.metadata ?? {}),
                 debugId: requestId,
                 speechType,
                 isFullRound,
                 roundCount: rounds?.length ?? 0,
+                corpusRagEnabled: corpusRetrieval.enabled,
+                corpusRagSkippedReason: corpusRetrieval.skippedReason,
+                corpusRetrievalLogId: corpusRetrieval.logId,
+                corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
+                retrievedCorpusItemIds: corpusRetrieval.items.map(
+                  (item) => item.item_id
+                ),
+                retrievedCorpusCount: corpusRetrieval.items.length,
               },
             })
           : null;
+      await linkDebateCorpusRetrievalLogToAiRun(
+        corpusRetrieval.logId,
+        aiQualityRunId,
+        adminClient ?? undefined
+      );
       if (shouldPersistAnalysis) {
         await recordAnalyticsEvent(supabase, authUser.id, {
           eventName: "ai_feedback_completed",
@@ -485,6 +520,8 @@ export async function POST(req: NextRequest) {
             practice_language: practiceLanguage,
             model: modelUsed,
             debug_id: requestId,
+            corpus_rag_enabled: corpusRetrieval.enabled,
+            retrieved_corpus_count: corpusRetrieval.items.length,
           },
         });
       }
@@ -550,6 +587,14 @@ export async function POST(req: NextRequest) {
             speechType,
             isFullRound,
             roundCount: rounds?.length ?? 0,
+            corpusRagEnabled: corpusRetrieval.enabled,
+            corpusRagSkippedReason: corpusRetrieval.skippedReason,
+            corpusRetrievalLogId: corpusRetrieval.logId,
+            corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
+            retrievedCorpusItemIds: corpusRetrieval.items.map(
+              (item) => item.item_id
+            ),
+            retrievedCorpusCount: corpusRetrieval.items.length,
           },
         }).catch(() => null);
       }

@@ -62,6 +62,7 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  corpusContext?: string;
 }, verdictDraft?: unknown) {
   if (params.practiceTrack === "speaking") {
     return buildAnalysisPrompt(params);
@@ -124,6 +125,7 @@ Time setting: ${params.timeLimit} minutes
 Actual duration: ${params.actualDuration} seconds
 ${language}
 ${truongTeenJudgingContext}
+${params.corpusContext ?? ""}
 
 ## Motion Brief
 ${motionBrief}
@@ -202,6 +204,7 @@ function buildDeepSeekVerdictPrompt(params: {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  corpusContext?: string;
 }) {
   const language =
     params.practiceLanguage === "vi"
@@ -253,6 +256,7 @@ Full round: ${Boolean(params.isFullRound)}
 Speech type: ${params.speechType}
 Actual duration: ${params.actualDuration} seconds
 ${truongTeenJudgingContext}
+${params.corpusContext ?? ""}
 
 Motion brief:
 ${motionBrief}
@@ -669,6 +673,7 @@ type AnalyzeDebateParams = {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  corpusContext?: string;
 };
 
 type AiTelemetryCallback = (telemetry: AiQualityTelemetry) => void | Promise<void>;
