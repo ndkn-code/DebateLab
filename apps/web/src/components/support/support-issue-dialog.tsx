@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  ExternalLink,
   HelpCircle,
   MessageSquareText,
 } from "@/components/ui/icons";
@@ -103,8 +102,8 @@ export function SupportIssueDialog({
         <HelpCircle className="mr-3 h-5 w-5 shrink-0" />
         <span className="truncate">{t("trigger_label")}</span>
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-0 shadow-2xl sm:max-w-2xl">
-        <DialogHeader className="border-b border-outline-variant/15 px-5 pb-4 pr-12 pt-5">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-0 shadow-2xl sm:max-w-[52rem] lg:max-w-[60rem]">
+        <DialogHeader className="border-b border-outline-variant/15 px-5 pb-4 pr-12 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <MessageSquareText className="h-5 w-5" />
@@ -121,7 +120,7 @@ export function SupportIssueDialog({
         </DialogHeader>
 
         {tallyUrl ? (
-          <div className="relative h-[calc(100dvh-11rem)] min-h-[420px] max-h-[680px] w-full bg-surface-container-lowest">
+          <div className="relative h-[calc(100dvh-8rem)] min-h-[360px] max-h-[780px] w-full bg-surface-container-lowest sm:min-h-[520px]">
             <div
               className={cn(
                 "absolute inset-0 grid place-items-center text-sm text-on-surface-variant transition-opacity",
@@ -153,20 +152,6 @@ export function SupportIssueDialog({
             </div>
           </div>
         )}
-
-        {tallyUrl ? (
-          <div className="flex justify-end border-t border-outline-variant/15 px-5 py-3">
-            <a
-              href={tallyUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80"
-            >
-              {t("open_external")}
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        ) : null}
       </DialogContent>
     </Dialog>
   );
