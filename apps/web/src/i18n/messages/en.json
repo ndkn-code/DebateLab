@@ -1529,6 +1529,7 @@
     "nav": {
       "overview": "Overview",
       "aiQuality": "AI Quality",
+      "corpus": "Corpus",
       "users": "Users & Access",
       "classes": "Classes",
       "clubs": "Clubs",

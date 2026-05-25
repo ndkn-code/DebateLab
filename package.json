@@ -33,6 +33,7 @@
     "test:practice-analysis": "npm run test:practice-analysis -w @thinkfy/web",
     "test:ai-quality": "npm run test:ai-quality -w @thinkfy/web",
     "test:debate-corpus": "npm run test:debate-corpus -w @thinkfy/web",
+    "test:corpus-importer": "npm run test:corpus-importer -w @thinkfy/web",
     "test:truong-teen": "npm run test:truong-teen -w @thinkfy/web",
     "test:practice-language": "npm run test:practice-language -w @thinkfy/web",
     "test:topics": "npm run test:topics -w @thinkfy/web",

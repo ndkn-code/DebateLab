@@ -23,6 +23,18 @@ export function isDebateCorpusRagEnabled() {
   return process.env.AI_CORPUS_RAG_ENABLED === "true";
 }
 
+export function getDebateCorpusRagReviewStatuses() {
+  const raw = process.env.AI_CORPUS_RAG_REVIEW_STATUSES;
+  const fallback = ["candidate", "approved", "needs_review"];
+  if (!raw) return fallback;
+  const allowed = new Set(["candidate", "approved", "needs_review"]);
+  const parsed = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => allowed.has(item));
+  return parsed.length > 0 ? Array.from(new Set(parsed)) : fallback;
+}
+
 export function hasDebateCorpusEmbeddingConfig() {
   if (DEBATE_CORPUS_EMBEDDING_PROVIDER === "self_hosted") {
     return Boolean(DEBATE_CORPUS_EMBEDDING_URL);

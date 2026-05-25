@@ -93,6 +93,18 @@ function ratingTone(row: Row) {
   return "neutral";
 }
 
+function getCorpusMetadata(row: Row) {
+  const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+  const retrievedCorpusItemIds = Array.isArray(metadata.retrievedCorpusItemIds)
+    ? metadata.retrievedCorpusItemIds.filter((id): id is string => typeof id === "string")
+    : [];
+  const corpusRetrievalLogId =
+    typeof metadata.corpusRetrievalLogId === "string"
+      ? metadata.corpusRetrievalLogId
+      : null;
+  return { retrievedCorpusItemIds, corpusRetrievalLogId };
+}
+
 function createQuery(params: Record<string, string>) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -423,6 +435,8 @@ function DetailDrawer({
   onClose: () => void;
   onReview: (row: Row, reviewStatus: AiQualityReviewStatus) => Promise<void>;
 }) {
+  const corpusMetadata = getCorpusMetadata(row);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-outline-variant/20 bg-surface p-6 shadow-2xl">
@@ -474,6 +488,32 @@ function DetailDrawer({
         </div>
 
         <div className="mt-6 space-y-4">
+          {corpusMetadata.retrievedCorpusItemIds.length > 0 && (
+            <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+              <h3 className="font-semibold text-on-surface">Retrieved Corpus Context</h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {corpusMetadata.retrievedCorpusItemIds.map((itemId) => (
+                  <a
+                    key={itemId}
+                    href={`/dashboard/admin/corpus?tab=items&q=${encodeURIComponent(itemId)}`}
+                    className="rounded-lg bg-surface px-2.5 py-1.5 font-mono text-xs font-semibold text-primary"
+                  >
+                    {itemId.slice(0, 8)}
+                  </a>
+                ))}
+                {corpusMetadata.corpusRetrievalLogId && (
+                  <a
+                    href={`/dashboard/admin/corpus?tab=logs&q=${encodeURIComponent(
+                      corpusMetadata.corpusRetrievalLogId
+                    )}`}
+                    className="rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary"
+                  >
+                    Retrieval log
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
           <TextBlock title="Input/context preview" value={row.contextText ?? row.input_preview} />
           <TextBlock title="AI output" value={row.output_text || row.output_preview} />
         </div>

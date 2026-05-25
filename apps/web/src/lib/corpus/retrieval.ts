@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getDebateCorpusEmbeddingConfig,
+  getDebateCorpusRagReviewStatuses,
   hasDebateCorpusEmbeddingConfig,
   isDebateCorpusRagEnabled,
 } from "./config";
@@ -193,6 +194,7 @@ export async function retrieveDebateCorpusContext(
 
   try {
     const config = getDebateCorpusEmbeddingConfig();
+    const reviewStatuses = getDebateCorpusRagReviewStatuses();
     const embedding = await createDebateCorpusEmbedding({
       text: queryText,
       inputType: "query",
@@ -207,6 +209,7 @@ export async function retrieveDebateCorpusContext(
       match_provider: config.provider,
       match_model: config.model,
       match_dimensions: config.dimensions,
+      match_review_statuses: reviewStatuses,
     });
 
     if (error) {
@@ -233,6 +236,7 @@ export async function retrieveDebateCorpusContext(
         minConfidence: 0.72,
         provider: config.provider,
         model: config.model,
+        reviewStatuses,
       },
     });
 
