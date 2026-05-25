@@ -11,9 +11,9 @@ import {
 } from '@/lib/api/request-validation';
 import { consumeRateLimit } from '@/lib/rate-limit';
 import {
-  coerceVoiceForLanguage,
   DEFAULT_VOICE,
   getVoiceById,
+  resolveTtsVoiceForRequest,
 } from '@/lib/tts-voices';
 import { synthesizeTtsVoice } from '@/lib/tts-providers';
 import type { PracticeLanguage } from '@/types';
@@ -52,13 +52,15 @@ export async function POST(req: NextRequest) {
       defaultValue: DEFAULT_VOICE,
     })!;
     const requestedVoiceRecord = getVoiceById(requestedVoice);
-    const requestedLanguage = (
-      requestedVoiceRecord?.language ??
-      getEnum(body, "practiceLanguage", ["en", "vi"] as const, {
-        defaultValue: "en",
-      })
+    const requestedLanguage = getEnum(
+      body,
+      "practiceLanguage",
+      ["en", "vi"] as const,
+      {
+        defaultValue: requestedVoiceRecord?.language ?? "en",
+      }
     ) as PracticeLanguage;
-    const voiceModel = coerceVoiceForLanguage(requestedVoice, requestedLanguage);
+    const voiceModel = resolveTtsVoiceForRequest(requestedVoice, requestedLanguage);
     const voice = getVoiceById(voiceModel) ?? getVoiceById(DEFAULT_VOICE)!;
 
     const startTime = Date.now();

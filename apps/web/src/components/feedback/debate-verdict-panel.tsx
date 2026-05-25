@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Bot,
   CheckCircle2,
@@ -22,8 +23,8 @@ interface DebateVerdictPanelProps {
 function getVerdictCopy(winner: "user" | "ai" | "tie") {
   if (winner === "user") {
     return {
-      eyebrow: "You won the debate",
-      title: "Your side carried the round.",
+      eyebrowKey: "user.eyebrow",
+      titleKey: "user.title",
       chip: "bg-[#EAF9EF] text-[#168A45] ring-[#CDEED9]",
       iconBg: "bg-[#EAF9EF] text-[#168A45]",
       hero: "border-[#BFEBD0] bg-[linear-gradient(135deg,#F8FFFB_0%,#F1FAF5_58%,#F8FBFF_100%)]",
@@ -35,8 +36,8 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
 
   if (winner === "ai") {
     return {
-      eyebrow: "AI won the debate",
-      title: "The AI opponent edged this round.",
+      eyebrowKey: "ai.eyebrow",
+      titleKey: "ai.title",
       chip: "bg-[#FFF5E2] text-[#B45309] ring-[#F9D889]",
       iconBg: "bg-[#FFF5E2] text-[#B45309]",
       hero: "border-[#F9D889] bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF7E8_58%,#F8FBFF_100%)]",
@@ -47,8 +48,8 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
   }
 
   return {
-    eyebrow: "Debate was tied",
-    title: "Both sides held enough ground.",
+    eyebrowKey: "tie.eyebrow",
+    titleKey: "tie.title",
     chip: "bg-[#EAF1FF] text-[#245FD6] ring-[#CFE0FF]",
     iconBg: "bg-[#EAF1FF] text-[#245FD6]",
     hero: "border-[#CFE0FF] bg-[linear-gradient(135deg,#FFFFFF_0%,#F1F6FD_58%,#F8FBFF_100%)]",
@@ -113,6 +114,7 @@ function ConfidenceRing({
 }
 
 export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
+  const t = useTranslations("sessionResult.verdictPanel");
   const verdict = session.feedback?.debateVerdict;
 
   if (!verdict) {
@@ -121,9 +123,11 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
           <Trophy className="h-5 w-5" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-[#0B1424]">Verdict</h2>
+        <h2 className="mt-4 text-2xl font-bold text-[#0B1424]">
+          {t("fallback.title")}
+        </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#718096]">
-          Verdict analysis will appear for newly analyzed full-round debates.
+          {t("fallback.body")}
         </p>
       </section>
     );
@@ -171,11 +175,11 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                 )}
               >
                 <CheckCircle2 className="h-4 w-4" />
-                {copy.eyebrow}
+                {t(copy.eyebrowKey)}
               </span>
             </div>
             <h2 className="mt-5 max-w-4xl text-4xl font-black leading-[1.05] tracking-normal text-[#071159] sm:text-5xl lg:text-[3.45rem]">
-              {copy.title}
+              {t(copy.titleKey)}
             </h2>
             <p className="mt-5 max-w-3xl text-base leading-8 text-[#52648A]">
               {verdict.summary}
@@ -185,12 +189,12 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
         <div className="relative mt-6 rounded-[22px] border border-[#DEE8F8] bg-white/90 p-5 shadow-[0_18px_36px_rgba(16,32,72,0.045)] lg:mt-0">
           <p className="text-center text-base font-bold text-[#415069]">
-            Judge confidence
+            {t("confidence")}
           </p>
           <ConfidenceRing confidence={verdict.confidence} accent="#4D86F7" />
           <div className="mt-3 border-t border-[#DEE8F8] pt-4">
             <div
-              aria-label={`${filledStars} out of 5 confidence stars`}
+              aria-label={t("confidenceStars", { count: filledStars })}
               className="flex justify-center gap-2 text-[#4D86F7]"
             >
               {Array.from({ length: 5 }).map((_, index) => (
@@ -217,7 +221,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
             >
               <Scale className="h-6 w-6" />
             </div>
-            Why this decision
+            {t("whyDecision")}
           </div>
 
           <div className="relative mt-6 space-y-4 pl-12">
@@ -238,14 +242,16 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                     })()}
                   </div>
                   <span className="text-sm leading-6 text-[#415069]">
-                    <span className="sr-only">Reason {index + 1}: </span>
+                    <span className="sr-only">
+                      {t("reasonLabel", { number: index + 1 })}
+                    </span>
                     {reason}
                   </span>
                 </div>
               ))
             ) : (
               <p className="text-sm leading-6 text-[#30427A]">
-                No deciding reasons were generated for this verdict.
+                {t("emptyReasons")}
               </p>
             )}
           </div>
@@ -256,7 +262,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
               <Sparkles className="h-6 w-6" />
             </div>
-            Next move
+            {t("nextMove")}
           </div>
 
           <div className="mt-6 rounded-[20px] border border-[#D9E6FF] bg-white/80 p-5">
@@ -265,8 +271,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                 <Target className="h-10 w-10" />
               </div>
               <p className="text-xl font-black leading-8 text-[#071159]">
-                Practice this as one clear comparative sentence before your
-                next round.
+                {t("nextMovePrompt")}
               </p>
             </div>
             <div className="mt-6 border-t border-[#DEE8F8]" />

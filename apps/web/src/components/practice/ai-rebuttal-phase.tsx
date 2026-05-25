@@ -69,6 +69,14 @@ function getHighlightClass(type: AiHighlight["type"]) {
   }
 }
 
+function getTypewriterDelayMs(text: string, audioDurationSeconds: number | null) {
+  if (audioDurationSeconds && audioDurationSeconds > 0 && text.length > 0) {
+    return Math.max(10, Math.min(90, Math.round((audioDurationSeconds * 1000) / text.length)));
+  }
+
+  return text.length > 5000 ? 5 : text.length > 3000 ? 8 : 18;
+}
+
 function HighlightedResponse({
   text,
   highlights,
@@ -181,6 +189,7 @@ export function AiRebuttalPhase({
   );
   const [aiRunId, setAiRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [typewriterDelayMs, setTypewriterDelayMs] = useState(18);
   const hasFetched = useRef(Boolean(normalizedInitialResponse.rebuttal));
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsTriggeredRef = useRef(false);
@@ -194,6 +203,7 @@ export function AiRebuttalPhase({
     isPlaying: ttsPlaying,
     hasPlayed: ttsHasPlayed,
     error: ttsError,
+    audioDurationSeconds,
   } = useTTS({
     voice: ttsVoice,
     practiceLanguage,
@@ -206,6 +216,7 @@ export function AiRebuttalPhase({
     setFullText("");
     setDisplayedText("");
     setHighlights([]);
+    setTypewriterDelayMs(18);
 
     try {
       const controller = new AbortController();
@@ -296,26 +307,24 @@ export function AiRebuttalPhase({
     if (status !== "typing" || !fullText) return;
 
     let charIndex = 0;
-    const speed = fullText.length > 5000 ? 5 : fullText.length > 3000 ? 8 : 18;
-
     const typeNext = () => {
       if (charIndex < fullText.length) {
         charIndex++;
         setDisplayedText(fullText.substring(0, charIndex));
-        typewriterRef.current = setTimeout(typeNext, speed);
+        typewriterRef.current = setTimeout(typeNext, typewriterDelayMs);
       } else {
         setStatus("done");
       }
     };
 
-    typewriterRef.current = setTimeout(typeNext, speed);
+    typewriterRef.current = setTimeout(typeNext, typewriterDelayMs);
 
     return () => {
       if (typewriterRef.current) {
         clearTimeout(typewriterRef.current);
       }
     };
-  }, [status, fullText]);
+  }, [status, fullText, typewriterDelayMs]);
 
   // Wait for TTS audio to load, then start typewriter so both run simultaneously
   useEffect(() => {
@@ -325,9 +334,10 @@ export function AiRebuttalPhase({
     // Once TTS finishes loading (success, autoplay-blocked, or error) AND we have
     // text AND we haven't started typing yet → start the typewriter
     if (ttsWasLoadingRef.current && !ttsLoading && fullText && status === "loading") {
+      setTypewriterDelayMs(getTypewriterDelayMs(fullText, audioDurationSeconds));
       setStatus("typing");
     }
-  }, [ttsLoading, fullText, status]);
+  }, [ttsLoading, fullText, status, audioDurationSeconds]);
 
   const handleSkipAnimation = () => {
     if (typewriterRef.current) {

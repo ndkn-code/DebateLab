@@ -31,6 +31,7 @@
     "test:student-read-model-rpcs": "npm run test:student-read-model-rpcs -w @thinkfy/web",
     "test:practice-feedback-plan": "npm run test:practice-feedback-plan -w @thinkfy/web",
     "test:practice-analysis": "npm run test:practice-analysis -w @thinkfy/web",
+    "test:feedback-annotations": "npm run test:feedback-annotations -w @thinkfy/web",
     "test:ai-quality": "npm run test:ai-quality -w @thinkfy/web",
     "test:debate-corpus": "npm run test:debate-corpus -w @thinkfy/web",
     "test:corpus-importer": "npm run test:corpus-importer -w @thinkfy/web",

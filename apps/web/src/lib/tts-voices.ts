@@ -130,6 +130,15 @@ export function coerceVoiceForLanguage(
     : getDefaultVoiceForLanguage(language);
 }
 
+export function resolveTtsVoiceForRequest(
+  voiceId: unknown,
+  practiceLanguage?: PracticeLanguage
+) {
+  const requestedVoice = typeof voiceId === "string" ? getVoiceById(voiceId) : null;
+  const language = practiceLanguage ?? requestedVoice?.language ?? "en";
+  return coerceVoiceForLanguage(voiceId, language);
+}
+
 export function getVoiceSampleStoragePath(voiceId: string) {
   const voice = getVoiceById(voiceId);
   if (!voice) return null;

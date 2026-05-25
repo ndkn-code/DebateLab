@@ -21,6 +21,7 @@ interface UseTTSReturn {
   hasPlayed: boolean;
   error: string | null;
   latencyMs: number | null;
+  audioDurationSeconds: number | null;
 }
 
 export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
@@ -38,6 +39,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const [hasPlayed, setHasPlayed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [audioDurationSeconds, setAudioDurationSeconds] = useState<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -66,8 +68,9 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const speak = useCallback(async (text: string) => {
     setIsLoading(true);
     setError(null);
+    setAudioDurationSeconds(null);
 
-    const truncatedText = text.length > 2000 ? text.substring(0, 2000) : text;
+    const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
 
     const attemptFetch = async (): Promise<{ blob: Blob; latency: number }> => {
       const fetchStart = Date.now();
@@ -90,7 +93,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
       try {
         result = await attemptFetch();
-      } catch (firstErr) {
+      } catch {
         // Retry once
         result = await attemptFetch();
       }
@@ -105,7 +108,16 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       blobUrlRef.current = url;
 
       const audio = new Audio(url);
+      audio.preload = "auto";
       audioRef.current = audio;
+
+      audio.onloadedmetadata = () => {
+        setAudioDurationSeconds(
+          Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : null
+        );
+      };
 
       audio.onplay = () => {
         setIsPlaying(true);
@@ -151,6 +163,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
       audio.onerror = () => {
         setIsPlaying(false);
+        setAudioDurationSeconds(null);
         setError('Audio playback failed');
         posthog?.capture('tts_playback_error', { voice, text_length: truncatedText.length });
         onError?.('Audio playback failed');
@@ -167,7 +180,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       if (autoPlay) {
         try {
           await audio.play();
-        } catch (playErr) {
+        } catch {
           // Browser blocked autoplay — user hasn't interacted recently enough
           // Don't treat as error: just mark as "ready to play" so replay button appears
           setIsPlaying(false);
@@ -178,6 +191,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'TTS failed';
       setError(msg);
+      setAudioDurationSeconds(null);
       posthog?.capture('tts_silent_failure', { voice, text_length: truncatedText.length, error: msg });
       onError?.(msg);
     } finally {
@@ -197,7 +211,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     if (audioRef.current && blobUrlRef.current) {
       audioRef.current.currentTime = 0;
       setHasPlayed(false);
-      audioRef.current.play().catch((err) => {
+      audioRef.current.play().catch(() => {
         setHasPlayed(true);
       });
 
@@ -205,5 +219,15 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     }
   }, [voice, posthog]);
 
-  return { speak, stop, replay, isLoading, isPlaying, hasPlayed, error, latencyMs };
+  return {
+    speak,
+    stop,
+    replay,
+    isLoading,
+    isPlaying,
+    hasPlayed,
+    error,
+    latencyMs,
+    audioDurationSeconds,
+  };
 }

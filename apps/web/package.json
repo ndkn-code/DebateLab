@@ -18,6 +18,7 @@
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts",
+    "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",
     "test:ai-quality": "tsx src/lib/ai/quality-model.test.ts",
     "test:debate-corpus": "tsx src/lib/corpus/model.test.ts",
     "test:corpus-importer": "tsx src/lib/corpus/importer.test.ts",

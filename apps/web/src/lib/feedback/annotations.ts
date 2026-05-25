@@ -33,6 +33,33 @@ export const TRANSCRIPT_ANNOTATION_ACCENTS: Record<string, string> = {
   delivery: "#7B61FF",
 };
 
+const VALID_TRANSCRIPT_ANNOTATION_TAGS = new Set<TranscriptAnnotation["tag"]>([
+  "stance",
+  "clarity",
+  "mechanism",
+  "evidence",
+  "logic",
+  "rebuttal",
+  "clash",
+  "weighing",
+  "impact",
+  "structure",
+  "delivery",
+]);
+
+const TAG_ALIASES: Record<string, TranscriptAnnotation["tag"]> = {
+  claim: "stance",
+  argument: "logic",
+  counterargument: "rebuttal",
+  counter_argument: "rebuttal",
+};
+
+const FILLER_QUOTE_PATTERNS = [
+  /^cảm ơn đội bạn[.!?。]*$/i,
+  /^cảm ơn[.!?。]*$/i,
+  /^thank you[.!?。]*$/i,
+];
+
 export function getTranscriptAnnotationAccent(tag: string) {
   return TRANSCRIPT_ANNOTATION_ACCENTS[tag] ?? TRANSCRIPT_ANNOTATION_ACCENTS.logic;
 }
@@ -101,6 +128,36 @@ function findLooseRange(transcript: string, quote: string) {
   };
 }
 
+function normalizeQuoteForQuality(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[“”"'.!,?:;()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeAnnotationTag(value: unknown): TranscriptAnnotation["tag"] {
+  if (typeof value !== "string") return "logic";
+  const tag = value.trim().toLowerCase();
+  const resolved = TAG_ALIASES[tag] ?? tag;
+  return VALID_TRANSCRIPT_ANNOTATION_TAGS.has(resolved as TranscriptAnnotation["tag"])
+    ? (resolved as TranscriptAnnotation["tag"])
+    : "logic";
+}
+
+function isLowSignalAnnotationQuote(quote: string) {
+  const normalized = normalizeQuoteForQuality(quote);
+  if (!normalized) return true;
+  if (FILLER_QUOTE_PATTERNS.some((pattern) => pattern.test(quote.trim()))) {
+    return true;
+  }
+
+  const words = normalized.split(" ").filter(Boolean);
+  if (words.length < 4) return true;
+
+  return normalized.startsWith("hello vậy là rồi") && normalized.includes("không ghi âm được");
+}
+
 export function locateTranscriptAnnotations(
   transcript: string,
   annotations: TranscriptAnnotation[] | null | undefined
@@ -129,6 +186,7 @@ export function normalizeTranscriptAnnotations(
   value: unknown
 ): TranscriptAnnotation[] {
   if (!Array.isArray(value)) return [];
+  const seenQuotes = new Set<string>();
 
   return value
     .map((item): TranscriptAnnotation | null => {
@@ -140,12 +198,13 @@ export function normalizeTranscriptAnnotations(
       const suggestion =
         typeof source.suggestion === "string" ? source.suggestion.trim() : "";
 
-      if (!quote || !feedback) return null;
+      if (!quote || !feedback || isLowSignalAnnotationQuote(quote)) return null;
 
-      const tag =
-        typeof source.tag === "string" && source.tag.trim()
-          ? source.tag.trim()
-          : "logic";
+      const normalizedQuote = normalizeQuoteForQuality(quote);
+      if (seenQuotes.has(normalizedQuote)) return null;
+      seenQuotes.add(normalizedQuote);
+
+      const tag = normalizeAnnotationTag(source.tag);
       const severity =
         source.severity === "strength" ||
         source.severity === "improvement" ||
@@ -166,7 +225,7 @@ export function normalizeTranscriptAnnotations(
         quote,
         roundNumber,
         speaker,
-        tag: tag as TranscriptAnnotation["tag"],
+        tag,
         severity,
         feedback,
         suggestion,

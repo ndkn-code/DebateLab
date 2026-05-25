@@ -6,6 +6,7 @@ import {
   getVoiceSampleStoragePath,
   getVoiceSampleUrl,
   getVoicesForLanguage,
+  resolveTtsVoiceForRequest,
   TTS_SAMPLE_BUCKET,
   TTS_SAMPLE_TEXT_BY_LANGUAGE,
 } from "@/lib/tts-voices";
@@ -22,6 +23,8 @@ const vietnameseIds = vietnameseVoices.map((voice) => voice.id);
 assert.equal(getDefaultVoiceForLanguage("vi"), "vi-VN-Chirp3-HD-Kore");
 assert.equal(coerceVoiceForLanguage("aura-asteria-en", "vi"), "vi-VN-Chirp3-HD-Kore");
 assert.equal(coerceVoiceForLanguage("vi-VN-HoaiMyNeural", "vi"), "vi-VN-HoaiMyNeural");
+assert.equal(resolveTtsVoiceForRequest("aura-hera-en", "vi"), "vi-VN-Chirp3-HD-Kore");
+assert.equal(resolveTtsVoiceForRequest("aura-hera-en"), "aura-hera-en");
 
 for (const voiceId of [
   "vi-VN-HoaiMyNeural",

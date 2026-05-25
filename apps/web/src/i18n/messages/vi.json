@@ -2086,15 +2086,40 @@
       "retryTopic": "Luyện lại chủ đề này",
       "deleteSession": "Xóa phiên"
     },
-    "referral": {
-      "title": "Thử thách bạn bè vượt điểm của bạn!",
-      "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
-      "shareTitle": "Thử thách Thinkfy",
-      "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
-      "cta": "Chia sẻ thử thách",
-      "copied": "Đã sao chép!"
+  "referral": {
+    "title": "Thử thách bạn bè vượt điểm của bạn!",
+    "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
+    "shareTitle": "Thử thách Thinkfy",
+    "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
+    "cta": "Chia sẻ thử thách",
+    "copied": "Đã sao chép!"
+  },
+  "verdictPanel": {
+    "user": {
+      "eyebrow": "Bạn thắng phần tranh biện",
+      "title": "Phe của bạn giữ được thế trận."
     },
-    "modelUsed": "Được phân tích bằng {model}",
+    "ai": {
+      "eyebrow": "AI thắng phần tranh biện",
+      "title": "Đối thủ AI nhỉnh hơn ở vòng này."
+    },
+    "tie": {
+      "eyebrow": "Hai bên hòa nhau",
+      "title": "Cả hai phe đều giữ được đủ luận điểm."
+    },
+    "fallback": {
+      "title": "Phán quyết",
+      "body": "Phân tích phán quyết sẽ xuất hiện cho các phiên full-round mới."
+    },
+    "confidence": "Độ tin cậy của giám khảo",
+    "confidenceStars": "{count}/5 sao độ tin cậy",
+    "whyDecision": "Vì sao có phán quyết này",
+    "reasonLabel": "Lý do {number}: ",
+    "emptyReasons": "Chưa có lý do quyết định nào cho phán quyết này.",
+    "nextMove": "Bước tiếp theo",
+    "nextMovePrompt": "Luyện viết lại ý này thành một câu so sánh thật rõ trước vòng tiếp theo."
+  },
+  "modelUsed": "Được phân tích bằng {model}",
     "duration": {
       "seconds": "{count} giây",
       "minutes": "{count} phút",

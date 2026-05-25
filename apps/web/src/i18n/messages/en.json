@@ -2086,15 +2086,40 @@
       "retryTopic": "Retry This Topic",
       "deleteSession": "Delete Session"
     },
-    "referral": {
-      "title": "Challenge a friend to beat your score!",
-      "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
-      "shareTitle": "Thinkfy Challenge",
-      "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
-      "cta": "Share Challenge",
-      "copied": "Copied!"
+  "referral": {
+    "title": "Challenge a friend to beat your score!",
+    "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
+    "shareTitle": "Thinkfy Challenge",
+    "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
+    "cta": "Share Challenge",
+    "copied": "Copied!"
+  },
+  "verdictPanel": {
+    "user": {
+      "eyebrow": "You won the debate",
+      "title": "Your side carried the round."
     },
-    "modelUsed": "Analyzed with {model}",
+    "ai": {
+      "eyebrow": "AI won the debate",
+      "title": "The AI opponent edged this round."
+    },
+    "tie": {
+      "eyebrow": "Debate was tied",
+      "title": "Both sides held enough ground."
+    },
+    "fallback": {
+      "title": "Verdict",
+      "body": "Verdict analysis will appear for newly analyzed full-round debates."
+    },
+    "confidence": "Judge confidence",
+    "confidenceStars": "{count} out of 5 confidence stars",
+    "whyDecision": "Why this decision",
+    "reasonLabel": "Reason {number}: ",
+    "emptyReasons": "No deciding reasons were generated for this verdict.",
+    "nextMove": "Next move",
+    "nextMovePrompt": "Practice this as one clear comparative sentence before your next round."
+  },
+  "modelUsed": "Analyzed with {model}",
     "duration": {
       "seconds": "{count}s",
       "minutes": "{count} min",
