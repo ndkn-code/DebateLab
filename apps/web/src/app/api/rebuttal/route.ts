@@ -506,6 +506,12 @@ async function generateDeepSeekRebuttal(
     temperature: 0.7,
     timeoutMs,
     userId,
+    sourceRoute: "/api/rebuttal",
+    outputType: "rebuttal",
+    metadata: {
+      maxOutputTokens,
+      timeoutMs,
+    },
   });
   const latency = Date.now() - startTime;
   const usage: DeepSeekUsage | undefined = result.usage;

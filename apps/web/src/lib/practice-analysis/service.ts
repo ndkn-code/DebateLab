@@ -18,6 +18,7 @@ import {
   createPracticeInputHash,
 } from "./snapshot";
 import type {
+  AnalysisJobStatus,
   AnalysisJobRecord,
   CompletedPracticeAnalysis,
   PracticeAnalysisInput,
@@ -293,33 +294,50 @@ export async function markPracticeAnalysisProcessing(
     jobId: string;
     attemptId: string;
     deliveryCount: number;
+    allowedStatuses?: AnalysisJobStatus[];
+    maxAttempts?: number;
   }
 ) {
   const now = new Date().toISOString();
-  const [{ error: jobError }, { error: attemptError }] = await Promise.all([
-    supabase
-      .from("analysis_jobs")
-      .update({
-        status: "processing",
-        delivery_count: params.deliveryCount,
-        started_at: now,
-        updated_at: now,
-        error_code: null,
-        error_message: null,
-      })
-      .eq("id", params.jobId),
-    supabase
-      .from("practice_attempts")
-      .update({
-        status: "analyzing",
-        updated_at: now,
-        error_code: null,
-        error_message: null,
-      })
-      .eq("id", params.attemptId),
-  ]);
+  let jobQuery = supabase
+    .from("analysis_jobs")
+    .update({
+      status: "processing",
+      delivery_count: params.deliveryCount,
+      started_at: now,
+      updated_at: now,
+      error_code: null,
+      error_message: null,
+    })
+    .eq("id", params.jobId);
+
+  if (params.allowedStatuses?.length) {
+    jobQuery = jobQuery.in("status", params.allowedStatuses);
+  }
+  if (params.maxAttempts != null) {
+    jobQuery = jobQuery.lt("delivery_count", params.maxAttempts);
+  }
+
+  const { data: claimedJob, error: jobError } = await jobQuery
+    .select("id")
+    .maybeSingle();
   requireNoSupabaseError(jobError, "mark analysis job processing");
+
+  if (!claimedJob) {
+    return false;
+  }
+
+  const { error: attemptError } = await supabase
+    .from("practice_attempts")
+    .update({
+      status: "analyzing",
+      updated_at: now,
+      error_code: null,
+      error_message: null,
+    })
+    .eq("id", params.attemptId);
   requireNoSupabaseError(attemptError, "mark practice attempt analyzing");
+  return true;
 }
 
 export async function markPracticeAnalysisCompleted(

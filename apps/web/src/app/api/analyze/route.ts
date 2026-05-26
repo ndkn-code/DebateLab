@@ -459,6 +459,12 @@ export async function POST(req: NextRequest) {
           debateMemory,
           transcription,
           corpusContext: corpusRetrieval.contextBlock,
+          providerAudit: {
+            sourceRoute: "/api/analyze",
+            practiceAttemptId: durableAnalysis?.attempt.id,
+            analysisJobId: durableAnalysis?.job.id,
+            metadata: { debugId: requestId },
+          },
         }, authUser.id, (nextTelemetry) => {
           telemetry = nextTelemetry;
         }),

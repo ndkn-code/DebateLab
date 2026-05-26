@@ -17,7 +17,7 @@
     "test:performance-summary": "tsx src/lib/analytics/performance-summary.test.ts",
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
-    "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts",
+    "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts && tsx src/lib/practice-analysis/retry-guard.test.ts",
     "test:stt": "tsx src/lib/stt/stt.test.ts",
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",
     "test:ai-quality": "tsx src/lib/ai/quality-model.test.ts",

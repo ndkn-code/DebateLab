@@ -325,6 +325,12 @@ type AnalyzeDebateParams = {
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
   transcription?: PracticeTranscriptionArtifact | null;
+  providerAudit?: {
+    sourceRoute?: string;
+    practiceAttemptId?: string;
+    analysisJobId?: string;
+    metadata?: Record<string, unknown>;
+  };
 };
 
 type AiTelemetryCallback = (telemetry: AiQualityTelemetry) => void | Promise<void>;
@@ -1335,6 +1341,14 @@ async function analyzeDebateWithDeepSeek(
       maxTokens: Math.min(maxTokens, 4096),
       userId,
       timeoutMs: 30000,
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "json_regeneration_or_repair",
+        ...(params.providerAudit?.metadata ?? {}),
+      },
     }).then((retryResult) => retryResult.content);
 
   const startTime = Date.now();
@@ -1348,6 +1362,15 @@ async function analyzeDebateWithDeepSeek(
       maxTokens,
       userId,
       timeoutMs: 30000,
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "primary",
+        isFullRound: params.isFullRound ?? false,
+        ...(params.providerAudit?.metadata ?? {}),
+      },
     });
   } catch (error) {
     if (
@@ -1362,6 +1385,15 @@ async function analyzeDebateWithDeepSeek(
         maxTokens,
         userId,
         timeoutMs: 30000,
+        sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+        outputType: "practice_judging",
+        practiceAttemptId: params.providerAudit?.practiceAttemptId,
+        analysisJobId: params.providerAudit?.analysisJobId,
+        metadata: {
+          phase: "empty_response_internal_retry",
+          isFullRound: params.isFullRound ?? false,
+          ...(params.providerAudit?.metadata ?? {}),
+        },
       });
     } else {
       throw error;
@@ -1803,6 +1835,12 @@ async function judgeDebateDuelWithDeepSeek(params: {
     responseFormat: "json_object",
     maxTokens: 8192,
     userId,
+    sourceRoute: "/api/debate-duels/judge",
+    outputType: "duel_judging",
+    metadata: {
+      speechCount: params.speeches.length,
+      practiceLanguage: params.practiceLanguage ?? null,
+    },
   });
   const latency = Date.now() - startTime;
 

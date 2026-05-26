@@ -25,6 +25,7 @@ import {
   markPracticeAnalysisProcessing,
   practiceAttemptRowToInput,
 } from "@/lib/practice-analysis/service";
+import { getPracticeAnalysisRetryDecision } from "@/lib/practice-analysis/retry-guard";
 import type { PracticeAnalysisQueueMessage } from "@/lib/practice-analysis/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
@@ -78,14 +79,15 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     }
 
     const deliveryLimit = job.max_attempts || 3;
-    const startedAtMs = job.started_at ? Date.parse(job.started_at) : 0;
-    const staleProcessing =
-      job.status === "processing" &&
-      startedAtMs > 0 &&
-      Date.now() - startedAtMs > 10 * 60 * 1000 &&
-      (job.delivery_count ?? 0) >= deliveryLimit;
+    const retryDecision = getPracticeAnalysisRetryDecision({
+      jobStatus: job.status,
+      dbDeliveryCount: job.delivery_count,
+      maxAttempts: deliveryLimit,
+      queueDeliveryCount: metadata.deliveryCount,
+      startedAt: job.started_at,
+    });
 
-    if (metadata.deliveryCount > deliveryLimit || staleProcessing) {
+    if (retryDecision.action === "fail") {
       await markPracticeAnalysisFailed(supabase, {
         jobId: job.id,
         attemptId: attempt.id,
@@ -96,17 +98,38 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       return;
     }
 
-    await markPracticeAnalysisProcessing(supabase, {
+    if (retryDecision.action === "skip") {
+      return;
+    }
+
+    const claimed = await markPracticeAnalysisProcessing(supabase, {
       jobId: job.id,
       attemptId: attempt.id,
-      deliveryCount: metadata.deliveryCount,
+      deliveryCount: retryDecision.deliveryCount,
+      allowedStatuses: retryDecision.allowedStatuses,
+      maxAttempts: deliveryLimit,
     });
+    if (!claimed) {
+      return;
+    }
 
     let effectiveProvider = getPracticeFeedbackModelProvider(attempt.practice_track);
     let effectiveModel = getPracticeFeedbackModelName(attempt.practice_track);
 
     try {
       const input = practiceAttemptRowToInput(attempt);
+      input.providerAudit = {
+        sourceRoute: "/api/queues/practice-analysis",
+        practiceAttemptId: attempt.id,
+        analysisJobId: job.id,
+        metadata: {
+          queueMessageId: metadata.messageId,
+          queueDeliveryCount: metadata.deliveryCount,
+          dbDeliveryCountBeforeClaim: job.delivery_count,
+          effectiveDeliveryCount: retryDecision.deliveryCount,
+          retryDecision: retryDecision.reason,
+        },
+      };
       if (
         input.practiceTrack === "debate" &&
         input.isFullRound &&
@@ -305,9 +328,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         },
       }).catch(() => null);
       const retryAfterSeconds =
-        metadata.deliveryCount >= deliveryLimit
+        retryDecision.deliveryCount >= deliveryLimit
           ? undefined
-          : Math.min(300, 2 ** metadata.deliveryCount * 5);
+          : Math.min(300, 2 ** retryDecision.deliveryCount * 5);
       await markPracticeAnalysisFailed(supabase, {
         jobId: job.id,
         attemptId: attempt.id,

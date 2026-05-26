@@ -52,6 +52,12 @@ export interface PracticeAnalysisInput {
   topicDifficulty: "beginner" | "intermediate" | "advanced";
   audioStoragePath?: string;
   clubContext?: ClubPracticeContext;
+  providerAudit?: {
+    sourceRoute?: string;
+    practiceAttemptId?: string;
+    analysisJobId?: string;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 export interface PracticeAttemptSnapshot {
