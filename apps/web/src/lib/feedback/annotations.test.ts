@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { normalizeTranscriptAnnotations } from "@/lib/feedback/annotations";
+import {
+  locateTranscriptAnnotations,
+  normalizeTranscriptAnnotations,
+} from "@/lib/feedback/annotations";
 
 const normalized = normalizeTranscriptAnnotations([
   {
@@ -9,6 +12,22 @@ const normalized = normalizeTranscriptAnnotations([
     severity: "improvement",
     feedback: "Needs a better answer.",
     suggestion: "Answer the actual clash.",
+  },
+  {
+    quote: "Cảm ơn đội bạn đã có những luận điểm rất rõ ràng.",
+    speaker: "ai",
+    tag: "clash",
+    severity: "improvement",
+    feedback: "Needs a better answer.",
+    suggestion: "Anchor this on an actual clash.",
+  },
+  {
+    quote: "Kính thưa ban giám khảo và quý vị khán giả.",
+    speaker: "user",
+    tag: "stance",
+    severity: "strength",
+    feedback: "Opening etiquette is not a substantive argument.",
+    suggestion: "Quote the claim after the greeting instead.",
   },
   {
     quote:
@@ -40,5 +59,19 @@ const normalized = normalizeTranscriptAnnotations([
 assert.equal(normalized.length, 1);
 assert.equal(normalized[0].quote, "AI chủ động ở đây quét siêu dữ liệu");
 assert.equal(normalized[0].tag, "stance");
+
+assert.equal(
+  locateTranscriptAnnotations("Kính thưa ban giám khảo và quý vị khán giả.", [
+    {
+      quote: "Kính thưa ban giám khảo và quý vị khán giả.",
+      speaker: "user",
+      tag: "stance",
+      severity: "strength",
+      feedback: "Opening etiquette is not a substantive argument.",
+      suggestion: "Quote the claim after the greeting instead.",
+    },
+  ]).length,
+  0
+);
 
 console.log("Transcript annotation normalization tests passed");

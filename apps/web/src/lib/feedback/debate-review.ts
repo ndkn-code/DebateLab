@@ -7,6 +7,7 @@ import type {
   DebateVerdict,
   TranscriptAnnotation,
 } from "@/types";
+import { isLowSignalFeedbackQuote } from "@/lib/feedback/annotations";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 
 const VALID_SPEAKERS = new Set<DebateReviewSpeaker>(["user", "ai"]);
@@ -126,7 +127,14 @@ export function normalizeDebateClashLinks(value: unknown): DebateClashLink[] {
         return null;
       }
 
+      if (isLowSignalFeedbackQuote(sourceQuote)) {
+        return null;
+      }
+
       const responseQuote = readNullableString(link.responseQuote);
+      if (responseQuote && isLowSignalFeedbackQuote(responseQuote)) {
+        return null;
+      }
       const responseRoundNumber = responseQuote
         ? readRoundNumber(link.responseRoundNumber)
         : null;

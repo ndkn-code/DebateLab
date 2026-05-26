@@ -224,6 +224,18 @@ const fullRoundClashLinks = normalizeDebateClashLinks([
     suggestion: "Invalid",
     tag: "logic",
   },
+  {
+    sourceRoundNumber: 2,
+    sourceSpeaker: "ai",
+    responseRoundNumber: 3,
+    responseSpeaker: "user",
+    sourceQuote: "Cảm ơn đội bạn đã có những luận điểm rất rõ ràng.",
+    responseQuote: "Kính thưa ban giám khảo và quý vị khán giả.",
+    outcome: "misanswered",
+    judgeRead: "This should not survive because both quotes are low-signal greetings.",
+    suggestion: "Use the actual mechanism or weighing quote instead.",
+    tag: "clash",
+  },
 ]);
 
 assert.equal(fullRoundClashLinks.length, 2);

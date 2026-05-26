@@ -55,8 +55,10 @@ const TAG_ALIASES: Record<string, TranscriptAnnotation["tag"]> = {
 };
 
 const FILLER_QUOTE_PATTERNS = [
-  /^cảm ơn đội bạn[.!?。]*$/i,
-  /^cảm ơn[.!?。]*$/i,
+  /^cảm ơn\b/i,
+  /^kính thưa\b/i,
+  /^xin kính chào\b/i,
+  /^xin chào\b/i,
   /^thank you[.!?。]*$/i,
 ];
 
@@ -145,14 +147,18 @@ function normalizeAnnotationTag(value: unknown): TranscriptAnnotation["tag"] {
     : "logic";
 }
 
-function isLowSignalAnnotationQuote(quote: string) {
+export function isLowSignalFeedbackQuote(quote: string) {
   const normalized = normalizeQuoteForQuality(quote);
   if (!normalized) return true;
-  if (FILLER_QUOTE_PATTERNS.some((pattern) => pattern.test(quote.trim()))) {
+  const words = normalized.split(" ").filter(Boolean);
+
+  if (
+    words.length <= 18 &&
+    FILLER_QUOTE_PATTERNS.some((pattern) => pattern.test(quote.trim()))
+  ) {
     return true;
   }
 
-  const words = normalized.split(" ").filter(Boolean);
   if (words.length < 4) return true;
 
   return normalized.startsWith("hello vậy là rồi") && normalized.includes("không ghi âm được");
@@ -166,6 +172,7 @@ export function locateTranscriptAnnotations(
 
   return annotations
     .filter((annotation) => annotation?.quote?.trim())
+    .filter((annotation) => !isLowSignalFeedbackQuote(annotation.quote))
     .map((annotation, index) => {
       const quote = annotation.quote.trim();
       const range =
@@ -198,7 +205,7 @@ export function normalizeTranscriptAnnotations(
       const suggestion =
         typeof source.suggestion === "string" ? source.suggestion.trim() : "";
 
-      if (!quote || !feedback || isLowSignalAnnotationQuote(quote)) return null;
+      if (!quote || !feedback || isLowSignalFeedbackQuote(quote)) return null;
 
       const normalizedQuote = normalizeQuoteForQuality(quote);
       if (seenQuotes.has(normalizedQuote)) return null;
