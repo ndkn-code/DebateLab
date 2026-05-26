@@ -1,4 +1,5 @@
 import type { DebateScore, PracticeLanguage, PracticeTrack } from "./feedback";
+import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 
 export interface DebateTopic {
   id: string;
@@ -86,6 +87,7 @@ export interface DebateSession {
   prepNotes?: string;
   clubContext?: ClubPracticeContext;
   modelName?: string | null;
+  transcription?: PracticeTranscriptionArtifact | null;
   // Full Round fields
   aiDifficulty?: AiDifficulty;
   rounds?: DebateRound[];

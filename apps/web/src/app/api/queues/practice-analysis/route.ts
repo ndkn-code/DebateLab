@@ -26,6 +26,7 @@ import {
 } from "@/lib/practice-analysis/service";
 import type { PracticeAnalysisQueueMessage } from "@/lib/practice-analysis/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
 
 export const maxDuration = 60;
 
@@ -128,6 +129,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
               isFullRound: input.isFullRound,
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
+              transcription: input.transcription
+                ? createTranscriptionQualityMetadata(input.transcription)
+                : undefined,
               ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
             },
           })
@@ -201,6 +205,11 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         metadata: {
           queueMessageId: metadata.messageId,
           deliveryCount: metadata.deliveryCount,
+          transcription: attempt.attempt_snapshot.analysisParams.transcription
+            ? createTranscriptionQualityMetadata(
+                attempt.attempt_snapshot.analysisParams.transcription
+              )
+            : undefined,
         },
       }).catch(() => null);
       const deliveryLimit = job.max_attempts || 3;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { AnimatePresence } from "framer-motion";
@@ -78,7 +78,19 @@ export default function SessionPage() {
 
   const prepTimer = useCountdown(prepTime);
   const speechTimer = useCountdown(speechTime);
-  const speech = useDeepgramTranscription(practiceLanguage);
+  const sttContext = useMemo(
+    () => ({
+      practiceLanguage,
+      topic: selectedTopic?.title,
+      side,
+      motionBrief: selectedTopic
+        ? getMotionBrief(selectedTopic, practiceLanguage)
+        : null,
+      prepNotes,
+    }),
+    [practiceLanguage, prepNotes, selectedTopic, side]
+  );
+  const speech = useDeepgramTranscription(practiceLanguage, sttContext);
   const audio = useAudioRecorder();
   useTtsAutoplayUnlock();
 

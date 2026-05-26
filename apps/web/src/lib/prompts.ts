@@ -12,6 +12,8 @@ import {
   buildTruongTeenJudgingPromptAddendum,
   shouldUseTruongTeenPrompt,
 } from "@/lib/truong-teen/debate-dna";
+import { buildSttJudgeGuardrailBlock } from "@/lib/stt/prompt";
+import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 import type {
   DebateMemory,
   DebateRound,
@@ -35,6 +37,7 @@ interface AnalysisPromptParams {
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
+  transcription?: PracticeTranscriptionArtifact | null;
 }
 
 function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
@@ -47,7 +50,8 @@ function buildPracticeLanguageInstructions(language?: PracticeLanguage): string 
 - Critical: do not write English explanatory sentences in any user-facing prose field. Use natural Vietnamese coaching language; common debate terms like motion, clash, weighing, impact, rebuttal, and burden may remain only when they sound natural in Vietnamese.
 - Avoid literal translated idioms that sound unnatural in Vietnamese debate coaching.
 - Preserve this JSON schema exactly. Keep schema keys and enum literal values in English exactly as specified.
-- Copy transcript quotes exactly as written, including Vietnamese diacritics. If an exact quote is hard to match, choose a shorter exact contiguous quote.`;
+- Copy transcript quotes exactly as written, including Vietnamese diacritics. If an exact quote is hard to match, choose a shorter exact contiguous quote.
+- If speech-to-text uncertainty is provided, do not treat likely ASR spelling artifacts as pronunciation mistakes unless audio evidence is explicitly available.`;
   }
 
   return `## Practice Language
@@ -268,9 +272,11 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
     timeLimit,
     actualDuration,
     practiceLanguage,
+    transcription,
   } = params;
   const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
+  const sttGuardrailContext = buildSttJudgeGuardrailBlock(transcription);
 
   return `You are an expert public speaking coach for Vietnamese high school students practicing ${languageConfig.aiName}. Analyze this speech and provide supportive but honest feedback.
 
@@ -282,6 +288,7 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
 - Actual Duration: ${actualDuration} seconds
 
 ${languageInstructions}
+${sttGuardrailContext}
 
 ## Transcript
 """
@@ -342,6 +349,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     motionBrief,
     debateMemory,
     corpusContext,
+    transcription,
   } = params;
 
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
@@ -385,6 +393,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
   const coverageInstruction = isFullRound
     ? `- Full/long-round coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns, ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations, and ${depthTarget.minClashLinks}-${depthTarget.maxClashLinks} clashLinks.`
     : `- Quick/short coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns and ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations; keep clashLinks as [] unless this is a full round.`;
+  const sttGuardrailContext = buildSttJudgeGuardrailBlock(transcription);
 
   return `You are an expert debate coach and judge for Vietnamese high school students practicing ${languageConfig.aiName} debate. Analyze this debate speech and provide rigorous, debate-specific feedback.
 
@@ -399,6 +408,7 @@ ${motionBriefContext}
 ${debateMemoryContext}
 ${roundsContext}
 ${languageInstructions}
+${sttGuardrailContext}
 ${truongTeenJudgingContext}
 ${corpusContext ?? ""}
 
@@ -428,7 +438,7 @@ When you criticize an argument, identify the exact missing debate layer and expl
 - If the student loses because of repetition, unclear structure, weak evidence, or failure to answer the main clash, totalScore should usually be below 65.
 - Do not give Content above 25/40 unless the student clearly proves the motion with mechanisms, examples, and impact weighing.
 - Do not give Structure above 17/25 if the student repeats large portions of earlier speeches instead of advancing the round.
-- Do not give Language above 18/25 if speech-to-text errors or phrasing make multiple claims hard to follow.
+- Do not give Language above 18/25 if phrasing or the selected transcript remains hard to follow after applying any STT uncertainty hints; do not penalize likely ASR spelling artifacts by themselves.
 - Do not give Persuasion above 7/10 unless the student directly compares worlds and gives the judge a clear reason why their side wins.
 - Be fair but strict. This is a training score, not encouragement.
 

@@ -68,17 +68,49 @@ export interface PracticeUploadArtifact {
 
 export type PracticeTranscriptionWarning =
   | "no_speech_detected"
-  | "short_transcript";
+  | "short_transcript"
+  | "low_confidence"
+  | "possible_stt_artifacts"
+  | "fallback_transcript_used"
+  | "groq_unavailable"
+  | "provider_disagreement";
+
+export type PracticeTranscriptionProvider =
+  | "deepgram"
+  | "groq"
+  | "deepgram_groq_consensus";
+
+export interface PracticeTranscriptionAlternative {
+  provider: PracticeTranscriptionProvider;
+  model: string;
+  transcript: string;
+  confidence: number | null;
+  requestId: string | null;
+  selected: boolean;
+  errorCode?: string;
+}
+
+export interface PracticeTranscriptionNormalizationHint {
+  raw: string;
+  normalized: string;
+  reason: string;
+  confidence: number;
+  source: "static_glossary" | "motion_context" | "provider_consensus";
+}
 
 export interface PracticeTranscriptionArtifact {
   transcript: string;
+  rawTranscript?: string;
+  normalizedTranscript?: string;
   confidence: number | null;
   wordCount: number;
-  provider: "deepgram";
-  model: "nova-3";
+  provider: PracticeTranscriptionProvider;
+  model: string;
   requestId: string | null;
   language: PracticeLanguage;
   warnings: PracticeTranscriptionWarning[];
+  alternatives?: PracticeTranscriptionAlternative[];
+  normalizationHints?: PracticeTranscriptionNormalizationHint[];
   audioBucket: typeof MOBILE_PRACTICE_AUDIO_BUCKET;
   audioStoragePath: string;
   durationSeconds: number;

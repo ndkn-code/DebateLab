@@ -305,6 +305,8 @@ export async function POST(req: NextRequest) {
         practice_track: input.practiceTrack,
         practice_language: input.practiceLanguage,
         word_count: wordCount,
+        stt_provider: input.transcription?.provider,
+        stt_warnings: input.transcription?.warnings,
         charged_credits: charge.chargedCredits,
         practice_attempt_id: attempt.id,
         analysis_job_id: job.id,

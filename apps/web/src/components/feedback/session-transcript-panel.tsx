@@ -64,6 +64,14 @@ export function SessionTranscriptPanel({
         selectedRound.roundNumber
       )
     : annotations;
+  const sttWarnings = session.transcription?.warnings ?? [];
+  const sttHintCount = session.transcription?.normalizationHints?.length ?? 0;
+  const showSttNotice =
+    speechPart === "all" &&
+    (sttHintCount > 0 ||
+      sttWarnings.includes("possible_stt_artifacts") ||
+      sttWarnings.includes("fallback_transcript_used") ||
+      session.transcription?.provider === "deepgram_groq_consensus");
   const speechPartControl = hasMultipleSpeechParts ? (
     <label className="block">
       <span className="text-xs font-bold text-[#718096]">
@@ -99,6 +107,14 @@ export function SessionTranscriptPanel({
           {backLabel}
         </Link>
       </div>
+
+      {showSttNotice && (
+        <div className="rounded-xl border border-[#BFD5FF] bg-[#F4F8FF] px-4 py-3 text-sm font-medium text-[#34456B]">
+          {session.practiceLanguage === "vi"
+            ? "Bản ghi đã được làm sạch nhẹ cho các lỗi speech-to-text có khả năng xảy ra. Phần chấm điểm không nên phạt phát âm nếu chỉ có dấu hiệu từ bản chữ."
+            : "This transcript was lightly cleaned for likely speech-to-text artifacts. Feedback should not penalize pronunciation from text-only uncertainty."}
+        </div>
+      )}
 
       <AnnotatedTranscript
         transcript={selectedTranscript}

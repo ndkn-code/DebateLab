@@ -27,8 +27,9 @@ import { createClient } from "@/lib/supabase/client";
 import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/referrals";
 import type { DebateSession } from "@/types";
 import type { DebateScore } from "@/types/feedback";
+import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 
-const ANALYSIS_SUBMIT_TIMEOUT_MS = 30000;
+const ANALYSIS_SUBMIT_TIMEOUT_MS = 90000;
 const ANALYSIS_POLL_INTERVAL_MS = 2000;
 const ANALYSIS_POLL_TIMEOUT_MS = 180000;
 const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
@@ -89,10 +90,11 @@ async function uploadPracticeAudio(params: {
 
   const supabase = createClient();
   const storagePath = `${params.userId}/${params.attemptId}/source.webm`;
+  const contentType = params.audioBlob.type || "audio/webm";
   const { error } = await supabase.storage
     .from(PRACTICE_AUDIO_BUCKET)
     .upload(storagePath, params.audioBlob, {
-      contentType: params.audioBlob.type || "audio/webm",
+      contentType,
       upsert: true,
     });
 
@@ -101,7 +103,46 @@ async function uploadPracticeAudio(params: {
     return null;
   }
 
-  return storagePath;
+  return {
+    path: storagePath,
+    contentType,
+    byteSize: params.audioBlob.size,
+  };
+}
+
+async function finalizePracticeTranscription(params: {
+  audio: NonNullable<Awaited<ReturnType<typeof uploadPracticeAudio>>>;
+  practiceLanguage: "en" | "vi";
+  durationSeconds: number;
+  topic: string;
+  side: "proposition" | "opposition";
+  motionBrief: ReturnType<typeof getMotionBrief>;
+  prepNotes: string;
+}) {
+  if (params.practiceLanguage !== "vi") return null;
+
+  const response = await fetch("/api/practice-transcriptions/finalize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bucket: PRACTICE_AUDIO_BUCKET,
+      path: params.audio.path,
+      contentType: params.audio.contentType,
+      byteSize: params.audio.byteSize,
+      durationSeconds: Math.max(1, params.durationSeconds),
+      practiceLanguage: params.practiceLanguage,
+      topic: params.topic,
+      side: params.side,
+      motionBrief: params.motionBrief,
+      prepNotes: params.prepNotes,
+    }),
+  });
+
+  if (!response.ok) return null;
+  const body = (await response.json()) as {
+    transcription?: PracticeTranscriptionArtifact;
+  };
+  return body.transcription ?? null;
 }
 
 export default function FeedbackPage() {
@@ -147,6 +188,9 @@ export default function FeedbackPage() {
   );
   const [modelUsed, setModelUsed] = useState<string | null>(null);
   const [aiQualityRunId, setAiQualityRunId] = useState<string | null>(null);
+  const [finalTranscript, setFinalTranscript] = useState(transcript);
+  const [transcriptionArtifact, setTranscriptionArtifact] =
+    useState<PracticeTranscriptionArtifact | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [referralCode, setReferralCode] = useState<string>("");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -157,6 +201,10 @@ export default function FeedbackPage() {
   );
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
+
+  useEffect(() => {
+    setFinalTranscript(transcript);
+  }, [transcript]);
 
   const resolvedSide =
     side === "random"
@@ -223,11 +271,38 @@ export default function FeedbackPage() {
       }
 
       const attemptId = crypto.randomUUID();
-      const audioStoragePath = await uploadPracticeAudio({
+      const uploadedAudio = await uploadPracticeAudio({
         attemptId,
         audioBlob,
         userId: authData.user.id,
       });
+      const motionBrief = getMotionBrief(selectedTopic, practiceLanguage);
+      let analysisTranscript = transcript;
+      let transcription: PracticeTranscriptionArtifact | null = null;
+
+      if (uploadedAudio) {
+        transcription = await finalizePracticeTranscription({
+          audio: uploadedAudio,
+          practiceLanguage,
+          durationSeconds: actualDuration,
+          topic: selectedTopic.title,
+          side: resolvedSide,
+          motionBrief,
+          prepNotes: useSessionStore.getState().prepNotes,
+        }).catch((error) => {
+          console.warn(
+            "Final STT refinement skipped",
+            error instanceof Error ? error.message : error
+          );
+          return null;
+        });
+        if (transcription?.transcript) {
+          analysisTranscript = transcription.transcript;
+          setFinalTranscript(analysisTranscript);
+          setTranscriptionArtifact(transcription);
+          useSessionStore.getState().setTranscript(analysisTranscript);
+        }
+      }
 
       const res = await fetch("/api/practice-attempts", {
         method: "POST",
@@ -238,7 +313,7 @@ export default function FeedbackPage() {
         signal: controller.signal,
         body: JSON.stringify({
           attemptId,
-          transcript,
+          transcript: analysisTranscript,
           topic: selectedTopic.title,
           side: resolvedSide,
           practiceTrack,
@@ -248,7 +323,7 @@ export default function FeedbackPage() {
           actualDuration,
           isFullRound,
           rounds: isFullRound ? rounds : undefined,
-          motionBrief: getMotionBrief(selectedTopic, practiceLanguage),
+          motionBrief,
           debateMemory,
           mode,
           prepTime,
@@ -263,7 +338,8 @@ export default function FeedbackPage() {
           topicCategory: selectedTopic.category,
           topicCategoryKey: selectedTopic.categoryKey,
           topicDifficulty: selectedTopic.difficulty,
-          audioStoragePath,
+          audioStoragePath: uploadedAudio?.path ?? null,
+          transcription: transcription ?? undefined,
           clubContext: useSessionStore.getState().clubContext ?? undefined,
         }),
       });
@@ -296,6 +372,8 @@ export default function FeedbackPage() {
       logAnalyzeDebug(debugId, "job_queued", {
         attemptId: createdJob.attemptId,
         jobId: createdJob.jobId,
+        sttProvider: transcription?.provider,
+        sttWarnings: transcription?.warnings,
       });
 
       let job: AnalysisJobResponse | null = null;
@@ -483,12 +561,13 @@ export default function FeedbackPage() {
       mode,
       prepTime,
       speechTime,
-      transcript,
+      transcript: finalTranscript,
       feedback,
       duration: resultDuration,
       prepNotes,
       clubContext: clubContext ?? undefined,
       modelName: modelUsed,
+      transcription: transcriptionArtifact,
       aiDifficulty:
         practiceTrack === "debate" && mode === "full"
           ? aiDifficulty
@@ -512,7 +591,8 @@ export default function FeedbackPage() {
     savedSessionId,
     selectedTopic,
     speechTime,
-    transcript,
+    finalTranscript,
+    transcriptionArtifact,
     prepNotes,
     clubContext,
     modelUsed,

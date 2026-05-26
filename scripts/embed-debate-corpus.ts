@@ -4,6 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 import {
   estimateDebateCorpusTokens,
 } from "../apps/web/src/lib/corpus/model";
+import {
+  DEBATE_CORPUS_EMBEDDING_DIMENSIONS,
+  DEBATE_CORPUS_EMBEDDING_MODEL,
+  DEBATE_CORPUS_EMBEDDING_PROVIDER,
+  DEFAULT_SELF_HOSTED_EMBEDDING_URL,
+} from "../apps/web/src/lib/corpus/config";
 
 interface EmbedOptions {
   apply: boolean;
@@ -24,18 +30,25 @@ interface ExistingEmbeddingRow {
 }
 
 function embeddingProvider() {
-  return process.env.DEBATE_CORPUS_EMBEDDING_PROVIDER || "voyage";
+  return (
+    process.env.DEBATE_CORPUS_EMBEDDING_PROVIDER ||
+    DEBATE_CORPUS_EMBEDDING_PROVIDER
+  );
 }
 
 function embeddingModel() {
-  return process.env.DEBATE_CORPUS_EMBEDDING_MODEL || "voyage-4-lite";
+  if (embeddingProvider() === "voyage") {
+    return process.env.DEBATE_CORPUS_EMBEDDING_MODEL || "voyage-4-lite";
+  }
+  return process.env.DEBATE_CORPUS_EMBEDDING_MODEL || DEBATE_CORPUS_EMBEDDING_MODEL;
 }
 
 function embeddingDimensions() {
   return Number.parseInt(
-    process.env.DEBATE_CORPUS_EMBEDDING_DIMENSIONS || "1024",
+    process.env.DEBATE_CORPUS_EMBEDDING_DIMENSIONS ||
+      String(DEBATE_CORPUS_EMBEDDING_DIMENSIONS),
     10
-  ) || 1024;
+  ) || DEBATE_CORPUS_EMBEDDING_DIMENSIONS;
 }
 
 function parseArgs(argv: string[]): EmbedOptions {
@@ -170,10 +183,10 @@ function createSelfHostedHeaders() {
 }
 
 function selfHostedEmbeddingUrl() {
-  const baseUrl = process.env.DEBATE_CORPUS_EMBEDDING_URL?.replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new Error("DEBATE_CORPUS_EMBEDDING_URL is not configured.");
-  }
+  const baseUrl = (
+    process.env.DEBATE_CORPUS_EMBEDDING_URL ||
+    DEFAULT_SELF_HOSTED_EMBEDDING_URL
+  ).replace(/\/+$/, "");
   return `${baseUrl}/embed`;
 }
 

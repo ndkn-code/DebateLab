@@ -5,6 +5,7 @@ import type {
   DebateScore,
   DebateRound,
   MotionBrief,
+  PracticeTranscriptionArtifact,
   PracticeLanguage,
   PracticeTrack,
 } from "../practice";
@@ -37,6 +38,7 @@ export interface PracticeAnalysisInput {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
+  transcription?: PracticeTranscriptionArtifact;
   corpusContext?: string;
   mode: "quick" | "full";
   prepTime: number;
@@ -68,6 +70,7 @@ export interface PracticeAttemptSnapshot {
     rounds?: DebateRound[];
     motionBrief?: MotionBrief;
     debateMemory?: DebateMemory | null;
+    transcription?: PracticeTranscriptionArtifact;
   };
   session: {
     mode: "quick" | "full";

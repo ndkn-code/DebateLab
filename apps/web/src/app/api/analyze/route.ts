@@ -20,6 +20,8 @@ import {
   markPracticeAnalysisFailed,
   markPracticeAnalysisProcessing,
 } from "@/lib/practice-analysis/service";
+import { parseTranscriptionArtifact } from "@/lib/practice-analysis/request";
+import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
 import {
   getPracticeFeedbackModelProvider,
   getPracticeFeedbackModelName,
@@ -47,6 +49,7 @@ import type {
   PracticeLanguage,
   PracticeTrack,
 } from "@/types";
+import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 import type { AnalysisJobRecord, PracticeAttemptRecord } from "@/lib/practice-analysis/types";
 
 interface AnalyzeRequest {
@@ -62,6 +65,7 @@ interface AnalyzeRequest {
   rounds?: DebateRound[];
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory;
+  transcription?: PracticeTranscriptionArtifact;
 }
 
 function createAnalyzeRequestId() {
@@ -238,6 +242,7 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     rounds,
     motionBrief: parseMotionBrief(body.motionBrief),
     debateMemory: parseDebateMemory(body.debateMemory),
+    transcription: parseTranscriptionArtifact(body.transcription),
   };
 }
 
@@ -311,6 +316,7 @@ export async function POST(req: NextRequest) {
       rounds,
       motionBrief,
       debateMemory,
+      transcription,
     } =
       body;
 
@@ -387,6 +393,7 @@ export async function POST(req: NextRequest) {
         rounds,
         motionBrief,
         debateMemory,
+        transcription,
         mode:
           practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
             ? "full"
@@ -450,6 +457,7 @@ export async function POST(req: NextRequest) {
           rounds,
           motionBrief,
           debateMemory,
+          transcription,
           corpusContext: corpusRetrieval.contextBlock,
         }, authUser.id, (nextTelemetry) => {
           telemetry = nextTelemetry;
@@ -493,6 +501,9 @@ export async function POST(req: NextRequest) {
                 isFullRound,
                 roundCount: rounds?.length ?? 0,
                 ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+                transcription: transcription
+                  ? createTranscriptionQualityMetadata(transcription)
+                  : undefined,
               },
             })
           : null;
@@ -586,6 +597,9 @@ export async function POST(req: NextRequest) {
             isFullRound,
             roundCount: rounds?.length ?? 0,
             ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+            transcription: transcription
+              ? createTranscriptionQualityMetadata(transcription)
+              : undefined,
           },
         }).catch(() => null);
       }

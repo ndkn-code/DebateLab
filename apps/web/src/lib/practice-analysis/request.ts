@@ -12,6 +12,13 @@ import {
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
 import type { PracticeAnalysisInput } from "./types";
 import type { ClubPracticeContext, DebateMemory, MotionBrief } from "@/types";
+import type {
+  PracticeTranscriptionAlternative,
+  PracticeTranscriptionArtifact,
+  PracticeTranscriptionNormalizationHint,
+  PracticeTranscriptionProvider,
+  PracticeTranscriptionWarning,
+} from "@thinkfy/shared/practice";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -152,6 +159,142 @@ function parseClubContext(body: JsonRecord): ClubPracticeContext | undefined {
   return Object.keys(context).length > 0 ? context : undefined;
 }
 
+const TRANSCRIPTION_PROVIDERS = new Set<PracticeTranscriptionProvider>([
+  "deepgram",
+  "groq",
+  "deepgram_groq_consensus",
+]);
+const TRANSCRIPTION_WARNINGS = new Set<PracticeTranscriptionWarning>([
+  "no_speech_detected",
+  "short_transcript",
+  "low_confidence",
+  "possible_stt_artifacts",
+  "fallback_transcript_used",
+  "groq_unavailable",
+  "provider_disagreement",
+]);
+
+function clampConfidence(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.min(1, value))
+    : null;
+}
+
+function readTranscriptionProvider(value: unknown): PracticeTranscriptionProvider {
+  return typeof value === "string" && TRANSCRIPTION_PROVIDERS.has(value as PracticeTranscriptionProvider)
+    ? (value as PracticeTranscriptionProvider)
+    : "deepgram";
+}
+
+function parseTranscriptionAlternative(value: unknown): PracticeTranscriptionAlternative | null {
+  if (!isPlainRecord(value)) return null;
+  const transcript = typeof value.transcript === "string" ? value.transcript.trim().slice(0, 45000) : "";
+  if (!transcript) return null;
+  return {
+    provider: readTranscriptionProvider(value.provider),
+    model: typeof value.model === "string" ? value.model.trim().slice(0, 120) : "unknown",
+    transcript,
+    confidence: clampConfidence(value.confidence),
+    requestId: typeof value.requestId === "string" ? value.requestId.trim().slice(0, 160) : null,
+    selected: value.selected === true,
+    errorCode: typeof value.errorCode === "string" ? value.errorCode.trim().slice(0, 80) : undefined,
+  };
+}
+
+function parseNormalizationHint(value: unknown): PracticeTranscriptionNormalizationHint | null {
+  if (!isPlainRecord(value)) return null;
+  const raw = typeof value.raw === "string" ? value.raw.trim().slice(0, 120) : "";
+  const normalized =
+    typeof value.normalized === "string" ? value.normalized.trim().slice(0, 120) : "";
+  if (!raw || !normalized) return null;
+  return {
+    raw,
+    normalized,
+    reason:
+      typeof value.reason === "string"
+        ? value.reason.trim().slice(0, 240)
+        : "Likely speech-to-text artifact.",
+    confidence:
+      typeof value.confidence === "number" && Number.isFinite(value.confidence)
+        ? Math.max(0, Math.min(1, value.confidence))
+        : 0.75,
+    source:
+      value.source === "motion_context" || value.source === "provider_consensus"
+        ? value.source
+        : "static_glossary",
+  };
+}
+
+export function parseTranscriptionArtifact(value: unknown): PracticeTranscriptionArtifact | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const transcript = typeof value.transcript === "string" ? value.transcript.trim().slice(0, 45000) : "";
+  if (!transcript) return undefined;
+  const language =
+    value.language === "vi" || value.language === "en" ? value.language : undefined;
+  if (!language) return undefined;
+  const warnings = Array.isArray(value.warnings)
+    ? value.warnings
+        .filter((item): item is PracticeTranscriptionWarning =>
+          typeof item === "string" && TRANSCRIPTION_WARNINGS.has(item as PracticeTranscriptionWarning)
+        )
+        .slice(0, 12)
+    : [];
+  const alternatives = Array.isArray(value.alternatives)
+    ? value.alternatives
+        .map(parseTranscriptionAlternative)
+        .filter(
+          (item): item is PracticeTranscriptionAlternative => item !== null
+        )
+        .slice(0, 4)
+    : undefined;
+  const normalizationHints = Array.isArray(value.normalizationHints)
+    ? value.normalizationHints
+        .map(parseNormalizationHint)
+        .filter(
+          (item): item is PracticeTranscriptionNormalizationHint =>
+            item !== null
+        )
+        .slice(0, 24)
+    : undefined;
+
+  return {
+    transcript,
+    rawTranscript:
+      typeof value.rawTranscript === "string"
+        ? value.rawTranscript.trim().slice(0, 45000)
+        : undefined,
+    normalizedTranscript:
+      typeof value.normalizedTranscript === "string"
+        ? value.normalizedTranscript.trim().slice(0, 45000)
+        : undefined,
+    confidence: clampConfidence(value.confidence),
+    wordCount:
+      typeof value.wordCount === "number" && Number.isFinite(value.wordCount)
+        ? Math.max(0, Math.round(value.wordCount))
+        : transcript.split(/\s+/).filter(Boolean).length,
+    provider: readTranscriptionProvider(value.provider),
+    model: typeof value.model === "string" ? value.model.trim().slice(0, 120) : "unknown",
+    requestId: typeof value.requestId === "string" ? value.requestId.trim().slice(0, 160) : null,
+    language,
+    warnings,
+    alternatives,
+    normalizationHints,
+    audioBucket: "practice-audio",
+    audioStoragePath:
+      typeof value.audioStoragePath === "string"
+        ? value.audioStoragePath.trim().slice(0, 600)
+        : "",
+    durationSeconds:
+      typeof value.durationSeconds === "number" && Number.isFinite(value.durationSeconds)
+        ? Math.max(0, Math.round(value.durationSeconds))
+        : 0,
+    transcribedAt:
+      typeof value.transcribedAt === "string"
+        ? value.transcribedAt.trim().slice(0, 80)
+        : new Date().toISOString(),
+  };
+}
+
 export function parsePracticeAnalysisInput(body: JsonRecord): PracticeAnalysisInput {
   const transcript = getString(body, "transcript", {
     required: true,
@@ -216,6 +359,7 @@ export function parsePracticeAnalysisInput(body: JsonRecord): PracticeAnalysisIn
     rounds,
     motionBrief: parseMotionBrief(body.motionBrief),
     debateMemory: parseDebateMemory(body.debateMemory),
+    transcription: parseTranscriptionArtifact(body.transcription),
     mode,
     prepTime: getNumber(body, "prepTime", {
       min: 0,

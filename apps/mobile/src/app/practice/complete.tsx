@@ -422,6 +422,9 @@ export default function PracticeCompleteRoute() {
               durationSeconds: recording.durationSeconds,
               practiceLanguage: config.practiceLanguage,
               recordingId: upload.recordingId,
+              topic: config.topic.title,
+              side: config.resolvedSide,
+              motionBrief: config.topic.motionBrief,
             }),
           },
         );
@@ -579,6 +582,7 @@ export default function PracticeCompleteRoute() {
             body: JSON.stringify({
               attemptId,
               transcript: transcript.transcript,
+              transcription: transcript,
               topic: config.topic.title,
               side: config.resolvedSide,
               practiceTrack: config.practiceTrack,

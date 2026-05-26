@@ -14,6 +14,7 @@ import {
   getProviderLabel,
 } from "@/lib/ai/provider-selection";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
 import {
   buildFuzzyEvidenceHintBlock,
@@ -33,6 +34,7 @@ import {
 } from "./feedback/depth";
 import { needsVietnameseProseRepair } from "./feedback/language-repair";
 import { getPostHogServer } from "./posthog-server";
+import { buildSttJudgeGuardrailBlock } from "./stt/prompt";
 
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -63,6 +65,7 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
+  transcription?: PracticeTranscriptionArtifact | null;
 }, verdictDraft?: unknown) {
   if (params.practiceTrack === "speaking") {
     return buildAnalysisPrompt(params);
@@ -111,6 +114,7 @@ Prior AI claims: ${params.debateMemory.priorAiClaims.join("; ") || "none"}
 Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}
 Dropped claims: ${params.debateMemory.droppedClaims.join("; ") || "none"}`
     : "No debate memory provided.";
+  const sttGuardrail = buildSttJudgeGuardrailBlock(params.transcription);
 
   return `You are Thinkfy's strict debate feedback engine.
 
@@ -124,6 +128,7 @@ Full round: ${Boolean(params.isFullRound)}
 Time setting: ${params.timeLimit} minutes
 Actual duration: ${params.actualDuration} seconds
 ${language}
+${sttGuardrail}
 ${truongTeenJudgingContext}
 ${params.corpusContext ?? ""}
 
@@ -205,6 +210,7 @@ function buildDeepSeekVerdictPrompt(params: {
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
+  transcription?: PracticeTranscriptionArtifact | null;
 }) {
   const language =
     params.practiceLanguage === "vi"
@@ -245,9 +251,11 @@ Model note: ${params.motionBrief.modelClarification}`
 Student side: ${params.debateMemory.studentSide}
 Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}`
     : "No debate memory provided.";
+  const sttGuardrail = buildSttJudgeGuardrailBlock(params.transcription);
 
   return `You are a strict debate judge. Think carefully, then return compact JSON only.
 ${language}
+${sttGuardrail}
 
 Motion: ${params.topic}
 Student side: ${params.side}
@@ -674,6 +682,7 @@ type AnalyzeDebateParams = {
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
+  transcription?: PracticeTranscriptionArtifact | null;
 };
 
 type AiTelemetryCallback = (telemetry: AiQualityTelemetry) => void | Promise<void>;

@@ -37,6 +37,8 @@ type CorpusRagStatus =
   | "no_context"
   | "none";
 
+type SttStatus = "normalized" | "fallback" | "warning" | "clean" | "none";
+
 interface DashboardResponse {
   kpis: {
     totalRuns: number;
@@ -189,6 +191,60 @@ function getCorpusMetadata(row: Row) {
     relevanceGatePassed,
     latencyMs,
     thresholds,
+    status,
+  };
+}
+
+function getTranscriptionMetadata(row: Row) {
+  const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+  const transcription =
+    metadata.transcription &&
+    typeof metadata.transcription === "object" &&
+    !Array.isArray(metadata.transcription)
+      ? (metadata.transcription as Record<string, unknown>)
+      : null;
+  if (!transcription) return null;
+
+  const warnings = Array.isArray(transcription.warnings)
+    ? transcription.warnings.filter((item): item is string => typeof item === "string")
+    : [];
+  const normalizationHints = Array.isArray(transcription.normalizationHints)
+    ? transcription.normalizationHints
+        .filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item && typeof item === "object" && !Array.isArray(item))
+        )
+        .slice(0, 8)
+    : [];
+  const alternatives = Array.isArray(transcription.alternativeProviders)
+    ? transcription.alternativeProviders
+        .filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item && typeof item === "object" && !Array.isArray(item))
+        )
+        .slice(0, 4)
+    : [];
+  const provider =
+    typeof transcription.provider === "string" ? transcription.provider : "unknown";
+  const model = typeof transcription.model === "string" ? transcription.model : "unknown";
+  const status: SttStatus =
+    warnings.includes("fallback_transcript_used")
+      ? "fallback"
+      : normalizationHints.length > 0
+        ? "normalized"
+        : warnings.length > 0
+          ? "warning"
+          : "clean";
+  return {
+    provider,
+    model,
+    confidence:
+      typeof transcription.confidence === "number" ? transcription.confidence : null,
+    wordCount:
+      typeof transcription.wordCount === "number" ? transcription.wordCount : null,
+    warnings,
+    normalizationHints,
+    alternatives,
     status,
   };
 }
@@ -524,6 +580,7 @@ function DetailDrawer({
   onReview: (row: Row, reviewStatus: AiQualityReviewStatus) => Promise<void>;
 }) {
   const corpusMetadata = getCorpusMetadata(row);
+  const transcriptionMetadata = getTranscriptionMetadata(row);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
@@ -576,6 +633,83 @@ function DetailDrawer({
         </div>
 
         <div className="mt-6 space-y-4">
+          {transcriptionMetadata && (
+            <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-semibold text-on-surface">STT Quality</h3>
+                <SttStatusPill status={transcriptionMetadata.status} />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                <MiniMetric label="Provider" value={transcriptionMetadata.provider} />
+                <MiniMetric label="Model" value={transcriptionMetadata.model} />
+                <MiniMetric
+                  label="Confidence"
+                  value={formatSimilarity(transcriptionMetadata.confidence)}
+                />
+                <MiniMetric
+                  label="Words"
+                  value={String(transcriptionMetadata.wordCount ?? "—")}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {transcriptionMetadata.alternatives.map((alternative, index) => (
+                  <span
+                    key={`${String(alternative.provider)}-${index}`}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1.5 text-xs font-semibold",
+                      alternative.selected
+                        ? "bg-secondary/10 text-secondary"
+                        : alternative.errorCode
+                          ? "bg-warning/10 text-warning"
+                          : "bg-surface text-on-surface-variant"
+                    )}
+                  >
+                    {String(alternative.provider ?? "provider")} ·{" "}
+                    {alternative.selected ? "selected" : alternative.errorCode ? "fallback" : "candidate"}
+                  </span>
+                ))}
+                {transcriptionMetadata.warnings.map((warning) => (
+                  <span
+                    key={warning}
+                    className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-semibold text-warning"
+                  >
+                    {warning.replaceAll("_", " ")}
+                  </span>
+                ))}
+              </div>
+              {transcriptionMetadata.normalizationHints.length > 0 && (
+                <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
+                  <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+                    <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <tr>
+                        <th className="px-3 py-2">Raw</th>
+                        <th className="px-3 py-2">Normalized</th>
+                        <th className="px-3 py-2">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {transcriptionMetadata.normalizationHints.map((hint, index) => (
+                        <tr key={`${String(hint.raw)}-${index}`}>
+                          <td className="px-3 py-2 font-mono text-warning">
+                            {String(hint.raw ?? "—")}
+                          </td>
+                          <td className="px-3 py-2 font-semibold text-secondary">
+                            {String(hint.normalized ?? "—")}
+                          </td>
+                          <td className="px-3 py-2 text-on-surface-variant">
+                            {String(hint.reason ?? "Possible STT artifact")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="mt-3 rounded-xl border border-primary/15 bg-primary/8 px-3 py-2 text-xs font-semibold text-primary">
+                Possible speech-to-text artifacts: do not penalize pronunciation without audio evidence.
+              </p>
+            </div>
+          )}
           {(corpusMetadata.enabled != null ||
             corpusMetadata.corpusRetrievalLogId ||
             corpusMetadata.candidateCorpusCount > 0 ||
@@ -674,6 +808,48 @@ function DetailDrawer({
         </div>
       </div>
     </div>
+  );
+}
+
+function SttStatusPill({ status }: { status: SttStatus }) {
+  const config = {
+    normalized: {
+      label: "Normalized",
+      icon: CheckCircle2,
+      className: "border-secondary/20 bg-secondary/10 text-secondary",
+    },
+    fallback: {
+      label: "Fallback used",
+      icon: AlertTriangle,
+      className: "border-warning/30 bg-warning/15 text-warning",
+    },
+    warning: {
+      label: "Needs review",
+      icon: AlertTriangle,
+      className: "border-warning/30 bg-warning/15 text-warning",
+    },
+    clean: {
+      label: "Clean",
+      icon: ShieldCheck,
+      className: "border-primary/20 bg-primary/8 text-primary",
+    },
+    none: {
+      label: "No STT",
+      icon: BrainCircuit,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+  }[status];
+  const Icon = config.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        config.className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {config.label}
+    </span>
   );
 }
 

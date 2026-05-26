@@ -6,9 +6,12 @@ import {
   getPracticeLanguageConfig,
 } from "@/lib/practice-language";
 import type { PracticeLanguage } from "@/types";
+import type { SttContextInput } from "@/lib/stt/keyterms";
+import { appendDeepgramKeyterms, buildSttKeyterms } from "@/lib/stt/keyterms";
 
 const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
 const AUDIO_INPUT_LEVEL_THRESHOLD = 0.012;
+const EMPTY_STT_CONTEXT: SttContextInput = {};
 
 function createDebugId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -100,7 +103,8 @@ function getTokenFailureSpeechError(error: DeepgramTokenError) {
 }
 
 export function useDeepgramTranscription(
-  practiceLanguage: PracticeLanguage = DEFAULT_PRACTICE_LANGUAGE
+  practiceLanguage: PracticeLanguage = DEFAULT_PRACTICE_LANGUAGE,
+  sttContext: SttContextInput = EMPTY_STT_CONTEXT
 ) {
   const languageConfig = useMemo(
     () => getPracticeLanguageConfig(practiceLanguage),
@@ -113,6 +117,14 @@ export function useDeepgramTranscription(
   const [silenceWarning, setSilenceWarning] = useState(false);
   const [hasDetectedAudio, setHasDetectedAudio] = useState(false);
   const [hasReceivedSpeech, setHasReceivedSpeech] = useState(false);
+  const keyterms = useMemo(
+    () =>
+      buildSttKeyterms({
+        ...sttContext,
+        practiceLanguage,
+      }),
+    [practiceLanguage, sttContext]
+  );
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -283,6 +295,7 @@ export function useDeepgramTranscription(
       wsUrl.searchParams.set("encoding", "linear16");
       wsUrl.searchParams.set("sample_rate", String(actualSampleRate));
       wsUrl.searchParams.set("channels", "1");
+      appendDeepgramKeyterms(wsUrl, keyterms);
 
       const ws = new WebSocket(wsUrl.toString(), [authScheme, apiKey]);
       wsRef.current = ws;
@@ -290,6 +303,7 @@ export function useDeepgramTranscription(
         sampleRate: actualSampleRate,
         authScheme,
         language: languageConfig.deepgramLanguage,
+        keytermCount: keyterms.length,
       });
 
       ws.onopen = () => {
@@ -434,6 +448,7 @@ export function useDeepgramTranscription(
     [
       closeAudioProcessing,
       languageConfig.deepgramLanguage,
+      keyterms,
       markAudioDetected,
       practiceLanguage,
     ]
