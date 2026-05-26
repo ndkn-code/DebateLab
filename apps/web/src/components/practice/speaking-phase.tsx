@@ -72,7 +72,9 @@ export function SpeakingPhase({
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
   const [showBriefUtility, setShowBriefUtility] = useState(false);
+  const transcriptPaneRef = useRef<HTMLDivElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollTranscriptRef = useRef(true);
   const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noSpeechResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
@@ -83,9 +85,30 @@ export function SpeakingPhase({
     .filter((w) => w.length > 0).length;
   const hasHeardAudio = hasDetectedAudio || hasReceivedSpeech;
 
+  const handleTranscriptScroll = () => {
+    const pane = transcriptPaneRef.current;
+    if (!pane) return;
+
+    const distanceFromBottom =
+      pane.scrollHeight - pane.scrollTop - pane.clientHeight;
+    shouldAutoScrollTranscriptRef.current = distanceFromBottom < 56;
+  };
+
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const pane = transcriptPaneRef.current;
+    if (!pane || !shouldAutoScrollTranscriptRef.current) return;
+
+    pane.scrollTo({
+      top: pane.scrollHeight,
+      behavior: "smooth",
+    });
   }, [transcript, interimTranscript]);
+
+  useEffect(() => {
+    if (isRecording && !isPaused && !transcript && !interimTranscript) {
+      shouldAutoScrollTranscriptRef.current = true;
+    }
+  }, [interimTranscript, isPaused, isRecording, transcript]);
 
   // Show "no speech detected" only when neither local audio nor transcript has arrived.
   useEffect(() => {
@@ -308,9 +331,11 @@ export function SpeakingPhase({
             </span>
           </div>
           <div
+            ref={transcriptPaneRef}
             role="log"
             aria-label="Live speech transcript"
             aria-live="polite"
+            onScroll={handleTranscriptScroll}
             className="min-h-[162px] flex-1 overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4"
           >
             {!transcript && !interimTranscript ? (

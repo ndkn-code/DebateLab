@@ -16,6 +16,7 @@ import { useCountdown } from "@/hooks/use-countdown";
 import { useDeepgramTranscription } from "@/hooks/use-deepgram-transcription";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { usePracticeSessionDraft } from "@/hooks/use-practice-session-draft";
+import { useTtsAutoplayUnlock } from "@/hooks/use-tts";
 import { SessionTopBar } from "@/components/practice/session-top-bar";
 import { MicCheck } from "@/components/practice/mic-check";
 import { AudioCheck } from "@/components/practice/audio-check";
@@ -79,6 +80,7 @@ export default function SessionPage() {
   const speechTimer = useCountdown(speechTime);
   const speech = useDeepgramTranscription(practiceLanguage);
   const audio = useAudioRecorder();
+  useTtsAutoplayUnlock();
 
   const isFullRound = practiceTrack === "debate" && mode === "full";
   const totalRounds = isFullRound ? FULL_ROUND_STRUCTURE.length : 1;

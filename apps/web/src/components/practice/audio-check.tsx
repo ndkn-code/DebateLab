@@ -6,6 +6,7 @@ import { Volume2, Check, RefreshCw, ArrowRight, ArrowLeft } from '@/components/u
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { usePostHog } from 'posthog-js/react';
+import { unlockTtsAutoplay } from '@/hooks/use-tts';
 
 interface AudioCheckProps {
   onPassed: () => void;
@@ -17,6 +18,7 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
   const posthog = usePostHog();
 
   const playTestSound = () => {
+    void unlockTtsAutoplay();
     setStatus('playing');
 
     // Use Web Audio API to generate a short pleasant chime

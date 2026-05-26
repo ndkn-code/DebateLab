@@ -33,7 +33,7 @@ export function SessionTopBar({
             <MessageSquareQuote className="h-4 w-4" />
           </div>
           <span className="text-lg font-bold tracking-normal text-on-surface">
-            Debate<span className="text-primary">Lab</span>
+            Think<span className="text-primary">fy</span>
           </span>
         </div>
 
