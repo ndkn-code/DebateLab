@@ -531,7 +531,9 @@ export async function publishCorpusMotionCandidate(params: {
       {
         topic_key: topicKey,
         category_key:
-          motionRow.category_key ?? inferCorpusMotionCategory(motionRow.motion_vi),
+          motionRow.category_key && motionRow.category_key !== "vietnam"
+            ? motionRow.category_key
+            : inferCorpusMotionCategory(motionRow.motion_vi),
         difficulty:
           motionRow.difficulty ?? inferCorpusMotionDifficulty(motionRow.motion_vi),
         display_order: displayOrder,

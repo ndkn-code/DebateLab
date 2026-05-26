@@ -8,13 +8,18 @@ export interface DebateTopic {
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   displayOrder?: number;
-  sourceKind?: "legacy" | "calico";
+  sourceKind?: "legacy" | "calico" | "truong_teen";
   sourceLanguage?: PracticeLanguage;
   sourceCount?: number;
   sourceTags?: string[];
   tournamentNames?: string[];
   hasInfoSlide?: boolean;
   hasStats?: boolean;
+  metadata?: Record<string, unknown>;
+  ragReady?: boolean;
+  aiConfidence?: number;
+  aggregateConfidence?: number;
+  priorityTier?: "truong_teen" | "rag_ready" | "high_confidence" | "standard";
   context?: string;
   motionBrief?: MotionBrief;
   suggestedPoints?: {

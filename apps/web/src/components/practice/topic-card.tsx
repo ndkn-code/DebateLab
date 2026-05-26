@@ -38,6 +38,12 @@ const DIFFICULTY_TONE_STYLES = {
   hard: "bg-[#fff0f0] text-[#dd666b]",
 } as const;
 
+const PRIORITY_BADGE_STYLES = {
+  blue: "border-[#cfe0ff] bg-[#f3f7ff] text-primary",
+  green: "border-[#cbeed4] bg-[#f4fbf6] text-[#3e9a5c]",
+  amber: "border-[#ffe1b7] bg-[#fff8ee] text-[#c77716]",
+} as const;
+
 const AVATAR_RING_STYLE =
   "border border-white/90 shadow-[0_4px_12px_-8px_rgba(22,32,51,0.7)]";
 
@@ -102,6 +108,17 @@ export function TopicCard({
         >
           {difficultyLabel}
         </span>
+        {display.priorityBadges.map((badge) => (
+          <span
+            key={`${display.topic.id}-${badge.label}`}
+            className={cn(
+              "rounded-full border px-2.5 py-[3px] text-[10px] font-semibold leading-none",
+              PRIORITY_BADGE_STYLES[badge.tone]
+            )}
+          >
+            {badge.label}
+          </span>
+        ))}
       </div>
 
       <div className="mt-3 flex-1">

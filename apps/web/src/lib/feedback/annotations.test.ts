@@ -111,4 +111,22 @@ const fallback = normalizeTranscriptAnnotationsForFeedback([], {
 assert.equal(fallback.metadata.fallbackUsed, true);
 assert.equal(fallback.annotations.length, 1);
 
+const longSentenceFallback = normalizeTranscriptAnnotationsForFeedback([], {
+  transcript:
+    "Chúng tôi phản biện rằng cơ chế này cần được xem xét trong một chuỗi tác động rất dài vì nếu chỉ nói rằng chính sách sẽ giúp người trẻ tự tin hơn mà không chỉ ra nhóm chịu tác động, xác suất thay đổi hành vi, chi phí cơ hội, khả năng phản ứng của đối phương và mức độ đảo ngược thiệt hại thì lập luận vẫn chỉ là một khẳng định chung chung thiếu neo bằng chứng.",
+  topic: "Một chính sách giả định",
+  practiceLanguage: "vi",
+  depthTarget: { minAnnotations: 1 },
+});
+assert.equal(longSentenceFallback.annotations.length, 0);
+
+const cappedFallback = normalizeTranscriptAnnotationsForFeedback([], {
+  transcript:
+    "Cơ chế thứ nhất chưa rõ nhóm chịu tác động và thiếu bằng chứng so sánh trực tiếp. Tác động thứ hai có số liệu 70% nhưng chưa cân được xác suất. Phản biện thứ ba có clash nhưng thiếu bước weighing cuối cùng.",
+  topic: "Một chính sách giả định",
+  practiceLanguage: "vi",
+  depthTarget: { minAnnotations: 10 },
+});
+assert.ok(cappedFallback.annotations.length <= 2);
+
 console.log("Transcript annotation normalization tests passed");

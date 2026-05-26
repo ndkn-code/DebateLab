@@ -646,6 +646,17 @@ function buildStagedAnnotationPrompt(
   speechMap: StagedDebateSpeechMap,
   feedback: DebateScore
 ) {
+  const depthTarget = getDebateFeedbackDepthTarget({
+    isFullRound: params.isFullRound,
+    actualDuration: params.actualDuration,
+    roundCount: params.rounds?.length ?? 0,
+  });
+  const annotationRange =
+    params.isFullRound && depthTarget.minAnnotations >= 10
+      ? "8-10"
+      : params.isFullRound
+        ? "6-8"
+        : "4-6";
   const annotationTargets = {
     debateVerdict: feedback.debateVerdict,
     argumentBreakdowns: feedback.argumentBreakdowns,
@@ -665,10 +676,12 @@ ${JSON.stringify(annotationTargets)}
 Find exact transcript quotes that support the most important feedback.
 
 Rules:
-- Return 4-6 annotations.
+- Return ${annotationRange} high-signal annotations.
 - quote must be an exact contiguous quote copied from the transcript or a round.
 - Never use the motion title, greetings, filler, or generic opening as the quote.
 - If feedback talks about a specific flaw, quote the sentence containing that flaw or its immediate context.
+- Do not duplicate the same sentence or anchor multiple cards on the same generic claim.
+- Do not truncate quotes mid-sentence; choose a shorter exact phrase from the same sentence if needed.
 - Prefer user quotes; include AI quotes only when showing a dropped/misanswered clash.
 - If exact matching is hard, choose a shorter exact quote.
 

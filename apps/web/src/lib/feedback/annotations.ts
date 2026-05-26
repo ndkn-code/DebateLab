@@ -393,8 +393,9 @@ function reanchorAnnotation(
   const candidates = splitSentencesWithPosition(source.text)
     .filter((sentence) => !isLowSignalFeedbackQuote(sentence.text))
     .filter((sentence) => !isMotionOnlyQuote(sentence.text, topic))
+    .filter((sentence) => sentence.text.length <= 260)
     .map((sentence) => ({
-      text: sentence.text.slice(0, 260),
+      text: sentence.text,
       score: scoreCandidateSentence(sentence.text, annotation),
     }))
     .sort((a, b) => b.score - a.score);
@@ -420,18 +421,20 @@ function createFallbackAnnotations(input: {
   const vi = input.practiceLanguage === "vi";
   const sources = createAnnotationSources(input).filter((source) => source.speaker !== "ai");
   const candidates = sources.flatMap((source) =>
-    splitSentencesWithPosition(source.text).map((sentence) => ({
-      source,
-      text: sentence.text.slice(0, 260),
-      score:
-        HIGH_SIGNAL_TERMS.reduce(
-          (score, term) =>
-            score + (normalizeForSemanticMatch(sentence.text).includes(normalizeForSemanticMatch(term)) ? 2 : 0),
-          0
-        ) +
-        (/\d|%/.test(sentence.text) ? 2 : 0) +
-        (sentence.text.split(/\s+/).length >= 8 ? 1 : 0),
-    }))
+    splitSentencesWithPosition(source.text)
+      .filter((sentence) => sentence.text.length <= 260)
+      .map((sentence) => ({
+        source,
+        text: sentence.text,
+        score:
+          HIGH_SIGNAL_TERMS.reduce(
+            (score, term) =>
+              score + (normalizeForSemanticMatch(sentence.text).includes(normalizeForSemanticMatch(term)) ? 2 : 0),
+            0
+          ) +
+          (/\d|%/.test(sentence.text) ? 2 : 0) +
+          (sentence.text.split(/\s+/).length >= 8 ? 1 : 0),
+      }))
   );
 
   return candidates
@@ -579,7 +582,7 @@ export function normalizeTranscriptAnnotationsForFeedback(
   const target = context.depthTarget?.minAnnotations ?? 0;
   const seenQuotes = new Set(accepted.map((annotation) => normalizeQuoteForQuality(annotation.quote)));
   const fallbackNeeded = Math.max(0, target - accepted.length);
-  const maxDeterministicFallbacks = target >= 10 ? 3 : 2;
+  const maxDeterministicFallbacks = target >= 8 ? 2 : 1;
   const fallbackAnnotations =
     fallbackNeeded > 0
       ? createFallbackAnnotations({

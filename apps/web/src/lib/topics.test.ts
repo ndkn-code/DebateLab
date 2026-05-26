@@ -15,6 +15,7 @@ import {
   resolvePracticeTopic,
 } from "./practice-prefill";
 import { normalizeSettingsPreferences } from "./settings";
+import { buildPracticeTopicDisplays } from "@/components/practice/practice-topic-display";
 
 const englishTopics = getLocalizedTopics("en");
 const vietnameseTopics = getLocalizedTopics("vi");
@@ -56,13 +57,70 @@ assert.match(
   vietnameseRoteLearningTopic?.motionBrief?.scope ?? "",
   /học thuộc/
 );
+assert.equal(getTopicCategoryKey(vietnameseRoteLearningTopic!), "education");
+assert.equal(
+  vietnameseRoteLearningTopic?.category,
+  "Giáo Dục & Đời Sống"
+);
 
 assert.equal(getCategoryKey("Technology & Social Media"), "technology");
 assert.equal(getCategoryKey("Công Nghệ & Mạng Xã Hội"), "technology");
-assert.deepEqual(
-  getLocalizedCategoryOptions("vi").map((category) => category.key).slice(0, 3),
-  ["all", "education", "technology"]
+const vietnameseCategoryKeys = getLocalizedCategoryOptions("vi").map(
+  (category) => category.key
 );
+assert.deepEqual(vietnameseCategoryKeys.slice(0, 3), [
+  "all",
+  "education",
+  "technology",
+]);
+assert.equal(vietnameseCategoryKeys.includes("vietnam"), false);
+assert.equal(
+  getTopicCategoryKey({
+    id: "legacy-vn-student-pressure",
+    title: "Vietnamese students face too much academic pressure",
+    category: "Vietnam-Specific Issues",
+    difficulty: "beginner",
+  }),
+  "education"
+);
+
+const prioritizedDisplays = buildPracticeTopicDisplays(
+  [
+    {
+      id: "standard-topic",
+      title: "A popular standard motion",
+      category: "Society & Culture",
+      categoryKey: "society",
+      difficulty: "beginner",
+      displayOrder: 1,
+    },
+    {
+      id: "high-confidence-topic",
+      title: "A high confidence motion",
+      category: "Ethics & Philosophy",
+      categoryKey: "ethics",
+      difficulty: "advanced",
+      displayOrder: 2,
+      aiConfidence: 0.9,
+    },
+    {
+      id: "tt-motion",
+      title: "Trường Teen corpus motion",
+      category: "Education & School Life",
+      categoryKey: "education",
+      difficulty: "intermediate",
+      displayOrder: 3,
+      sourceKind: "truong_teen",
+      aggregateConfidence: 0.92,
+    },
+  ],
+  "vi"
+);
+assert.deepEqual(
+  prioritizedDisplays.map((display) => display.topic.id),
+  ["tt-motion", "high-confidence-topic", "standard-topic"]
+);
+assert.equal(prioritizedDisplays[0].priorityBadges[0]?.label, "Trường Teen");
 
 assert.equal(
   findPracticeTopicByTitle("Smartphones should be banned in schools", "vi")

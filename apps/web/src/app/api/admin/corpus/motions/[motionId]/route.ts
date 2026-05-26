@@ -22,7 +22,6 @@ const CATEGORY_KEYS = [
   "society",
   "environment",
   "ethics",
-  "vietnam",
 ] as const;
 const DIFFICULTIES = ["beginner", "intermediate", "advanced"] as const;
 

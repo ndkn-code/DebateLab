@@ -5,14 +5,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getCategoryLabel,
   getLocalizedTopics,
-  isCategoryKey,
+  normalizePracticeCategoryKey,
   type CategoryKey,
 } from "@/lib/topics";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { DebateTopic, PracticeLanguage } from "@/types";
 
-type SourceKind = "legacy" | "calico";
+type SourceKind = "legacy" | "calico" | "truong_teen";
 
 interface CatalogSource {
   sourceSlug?: unknown;
@@ -47,10 +47,18 @@ export type ActivePracticeTopic = DebateTopic & {
   tournamentNames: string[];
   hasInfoSlide: boolean;
   hasStats: boolean;
+  metadata: Record<string, unknown>;
+  ragReady: boolean;
+  aiConfidence?: number;
+  aggregateConfidence?: number;
+  priorityTier: NonNullable<DebateTopic["priorityTier"]>;
 };
 
-function normalizeCategoryKey(value: string): CategoryKey {
-  return isCategoryKey(value) ? value : "society";
+function normalizeCategoryKey(
+  value: string | null | undefined,
+  textForInference?: string | null
+): CategoryKey {
+  return normalizePracticeCategoryKey(value, textForInference);
 }
 
 function parseSuggestedPoints(value: unknown): DebateTopic["suggestedPoints"] {
@@ -91,11 +99,78 @@ function uniqueStrings(values: unknown[]) {
   ];
 }
 
+function readMetadataNumber(
+  metadata: Record<string, unknown>,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function readMetadataBoolean(
+  metadata: Record<string, unknown>,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+  return false;
+}
+
+function resolveTopicPriority(input: {
+  sourceKind: SourceKind;
+  metadata: Record<string, unknown>;
+}) {
+  const aggregateConfidence = readMetadataNumber(input.metadata, [
+    "aggregateConfidence",
+    "aggregate_confidence",
+  ]);
+  const aiConfidence =
+    readMetadataNumber(input.metadata, ["aiConfidence", "ai_confidence"]) ??
+    aggregateConfidence;
+  const metadataRagReady = readMetadataBoolean(input.metadata, [
+    "ragReady",
+    "rag_ready",
+  ]);
+  const ragReady = input.sourceKind === "truong_teen" || metadataRagReady;
+  const priorityTier: NonNullable<DebateTopic["priorityTier"]> =
+    input.sourceKind === "truong_teen"
+      ? "truong_teen"
+      : ragReady
+        ? "rag_ready"
+        : (aiConfidence ?? 0) >= 0.85
+          ? "high_confidence"
+          : "standard";
+
+  return {
+    aggregateConfidence,
+    aiConfidence,
+    ragReady,
+    priorityTier,
+  };
+}
+
 function mapCatalogRow(
   row: ActivePracticeTopicCatalogRow,
   language: PracticeLanguage
 ): ActivePracticeTopic {
-  const categoryKey = normalizeCategoryKey(row.category_key);
+  const metadata = row.metadata ?? {};
+  const priority = resolveTopicPriority({
+    sourceKind: row.source_kind,
+    metadata,
+  });
+  const categoryKey = normalizeCategoryKey(
+    row.category_key,
+    `${row.title} ${row.context ?? ""}`
+  );
   const sources = Array.isArray(row.sources) ? row.sources : [];
 
   return {
@@ -117,25 +192,44 @@ function mapCatalogRow(
     ),
     hasInfoSlide: Boolean(row.has_info_slide),
     hasStats: Boolean(row.has_stats),
+    metadata,
+    ...priority,
   };
 }
 
 function getBundledPracticeTopics(language: PracticeLanguage): ActivePracticeTopic[] {
   return getLocalizedTopics(language).map((topic, index) => {
-    const categoryKey = normalizeCategoryKey(topic.categoryKey ?? "");
+    const metadata = topic.metadata ?? {};
+    const sourceKind = topic.sourceKind ?? "legacy";
+    const priority = resolveTopicPriority({
+      sourceKind,
+      metadata: {
+        ...metadata,
+        ragReady: topic.ragReady ?? metadata.ragReady,
+        aiConfidence: topic.aiConfidence ?? metadata.aiConfidence,
+        aggregateConfidence:
+          topic.aggregateConfidence ?? metadata.aggregateConfidence,
+      },
+    });
+    const categoryKey = normalizeCategoryKey(
+      topic.categoryKey ?? topic.category,
+      `${topic.title} ${topic.context ?? ""}`
+    );
 
     return {
       ...topic,
       categoryKey,
       category: getCategoryLabel(categoryKey, language),
       displayOrder: topic.displayOrder ?? index + 1,
-      sourceKind: topic.sourceKind ?? "legacy",
+      sourceKind,
       sourceLanguage: topic.sourceLanguage,
       sourceCount: topic.sourceCount ?? 0,
       sourceTags: topic.sourceTags ?? [],
       tournamentNames: topic.tournamentNames ?? [],
       hasInfoSlide: Boolean(topic.hasInfoSlide),
       hasStats: Boolean(topic.hasStats),
+      metadata,
+      ...priority,
     };
   });
 }

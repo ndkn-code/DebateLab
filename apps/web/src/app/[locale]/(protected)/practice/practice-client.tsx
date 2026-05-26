@@ -63,27 +63,46 @@ function sortDisplays(
 ) {
   const difficultyRank = { easy: 0, medium: 1, hard: 2 };
   const sorted = [...source];
+  const comparePriority = (
+    left: PracticeTopicDisplay,
+    right: PracticeTopicDisplay
+  ) => left.priorityRank - right.priorityRank;
+  const compareCatalogOrder = (
+    left: PracticeTopicDisplay,
+    right: PracticeTopicDisplay
+  ) => left.popularityRank - right.popularityRank;
+  const comparePracticeCount = (
+    left: PracticeTopicDisplay,
+    right: PracticeTopicDisplay
+  ) =>
+    comparePriority(left, right) ||
+    right.practiceCount - left.practiceCount ||
+    compareCatalogOrder(left, right);
 
   sorted.sort((left, right) => {
     if (sort === "newest") {
-      return left.popularityRank - right.popularityRank;
+      return comparePriority(left, right) || compareCatalogOrder(left, right);
     }
 
     if (sort === "easiest") {
       return (
-        difficultyRank[left.difficultyTone] - difficultyRank[right.difficultyTone] ||
-        right.practiceCount - left.practiceCount
+        difficultyRank[left.difficultyTone] -
+          difficultyRank[right.difficultyTone] ||
+        comparePriority(left, right) ||
+        comparePracticeCount(left, right)
       );
     }
 
     if (sort === "hardest") {
       return (
-        difficultyRank[right.difficultyTone] - difficultyRank[left.difficultyTone] ||
-        right.practiceCount - left.practiceCount
+        difficultyRank[right.difficultyTone] -
+          difficultyRank[left.difficultyTone] ||
+        comparePriority(left, right) ||
+        comparePracticeCount(left, right)
       );
     }
 
-    return right.practiceCount - left.practiceCount;
+    return comparePracticeCount(left, right);
   });
 
   return sorted;

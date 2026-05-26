@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { inferPracticeContentCategoryKey } from "@/lib/topics";
 import {
   DEBATE_CORPUS_USABLE_FOR,
   buildDebateCorpusItemPlans,
@@ -32,8 +33,7 @@ export interface CorpusMotionCandidatePlan {
     | "technology"
     | "society"
     | "environment"
-    | "ethics"
-    | "vietnam";
+    | "ethics";
   difficulty: "beginner" | "intermediate" | "advanced";
   sourceStage: string | null;
   sourceSeason: number | null;
@@ -424,22 +424,7 @@ export function parseCorpusImportText(content: string): CorpusImportParseResult 
 }
 
 export function inferCorpusMotionCategory(motionVi: string): CorpusMotionCandidatePlan["categoryKey"] {
-  if (/(trường|học|giáo dục|thi|tốt nghiệp|ngữ văn|học sinh|đại học)/i.test(motionVi)) {
-    return "education";
-  }
-  if (/(truyền thông|mạng xã hội|chatgpt|ai|công nghệ|điện thoại)/i.test(motionVi)) {
-    return "technology";
-  }
-  if (/(môi trường|khí hậu|năng lượng|rác|nhựa)/i.test(motionVi)) {
-    return "environment";
-  }
-  if (/(đạo đức|pháp luật|cấm|trừng phạt|quyền|công bằng)/i.test(motionVi)) {
-    return "ethics";
-  }
-  if (/(văn hóa|gia đình|người trẻ|người nổi tiếng|độc thân)/i.test(motionVi)) {
-    return "society";
-  }
-  return "vietnam";
+  return inferPracticeContentCategoryKey(motionVi);
 }
 
 export function inferCorpusMotionDifficulty(motionVi: string): CorpusMotionCandidatePlan["difficulty"] {

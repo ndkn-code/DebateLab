@@ -17,6 +17,11 @@ export interface PracticeAvatarSeed {
   toneClassName: string;
 }
 
+export interface PracticeTopicPriorityBadge {
+  label: string;
+  tone: "blue" | "green" | "amber";
+}
+
 export interface PracticeTopicDisplay {
   topic: DebateTopic;
   popularityRank: number;
@@ -25,6 +30,8 @@ export interface PracticeTopicDisplay {
   categoryTone: PracticeCategoryTone;
   difficultyTone: PracticeDifficultyTone;
   avatars: PracticeAvatarSeed[];
+  priorityRank: number;
+  priorityBadges: PracticeTopicPriorityBadge[];
 }
 
 const CATEGORY_TONES: Record<string, PracticeCategoryTone> = {
@@ -33,7 +40,6 @@ const CATEGORY_TONES: Record<string, PracticeCategoryTone> = {
   environment: "teal",
   society: "indigo",
   ethics: "violet",
-  vietnam: "amber",
 };
 
 const AVATAR_TONES = [
@@ -198,6 +204,67 @@ function resolvePracticeCount(
   return clampCount(1480 - index * 79 - (total - index) * 3 + difficultyBoost);
 }
 
+function getNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function getBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function getTopicConfidence(topic: DebateTopic) {
+  return (
+    topic.aiConfidence ??
+    topic.aggregateConfidence ??
+    getNumber(topic.metadata?.aiConfidence) ??
+    getNumber(topic.metadata?.ai_confidence) ??
+    getNumber(topic.metadata?.aggregateConfidence) ??
+    getNumber(topic.metadata?.aggregate_confidence)
+  );
+}
+
+function isTopicRagReady(topic: DebateTopic) {
+  return Boolean(
+    topic.sourceKind === "truong_teen" ||
+      topic.ragReady ||
+      getBoolean(topic.metadata?.ragReady) ||
+      getBoolean(topic.metadata?.rag_ready)
+  );
+}
+
+function getTopicPriorityRank(topic: DebateTopic) {
+  if (topic.sourceKind === "truong_teen") {
+    return 0;
+  }
+
+  if (isTopicRagReady(topic) || (getTopicConfidence(topic) ?? 0) >= 0.85) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function resolvePriorityBadges(
+  topic: DebateTopic,
+  language: PracticeLanguage
+): PracticeTopicPriorityBadge[] {
+  if (topic.sourceKind === "truong_teen") {
+    return [
+      {
+        label: language === "vi" ? "Trường Teen" : "Truong Teen",
+        tone: "amber",
+      },
+      { label: "AI-ready", tone: "blue" },
+    ];
+  }
+
+  if (isTopicRagReady(topic) || (getTopicConfidence(topic) ?? 0) >= 0.85) {
+    return [{ label: "AI-ready", tone: "blue" }];
+  }
+
+  return [];
+}
+
 function resolveAvatars(index: number): PracticeAvatarSeed[] {
   return Array.from({ length: 3 }, (_, avatarIndex) => {
     const seedIndex = (index + avatarIndex * 2) % AVATAR_INITIALS.length;
@@ -218,6 +285,12 @@ export function buildPracticeTopicDisplays(
     sourceTopics.map((topic, index) => [topic.id, index])
   );
   const orderedTopics = [...sourceTopics].sort((left, right) => {
+    const priorityDelta =
+      getTopicPriorityRank(left) - getTopicPriorityRank(right);
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+
     const leftIndex = FEATURED_ORDER_INDEX[left.id];
     const rightIndex = FEATURED_ORDER_INDEX[right.id];
 
@@ -254,6 +327,8 @@ export function buildPracticeTopicDisplays(
     categoryTone: CATEGORY_TONES[getTopicCategoryKey(topic)] ?? "blue",
     difficultyTone: resolveDifficultyTone(topic.difficulty),
     avatars: resolveAvatars(index),
+    priorityRank: getTopicPriorityRank(topic),
+    priorityBadges: resolvePriorityBadges(topic, language),
   }));
 }
 

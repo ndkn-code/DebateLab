@@ -7,7 +7,6 @@ export const CATEGORIES = [
   "Society & Culture",
   "Environment & Sustainability",
   "Ethics & Philosophy",
-  "Vietnam-Specific Issues",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
@@ -65,6 +64,10 @@ const CATEGORY_KEY_BY_LABEL = new Map<string, CategoryKey>(
   ])
 );
 
+const VISIBLE_CATEGORY_CONFIG = CATEGORY_CONFIG.filter(
+  (category) => category.key !== "vietnam"
+);
+
 export function isCategoryKey(value: unknown): value is CategoryKey {
   return CATEGORY_CONFIG.some((category) => category.key === value);
 }
@@ -77,6 +80,45 @@ export function getCategoryKey(
   }
 
   return CATEGORY_KEY_BY_LABEL.get(category ?? "") ?? "education";
+}
+
+export function inferPracticeContentCategoryKey(
+  value: string | null | undefined
+): Exclude<CategoryKey, "vietnam"> {
+  const text = (value ?? "").toLowerCase();
+
+  if (/(school|student|teacher|exam|education|university|homework|learning|literature|trường|học|giáo dục|thi|tốt nghiệp|ngữ văn|học sinh|đại học)/i.test(text)) {
+    return "education";
+  }
+
+  if (/(ai|technology|social media|platform|phone|smartphone|internet|data|truyền thông|mạng xã hội|chatgpt|công nghệ|điện thoại)/i.test(text)) {
+    return "technology";
+  }
+
+  if (/(environment|climate|energy|plastic|tourism|sustainability|môi trường|khí hậu|năng lượng|rác|nhựa|du lịch)/i.test(text)) {
+    return "environment";
+  }
+
+  if (/(ethic|right|justice|law|punish|freedom|công bằng|đạo đức|pháp luật|trừng phạt|quyền|tự do)/i.test(text)) {
+    return "ethics";
+  }
+
+  return "society";
+}
+
+export function normalizePracticeCategoryKey(
+  category: string | null | undefined,
+  textForInference?: string | null
+): Exclude<CategoryKey, "vietnam"> {
+  const categoryKey = isCategoryKey(category)
+    ? category
+    : CATEGORY_KEY_BY_LABEL.get(category ?? "");
+
+  if (categoryKey && categoryKey !== "vietnam") {
+    return categoryKey;
+  }
+
+  return inferPracticeContentCategoryKey(`${textForInference ?? ""} ${category ?? ""}`);
 }
 
 export function getCategoryLabel(
@@ -95,7 +137,7 @@ export function getLocalizedCategoryOptions(
 ): PracticeCategoryOption[] {
   return [
     { key: "all", label: language === "vi" ? "Tất cả" : "All" },
-    ...CATEGORY_CONFIG.map((category) => ({
+    ...VISIBLE_CATEGORY_CONFIG.map((category) => ({
       key: category.key,
       label: category[language],
     })),
@@ -721,11 +763,11 @@ export const topics: DebateTopic[] = [
     },
   },
 
-  // ── Vietnam-Specific Issues ──────────────────────────────────────
+  // ── Vietnam-origin motions, grouped by content category ──────────
   {
     id: "vn-01",
     title: "Vietnam should adopt a 4-day work week",
-    category: "Vietnam-Specific Issues",
+    category: "Society & Culture",
     difficulty: "intermediate",
     context:
       "Several countries are trialing 4-day work weeks with positive results, but Vietnam's developing economy raises questions about whether it's practical.",
@@ -745,7 +787,7 @@ export const topics: DebateTopic[] = [
   {
     id: "vn-02",
     title: "Vietnamese students face too much academic pressure",
-    category: "Vietnam-Specific Issues",
+    category: "Education & School Life",
     difficulty: "beginner",
     context:
       "Vietnamese students often attend multiple tutoring classes outside school hours, with intense pressure to perform well on national exams.",
@@ -765,7 +807,7 @@ export const topics: DebateTopic[] = [
   {
     id: "vn-03",
     title: "English should become a second official language in Vietnam",
-    category: "Vietnam-Specific Issues",
+    category: "Society & Culture",
     difficulty: "advanced",
     context:
       "Vietnam has invested heavily in English education, with English being taught from primary school, but it lacks official language status.",
@@ -785,7 +827,7 @@ export const topics: DebateTopic[] = [
   {
     id: "vn-04",
     title: "Vietnam's education system focuses too much on memorization",
-    category: "Vietnam-Specific Issues",
+    category: "Education & School Life",
     difficulty: "beginner",
     context:
       "While Vietnam performs well on international tests, critics argue the education system prioritizes rote learning over critical thinking and creativity.",
@@ -820,7 +862,7 @@ export const topics: DebateTopic[] = [
   {
     id: "vn-05",
     title: "Tourism does more harm than good to Vietnamese culture",
-    category: "Vietnam-Specific Issues",
+    category: "Environment & Sustainability",
     difficulty: "intermediate",
     context:
       "Vietnam's tourism industry has grown rapidly, bringing economic benefits but also concerns about cultural commodification and environmental damage.",
@@ -1468,9 +1510,10 @@ export function getTopicStableKey(topic: DebateTopic) {
 }
 
 export function getTopicCategoryKey(topic: DebateTopic) {
-  return topic.categoryKey && isCategoryKey(topic.categoryKey)
-    ? topic.categoryKey
-    : getCategoryKey(topic.category);
+  return normalizePracticeCategoryKey(
+    topic.categoryKey ?? topic.category,
+    `${topic.title} ${topic.context ?? ""}`
+  );
 }
 
 export function getLocalizedTopic(
