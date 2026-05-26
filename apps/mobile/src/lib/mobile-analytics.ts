@@ -29,12 +29,21 @@ export type MobileHistoryEventName =
   | "mobile_history_viewed"
   | "mobile_history_detail_viewed";
 
+export type MobileCoachEventName =
+  | "mobile_coach_viewed"
+  | "mobile_coach_conversation_opened"
+  | "mobile_coach_message_sent"
+  | "mobile_coach_response_received"
+  | "mobile_coach_response_failed"
+  | "mobile_coach_suggested_action_tapped";
+
 function trackMobileEvent(
   apiClient: ThinkfyApiClient | null,
   eventName:
     | MobileDashboardEventName
     | MobilePracticeEventName
-    | MobileHistoryEventName,
+    | MobileHistoryEventName
+    | MobileCoachEventName,
   featureArea: "practice" | "profile",
   route: string,
   metadata: Record<string, unknown> = {}
@@ -81,4 +90,12 @@ export function trackMobileHistoryEvent(
   metadata: Record<string, unknown> = {}
 ) {
   trackMobileEvent(apiClient, eventName, "practice", route, metadata);
+}
+
+export function trackMobileCoachEvent(
+  apiClient: ThinkfyApiClient | null,
+  eventName: MobileCoachEventName,
+  metadata: Record<string, unknown> = {}
+) {
+  trackMobileEvent(apiClient, eventName, "practice", "/coach", metadata);
 }

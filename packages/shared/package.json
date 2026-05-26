@@ -23,6 +23,10 @@
     "./dashboard": {
       "types": "./src/dashboard.ts",
       "default": "./src/dashboard.ts"
+    },
+    "./coach": {
+      "types": "./src/coach.ts",
+      "default": "./src/coach.ts"
     }
   },
   "scripts": {

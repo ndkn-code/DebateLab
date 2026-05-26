@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PRACTICE_LANGUAGE,
@@ -696,8 +697,12 @@ function buildProfileSummary(
   ].join("\n");
 }
 
-async function getCourseSummary(userId: string, courseId: string) {
-  const supabase = await createClient();
+async function getCourseSummary(
+  userId: string,
+  courseId: string,
+  supabaseInput?: SupabaseClient
+) {
+  const supabase = supabaseInput ?? (await createClient());
   const [{ data: profile }, { data: course }, { data: enrollment }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
     supabase
@@ -724,8 +729,12 @@ async function getCourseSummary(userId: string, courseId: string) {
   };
 }
 
-async function getSessionById(userId: string, sessionId: string) {
-  const supabase = await createClient();
+async function getSessionById(
+  userId: string,
+  sessionId: string,
+  supabaseInput?: SupabaseClient
+) {
+  const supabase = supabaseInput ?? (await createClient());
   const { data: rpcSession, error: rpcError } = await supabase.rpc(
     "get_practice_feedback_payload",
     { p_session_id: sessionId }
@@ -747,8 +756,12 @@ async function getSessionById(userId: string, sessionId: string) {
   return (data as SessionRow | null) ?? null;
 }
 
-async function getDuelContext(userId: string, duelIdentifier: string) {
-  const supabase = await createClient();
+async function getDuelContext(
+  userId: string,
+  duelIdentifier: string,
+  supabaseInput?: SupabaseClient
+) {
+  const supabase = supabaseInput ?? (await createClient());
   let duelId = duelIdentifier;
 
   const { data: participant } = await supabase
@@ -915,9 +928,10 @@ function inferIntent(params: {
 
 export async function getCoachProfile(
   userId: string,
-  practiceLanguageInput?: PracticeLanguage | string | null
+  practiceLanguageInput?: PracticeLanguage | string | null,
+  supabaseInput?: SupabaseClient
 ): Promise<CoachProfile> {
-  const supabase = await createClient();
+  const supabase = supabaseInput ?? (await createClient());
   const practiceLanguage = coercePracticeLanguage(
     practiceLanguageInput,
     DEFAULT_PRACTICE_LANGUAGE
@@ -1175,6 +1189,7 @@ export async function getCoachContextEnvelope(params: {
   contextId?: string | null;
   message?: string | null;
   practiceLanguage?: PracticeLanguage | string | null;
+  supabase?: SupabaseClient;
 }): Promise<CoachContextEnvelope> {
   const practiceLanguage = coercePracticeLanguage(
     params.practiceLanguage,
@@ -1191,7 +1206,11 @@ export async function getCoachContextEnvelope(params: {
   let selectedCourse: CoachContextEnvelope["selectedCourse"] = null;
 
   if (params.contextType === "practice-feedback" && params.contextId) {
-    const session = await getSessionById(params.userId, params.contextId);
+    const session = await getSessionById(
+      params.userId,
+      params.contextId,
+      params.supabase
+    );
     if (session) {
       selectedSession = mapRecentSession(session, true, practiceLanguage);
     }
@@ -1205,7 +1224,11 @@ export async function getCoachContextEnvelope(params: {
       params.profile.recentSessions.find((session) => session.totalScore != null)?.id ??
       params.profile.recentSessions[0]?.id;
     if (latestSessionId) {
-      const session = await getSessionById(params.userId, latestSessionId);
+      const session = await getSessionById(
+        params.userId,
+        latestSessionId,
+        params.supabase
+      );
       if (session) {
         selectedSession = mapRecentSession(session, true, practiceLanguage);
       }
@@ -1213,11 +1236,19 @@ export async function getCoachContextEnvelope(params: {
   }
 
   if (params.contextType === "duel-review" && params.contextId) {
-    selectedDuel = await getDuelContext(params.userId, params.contextId);
+    selectedDuel = await getDuelContext(
+      params.userId,
+      params.contextId,
+      params.supabase
+    );
   }
 
   if (params.contextType === "course" && params.contextId) {
-    selectedCourse = await getCourseSummary(params.userId, params.contextId);
+    selectedCourse = await getCourseSummary(
+      params.userId,
+      params.contextId,
+      params.supabase
+    );
   }
 
   const strongest = titleCaseSkill(

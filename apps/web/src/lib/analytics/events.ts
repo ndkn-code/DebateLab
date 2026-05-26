@@ -44,6 +44,12 @@ export const ANALYTICS_EVENT_NAMES = [
   "mobile_practice_feedback_viewed",
   "mobile_history_viewed",
   "mobile_history_detail_viewed",
+  "mobile_coach_viewed",
+  "mobile_coach_conversation_opened",
+  "mobile_coach_message_sent",
+  "mobile_coach_response_received",
+  "mobile_coach_response_failed",
+  "mobile_coach_suggested_action_tapped",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [
