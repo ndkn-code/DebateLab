@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   Archive,
   BadgeCheck,
   BrainCircuit,
+  CheckCircle2,
+  Clock3,
   ExternalLink,
   FileText,
   Filter,
@@ -19,6 +22,7 @@ import {
   Sparkles,
   Target,
   X,
+  XCircle,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +101,17 @@ function getArray(row: CorpusRow | null | undefined, key: string) {
   return Array.isArray(value) ? value : [];
 }
 
+function getRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getNestedNumber(value: Record<string, unknown>, key: string) {
+  const next = value[key];
+  return typeof next === "number" && Number.isFinite(next) ? next : null;
+}
+
 function formatDate(value: unknown) {
   if (typeof value !== "string") return "—";
   return new Intl.DateTimeFormat("en", {
@@ -111,12 +126,89 @@ function formatPercent(value: unknown) {
   return typeof value === "number" ? `${Math.round(value * 100)}%` : "—";
 }
 
+function formatSimilarity(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(2)
+    : "—";
+}
+
+function formatMilliseconds(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? `${value}ms` : "—";
+}
+
+function getRetrievedItems(row: CorpusRow) {
+  return getArray(row, "retrieved_items")
+    .map((item) => getRecord(item))
+    .filter((item) => typeof item.item_id === "string");
+}
+
+function getRetrievalSummary(row: CorpusRow) {
+  const filters = getRecord(row.filters);
+  const gate = getRecord(filters.relevanceGate);
+  const retrievedItems = getRetrievedItems(row);
+  const similarities = retrievedItems
+    .map((item) => getNestedNumber(item, "similarity"))
+    .filter((value): value is number => typeof value === "number");
+  const topSimilarity =
+    getNestedNumber(gate, "topSimilarity") ??
+    (similarities.length > 0 ? Math.max(...similarities) : null);
+  const avgTop3Similarity =
+    getNestedNumber(gate, "avgTop3Similarity") ??
+    (similarities.length > 0
+      ? similarities
+          .sort((a, b) => b - a)
+          .slice(0, 3)
+          .reduce((total, value, _index, values) => total + value / values.length, 0)
+      : null);
+  const candidateCount =
+    getNestedNumber(gate, "candidateCount") ?? retrievedItems.length;
+  const injectedCount = getNestedNumber(gate, "injectedCount") ?? candidateCount;
+  const itemsAboveThresholdCount =
+    getNestedNumber(gate, "itemsAboveThresholdCount") ?? injectedCount;
+  const skippedReason =
+    typeof gate.skippedReason === "string" ? gate.skippedReason : null;
+  const passed = typeof gate.passed === "boolean" ? gate.passed : null;
+  const latencyMs = getNumber(row, "latency_ms");
+
+  let status: "injected" | "low_relevance" | "timed_out" | "disabled" | "empty";
+  if (skippedReason === "low_relevance") {
+    status = "low_relevance";
+  } else if (skippedReason?.startsWith("retrieval_failed")) {
+    status = skippedReason.toLowerCase().includes("abort") ? "timed_out" : "empty";
+  } else if (skippedReason === "flag_disabled" || passed === null && candidateCount === 0) {
+    status = "disabled";
+  } else if (injectedCount > 0) {
+    status = "injected";
+  } else if (latencyMs != null && latencyMs >= 19000 && candidateCount === 0) {
+    status = "timed_out";
+  } else {
+    status = "empty";
+  }
+
+  return {
+    status,
+    skippedReason,
+    topSimilarity,
+    avgTop3Similarity,
+    candidateCount,
+    injectedCount,
+    itemsAboveThresholdCount,
+    minTopSimilarity: getNestedNumber(gate, "minTopSimilarity"),
+    minItemSimilarity: getNestedNumber(gate, "minItemSimilarity"),
+    minItemsAboveThreshold: getNestedNumber(gate, "minItemsAboveThreshold"),
+    injectedItemIds: getArray(gate, "injectedItemIds").filter(
+      (value): value is string => typeof value === "string"
+    ),
+    retrievedItems,
+  };
+}
+
 function rowTitle(row: CorpusRow, kind: DetailKind) {
   if (kind === "source") return getString(row, "video_title", getString(row, "id"));
   if (kind === "match") return getString(row, "motion_vi", getString(row, "canonical_match_key"));
   if (kind === "item") return getString(row, "embedding_text", getString(row, "item_type"));
   if (kind === "motion") return getString(row, "motion_vi", getString(row, "motion_key"));
-  if (kind === "log") return getString(row, "query_text_hash", getString(row, "id"));
+  if (kind === "log") return getString(row, "query_hash", getString(row, "id"));
   return getString(row, "file_name", getString(row, "import_key"));
 }
 
@@ -826,20 +918,34 @@ function LogsTable({
     <DataTable
       rows={rows}
       emptyLabel="No retrieval logs yet."
-      headers={["Query hash", "Provider", "Retrieved", "Latency", "AI run", "Created"]}
-      renderRow={(row) => (
-        <tr key={getString(row, "id")} className="border-t border-outline-variant/10">
-          <CellButton onClick={() => onSelect(row)} title={getString(row, "query_text_hash")} subtitle={getString(row, "id")} />
-          <td className="px-4 py-3">
-            <div className="font-semibold text-on-surface">{getString(row, "provider")}</div>
-            <div className="max-w-[220px] truncate text-xs text-on-surface-variant">{getString(row, "model")}</div>
-          </td>
-          <td className="px-4 py-3 text-on-surface-variant">{getArray(row, "retrieved_item_ids").length}</td>
-          <td className="px-4 py-3 text-on-surface-variant">{getString(row, "latency_ms") === "—" ? "—" : `${getString(row, "latency_ms")}ms`}</td>
-          <td className="px-4 py-3 text-on-surface-variant">{getString(row, "ai_quality_run_id")}</td>
-          <td className="px-4 py-3 text-on-surface-variant">{formatDate(row.created_at)}</td>
-        </tr>
-      )}
+      headers={["Query hash", "Provider", "Status", "Similarity", "Injected", "Latency", "AI run"]}
+      renderRow={(row) => {
+        const summary = getRetrievalSummary(row);
+        const latencyMs = getNumber(row, "latency_ms");
+        return (
+          <tr key={getString(row, "id")} className="border-t border-outline-variant/10">
+            <CellButton onClick={() => onSelect(row)} title={getString(row, "query_hash")} subtitle={formatDate(row.created_at)} />
+            <td className="px-4 py-3">
+              <div className="font-semibold text-on-surface">{getString(row, "provider")}</div>
+              <div className="max-w-[220px] truncate text-xs text-on-surface-variant">{getString(row, "model")}</div>
+            </td>
+            <td className="px-4 py-3">
+              <RetrievalStatusPill status={summary.status} />
+            </td>
+            <td className="px-4 py-3">
+              <div className="font-semibold text-on-surface">{formatSimilarity(summary.topSimilarity)}</div>
+              <div className="text-xs text-on-surface-variant">top-3 {formatSimilarity(summary.avgTop3Similarity)}</div>
+            </td>
+            <td className="px-4 py-3 text-on-surface-variant">
+              {summary.injectedCount} / {summary.candidateCount}
+            </td>
+            <td className="px-4 py-3 text-on-surface-variant">
+              {formatMilliseconds(latencyMs)}
+            </td>
+            <td className="px-4 py-3 text-on-surface-variant">{getString(row, "ai_quality_run_id")}</td>
+          </tr>
+        );
+      }}
     />
   );
 }
@@ -951,6 +1057,52 @@ function StatusPill({ status }: { status: unknown }) {
   );
 }
 
+function RetrievalStatusPill({
+  status,
+}: {
+  status: ReturnType<typeof getRetrievalSummary>["status"];
+}) {
+  const config = {
+    injected: {
+      label: "Injected",
+      icon: CheckCircle2,
+      className: "border-secondary/20 bg-secondary/10 text-secondary",
+    },
+    low_relevance: {
+      label: "Skipped",
+      icon: AlertTriangle,
+      className: "border-warning/30 bg-warning/15 text-warning",
+    },
+    timed_out: {
+      label: "Timed out",
+      icon: Clock3,
+      className: "border-error/20 bg-error-container text-error",
+    },
+    disabled: {
+      label: "Disabled",
+      icon: XCircle,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+    empty: {
+      label: "No context",
+      icon: BrainCircuit,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+  }[status];
+  const Icon = config.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        config.className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {config.label}
+    </span>
+  );
+}
+
 function EmptyState({ label }: { label: string }) {
   return (
     <div className="p-6 text-center text-sm text-on-surface-variant">
@@ -969,9 +1121,11 @@ function DetailDrawer({
   onClose: () => void;
 }) {
   const sourceUrl = getString(row, "youtube_url", getString(row, "source_url", ""));
-  const itemIds = getArray(row, "retrieved_item_ids").filter(
-    (value): value is string => typeof value === "string"
-  );
+  const retrievalSummary = kind === "log" ? getRetrievalSummary(row) : null;
+  const itemIds =
+    retrievalSummary?.retrievedItems
+      .map((item) => item.item_id)
+      .filter((value): value is string => typeof value === "string") ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
@@ -1004,6 +1158,47 @@ function DetailDrawer({
           <MiniMetric label="Updated" value={formatDate(row.updated_at ?? row.created_at)} />
         </div>
 
+        {retrievalSummary && (
+          <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold text-on-surface">Relevance summary</h3>
+              <RetrievalStatusPill status={retrievalSummary.status} />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <MiniMetric label="Top similarity" value={formatSimilarity(retrievalSummary.topSimilarity)} />
+              <MiniMetric label="Avg top-3" value={formatSimilarity(retrievalSummary.avgTop3Similarity)} />
+              <MiniMetric
+                label="Injected"
+                value={`${retrievalSummary.injectedCount}/${retrievalSummary.candidateCount}`}
+              />
+            </div>
+            <div className="mt-4 rounded-xl border border-outline-variant/15 bg-surface p-3 text-sm text-on-surface-variant">
+              <div className="flex items-center justify-between gap-3">
+                <span>Items above threshold</span>
+                <span className="font-semibold text-on-surface">
+                  {retrievalSummary.itemsAboveThresholdCount}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span>Thresholds</span>
+                <span className="text-right font-semibold text-on-surface">
+                  top {formatSimilarity(retrievalSummary.minTopSimilarity)} · item{" "}
+                  {formatSimilarity(retrievalSummary.minItemSimilarity)} · count{" "}
+                  {retrievalSummary.minItemsAboveThreshold ?? "—"}
+                </span>
+              </div>
+              {retrievalSummary.skippedReason && (
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span>Gate decision</span>
+                  <span className="font-semibold text-warning">
+                    {retrievalSummary.skippedReason.replace("_", " ")}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {sourceUrl && sourceUrl !== "—" && (
           <a
             href={sourceUrl}
@@ -1030,6 +1225,12 @@ function DetailDrawer({
                 </a>
               ))}
             </div>
+            {retrievalSummary?.injectedItemIds.length ? (
+              <div className="mt-3 rounded-xl border border-secondary/15 bg-secondary/10 p-3 text-xs font-semibold text-secondary">
+                Injected into prompt:{" "}
+                {retrievalSummary.injectedItemIds.map((id) => id.slice(0, 8)).join(", ")}
+              </div>
+            ) : null}
           </div>
         )}
 

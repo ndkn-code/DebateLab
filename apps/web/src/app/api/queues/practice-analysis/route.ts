@@ -11,6 +11,7 @@ import {
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import {
+  createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
   retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
@@ -127,14 +128,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
               isFullRound: input.isFullRound,
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
-              corpusRagEnabled: corpusRetrieval.enabled,
-              corpusRagSkippedReason: corpusRetrieval.skippedReason,
-              corpusRetrievalLogId: corpusRetrieval.logId,
-              corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
-              retrievedCorpusItemIds: corpusRetrieval.items.map(
-                (item) => item.item_id
-              ),
-              retrievedCorpusCount: corpusRetrieval.items.length,
+              ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
             },
           })
         : null;
@@ -171,6 +165,10 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           queue_message_id: metadata.messageId,
           corpus_rag_enabled: corpusRetrieval.enabled,
           retrieved_corpus_count: corpusRetrieval.items.length,
+          candidate_corpus_count: corpusRetrieval.candidateItems.length,
+          corpus_rag_skipped_reason: corpusRetrieval.skippedReason,
+          corpus_rag_top_similarity: corpusRetrieval.topSimilarity,
+          corpus_rag_relevance_gate_passed: corpusRetrieval.relevanceGatePassed,
         },
       });
     } catch (error) {

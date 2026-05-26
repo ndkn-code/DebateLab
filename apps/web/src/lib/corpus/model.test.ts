@@ -8,6 +8,7 @@ import {
   hashDebateCorpusContent,
   isSafeEvidenceStatusForRetrieval,
   purposeToCorpusUsableFor,
+  selectRelevantRetrievedDebateCorpusItems,
   type DebateCorpusSeed,
   type RetrievedDebateCorpusItem,
 } from "./model";
@@ -109,3 +110,68 @@ assert.match(context, /debater-mentioned, not independently verified/);
 assert.doesNotMatch(context, /item-2/);
 assert.ok(context.length < 2500, "retrieved prompt context should stay compact");
 assert.equal(formatRetrievedDebateCorpusContext(retrieved, "judging"), "");
+
+const relevanceConfig = {
+  enabled: true,
+  minTopSimilarity: 0.45,
+  minItemSimilarity: 0.4,
+  minItemsAboveThreshold: 2,
+};
+const makeRetrieved = (
+  id: string,
+  similarity: number
+): RetrievedDebateCorpusItem => ({
+  ...retrieved[0],
+  item_id: id,
+  similarity,
+});
+
+const passingGate = selectRelevantRetrievedDebateCorpusItems(
+  [
+    makeRetrieved("high-1", 0.51),
+    makeRetrieved("low-1", 0.39),
+    makeRetrieved("high-2", 0.43),
+  ],
+  relevanceConfig
+);
+assert.equal(passingGate.passed, true);
+assert.equal(passingGate.candidateCount, 3);
+assert.equal(passingGate.injectedCount, 2);
+assert.deepEqual(
+  passingGate.injectedItems.map((item) => item.item_id),
+  ["high-1", "high-2"]
+);
+assert.equal(passingGate.skippedReason, undefined);
+
+const failingGate = selectRelevantRetrievedDebateCorpusItems(
+  [
+    makeRetrieved("weak-1", 0.44),
+    makeRetrieved("weak-2", 0.42),
+    makeRetrieved("weak-3", 0.41),
+  ],
+  relevanceConfig
+);
+assert.equal(failingGate.passed, false);
+assert.equal(failingGate.injectedCount, 0);
+assert.equal(failingGate.skippedReason, "low_relevance");
+assert.equal(failingGate.topSimilarity, 0.44);
+assert.equal(failingGate.itemsAboveThresholdCount, 3);
+
+const sparseGate = selectRelevantRetrievedDebateCorpusItems(
+  [makeRetrieved("lonely-1", 0.6), makeRetrieved("low-2", 0.2)],
+  relevanceConfig
+);
+assert.equal(sparseGate.passed, false);
+assert.equal(sparseGate.skippedReason, "low_relevance");
+assert.equal(sparseGate.itemsAboveThresholdCount, 1);
+
+const disabledGate = selectRelevantRetrievedDebateCorpusItems(
+  [makeRetrieved("anything-1", 0.1)],
+  { ...relevanceConfig, enabled: false }
+);
+assert.equal(disabledGate.passed, null);
+assert.equal(disabledGate.injectedCount, 1);
+
+const emptyGate = selectRelevantRetrievedDebateCorpusItems([], relevanceConfig);
+assert.equal(emptyGate.passed, false);
+assert.equal(emptyGate.skippedReason, "no_matches");

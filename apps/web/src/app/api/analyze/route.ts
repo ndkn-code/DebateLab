@@ -4,6 +4,7 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import {
+  createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
   retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
@@ -491,14 +492,7 @@ export async function POST(req: NextRequest) {
                 speechType,
                 isFullRound,
                 roundCount: rounds?.length ?? 0,
-                corpusRagEnabled: corpusRetrieval.enabled,
-                corpusRagSkippedReason: corpusRetrieval.skippedReason,
-                corpusRetrievalLogId: corpusRetrieval.logId,
-                corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
-                retrievedCorpusItemIds: corpusRetrieval.items.map(
-                  (item) => item.item_id
-                ),
-                retrievedCorpusCount: corpusRetrieval.items.length,
+                ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
               },
             })
           : null;
@@ -522,6 +516,10 @@ export async function POST(req: NextRequest) {
             debug_id: requestId,
             corpus_rag_enabled: corpusRetrieval.enabled,
             retrieved_corpus_count: corpusRetrieval.items.length,
+            candidate_corpus_count: corpusRetrieval.candidateItems.length,
+            corpus_rag_skipped_reason: corpusRetrieval.skippedReason,
+            corpus_rag_top_similarity: corpusRetrieval.topSimilarity,
+            corpus_rag_relevance_gate_passed: corpusRetrieval.relevanceGatePassed,
           },
         });
       }
@@ -587,14 +585,7 @@ export async function POST(req: NextRequest) {
             speechType,
             isFullRound,
             roundCount: rounds?.length ?? 0,
-            corpusRagEnabled: corpusRetrieval.enabled,
-            corpusRagSkippedReason: corpusRetrieval.skippedReason,
-            corpusRetrievalLogId: corpusRetrieval.logId,
-            corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
-            retrievedCorpusItemIds: corpusRetrieval.items.map(
-              (item) => item.item_id
-            ),
-            retrievedCorpusCount: corpusRetrieval.items.length,
+            ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
           },
         }).catch(() => null);
       }

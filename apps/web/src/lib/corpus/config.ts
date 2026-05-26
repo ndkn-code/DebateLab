@@ -15,9 +15,59 @@ export const DEBATE_CORPUS_EMBEDDING_DIMENSIONS = Number.parseInt(
 export const DEBATE_CORPUS_EMBEDDING_URL =
   process.env.DEBATE_CORPUS_EMBEDDING_URL || "";
 
+function parseNumberEnv(value: string | undefined, fallback: number) {
+  if (value == null || value.trim() === "") return fallback;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseIntegerEnv(value: string | undefined, fallback: number) {
+  if (value == null || value.trim() === "") return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function readDebateCorpusEmbeddingTimeoutMs(
+  env: Record<string, string | undefined>
+) {
+  return parseIntegerEnv(env.DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS, 20000);
+}
+
+export function readDebateCorpusRagRelevanceConfig(
+  env: Record<string, string | undefined>
+) {
+  return {
+    enabled: env.AI_CORPUS_RAG_RELEVANCE_GATE_ENABLED !== "false",
+    minTopSimilarity: Math.max(
+      0,
+      Math.min(1, parseNumberEnv(env.AI_CORPUS_RAG_MIN_TOP_SIMILARITY, 0.45))
+    ),
+    minItemSimilarity: Math.max(
+      0,
+      Math.min(1, parseNumberEnv(env.AI_CORPUS_RAG_MIN_ITEM_SIMILARITY, 0.4))
+    ),
+    minItemsAboveThreshold: Math.max(
+      1,
+      parseIntegerEnv(env.AI_CORPUS_RAG_MIN_ITEMS_ABOVE_THRESHOLD, 2)
+    ),
+  };
+}
+
 export const DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS =
-  Number.parseInt(process.env.DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS || "12000", 10) ||
-  12000;
+  readDebateCorpusEmbeddingTimeoutMs(process.env);
+
+const relevanceConfig = readDebateCorpusRagRelevanceConfig(process.env);
+
+export const AI_CORPUS_RAG_RELEVANCE_GATE_ENABLED = relevanceConfig.enabled;
+
+export const AI_CORPUS_RAG_MIN_TOP_SIMILARITY =
+  relevanceConfig.minTopSimilarity;
+
+export const AI_CORPUS_RAG_MIN_ITEM_SIMILARITY =
+  relevanceConfig.minItemSimilarity;
+
+export const AI_CORPUS_RAG_MIN_ITEMS_ABOVE_THRESHOLD =
+  relevanceConfig.minItemsAboveThreshold;
 
 export function isDebateCorpusRagEnabled() {
   return process.env.AI_CORPUS_RAG_ENABLED === "true";
@@ -47,5 +97,14 @@ export function getDebateCorpusEmbeddingConfig() {
     provider: DEBATE_CORPUS_EMBEDDING_PROVIDER,
     model: DEBATE_CORPUS_EMBEDDING_MODEL,
     dimensions: DEBATE_CORPUS_EMBEDDING_DIMENSIONS,
+  };
+}
+
+export function getDebateCorpusRagRelevanceConfig() {
+  return {
+    enabled: AI_CORPUS_RAG_RELEVANCE_GATE_ENABLED,
+    minTopSimilarity: AI_CORPUS_RAG_MIN_TOP_SIMILARITY,
+    minItemSimilarity: AI_CORPUS_RAG_MIN_ITEM_SIMILARITY,
+    minItemsAboveThreshold: AI_CORPUS_RAG_MIN_ITEMS_ABOVE_THRESHOLD,
   };
 }

@@ -158,6 +158,25 @@ export interface RetrievedDebateCorpusItem {
   similarity: number;
 }
 
+export interface DebateCorpusRelevanceGateConfig {
+  enabled: boolean;
+  minTopSimilarity: number;
+  minItemSimilarity: number;
+  minItemsAboveThreshold: number;
+}
+
+export interface DebateCorpusRelevanceGateResult {
+  candidateItems: RetrievedDebateCorpusItem[];
+  injectedItems: RetrievedDebateCorpusItem[];
+  candidateCount: number;
+  injectedCount: number;
+  topSimilarity: number | null;
+  avgTop3Similarity: number | null;
+  itemsAboveThresholdCount: number;
+  passed: boolean | null;
+  skippedReason?: "low_relevance" | "no_matches";
+}
+
 function compactWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -202,6 +221,69 @@ export function isSafeEvidenceStatusForRetrieval(
   return (DEBATE_CORPUS_SAFE_EVIDENCE_STATUSES as readonly string[]).includes(
     status ?? ""
   );
+}
+
+export function selectRelevantRetrievedDebateCorpusItems(
+  items: RetrievedDebateCorpusItem[],
+  config: DebateCorpusRelevanceGateConfig
+): DebateCorpusRelevanceGateResult {
+  const candidateItems = [...items].sort((a, b) => b.similarity - a.similarity);
+  const candidateCount = candidateItems.length;
+  const topSimilarity = candidateItems[0]?.similarity ?? null;
+  const top3 = candidateItems.slice(0, 3);
+  const avgTop3Similarity =
+    top3.length > 0
+      ? top3.reduce((total, item) => total + item.similarity, 0) / top3.length
+      : null;
+  const itemsAboveThreshold = candidateItems.filter(
+    (item) => item.similarity >= config.minItemSimilarity
+  );
+
+  if (candidateCount === 0) {
+    return {
+      candidateItems,
+      injectedItems: [],
+      candidateCount,
+      injectedCount: 0,
+      topSimilarity,
+      avgTop3Similarity,
+      itemsAboveThresholdCount: 0,
+      passed: config.enabled ? false : null,
+      skippedReason: "no_matches",
+    };
+  }
+
+  if (!config.enabled) {
+    return {
+      candidateItems,
+      injectedItems: candidateItems,
+      candidateCount,
+      injectedCount: candidateItems.length,
+      topSimilarity,
+      avgTop3Similarity,
+      itemsAboveThresholdCount: itemsAboveThreshold.length,
+      passed: null,
+    };
+  }
+
+  const passed =
+    topSimilarity != null &&
+    topSimilarity >= config.minTopSimilarity &&
+    itemsAboveThreshold.length >= config.minItemsAboveThreshold;
+
+  const injectedItems = passed ? itemsAboveThreshold : [];
+
+  return {
+    candidateItems,
+    injectedItems,
+    candidateCount,
+    injectedCount: injectedItems.length,
+    topSimilarity,
+    avgTop3Similarity,
+    itemsAboveThresholdCount: itemsAboveThreshold.length,
+    passed,
+    skippedReason: passed ? undefined : "low_relevance",
+  };
 }
 
 function normalizeUsableFor(value: readonly string[] | undefined) {

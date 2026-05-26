@@ -3,8 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS,
   getDebateCorpusEmbeddingConfig,
   getDebateCorpusRagReviewStatuses,
+  getDebateCorpusRagRelevanceConfig,
   hasDebateCorpusEmbeddingConfig,
   isDebateCorpusRagEnabled,
 } from "./config";
@@ -12,7 +14,9 @@ import { createDebateCorpusEmbedding } from "./embeddings";
 import {
   formatRetrievedDebateCorpusContext,
   purposeToCorpusUsableFor,
+  selectRelevantRetrievedDebateCorpusItems,
   type DebateCorpusPurpose,
+  type DebateCorpusRelevanceGateConfig,
   type RetrievedDebateCorpusItem,
 } from "./model";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -22,8 +26,14 @@ export interface DebateCorpusRetrievalResult {
   enabled: boolean;
   contextBlock: string;
   items: RetrievedDebateCorpusItem[];
+  candidateItems: RetrievedDebateCorpusItem[];
   logId: string | null;
   latencyMs: number | null;
+  topSimilarity: number | null;
+  avgTop3Similarity: number | null;
+  itemsAboveThresholdCount: number;
+  relevanceGatePassed: boolean | null;
+  relevanceGateConfig: DebateCorpusRelevanceGateConfig | null;
   skippedReason?: string;
 }
 
@@ -124,6 +134,47 @@ async function logRetrieval(params: {
   return (data as { id: string }).id;
 }
 
+function emptyRetrievalResult(
+  overrides: Pick<DebateCorpusRetrievalResult, "enabled" | "skippedReason"> & {
+    latencyMs?: number | null;
+  }
+): DebateCorpusRetrievalResult {
+  return {
+    enabled: overrides.enabled,
+    contextBlock: "",
+    items: [],
+    candidateItems: [],
+    logId: null,
+    latencyMs: overrides.latencyMs ?? null,
+    topSimilarity: null,
+    avgTop3Similarity: null,
+    itemsAboveThresholdCount: 0,
+    relevanceGatePassed: null,
+    relevanceGateConfig: null,
+    skippedReason: overrides.skippedReason,
+  };
+}
+
+export function createDebateCorpusRetrievalMetadata(
+  retrieval: DebateCorpusRetrievalResult
+) {
+  return {
+    corpusRagEnabled: retrieval.enabled,
+    corpusRagSkippedReason: retrieval.skippedReason,
+    corpusRetrievalLogId: retrieval.logId,
+    corpusRetrievalLatencyMs: retrieval.latencyMs,
+    retrievedCorpusItemIds: retrieval.items.map((item) => item.item_id),
+    retrievedCorpusCount: retrieval.items.length,
+    candidateCorpusItemIds: retrieval.candidateItems.map((item) => item.item_id),
+    candidateCorpusCount: retrieval.candidateItems.length,
+    corpusRagTopSimilarity: retrieval.topSimilarity,
+    corpusRagAvgTop3Similarity: retrieval.avgTop3Similarity,
+    corpusRagItemsAboveThresholdCount: retrieval.itemsAboveThresholdCount,
+    corpusRagRelevanceGatePassed: retrieval.relevanceGatePassed,
+    corpusRagRelevanceThresholds: retrieval.relevanceGateConfig,
+  };
+}
+
 export async function linkDebateCorpusRetrievalLogToAiRun(
   logId: string | null | undefined,
   aiQualityRunId: string | null | undefined,
@@ -146,46 +197,30 @@ export async function retrieveDebateCorpusContext(
   params: RetrieveDebateCorpusParams
 ): Promise<DebateCorpusRetrievalResult> {
   if (!isDebateCorpusRagEnabled()) {
-    return {
+    return emptyRetrievalResult({
       enabled: false,
-      contextBlock: "",
-      items: [],
-      logId: null,
-      latencyMs: null,
       skippedReason: "flag_disabled",
-    };
+    });
   }
   if (params.practiceLanguage !== "vi" || params.practiceTrack === "speaking") {
-    return {
+    return emptyRetrievalResult({
       enabled: true,
-      contextBlock: "",
-      items: [],
-      logId: null,
-      latencyMs: null,
       skippedReason: "not_vi_debate",
-    };
+    });
   }
   if (!hasDebateCorpusEmbeddingConfig()) {
-    return {
+    return emptyRetrievalResult({
       enabled: true,
-      contextBlock: "",
-      items: [],
-      logId: null,
-      latencyMs: null,
       skippedReason: "missing_embedding_config",
-    };
+    });
   }
 
   const client = params.supabase ?? tryCreateAdminClient();
   if (!client) {
-    return {
+    return emptyRetrievalResult({
       enabled: true,
-      contextBlock: "",
-      items: [],
-      logId: null,
-      latencyMs: null,
       skippedReason: "missing_supabase_service_role",
-    };
+    });
   }
 
   const startedAt = Date.now();
@@ -195,10 +230,11 @@ export async function retrieveDebateCorpusContext(
   try {
     const config = getDebateCorpusEmbeddingConfig();
     const reviewStatuses = getDebateCorpusRagReviewStatuses();
+    const relevanceConfig = getDebateCorpusRagRelevanceConfig();
     const embedding = await createDebateCorpusEmbedding({
       text: queryText,
       inputType: "query",
-      timeoutMs: 12000,
+      timeoutMs: DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS,
     });
     const { data, error } = await client.rpc("match_debate_corpus_items", {
       query_embedding: embedding.embedding,
@@ -216,18 +252,25 @@ export async function retrieveDebateCorpusContext(
       throw new Error(error.message);
     }
 
-    const items = normalizeRetrievedRows(data);
+    const candidateItems = normalizeRetrievedRows(data);
+    const relevance = selectRelevantRetrievedDebateCorpusItems(
+      candidateItems,
+      relevanceConfig
+    );
+    const items = relevance.injectedItems;
     const latencyMs = Date.now() - startedAt;
     const contextBlock = formatRetrievedDebateCorpusContext(
       items,
       params.purpose
     );
+    const skippedReason =
+      contextBlock.length > 0 ? undefined : relevance.skippedReason;
     const logId = await logRetrieval({
       supabase: client,
       userId: params.userId,
       sourceRoute: params.sourceRoute,
       queryText,
-      items,
+      items: relevance.candidateItems,
       latencyMs,
       filters: {
         purpose: params.purpose,
@@ -237,6 +280,18 @@ export async function retrieveDebateCorpusContext(
         provider: config.provider,
         model: config.model,
         reviewStatuses,
+        queryTimeoutMs: DEBATE_CORPUS_EMBEDDING_TIMEOUT_MS,
+        relevanceGate: {
+          ...relevanceConfig,
+          passed: relevance.passed,
+          skippedReason,
+          candidateCount: relevance.candidateCount,
+          injectedCount: relevance.injectedCount,
+          topSimilarity: relevance.topSimilarity,
+          avgTop3Similarity: relevance.avgTop3Similarity,
+          itemsAboveThresholdCount: relevance.itemsAboveThresholdCount,
+          injectedItemIds: items.map((item) => item.item_id),
+        },
       },
     });
 
@@ -244,8 +299,15 @@ export async function retrieveDebateCorpusContext(
       enabled: true,
       contextBlock,
       items,
+      candidateItems: relevance.candidateItems,
       logId,
       latencyMs,
+      topSimilarity: relevance.topSimilarity,
+      avgTop3Similarity: relevance.avgTop3Similarity,
+      itemsAboveThresholdCount: relevance.itemsAboveThresholdCount,
+      relevanceGatePassed: relevance.passed,
+      relevanceGateConfig: relevanceConfig,
+      skippedReason,
     };
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
@@ -254,14 +316,11 @@ export async function retrieveDebateCorpusContext(
         error instanceof Error ? error.message : error
       );
     }
-    return {
+    return emptyRetrievalResult({
       enabled: true,
-      contextBlock: "",
-      items: [],
-      logId: null,
       latencyMs: Date.now() - startedAt,
       skippedReason:
         error instanceof Error ? `retrieval_failed:${error.message}` : "retrieval_failed",
-    };
+    });
   }
 }

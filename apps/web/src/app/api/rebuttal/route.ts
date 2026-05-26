@@ -25,6 +25,7 @@ import {
 } from "@/lib/ai/deepseek";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import {
+  createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
   retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
@@ -677,14 +678,7 @@ export async function POST(req: NextRequest) {
       sourceRoute: "/api/rebuttal",
       supabase: adminClient ?? undefined,
     });
-    corpusRagMetadata = {
-      corpusRagEnabled: corpusRetrieval.enabled,
-      corpusRagSkippedReason: corpusRetrieval.skippedReason,
-      corpusRetrievalLogId: corpusRetrieval.logId,
-      corpusRetrievalLatencyMs: corpusRetrieval.latencyMs,
-      retrievedCorpusItemIds: corpusRetrieval.items.map((item) => item.item_id),
-      retrievedCorpusCount: corpusRetrieval.items.length,
-    };
+    corpusRagMetadata = createDebateCorpusRetrievalMetadata(corpusRetrieval);
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -921,6 +915,10 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         rebuttal_word_target_max: wordTarget.max,
         corpus_rag_enabled: corpusRetrieval.enabled,
         retrieved_corpus_count: corpusRetrieval.items.length,
+        candidate_corpus_count: corpusRetrieval.candidateItems.length,
+        corpus_rag_skipped_reason: corpusRetrieval.skippedReason,
+        corpus_rag_top_similarity: corpusRetrieval.topSimilarity,
+        corpus_rag_relevance_gate_passed: corpusRetrieval.relevanceGatePassed,
         truong_teen_prompt_version: useTruongTeenPrompt
           ? TRUONG_TEEN_PROMPT_VERSION
           : undefined,

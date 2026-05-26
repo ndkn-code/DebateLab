@@ -12,6 +12,7 @@ import {
   Search,
   ShieldCheck,
   X,
+  XCircle,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { AiQualityRating, AiQualityRun, Profile } from "@/types";
@@ -26,6 +27,15 @@ type Row = AiQualityRun & {
   user: Pick<Profile, "id" | "email" | "display_name"> | null;
   contextText: string | null;
 };
+
+type CorpusRagStatus =
+  | "injected"
+  | "low_relevance"
+  | "timed_out"
+  | "failed"
+  | "disabled"
+  | "no_context"
+  | "none";
 
 interface DashboardResponse {
   kpis: {
@@ -72,6 +82,12 @@ function formatLatency(value: number | null) {
   return value > 1000 ? `${(value / 1000).toFixed(1)}s` : `${value}ms`;
 }
 
+function formatSimilarity(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(2)
+    : "—";
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -102,7 +118,79 @@ function getCorpusMetadata(row: Row) {
     typeof metadata.corpusRetrievalLogId === "string"
       ? metadata.corpusRetrievalLogId
       : null;
-  return { retrievedCorpusItemIds, corpusRetrievalLogId };
+  const candidateCorpusItemIds = Array.isArray(metadata.candidateCorpusItemIds)
+    ? metadata.candidateCorpusItemIds.filter((id): id is string => typeof id === "string")
+    : [];
+  const skippedReason =
+    typeof metadata.corpusRagSkippedReason === "string"
+      ? metadata.corpusRagSkippedReason
+      : null;
+  const enabled =
+    typeof metadata.corpusRagEnabled === "boolean" ? metadata.corpusRagEnabled : null;
+  const topSimilarity =
+    typeof metadata.corpusRagTopSimilarity === "number"
+      ? metadata.corpusRagTopSimilarity
+      : null;
+  const avgTop3Similarity =
+    typeof metadata.corpusRagAvgTop3Similarity === "number"
+      ? metadata.corpusRagAvgTop3Similarity
+      : null;
+  const retrievedCorpusCount =
+    typeof metadata.retrievedCorpusCount === "number"
+      ? metadata.retrievedCorpusCount
+      : retrievedCorpusItemIds.length;
+  const candidateCorpusCount =
+    typeof metadata.candidateCorpusCount === "number"
+      ? metadata.candidateCorpusCount
+      : Math.max(candidateCorpusItemIds.length, retrievedCorpusCount);
+  const itemsAboveThresholdCount =
+    typeof metadata.corpusRagItemsAboveThresholdCount === "number"
+      ? metadata.corpusRagItemsAboveThresholdCount
+      : null;
+  const relevanceGatePassed =
+    typeof metadata.corpusRagRelevanceGatePassed === "boolean"
+      ? metadata.corpusRagRelevanceGatePassed
+      : null;
+  const latencyMs =
+    typeof metadata.corpusRetrievalLatencyMs === "number"
+      ? metadata.corpusRetrievalLatencyMs
+      : null;
+  const thresholds =
+    metadata.corpusRagRelevanceThresholds &&
+    typeof metadata.corpusRagRelevanceThresholds === "object" &&
+    !Array.isArray(metadata.corpusRagRelevanceThresholds)
+      ? (metadata.corpusRagRelevanceThresholds as Record<string, unknown>)
+      : null;
+  const status: CorpusRagStatus =
+    enabled === false || skippedReason === "flag_disabled"
+      ? "disabled"
+      : skippedReason === "low_relevance"
+        ? "low_relevance"
+        : skippedReason?.startsWith("retrieval_failed")
+          ? skippedReason.toLowerCase().includes("abort")
+            ? "timed_out"
+            : "failed"
+          : retrievedCorpusCount > 0
+            ? "injected"
+            : candidateCorpusCount > 0
+              ? "no_context"
+              : "none";
+  return {
+    retrievedCorpusItemIds,
+    candidateCorpusItemIds,
+    corpusRetrievalLogId,
+    skippedReason,
+    enabled,
+    topSimilarity,
+    avgTop3Similarity,
+    candidateCorpusCount,
+    retrievedCorpusCount,
+    itemsAboveThresholdCount,
+    relevanceGatePassed,
+    latencyMs,
+    thresholds,
+    status,
+  };
 }
 
 function createQuery(params: Record<string, string>) {
@@ -488,9 +576,43 @@ function DetailDrawer({
         </div>
 
         <div className="mt-6 space-y-4">
-          {corpusMetadata.retrievedCorpusItemIds.length > 0 && (
+          {(corpusMetadata.enabled != null ||
+            corpusMetadata.corpusRetrievalLogId ||
+            corpusMetadata.candidateCorpusCount > 0 ||
+            corpusMetadata.retrievedCorpusCount > 0) && (
             <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-              <h3 className="font-semibold text-on-surface">Retrieved Corpus Context</h3>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-semibold text-on-surface">Corpus RAG quality</h3>
+                <CorpusRagStatusPill status={corpusMetadata.status} />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                <MiniMetric
+                  label="Top sim"
+                  value={formatSimilarity(corpusMetadata.topSimilarity)}
+                />
+                <MiniMetric
+                  label="Avg top-3"
+                  value={formatSimilarity(corpusMetadata.avgTop3Similarity)}
+                />
+                <MiniMetric
+                  label="Injected"
+                  value={`${corpusMetadata.retrievedCorpusCount}/${corpusMetadata.candidateCorpusCount}`}
+                />
+                <MiniMetric label="RAG latency" value={formatLatency(corpusMetadata.latencyMs)} />
+              </div>
+              {corpusMetadata.skippedReason && (
+                <p className="mt-3 rounded-xl border border-warning/20 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">
+                  Decision: {corpusMetadata.skippedReason.replace("_", " ")}
+                </p>
+              )}
+              {corpusMetadata.thresholds && (
+                <p className="mt-3 text-xs text-on-surface-variant">
+                  Thresholds: top{" "}
+                  {formatSimilarity(corpusMetadata.thresholds.minTopSimilarity)} · item{" "}
+                  {formatSimilarity(corpusMetadata.thresholds.minItemSimilarity)} · count{" "}
+                  {String(corpusMetadata.thresholds.minItemsAboveThreshold ?? "—")}
+                </p>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 {corpusMetadata.retrievedCorpusItemIds.map((itemId) => (
                   <a
@@ -501,6 +623,16 @@ function DetailDrawer({
                     {itemId.slice(0, 8)}
                   </a>
                 ))}
+                {corpusMetadata.retrievedCorpusItemIds.length === 0 &&
+                  corpusMetadata.candidateCorpusItemIds.slice(0, 6).map((itemId) => (
+                    <a
+                      key={itemId}
+                      href={`/dashboard/admin/corpus?tab=items&q=${encodeURIComponent(itemId)}`}
+                      className="rounded-lg bg-warning/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-warning"
+                    >
+                      candidate {itemId.slice(0, 8)}
+                    </a>
+                  ))}
                 {corpusMetadata.corpusRetrievalLogId && (
                   <a
                     href={`/dashboard/admin/corpus?tab=logs&q=${encodeURIComponent(
@@ -553,6 +685,62 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
       </div>
       <div className="mt-2 text-lg font-bold text-on-surface">{value}</div>
     </div>
+  );
+}
+
+function CorpusRagStatusPill({
+  status,
+}: {
+  status: CorpusRagStatus;
+}) {
+  const config = {
+    injected: {
+      label: "Injected",
+      icon: CheckCircle2,
+      className: "border-secondary/20 bg-secondary/10 text-secondary",
+    },
+    low_relevance: {
+      label: "Skipped: low relevance",
+      icon: AlertTriangle,
+      className: "border-warning/30 bg-warning/15 text-warning",
+    },
+    timed_out: {
+      label: "Timed out",
+      icon: Clock3,
+      className: "border-error/20 bg-error-container text-error",
+    },
+    failed: {
+      label: "Failed",
+      icon: XCircle,
+      className: "border-error/20 bg-error-container text-error",
+    },
+    disabled: {
+      label: "Disabled",
+      icon: XCircle,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+    no_context: {
+      label: "No context",
+      icon: BrainCircuit,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+    none: {
+      label: "Not attempted",
+      icon: BrainCircuit,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+  }[status];
+  const Icon = config.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        config.className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {config.label}
+    </span>
   );
 }
 
