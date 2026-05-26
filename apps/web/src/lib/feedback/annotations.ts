@@ -116,6 +116,38 @@ const HIGH_SIGNAL_TERMS = [
   "thiệt hại",
 ];
 
+const STRUCTURAL_HEADING_PATTERNS = [
+  /^(phản biện|luận điểm|ý|vấn đề|clash)\s*(một|hai|ba|bốn|năm|1|2|3|4|5)?\s*[:：,-]/i,
+  /^thứ\s*(nhất|hai|ba|tư|năm|1|2|3|4|5)\s*[,，:：-]/i,
+  /^(đầu tiên|tiếp theo|cuối cùng|sau cùng)\s*[,，:：-]/i,
+];
+
+const HEADING_CONTENT_SIGNALS = [
+  "chứng minh",
+  "dẫn đến",
+  "tạo ra",
+  "gây ra",
+  "làm cho",
+  "bởi vì",
+  "vì",
+  "khi",
+  "nếu",
+  "nghiên cứu",
+  "số liệu",
+  "gia đình",
+  "nhà trường",
+  "truyền thông",
+  "người trẻ",
+  "đối phương",
+  "đội bạn",
+  "chúng tôi",
+];
+
+const ASR_ARTIFACT_ANCHOR_PATTERNS = [
+  /\bvsus\b/i,
+  /\b(v\s+){3,}/i,
+];
+
 export function getTranscriptAnnotationAccent(tag: string) {
   return TRANSCRIPT_ANNOTATION_ACCENTS[tag] ?? TRANSCRIPT_ANNOTATION_ACCENTS.logic;
 }
@@ -230,6 +262,38 @@ export function isLowSignalFeedbackQuote(quote: string) {
   return normalized.startsWith("hello vậy là rồi") && normalized.includes("không ghi âm được");
 }
 
+function isWeakAnchorQuote(quote: string) {
+  return (
+    isLowSignalFeedbackQuote(quote) ||
+    isStructuralHeadingOnlyQuote(quote) ||
+    hasSevereAsrAnchorArtifact(quote)
+  );
+}
+
+function isStructuralHeadingOnlyQuote(quote: string) {
+  const trimmed = quote.trim();
+  const normalized = normalizeForSemanticMatch(trimmed);
+  const words = normalized.split(" ").filter(Boolean);
+  if (words.length > 18) return false;
+  if (!STRUCTURAL_HEADING_PATTERNS.some((pattern) => pattern.test(trimmed))) {
+    return false;
+  }
+
+  const contentAfterMarker = trimmed.split(/[:：]/).slice(1).join(" ").trim();
+  if (!contentAfterMarker) return true;
+
+  const contentWords = normalizeForSemanticMatch(contentAfterMarker)
+    .split(" ")
+    .filter(Boolean);
+  if (contentWords.length <= 8) return true;
+
+  return !containsAnySignal(contentAfterMarker, HEADING_CONTENT_SIGNALS);
+}
+
+function hasSevereAsrAnchorArtifact(quote: string) {
+  return ASR_ARTIFACT_ANCHOR_PATTERNS.some((pattern) => pattern.test(quote));
+}
+
 function isMotionOnlyQuote(quote: string, topic?: string | null) {
   if (!topic) return false;
   const normalizedQuote = normalizeForSemanticMatch(quote);
@@ -267,6 +331,38 @@ function extractKeywords(value: string) {
 function containsAnySignal(text: string, signals: string[]) {
   const normalized = normalizeForSemanticMatch(text);
   return signals.some((signal) => normalized.includes(normalizeForSemanticMatch(signal)));
+}
+
+function quoteTokensForSimilarity(value: string) {
+  return normalizeForSemanticMatch(value)
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !STOPWORDS.has(word));
+}
+
+function areQuotesSubstantiallySimilar(left: string, right: string) {
+  const normalizedLeft = normalizeForSemanticMatch(left);
+  const normalizedRight = normalizeForSemanticMatch(right);
+  if (!normalizedLeft || !normalizedRight) return false;
+  if (normalizedLeft === normalizedRight) return true;
+
+  const shorter =
+    normalizedLeft.length < normalizedRight.length ? normalizedLeft : normalizedRight;
+  const longer =
+    normalizedLeft.length < normalizedRight.length ? normalizedRight : normalizedLeft;
+  if (shorter.length >= 36 && longer.includes(shorter)) return true;
+
+  const leftTokens = quoteTokensForSimilarity(left);
+  const rightTokens = quoteTokensForSimilarity(right);
+  if (leftTokens.length < 4 || rightTokens.length < 4) return false;
+
+  const leftSet = new Set(leftTokens);
+  const rightSet = new Set(rightTokens);
+  const overlap = leftTokens.filter((token) => rightSet.has(token)).length;
+  const containment = overlap / Math.min(leftSet.size, rightSet.size);
+  const union = new Set([...leftSet, ...rightSet]).size;
+  const jaccard = union > 0 ? overlap / union : 0;
+
+  return containment >= 0.86 || jaccard >= 0.72;
 }
 
 function createAnnotationSources(input: {
@@ -341,6 +437,56 @@ function findQuoteInSources(
   });
 }
 
+function getAnnotationValidationReason(
+  annotation: TranscriptAnnotation,
+  sources: ReturnType<typeof createAnnotationSources>,
+  topic?: string | null
+) {
+  if (isMotionOnlyQuote(annotation.quote, topic)) return "motion_only";
+  if (isWeakAnchorQuote(annotation.quote)) return "weak_anchor";
+
+  const matchedSource = findQuoteInSources(sources, annotation);
+  if (!matchedSource) return "unmatched_quote";
+  if (!isSemanticallyConnected(annotation, matchedSource.text)) {
+    return "semantic_disconnect";
+  }
+  return null;
+}
+
+function getDuplicateQuoteReason(
+  annotation: TranscriptAnnotation,
+  accepted: TranscriptAnnotation[]
+) {
+  return accepted.some((existing) =>
+    areQuotesSubstantiallySimilar(existing.quote, annotation.quote)
+  )
+    ? "duplicate_quote"
+    : null;
+}
+
+function tryAcceptAnnotation(
+  annotation: TranscriptAnnotation,
+  accepted: TranscriptAnnotation[],
+  rejectedReasons: string[],
+  sources: ReturnType<typeof createAnnotationSources>,
+  topic?: string | null
+) {
+  const validationReason = getAnnotationValidationReason(annotation, sources, topic);
+  if (validationReason) {
+    rejectedReasons.push(validationReason);
+    return false;
+  }
+
+  const duplicateReason = getDuplicateQuoteReason(annotation, accepted);
+  if (duplicateReason) {
+    rejectedReasons.push(duplicateReason);
+    return false;
+  }
+
+  accepted.push(annotation);
+  return true;
+}
+
 function isSemanticallyConnected(
   annotation: TranscriptAnnotation,
   sourceText: string
@@ -391,7 +537,7 @@ function reanchorAnnotation(
   const source = findAnnotationSource(sources, annotation);
   if (!source) return null;
   const candidates = splitSentencesWithPosition(source.text)
-    .filter((sentence) => !isLowSignalFeedbackQuote(sentence.text))
+    .filter((sentence) => !isWeakAnchorQuote(sentence.text))
     .filter((sentence) => !isMotionOnlyQuote(sentence.text, topic))
     .filter((sentence) => sentence.text.length <= 260)
     .map((sentence) => ({
@@ -405,7 +551,7 @@ function reanchorAnnotation(
   return {
     ...annotation,
     quote: best.text,
-    roundNumber: annotation.roundNumber ?? source.roundNumber,
+    roundNumber: source.roundNumber,
     speaker: annotation.speaker ?? source.speaker,
   };
 }
@@ -439,7 +585,7 @@ function createFallbackAnnotations(input: {
 
   return candidates
     .filter((candidate) => candidate.score >= 2)
-    .filter((candidate) => !isLowSignalFeedbackQuote(candidate.text))
+    .filter((candidate) => !isWeakAnchorQuote(candidate.text))
     .filter((candidate) => !isMotionOnlyQuote(candidate.text, input.topic))
     .filter((candidate) => !input.existingQuotes.has(normalizeQuoteForQuality(candidate.text)))
     .sort((a, b) => b.score - a.score)
@@ -467,7 +613,7 @@ export function locateTranscriptAnnotations(
 
   return annotations
     .filter((annotation) => annotation?.quote?.trim())
-    .filter((annotation) => !isLowSignalFeedbackQuote(annotation.quote))
+    .filter((annotation) => !isWeakAnchorQuote(annotation.quote))
     .map((annotation, index) => {
       const quote = annotation.quote.trim();
       const range =
@@ -556,26 +702,36 @@ export function normalizeTranscriptAnnotationsForFeedback(
   let repairUsed = false;
 
   for (const annotation of normalized) {
-    const matchedSource = findQuoteInSources(sources, annotation);
-    const reason =
-      isMotionOnlyQuote(annotation.quote, context.topic)
-        ? "motion_only"
-        : !matchedSource
-          ? "unmatched_quote"
-          : !isSemanticallyConnected(annotation, matchedSource.text)
-            ? "semantic_disconnect"
-            : null;
+    const reason = getAnnotationValidationReason(
+      annotation,
+      sources,
+      context.topic
+    );
 
     if (!reason) {
-      accepted.push(annotation);
+      tryAcceptAnnotation(
+        annotation,
+        accepted,
+        rejectedReasons,
+        sources,
+        context.topic
+      );
       continue;
     }
 
     rejectedReasons.push(reason);
     const repaired = reanchorAnnotation(annotation, sources, context.topic);
-    if (repaired) {
+    if (
+      repaired &&
+      tryAcceptAnnotation(
+        repaired,
+        accepted,
+        rejectedReasons,
+        sources,
+        context.topic
+      )
+    ) {
       repairUsed = true;
-      accepted.push(repaired);
     }
   }
 
@@ -583,6 +739,7 @@ export function normalizeTranscriptAnnotationsForFeedback(
   const seenQuotes = new Set(accepted.map((annotation) => normalizeQuoteForQuality(annotation.quote)));
   const fallbackNeeded = Math.max(0, target - accepted.length);
   const maxDeterministicFallbacks = target >= 8 ? 2 : 1;
+  const maxFallbackToAccept = Math.min(fallbackNeeded, maxDeterministicFallbacks);
   const fallbackAnnotations =
     fallbackNeeded > 0
       ? createFallbackAnnotations({
@@ -591,17 +748,32 @@ export function normalizeTranscriptAnnotationsForFeedback(
           topic: context.topic,
           practiceLanguage: context.practiceLanguage,
           existingQuotes: seenQuotes,
-          needed: Math.min(fallbackNeeded, maxDeterministicFallbacks),
+          needed: Math.max(maxFallbackToAccept * 3, maxFallbackToAccept),
         })
       : [];
+  let fallbackAcceptedCount = 0;
+  for (const fallbackAnnotation of fallbackAnnotations) {
+    if (fallbackAcceptedCount >= maxFallbackToAccept) break;
+    if (
+      tryAcceptAnnotation(
+        fallbackAnnotation,
+        accepted,
+        rejectedReasons,
+        sources,
+        context.topic
+      )
+    ) {
+      fallbackAcceptedCount += 1;
+    }
+  }
 
   return {
-    annotations: [...accepted, ...fallbackAnnotations],
+    annotations: accepted,
     metadata: {
-      acceptedCount: accepted.length + fallbackAnnotations.length,
+      acceptedCount: accepted.length,
       rejectedCount: rejectedReasons.length,
       repairUsed,
-      fallbackUsed: fallbackAnnotations.length > 0,
+      fallbackUsed: fallbackAcceptedCount > 0,
       rejectedReasons,
     },
   };
