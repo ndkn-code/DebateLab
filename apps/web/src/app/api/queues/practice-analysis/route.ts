@@ -65,11 +65,34 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       message.attemptId
     );
 
-    if (job.status === "completed" && attempt.status === "completed") {
+    if (job.status === "completed" || attempt.status === "completed") {
       return;
     }
 
-    if (job.status === "cancelled") {
+    if (
+      job.status === "cancelled" ||
+      job.status === "failed" ||
+      attempt.status === "failed"
+    ) {
+      return;
+    }
+
+    const deliveryLimit = job.max_attempts || 3;
+    const startedAtMs = job.started_at ? Date.parse(job.started_at) : 0;
+    const staleProcessing =
+      job.status === "processing" &&
+      startedAtMs > 0 &&
+      Date.now() - startedAtMs > 10 * 60 * 1000 &&
+      (job.delivery_count ?? 0) >= deliveryLimit;
+
+    if (metadata.deliveryCount > deliveryLimit || staleProcessing) {
+      await markPracticeAnalysisFailed(supabase, {
+        jobId: job.id,
+        attemptId: attempt.id,
+        errorCode: "ANALYSIS_RETRY_LIMIT_EXCEEDED",
+        errorMessage:
+          "Analysis exceeded retry limits. The transcript is saved; please submit a new analysis if needed.",
+      });
       return;
     }
 
@@ -281,7 +304,6 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
             : undefined,
         },
       }).catch(() => null);
-      const deliveryLimit = job.max_attempts || 3;
       const retryAfterSeconds =
         metadata.deliveryCount >= deliveryLimit
           ? undefined

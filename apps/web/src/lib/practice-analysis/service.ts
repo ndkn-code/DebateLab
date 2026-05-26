@@ -149,6 +149,62 @@ export async function createPracticeAnalysisRecords(
   };
 }
 
+export async function getRecentActivePracticeAnalysis(
+  supabase: SupabaseClient,
+  userId: string,
+  input: PracticeAnalysisInput
+): Promise<{
+  attempt: PracticeAttemptRecord;
+  job: AnalysisJobRecord;
+  idempotencyKey: string;
+} | null> {
+  const inputHash = createPracticeInputHash(input);
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data: jobs, error } = await supabase
+    .from("analysis_jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("input_hash", inputHash)
+    .in("status", ["queued", "processing"])
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  requireNoSupabaseError(error, "load active practice analysis jobs");
+
+  const activeJob = (jobs as AnalysisJobRecord[] | null | undefined)?.find(
+    (job) => {
+      const deliveryCount = job.delivery_count ?? 0;
+      const maxAttempts = job.max_attempts || 3;
+      const startedAtMs = job.started_at ? Date.parse(job.started_at) : 0;
+      const staleExhausted =
+        job.status === "processing" &&
+        startedAtMs > 0 &&
+        Date.now() - startedAtMs > 10 * 60 * 1000 &&
+        deliveryCount >= maxAttempts;
+      return deliveryCount < maxAttempts && !staleExhausted;
+    }
+  );
+
+  if (!activeJob) return null;
+
+  const { data: attempt, error: attemptError } = await supabase
+    .from("practice_attempts")
+    .select("*")
+    .eq("id", activeJob.attempt_id)
+    .eq("user_id", userId)
+    .in("status", ["submitted", "analyzing"])
+    .single();
+
+  if (attemptError || !attempt) return null;
+
+  return {
+    attempt: attempt as PracticeAttemptRecord,
+    job: activeJob,
+    idempotencyKey: activeJob.idempotency_key,
+  };
+}
+
 export async function attachQueueMessageId(
   supabase: SupabaseClient,
   jobId: string,

@@ -9,6 +9,7 @@ import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
 import {
   attachQueueMessageId,
   createPracticeAnalysisRecords,
+  getRecentActivePracticeAnalysis,
   markPracticeAnalysisFailed,
 } from "@/lib/practice-analysis/service";
 import {
@@ -60,6 +61,57 @@ export async function POST(req: NextRequest) {
     }
 
     const writeClient = tryCreateAdminClient() ?? supabase;
+    const existing = await getRecentActivePracticeAnalysis(
+      writeClient,
+      authUser.id,
+      input
+    );
+    if (existing) {
+      let queueMessageId = existing.job.queue_message_id;
+      if (existing.job.status === "queued" && !queueMessageId) {
+        try {
+          const queued = await enqueuePracticeAnalysis({
+            jobId: existing.job.id,
+            attemptId: existing.attempt.id,
+            userId: authUser.id,
+          });
+          queueMessageId = queued.messageId;
+          await attachQueueMessageId(writeClient, existing.job.id, queueMessageId);
+        } catch (error) {
+          console.warn(
+            "Failed to reattach queue message for existing analysis",
+            error instanceof Error ? error.message : error
+          );
+        }
+      }
+
+      await recordAnalyticsEvent(writeClient, authUser.id, {
+        eventName: "ai_feedback_duplicate_reused",
+        featureArea: "ai_feedback",
+        metadata: {
+          topic: input.topic,
+          side: input.side,
+          speech_type: input.speechType,
+          practice_track: input.practiceTrack,
+          practice_language: input.practiceLanguage,
+          practice_attempt_id: existing.attempt.id,
+          analysis_job_id: existing.job.id,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          attemptId: existing.attempt.id,
+          jobId: existing.job.id,
+          status: existing.job.status,
+          idempotencyKey: existing.idempotencyKey,
+          queueMessageId,
+          reusedExisting: true,
+        },
+        { status: 202 }
+      );
+    }
+
     const { attempt, job, idempotencyKey } = await createPracticeAnalysisRecords(
       writeClient,
       authUser.id,

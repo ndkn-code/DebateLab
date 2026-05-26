@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type {
+  DebateArgumentBreakdown,
+  DebateClashLink,
   DebateScore,
   TranscriptAnnotation,
 } from "@/types/feedback";
@@ -27,6 +29,8 @@ import {
 } from "./truong-teen/debate-dna";
 import { normalizeDebateDuelClashLinks } from "./debate-duels/clash-links";
 import {
+  getRoundSpeaker,
+  getRoundText,
   normalizeDebateClashLinks,
   normalizeDebateVerdict,
 } from "./feedback/debate-review";
@@ -40,15 +44,62 @@ import { needsVietnameseProseRepair } from "./feedback/language-repair";
 import { getPostHogServer } from "./posthog-server";
 import { buildSttJudgeGuardrailBlock } from "./stt/prompt";
 
-let genAI: GoogleGenerativeAI | null = null;
+const geminiClients = new Map<string, GoogleGenerativeAI>();
+
+function getGeminiApiKeys() {
+  const pooledKeys =
+    process.env.GEMINI_API_KEYS?.split(",")
+      .map((key) => key.trim())
+      .filter(Boolean) ?? [];
+  const singleKey = process.env.GEMINI_API_KEY?.trim();
+  const keys = pooledKeys.length > 0 ? pooledKeys : singleKey ? [singleKey] : [];
+  return Array.from(new Set(keys));
+}
+
+function getGeminiClientForApiKey(apiKey: string) {
+  const key = apiKey.trim();
+  const configured = getGeminiApiKeys().length > 0;
+  if (!key || !configured) {
+    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
+  }
+  const existing = geminiClients.get(key);
+  if (existing) return existing;
+  const client = new GoogleGenerativeAI(key);
+  geminiClients.set(key, client);
+  return client;
+}
+
+function hashStringToNumber(value: string) {
+  const digest = createHash("sha256").update(value).digest("hex").slice(0, 8);
+  return Number.parseInt(digest, 16) || 0;
+}
+
+function getGeminiKeySlot(seed: string, keyCount: number) {
+  if (keyCount <= 1) return 0;
+  return hashStringToNumber(seed) % keyCount;
+}
+
+function isGeminiQuotaOrRateLimitError(error: unknown) {
+  const source = error as { status?: number; code?: number; message?: string };
+  const status = source?.status ?? source?.code;
+  const message =
+    error instanceof Error ? error.message : String(source?.message ?? error);
+  return (
+    status === 429 ||
+    /429|quota|rate.?limit|resource_exhausted|too many requests/i.test(message)
+  );
+}
+
+function getGeminiKeyCountForTelemetry() {
+  return getGeminiApiKeys().length || 0;
+}
 
 function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKeys()[0];
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
   }
-  genAI ??= new GoogleGenerativeAI(apiKey);
-  return genAI;
+  return getGeminiClientForApiKey(apiKey);
 }
 
 async function loadDeepSeekChatCompletion() {
@@ -289,6 +340,8 @@ type GeminiStageResult = {
   text: string;
   latencyMs: number;
   usage?: GeminiUsageMetadata;
+  keySlot?: number;
+  keyFallbackCount?: number;
 };
 
 type StagedDebateSpeechMap = {
@@ -392,23 +445,47 @@ async function generateGeminiStage(params: {
   prompt: string;
   maxOutputTokens: number;
   temperature?: number;
+  keySeed?: string;
 }): Promise<GeminiStageResult> {
-  const model = getGeminiClient().getGenerativeModel({
-    model: params.modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: params.temperature ?? 0.25,
-      maxOutputTokens: params.maxOutputTokens,
-    },
-  });
-  const startTime = Date.now();
-  const result = await model.generateContent(params.prompt);
-  return {
-    stage: params.stage,
-    text: result.response.text(),
-    latencyMs: Date.now() - startTime,
-    usage: result.response.usageMetadata,
-  };
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) {
+    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
+  }
+
+  const seed = params.keySeed ?? `${params.modelName}:${params.stage}`;
+  const startSlot = getGeminiKeySlot(seed, keys.length);
+  let lastError: unknown = null;
+
+  for (let offset = 0; offset < keys.length; offset += 1) {
+    const slot = (startSlot + offset) % keys.length;
+    const model = getGeminiClientForApiKey(keys[slot]).getGenerativeModel({
+      model: params.modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: params.temperature ?? 0.25,
+        maxOutputTokens: params.maxOutputTokens,
+      },
+    });
+    const startTime = Date.now();
+    try {
+      const result = await model.generateContent(params.prompt);
+      return {
+        stage: params.stage,
+        text: result.response.text(),
+        latencyMs: Date.now() - startTime,
+        usage: result.response.usageMetadata,
+        keySlot: slot,
+        keyFallbackCount: offset,
+      };
+    } catch (error) {
+      lastError = error;
+      if (!isGeminiQuotaOrRateLimitError(error) || offset === keys.length - 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 function summarizeGeminiStages(stages: GeminiStageResult[]) {
@@ -436,6 +513,15 @@ function summarizeGeminiStages(stages: GeminiStageResult[]) {
           inputTokens: stage.usage?.promptTokenCount ?? null,
           outputTokens: stage.usage?.candidatesTokenCount ?? null,
           totalTokens: stage.usage?.totalTokenCount ?? null,
+        },
+      ])
+    ),
+    stageKeySlots: Object.fromEntries(
+      stages.map((stage) => [
+        stage.stage,
+        {
+          keySlot: stage.keySlot ?? null,
+          keyFallbackCount: stage.keyFallbackCount ?? 0,
         },
       ])
     ),
@@ -602,6 +688,348 @@ Return JSON only:
 }`;
 }
 
+type DepthCompletionMetadata = {
+  used: boolean;
+  argumentBreakdownsBefore: number;
+  argumentBreakdownsAfter: number;
+  clashLinksBefore: number;
+  clashLinksAfter: number;
+  scoreCapApplied: boolean;
+  scoreBefore: number;
+  scoreAfter: number;
+  scoreCapReasons: string[];
+};
+
+function splitRoundSentences(text: string) {
+  return Array.from(text.matchAll(/[^.!?。！？\n]+[.!?。！？]?/g))
+    .map((match) => match[0].replace(/\s+/g, " ").trim())
+    .filter((sentence) => sentence.split(/\s+/).length >= 5)
+    .filter((sentence) => sentence.length <= 280);
+}
+
+function pickQuoteFromRound(
+  round: DebateRound | undefined,
+  hints: string[] = []
+) {
+  if (!round) return "";
+  const text = getRoundText(round);
+  const normalizedHints = hints
+    .join(" ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length >= 4);
+  const scored = splitRoundSentences(text)
+    .map((sentence) => {
+      const normalized = sentence.toLowerCase();
+      const hintScore = normalizedHints.reduce(
+        (score, hint) => score + (normalized.includes(hint) ? 2 : 0),
+        0
+      );
+      const signalScore =
+        /(cơ chế|tác động|bằng chứng|phản biện|clash|so sánh|weigh|vì sao|dẫn đến|\d|%)/i.test(
+          sentence
+        )
+          ? 2
+          : 0;
+      return {
+        sentence,
+        score: hintScore + signalScore + (sentence.length >= 45 ? 1 : 0),
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+  return scored[0]?.sentence ?? "";
+}
+
+function getRoundBySpeaker(
+  rounds: DebateRound[] | undefined,
+  speaker: "user" | "ai",
+  startAfterRound = 0
+) {
+  return rounds?.find(
+    (round) =>
+      getRoundSpeaker(round) === speaker && round.roundNumber > startAfterRound
+  );
+}
+
+function createFallbackArgumentBreakdown(
+  clash: NonNullable<StagedDebateSpeechMap["macroClashes"]>[number],
+  params: AnalyzeDebateParams,
+  index: number
+): DebateArgumentBreakdown {
+  const vi = params.practiceLanguage === "vi";
+  return {
+    name: clash.name?.trim() || (vi ? `Trục va chạm ${index + 1}` : `Clash ${index + 1}`),
+    summary:
+      clash.judgeRead?.trim() ||
+      (vi
+        ? `Hai bên va chạm quanh ${clash.studentPosition || "một điểm tranh chấp chính"}.`
+        : `Both sides clashed over ${clash.studentPosition || "a core issue"}.`),
+    whatWorked:
+      clash.studentPosition?.trim() ||
+      (vi
+        ? "Bạn có đặt được một hướng phản hồi có liên quan đến trục chính."
+        : "You did engage a relevant part of the main clash."),
+    missingLayer:
+      clash.studentMissingResponse?.trim() ||
+      (vi
+        ? "Phần này vẫn cần thêm cơ chế và cân tác động trực tiếp với phản biện của AI."
+        : "This still needs clearer mechanism and direct weighing against the AI response."),
+    betterVersion: vi
+      ? "Chốt lại trục này bằng ba bước: đối tượng bị tác động, cơ chế gây ra tác động, rồi vì sao tác động đó lớn hơn hoặc khó đảo ngược hơn thế giới đối phương."
+      : "Close this clash in three steps: affected group, mechanism of harm/benefit, then why that impact is larger or harder to reverse than the opponent's world.",
+  };
+}
+
+function createFallbackClashLink(
+  clash: NonNullable<StagedDebateSpeechMap["macroClashes"]>[number],
+  params: AnalyzeDebateParams,
+  index: number
+): DebateClashLink | null {
+  const rounds = params.rounds ?? [];
+  const sourceRound =
+    getRoundBySpeaker(rounds, "ai") ?? getRoundBySpeaker(rounds, "user");
+  if (!sourceRound) return null;
+  const responseRound =
+    getRoundBySpeaker(rounds, "user", sourceRound.roundNumber) ??
+    getRoundBySpeaker(rounds, "user");
+  const hints = [
+    clash.name,
+    clash.studentPosition,
+    clash.aiPosition,
+    clash.studentMissingResponse,
+  ].filter(Boolean) as string[];
+  const sourceQuote = pickQuoteFromRound(sourceRound, hints);
+  if (!sourceQuote) return null;
+  const responseQuote =
+    responseRound && responseRound.roundNumber !== sourceRound.roundNumber
+      ? pickQuoteFromRound(responseRound, hints)
+      : "";
+  const vi = params.practiceLanguage === "vi";
+  const sourceSpeaker = getRoundSpeaker(sourceRound);
+  const responseSpeaker = responseRound ? getRoundSpeaker(responseRound) : null;
+
+  return {
+    id: `deterministic-clash-${index + 1}`,
+    sourceRoundNumber: sourceRound.roundNumber,
+    sourceSpeaker,
+    responseRoundNumber: responseQuote && responseRound ? responseRound.roundNumber : null,
+    responseSpeaker: responseQuote ? responseSpeaker : null,
+    sourceQuote,
+    responseQuote: responseQuote || null,
+    outcome: responseQuote
+      ? clash.studentMissingResponse
+        ? "misanswered"
+        : "answered"
+      : "dropped",
+    judgeRead:
+      clash.judgeRead?.trim() ||
+      (vi
+        ? "Đây là trục va chạm cần được xử lý rõ hơn trong phần chốt trận."
+        : "This clash needed clearer treatment in the final weighing."),
+    suggestion:
+      clash.studentMissingResponse?.trim() ||
+      (vi
+        ? "Hãy trả lời trực tiếp cơ chế của đối phương trước khi mở rộng tác động của phe mình."
+        : "Answer the opponent's mechanism directly before extending your own impact."),
+    tag: "clash",
+  };
+}
+
+function distributeScore(total: number, maxes: number[]) {
+  const maxTotal = maxes.reduce((sum, max) => sum + max, 0);
+  let remaining = Math.max(0, Math.min(total, maxTotal));
+  return maxes.map((max, index) => {
+    if (index === maxes.length - 1) return Math.min(max, remaining);
+    const value = Math.min(max, Math.round((total * max) / maxTotal));
+    remaining -= value;
+    return value;
+  });
+}
+
+function bandForScore(score: number): DebateScore["overallBand"] {
+  if (score >= 90) return "Expert";
+  if (score >= 80) return "Proficient";
+  if (score >= 65) return "Competent";
+  if (score >= 50) return "Developing";
+  return "Novice";
+}
+
+function applyScoreCap(
+  feedback: DebateScore,
+  cap: number,
+  reasons: string[],
+  params: AnalyzeDebateParams
+) {
+  if (feedback.totalScore <= cap) return false;
+  const [content, structure, language, persuasion] = distributeScore(cap, [
+    40,
+    25,
+    25,
+    10,
+  ]);
+  const [claimClarity, evidenceSupport, logicCoherence, counterArgument] =
+    distributeScore(content, [10, 10, 10, 10]);
+  const [introduction, bodyOrganization, conclusion] = distributeScore(
+    structure,
+    [8, 9, 8]
+  );
+  const [vocabulary, grammar, fluency] = distributeScore(language, [8, 8, 9]);
+  const [audienceAwareness, impactfulness] = distributeScore(persuasion, [5, 5]);
+
+  feedback.content = {
+    score: content,
+    claimClarity,
+    evidenceSupport,
+    logicCoherence,
+    counterArgument,
+  };
+  feedback.structure = { score: structure, introduction, bodyOrganization, conclusion };
+  feedback.language = { score: language, vocabulary, grammar, fluency };
+  feedback.persuasion = { score: persuasion, audienceAwareness, impactfulness };
+  feedback.totalScore = content + structure + language + persuasion;
+  feedback.overallBand = bandForScore(feedback.totalScore);
+
+  const vi = params.practiceLanguage === "vi";
+  const readableReasons = reasons.map((reason) => {
+    if (!vi) return reason;
+    if (reason === "fewer than 3 model-produced clash links") {
+      return "phản hồi ban đầu có dưới 3 liên kết va chạm do mô hình tự tạo";
+    }
+    if (reason === "fewer than 3 model-produced argument breakdowns") {
+      return "phản hồi ban đầu có dưới 3 phần bóc tách luận điểm do mô hình tự tạo";
+    }
+    if (reason === "annotation fallback was needed") {
+      return "hệ thống phải tự bổ sung một phần chú thích vì mô hình neo dẫn chứng chưa đủ chắc";
+    }
+    return reason;
+  });
+  const capNote = vi
+    ? `Điểm được giới hạn vì phản hồi chiến lược ban đầu còn thiếu độ phủ: ${readableReasons.join("; ")}.`
+    : `Score capped because the initial strategic feedback lacked coverage: ${readableReasons.join("; ")}.`;
+  feedback.scoreRationale = {
+    overall: `${feedback.scoreRationale?.overall ?? feedback.summary} ${capNote}`.trim(),
+    content: {
+      score: content,
+      maxScore: 40,
+      rationale: feedback.scoreRationale?.content?.rationale ?? feedback.detailedFeedback.contentFeedback,
+      whyNotHigher: feedback.scoreRationale?.content?.whyNotHigher ?? capNote,
+      nextStep: feedback.scoreRationale?.content?.nextStep ?? (vi ? "Đào sâu cơ chế và bằng chứng cho từng trục chính." : "Deepen mechanism and evidence for each main clash."),
+    },
+    structure: {
+      score: structure,
+      maxScore: 25,
+      rationale: feedback.scoreRationale?.structure?.rationale ?? feedback.detailedFeedback.structureFeedback,
+      whyNotHigher: feedback.scoreRationale?.structure?.whyNotHigher ?? capNote,
+      nextStep: feedback.scoreRationale?.structure?.nextStep ?? (vi ? "Gom bài nói thành các trục va chạm rõ ràng hơn." : "Group the speech around clearer clash axes."),
+    },
+    language: {
+      score: language,
+      maxScore: 25,
+      rationale: feedback.scoreRationale?.language?.rationale ?? feedback.detailedFeedback.languageFeedback,
+      whyNotHigher: feedback.scoreRationale?.language?.whyNotHigher ?? capNote,
+      nextStep: feedback.scoreRationale?.language?.nextStep ?? (vi ? "Giữ câu ngắn, rõ chủ thể và động từ." : "Keep sentences shorter with clear subjects and verbs."),
+    },
+    persuasion: {
+      score: persuasion,
+      maxScore: 10,
+      rationale: feedback.scoreRationale?.persuasion?.rationale ?? feedback.detailedFeedback.persuasionFeedback,
+      whyNotHigher: feedback.scoreRationale?.persuasion?.whyNotHigher ?? capNote,
+      nextStep: feedback.scoreRationale?.persuasion?.nextStep ?? (vi ? "Chốt vì sao thế giới của bạn thắng trên xác suất, quy mô và mức độ nghiêm trọng." : "Close why your world wins on probability, scale, and severity."),
+    },
+  };
+
+  return true;
+}
+
+function completeStagedFeedbackDepth(
+  feedback: DebateScore,
+  speechMap: StagedDebateSpeechMap,
+  params: AnalyzeDebateParams
+): { feedback: DebateScore; metadata: DepthCompletionMetadata } {
+  const target = getDebateFeedbackDepthTarget({
+    isFullRound: true,
+    actualDuration: params.actualDuration,
+    roundCount: params.rounds?.length,
+  });
+  const beforeArgs = feedback.argumentBreakdowns?.length ?? 0;
+  const beforeClashes = feedback.clashLinks?.length ?? 0;
+  const beforeScore = feedback.totalScore;
+  const macroClashes = speechMap.macroClashes ?? [];
+  const argumentBreakdowns = [...(feedback.argumentBreakdowns ?? [])];
+
+  for (const clash of macroClashes) {
+    if (argumentBreakdowns.length >= target.minArgumentBreakdowns) break;
+    argumentBreakdowns.push(
+      createFallbackArgumentBreakdown(clash, params, argumentBreakdowns.length)
+    );
+  }
+  if (argumentBreakdowns.length === 0) {
+    argumentBreakdowns.push(
+      createFallbackArgumentBreakdown(
+        {
+          id: "fallback-main-clash",
+          name: params.practiceLanguage === "vi" ? "Trục chính của trận" : "Main clash",
+          studentPosition: feedback.caseSummary ?? "",
+          aiPosition: "",
+          judgeRead: feedback.clashFeedback ?? feedback.summary,
+          studentMissingResponse: feedback.improvements?.[0],
+        },
+        params,
+        0
+      )
+    );
+  }
+
+  const clashLinks = [...(feedback.clashLinks ?? [])];
+  for (const clash of macroClashes) {
+    if (clashLinks.length >= target.minClashLinks) break;
+    const link = createFallbackClashLink(clash, params, clashLinks.length);
+    if (link) clashLinks.push(link);
+  }
+
+  feedback.argumentBreakdowns = argumentBreakdowns.slice(0, target.maxArgumentBreakdowns);
+  feedback.clashLinks = normalizeDebateClashLinks(clashLinks).slice(
+    0,
+    target.maxClashLinks
+  );
+
+  const reasons: string[] = [];
+  let scoreCap = 100;
+  if (beforeClashes < 3) {
+    scoreCap = Math.min(scoreCap, 78);
+    reasons.push("fewer than 3 model-produced clash links");
+  }
+  if (beforeArgs < 3) {
+    scoreCap = Math.min(scoreCap, 80);
+    reasons.push("fewer than 3 model-produced argument breakdowns");
+  }
+  if (feedback.annotationMetadata?.fallbackUsed) {
+    scoreCap = Math.min(scoreCap, 84);
+    reasons.push("annotation fallback was needed");
+  }
+
+  const scoreCapApplied =
+    reasons.length > 0 && applyScoreCap(feedback, scoreCap, reasons, params);
+
+  return {
+    feedback,
+    metadata: {
+      used:
+        beforeArgs !== (feedback.argumentBreakdowns?.length ?? 0) ||
+        beforeClashes !== (feedback.clashLinks?.length ?? 0) ||
+        scoreCapApplied,
+      argumentBreakdownsBefore: beforeArgs,
+      argumentBreakdownsAfter: feedback.argumentBreakdowns?.length ?? 0,
+      clashLinksBefore: beforeClashes,
+      clashLinksAfter: feedback.clashLinks?.length ?? 0,
+      scoreCapApplied,
+      scoreBefore: beforeScore,
+      scoreAfter: feedback.totalScore,
+      scoreCapReasons: reasons,
+    },
+  };
+}
+
 async function analyzeFullRoundDebateWithStagedGemini(
   params: AnalyzeDebateParams,
   userId?: string,
@@ -621,6 +1049,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
     prompt: speechMapPrompt,
     maxOutputTokens: 4096,
     temperature: 0.2,
+    keySeed: `${userId ?? "anonymous"}:${params.topic}:speech_map`,
   });
   stages.push(speechMapStage);
   const speechMap = parseJsonObject<StagedDebateSpeechMap>(
@@ -638,6 +1067,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
     prompt: verdictPrompt,
     maxOutputTokens: 8192,
     temperature: 0.25,
+    keySeed: `${userId ?? "anonymous"}:${params.topic}:verdict_feedback`,
   });
   stages.push(verdictStage);
   let parsed = parseGeminiFeedback(verdictStage.text);
@@ -670,6 +1100,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
       prompt: annotationPrompt,
       maxOutputTokens: 4096,
       temperature: 0.15,
+      keySeed: `${userId ?? "anonymous"}:${params.topic}:annotation_anchor`,
     });
     stages.push(annotationStage);
     annotationPayload = parseJsonObject<StagedAnnotationPayload>(
@@ -684,40 +1115,8 @@ async function analyzeFullRoundDebateWithStagedGemini(
   parsed.transcriptAnnotations = annotationPayload.transcriptAnnotations ?? [];
   parsed = normalizeDebateScore(parsed, params);
 
-  const depthTarget = getDebateFeedbackDepthTarget({
-    isFullRound: true,
-    actualDuration: params.actualDuration,
-    roundCount: params.rounds?.length,
-  });
-
-  if (
-    ((parsed.argumentBreakdowns?.length ?? 0) < depthTarget.minArgumentBreakdowns ||
-      (parsed.clashLinks?.length ?? 0) < depthTarget.minClashLinks) &&
-    process.env.PRACTICE_FULL_ROUND_STAGED_REPAIR_ENABLED !== "false"
-  ) {
-    const repairPrompt = `${verdictPrompt}
-
-## Existing Feedback To Repair
-${JSON.stringify(parsed)}
-
-## Repair Task
-The feedback is missing enough argumentBreakdowns or clashLinks for a full-round debate.
-Return the full feedback JSON again. Preserve the current verdict and scores unless they are inconsistent, keep transcriptAnnotations as [], and expand only the missing strategic detail.`;
-    stagePromptHashes.depth_repair = createHash("sha256")
-      .update(repairPrompt)
-      .digest("hex");
-    const repairStage = await generateGeminiStage({
-      modelName,
-      stage: "depth_repair",
-      prompt: repairPrompt,
-      maxOutputTokens: 8192,
-      temperature: 0.2,
-    });
-    stages.push(repairStage);
-    const repaired = parseGeminiFeedback(repairStage.text);
-    repaired.transcriptAnnotations = parsed.transcriptAnnotations;
-    parsed = normalizeDebateScore(repaired, params);
-  }
+  const depthCompletion = completeStagedFeedbackDepth(parsed, speechMap, params);
+  parsed = depthCompletion.feedback;
 
   const summary = summarizeGeminiStages(stages);
   if (userId) {
@@ -750,8 +1149,11 @@ Return the full feedback JSON again. Preserve the current verdict and scores unl
       judgeStageCount: stages.length,
       judgeStageLatenciesMs: summary.stageLatencies,
       judgeStageUsage: summary.stageUsage,
+      judgeStageKeySlots: summary.stageKeySlots,
+      geminiKeyPoolSize: getGeminiKeyCountForTelemetry(),
       judgeStagePromptHashes: stagePromptHashes,
       annotationStageError,
+      depthCompletion: depthCompletion.metadata,
     },
     usage: {
       inputTokens: summary.inputTokens || undefined,

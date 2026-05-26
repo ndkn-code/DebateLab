@@ -579,6 +579,7 @@ export function normalizeTranscriptAnnotationsForFeedback(
   const target = context.depthTarget?.minAnnotations ?? 0;
   const seenQuotes = new Set(accepted.map((annotation) => normalizeQuoteForQuality(annotation.quote)));
   const fallbackNeeded = Math.max(0, target - accepted.length);
+  const maxDeterministicFallbacks = target >= 10 ? 3 : 2;
   const fallbackAnnotations =
     fallbackNeeded > 0
       ? createFallbackAnnotations({
@@ -587,7 +588,7 @@ export function normalizeTranscriptAnnotationsForFeedback(
           topic: context.topic,
           practiceLanguage: context.practiceLanguage,
           existingQuotes: seenQuotes,
-          needed: fallbackNeeded,
+          needed: Math.min(fallbackNeeded, maxDeterministicFallbacks),
         })
       : [];
 
