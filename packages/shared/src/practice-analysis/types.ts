@@ -99,6 +99,7 @@ export interface CompletedPracticeAnalysis {
   jobId: string;
   feedback: DebateScore;
   modelName: string;
+  modelProvider?: string;
   legacySessionId: string | null;
   aiQualityRunId?: string | null;
   resultMetadata?: Record<string, unknown>;

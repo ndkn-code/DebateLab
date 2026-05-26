@@ -273,6 +273,8 @@ export async function markPracticeAnalysisCompleted(
   const now = new Date().toISOString();
   const feedback = result.feedback as DebateScore;
   const feedbackTrack = feedback.practiceTrack ?? "debate";
+  const modelProvider =
+    result.modelProvider ?? getPracticeFeedbackModelProvider(feedbackTrack);
   const [{ error: attemptError }, { error: jobError }] = await Promise.all([
     supabase
       .from("practice_attempts")
@@ -281,7 +283,7 @@ export async function markPracticeAnalysisCompleted(
         feedback,
         total_score: feedback.totalScore,
         overall_band: feedback.overallBand,
-        model_provider: getPracticeFeedbackModelProvider(feedbackTrack),
+        model_provider: modelProvider,
         model_name: result.modelName,
         legacy_debate_session_id: result.legacySessionId,
         completed_at: now,
@@ -294,7 +296,7 @@ export async function markPracticeAnalysisCompleted(
       .from("analysis_jobs")
       .update({
         status: "completed",
-        model_provider: getPracticeFeedbackModelProvider(feedbackTrack),
+        model_provider: modelProvider,
         model_name: result.modelName,
         finished_at: now,
         updated_at: now,

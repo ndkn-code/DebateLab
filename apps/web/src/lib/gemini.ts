@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { DebateScore } from "@/types/feedback";
+import type {
+  DebateScore,
+  TranscriptAnnotation,
+} from "@/types/feedback";
 import type {
   DebateMemory,
   DebateDuelJudgment,
@@ -275,6 +278,60 @@ type AnalyzeDebateParams = {
 
 type AiTelemetryCallback = (telemetry: AiQualityTelemetry) => void | Promise<void>;
 
+type GeminiUsageMetadata = {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+};
+
+type GeminiStageResult = {
+  stage: string;
+  text: string;
+  latencyMs: number;
+  usage?: GeminiUsageMetadata;
+};
+
+type StagedDebateSpeechMap = {
+  speechMap?: Array<{
+    roundNumber: number;
+    label: string;
+    speaker: "user" | "ai";
+    mainClaims: string[];
+    responses: string[];
+    evidence: string[];
+    strategicNotes: string;
+  }>;
+  macroClashes?: Array<{
+    id: string;
+    name: string;
+    studentPosition: string;
+    aiPosition: string;
+    judgeRead: string;
+    studentMissingResponse?: string;
+  }>;
+  judgingFocus?: string[];
+};
+
+type StagedAnnotationPayload = {
+  transcriptAnnotations?: TranscriptAnnotation[];
+};
+
+function shouldUseStagedFullRoundJudge(params: AnalyzeDebateParams) {
+  return (
+    process.env.PRACTICE_FULL_ROUND_STAGED_JUDGE_ENABLED !== "false" &&
+    params.practiceTrack !== "speaking" &&
+    Boolean(params.isFullRound)
+  );
+}
+
+function getStagedFullRoundJudgeModelName() {
+  return (
+    process.env.GEMINI_FULL_ROUND_JUDGE_MODEL ||
+    process.env.GEMINI_FLASH_LITE_MODEL ||
+    "gemini-3.1-flash-lite"
+  );
+}
+
 async function emitAiTelemetry(
   onTelemetry: AiTelemetryCallback | undefined,
   telemetry: AiQualityTelemetry
@@ -288,6 +345,10 @@ export async function analyzeDebate(
   userId?: string,
   onTelemetry?: AiTelemetryCallback
 ): Promise<DebateScore> {
+  if (shouldUseStagedFullRoundJudge(params)) {
+    return analyzeFullRoundDebateWithStagedGemini(params, userId, onTelemetry);
+  }
+
   const provider = getPracticeFeedbackProvider(params.practiceTrack ?? "debate");
   let fallbackFromDeepSeek = false;
 
@@ -311,6 +372,395 @@ export async function analyzeDebate(
   }
 
   return analyzeDebateWithGemini(params, userId, onTelemetry, fallbackFromDeepSeek);
+}
+
+function parseJsonObject<T>(text: string, sourceLabel: string): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error(`Invalid response: could not find JSON in ${sourceLabel}`);
+    }
+    return JSON.parse(jsonMatch[0]) as T;
+  }
+}
+
+async function generateGeminiStage(params: {
+  modelName: string;
+  stage: string;
+  prompt: string;
+  maxOutputTokens: number;
+  temperature?: number;
+}): Promise<GeminiStageResult> {
+  const model = getGeminiClient().getGenerativeModel({
+    model: params.modelName,
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: params.temperature ?? 0.25,
+      maxOutputTokens: params.maxOutputTokens,
+    },
+  });
+  const startTime = Date.now();
+  const result = await model.generateContent(params.prompt);
+  return {
+    stage: params.stage,
+    text: result.response.text(),
+    latencyMs: Date.now() - startTime,
+    usage: result.response.usageMetadata,
+  };
+}
+
+function summarizeGeminiStages(stages: GeminiStageResult[]) {
+  return {
+    latencyMs: stages.reduce((sum, stage) => sum + stage.latencyMs, 0),
+    inputTokens: stages.reduce(
+      (sum, stage) => sum + (stage.usage?.promptTokenCount ?? 0),
+      0
+    ),
+    outputTokens: stages.reduce(
+      (sum, stage) => sum + (stage.usage?.candidatesTokenCount ?? 0),
+      0
+    ),
+    totalTokens: stages.reduce(
+      (sum, stage) => sum + (stage.usage?.totalTokenCount ?? 0),
+      0
+    ),
+    stageLatencies: Object.fromEntries(
+      stages.map((stage) => [stage.stage, stage.latencyMs])
+    ),
+    stageUsage: Object.fromEntries(
+      stages.map((stage) => [
+        stage.stage,
+        {
+          inputTokens: stage.usage?.promptTokenCount ?? null,
+          outputTokens: stage.usage?.candidatesTokenCount ?? null,
+          totalTokens: stage.usage?.totalTokenCount ?? null,
+        },
+      ])
+    ),
+  };
+}
+
+function buildStagedFullRoundBaseContext(params: AnalyzeDebateParams) {
+  const language =
+    params.practiceLanguage === "vi"
+      ? "Write all user-facing coaching prose in natural Vietnamese with diacritics. Keep JSON keys and enum literals in English."
+      : "Write all user-facing coaching prose in natural English. Keep JSON keys and enum literals in English.";
+  const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
+    practiceLanguage: params.practiceLanguage,
+    practiceTrack: params.practiceTrack ?? "debate",
+  });
+  const truongTeenJudgingContext = useTruongTeenPrompt
+    ? buildTruongTeenJudgingPromptAddendum()
+    : "";
+  return `You are Thinkfy's staged full-round debate judge.
+${language}
+Judge only the student's/user's skill and whether the user beat the AI opponent in this practice round.
+Be strict about mechanism, clash, weighing, and strategic adaptation.
+Do not penalize likely speech-to-text spelling artifacts unless the meaning remains unclear after context.
+${truongTeenJudgingContext}
+
+${buildDeepSeekAnalysisDynamicContext(params)}`;
+}
+
+function buildSpeechMapPrompt(params: AnalyzeDebateParams) {
+  return `${buildStagedFullRoundBaseContext(params)}
+
+## Stage 1 Task: Speech Map And Clash Extraction
+Extract the debate structure before judging. Do not score yet.
+
+Return JSON only:
+{
+  "speechMap": [
+    {
+      "roundNumber": 1,
+      "label": "round label",
+      "speaker": "user" | "ai",
+      "mainClaims": ["claim names with short mechanisms"],
+      "responses": ["direct responses/rebuttals made in this round"],
+      "evidence": ["evidence/examples/statistics mentioned"],
+      "strategicNotes": "what this speech changes in the debate"
+    }
+  ],
+  "macroClashes": [
+    {
+      "id": "clash-1",
+      "name": "short clash name",
+      "studentPosition": "student's side on this clash",
+      "aiPosition": "AI/opponent side on this clash",
+      "judgeRead": "who is ahead and why",
+      "studentMissingResponse": "what the student failed to answer, or empty string"
+    }
+  ],
+  "judgingFocus": ["2-5 issues the final judge must prioritize"]
+}`;
+}
+
+function buildStagedVerdictPrompt(
+  params: AnalyzeDebateParams,
+  speechMap: StagedDebateSpeechMap
+) {
+  return `${buildStagedFullRoundBaseContext(params)}
+
+## Stage 1 Output To Use
+${JSON.stringify(speechMap)}
+
+## Stage 2 Task: Verdict, Scores, And Coaching
+Use the speech map and transcript to produce the full Thinkfy debate feedback JSON.
+
+Important:
+- Decide debateVerdict.winner as "user", "ai", or "tie".
+- Include 3-5 argumentBreakdowns and 3-5 clashLinks.
+- Set transcriptAnnotations to [] in this stage. A separate quote-anchoring stage will fill them.
+- Keep scores strict and internally consistent. totalScore must equal the four category scores.
+- Preserve Vietnamese user-facing prose when practiceLanguage is vi.
+
+Return this JSON shape only:
+{
+  "content": {"claimClarity": 0, "evidenceSupport": 0, "logicCoherence": 0, "counterArgument": 0, "score": 0},
+  "structure": {"introduction": 0, "bodyOrganization": 0, "conclusion": 0, "score": 0},
+  "language": {"vocabulary": 0, "grammar": 0, "fluency": 0, "score": 0},
+  "persuasion": {"audienceAwareness": 0, "impactfulness": 0, "score": 0},
+  "totalScore": 0,
+  "overallBand": "Novice" | "Developing" | "Competent" | "Proficient" | "Expert",
+  "practiceTrack": "debate",
+  "practiceLanguage": "${params.practiceLanguage ?? "en"}",
+  "summary": "2-4 sentence judge summary",
+  "strengths": ["3 specific strengths"],
+  "improvements": ["3 specific improvements"],
+  "sampleArguments": ["2-3 stronger argument examples"],
+  "caseSummary": "student case in one sentence",
+  "stanceFeedback": "burden and stance feedback",
+  "argumentBreakdowns": [
+    {"name": "argument/clash name", "summary": "what happened", "whatWorked": "specific", "missingLayer": "specific", "betterVersion": "stronger version"}
+  ],
+  "missingLayers": ["3 missing layers"],
+  "weighingFeedback": "how the student weighed or failed to weigh",
+  "clashFeedback": "how the student handled direct clash",
+  "strongerRebuilds": ["2-3 stronger rebuilds"],
+  "transcriptAnnotations": [],
+  "debateVerdict": {"winner": "user" | "ai" | "tie", "confidence": 0.0, "summary": "why", "decidingReasons": ["3 reasons"], "nextMove": "next drill"},
+  "clashLinks": [
+    {"id": "clash-1", "sourceRoundNumber": 1, "sourceSpeaker": "user" | "ai", "responseRoundNumber": 2, "responseSpeaker": "user" | "ai", "sourceQuote": "exact quote", "responseQuote": "exact quote or null", "outcome": "answered" | "dropped" | "misanswered" | "turned" | "weighed", "judgeRead": "judge read", "suggestion": "next step", "tag": "clash" | "rebuttal" | "weighing" | "logic" | "evidence"}
+  ],
+  "scoreRationale": {
+    "overall": "strict rationale",
+    "content": {"score": 0, "maxScore": 40, "rationale": "why", "whyNotHigher": "cap reason", "nextStep": "next action"},
+    "structure": {"score": 0, "maxScore": 25, "rationale": "why", "whyNotHigher": "cap reason", "nextStep": "next action"},
+    "language": {"score": 0, "maxScore": 25, "rationale": "why", "whyNotHigher": "cap reason", "nextStep": "next action"},
+    "persuasion": {"score": 0, "maxScore": 10, "rationale": "why", "whyNotHigher": "cap reason", "nextStep": "next action"}
+  },
+  "detailedFeedback": {"contentFeedback": "specific", "structureFeedback": "specific", "languageFeedback": "specific", "persuasionFeedback": "specific"}
+}`;
+}
+
+function buildStagedAnnotationPrompt(
+  params: AnalyzeDebateParams,
+  speechMap: StagedDebateSpeechMap,
+  feedback: DebateScore
+) {
+  const annotationTargets = {
+    debateVerdict: feedback.debateVerdict,
+    argumentBreakdowns: feedback.argumentBreakdowns,
+    clashLinks: feedback.clashLinks,
+    scoreRationale: feedback.scoreRationale,
+    improvements: feedback.improvements,
+  };
+  return `${buildStagedFullRoundBaseContext(params)}
+
+## Stage 1 Speech Map
+${JSON.stringify(speechMap)}
+
+## Stage 2 Feedback To Anchor
+${JSON.stringify(annotationTargets)}
+
+## Stage 3 Task: Transcript Annotation Anchoring
+Find exact transcript quotes that support the most important feedback.
+
+Rules:
+- Return 4-6 annotations.
+- quote must be an exact contiguous quote copied from the transcript or a round.
+- Never use the motion title, greetings, filler, or generic opening as the quote.
+- If feedback talks about a specific flaw, quote the sentence containing that flaw or its immediate context.
+- Prefer user quotes; include AI quotes only when showing a dropped/misanswered clash.
+- If exact matching is hard, choose a shorter exact quote.
+
+Return JSON only:
+{
+  "transcriptAnnotations": [
+    {
+      "quote": "exact short quote",
+      "roundNumber": 1,
+      "speaker": "user" | "ai",
+      "tag": "stance" | "clarity" | "mechanism" | "evidence" | "logic" | "rebuttal" | "clash" | "weighing" | "impact" | "structure" | "delivery",
+      "severity": "strength" | "improvement" | "warning",
+      "feedback": "why this quote matters to a judge",
+      "suggestion": "specific rewrite or next step"
+    }
+  ]
+}`;
+}
+
+async function analyzeFullRoundDebateWithStagedGemini(
+  params: AnalyzeDebateParams,
+  userId?: string,
+  onTelemetry?: AiTelemetryCallback
+): Promise<DebateScore> {
+  const modelName = getStagedFullRoundJudgeModelName();
+  const stages: GeminiStageResult[] = [];
+  const stagePromptHashes: Record<string, string> = {};
+
+  const speechMapPrompt = buildSpeechMapPrompt(params);
+  stagePromptHashes.speech_map = createHash("sha256")
+    .update(speechMapPrompt)
+    .digest("hex");
+  const speechMapStage = await generateGeminiStage({
+    modelName,
+    stage: "speech_map",
+    prompt: speechMapPrompt,
+    maxOutputTokens: 4096,
+    temperature: 0.2,
+  });
+  stages.push(speechMapStage);
+  const speechMap = parseJsonObject<StagedDebateSpeechMap>(
+    speechMapStage.text,
+    "Gemini staged speech map"
+  );
+
+  const verdictPrompt = buildStagedVerdictPrompt(params, speechMap);
+  stagePromptHashes.verdict_feedback = createHash("sha256")
+    .update(verdictPrompt)
+    .digest("hex");
+  const verdictStage = await generateGeminiStage({
+    modelName,
+    stage: "verdict_feedback",
+    prompt: verdictPrompt,
+    maxOutputTokens: 8192,
+    temperature: 0.25,
+  });
+  stages.push(verdictStage);
+  let parsed = parseGeminiFeedback(verdictStage.text);
+
+  if (
+    typeof parsed.totalScore !== "number" ||
+    !parsed.overallBand ||
+    !parsed.content ||
+    !parsed.structure ||
+    !parsed.language ||
+    !parsed.persuasion
+  ) {
+    throw new Error("Invalid response structure from staged Gemini verdict");
+  }
+
+  let annotationPayload: StagedAnnotationPayload = { transcriptAnnotations: [] };
+  let annotationStageError: string | null = null;
+  try {
+    const annotationPrompt = buildStagedAnnotationPrompt(
+      params,
+      speechMap,
+      parsed
+    );
+    stagePromptHashes.annotation_anchor = createHash("sha256")
+      .update(annotationPrompt)
+      .digest("hex");
+    const annotationStage = await generateGeminiStage({
+      modelName,
+      stage: "annotation_anchor",
+      prompt: annotationPrompt,
+      maxOutputTokens: 4096,
+      temperature: 0.15,
+    });
+    stages.push(annotationStage);
+    annotationPayload = parseJsonObject<StagedAnnotationPayload>(
+      annotationStage.text,
+      "Gemini staged annotations"
+    );
+  } catch (error) {
+    annotationStageError =
+      error instanceof Error ? error.message : String(error);
+  }
+
+  parsed.transcriptAnnotations = annotationPayload.transcriptAnnotations ?? [];
+  parsed = normalizeDebateScore(parsed, params);
+
+  const depthTarget = getDebateFeedbackDepthTarget({
+    isFullRound: true,
+    actualDuration: params.actualDuration,
+    roundCount: params.rounds?.length,
+  });
+
+  if (
+    ((parsed.argumentBreakdowns?.length ?? 0) < depthTarget.minArgumentBreakdowns ||
+      (parsed.clashLinks?.length ?? 0) < depthTarget.minClashLinks) &&
+    process.env.PRACTICE_FULL_ROUND_STAGED_REPAIR_ENABLED !== "false"
+  ) {
+    const repairPrompt = `${verdictPrompt}
+
+## Existing Feedback To Repair
+${JSON.stringify(parsed)}
+
+## Repair Task
+The feedback is missing enough argumentBreakdowns or clashLinks for a full-round debate.
+Return the full feedback JSON again. Preserve the current verdict and scores unless they are inconsistent, keep transcriptAnnotations as [], and expand only the missing strategic detail.`;
+    stagePromptHashes.depth_repair = createHash("sha256")
+      .update(repairPrompt)
+      .digest("hex");
+    const repairStage = await generateGeminiStage({
+      modelName,
+      stage: "depth_repair",
+      prompt: repairPrompt,
+      maxOutputTokens: 8192,
+      temperature: 0.2,
+    });
+    stages.push(repairStage);
+    const repaired = parseGeminiFeedback(repairStage.text);
+    repaired.transcriptAnnotations = parsed.transcriptAnnotations;
+    parsed = normalizeDebateScore(repaired, params);
+  }
+
+  const summary = summarizeGeminiStages(stages);
+  if (userId) {
+    getPostHogServer().capture({
+      distinctId: userId,
+      event: "$ai_generation",
+      properties: {
+        $ai_provider: "google",
+        $ai_model: modelName,
+        $ai_input_tokens: summary.inputTokens,
+        $ai_output_tokens: summary.outputTokens,
+        $ai_latency: summary.latencyMs,
+        $ai_is_error: false,
+        $ai_trace_id: crypto.randomUUID(),
+        route: "/api/analyze",
+        judge_pipeline: "staged_full_round",
+        judge_stage_count: stages.length,
+      },
+    });
+  }
+  await emitAiTelemetry(onTelemetry, {
+    provider: "google",
+    requestedProvider: getProviderLabel(
+      getPracticeFeedbackProvider(params.practiceTrack ?? "debate")
+    ),
+    model: modelName,
+    latencyMs: summary.latencyMs,
+    metadata: {
+      judgePipeline: "staged_full_round_gemini",
+      judgeStageCount: stages.length,
+      judgeStageLatenciesMs: summary.stageLatencies,
+      judgeStageUsage: summary.stageUsage,
+      judgeStagePromptHashes: stagePromptHashes,
+      annotationStageError,
+    },
+    usage: {
+      inputTokens: summary.inputTokens || undefined,
+      outputTokens: summary.outputTokens || undefined,
+      totalTokens: summary.totalTokens || undefined,
+    },
+  });
+
+  return parsed;
 }
 
 async function analyzeDebateWithGemini(

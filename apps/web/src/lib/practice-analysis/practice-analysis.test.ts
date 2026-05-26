@@ -31,7 +31,7 @@ assert.notEqual(baseHash, changedHash);
 
 const debateManifest = getPracticeFeedbackPromptManifest(englishDebateInput);
 assert.equal(debateManifest.promptBundleKey, "practice_feedback");
-assert.equal(debateManifest.promptBundleVersion, 5);
+assert.equal(debateManifest.promptBundleVersion, 6);
 assert.equal(debateManifest.rubricKey, "debate_v1");
 assert.equal(debateManifest.evaluatorKey, "debate_feedback_v1");
 assert.equal(debateManifest.promptHash.length, 64);

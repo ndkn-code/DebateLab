@@ -79,8 +79,22 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       deliveryCount: metadata.deliveryCount,
     });
 
+    let effectiveProvider = getPracticeFeedbackModelProvider(attempt.practice_track);
+    let effectiveModel = getPracticeFeedbackModelName(attempt.practice_track);
+
     try {
       const input = practiceAttemptRowToInput(attempt);
+      if (
+        input.practiceTrack === "debate" &&
+        input.isFullRound &&
+        process.env.PRACTICE_FULL_ROUND_STAGED_JUDGE_ENABLED !== "false"
+      ) {
+        effectiveProvider = "google";
+        effectiveModel =
+          process.env.GEMINI_FULL_ROUND_JUDGE_MODEL ||
+          process.env.GEMINI_FLASH_LITE_MODEL ||
+          "gemini-3.1-flash-lite";
+      }
       let corpusRetrievalCache =
         readCorpusRetrievalCache(job.result);
       const corpusRetrieval = await retrieveDebateCorpusContext({
@@ -122,13 +136,17 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           telemetry = nextTelemetry;
         }
       );
-      const modelName = getPracticeFeedbackModelName(input.practiceTrack);
+      const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+      const modelName =
+        aiQualityTelemetry?.model ??
+        getPracticeFeedbackModelName(input.practiceTrack);
+      effectiveProvider = aiQualityTelemetry?.provider ?? effectiveProvider;
+      effectiveModel = modelName;
       const savedSession = await saveCompletedPracticeAttempt(supabase, {
         attempt,
         feedback,
         modelName,
       });
-      const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
       const transcriptionMetadata = input.transcription
         ? createTranscriptionQualityMetadata(input.transcription)
         : null;
@@ -194,6 +212,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         jobId: job.id,
         feedback,
         modelName,
+        modelProvider: effectiveProvider,
         legacySessionId: savedSession.sessionId,
         aiQualityRunId,
         resultMetadata: corpusRetrievalCache
@@ -231,9 +250,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         outputType: "practice_judging",
         status: "error",
         sourceRoute: "/api/queues/practice-analysis",
-        provider: getPracticeFeedbackModelProvider(attempt.practice_track),
+        provider: effectiveProvider,
         requestedProvider: getPracticeFeedbackModelProvider(attempt.practice_track),
-        model: getPracticeFeedbackModelName(attempt.practice_track),
+        model: effectiveModel,
         promptBundleKey: attempt.prompt_bundle_key ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
         promptBundleVersion:
           attempt.prompt_bundle_version ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
@@ -278,7 +297,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     }
   },
   {
-    visibilityTimeoutSeconds: 60,
+    visibilityTimeoutSeconds: 120,
     retry: (_error, metadata) => {
       if (metadata.deliveryCount >= 3) return { acknowledge: true };
       return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
