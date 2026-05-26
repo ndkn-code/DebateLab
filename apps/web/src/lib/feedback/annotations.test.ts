@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   locateTranscriptAnnotations,
   normalizeTranscriptAnnotations,
+  normalizeTranscriptAnnotationsForFeedback,
 } from "@/lib/feedback/annotations";
 
 const normalized = normalizeTranscriptAnnotations([
@@ -73,5 +74,41 @@ assert.equal(
   ]).length,
   0
 );
+
+const validated = normalizeTranscriptAnnotationsForFeedback(
+  [
+    {
+      quote: "Truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm",
+      speaker: "user",
+      roundNumber: 1,
+      tag: "rebuttal",
+      severity: "improvement",
+      feedback:
+        "Phần này đang nói về survival bias nhưng quote lại chỉ là motion title.",
+      suggestion:
+        "Hãy neo vào đoạn bạn gọi đây là ngụy biện kẻ sống sót rồi giải thích nhóm bị bỏ lại.",
+    },
+  ],
+  {
+    transcript:
+      "Truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm. Đây là ngụy biện kẻ sống sót vì chúng ta chỉ thấy những người thành công được lên báo, còn số đông thất bại thì bị biến mất khỏi câu chuyện.",
+    topic: "Truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm",
+    practiceLanguage: "vi",
+    depthTarget: { minAnnotations: 1 },
+  }
+);
+assert.equal(validated.metadata.rejectedCount, 1);
+assert.equal(validated.metadata.repairUsed, true);
+assert.match(validated.annotations[0].quote, /ngụy biện kẻ sống sót/);
+
+const fallback = normalizeTranscriptAnnotationsForFeedback([], {
+  transcript:
+    "Chúng tôi phản biện rằng áp lực không đến từ truyền thông mà đến từ bộ lọc kỳ vọng méo mó của phụ huynh và nhà trường. Vì vậy cơ chế của đội bạn chưa chứng minh được nguyên nhân gốc.",
+  topic: "Truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm",
+  practiceLanguage: "vi",
+  depthTarget: { minAnnotations: 1 },
+});
+assert.equal(fallback.metadata.fallbackUsed, true);
+assert.equal(fallback.annotations.length, 1);
 
 console.log("Transcript annotation normalization tests passed");

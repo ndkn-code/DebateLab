@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { DebateScore, TranscriptAnnotation } from "@/types/feedback";
+import type { DebateScore } from "@/types/feedback";
 import type {
   DebateMemory,
   DebateDuelJudgment,
@@ -26,7 +27,7 @@ import {
   normalizeDebateClashLinks,
   normalizeDebateVerdict,
 } from "./feedback/debate-review";
-import { normalizeTranscriptAnnotations } from "./feedback/annotations";
+import { normalizeTranscriptAnnotationsForFeedback } from "./feedback/annotations";
 import {
   getDebateFeedbackDepthTarget,
   isFeedbackBelowDepthTarget,
@@ -51,7 +52,7 @@ async function loadDeepSeekChatCompletion() {
   return (await import("@/lib/ai/deepseek")).createDeepSeekChatCompletion;
 }
 
-function buildCompactDeepSeekAnalysisPrompt(params: {
+type DeepSeekAnalysisPromptParams = {
   transcript: string;
   topic: string;
   side: "proposition" | "opposition";
@@ -66,7 +67,11 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
   transcription?: PracticeTranscriptionArtifact | null;
-}, verdictDraft?: unknown) {
+};
+
+function buildDeepSeekAnalysisPromptPrefix(
+  params: DeepSeekAnalysisPromptParams
+) {
   if (params.practiceTrack === "speaking") {
     return buildAnalysisPrompt(params);
   }
@@ -79,71 +84,17 @@ function buildCompactDeepSeekAnalysisPrompt(params: {
     practiceLanguage: params.practiceLanguage,
     practiceTrack: params.practiceTrack ?? "debate",
   });
-  const rounds = params.rounds?.length
-    ? params.rounds
-        .map((round) => {
-          const speaker = round.type === "ai-rebuttal" ? "ai" : "user";
-          const text = round.transcript || round.aiResponse || "";
-          return `[${round.roundNumber}. ${round.label} | ${speaker}]\n${text}`;
-        })
-        .join("\n\n")
-    : params.transcript;
   const truongTeenJudgingContext = useTruongTeenPrompt
     ? buildTruongTeenJudgingPromptAddendum()
     : "";
-  const evidenceHintContext = useTruongTeenPrompt
-    ? buildFuzzyEvidenceHintBlock([
-        params.transcript,
-        ...(params.rounds?.map(
-          (round) => round.transcript || round.aiResponse || ""
-        ) ?? []),
-      ])
-    : "";
-  const motionBrief = params.motionBrief
-    ? `Key terms: ${params.motionBrief.keyTerms.join("; ")}
-Scope: ${params.motionBrief.scope}
-Proposition burden: ${params.motionBrief.propositionBurden}
-Opposition burden: ${params.motionBrief.oppositionBurden}
-Model note: ${params.motionBrief.modelClarification}`
-    : "No motion brief provided.";
-  const debateMemory = params.debateMemory
-    ? `AI side: ${params.debateMemory.aiSide}
-Student side: ${params.debateMemory.studentSide}
-AI model/policy: ${params.debateMemory.policyModel}
-Prior AI claims: ${params.debateMemory.priorAiClaims.join("; ") || "none"}
-Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}
-Dropped claims: ${params.debateMemory.droppedClaims.join("; ") || "none"}`
-    : "No debate memory provided.";
-  const sttGuardrail = buildSttJudgeGuardrailBlock(params.transcription);
 
   return `You are Thinkfy's strict debate feedback engine.
 
 ## Task
 Judge the student's debate performance and return one valid JSON object only.
 Practice format: Trường Teen-style 1v1 practice debate. Use WSDC-style principles for clash, mechanism, weighing, and impact.
-Motion: ${params.topic}
-Student side: ${params.side}
-Speech type: ${params.speechType}
-Full round: ${Boolean(params.isFullRound)}
-Time setting: ${params.timeLimit} minutes
-Actual duration: ${params.actualDuration} seconds
 ${language}
-${sttGuardrail}
 ${truongTeenJudgingContext}
-${params.corpusContext ?? ""}
-
-## Motion Brief
-${motionBrief}
-
-## Debate Memory
-${debateMemory}
-
-## Transcript
-${rounds}
-${evidenceHintContext}
-
-## Judge Verdict To Preserve
-${verdictDraft ? JSON.stringify(verdictDraft) : "No prior verdict draft."}
 
 ## Scoring Calibration
 - Score the student/user only. The AI may win the debate while the student still receives a fair skill score.
@@ -195,30 +146,23 @@ ${verdictDraft ? JSON.stringify(verdictDraft) : "No prior verdict draft."}
   "detailedFeedback": {"contentFeedback": "specific", "structureFeedback": "specific", "languageFeedback": "specific", "persuasionFeedback": "specific"}
 }
 
-For full rounds, include at least 3 argumentBreakdowns, 4 transcriptAnnotations, and 3 clashLinks. Use exact transcript quotes only. JSON only.`;
+For full rounds, include at least 3 argumentBreakdowns, 4 transcriptAnnotations, and 3 clashLinks.
+Annotation rules:
+- transcriptAnnotations.quote must be an exact short quote from the supplied transcript.
+- Never use the motion title, greetings, filler, or a generic opening as an annotation quote.
+- Anchor feedback about a concept to a quote that contains that concept or its immediate argumentative context.
+- If feedback discusses survival bias, anchor to a sentence containing "ngụy biện kẻ sống sót", "survival bias", or the equivalent idea.
+- If you cannot find a faithful quote, omit that annotation instead of inventing one.
+JSON only.`;
 }
 
-function buildDeepSeekVerdictPrompt(params: {
-  transcript: string;
-  topic: string;
-  side: "proposition" | "opposition";
-  speechType: string;
-  actualDuration: number;
-  practiceLanguage?: PracticeLanguage;
-  isFullRound?: boolean;
-  rounds?: DebateRound[];
-  motionBrief?: MotionBrief;
-  debateMemory?: DebateMemory | null;
-  corpusContext?: string;
-  transcription?: PracticeTranscriptionArtifact | null;
-}) {
-  const language =
-    params.practiceLanguage === "vi"
-      ? "Write Vietnamese prose with diacritics."
-      : "Write English prose.";
+function buildDeepSeekAnalysisDynamicContext(
+  params: DeepSeekAnalysisPromptParams,
+  verdictDraft?: unknown
+) {
   const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
     practiceLanguage: params.practiceLanguage,
-    practiceTrack: "debate",
+    practiceTrack: params.practiceTrack ?? "debate",
   });
   const rounds = params.rounds?.length
     ? params.rounds
@@ -229,9 +173,6 @@ function buildDeepSeekVerdictPrompt(params: {
         })
         .join("\n\n")
     : params.transcript;
-  const truongTeenJudgingContext = useTruongTeenPrompt
-    ? buildTruongTeenJudgingPromptAddendum()
-    : "";
   const evidenceHintContext = useTruongTeenPrompt
     ? buildFuzzyEvidenceHintBlock([
         params.transcript,
@@ -241,7 +182,8 @@ function buildDeepSeekVerdictPrompt(params: {
       ])
     : "";
   const motionBrief = params.motionBrief
-    ? `Scope: ${params.motionBrief.scope}
+    ? `Key terms: ${params.motionBrief.keyTerms.join("; ")}
+Scope: ${params.motionBrief.scope}
 Proposition burden: ${params.motionBrief.propositionBurden}
 Opposition burden: ${params.motionBrief.oppositionBurden}
 Model note: ${params.motionBrief.modelClarification}`
@@ -249,422 +191,68 @@ Model note: ${params.motionBrief.modelClarification}`
   const debateMemory = params.debateMemory
     ? `AI side: ${params.debateMemory.aiSide}
 Student side: ${params.debateMemory.studentSide}
-Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}`
+AI model/policy: ${params.debateMemory.policyModel}
+Prior AI claims: ${params.debateMemory.priorAiClaims.join("; ") || "none"}
+Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}
+Dropped claims: ${params.debateMemory.droppedClaims.join("; ") || "none"}`
     : "No debate memory provided.";
   const sttGuardrail = buildSttJudgeGuardrailBlock(params.transcription);
 
-  return `You are a strict debate judge. Think carefully, then return compact JSON only.
-${language}
-${sttGuardrail}
-
+  return `## Dynamic Debate Context
 Motion: ${params.topic}
 Student side: ${params.side}
-Format: Trường Teen-style 1v1 practice debate; use WSDC-style clash, weighing, and burden analysis.
-Full round: ${Boolean(params.isFullRound)}
 Speech type: ${params.speechType}
+Full round: ${Boolean(params.isFullRound)}
+Time setting: ${params.timeLimit} minutes
 Actual duration: ${params.actualDuration} seconds
-${truongTeenJudgingContext}
+${sttGuardrail}
 ${params.corpusContext ?? ""}
 
-Motion brief:
+## Motion Brief
 ${motionBrief}
 
-Debate memory:
+## Debate Memory
 ${debateMemory}
 
-Transcript:
+## Transcript
 ${rounds}
 ${evidenceHintContext}
 
-Calibration:
-- Judge the debate, but score the student/user only.
-- If the user repeats claims, lacks evidence, or misses the main clash, totalScore is usually below 65.
-- If the student mainly lists pressure, tutoring, fear of mistakes, or personal experience but does not prove that rote memorization causes those harms, the student has not met the burden.
-- If the AI/opponent distinguishes "memorization as foundation" from "exam pressure" and the student does not directly defeat that distinction, the AI/opponent usually wins the main clash.
-- Without external evidence, concrete mechanisms, and direct weighing, cap content at 24/40 and totalScore at 64 even if the topic is emotionally persuasive.
-- Content above 25/40 requires mechanisms, examples, and weighing.
-- Structure above 17/25 requires development across speeches.
-- Persuasion above 7/10 requires direct world comparison and clear reason the student's side wins.
-
-Return this JSON:
-{
-  "winner": "user" | "ai" | "tie",
-  "confidence": 0-1,
-  "totalScore": 0-100,
-  "overallBand": "Novice" | "Developing" | "Competent" | "Proficient" | "Expert",
-  "summary": "2-3 sentence strict judge read",
-  "decidingReasons": ["3 reasons"],
-  "categoryScores": {
-    "content": {"score": 0-40, "rationale": "why"},
-    "structure": {"score": 0-25, "rationale": "why"},
-    "language": {"score": 0-25, "rationale": "why"},
-    "persuasion": {"score": 0-10, "rationale": "why"}
-  },
-  "strengths": ["3 strengths"],
-  "improvements": ["3 improvements"],
-  "clashAnalysis": [
-    {"clash": "clash name", "winner": "user" | "ai" | "tie", "judgeRead": "why"}
-  ],
-  "nextMove": "one concrete drill"
-}`;
+## Judge Verdict To Preserve
+${verdictDraft ? JSON.stringify(verdictDraft) : "No prior verdict draft."}`;
 }
 
-function parseDeepSeekJsonObject(text: string) {
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Invalid response: could not find JSON in DeepSeek output");
-    }
-    return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-  }
-}
-
-async function parseDeepSeekJsonObjectWithRetry(
-  generateText: (prompt: string) => Promise<string>,
-  prompt: string,
-  text: string
+function buildCompactDeepSeekAnalysisPrompt(
+  params: DeepSeekAnalysisPromptParams,
+  verdictDraft?: unknown
 ) {
-  try {
-    return parseDeepSeekJsonObject(text);
-  } catch (error) {
-    const retryPrompt = `${prompt}
+  return `${buildDeepSeekAnalysisPromptPrefix(params)}
 
-## JSON Regeneration Instruction
-Your previous response could not be parsed as valid JSON: ${error instanceof Error ? error.message : "Malformed JSON"}.
-
-Previous response:
-${text.slice(0, 6000)}
-
-Return the same compact verdict JSON again as valid JSON only. No Markdown fences, comments, trailing commas, or prose outside the JSON object.`;
-    return parseDeepSeekJsonObject(await generateText(retryPrompt));
-  }
+${buildDeepSeekAnalysisDynamicContext(params, verdictDraft)}`;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readText(value: unknown, fallback: string) {
-  return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-function hasVietnameseDiacritics(value: string) {
-  return /[ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i.test(
-    value
-  );
-}
-
-function readLocalizedText(value: unknown, fallback: string, vi: boolean) {
-  const text = readText(value, fallback);
-  return vi && !hasVietnameseDiacritics(text) ? fallback : text;
-}
-
-function readTextArray(value: unknown, fallback: string[]) {
-  if (!Array.isArray(value)) return fallback;
-  const strings = value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
-  return strings.length > 0 ? strings : fallback;
-}
-
-function readLocalizedTextArray(value: unknown, fallback: string[], vi: boolean) {
-  const strings = readTextArray(value, fallback);
-  return vi && strings.every((item) => !hasVietnameseDiacritics(item))
-    ? fallback
-    : strings;
-}
-
-function readScoreValue(value: unknown, fallback: number, max: number) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.max(0, Math.min(max, Math.round(value)))
-    : fallback;
-}
-
-function deriveOverallBand(totalScore: number): DebateScore["overallBand"] {
-  if (totalScore >= 85) return "Expert";
-  if (totalScore >= 70) return "Proficient";
-  if (totalScore >= 55) return "Competent";
-  if (totalScore >= 40) return "Developing";
-  return "Novice";
-}
-
-function splitScore(score: number, buckets: number[], maxes: number[]) {
-  const total = buckets.reduce((sum, value) => sum + value, 0) || 1;
-  return buckets.map((weight, index) =>
-    Math.max(0, Math.min(maxes[index], Math.round((score * weight) / total)))
-  );
-}
-
-function getTranscriptQuoteSeeds(params: {
-  transcript: string;
-  rounds?: DebateRound[];
-}) {
-  const fromRounds =
-    params.rounds
-      ?.map((round) => ({
-        quote: (round.transcript || round.aiResponse || "").trim(),
-        roundNumber: round.roundNumber,
-        speaker: round.type === "ai-rebuttal" ? "ai" : "user",
-      }))
-      .filter((item) => item.quote.length > 0) ?? [];
-
-  if (fromRounds.length > 0) {
-    return fromRounds.map((item) => ({
-      ...item,
-      quote: item.quote.split(/(?<=[.!?。])\s+/)[0]?.slice(0, 220) || item.quote.slice(0, 220),
-    }));
-  }
-
-  const sentences =
-    params.transcript
-      .replace(/\s+/g, " ")
-      .match(/(?:\[[^\]]+\]\s*)?[^.!?。]+[.!?。]?/g)
-      ?.map((quote, index) => ({
-        quote: quote.trim().slice(0, 220),
-        roundNumber: index + 1,
-        speaker: quote.includes("[AI") ? "ai" : "user",
-      }))
-      .filter((item) => item.quote.length >= 20) ?? [];
-
-  return sentences.slice(0, 6);
-}
-
-function buildDebateScoreFromDeepSeekVerdict(
-  params: {
-    transcript: string;
-    topic: string;
-    side: "proposition" | "opposition";
-    practiceLanguage?: PracticeLanguage;
-    rounds?: DebateRound[];
-  },
-  verdictDraft: Record<string, unknown>
-): DebateScore {
-  const vi = params.practiceLanguage === "vi";
-  const categoryScores = asRecord(verdictDraft.categoryScores);
-  const contentDraft = asRecord(categoryScores.content);
-  const structureDraft = asRecord(categoryScores.structure);
-  const languageDraft = asRecord(categoryScores.language);
-  const persuasionDraft = asRecord(categoryScores.persuasion);
-
-  const contentScore = readScoreValue(contentDraft.score, 23, 40);
-  const structureScore = readScoreValue(structureDraft.score, 15, 25);
-  const languageScore = readScoreValue(languageDraft.score, 17, 25);
-  const persuasionScore = readScoreValue(persuasionDraft.score, 6, 10);
-  const fallbackTotal =
-    contentScore + structureScore + languageScore + persuasionScore;
-  const totalScore = readScoreValue(verdictDraft.totalScore, fallbackTotal, 100);
-  const [claimClarity, evidenceSupport, logicCoherence, counterArgument] =
-    splitScore(contentScore, [3, 2, 3, 2], [10, 10, 10, 10]);
-  const [introduction, bodyOrganization, conclusion] = splitScore(
-    structureScore,
-    [2, 4, 2],
-    [8, 9, 8]
-  );
-  const [vocabulary, grammar, fluency] = splitScore(
-    languageScore,
-    [3, 2, 3],
-    [8, 8, 9]
-  );
-  const [audienceAwareness, impactfulness] = splitScore(
-    persuasionScore,
-    [1, 1],
-    [5, 5]
-  );
-
-  const defaultStrengths = vi
-    ? ["Nêu đúng vấn đề áp lực học tập", "Có ví dụ gần với trải nghiệm học sinh", "Giữ lập trường nhất quán"]
-    : ["Names the core pressure issue", "Uses relatable student examples", "Maintains a consistent stance"];
-  const defaultImprovements = vi
-    ? ["Định nghĩa rõ hơn thế nào là quá chú trọng", "Thêm bằng chứng cụ thể", "So sánh trực tiếp hơn với thế giới của phe đối lập"]
-    : ["Define the excessive burden more clearly", "Add specific evidence", "Compare more directly against the opposition world"];
-  const strengths = readLocalizedTextArray(verdictDraft.strengths, defaultStrengths, vi).slice(0, 3);
-  const improvements = readLocalizedTextArray(verdictDraft.improvements, defaultImprovements, vi).slice(0, 3);
-  const decidingReasons = readLocalizedTextArray(verdictDraft.decidingReasons, improvements, vi).slice(0, 3);
-  const clashAnalysis = Array.isArray(verdictDraft.clashAnalysis)
-    ? verdictDraft.clashAnalysis.map(asRecord).slice(0, 3)
-    : [];
-  const quoteSeeds = getTranscriptQuoteSeeds(params);
-  const summary = readLocalizedText(
-    verdictDraft.summary,
-    vi
-      ? "Bài nói có vấn đề rõ nhưng cần cơ chế, bằng chứng và so sánh clash cụ thể hơn."
-      : "The speech has a clear concern but needs stronger mechanisms, evidence, and clash comparison.",
-    vi
-  );
-  const nextMove = readLocalizedText(
-    verdictDraft.nextMove,
-    vi
-      ? "Viết lại một clash chính theo cấu trúc claim, mechanism, weighing, impact."
-      : "Rewrite one main clash using claim, mechanism, weighing, and impact.",
-    vi
-  );
-
-  const argumentBreakdowns = (clashAnalysis.length ? clashAnalysis : decidingReasons.map((reason) => ({ clash: reason, judgeRead: reason }))).map(
-    (clash, index) => ({
-      name: readText(clash.clash, vi ? `Clash ${index + 1}` : `Clash ${index + 1}`),
-      summary: readLocalizedText(clash.judgeRead, decidingReasons[index] ?? summary, vi),
-      whatWorked: strengths[index % strengths.length],
-      missingLayer: improvements[index % improvements.length],
-      betterVersion: vi
-        ? `Biến ý này thành cơ chế rõ: vì sao nó xảy ra, ai bị ảnh hưởng, và tại sao nó quan trọng hơn phản biện của đối thủ.`
-        : `Turn this into a clear mechanism: why it happens, who is affected, and why it matters more than the opponent's response.`,
-    })
-  );
-
-  const transcriptAnnotations = quoteSeeds.slice(0, 4).map((seed, index) => ({
-    quote: seed.quote,
-    roundNumber: seed.roundNumber,
-    speaker: seed.speaker as "user" | "ai",
-    tag: (index % 2 === 0 ? "claim" : "clash") as TranscriptAnnotation["tag"],
-    severity: (seed.speaker === "user" && index < 2
-      ? "strength"
-      : "improvement") as TranscriptAnnotation["severity"],
-    feedback:
-      seed.speaker === "user"
-        ? strengths[index % strengths.length]
-        : vi
-          ? "Đây là phản biện quan trọng mà người học cần trả lời trực tiếp hơn."
-          : "This is an important response the learner needs to answer more directly.",
-    suggestion: improvements[index % improvements.length],
-  }));
-
-  const clashLinks = (clashAnalysis.length ? clashAnalysis : argumentBreakdowns).map(
-    (clash, index) => {
-      const source = quoteSeeds[index % Math.max(quoteSeeds.length, 1)];
-      const response = quoteSeeds[(index + 1) % Math.max(quoteSeeds.length, 1)];
-      return {
-        id: `clash-${index + 1}`,
-        sourceRoundNumber: source?.roundNumber ?? index + 1,
-        sourceSpeaker: (source?.speaker ?? "user") as "user" | "ai",
-        responseRoundNumber: response?.roundNumber ?? null,
-        responseSpeaker: (response?.speaker ?? null) as "user" | "ai" | null,
-        sourceQuote: source?.quote ?? params.transcript.slice(0, 160),
-        responseQuote: response?.quote ?? null,
-        outcome: "misanswered" as const,
-        judgeRead: readLocalizedText(asRecord(clash).judgeRead, decidingReasons[index] ?? summary, vi),
-        suggestion: improvements[index % improvements.length],
-        tag: "clash" as const,
-      };
-    }
-  );
-
-  return {
-    content: {
-      score: contentScore,
-      claimClarity,
-      evidenceSupport,
-      logicCoherence,
-      counterArgument,
-    },
-    structure: {
-      score: structureScore,
-      introduction,
-      bodyOrganization,
-      conclusion,
-    },
-    language: {
-      score: languageScore,
-      vocabulary,
-      grammar,
-      fluency,
-    },
-    persuasion: {
-      score: persuasionScore,
-      audienceAwareness,
-      impactfulness,
-    },
-    totalScore,
-    overallBand: deriveOverallBand(totalScore),
-    summary,
-    strengths,
-    improvements,
-    sampleArguments: improvements.map((improvement) =>
-      vi
-        ? `Thay vì chỉ khẳng định, hãy nói: ${improvement}, rồi nối sang tác động và so sánh với phe đối lập.`
-        : `Instead of only asserting the point, say: ${improvement}, then connect it to impact and compare against the opposition.`
-    ),
-    practiceTrack: "debate",
-    practiceLanguage: params.practiceLanguage ?? "en",
-    caseSummary: vi
-      ? `Người học bảo vệ phe ${params.side} trong motion "${params.topic}".`
-      : `The learner defended the ${params.side} side on "${params.topic}".`,
-    stanceFeedback: vi
-      ? "Lập trường rõ, nhưng cần chứng minh gánh nặng bằng cơ chế và bằng chứng cụ thể hơn."
-      : "The stance is clear, but the burden needs stronger mechanisms and concrete evidence.",
-    argumentBreakdowns,
-    missingLayers: improvements,
-    weighingFeedback: vi
-      ? "Phần cân đo còn thiếu: cần giải thích tại sao tác hại hoặc lợi ích của phe mình quan trọng hơn phản biện của đối thủ."
-      : "Weighing is still thin: explain why your side's harm or benefit matters more than the opponent's answer.",
-    clashFeedback: summary,
-    strongerRebuilds: sampleRebuilds(vi, improvements),
-    transcriptAnnotations,
-    debateVerdict: {
-      winner:
-        verdictDraft.winner === "user" ||
-        verdictDraft.winner === "ai" ||
-        verdictDraft.winner === "tie"
-          ? verdictDraft.winner
-          : "tie",
-      confidence:
-        typeof verdictDraft.confidence === "number"
-          ? Math.max(0, Math.min(1, verdictDraft.confidence))
-          : 0.65,
-      summary,
-      decidingReasons,
-      nextMove,
-    },
-    clashLinks,
-    scoreRationale: {
-      overall: summary,
-      content: buildScoreRationaleCategory(contentScore, 40, contentDraft, improvements[0], vi),
-      structure: buildScoreRationaleCategory(structureScore, 25, structureDraft, improvements[1] ?? improvements[0], vi),
-      language: buildScoreRationaleCategory(languageScore, 25, languageDraft, improvements[2] ?? improvements[0], vi),
-      persuasion: buildScoreRationaleCategory(persuasionScore, 10, persuasionDraft, improvements[0], vi),
-    },
-    detailedFeedback: {
-      contentFeedback: readLocalizedText(contentDraft.rationale, summary, vi),
-      structureFeedback: readLocalizedText(structureDraft.rationale, improvements[1] ?? summary, vi),
-      languageFeedback: readLocalizedText(languageDraft.rationale, improvements[2] ?? summary, vi),
-      persuasionFeedback: readLocalizedText(persuasionDraft.rationale, improvements[0] ?? summary, vi),
-    },
-  };
-}
-
-function sampleRebuilds(vi: boolean, improvements: string[]) {
-  return improvements.slice(0, 2).map((improvement) =>
-    vi
-      ? `Rebuild: ${improvement}. Sau đó thêm ví dụ cụ thể, giải thích cơ chế, và kết bằng câu so sánh vì sao phe mình thắng clash.`
-      : `Rebuild: ${improvement}. Then add a concrete example, explain the mechanism, and end with a comparison showing why your side wins the clash.`
-  );
-}
-
-function buildScoreRationaleCategory(
-  score: number,
-  maxScore: number,
-  draft: Record<string, unknown>,
-  nextStep: string,
-  vi: boolean
+function buildDeepSeekAnalysisMessages(
+  params: DeepSeekAnalysisPromptParams,
+  verdictDraft?: unknown
 ) {
-  const rationale = readLocalizedText(
-    draft.rationale,
-    vi
-      ? "Điểm phản ánh chất lượng hiện tại của lập luận trong bài."
-      : "The score reflects the current quality of the argument.",
-    vi
-  );
+  const prefix = buildDeepSeekAnalysisPromptPrefix(params);
+  const messages = [
+    {
+      role: "system" as const,
+      content:
+        "You are Thinkfy's AI feedback engine. Return only valid JSON matching the requested schema.",
+    },
+    { role: "user" as const, content: prefix },
+    {
+      role: "user" as const,
+      content: buildDeepSeekAnalysisDynamicContext(params, verdictDraft),
+    },
+  ];
   return {
-    score,
-    maxScore,
-    rationale,
-    whyNotHigher: vi
-      ? "Chưa đủ cơ chế, bằng chứng hoặc cân đo để đạt mức cao hơn."
-      : "It lacks enough mechanism, evidence, or weighing for the next band.",
-    nextStep,
+    messages,
+    promptPrefixHash: createHash("sha256")
+      .update(`${messages[0].content}\n\n${messages[1].content}`)
+      .digest("hex"),
   };
 }
 
@@ -860,86 +448,21 @@ async function analyzeDebateWithDeepSeek(
   onTelemetry?: AiTelemetryCallback
 ): Promise<DebateScore> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
-  const isDebateFeedback = params.practiceTrack !== "speaking";
-  const verdictPrompt = isDebateFeedback
-    ? buildDeepSeekVerdictPrompt(params)
-    : null;
-  const generateVerdictText = (nextPrompt: string) =>
-    createDeepSeekChatCompletion({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Thinkfy's rigorous debate judge. Return compact valid JSON only.",
-        },
-        { role: "user", content: nextPrompt },
-      ],
-      thinking: { type: "disabled" },
-      responseFormat: "json_object",
-      maxTokens: 1800,
-      userId,
-      timeoutMs: 18000,
-    }).then((retryResult) => retryResult.content);
-  let verdictDraft: Record<string, unknown> | null = null;
-  if (isDebateFeedback && verdictPrompt) {
-    const verdictStart = Date.now();
-    const verdictResult = await createDeepSeekChatCompletion({
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are Thinkfy's rigorous debate judge. Return compact valid JSON only.",
-                },
-                { role: "user", content: verdictPrompt },
-              ],
-              thinking: { type: "enabled" },
-              responseFormat: "json_object",
-              maxTokens: 4096,
-              userId,
-              timeoutMs: 28000,
-    });
-    const verdictLatency = Date.now() - verdictStart;
-    await emitAiTelemetry(onTelemetry, {
-      provider: getProviderLabel("deepseek"),
-      requestedProvider: getProviderLabel("deepseek"),
-      model: verdictResult.model,
-      latencyMs: verdictLatency,
-      usage: {
-        inputTokens: verdictResult.usage?.prompt_tokens,
-        outputTokens: verdictResult.usage?.completion_tokens,
-        totalTokens: verdictResult.usage?.total_tokens,
-        cacheHitTokens: verdictResult.usage?.prompt_cache_hit_tokens,
-        cacheMissTokens: verdictResult.usage?.prompt_cache_miss_tokens,
-        reasoningTokens:
-          verdictResult.usage?.completion_tokens_details?.reasoning_tokens,
-      },
-    });
-    verdictDraft = await parseDeepSeekJsonObjectWithRetry(
-      generateVerdictText,
-      verdictPrompt,
-      verdictResult.content
-    );
-  }
-
-  if (isDebateFeedback && verdictDraft) {
-    return normalizeDebateScore(
-      buildDebateScoreFromDeepSeekVerdict(params, verdictDraft),
-      params
-    );
-  }
+  const verdictDraft: Record<string, unknown> | null = null;
 
   const prompt = buildCompactDeepSeekAnalysisPrompt(params, verdictDraft);
+  const { messages, promptPrefixHash } = buildDeepSeekAnalysisMessages(
+    params,
+    verdictDraft
+  );
   const maxTokens =
     params.practiceTrack !== "speaking" && params.isFullRound ? 7000 : 4096;
   const thinking = { type: "disabled" } as const;
   const generateText = (nextPrompt: string) =>
     createDeepSeekChatCompletion({
       messages: [
-        {
-          role: "system",
-          content:
-            "You are Thinkfy's AI feedback engine. Return only valid JSON matching the requested schema.",
-        },
+        messages[0],
+        messages[1],
         { role: "user", content: nextPrompt },
       ],
       thinking: { type: "disabled" },
@@ -950,21 +473,35 @@ async function analyzeDebateWithDeepSeek(
     }).then((retryResult) => retryResult.content);
 
   const startTime = Date.now();
-  const result = await createDeepSeekChatCompletion({
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are Thinkfy's AI feedback engine. Return only valid JSON matching the requested schema.",
-      },
-      { role: "user", content: prompt },
-    ],
-    thinking,
-    responseFormat: "json_object",
-    maxTokens,
-    userId,
-    timeoutMs: 24000,
-  });
+  let internalRetryUsed = false;
+  let result;
+  try {
+    result = await createDeepSeekChatCompletion({
+      messages,
+      thinking,
+      responseFormat: "json_object",
+      maxTokens,
+      userId,
+      timeoutMs: 30000,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("DeepSeek returned an empty response")
+    ) {
+      internalRetryUsed = true;
+      result = await createDeepSeekChatCompletion({
+        messages,
+        thinking,
+        responseFormat: "json_object",
+        maxTokens,
+        userId,
+        timeoutMs: 30000,
+      });
+    } else {
+      throw error;
+    }
+  }
   const latency = Date.now() - startTime;
 
   if (userId) {
@@ -992,6 +529,10 @@ async function analyzeDebateWithDeepSeek(
     requestedProvider: getProviderLabel("deepseek"),
     model: result.model,
     latencyMs: latency,
+    metadata: {
+      deepSeekPromptPrefixHash: promptPrefixHash,
+      deepSeekInternalRetryUsed: internalRetryUsed,
+    },
     usage: {
       inputTokens: result.usage?.prompt_tokens,
       outputTokens: result.usage?.completion_tokens,
@@ -1190,6 +731,11 @@ function normalizeDebateScore(
   params: {
     practiceTrack?: PracticeTrack;
     practiceLanguage?: PracticeLanguage;
+    transcript?: string;
+    topic?: string;
+    rounds?: DebateRound[];
+    isFullRound?: boolean;
+    actualDuration?: number;
   }
 ) {
   clampSectionScores(parsed);
@@ -1198,9 +744,23 @@ function normalizeDebateScore(
   parsed.argumentBreakdowns = parsed.argumentBreakdowns ?? [];
   parsed.missingLayers = parsed.missingLayers ?? [];
   parsed.strongerRebuilds = parsed.strongerRebuilds ?? [];
-  parsed.transcriptAnnotations = normalizeTranscriptAnnotations(
-    parsed.transcriptAnnotations
+  const depthTarget = getDebateFeedbackDepthTarget({
+    isFullRound: params.practiceTrack !== "speaking" && Boolean(params.isFullRound),
+    actualDuration: params.actualDuration ?? 0,
+    roundCount: params.rounds?.length,
+  });
+  const annotationResult = normalizeTranscriptAnnotationsForFeedback(
+    parsed.transcriptAnnotations,
+    {
+      transcript: params.transcript ?? "",
+      topic: params.topic,
+      rounds: params.rounds,
+      practiceLanguage: params.practiceLanguage,
+      depthTarget,
+    }
   );
+  parsed.transcriptAnnotations = annotationResult.annotations;
+  parsed.annotationMetadata = annotationResult.metadata;
   parsed.debateVerdict = normalizeDebateVerdict(parsed.debateVerdict) ?? undefined;
   parsed.clashLinks = normalizeDebateClashLinks(parsed.clashLinks);
   parsed.scoreRationale = normalizeScoreRationale(parsed.scoreRationale, parsed);

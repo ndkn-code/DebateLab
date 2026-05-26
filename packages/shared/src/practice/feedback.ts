@@ -53,6 +53,14 @@ export interface TranscriptAnnotation {
   suggestion: string;
 }
 
+export interface TranscriptAnnotationMetadata {
+  acceptedCount: number;
+  rejectedCount: number;
+  repairUsed: boolean;
+  fallbackUsed: boolean;
+  rejectedReasons: string[];
+}
+
 export interface DebateVerdict {
   winner: "user" | "ai" | "tie";
   confidence: number;
@@ -137,6 +145,7 @@ export interface DebateScore {
   clashFeedback?: string;
   strongerRebuilds?: string[];
   transcriptAnnotations?: TranscriptAnnotation[];
+  annotationMetadata?: TranscriptAnnotationMetadata;
   debateVerdict?: DebateVerdict;
   clashLinks?: DebateClashLink[];
   scoreRationale?: ScoreRationale;

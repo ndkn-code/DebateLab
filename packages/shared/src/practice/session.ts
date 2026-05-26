@@ -78,7 +78,8 @@ export type PracticeTranscriptionWarning =
 export type PracticeTranscriptionProvider =
   | "deepgram"
   | "groq"
-  | "deepgram_groq_consensus";
+  | "deepgram_groq_consensus"
+  | "deepgram_groq_shadow";
 
 export interface PracticeTranscriptionAlternative {
   provider: PracticeTranscriptionProvider;
@@ -88,6 +89,7 @@ export interface PracticeTranscriptionAlternative {
   requestId: string | null;
   selected: boolean;
   errorCode?: string;
+  qualityFlags?: string[];
 }
 
 export interface PracticeTranscriptionNormalizationHint {

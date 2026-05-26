@@ -1,4 +1,9 @@
-import type { TranscriptAnnotation } from "@/types/feedback";
+import type { DebateRound, PracticeLanguage } from "@/types";
+import type {
+  DebateReviewSpeaker,
+  TranscriptAnnotation,
+  TranscriptAnnotationMetadata,
+} from "@/types/feedback";
 
 export interface TranscriptAnnotationMatch extends TranscriptAnnotation {
   id: string;
@@ -60,6 +65,55 @@ const FILLER_QUOTE_PATTERNS = [
   /^xin kính chào\b/i,
   /^xin chào\b/i,
   /^thank you[.!?。]*$/i,
+];
+
+const STOPWORDS = new Set([
+  "của",
+  "và",
+  "là",
+  "thì",
+  "mà",
+  "này",
+  "đó",
+  "được",
+  "trong",
+  "với",
+  "cho",
+  "một",
+  "các",
+  "những",
+  "rằng",
+  "bạn",
+  "đội",
+  "phe",
+  "cần",
+  "nên",
+  "phải",
+  "this",
+  "that",
+  "with",
+  "from",
+  "your",
+  "they",
+  "have",
+  "should",
+]);
+
+const HIGH_SIGNAL_TERMS = [
+  "cơ chế",
+  "tác động",
+  "phản biện",
+  "gánh nặng",
+  "clash",
+  "weigh",
+  "weighing",
+  "ngụy biện",
+  "survival bias",
+  "kẻ sống sót",
+  "bằng chứng",
+  "so sánh",
+  "thế giới",
+  "thiệt hại",
 ];
 
 export function getTranscriptAnnotationAccent(tag: string) {
@@ -138,6 +192,18 @@ function normalizeQuoteForQuality(value: string) {
     .trim();
 }
 
+function stripVietnameseDiacritics(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
+function normalizeForSemanticMatch(value: string) {
+  return stripVietnameseDiacritics(normalizeQuoteForQuality(value));
+}
+
 function normalizeAnnotationTag(value: unknown): TranscriptAnnotation["tag"] {
   if (typeof value !== "string") return "logic";
   const tag = value.trim().toLowerCase();
@@ -162,6 +228,232 @@ export function isLowSignalFeedbackQuote(quote: string) {
   if (words.length < 4) return true;
 
   return normalized.startsWith("hello vậy là rồi") && normalized.includes("không ghi âm được");
+}
+
+function isMotionOnlyQuote(quote: string, topic?: string | null) {
+  if (!topic) return false;
+  const normalizedQuote = normalizeForSemanticMatch(quote);
+  const normalizedTopic = normalizeForSemanticMatch(topic);
+  if (!normalizedQuote || !normalizedTopic) return false;
+  if (normalizedQuote === normalizedTopic) return true;
+  const quoteWords = normalizedQuote.split(" ").filter(Boolean);
+  const topicWords = new Set(normalizedTopic.split(" ").filter(Boolean));
+  if (quoteWords.length < 4 || quoteWords.length > topicWords.size + 3) {
+    return false;
+  }
+  const topicWordHits = quoteWords.filter((word) => topicWords.has(word)).length;
+  return topicWordHits / quoteWords.length >= 0.8;
+}
+
+function splitSentencesWithPosition(text: string) {
+  const matches = text.matchAll(/[^.!?。！？\n]+[.!?。！？]?/g);
+  return Array.from(matches)
+    .map((match) => ({
+      text: match[0].replace(/\s+/g, " ").trim(),
+      start: match.index ?? 0,
+    }))
+    .filter((sentence) => sentence.text.length >= 18);
+}
+
+function extractKeywords(value: string) {
+  const normalized = normalizeForSemanticMatch(value);
+  const words = normalized
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 4 && !STOPWORDS.has(word));
+  return Array.from(new Set(words)).slice(0, 18);
+}
+
+function containsAnySignal(text: string, signals: string[]) {
+  const normalized = normalizeForSemanticMatch(text);
+  return signals.some((signal) => normalized.includes(normalizeForSemanticMatch(signal)));
+}
+
+function createAnnotationSources(input: {
+  transcript: string;
+  rounds?: DebateRound[];
+}) {
+  const roundSources =
+    input.rounds
+      ?.map((round) => {
+        const text = (round.transcript || round.aiResponse || "").trim();
+        if (!text) return null;
+        return {
+          id: `round-${round.roundNumber}`,
+          text,
+          roundNumber: round.roundNumber,
+          speaker: (round.type === "ai-rebuttal" ? "ai" : "user") as DebateReviewSpeaker,
+        };
+      })
+      .filter(Boolean) ?? [];
+  return [
+    ...roundSources,
+    input.transcript.trim()
+      ? {
+          id: "full-transcript",
+          text: input.transcript,
+          roundNumber: undefined,
+          speaker: undefined,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    id: string;
+    text: string;
+    roundNumber?: number;
+    speaker?: DebateReviewSpeaker;
+  }>;
+}
+
+function findAnnotationSource(
+  sources: ReturnType<typeof createAnnotationSources>,
+  annotation: TranscriptAnnotation
+) {
+  return (
+    sources.find(
+      (source) =>
+        annotation.roundNumber != null &&
+        source.roundNumber === annotation.roundNumber &&
+        (!annotation.speaker || source.speaker === annotation.speaker)
+    ) ??
+    sources.find(
+      (source) => annotation.speaker && source.speaker === annotation.speaker
+    ) ??
+    sources[0] ??
+    null
+  );
+}
+
+function findQuoteInSources(
+  sources: ReturnType<typeof createAnnotationSources>,
+  annotation: TranscriptAnnotation
+) {
+  return sources.find((source) => {
+    if (annotation.roundNumber != null && source.roundNumber !== annotation.roundNumber) {
+      return false;
+    }
+    if (annotation.speaker && source.speaker && source.speaker !== annotation.speaker) {
+      return false;
+    }
+    return Boolean(
+      findExactRange(source.text, annotation.quote) ??
+        findLooseRange(source.text, annotation.quote)
+    );
+  });
+}
+
+function isSemanticallyConnected(
+  annotation: TranscriptAnnotation,
+  sourceText: string
+) {
+  const feedbackText = `${annotation.feedback} ${annotation.suggestion}`;
+  const keywords = extractKeywords(feedbackText);
+  if (keywords.length === 0) return true;
+  const quoteAndContext = `${annotation.quote} ${sourceText}`;
+  const keywordHits = keywords.filter((keyword) =>
+    normalizeForSemanticMatch(quoteAndContext).includes(keyword)
+  ).length;
+  if (keywordHits >= Math.min(2, keywords.length)) return true;
+  if (
+    containsAnySignal(feedbackText, HIGH_SIGNAL_TERMS) &&
+    !containsAnySignal(quoteAndContext, HIGH_SIGNAL_TERMS)
+  ) {
+    return false;
+  }
+  return keywordHits > 0;
+}
+
+function scoreCandidateSentence(
+  sentence: string,
+  annotation: TranscriptAnnotation
+) {
+  const normalized = normalizeForSemanticMatch(sentence);
+  const feedbackText = `${annotation.feedback} ${annotation.suggestion}`;
+  const keywords = extractKeywords(feedbackText);
+  const keywordScore = keywords.reduce(
+    (score, keyword) => score + (normalized.includes(keyword) ? 2 : 0),
+    0
+  );
+  const signalScore = HIGH_SIGNAL_TERMS.reduce(
+    (score, term) => score + (normalized.includes(normalizeForSemanticMatch(term)) ? 3 : 0),
+    0
+  );
+  const numberScore = /\d|%/.test(sentence) ? 1 : 0;
+  const length = sentence.split(/\s+/).length;
+  const lengthScore = length >= 7 && length <= 45 ? 2 : 0;
+  return keywordScore + signalScore + numberScore + lengthScore;
+}
+
+function reanchorAnnotation(
+  annotation: TranscriptAnnotation,
+  sources: ReturnType<typeof createAnnotationSources>,
+  topic?: string | null
+) {
+  const source = findAnnotationSource(sources, annotation);
+  if (!source) return null;
+  const candidates = splitSentencesWithPosition(source.text)
+    .filter((sentence) => !isLowSignalFeedbackQuote(sentence.text))
+    .filter((sentence) => !isMotionOnlyQuote(sentence.text, topic))
+    .map((sentence) => ({
+      text: sentence.text.slice(0, 260),
+      score: scoreCandidateSentence(sentence.text, annotation),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = candidates[0];
+  if (!best || best.score < 2) return null;
+  return {
+    ...annotation,
+    quote: best.text,
+    roundNumber: annotation.roundNumber ?? source.roundNumber,
+    speaker: annotation.speaker ?? source.speaker,
+  };
+}
+
+function createFallbackAnnotations(input: {
+  transcript: string;
+  rounds?: DebateRound[];
+  topic?: string | null;
+  practiceLanguage?: PracticeLanguage;
+  existingQuotes: Set<string>;
+  needed: number;
+}): TranscriptAnnotation[] {
+  const vi = input.practiceLanguage === "vi";
+  const sources = createAnnotationSources(input).filter((source) => source.speaker !== "ai");
+  const candidates = sources.flatMap((source) =>
+    splitSentencesWithPosition(source.text).map((sentence) => ({
+      source,
+      text: sentence.text.slice(0, 260),
+      score:
+        HIGH_SIGNAL_TERMS.reduce(
+          (score, term) =>
+            score + (normalizeForSemanticMatch(sentence.text).includes(normalizeForSemanticMatch(term)) ? 2 : 0),
+          0
+        ) +
+        (/\d|%/.test(sentence.text) ? 2 : 0) +
+        (sentence.text.split(/\s+/).length >= 8 ? 1 : 0),
+    }))
+  );
+
+  return candidates
+    .filter((candidate) => candidate.score >= 2)
+    .filter((candidate) => !isLowSignalFeedbackQuote(candidate.text))
+    .filter((candidate) => !isMotionOnlyQuote(candidate.text, input.topic))
+    .filter((candidate) => !input.existingQuotes.has(normalizeQuoteForQuality(candidate.text)))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, input.needed)
+    .map((candidate, index) => ({
+      quote: candidate.text,
+      roundNumber: candidate.source.roundNumber,
+      speaker: candidate.source.speaker ?? "user",
+      tag: index % 2 === 0 ? "mechanism" : "clash",
+      severity: "improvement",
+      feedback: vi
+        ? "Đây là đoạn lập luận có tín hiệu quan trọng, nhưng cần neo rõ hơn vào cơ chế, bằng chứng hoặc cân tác động."
+        : "This is a high-signal argument, but it needs clearer mechanism, evidence, or weighing.",
+      suggestion: vi
+        ? "Hãy thêm một bước vì sao, nhóm nào chịu tác động, rồi so sánh trực tiếp với phản biện của đối phương."
+        : "Add the why, identify the affected group, then compare directly against the opposing response.",
+    }));
 }
 
 export function locateTranscriptAnnotations(
@@ -239,6 +531,76 @@ export function normalizeTranscriptAnnotations(
       };
     })
     .filter(Boolean) as TranscriptAnnotation[];
+}
+
+export function normalizeTranscriptAnnotationsForFeedback(
+  value: unknown,
+  context: {
+    transcript: string;
+    topic?: string | null;
+    rounds?: DebateRound[];
+    practiceLanguage?: PracticeLanguage;
+    depthTarget?: { minAnnotations?: number };
+  }
+): {
+  annotations: TranscriptAnnotation[];
+  metadata: TranscriptAnnotationMetadata;
+} {
+  const normalized = normalizeTranscriptAnnotations(value);
+  const sources = createAnnotationSources(context);
+  const accepted: TranscriptAnnotation[] = [];
+  const rejectedReasons: string[] = [];
+  let repairUsed = false;
+
+  for (const annotation of normalized) {
+    const matchedSource = findQuoteInSources(sources, annotation);
+    const reason =
+      isMotionOnlyQuote(annotation.quote, context.topic)
+        ? "motion_only"
+        : !matchedSource
+          ? "unmatched_quote"
+          : !isSemanticallyConnected(annotation, matchedSource.text)
+            ? "semantic_disconnect"
+            : null;
+
+    if (!reason) {
+      accepted.push(annotation);
+      continue;
+    }
+
+    rejectedReasons.push(reason);
+    const repaired = reanchorAnnotation(annotation, sources, context.topic);
+    if (repaired) {
+      repairUsed = true;
+      accepted.push(repaired);
+    }
+  }
+
+  const target = context.depthTarget?.minAnnotations ?? 0;
+  const seenQuotes = new Set(accepted.map((annotation) => normalizeQuoteForQuality(annotation.quote)));
+  const fallbackNeeded = Math.max(0, target - accepted.length);
+  const fallbackAnnotations =
+    fallbackNeeded > 0
+      ? createFallbackAnnotations({
+          transcript: context.transcript,
+          rounds: context.rounds,
+          topic: context.topic,
+          practiceLanguage: context.practiceLanguage,
+          existingQuotes: seenQuotes,
+          needed: fallbackNeeded,
+        })
+      : [];
+
+  return {
+    annotations: [...accepted, ...fallbackAnnotations],
+    metadata: {
+      acceptedCount: accepted.length + fallbackAnnotations.length,
+      rejectedCount: rejectedReasons.length,
+      repairUsed,
+      fallbackUsed: fallbackAnnotations.length > 0,
+      rejectedReasons,
+    },
+  };
 }
 
 export function formatTranscriptTimestamp(seconds: number): string {

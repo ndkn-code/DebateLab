@@ -8,7 +8,7 @@ import type {
 import type { MotionBrief, PracticeLanguage } from "@/types";
 import { getPracticeLanguageConfig } from "@/lib/practice-language";
 import { STT_DEEPGRAM_MODEL, getSttConfig } from "./config";
-import { getSttWordCount, isGroqTranscriptPlausible } from "./consensus";
+import { analyzeGroqTranscriptQuality, getSttWordCount } from "./consensus";
 import { appendDeepgramKeyterms, buildSttKeyterms } from "./keyterms";
 import { mergeWarnings, normalizeTranscriptionText } from "./normalization";
 
@@ -196,7 +196,12 @@ async function transcribeWithDeepgram(
 function shouldUseGroq(input: TranscribePracticeAudioInput) {
   const config = getSttConfig();
   if (!config.finalRetranscribeEnabled) return false;
-  if (config.finalProvider !== "deepgram_groq_consensus") return false;
+  if (
+    config.finalProvider !== "deepgram_groq_consensus" &&
+    config.finalProvider !== "deepgram_groq_shadow"
+  ) {
+    return false;
+  }
   if (!config.finalRetranscribeLanguages.includes(input.practiceLanguage)) {
     return false;
   }
@@ -318,7 +323,8 @@ async function transcribeWithGroq(
 
 function toAlternative(
   result: ProviderResult,
-  selected: boolean
+  selected: boolean,
+  qualityFlags?: string[]
 ): PracticeTranscriptionAlternative {
   return {
     provider: result.provider,
@@ -328,6 +334,7 @@ function toAlternative(
     requestId: result.requestId,
     selected,
     errorCode: result.errorCode,
+    qualityFlags,
   };
 }
 
@@ -365,8 +372,13 @@ export async function transcribePracticeAudio(
     ? await transcribeWithGroq(input, keyterms, config.groqTimeoutMs)
     : null;
 
+  const groqQuality =
+    groq && !groq.errorCode
+      ? analyzeGroqTranscriptQuality(deepgram.transcript, groq.transcript)
+      : null;
+  const deepgramUsable = Boolean(deepgram.transcript && !deepgram.errorCode);
   const selected =
-    groq && !groq.errorCode && isGroqTranscriptPlausible(deepgram.transcript, groq.transcript)
+    !deepgramUsable && groq && !groq.errorCode && groqQuality?.plausible
       ? groq
       : deepgram;
   const rawTranscript = selected.transcript || deepgram.transcript || groq?.transcript || "";
@@ -385,20 +397,28 @@ export async function transcribePracticeAudio(
         wordCount: getSttWordCount(rawTranscript),
       };
   const selectedTranscript = normalization.normalizedTranscript || rawTranscript;
-  const providerDisagreement =
-    deepgram.transcript &&
-    groq?.transcript &&
-    !isGroqTranscriptPlausible(deepgram.transcript, groq.transcript);
+  const groqRejected =
+    Boolean(groq?.transcript && groqQuality && !groqQuality.plausible);
+  const providerDisagreement = Boolean(
+    deepgram.transcript && groq?.transcript && groqRejected
+  );
   const warnings = mergeWarnings(
     buildBaseWarnings(selected),
     normalization.warnings,
-    groq && groq.errorCode ? ["groq_unavailable", "fallback_transcript_used"] : [],
-    providerDisagreement ? ["provider_disagreement", "fallback_transcript_used"] : []
+    groq && groq.errorCode ? ["groq_unavailable"] : [],
+    providerDisagreement ? ["provider_disagreement", "possible_stt_artifacts"] : [],
+    selected.provider === "groq" ? ["fallback_transcript_used"] : []
   );
 
   const alternatives = [deepgram, groq]
     .filter((item): item is ProviderResult => Boolean(item))
-    .map((item) => toAlternative(item, item.provider === selected.provider));
+    .map((item) =>
+      toAlternative(
+        item,
+        item.provider === selected.provider,
+        item.provider === "groq" ? groqQuality?.qualityFlags : undefined
+      )
+    );
 
   return {
     transcript: selectedTranscript,
@@ -407,7 +427,7 @@ export async function transcribePracticeAudio(
       selectedTranscript !== rawTranscript ? selectedTranscript : undefined,
     confidence: selected.confidence,
     wordCount: normalization.wordCount,
-    provider: groq ? "deepgram_groq_consensus" : selected.provider,
+    provider: groq ? "deepgram_groq_shadow" : selected.provider,
     model: groq
       ? `${STT_DEEPGRAM_MODEL}+${groq.model}`
       : selected.model,

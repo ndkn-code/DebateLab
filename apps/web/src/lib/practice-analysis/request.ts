@@ -163,6 +163,7 @@ const TRANSCRIPTION_PROVIDERS = new Set<PracticeTranscriptionProvider>([
   "deepgram",
   "groq",
   "deepgram_groq_consensus",
+  "deepgram_groq_shadow",
 ]);
 const TRANSCRIPTION_WARNINGS = new Set<PracticeTranscriptionWarning>([
   "no_speech_detected",
@@ -198,6 +199,7 @@ function parseTranscriptionAlternative(value: unknown): PracticeTranscriptionAlt
     requestId: typeof value.requestId === "string" ? value.requestId.trim().slice(0, 160) : null,
     selected: value.selected === true,
     errorCode: typeof value.errorCode === "string" ? value.errorCode.trim().slice(0, 80) : undefined,
+    qualityFlags: readStringArray(value.qualityFlags, 12, 80),
   };
 }
 

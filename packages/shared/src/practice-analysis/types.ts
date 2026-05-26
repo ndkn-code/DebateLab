@@ -101,6 +101,7 @@ export interface CompletedPracticeAnalysis {
   modelName: string;
   legacySessionId: string | null;
   aiQualityRunId?: string | null;
+  resultMetadata?: Record<string, unknown>;
 }
 
 export interface PracticeAnalysisJobResponse {

@@ -12,6 +12,7 @@ import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import {
   createDebateCorpusRetrievalMetadata,
+  type DebateCorpusRetrievalCacheEntry,
   linkDebateCorpusRetrievalLogToAiRun,
   retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
@@ -41,6 +42,20 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function readCorpusRetrievalCache(
+  value: Record<string, unknown> | null
+): DebateCorpusRetrievalCacheEntry | null {
+  const cache = value?.corpusRetrievalCache;
+  if (!cache || typeof cache !== "object" || Array.isArray(cache)) return null;
+  const source = cache as Partial<DebateCorpusRetrievalCacheEntry>;
+  return source.schemaVersion === 1 &&
+    typeof source.cacheKey === "string" &&
+    source.result &&
+    typeof source.result === "object"
+    ? (source as DebateCorpusRetrievalCacheEntry)
+    : null;
+}
+
 export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
   async (message, metadata) => {
     const supabase = createAdminClient();
@@ -66,6 +81,8 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
 
     try {
       const input = practiceAttemptRowToInput(attempt);
+      let corpusRetrievalCache =
+        readCorpusRetrievalCache(job.result);
       const corpusRetrieval = await retrieveDebateCorpusContext({
         purpose: "judging",
         practiceLanguage: input.practiceLanguage,
@@ -79,6 +96,20 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         userId: attempt.user_id,
         sourceRoute: "/api/queues/practice-analysis",
         supabase,
+        cacheEntry: corpusRetrievalCache,
+        onCacheEntry: async (entry) => {
+          corpusRetrievalCache = entry;
+          await supabase
+            .from("analysis_jobs")
+            .update({
+              result: {
+                ...(job.result ?? {}),
+                corpusRetrievalCache: entry,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", job.id);
+        },
       });
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await evaluatePracticeFeedback(
@@ -98,6 +129,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         modelName,
       });
       const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+      const transcriptionMetadata = input.transcription
+        ? createTranscriptionQualityMetadata(input.transcription)
+        : null;
       const aiQualityRunId = aiQualityTelemetry
         ? await recordAiQualityRun(supabase, {
             ...aiQualityTelemetry,
@@ -125,14 +159,27 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
             analysisJobId: job.id,
             debateSessionId: savedSession.sessionId,
             metadata: {
+              ...(aiQualityTelemetry.metadata ?? {}),
               speechType: input.speechType,
               isFullRound: input.isFullRound,
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
-              transcription: input.transcription
-                ? createTranscriptionQualityMetadata(input.transcription)
-                : undefined,
+              transcription: transcriptionMetadata ?? undefined,
+              sttSelectedProvider:
+                transcriptionMetadata?.sttSelectedProvider ?? null,
+              sttShadowProvider:
+                transcriptionMetadata?.sttShadowProvider ?? null,
+              sttShadowRejectedReason:
+                transcriptionMetadata?.sttShadowRejectedReason ?? null,
               ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+              annotationAcceptedCount:
+                feedback.annotationMetadata?.acceptedCount ?? null,
+              annotationRejectedCount:
+                feedback.annotationMetadata?.rejectedCount ?? null,
+              annotationRepairUsed:
+                feedback.annotationMetadata?.repairUsed ?? false,
+              annotationFallbackUsed:
+                feedback.annotationMetadata?.fallbackUsed ?? false,
             },
           })
         : null;
@@ -149,6 +196,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         modelName,
         legacySessionId: savedSession.sessionId,
         aiQualityRunId,
+        resultMetadata: corpusRetrievalCache
+          ? { corpusRetrievalCache }
+          : undefined,
       });
 
       await recordAnalyticsEvent(supabase, attempt.user_id, {

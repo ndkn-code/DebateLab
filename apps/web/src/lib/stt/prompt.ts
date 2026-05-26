@@ -4,12 +4,24 @@ export function createTranscriptionQualityMetadata(
   transcription: PracticeTranscriptionArtifact | null | undefined
 ) {
   if (!transcription) return null;
+  const selectedAlternative = transcription.alternatives?.find(
+    (alternative) => alternative.selected
+  );
+  const shadowAlternative = transcription.alternatives?.find(
+    (alternative) => alternative.provider === "groq" && !alternative.selected
+  );
   return {
     provider: transcription.provider,
     model: transcription.model,
     confidence: transcription.confidence,
     wordCount: transcription.wordCount,
     warnings: transcription.warnings,
+    sttSelectedProvider: selectedAlternative?.provider ?? transcription.provider,
+    sttShadowProvider: shadowAlternative?.provider ?? null,
+    sttShadowRejectedReason:
+      shadowAlternative?.qualityFlags?.[0] ??
+      shadowAlternative?.errorCode ??
+      null,
     selectedRequestId: transcription.requestId,
     audioStoragePath: transcription.audioStoragePath,
     normalizationHints: transcription.normalizationHints ?? [],
@@ -21,6 +33,7 @@ export function createTranscriptionQualityMetadata(
         confidence: alternative.confidence,
         requestId: alternative.requestId,
         errorCode: alternative.errorCode,
+        qualityFlags: alternative.qualityFlags ?? [],
         wordCount: alternative.transcript
           .trim()
           .split(/\s+/)

@@ -153,6 +153,10 @@ function getCorpusMetadata(row: Row) {
     typeof metadata.corpusRagRelevanceGatePassed === "boolean"
       ? metadata.corpusRagRelevanceGatePassed
       : null;
+  const cacheHit =
+    typeof metadata.corpusRetrievalCacheHit === "boolean"
+      ? metadata.corpusRetrievalCacheHit
+      : false;
   const latencyMs =
     typeof metadata.corpusRetrievalLatencyMs === "number"
       ? metadata.corpusRetrievalLatencyMs
@@ -189,6 +193,7 @@ function getCorpusMetadata(row: Row) {
     retrievedCorpusCount,
     itemsAboveThresholdCount,
     relevanceGatePassed,
+    cacheHit,
     latencyMs,
     thresholds,
     status,
@@ -666,6 +671,12 @@ function DetailDrawer({
                   >
                     {String(alternative.provider ?? "provider")} ·{" "}
                     {alternative.selected ? "selected" : alternative.errorCode ? "fallback" : "candidate"}
+                    {Array.isArray(alternative.qualityFlags) &&
+                      alternative.qualityFlags.length > 0
+                      ? ` · ${alternative.qualityFlags
+                          .map((flag) => String(flag).replaceAll("_", " "))
+                          .join(", ")}`
+                      : ""}
                   </span>
                 ))}
                 {transcriptionMetadata.warnings.map((warning) => (
@@ -733,6 +744,7 @@ function DetailDrawer({
                   value={`${corpusMetadata.retrievedCorpusCount}/${corpusMetadata.candidateCorpusCount}`}
                 />
                 <MiniMetric label="RAG latency" value={formatLatency(corpusMetadata.latencyMs)} />
+                <MiniMetric label="Cache" value={corpusMetadata.cacheHit ? "hit" : "miss"} />
               </div>
               {corpusMetadata.skippedReason && (
                 <p className="mt-3 rounded-xl border border-warning/20 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">

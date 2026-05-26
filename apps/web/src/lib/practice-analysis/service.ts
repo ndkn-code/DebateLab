@@ -299,6 +299,7 @@ export async function markPracticeAnalysisCompleted(
         finished_at: now,
         updated_at: now,
         result: {
+          ...(result.resultMetadata ?? {}),
           attemptId: result.attemptId,
           legacySessionId: result.legacySessionId,
           aiQualityRunId: result.aiQualityRunId ?? null,

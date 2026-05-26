@@ -467,6 +467,9 @@ export async function POST(req: NextRequest) {
 
       const modelUsed = getPracticeFeedbackModelName(practiceTrack || "debate");
       const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+      const transcriptionMetadata = transcription
+        ? createTranscriptionQualityMetadata(transcription)
+        : null;
       const aiQualityRunId =
         shouldPersistAnalysis && aiQualityTelemetry
           ? await recordAiQualityRun(writeClient, {
@@ -501,9 +504,21 @@ export async function POST(req: NextRequest) {
                 isFullRound,
                 roundCount: rounds?.length ?? 0,
                 ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
-                transcription: transcription
-                  ? createTranscriptionQualityMetadata(transcription)
-                  : undefined,
+                annotationAcceptedCount:
+                  feedback.annotationMetadata?.acceptedCount ?? null,
+                annotationRejectedCount:
+                  feedback.annotationMetadata?.rejectedCount ?? null,
+                annotationRepairUsed:
+                  feedback.annotationMetadata?.repairUsed ?? false,
+                annotationFallbackUsed:
+                  feedback.annotationMetadata?.fallbackUsed ?? false,
+                transcription: transcriptionMetadata ?? undefined,
+                sttSelectedProvider:
+                  transcriptionMetadata?.sttSelectedProvider ?? null,
+                sttShadowProvider:
+                  transcriptionMetadata?.sttShadowProvider ?? null,
+                sttShadowRejectedReason:
+                  transcriptionMetadata?.sttShadowRejectedReason ?? null,
               },
             })
           : null;

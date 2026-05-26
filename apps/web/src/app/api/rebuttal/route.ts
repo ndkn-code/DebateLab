@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
@@ -375,16 +376,10 @@ Rules:
     },
     {
       role: "user",
-      content: `## Debate Setup
-- Format: Trường Teen-style practice debate
-- AI side: ${params.aiSide}
-- Motion: "${params.topic}"
-${params.motionBriefContext}
-${params.debateMemoryContext}
-
+      content: `## Static Debate Opponent Rules
+Format: Trường Teen-style practice debate.
 ${params.difficultyInstructions}
 ${params.truongTeenPromptContext ?? ""}
-${params.corpusContext ?? ""}
 
 ## Practice Track
 ${params.track}
@@ -392,6 +387,15 @@ ${params.track}
 ## Practice Language
 ${params.languageLabel}
 ${params.responseLanguageInstruction}`,
+    },
+    {
+      role: "user",
+      content: `## Dynamic Debate Setup
+- AI side: ${params.aiSide}
+- Motion: "${params.topic}"
+${params.motionBriefContext}
+${params.debateMemoryContext}
+${params.corpusContext ?? ""}`,
     },
   ];
 
@@ -434,6 +438,12 @@ Rules:
   });
 
   return messages;
+}
+
+function getDeepSeekRebuttalPromptPrefixHash(messages: DeepSeekMessage[]) {
+  return createHash("sha256")
+    .update(`${messages[0]?.content ?? ""}\n\n${messages[1]?.content ?? ""}`)
+    .digest("hex");
 }
 
 async function generateGeminiRebuttal(
@@ -773,6 +783,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       corpusContext: corpusRetrieval.contextBlock,
       evidenceHintContext,
     });
+    const deepSeekPromptPrefixHash =
+      getDeepSeekRebuttalPromptPrefixHash(deepSeekMessages);
 
     let generation: RebuttalGeneration;
     if (requestedProvider === "deepseek" && process.env.DEEPSEEK_API_KEY) {
@@ -881,6 +893,10 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               highlightCount: structuredResponse.highlights.length,
               wordTarget,
               truongTeenLengthRetryUsed,
+              deepSeekPromptPrefixHash:
+                generation.provider === "deepseek"
+                  ? deepSeekPromptPrefixHash
+                  : undefined,
               ...corpusRagMetadata,
               truongTeenPromptVersion: useTruongTeenPrompt
                 ? TRUONG_TEEN_PROMPT_VERSION

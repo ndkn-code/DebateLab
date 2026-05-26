@@ -71,7 +71,8 @@ export function SessionTranscriptPanel({
     (sttHintCount > 0 ||
       sttWarnings.includes("possible_stt_artifacts") ||
       sttWarnings.includes("fallback_transcript_used") ||
-      session.transcription?.provider === "deepgram_groq_consensus");
+      session.transcription?.provider === "deepgram_groq_consensus" ||
+      session.transcription?.provider === "deepgram_groq_shadow");
   const speechPartControl = hasMultipleSpeechParts ? (
     <label className="block">
       <span className="text-xs font-bold text-[#718096]">

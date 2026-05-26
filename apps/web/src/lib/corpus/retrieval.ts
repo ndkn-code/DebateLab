@@ -34,7 +34,16 @@ export interface DebateCorpusRetrievalResult {
   itemsAboveThresholdCount: number;
   relevanceGatePassed: boolean | null;
   relevanceGateConfig: DebateCorpusRelevanceGateConfig | null;
+  cacheKey: string | null;
+  cacheHit: boolean;
   skippedReason?: string;
+}
+
+export interface DebateCorpusRetrievalCacheEntry {
+  schemaVersion: 1;
+  cacheKey: string;
+  createdAt: string;
+  result: DebateCorpusRetrievalResult;
 }
 
 interface RetrieveDebateCorpusParams {
@@ -48,6 +57,8 @@ interface RetrieveDebateCorpusParams {
   userId?: string | null;
   sourceRoute: string;
   supabase?: SupabaseClient;
+  cacheEntry?: DebateCorpusRetrievalCacheEntry | null;
+  onCacheEntry?: (entry: DebateCorpusRetrievalCacheEntry) => Promise<void> | void;
 }
 
 function hashText(value: string) {
@@ -73,6 +84,33 @@ function buildRetrievalQuery(params: RetrieveDebateCorpusParams) {
     .filter(Boolean)
     .join("\n\n")
     .slice(0, 12000);
+}
+
+function createRetrievalCacheKey(params: {
+  queryText: string;
+  purpose: DebateCorpusPurpose;
+  usableFor: string;
+  config: ReturnType<typeof getDebateCorpusEmbeddingConfig>;
+  reviewStatuses: string[];
+  relevanceConfig: DebateCorpusRelevanceGateConfig;
+  topic: string;
+  side?: string;
+}) {
+  return hashText(
+    JSON.stringify({
+      schemaVersion: 1,
+      queryHash: hashText(params.queryText),
+      purpose: params.purpose,
+      usableFor: params.usableFor,
+      embeddingProvider: params.config.provider,
+      embeddingModel: params.config.model,
+      embeddingDimensions: params.config.dimensions,
+      reviewStatuses: params.reviewStatuses,
+      relevanceConfig: params.relevanceConfig,
+      topic: params.topic,
+      side: params.side ?? null,
+    })
+  );
 }
 
 function normalizeRetrievedRows(value: unknown): RetrievedDebateCorpusItem[] {
@@ -151,6 +189,8 @@ function emptyRetrievalResult(
     itemsAboveThresholdCount: 0,
     relevanceGatePassed: null,
     relevanceGateConfig: null,
+    cacheKey: null,
+    cacheHit: false,
     skippedReason: overrides.skippedReason,
   };
 }
@@ -172,6 +212,8 @@ export function createDebateCorpusRetrievalMetadata(
     corpusRagItemsAboveThresholdCount: retrieval.itemsAboveThresholdCount,
     corpusRagRelevanceGatePassed: retrieval.relevanceGatePassed,
     corpusRagRelevanceThresholds: retrieval.relevanceGateConfig,
+    corpusRetrievalCacheHit: retrieval.cacheHit,
+    corpusRetrievalCacheKey: retrieval.cacheKey,
   };
 }
 
@@ -231,6 +273,25 @@ export async function retrieveDebateCorpusContext(
     const config = getDebateCorpusEmbeddingConfig();
     const reviewStatuses = getDebateCorpusRagReviewStatuses();
     const relevanceConfig = getDebateCorpusRagRelevanceConfig();
+    const cacheKey = createRetrievalCacheKey({
+      queryText,
+      purpose: params.purpose,
+      usableFor,
+      config,
+      reviewStatuses,
+      relevanceConfig,
+      topic: params.topic,
+      side: params.side,
+    });
+
+    if (params.cacheEntry?.cacheKey === cacheKey) {
+      return {
+        ...params.cacheEntry.result,
+        cacheKey,
+        cacheHit: true,
+      };
+    }
+
     const embedding = await createDebateCorpusEmbedding({
       text: queryText,
       inputType: "query",
@@ -295,7 +356,7 @@ export async function retrieveDebateCorpusContext(
       },
     });
 
-    return {
+    const result: DebateCorpusRetrievalResult = {
       enabled: true,
       contextBlock,
       items,
@@ -307,8 +368,17 @@ export async function retrieveDebateCorpusContext(
       itemsAboveThresholdCount: relevance.itemsAboveThresholdCount,
       relevanceGatePassed: relevance.passed,
       relevanceGateConfig: relevanceConfig,
+      cacheKey,
+      cacheHit: false,
       skippedReason,
     };
+    await params.onCacheEntry?.({
+      schemaVersion: 1,
+      cacheKey,
+      createdAt: new Date().toISOString(),
+      result,
+    });
+    return result;
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
