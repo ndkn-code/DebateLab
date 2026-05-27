@@ -21,6 +21,7 @@ import {
 import { formatMotionBriefForPrompt } from "@/lib/motion-brief";
 import {
   createDeepSeekChatCompletion,
+  createDeepSeekStreamingChatCompletion,
   type DeepSeekMessage,
   type DeepSeekUsage,
 } from "@/lib/ai/deepseek";
@@ -348,17 +349,13 @@ interface DeepSeekRebuttalMessageParams {
   truongTeenPromptContext?: string;
   corpusContext?: string;
   evidenceHintContext?: string;
+  responseMode?: "json" | "text";
 }
 
 function buildDeepSeekRebuttalMessages(
   params: DeepSeekRebuttalMessageParams
 ): DeepSeekMessage[] {
-  const messages: DeepSeekMessage[] = [
-    {
-      role: "system",
-      content: `You are a debate AI playing an opponent in a Trường Teen-style practice debate.
-
-Return ONLY valid JSON in this exact shape:
+  const jsonContract = `Return ONLY valid JSON in this exact shape:
 {
   "rebuttal": "the spoken rebuttal text only",
   "highlights": [
@@ -368,33 +365,45 @@ Return ONLY valid JSON in this exact shape:
       "note": "short student-friendly reason this phrase matters"
     }
   ]
-}
+}`;
+  const textContract =
+    "Return only the spoken rebuttal text. Do not wrap it in JSON, Markdown, headings, or coaching notes.";
+  const messages: DeepSeekMessage[] = [
+    {
+      role: "system",
+      content: `You are a debate AI playing an opponent in a Trường Teen-style practice debate.
+
+${params.responseMode === "text" ? textContract : jsonContract}
 
 Rules:
 - Do not judge the round.
 - Do not coach the student directly.
-- Highlight 3-5 exact quotes that appear verbatim in "rebuttal".
+- In JSON mode, highlight 3-5 exact quotes that appear verbatim in "rebuttal".
 - Avoid literal translated idioms that sound unnatural in Vietnamese debate speech.`,
     },
     {
       role: "user",
       content: `## Static Debate Opponent Rules
 Format: Trường Teen-style practice debate.
-${params.difficultyInstructions}
-${params.truongTeenPromptContext ?? ""}
-
-## Practice Track
-${params.track}
-
-## Practice Language
-${params.languageLabel}
-${params.responseLanguageInstruction}`,
+Follow the duration-aware word target given in the dynamic request.
+Directly clash, explain mechanisms, compare worlds, weigh impacts, and keep the side consistent.
+Use natural spoken debate language; prioritize clear logic over ornamental wording.`,
     },
     {
       role: "user",
       content: `## Dynamic Debate Setup
 - AI side: ${params.aiSide}
 - Motion: "${params.topic}"
+## Practice Track
+${params.track}
+
+## Practice Language
+${params.languageLabel}
+${params.responseLanguageInstruction}
+
+## Difficulty Instructions
+${params.difficultyInstructions}
+${params.truongTeenPromptContext ?? ""}
 ${params.motionBriefContext}
 ${params.debateMemoryContext}
 ${params.corpusContext ?? ""}`,
@@ -446,6 +455,54 @@ function getDeepSeekRebuttalPromptPrefixHash(messages: DeepSeekMessage[]) {
   return createHash("sha256")
     .update(`${messages[0]?.content ?? ""}\n\n${messages[1]?.content ?? ""}`)
     .digest("hex");
+}
+
+function hashRebuttalRequest(value: Record<string, unknown>) {
+  return createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
+}
+
+async function findCachedRebuttalResponse(params: {
+  supabase: ReturnType<typeof tryCreateAdminClient> | null;
+  userId: string;
+  requestHash: string;
+}) {
+  if (!params.supabase) return null;
+  const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data, error } = await params.supabase
+    .from("ai_quality_runs")
+    .select("id, provider, model, output_text, metadata, latency_ms")
+    .eq("user_id", params.userId)
+    .eq("output_type", "rebuttal")
+    .eq("status", "success")
+    .contains("metadata", { rebuttalRequestHash: params.requestHash })
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const metadata =
+    data.metadata && typeof data.metadata === "object" && !Array.isArray(data.metadata)
+      ? (data.metadata as Record<string, unknown>)
+      : {};
+  const cachedResponse = metadata.rebuttalResponse;
+  const normalized = normalizeStructuredRebuttalResponse(
+    typeof data.output_text === "string" ? data.output_text : "",
+    cachedResponse && typeof cachedResponse === "object"
+      ? (cachedResponse as Record<string, unknown>).highlights
+      : []
+  );
+  if (!normalized.rebuttal) return null;
+
+  return {
+    aiRunId: data.id as string,
+    provider: typeof data.provider === "string" ? data.provider : null,
+    model: typeof data.model === "string" ? data.model : null,
+    latencyMs: typeof data.latency_ms === "number" ? data.latency_ms : null,
+    response: normalized,
+  };
 }
 
 async function generateGeminiRebuttal(
@@ -576,6 +633,115 @@ async function generateDeepSeekRebuttal(
   };
 }
 
+function buildDeterministicRebuttalHighlights(
+  rebuttal: string,
+  practiceLanguage: PracticeLanguage
+): NonNullable<ReturnType<typeof normalizeStructuredRebuttalResponse>["highlights"]> {
+  const sentences = Array.from(
+    rebuttal.matchAll(/[^.!?。！？\n]+[.!?。！？]?/g)
+  )
+    .map((match) => match[0].replace(/\s+/g, " ").trim())
+    .filter((sentence) => sentence.length >= 42 && sentence.length <= 260);
+  const typeForSentence = (sentence: string, index: number) => {
+    if (/(bằng chứng|ví dụ|số liệu|nghiên cứu|evidence|example|\d|%)/i.test(sentence)) {
+      return "evidence" as const;
+    }
+    if (/(tác động|hệ quả|dẫn đến|ảnh hưởng|impact|harm|benefit)/i.test(sentence)) {
+      return "impact" as const;
+    }
+    if (/(giả định|tiền đề|assumption|ngộ nhận|không thể mặc định)/i.test(sentence)) {
+      return "assumption" as const;
+    }
+    return index % 3 === 1 ? ("impact" as const) : ("claim" as const);
+  };
+
+  return sentences
+    .map((sentence, index) => {
+      const quote =
+        sentence.length > 150
+          ? sentence.slice(0, 150).replace(/\s+\S*$/, "").trim()
+          : sentence;
+      const type = typeForSentence(sentence, index);
+      const notes =
+        practiceLanguage === "vi"
+          ? {
+              evidence: "Câu này giúp phản biện có điểm tựa cụ thể.",
+              impact: "Câu này giải thích vì sao mâu thuẫn này đáng quan tâm.",
+              assumption: "Câu này tấn công tiền đề ẩn của đối phương.",
+              claim: "Câu này nêu luận điểm chính một cách rõ ràng.",
+            }
+          : {
+              evidence: "This line gives the rebuttal concrete grounding.",
+              impact: "This line explains why the clash matters.",
+              assumption: "This line attacks the opponent's hidden premise.",
+              claim: "This line states the main claim clearly.",
+            };
+      return {
+        sentence,
+        score:
+          (/(cơ chế|clash|so sánh|tác động|bằng chứng|vì sao|weigh|impact)/i.test(
+            sentence
+          )
+            ? 3
+            : 0) + (sentence.length >= 70 ? 1 : 0),
+        highlight: {
+          type,
+          quote,
+          note: notes[type],
+        },
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 4)
+    .map((item) => item.highlight);
+}
+
+async function generateDeepSeekStreamingRebuttal(
+  messages: DeepSeekMessage[],
+  maxOutputTokens: number,
+  timeoutMs: number,
+  userId: string,
+  onDelta: (delta: string) => void | Promise<void>
+): Promise<RebuttalGeneration & { firstTokenLatencyMs?: number | null }> {
+  const startTime = Date.now();
+  const result = await createDeepSeekStreamingChatCompletion({
+    messages,
+    thinking: { type: "disabled" },
+    responseFormat: "text",
+    maxTokens: maxOutputTokens,
+    temperature: 0.7,
+    timeoutMs,
+    userId,
+    sourceRoute: "/api/rebuttal/stream",
+    outputType: "rebuttal",
+    metadata: {
+      maxOutputTokens,
+      timeoutMs,
+      streamMode: "sse",
+    },
+    onDelta,
+  });
+  const latency = Date.now() - startTime;
+  const usage: DeepSeekUsage | undefined = result.usage;
+
+  return {
+    provider: "deepseek",
+    modelName: result.model,
+    text: result.content,
+    usage: {
+      inputTokens: usage?.prompt_tokens,
+      outputTokens: usage?.completion_tokens,
+      cacheHitTokens: usage?.prompt_cache_hit_tokens,
+      cacheMissTokens: usage?.prompt_cache_miss_tokens,
+      reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens,
+    },
+    latency,
+    fallbackUsed: false,
+    providerRequestIds: result.providerRequestId ? [result.providerRequestId] : [],
+    firstTokenLatencyMs: result.firstTokenLatencyMs,
+  };
+}
+
 export async function POST(req: NextRequest) {
   let recordGenerationError: ((error: unknown) => Promise<void>) | null = null;
   let corpusRagMetadata: Record<string, unknown> = {};
@@ -618,9 +784,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = parseRebuttalRequest(
-      await readJsonObject(req, { maxBytes: 160 * 1024 })
-    );
+    const rawBody = await readJsonObject(req, { maxBytes: 160 * 1024 });
+    const wantsStream =
+      rawBody.stream === true ||
+      req.headers.get("accept")?.includes("text/event-stream") === true;
+    const body = parseRebuttalRequest(rawBody);
     const {
       topic,
       side,
@@ -835,6 +1003,272 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
     });
     const deepSeekPromptPrefixHash =
       getDeepSeekRebuttalPromptPrefixHash(deepSeekMessages);
+    const deepSeekStreamMessages = buildDeepSeekRebuttalMessages({
+      aiSide,
+      topic,
+      motionBriefContext,
+      debateMemoryContext,
+      difficultyInstructions,
+      previousRounds,
+      roundLabel,
+      currentRoundNumber,
+      speechTimeSeconds,
+      wordTarget,
+      track,
+      languageLabel: languageConfig.label,
+      responseLanguageInstruction,
+      userTranscript,
+      roundInstructions,
+      learnerContext,
+      truongTeenPromptContext,
+      corpusContext: corpusRetrieval.contextBlock,
+      evidenceHintContext,
+      responseMode: "text",
+    });
+    const deepSeekStreamPromptPrefixHash =
+      getDeepSeekRebuttalPromptPrefixHash(deepSeekStreamMessages);
+    const rebuttalRequestHash = hashRebuttalRequest({
+      topic,
+      side,
+      userTranscript,
+      roundLabel,
+      difficulty,
+      track,
+      practiceLanguage,
+      previousRounds,
+      speechTimeSeconds,
+      currentRoundNumber,
+      motionBrief,
+      debateMemory,
+      requestedProvider,
+      model: getProviderModelName(requestedProvider),
+      wordTarget,
+      corpusContextHash: createHash("sha256")
+        .update(corpusRetrieval.contextBlock || "")
+        .digest("hex"),
+      truongTeenPromptVersion: useTruongTeenPrompt
+        ? TRUONG_TEEN_PROMPT_VERSION
+        : null,
+    });
+    const cachedRebuttal =
+      auth.authSource === "dev-bypass"
+        ? null
+        : await findCachedRebuttalResponse({
+            supabase: adminClient,
+            userId: authUser.id,
+            requestHash: rebuttalRequestHash,
+          });
+    if (cachedRebuttal) {
+      await linkDebateCorpusRetrievalLogToAiRun(
+        corpusRetrieval.logId,
+        cachedRebuttal.aiRunId,
+        adminClient ?? undefined
+      );
+      if (wantsStream) {
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          start(controller) {
+            const send = (event: string, data: unknown) => {
+              controller.enqueue(
+                encoder.encode(
+                  `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+                )
+              );
+            };
+            send("meta", {
+              cached: true,
+              aiRunId: cachedRebuttal.aiRunId,
+              provider: cachedRebuttal.provider,
+              model: cachedRebuttal.model,
+            });
+            send("final", {
+              ...cachedRebuttal.response,
+              _aiRunId: cachedRebuttal.aiRunId,
+              _provider: cachedRebuttal.provider,
+              _model: cachedRebuttal.model,
+              _latencyMs: cachedRebuttal.latencyMs,
+              _cacheHit: true,
+            });
+            controller.close();
+          },
+        });
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            Connection: "keep-alive",
+          },
+        });
+      }
+
+      return NextResponse.json({
+        ...cachedRebuttal.response,
+        _aiRunId: cachedRebuttal.aiRunId,
+        _provider: cachedRebuttal.provider,
+        _model: cachedRebuttal.model,
+        _latencyMs: cachedRebuttal.latencyMs,
+        _cacheHit: true,
+      });
+    }
+
+    if (
+      wantsStream &&
+      requestedProvider === "deepseek" &&
+      process.env.DEEPSEEK_API_KEY
+    ) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(
+              encoder.encode(
+                `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+              )
+            );
+          };
+          try {
+            send("meta", {
+              provider: "deepseek",
+              model: getProviderModelName("deepseek"),
+              requestHash: rebuttalRequestHash,
+            });
+            let streamedText = "";
+            let generation = await generateDeepSeekStreamingRebuttal(
+              deepSeekStreamMessages,
+              maxOutputTokens,
+              timeoutMs,
+              authUser.id,
+              (delta) => {
+                streamedText += delta;
+                send("delta", { text: delta });
+              }
+            );
+            let structuredResponse = normalizeStructuredRebuttalResponse(
+              generation.text,
+              buildDeterministicRebuttalHighlights(
+                generation.text,
+                practiceLanguage
+              )
+            );
+            let truongTeenLengthRetryUsed = false;
+            if (
+              shouldRetryTruongTeenLength({
+                enabled: useTruongTeenPrompt,
+                difficulty,
+                wordTarget,
+                rebuttal: structuredResponse.rebuttal,
+              })
+            ) {
+              const retryInstruction = buildTruongTeenLengthRetryInstruction(wordTarget);
+              const retryGeneration = await generateDeepSeekRebuttal(
+                [
+                  ...deepSeekMessages,
+                  { role: "assistant", content: JSON.stringify(structuredResponse) },
+                  { role: "user", content: retryInstruction },
+                ],
+                maxOutputTokens,
+                timeoutMs,
+                authUser.id
+              );
+              generation = {
+                ...retryGeneration,
+                providerRequestIds: [
+                  ...(generation.providerRequestIds ?? []),
+                  ...(retryGeneration.providerRequestIds ?? []),
+                ],
+                firstTokenLatencyMs: generation.firstTokenLatencyMs,
+              };
+              structuredResponse = normalizeStructuredRebuttalResponse(
+                generation.text
+              );
+              truongTeenLengthRetryUsed = true;
+            }
+
+            const aiQualityRunId =
+              auth.authSource === "dev-bypass"
+                ? null
+                : await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
+                    userId: authUser.id,
+                    outputType: "rebuttal",
+                    sourceRoute: "/api/rebuttal/stream",
+                    provider: getProviderLabel(generation.provider),
+                    requestedProvider,
+                    model:
+                      generation.modelName ||
+                      getProviderModelName(generation.provider),
+                    practiceTrack: track,
+                    practiceLanguage,
+                    difficulty,
+                    debateFormat,
+                    side,
+                    aiSide: memoryAiSide,
+                    topicTitle: topic,
+                    latencyMs: generation.latency,
+                    usage: {
+                      inputTokens: generation.usage?.inputTokens,
+                      outputTokens: generation.usage?.outputTokens,
+                      cacheHitTokens: generation.usage?.cacheHitTokens,
+                      cacheMissTokens: generation.usage?.cacheMissTokens,
+                      reasoningTokens: generation.usage?.reasoningTokens,
+                    },
+                    providerRequestIds: generation.providerRequestIds,
+                    fallbackUsed: generation.fallbackUsed,
+                    outputText: structuredResponse.rebuttal,
+                    inputPreview: userTranscript,
+                    metadata: {
+                      roundLabel,
+                      currentRoundNumber,
+                      speechTimeSeconds,
+                      highlightCount: structuredResponse.highlights.length,
+                      wordTarget,
+                      truongTeenLengthRetryUsed,
+                      deepSeekPromptPrefixHash: deepSeekStreamPromptPrefixHash,
+                      rebuttalRequestHash,
+                      rebuttalResponse: structuredResponse,
+                      rebuttalStreamMode: "sse",
+                      firstTokenLatencyMs: generation.firstTokenLatencyMs ?? null,
+                      streamedCharacterCount: streamedText.length,
+                      ...corpusRagMetadata,
+                      truongTeenPromptVersion: useTruongTeenPrompt
+                        ? TRUONG_TEEN_PROMPT_VERSION
+                        : undefined,
+                    },
+                  });
+            await linkDebateCorpusRetrievalLogToAiRun(
+              corpusRetrieval.logId,
+              aiQualityRunId,
+              adminClient ?? undefined
+            );
+            send("final", {
+              ...structuredResponse,
+              _aiRunId: aiQualityRunId,
+              _provider: getProviderLabel(generation.provider),
+              _model:
+                generation.modelName || getProviderModelName(generation.provider),
+              _latencyMs: generation.latency,
+              _firstTokenLatencyMs: generation.firstTokenLatencyMs ?? null,
+            });
+            controller.close();
+          } catch (error) {
+            await recordGenerationError?.(error).catch(() => {});
+            send("error", {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to generate AI rebuttal.",
+            });
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
 
     let generation: RebuttalGeneration;
     if (requestedProvider === "deepseek" && process.env.DEEPSEEK_API_KEY) {
@@ -952,6 +1386,9 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
                 generation.provider === "deepseek"
                   ? deepSeekPromptPrefixHash
                   : undefined,
+              rebuttalRequestHash,
+              rebuttalResponse: structuredResponse,
+              rebuttalStreamMode: "json",
               ...corpusRagMetadata,
               truongTeenPromptVersion: useTruongTeenPrompt
                 ? TRUONG_TEEN_PROMPT_VERSION

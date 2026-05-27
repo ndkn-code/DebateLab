@@ -331,6 +331,10 @@ type AnalyzeDebateParams = {
     practiceAttemptId?: string;
     analysisJobId?: string;
     metadata?: Record<string, unknown>;
+    stagedGeminiCache?: StagedGeminiCache;
+    onStagedGeminiCacheEntry?: (
+      entry: StagedGeminiCacheEntry
+    ) => void | Promise<void>;
   };
 };
 
@@ -350,7 +354,31 @@ type GeminiStageResult = {
   keySlot?: number;
   keyFallbackCount?: number;
   providerRequestId?: string | null;
+  cacheHit?: boolean;
 };
+
+export type StagedGeminiStageName =
+  | "speech_map"
+  | "verdict_feedback"
+  | "annotation_anchor";
+
+export type StagedGeminiCacheEntry = {
+  schemaVersion: 1;
+  stage: StagedGeminiStageName;
+  modelName: string;
+  promptHash: string;
+  text: string;
+  latencyMs: number;
+  usage?: GeminiUsageMetadata;
+  keySlot?: number | null;
+  keyFallbackCount?: number | null;
+  providerRequestId?: string | null;
+  createdAt: string;
+};
+
+export type StagedGeminiCache = Partial<
+  Record<StagedGeminiStageName, StagedGeminiCacheEntry>
+>;
 
 type StagedDebateSpeechMap = {
   speechMap?: Array<{
@@ -624,10 +652,96 @@ function summarizeGeminiStages(stages: GeminiStageResult[]) {
         },
       ])
     ),
+    stageCacheHits: Object.fromEntries(
+      stages.map((stage) => [stage.stage, Boolean(stage.cacheHit)])
+    ),
   };
 }
 
-function buildStagedFullRoundBaseContext(params: AnalyzeDebateParams) {
+function readCachedGeminiStage(params: {
+  cache?: StagedGeminiCache;
+  stage: StagedGeminiStageName;
+  modelName: string;
+  promptHash: string;
+}): GeminiStageResult | null {
+  const cached = params.cache?.[params.stage];
+  if (
+    !cached ||
+    cached.schemaVersion !== 1 ||
+    cached.stage !== params.stage ||
+    cached.modelName !== params.modelName ||
+    cached.promptHash !== params.promptHash ||
+    !cached.text
+  ) {
+    return null;
+  }
+
+  return {
+    stage: cached.stage,
+    text: cached.text,
+    latencyMs: cached.latencyMs,
+    usage: cached.usage,
+    keySlot: cached.keySlot ?? undefined,
+    keyFallbackCount: cached.keyFallbackCount ?? undefined,
+    providerRequestId: cached.providerRequestId,
+    cacheHit: true,
+  };
+}
+
+async function generateCachedGeminiStage(params: {
+  modelName: string;
+  stage: StagedGeminiStageName;
+  prompt: string;
+  promptHash: string;
+  maxOutputTokens: number;
+  temperature?: number;
+  keySeed?: string;
+  cache?: StagedGeminiCache;
+  onCacheEntry?: (entry: StagedGeminiCacheEntry) => void | Promise<void>;
+  audit?: Parameters<typeof generateGeminiStage>[0]["audit"];
+}) {
+  const cached = readCachedGeminiStage({
+    cache: params.cache,
+    stage: params.stage,
+    modelName: params.modelName,
+    promptHash: params.promptHash,
+  });
+  if (cached) return cached;
+
+  const stageResult = await generateGeminiStage({
+    modelName: params.modelName,
+    stage: params.stage,
+    prompt: params.prompt,
+    maxOutputTokens: params.maxOutputTokens,
+    temperature: params.temperature,
+    keySeed: params.keySeed,
+    audit: params.audit,
+  });
+  const cacheEntry: StagedGeminiCacheEntry = {
+    schemaVersion: 1,
+    stage: params.stage,
+    modelName: params.modelName,
+    promptHash: params.promptHash,
+    text: stageResult.text,
+    latencyMs: stageResult.latencyMs,
+    usage: stageResult.usage,
+    keySlot: stageResult.keySlot ?? null,
+    keyFallbackCount: stageResult.keyFallbackCount ?? null,
+    providerRequestId: stageResult.providerRequestId ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  await params.onCacheEntry?.(cacheEntry);
+  return stageResult;
+}
+
+function buildStagedFullRoundBaseContext(
+  params: AnalyzeDebateParams,
+  options: {
+    includeCorpus?: boolean;
+    includeTruongTeenRubric?: boolean;
+    includeSttGuardrail?: boolean;
+  } = {}
+) {
   const language =
     params.practiceLanguage === "vi"
       ? "Write all user-facing coaching prose in natural Vietnamese with diacritics. Keep JSON keys and enum literals in English."
@@ -639,18 +753,26 @@ function buildStagedFullRoundBaseContext(params: AnalyzeDebateParams) {
   const truongTeenJudgingContext = useTruongTeenPrompt
     ? buildTruongTeenJudgingPromptAddendum()
     : "";
+  const scopedParams: AnalyzeDebateParams = {
+    ...params,
+    corpusContext: options.includeCorpus ? params.corpusContext : "",
+    transcription: options.includeSttGuardrail === false ? null : params.transcription,
+  };
   return `You are Thinkfy's staged full-round debate judge.
 ${language}
 Judge only the student's/user's skill and whether the user beat the AI opponent in this practice round.
 Be strict about mechanism, clash, weighing, and strategic adaptation.
 Do not penalize likely speech-to-text spelling artifacts unless the meaning remains unclear after context.
-${truongTeenJudgingContext}
+${options.includeTruongTeenRubric === false ? "" : truongTeenJudgingContext}
 
-${buildDeepSeekAnalysisDynamicContext(params)}`;
+${buildDeepSeekAnalysisDynamicContext(scopedParams)}`;
 }
 
 function buildSpeechMapPrompt(params: AnalyzeDebateParams) {
-  return `${buildStagedFullRoundBaseContext(params)}
+  return `${buildStagedFullRoundBaseContext(params, {
+    includeCorpus: false,
+    includeTruongTeenRubric: false,
+  })}
 
 ## Stage 1 Task: Speech Map And Clash Extraction
 Extract the debate structure before judging. Do not score yet.
@@ -686,7 +808,10 @@ function buildStagedVerdictPrompt(
   params: AnalyzeDebateParams,
   speechMap: StagedDebateSpeechMap
 ) {
-  return `${buildStagedFullRoundBaseContext(params)}
+  return `${buildStagedFullRoundBaseContext(params, {
+    includeCorpus: true,
+    includeTruongTeenRubric: true,
+  })}
 
 ## Stage 1 Output To Use
 ${JSON.stringify(speechMap)}
@@ -763,7 +888,11 @@ function buildStagedAnnotationPrompt(
     scoreRationale: feedback.scoreRationale,
     improvements: feedback.improvements,
   };
-  return `${buildStagedFullRoundBaseContext(params)}
+  return `${buildStagedFullRoundBaseContext(params, {
+    includeCorpus: false,
+    includeTruongTeenRubric: false,
+    includeSttGuardrail: true,
+  })}
 
 ## Stage 1 Speech Map
 ${JSON.stringify(speechMap)}
@@ -1150,6 +1279,8 @@ async function analyzeFullRoundDebateWithStagedGemini(
   const modelName = getStagedFullRoundJudgeModelName();
   const stages: GeminiStageResult[] = [];
   const stagePromptHashes: Record<string, string> = {};
+  const stageCache = params.providerAudit?.stagedGeminiCache;
+  const onStageCacheEntry = params.providerAudit?.onStagedGeminiCacheEntry;
   const stageAudit = {
     userId,
     sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
@@ -1167,13 +1298,16 @@ async function analyzeFullRoundDebateWithStagedGemini(
   stagePromptHashes.speech_map = createHash("sha256")
     .update(speechMapPrompt)
     .digest("hex");
-  const speechMapStage = await generateGeminiStage({
+  const speechMapStage = await generateCachedGeminiStage({
     modelName,
     stage: "speech_map",
     prompt: speechMapPrompt,
+    promptHash: stagePromptHashes.speech_map,
     maxOutputTokens: 4096,
     temperature: 0.2,
     keySeed: `${userId ?? "anonymous"}:${params.topic}:speech_map`,
+    cache: stageCache,
+    onCacheEntry: onStageCacheEntry,
     audit: stageAudit,
   });
   stages.push(speechMapStage);
@@ -1186,13 +1320,16 @@ async function analyzeFullRoundDebateWithStagedGemini(
   stagePromptHashes.verdict_feedback = createHash("sha256")
     .update(verdictPrompt)
     .digest("hex");
-  const verdictStage = await generateGeminiStage({
+  const verdictStage = await generateCachedGeminiStage({
     modelName,
     stage: "verdict_feedback",
     prompt: verdictPrompt,
+    promptHash: stagePromptHashes.verdict_feedback,
     maxOutputTokens: 8192,
     temperature: 0.25,
     keySeed: `${userId ?? "anonymous"}:${params.topic}:verdict_feedback`,
+    cache: stageCache,
+    onCacheEntry: onStageCacheEntry,
     audit: stageAudit,
   });
   stages.push(verdictStage);
@@ -1220,13 +1357,16 @@ async function analyzeFullRoundDebateWithStagedGemini(
     stagePromptHashes.annotation_anchor = createHash("sha256")
       .update(annotationPrompt)
       .digest("hex");
-    const annotationStage = await generateGeminiStage({
+    const annotationStage = await generateCachedGeminiStage({
       modelName,
       stage: "annotation_anchor",
       prompt: annotationPrompt,
+      promptHash: stagePromptHashes.annotation_anchor,
       maxOutputTokens: 4096,
       temperature: 0.15,
       keySeed: `${userId ?? "anonymous"}:${params.topic}:annotation_anchor`,
+      cache: stageCache,
+      onCacheEntry: onStageCacheEntry,
       audit: stageAudit,
     });
     stages.push(annotationStage);
@@ -1280,6 +1420,8 @@ async function analyzeFullRoundDebateWithStagedGemini(
       judgeStageLatenciesMs: summary.stageLatencies,
       judgeStageUsage: summary.stageUsage,
       judgeStageKeySlots: summary.stageKeySlots,
+      judgeStageCacheHits: summary.stageCacheHits,
+      judgeStageCacheHitCount: stages.filter((stage) => stage.cacheHit).length,
       geminiKeyPoolSize: getGeminiKeyCountForTelemetry(),
       judgeStagePromptHashes: stagePromptHashes,
       annotationStageError,

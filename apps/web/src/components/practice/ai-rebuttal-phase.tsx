@@ -34,6 +34,12 @@ import type {
   PracticeTrack,
 } from "@/types";
 
+type RebuttalApiResponse = {
+  rebuttal: string;
+  highlights?: AiHighlight[];
+  _aiRunId?: string | null;
+};
+
 interface AiRebuttalPhaseProps {
   topic: string;
   side: "proposition" | "opposition";
@@ -184,6 +190,7 @@ export function AiRebuttalPhase({
   const [displayedText, setDisplayedText] = useState(
     normalizedInitialResponse.rebuttal
   );
+  const [streamingText, setStreamingText] = useState("");
   const [highlights, setHighlights] = useState<AiHighlight[]>(
     normalizedInitialResponse.highlights
   );
@@ -215,6 +222,7 @@ export function AiRebuttalPhase({
     setError(null);
     setFullText("");
     setDisplayedText("");
+    setStreamingText("");
     setHighlights([]);
     setTypewriterDelayMs(18);
 
@@ -222,26 +230,31 @@ export function AiRebuttalPhase({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      const res = await fetch("/api/rebuttal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          topic,
-          side,
-          userTranscript,
-          roundLabel,
-          difficulty,
-          practiceTrack,
-          practiceLanguage,
-          previousRounds,
-          speechTimeSeconds,
-          currentRoundNumber,
-          motionBrief,
-          debateMemory,
-        }),
-      });
+      const requestBody = {
+        topic,
+        side,
+        userTranscript,
+        roundLabel,
+        difficulty,
+        practiceTrack,
+        practiceLanguage,
+        previousRounds,
+        speechTimeSeconds,
+        currentRoundNumber,
+        motionBrief,
+        debateMemory,
+        stream: true,
+      };
 
+      const res = await fetch("/api/rebuttal/stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        signal: controller.signal,
+        body: JSON.stringify(requestBody),
+      });
       clearTimeout(timeoutId);
 
       if (!res.ok) {
@@ -249,18 +262,64 @@ export function AiRebuttalPhase({
         throw new Error(data.error || `Server error (${res.status})`);
       }
 
-      const data = (await res.json()) as {
-        rebuttal: string;
-        highlights?: AiHighlight[];
-        _aiRunId?: string | null;
-      };
+      let data: RebuttalApiResponse | null = null;
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let currentEvent = "message";
+        let done = false;
+        while (!done) {
+          const chunk = await reader.read();
+          done = chunk.done;
+          buffer += decoder.decode(chunk.value ?? new Uint8Array(), {
+            stream: !done,
+          });
+          const frames = buffer.split("\n\n");
+          buffer = frames.pop() ?? "";
+          for (const frame of frames) {
+            const lines = frame.split(/\r?\n/).map((line) => line.trim());
+            const eventLine = lines.find((line) => line.startsWith("event:"));
+            const dataLine = lines.find((line) => line.startsWith("data:"));
+            if (eventLine) {
+              currentEvent = eventLine.slice(6).trim();
+            }
+            if (!dataLine) continue;
+            const payload = JSON.parse(dataLine.slice(5).trim()) as Record<
+              string,
+              unknown
+            >;
+            if (currentEvent === "delta" && typeof payload.text === "string") {
+              setStreamingText((existing) => `${existing}${payload.text}`);
+            } else if (currentEvent === "final") {
+              data = payload as unknown as RebuttalApiResponse;
+            } else if (currentEvent === "error") {
+              throw new Error(
+                typeof payload.error === "string"
+                  ? payload.error
+                  : "Failed to get AI response."
+              );
+            }
+          }
+        }
+      } else {
+        data = (await res.json()) as RebuttalApiResponse;
+      }
+
+      if (!data) {
+        throw new Error("AI response ended without a final answer.");
+      }
+      const finalData = data;
       const normalizedResponse = normalizeStructuredRebuttalResponse(
-        data.rebuttal,
-        data.highlights
+        finalData.rebuttal,
+        finalData.highlights
       );
       setFullText(normalizedResponse.rebuttal);
+      setStreamingText("");
+      setDisplayedText("");
       setHighlights(normalizedResponse.highlights);
-      setAiRunId(data._aiRunId ?? null);
+      setAiRunId(finalData._aiRunId ?? null);
       onGenerated?.(
         normalizedResponse.rebuttal,
         normalizedResponse.highlights
@@ -486,14 +545,28 @@ export function AiRebuttalPhase({
             </div>
             <div className="min-h-[300px] overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4">
               {status === "loading" ? (
-                <div className="flex h-[260px] items-center justify-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-7 w-7 animate-spin text-primary/70" />
-                    <p className="text-sm font-medium text-on-surface-variant">
+                streamingText ? (
+                  <div className="min-h-[260px]">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1.5 text-xs font-semibold text-primary">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       {t("session.generating_round", { round: displayRoundLabel })}
-                    </p>
+                    </div>
+                    <HighlightedResponse
+                      text={streamingText}
+                      highlights={[]}
+                      isTyping
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex h-[260px] items-center justify-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-7 w-7 animate-spin text-primary/70" />
+                      <p className="text-sm font-medium text-on-surface-variant">
+                        {t("session.generating_round", { round: displayRoundLabel })}
+                      </p>
+                    </div>
+                  </div>
+                )
               ) : status === "error" ? (
                 <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center">
                   <AlertTriangle className="h-8 w-8 text-error" />

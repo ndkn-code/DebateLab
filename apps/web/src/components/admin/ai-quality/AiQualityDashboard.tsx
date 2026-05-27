@@ -316,6 +316,55 @@ function getTranscriptionMetadata(row: Row) {
   };
 }
 
+function getSpeedMetadata(row: Row) {
+  const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+  const stageCacheHits =
+    metadata.judgeStageCacheHits &&
+    typeof metadata.judgeStageCacheHits === "object" &&
+    !Array.isArray(metadata.judgeStageCacheHits)
+      ? (metadata.judgeStageCacheHits as Record<string, unknown>)
+      : null;
+  const stageLatencies =
+    metadata.judgeStageLatenciesMs &&
+    typeof metadata.judgeStageLatenciesMs === "object" &&
+    !Array.isArray(metadata.judgeStageLatenciesMs)
+      ? (metadata.judgeStageLatenciesMs as Record<string, unknown>)
+      : null;
+  const stageCacheHitCount =
+    typeof metadata.judgeStageCacheHitCount === "number"
+      ? metadata.judgeStageCacheHitCount
+      : stageCacheHits
+        ? Object.values(stageCacheHits).filter(Boolean).length
+        : null;
+  const firstTokenLatencyMs =
+    typeof metadata.firstTokenLatencyMs === "number"
+      ? metadata.firstTokenLatencyMs
+      : null;
+  const streamMode =
+    typeof metadata.rebuttalStreamMode === "string"
+      ? metadata.rebuttalStreamMode
+      : null;
+  const duplicateCacheHit =
+    typeof metadata.rebuttalDuplicateCacheHit === "boolean"
+      ? metadata.rebuttalDuplicateCacheHit
+      : false;
+
+  return {
+    hasSpeedData:
+      Boolean(stageCacheHits) ||
+      Boolean(stageLatencies) ||
+      firstTokenLatencyMs != null ||
+      Boolean(streamMode) ||
+      duplicateCacheHit,
+    stageCacheHits,
+    stageLatencies,
+    stageCacheHitCount,
+    firstTokenLatencyMs,
+    streamMode,
+    duplicateCacheHit,
+  };
+}
+
 function createQuery(params: Record<string, string>) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -751,6 +800,7 @@ function DetailDrawer({
 }) {
   const corpusMetadata = getCorpusMetadata(row);
   const transcriptionMetadata = getTranscriptionMetadata(row);
+  const speedMetadata = getSpeedMetadata(row);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
@@ -853,6 +903,45 @@ function DetailDrawer({
             </div>
           )}
         </div>
+
+        {speedMetadata.hasSpeedData && (
+          <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold text-on-surface">Speed pass</h3>
+              {speedMetadata.streamMode && (
+                <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">
+                  {speedMetadata.streamMode}
+                </span>
+              )}
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <MiniMetric
+                label="Stage cache"
+                value={
+                  speedMetadata.stageCacheHitCount == null
+                    ? "—"
+                    : `${speedMetadata.stageCacheHitCount} hit`
+                }
+              />
+              <MiniMetric
+                label="First token"
+                value={formatLatency(speedMetadata.firstTokenLatencyMs)}
+              />
+              <MiniMetric
+                label="Duplicate"
+                value={speedMetadata.duplicateCacheHit ? "hit" : "miss"}
+              />
+              <MiniMetric
+                label="Speech map"
+                value={formatLatency(
+                  typeof speedMetadata.stageLatencies?.speech_map === "number"
+                    ? speedMetadata.stageLatencies.speech_map
+                    : null
+                )}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
           <h3 className="font-semibold text-on-surface">User rating</h3>

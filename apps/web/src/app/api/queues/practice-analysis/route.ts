@@ -17,6 +17,10 @@ import {
   retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
 import { evaluatePracticeFeedback } from "@/lib/practice-analysis/evaluators";
+import type {
+  StagedGeminiCache,
+  StagedGeminiCacheEntry,
+} from "@/lib/gemini";
 import { saveCompletedPracticeAttempt } from "@/lib/practice-analysis/persistence";
 import {
   getAnalysisJobForProcessing,
@@ -57,6 +61,39 @@ function readCorpusRetrievalCache(
     : null;
 }
 
+function readStagedGeminiCache(
+  value: Record<string, unknown> | null
+): StagedGeminiCache | undefined {
+  const cache = value?.stagedGeminiCache;
+  if (!cache || typeof cache !== "object" || Array.isArray(cache)) {
+    return undefined;
+  }
+
+  const normalized: StagedGeminiCache = {};
+  for (const stage of [
+    "speech_map",
+    "verdict_feedback",
+    "annotation_anchor",
+  ] as const) {
+    const entry = (cache as Record<string, unknown>)[stage];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const source = entry as Partial<StagedGeminiCacheEntry>;
+    if (
+      source.schemaVersion === 1 &&
+      source.stage === stage &&
+      typeof source.modelName === "string" &&
+      typeof source.promptHash === "string" &&
+      typeof source.text === "string"
+    ) {
+      normalized[stage] = source as StagedGeminiCacheEntry;
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
   async (message, metadata) => {
     const supabase = createAdminClient();
@@ -75,6 +112,17 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       job.status === "failed" ||
       attempt.status === "failed"
     ) {
+      return;
+    }
+
+    if (job.status === "processing" && job.finished_at) {
+      await markPracticeAnalysisFailed(supabase, {
+        jobId: job.id,
+        attemptId: attempt.id,
+        errorCode: "ANALYSIS_STALE_FINISHED_JOB",
+        errorMessage:
+          "Analysis job was already marked finished but never completed. The transcript is saved; please submit a new analysis if needed.",
+      });
       return;
     }
 
@@ -130,6 +178,24 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           retryDecision: retryDecision.reason,
         },
       };
+      let stagedGeminiCache = readStagedGeminiCache(job.result);
+      const persistJobResultPatch = async (
+        patch: Record<string, unknown>
+      ) => {
+        await supabase
+          .from("analysis_jobs")
+          .update({
+            result: {
+              ...(job.result ?? {}),
+              corpusRetrievalCache,
+              stagedGeminiCache,
+              ...patch,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", job.id);
+      };
+
       if (
         input.practiceTrack === "debate" &&
         input.isFullRound &&
@@ -159,18 +225,25 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         cacheEntry: corpusRetrievalCache,
         onCacheEntry: async (entry) => {
           corpusRetrievalCache = entry;
-          await supabase
-            .from("analysis_jobs")
-            .update({
-              result: {
-                ...(job.result ?? {}),
-                corpusRetrievalCache: entry,
-              },
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", job.id);
+          await persistJobResultPatch({ corpusRetrievalCache: entry });
         },
       });
+      if (input.providerAudit) {
+        const providerAudit = input.providerAudit as typeof input.providerAudit & {
+          stagedGeminiCache?: StagedGeminiCache;
+          onStagedGeminiCacheEntry?: (
+            entry: StagedGeminiCacheEntry
+          ) => void | Promise<void>;
+        };
+        providerAudit.stagedGeminiCache = stagedGeminiCache;
+        providerAudit.onStagedGeminiCacheEntry = async (entry) => {
+          stagedGeminiCache = {
+            ...(stagedGeminiCache ?? {}),
+            [entry.stage]: entry,
+          };
+          await persistJobResultPatch({ stagedGeminiCache });
+        };
+      }
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await evaluatePracticeFeedback(
         {
@@ -261,9 +334,10 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         modelProvider: effectiveProvider,
         legacySessionId: savedSession.sessionId,
         aiQualityRunId,
-        resultMetadata: corpusRetrievalCache
-          ? { corpusRetrievalCache }
-          : undefined,
+        resultMetadata: {
+          ...(corpusRetrievalCache ? { corpusRetrievalCache } : {}),
+          ...(stagedGeminiCache ? { stagedGeminiCache } : {}),
+        },
       });
 
       await recordAnalyticsEvent(supabase, attempt.user_id, {

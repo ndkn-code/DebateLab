@@ -166,7 +166,7 @@ export async function getRecentActivePracticeAnalysis(
     .select("*")
     .eq("user_id", userId)
     .eq("input_hash", inputHash)
-    .in("status", ["queued", "processing"])
+    .in("status", ["queued", "processing", "completed"])
     .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -175,6 +175,7 @@ export async function getRecentActivePracticeAnalysis(
 
   const activeJob = (jobs as AnalysisJobRecord[] | null | undefined)?.find(
     (job) => {
+      if (job.status === "completed") return true;
       const deliveryCount = job.delivery_count ?? 0;
       const maxAttempts = job.max_attempts || 3;
       const startedAtMs = job.started_at ? Date.parse(job.started_at) : 0;
@@ -194,7 +195,7 @@ export async function getRecentActivePracticeAnalysis(
     .select("*")
     .eq("id", activeJob.attempt_id)
     .eq("user_id", userId)
-    .in("status", ["submitted", "analyzing"])
+    .in("status", ["submitted", "analyzing", "completed"])
     .single();
 
   if (attemptError || !attempt) return null;
