@@ -1375,7 +1375,8 @@ async function analyzeDebateWithDeepSeek(
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message.startsWith("DeepSeek returned an empty response")
+      error.message.startsWith("DeepSeek returned an empty response") &&
+      process.env.DEEPSEEK_EMPTY_RESPONSE_INTERNAL_RETRY === "true"
     ) {
       internalRetryUsed = true;
       result = await createDeepSeekChatCompletion({
