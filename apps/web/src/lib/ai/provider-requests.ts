@@ -1,8 +1,5 @@
-import "server-only";
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateAiCostUsd, type AiQualityTokenUsage } from "@/lib/ai/quality-model";
-import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 function clampInt(value: number | null | undefined, min = 0) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -34,17 +31,20 @@ export interface AiProviderRequestInput {
   practiceAttemptId?: string | null;
   analysisJobId?: string | null;
   debateSessionId?: string | null;
+  aiQualityRunId?: string | null;
   metadata?: Record<string, unknown>;
 }
 
 export async function recordAiProviderRequest(
   input: AiProviderRequestInput,
-  supabase: SupabaseClient | null = tryCreateAdminClient()
+  supabase?: SupabaseClient | null
 ) {
-  if (!supabase) return null;
+  const client =
+    supabase === undefined ? await safelyGetDefaultProviderRequestClient() : supabase;
+  if (!client) return null;
   const usage = input.usage ?? {};
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("ai_provider_requests")
       .insert({
         provider: input.provider,
@@ -75,6 +75,7 @@ export async function recordAiProviderRequest(
         practice_attempt_id: input.practiceAttemptId ?? null,
         analysis_job_id: input.analysisJobId ?? null,
         debate_session_id: input.debateSessionId ?? null,
+        ai_quality_run_id: input.aiQualityRunId ?? null,
         metadata: input.metadata ?? {},
       })
       .select("id")
@@ -91,6 +92,55 @@ export async function recordAiProviderRequest(
     if (process.env.NODE_ENV === "development") {
       console.warn(
         "AI provider request skipped:",
+        error instanceof Error ? error.message : error
+      );
+    }
+    return null;
+  }
+}
+
+export async function linkAiProviderRequestsToQualityRun(
+  providerRequestIds: Array<string | null | undefined>,
+  aiQualityRunId: string | null | undefined,
+  supabase?: SupabaseClient | null
+) {
+  const client =
+    supabase === undefined ? await safelyGetDefaultProviderRequestClient() : supabase;
+  const ids = Array.from(
+    new Set(providerRequestIds.filter((id): id is string => Boolean(id)))
+  );
+  if (!client || !aiQualityRunId || ids.length === 0) return;
+
+  try {
+    const { error } = await client
+      .from("ai_provider_requests")
+      .update({ ai_quality_run_id: aiQualityRunId })
+      .in("id", ids);
+    if (error && process.env.NODE_ENV === "development") {
+      console.warn("AI provider request link failed:", error.message);
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "AI provider request link skipped:",
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
+}
+
+async function getDefaultProviderRequestClient() {
+  const { tryCreateAdminClient } = await import("@/lib/supabase/admin");
+  return tryCreateAdminClient();
+}
+
+async function safelyGetDefaultProviderRequestClient() {
+  try {
+    return await getDefaultProviderRequestClient();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "AI provider request admin client unavailable:",
         error instanceof Error ? error.message : error
       );
     }

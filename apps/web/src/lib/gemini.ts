@@ -22,6 +22,7 @@ import {
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import { recordAiProviderRequest } from "./ai/provider-requests";
 import {
   buildFuzzyEvidenceHintBlock,
   buildTruongTeenJudgingPromptAddendum,
@@ -348,6 +349,7 @@ type GeminiStageResult = {
   usage?: GeminiUsageMetadata;
   keySlot?: number;
   keyFallbackCount?: number;
+  providerRequestId?: string | null;
 };
 
 type StagedDebateSpeechMap = {
@@ -397,6 +399,43 @@ async function emitAiTelemetry(
 ) {
   if (!onTelemetry) return;
   await onTelemetry(telemetry);
+}
+
+async function recordGeminiProviderRequest(params: {
+  model: string;
+  status: "success" | "error";
+  sourceRoute?: string | null;
+  outputType?: string | null;
+  userId?: string | null;
+  latencyMs?: number | null;
+  usage?: GeminiUsageMetadata | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  practiceAttemptId?: string | null;
+  analysisJobId?: string | null;
+  debateSessionId?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  return recordAiProviderRequest({
+    provider: "google",
+    model: params.model,
+    status: params.status,
+    sourceRoute: params.sourceRoute,
+    outputType: params.outputType,
+    userId: params.userId,
+    latencyMs: params.latencyMs,
+    usage: {
+      inputTokens: params.usage?.promptTokenCount,
+      outputTokens: params.usage?.candidatesTokenCount,
+      totalTokens: params.usage?.totalTokenCount,
+    },
+    errorCode: params.errorCode,
+    errorMessage: params.errorMessage,
+    practiceAttemptId: params.practiceAttemptId,
+    analysisJobId: params.analysisJobId,
+    debateSessionId: params.debateSessionId,
+    metadata: params.metadata,
+  });
 }
 
 export async function analyzeDebate(
@@ -452,6 +491,15 @@ async function generateGeminiStage(params: {
   maxOutputTokens: number;
   temperature?: number;
   keySeed?: string;
+  audit?: {
+    userId?: string | null;
+    sourceRoute?: string | null;
+    outputType?: string | null;
+    practiceAttemptId?: string | null;
+    analysisJobId?: string | null;
+    debateSessionId?: string | null;
+    metadata?: Record<string, unknown>;
+  };
 }): Promise<GeminiStageResult> {
   const keys = getGeminiApiKeys();
   if (keys.length === 0) {
@@ -475,15 +523,60 @@ async function generateGeminiStage(params: {
     const startTime = Date.now();
     try {
       const result = await model.generateContent(params.prompt);
+      const latencyMs = Date.now() - startTime;
+      const providerRequestId = await recordGeminiProviderRequest({
+        model: params.modelName,
+        status: "success",
+        sourceRoute: params.audit?.sourceRoute,
+        outputType: params.audit?.outputType,
+        userId: params.audit?.userId,
+        latencyMs,
+        usage: result.response.usageMetadata,
+        practiceAttemptId: params.audit?.practiceAttemptId,
+        analysisJobId: params.audit?.analysisJobId,
+        debateSessionId: params.audit?.debateSessionId,
+        metadata: {
+          stage: params.stage,
+          keySlot: slot,
+          keyFallbackCount: offset,
+          maxOutputTokens: params.maxOutputTokens,
+          temperature: params.temperature ?? 0.25,
+          ...(params.audit?.metadata ?? {}),
+        },
+      });
       return {
         stage: params.stage,
         text: result.response.text(),
-        latencyMs: Date.now() - startTime,
+        latencyMs,
         usage: result.response.usageMetadata,
         keySlot: slot,
         keyFallbackCount: offset,
+        providerRequestId,
       };
     } catch (error) {
+      await recordGeminiProviderRequest({
+        model: params.modelName,
+        status: "error",
+        sourceRoute: params.audit?.sourceRoute,
+        outputType: params.audit?.outputType,
+        userId: params.audit?.userId,
+        latencyMs: Date.now() - startTime,
+        errorCode: isGeminiQuotaOrRateLimitError(error)
+          ? "RATE_LIMIT_OR_QUOTA"
+          : "GEMINI_REQUEST_FAILED",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        practiceAttemptId: params.audit?.practiceAttemptId,
+        analysisJobId: params.audit?.analysisJobId,
+        debateSessionId: params.audit?.debateSessionId,
+        metadata: {
+          stage: params.stage,
+          keySlot: slot,
+          keyFallbackCount: offset,
+          maxOutputTokens: params.maxOutputTokens,
+          temperature: params.temperature ?? 0.25,
+          ...(params.audit?.metadata ?? {}),
+        },
+      });
       lastError = error;
       if (!isGeminiQuotaOrRateLimitError(error) || offset === keys.length - 1) {
         throw error;
@@ -1057,6 +1150,18 @@ async function analyzeFullRoundDebateWithStagedGemini(
   const modelName = getStagedFullRoundJudgeModelName();
   const stages: GeminiStageResult[] = [];
   const stagePromptHashes: Record<string, string> = {};
+  const stageAudit = {
+    userId,
+    sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+    outputType: "practice_judging",
+    practiceAttemptId: params.providerAudit?.practiceAttemptId,
+    analysisJobId: params.providerAudit?.analysisJobId,
+    metadata: {
+      judgePipeline: "staged_full_round_gemini",
+      isFullRound: params.isFullRound ?? false,
+      ...(params.providerAudit?.metadata ?? {}),
+    },
+  };
 
   const speechMapPrompt = buildSpeechMapPrompt(params);
   stagePromptHashes.speech_map = createHash("sha256")
@@ -1069,6 +1174,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
     maxOutputTokens: 4096,
     temperature: 0.2,
     keySeed: `${userId ?? "anonymous"}:${params.topic}:speech_map`,
+    audit: stageAudit,
   });
   stages.push(speechMapStage);
   const speechMap = parseJsonObject<StagedDebateSpeechMap>(
@@ -1087,6 +1193,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
     maxOutputTokens: 8192,
     temperature: 0.25,
     keySeed: `${userId ?? "anonymous"}:${params.topic}:verdict_feedback`,
+    audit: stageAudit,
   });
   stages.push(verdictStage);
   let parsed = parseGeminiFeedback(verdictStage.text);
@@ -1120,6 +1227,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
       maxOutputTokens: 4096,
       temperature: 0.15,
       keySeed: `${userId ?? "anonymous"}:${params.topic}:annotation_anchor`,
+      audit: stageAudit,
     });
     stages.push(annotationStage);
     annotationPayload = parseJsonObject<StagedAnnotationPayload>(
@@ -1163,6 +1271,9 @@ async function analyzeFullRoundDebateWithStagedGemini(
     ),
     model: modelName,
     latencyMs: summary.latencyMs,
+    providerRequestIds: stages
+      .map((stage) => stage.providerRequestId)
+      .filter((id): id is string => Boolean(id)),
     metadata: {
       judgePipeline: "staged_full_round_gemini",
       judgeStageCount: stages.length,
@@ -1203,7 +1314,47 @@ async function analyzeDebateWithGemini(
 
   const prompt = buildAnalysisPrompt(params);
   const startTime = Date.now();
-  const result = await model.generateContent(prompt);
+  const providerRequestIds: string[] = [];
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+    const providerRequestId = await recordGeminiProviderRequest({
+      model: modelName,
+      status: "success",
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      userId,
+      latencyMs: Date.now() - startTime,
+      usage: result.response.usageMetadata,
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "primary",
+        fallbackUsed,
+        ...(params.providerAudit?.metadata ?? {}),
+      },
+    });
+    if (providerRequestId) providerRequestIds.push(providerRequestId);
+  } catch (error) {
+    await recordGeminiProviderRequest({
+      model: modelName,
+      status: "error",
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      userId,
+      latencyMs: Date.now() - startTime,
+      errorCode: "GEMINI_ANALYSIS_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "primary",
+        fallbackUsed,
+        ...(params.providerAudit?.metadata ?? {}),
+      },
+    });
+    throw error;
+  }
   const latency = Date.now() - startTime;
   const text = result.response.text();
 
@@ -1230,13 +1381,23 @@ async function analyzeDebateWithGemini(
     model: modelName,
     latencyMs: latency,
     fallbackUsed,
+    providerRequestIds,
     usage: {
       inputTokens: result.response.usageMetadata?.promptTokenCount,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount,
     },
   });
 
-  let parsed = await parseGeminiFeedbackWithRetry(model, prompt, text);
+  let parsed = await parseGeminiFeedbackWithRetry(model, prompt, text, {
+    modelName,
+    userId,
+    sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+    outputType: "practice_judging",
+    practiceAttemptId: params.providerAudit?.practiceAttemptId,
+    analysisJobId: params.providerAudit?.analysisJobId,
+    providerRequestIds,
+    metadata: params.providerAudit?.metadata,
+  });
 
   // Validate essential fields exist
   if (
@@ -1270,12 +1431,39 @@ ${JSON.stringify(parsed)}
 
 ## Repair Instruction
 The existing feedback is too shallow for a full-round debate. Return the full JSON schema again, preserving valid scores when reasonable, but expand coverage to at least ${depthTarget.minArgumentBreakdowns} argumentBreakdowns, ${depthTarget.minAnnotations} transcriptAnnotations, ${depthTarget.minClashLinks} clashLinks, and a complete scoreRationale. Do not invent transcript quotes; use exact quotes from the transcript above.`;
+    const repairStartTime = Date.now();
     const repairResult = await model.generateContent(repairPrompt);
+    const repairProviderRequestId = await recordGeminiProviderRequest({
+      model: modelName,
+      status: "success",
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      userId,
+      latencyMs: Date.now() - repairStartTime,
+      usage: repairResult.response.usageMetadata,
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "depth_repair",
+        ...(params.providerAudit?.metadata ?? {}),
+      },
+    });
+    if (repairProviderRequestId) providerRequestIds.push(repairProviderRequestId);
     parsed = normalizeDebateScore(
       await parseGeminiFeedbackWithRetry(
         model,
         repairPrompt,
-        repairResult.response.text()
+        repairResult.response.text(),
+        {
+          modelName,
+          userId,
+          sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+          outputType: "practice_judging",
+          practiceAttemptId: params.providerAudit?.practiceAttemptId,
+          analysisJobId: params.providerAudit?.analysisJobId,
+          providerRequestIds,
+          metadata: params.providerAudit?.metadata,
+        }
       ),
       params
     );
@@ -1299,12 +1487,41 @@ Hard rules:
 - Keep exact transcript quote fields unchanged: quote, sourceQuote, and responseQuote must remain exact copied text.
 - Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
 - JSON only.`;
+    const languageRepairStartTime = Date.now();
     const languageRepairResult = await model.generateContent(languageRepairPrompt);
+    const languageRepairProviderRequestId = await recordGeminiProviderRequest({
+      model: modelName,
+      status: "success",
+      sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+      outputType: "practice_judging",
+      userId,
+      latencyMs: Date.now() - languageRepairStartTime,
+      usage: languageRepairResult.response.usageMetadata,
+      practiceAttemptId: params.providerAudit?.practiceAttemptId,
+      analysisJobId: params.providerAudit?.analysisJobId,
+      metadata: {
+        phase: "language_repair",
+        ...(params.providerAudit?.metadata ?? {}),
+      },
+    });
+    if (languageRepairProviderRequestId) {
+      providerRequestIds.push(languageRepairProviderRequestId);
+    }
     parsed = normalizeDebateScore(
       await parseGeminiFeedbackWithRetry(
         model,
         languageRepairPrompt,
-        languageRepairResult.response.text()
+        languageRepairResult.response.text(),
+        {
+          modelName,
+          userId,
+          sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
+          outputType: "practice_judging",
+          practiceAttemptId: params.providerAudit?.practiceAttemptId,
+          analysisJobId: params.providerAudit?.analysisJobId,
+          providerRequestIds,
+          metadata: params.providerAudit?.metadata,
+        }
       ),
       params
     );
@@ -1320,6 +1537,7 @@ async function analyzeDebateWithDeepSeek(
 ): Promise<DebateScore> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
   const verdictDraft: Record<string, unknown> | null = null;
+  const providerRequestIds: string[] = [];
 
   const prompt = buildCompactDeepSeekAnalysisPrompt(params, verdictDraft);
   const { messages, promptPrefixHash } = buildDeepSeekAnalysisMessages(
@@ -1329,8 +1547,8 @@ async function analyzeDebateWithDeepSeek(
   const maxTokens =
     params.practiceTrack !== "speaking" && params.isFullRound ? 7000 : 4096;
   const thinking = { type: "disabled" } as const;
-  const generateText = (nextPrompt: string) =>
-    createDeepSeekChatCompletion({
+  const generateText = async (nextPrompt: string) => {
+    const retryResult = await createDeepSeekChatCompletion({
       messages: [
         messages[0],
         messages[1],
@@ -1349,7 +1567,12 @@ async function analyzeDebateWithDeepSeek(
         phase: "json_regeneration_or_repair",
         ...(params.providerAudit?.metadata ?? {}),
       },
-    }).then((retryResult) => retryResult.content);
+    });
+    if (retryResult.providerRequestId) {
+      providerRequestIds.push(retryResult.providerRequestId);
+    }
+    return retryResult.content;
+  };
 
   const startTime = Date.now();
   let internalRetryUsed = false;
@@ -1372,6 +1595,9 @@ async function analyzeDebateWithDeepSeek(
         ...(params.providerAudit?.metadata ?? {}),
       },
     });
+    if (result.providerRequestId) {
+      providerRequestIds.push(result.providerRequestId);
+    }
   } catch (error) {
     if (
       error instanceof Error &&
@@ -1396,6 +1622,9 @@ async function analyzeDebateWithDeepSeek(
           ...(params.providerAudit?.metadata ?? {}),
         },
       });
+      if (result.providerRequestId) {
+        providerRequestIds.push(result.providerRequestId);
+      }
     } else {
       throw error;
     }
@@ -1427,6 +1656,7 @@ async function analyzeDebateWithDeepSeek(
     requestedProvider: getProviderLabel("deepseek"),
     model: result.model,
     latencyMs: latency,
+    providerRequestIds,
     metadata: {
       deepSeekPromptPrefixHash: promptPrefixHash,
       deepSeekInternalRetryUsed: internalRetryUsed,
@@ -1544,10 +1774,21 @@ async function parseGeminiFeedbackWithRetry(
   model: {
     generateContent: (
       prompt: string
-    ) => Promise<{ response: { text: () => string } }>;
+    ) => Promise<{ response: { text: () => string; usageMetadata?: GeminiUsageMetadata } }>;
   },
   prompt: string,
-  text: string
+  text: string,
+  audit?: {
+    modelName: string;
+    userId?: string | null;
+    sourceRoute?: string | null;
+    outputType?: string | null;
+    practiceAttemptId?: string | null;
+    analysisJobId?: string | null;
+    debateSessionId?: string | null;
+    providerRequestIds?: string[];
+    metadata?: Record<string, unknown>;
+  }
 ): Promise<DebateScore> {
   try {
     return parseGeminiFeedback(text);
@@ -1558,7 +1799,47 @@ async function parseGeminiFeedbackWithRetry(
 Your previous response could not be parsed as valid JSON: ${error instanceof Error ? error.message : "Malformed JSON"}.
 Return the full requested JSON schema again as valid JSON only.
 Do not use Markdown fences, comments, trailing commas, unescaped newlines inside strings, or prose outside the JSON object.`;
-    const retryResult = await model.generateContent(retryPrompt);
+    const startTime = Date.now();
+    let retryResult: { response: { text: () => string; usageMetadata?: GeminiUsageMetadata } };
+    try {
+      retryResult = await model.generateContent(retryPrompt);
+      const providerRequestId = await recordGeminiProviderRequest({
+        model: audit?.modelName ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+        status: "success",
+        sourceRoute: audit?.sourceRoute,
+        outputType: audit?.outputType,
+        userId: audit?.userId,
+        latencyMs: Date.now() - startTime,
+        usage: retryResult.response.usageMetadata,
+        practiceAttemptId: audit?.practiceAttemptId,
+        analysisJobId: audit?.analysisJobId,
+        debateSessionId: audit?.debateSessionId,
+        metadata: {
+          phase: "json_regeneration",
+          ...(audit?.metadata ?? {}),
+        },
+      });
+      if (providerRequestId) audit?.providerRequestIds?.push(providerRequestId);
+    } catch (retryError) {
+      await recordGeminiProviderRequest({
+        model: audit?.modelName ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+        status: "error",
+        sourceRoute: audit?.sourceRoute,
+        outputType: audit?.outputType,
+        userId: audit?.userId,
+        latencyMs: Date.now() - startTime,
+        errorCode: "GEMINI_JSON_REGENERATION_FAILED",
+        errorMessage: retryError instanceof Error ? retryError.message : String(retryError),
+        practiceAttemptId: audit?.practiceAttemptId,
+        analysisJobId: audit?.analysisJobId,
+        debateSessionId: audit?.debateSessionId,
+        metadata: {
+          phase: "json_regeneration",
+          ...(audit?.metadata ?? {}),
+        },
+      });
+      throw retryError;
+    }
     return parseGeminiFeedback(retryResult.response.text());
   }
 }
@@ -1739,7 +2020,43 @@ async function judgeDebateDuelWithGemini(params: {
 
   const prompt = buildDuelJudgmentPrompt(params);
   const startTime = Date.now();
-  const result = await model.generateContent(prompt);
+  let result;
+  const providerRequestIds: string[] = [];
+  try {
+    result = await model.generateContent(prompt);
+    const providerRequestId = await recordGeminiProviderRequest({
+      model: modelName,
+      status: "success",
+      sourceRoute: "/api/debate-duels/judge",
+      outputType: "duel_judging",
+      userId,
+      latencyMs: Date.now() - startTime,
+      usage: result.response.usageMetadata,
+      metadata: {
+        speechCount: params.speeches.length,
+        practiceLanguage: params.practiceLanguage ?? null,
+        fallbackUsed,
+      },
+    });
+    if (providerRequestId) providerRequestIds.push(providerRequestId);
+  } catch (error) {
+    await recordGeminiProviderRequest({
+      model: modelName,
+      status: "error",
+      sourceRoute: "/api/debate-duels/judge",
+      outputType: "duel_judging",
+      userId,
+      latencyMs: Date.now() - startTime,
+      errorCode: "GEMINI_DUEL_JUDGING_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      metadata: {
+        speechCount: params.speeches.length,
+        practiceLanguage: params.practiceLanguage ?? null,
+        fallbackUsed,
+      },
+    });
+    throw error;
+  }
   const latency = Date.now() - startTime;
   const text = result.response.text();
 
@@ -1765,6 +2082,7 @@ async function judgeDebateDuelWithGemini(params: {
     requestedProvider: getProviderLabel(getDuelJudgeProvider()),
     model: modelName,
     latencyMs: latency,
+    providerRequestIds,
     fallbackUsed,
     usage: {
       inputTokens: result.response.usageMetadata?.promptTokenCount,
@@ -1843,6 +2161,7 @@ async function judgeDebateDuelWithDeepSeek(params: {
       practiceLanguage: params.practiceLanguage ?? null,
     },
   });
+  const providerRequestIds = result.providerRequestId ? [result.providerRequestId] : [];
   const latency = Date.now() - startTime;
 
   if (userId) {
@@ -1870,6 +2189,7 @@ async function judgeDebateDuelWithDeepSeek(params: {
     requestedProvider: getProviderLabel("deepseek"),
     model: result.model,
     latencyMs: latency,
+    providerRequestIds,
     usage: {
       inputTokens: result.usage?.prompt_tokens,
       outputTokens: result.usage?.completion_tokens,

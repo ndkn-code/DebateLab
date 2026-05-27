@@ -27,6 +27,7 @@ export interface DeepSeekChatResult {
   model: string;
   finishReason?: string;
   usage?: DeepSeekUsage;
+  providerRequestId?: string | null;
 }
 
 export interface DeepSeekChatOptions {
@@ -103,6 +104,7 @@ export async function createDeepSeekChatCompletion(
   let responseStatus: number | null = null;
   let finishReason: string | null = null;
   let requestLogged = false;
+  let providerRequestId: string | null = null;
 
   const recordRequest = async (input: {
     status: "success" | "error";
@@ -110,7 +112,7 @@ export async function createDeepSeekChatCompletion(
     errorMessage?: string | null;
   }) => {
     requestLogged = true;
-    await recordAiProviderRequest({
+    providerRequestId = await recordAiProviderRequest({
       provider: "deepseek",
       model: payload?.model || getDeepSeekModelName(),
       status: input.status,
@@ -221,6 +223,7 @@ export async function createDeepSeekChatCompletion(
       model: payload.model || getDeepSeekModelName(),
       finishReason: finishReason ?? undefined,
       usage: payload.usage,
+      providerRequestId,
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

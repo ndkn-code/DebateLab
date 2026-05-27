@@ -28,6 +28,47 @@ type Row = AiQualityRun & {
   contextText: string | null;
 };
 
+type ProviderRequestRow = {
+  id: string;
+  provider: string;
+  model: string;
+  status: "success" | "error";
+  source_route: string | null;
+  output_type: string | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  cache_hit_tokens: number | null;
+  cache_miss_tokens: number | null;
+  reasoning_tokens: number | null;
+  estimated_cost_usd: number | string | null;
+  error_code: string | null;
+  error_message: string | null;
+  practice_attempt_id: string | null;
+  analysis_job_id: string | null;
+  ai_quality_run_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+type ProviderRequestGroup = {
+  key: string;
+  provider: string;
+  model: string;
+  sourceRoute: string | null;
+  outputType: string | null;
+  status: "success" | "error";
+  requestCount: number;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheHitTokens: number;
+  cacheMissTokens: number;
+  estimatedCostUsd: number;
+  medianLatencyMs: number | null;
+};
+
 type CorpusRagStatus =
   | "injected"
   | "low_relevance"
@@ -50,6 +91,19 @@ interface DashboardResponse {
     estimatedCostUsd: number;
     cacheHitRatio: number | null;
   };
+  providerRequestKpis: {
+    requestCount: number;
+    errorCount: number;
+    errorRate: number | null;
+    totalTokens: number;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostUsd: number;
+    cacheHitRatio: number | null;
+    medianLatencyMs: number | null;
+  };
+  providerRequestGroups: ProviderRequestGroup[];
+  providerRequestsByRunId: Record<string, ProviderRequestRow[]>;
   rows: Row[];
 }
 
@@ -82,6 +136,14 @@ function formatCost(value: number) {
 function formatLatency(value: number | null) {
   if (value == null) return "—";
   return value > 1000 ? `${(value / 1000).toFixed(1)}s` : `${value}ms`;
+}
+
+function formatCompactNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en", {
+    notation: value >= 10_000 ? "compact" : "standard",
+    maximumFractionDigits: value >= 10_000 ? 1 : 0,
+  }).format(value);
 }
 
 function formatSimilarity(value: unknown) {
@@ -321,6 +383,8 @@ export function AiQualityDashboard() {
 
   const rows = data?.rows ?? [];
   const kpis = data?.kpis;
+  const providerKpis = data?.providerRequestKpis;
+  const providerGroups = data?.providerRequestGroups ?? [];
   const loading = data === null && error === null;
 
   const updateReview = async (
@@ -392,6 +456,33 @@ export function AiQualityDashboard() {
           <Kpi label="Errors" value={formatPercent(kpis?.errorRate ?? null)} icon={AlertTriangle} />
           <Kpi label="Median latency" value={formatLatency(kpis?.medianLatencyMs ?? null)} icon={Clock3} />
           <Kpi label="Est. cost" value={formatCost(kpis?.estimatedCostUsd ?? 0)} icon={Search} />
+        </section>
+
+        <section className="grid gap-3 md:grid-cols-4">
+          <Kpi
+            label="Provider requests"
+            value={formatCompactNumber(providerKpis?.requestCount)}
+            icon={BrainCircuit}
+          />
+          <Kpi
+            label="Provider errors"
+            value={
+              providerKpis
+                ? `${providerKpis.errorCount} · ${formatPercent(providerKpis.errorRate)}`
+                : "—"
+            }
+            icon={AlertTriangle}
+          />
+          <Kpi
+            label="Provider tokens"
+            value={formatCompactNumber(providerKpis?.totalTokens)}
+            icon={Search}
+          />
+          <Kpi
+            label="DeepSeek cache"
+            value={formatPercent(providerKpis?.cacheHitRatio ?? null)}
+            icon={Clock3}
+          />
         </section>
 
         <section className="rounded-2xl border border-outline-variant/15 bg-surface p-4">
@@ -489,11 +580,83 @@ export function AiQualityDashboard() {
             </div>
           )}
         </section>
+
+        <section className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface">
+          <div className="flex flex-col gap-1 border-b border-outline-variant/10 bg-surface-container-low px-4 py-3">
+            <h2 className="font-semibold text-on-surface">Provider Requests</h2>
+            <p className="text-xs text-on-surface-variant">
+              Raw API-call counts grouped by provider, model, route, output type, and status.
+            </p>
+          </div>
+          {providerGroups.length === 0 ? (
+            <div className="flex h-32 items-center justify-center text-sm text-on-surface-variant">
+              No provider requests match these filters yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-outline-variant/10">
+                <thead className="bg-surface-container-low">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                    <th className="px-4 py-3">Provider</th>
+                    <th className="px-4 py-3">Route</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Requests</th>
+                    <th className="px-4 py-3">Tokens</th>
+                    <th className="px-4 py-3">Cache</th>
+                    <th className="px-4 py-3">Median latency</th>
+                    <th className="px-4 py-3">Cost</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10 text-sm">
+                  {providerGroups.slice(0, 24).map((group) => (
+                    <tr key={group.key}>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-on-surface">{group.provider}</div>
+                        <div className="max-w-[180px] truncate text-xs text-on-surface-variant">
+                          {group.model}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        <div>{group.outputType ?? "—"}</div>
+                        <div className="max-w-[220px] truncate text-xs">
+                          {group.sourceRoute ?? "unknown route"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <RatingPill tone={group.status === "success" ? "success" : "error"}>
+                          {group.status}
+                        </RatingPill>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-on-surface">
+                        {formatCompactNumber(group.requestCount)}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {formatCompactNumber(group.totalTokens)}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {group.cacheHitTokens || group.cacheMissTokens
+                          ? `${formatCompactNumber(group.cacheHitTokens)} hit / ${formatCompactNumber(group.cacheMissTokens)} miss`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {formatLatency(group.medianLatencyMs)}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {formatCost(group.estimatedCostUsd)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
 
       {selectedRow && (
         <DetailDrawer
           row={selectedRow}
+          providerRequests={data?.providerRequestsByRunId[selectedRow.id] ?? []}
           onClose={() => setSelectedRow(null)}
           onReview={updateReview}
         />
@@ -577,10 +740,12 @@ function RatingPill({
 
 function DetailDrawer({
   row,
+  providerRequests,
   onClose,
   onReview,
 }: {
   row: Row;
+  providerRequests: ProviderRequestRow[];
   onClose: () => void;
   onReview: (row: Row, reviewStatus: AiQualityReviewStatus) => Promise<void>;
 }) {
@@ -621,6 +786,72 @@ function DetailDrawer({
               (row.total_tokens ?? (row.input_tokens ?? 0) + (row.output_tokens ?? 0)) || "—"
             )}
           />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-semibold text-on-surface">Provider calls</h3>
+            <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">
+              {providerRequests.length} requests
+            </span>
+          </div>
+          {providerRequests.length === 0 ? (
+            <p className="mt-3 text-sm text-on-surface-variant">
+              No linked provider request rows yet.
+            </p>
+          ) : (
+            <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
+              <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+                <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <tr>
+                    <th className="px-3 py-2">Call</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Tokens</th>
+                    <th className="px-3 py-2">Cache</th>
+                    <th className="px-3 py-2">Latency</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {providerRequests.slice(0, 12).map((request) => {
+                    const stage =
+                      request.metadata && typeof request.metadata.stage === "string"
+                        ? request.metadata.stage
+                        : request.output_type;
+                    return (
+                      <tr key={request.id}>
+                        <td className="px-3 py-2">
+                          <div className="font-semibold text-on-surface">
+                            {request.provider} · {stage ?? "call"}
+                          </div>
+                          <div className="max-w-[220px] truncate text-on-surface-variant">
+                            {request.model}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <RatingPill
+                            tone={request.status === "success" ? "success" : "error"}
+                          >
+                            {request.error_code ?? request.status}
+                          </RatingPill>
+                        </td>
+                        <td className="px-3 py-2 text-on-surface-variant">
+                          {formatCompactNumber(request.total_tokens)}
+                        </td>
+                        <td className="px-3 py-2 text-on-surface-variant">
+                          {request.cache_hit_tokens || request.cache_miss_tokens
+                            ? `${formatCompactNumber(request.cache_hit_tokens)} / ${formatCompactNumber(request.cache_miss_tokens)}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-on-surface-variant">
+                          {formatLatency(request.latency_ms)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">

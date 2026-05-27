@@ -25,6 +25,7 @@ import {
   type DeepSeekUsage,
 } from "@/lib/ai/deepseek";
 import { recordAiQualityRun } from "@/lib/ai/quality";
+import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
 import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
@@ -290,6 +291,7 @@ interface RebuttalGeneration {
   usage?: RebuttalUsageSummary;
   latency: number;
   fallbackUsed: boolean;
+  providerRequestIds?: string[];
 }
 
 function modeFromRoundLabel(roundLabel: string) {
@@ -471,12 +473,52 @@ async function generateGeminiRebuttal(
   });
 
   const startTime = Date.now();
-  const result = await Promise.race([
-    model.generateContent(prompt),
-    timeoutPromise,
-  ]);
+  let result;
+  try {
+    result = await Promise.race([
+      model.generateContent(prompt),
+      timeoutPromise,
+    ]);
+  } catch (error) {
+    await recordAiProviderRequest({
+      provider: "google",
+      model: modelName,
+      status: "error",
+      sourceRoute: "/api/rebuttal",
+      outputType: "rebuttal",
+      latencyMs: Date.now() - startTime,
+      errorCode: error instanceof Error && error.message === "TIMEOUT"
+        ? "TIMEOUT"
+        : "GEMINI_REBUTTAL_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      metadata: {
+        maxOutputTokens,
+        timeoutMs,
+        fallbackUsed,
+      },
+    });
+    throw error;
+  }
   const latency = Date.now() - startTime;
   const usage = result.response.usageMetadata;
+  const providerRequestId = await recordAiProviderRequest({
+    provider: "google",
+    model: modelName,
+    status: "success",
+    sourceRoute: "/api/rebuttal",
+    outputType: "rebuttal",
+    latencyMs: latency,
+    usage: {
+      inputTokens: usage?.promptTokenCount,
+      outputTokens: usage?.candidatesTokenCount,
+      totalTokens: usage?.totalTokenCount,
+    },
+    metadata: {
+      maxOutputTokens,
+      timeoutMs,
+      fallbackUsed,
+    },
+  });
 
   return {
     provider: "gemini",
@@ -488,6 +530,7 @@ async function generateGeminiRebuttal(
     },
     latency,
     fallbackUsed,
+    providerRequestIds: providerRequestId ? [providerRequestId] : [],
   };
 }
 
@@ -529,6 +572,7 @@ async function generateDeepSeekRebuttal(
     },
     latency,
     fallbackUsed: false,
+    providerRequestIds: result.providerRequestId ? [result.providerRequestId] : [],
   };
 }
 
@@ -852,6 +896,10 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         generation = {
           ...retryGeneration,
           fallbackUsed: generation.fallbackUsed || retryGeneration.fallbackUsed,
+          providerRequestIds: [
+            ...(generation.providerRequestIds ?? []),
+            ...(retryGeneration.providerRequestIds ?? []),
+          ],
         };
         structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
         truongTeenLengthRetryUsed = true;
@@ -889,6 +937,7 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               cacheMissTokens: generation.usage?.cacheMissTokens,
               reasoningTokens: generation.usage?.reasoningTokens,
             },
+            providerRequestIds: generation.providerRequestIds,
             fallbackUsed: generation.fallbackUsed,
             outputText: structuredResponse.rebuttal,
             inputPreview: userTranscript,

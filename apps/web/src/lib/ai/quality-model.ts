@@ -52,6 +52,7 @@ export interface AiQualityTelemetry {
   model: string;
   latencyMs?: number | null;
   usage?: AiQualityTokenUsage;
+  providerRequestIds?: string[];
   fallbackUsed?: boolean;
   status?: AiQualityStatus;
   errorCode?: string | null;

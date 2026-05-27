@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import {
+  type AiProviderRequestDashboardRow,
   type AiQualityDashboardRow,
   computeAiQualityKpis,
+  computeProviderRequestKpis,
+  groupProviderRequests,
   isFlaggedAiQualityRow,
 } from "./quality-dashboard";
 import {
@@ -98,5 +101,52 @@ assert.deepEqual(computeAiQualityKpis(dashboardRows), {
 });
 assert.equal(isFlaggedAiQualityRow(dashboardRows[0]), false);
 assert.equal(isFlaggedAiQualityRow(dashboardRows[1]), true);
+
+const providerRequests = [
+  {
+    id: "1",
+    provider: "google",
+    model: "gemini-3.1-flash-lite",
+    status: "success",
+    source_route: "/api/queues/practice-analysis",
+    output_type: "practice_judging",
+    latency_ms: 1000,
+    input_tokens: 100,
+    output_tokens: 50,
+    total_tokens: 150,
+    cache_hit_tokens: null,
+    cache_miss_tokens: null,
+    estimated_cost_usd: 0,
+  },
+  {
+    id: "2",
+    provider: "deepseek",
+    model: "deepseek-v4-flash",
+    status: "error",
+    source_route: "/api/rebuttal",
+    output_type: "rebuttal",
+    latency_ms: 3000,
+    input_tokens: 1000,
+    output_tokens: 0,
+    total_tokens: 1000,
+    cache_hit_tokens: 800,
+    cache_miss_tokens: 200,
+    estimated_cost_usd: "0.001",
+  },
+] as AiProviderRequestDashboardRow[];
+
+assert.deepEqual(computeProviderRequestKpis(providerRequests), {
+  requestCount: 2,
+  errorCount: 1,
+  errorRate: 0.5,
+  totalTokens: 1150,
+  inputTokens: 1100,
+  outputTokens: 50,
+  estimatedCostUsd: 0.001,
+  cacheHitRatio: 0.8,
+  medianLatencyMs: 2000,
+});
+assert.equal(groupProviderRequests(providerRequests).length, 2);
+assert.equal(groupProviderRequests(providerRequests)[0].requestCount, 1);
 
 console.info("ai-quality utilities passed");

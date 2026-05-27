@@ -9,6 +9,7 @@ import {
   type AiQualityRunInput,
   type AiQualityReviewStatus,
 } from "@/lib/ai/quality-model";
+import { linkAiProviderRequestsToQualityRun } from "@/lib/ai/provider-requests";
 
 function clampInt(value: number | null | undefined, min: number, max?: number) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -99,7 +100,9 @@ export async function recordAiQualityRun(
       return null;
     }
 
-    return (data as { id: string }).id;
+    const runId = (data as { id: string }).id;
+    await linkAiProviderRequestsToQualityRun(input.providerRequestIds ?? [], runId, supabase);
+    return runId;
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
