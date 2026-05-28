@@ -22,6 +22,7 @@ import {
   type JsonRecord,
 } from "@/lib/api/request-validation";
 import { decideCoachIntent, type CoachIntentDecision } from "@/lib/coach/intent";
+import { pruneCoachMetadata } from "@/lib/coach/metadata";
 import {
   createDebateCorpusRetrievalMetadata,
   retrieveDebateCorpusContext,
@@ -74,6 +75,7 @@ RESPONSE FORMAT RULES:
 - End with either an encouraging one-liner or a precise next-step suggestion
 - Give the full useful answer as normal readable markdown. Do not rely on UI cards, section labels, or hidden metadata to complete the answer.
 - If details are missing, teach the general method first, then ask for the exact missing detail you need.
+- When the student asks for diagnosis/review but gives no transcript, score, or concrete speech text, do not guess the weakness. Say what evidence you need and give one general framework only.
 
 DEPTH RULES:
 - If the student is asking about speaking or presentation, stay concise and coaching-oriented
@@ -87,6 +89,7 @@ DEPTH RULES:
   6. **Link back to the motion**
 - In debate mode, do NOT overvalue polished vocabulary if the reasoning is weak
 - If a debate argument is shallow, say exactly what layer is missing: mechanism, comparison, impact, clash, or motion link
+- Do not diagnose "lack of experience", "practice more", "unclear technique", or other generic weaknesses unless you can point to concrete user material in the chat context.
 
 TONE:
 - Warm, encouraging, and slightly casual (like a cool older sibling who happens to be a debate expert)
@@ -99,6 +102,7 @@ DO NOT:
 - Use complex vocabulary without explaining it
 - Be condescending or overly formal
 - Give generic advice like "practice more"
+- Output pseudo-lists as plain lines. If it is a list, use real markdown bullets or numbering.
 
 If the user asks you to review a debate and no transcript or score is available, ask for the topic, side, and transcript (or score).`;
 
@@ -523,10 +527,14 @@ Schema:
 
 Rules:
 - Use 0-5 blocks. Return "blocks": [] and "suggestedActions": [] when the reply is clearer as plain text.
+- Cards are optional enhancements, not a second copy of the answer. If a card would repeat or paraphrase the visible markdown answer, omit it.
 - Pick block types that match the assistant reply. Do not invent facts or force a card.
 - Prefer debate-specific blocks over generic summaries only when the structure is genuinely useful.
-- Use diagnosis when the coach identifies a specific weakness or missing debate layer.
-- Use example for a concrete before/after example, drill for a timed exercise, and next_steps for a short action plan.
+- Use diagnosis only when the coach identifies a specific weakness or missing debate layer from concrete student material.
+- Do not create generic diagnosis cards such as "lack of experience", "unclear technique", or "practice more".
+- Use example for a concrete before/after example, drill for a timed exercise, and next_steps only for a concrete action plan.
+- Do not create both diagnosis and next_steps from the same material. Prefer a drill or example over a broad action-plan card.
+- next_steps must include a concrete exercise, timed action, checklist, rewrite task, or exact next message to send.
 - Do not create opening_formula unless it contains exactly 4 real opening parts: motion, stance, thesis, and roadmap.
 - Do not create template unless the body contains an actual editable template with bracket placeholders.
 - Use clarifying_question when the reply asks for missing topic, side, transcript, or format.
@@ -557,6 +565,19 @@ ${assistantText}`,
     });
 
     const raw = result.choices[0]?.message?.content ?? "";
+    const parsed = parseJsonObject(raw) as Record<string, unknown> | null;
+    const normalizedMetadata = normalizeMetadata(parsed, {
+      assistantText,
+      studentMessage,
+    });
+    const pruned = normalizedMetadata
+      ? pruneCoachMetadata(normalizedMetadata, {
+          assistantText,
+          studentMessage,
+          intent: routeIntent.intent,
+        })
+      : null;
+
     await recordAiProviderRequest({
       provider: "groq",
       model: GROQ_COACH_MODEL,
@@ -576,22 +597,22 @@ ${assistantText}`,
         coachIntentReason: routeIntent.reason,
         coachModelRoute: modelRoute,
         coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+        metadataOriginalBlockCount: pruned?.audit.originalBlockCount ?? 0,
+        metadataKeptBlockCount: pruned?.audit.keptBlockCount ?? 0,
+        metadataRejectedBlockCount: pruned?.audit.rejectedBlockCount ?? 0,
+        metadataPruneReasons: pruned?.audit.reasons ?? {},
       },
     });
-    const metadata = normalizeMetadata(parseJsonObject(raw), {
-      assistantText,
-      studentMessage,
-    });
+    const metadata = pruned?.metadata ?? null;
     if (!metadata) return null;
     return {
       ...metadata,
       visualizable:
         metadata.visualizable ||
         routeIntent.intent === "visual_explainer" ||
-        Boolean((parseJsonObject(raw) as Record<string, unknown> | null)?.visualizable),
+        Boolean(parsed?.visualizable),
       visualPrompt:
-        cleanText((parseJsonObject(raw) as Record<string, unknown> | null)?.visualPrompt, 220) ??
-        undefined,
+        cleanText(parsed?.visualPrompt, 220) ?? undefined,
       coachIntent: routeIntent.intent,
       coachModelRoute: modelRoute,
       coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,

@@ -23,6 +23,10 @@ import {
   ThumbsUp,
   User,
 } from "@/components/ui/icons";
+import {
+  isCoachBlockRepeatedInText,
+  pruneCoachMetadata,
+} from "@/lib/coach/metadata";
 import { cn } from "@/lib/utils";
 import type {
   CoachMessageMetadata,
@@ -55,55 +59,55 @@ const BLOCK_STYLES: Record<
   opening_formula: {
     label: "Try this",
     icon: Target,
-    className: "border-primary/18 bg-primary/5",
+    className: "border-l-primary/45",
     iconClassName: "text-primary",
   },
   template: {
     label: "Try this",
     icon: PenLine,
-    className: "border-primary/18 bg-white",
+    className: "border-l-primary/35",
     iconClassName: "text-primary-dim",
   },
   diagnosis: {
-    label: "Diagnosis",
+    label: "Note",
     icon: Radar,
-    className: "border-primary-fixed/35 bg-[#F7FAFF]",
+    className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
   coach_tip: {
     label: "Tip",
     icon: Lightbulb,
-    className: "border-[#F5B942]/35 bg-[#FFFBF1]",
+    className: "border-l-[#D8A537]/45",
     iconClassName: "text-[#B87900]",
   },
   common_mistake: {
     label: "Common mistake",
     icon: CircleAlert,
-    className: "border-error/30 bg-[#FFF8F8]",
+    className: "border-l-error/35",
     iconClassName: "text-error",
   },
   example: {
     label: "Example",
     icon: BookOpen,
-    className: "border-primary-fixed/45 bg-[#FBFDFF]",
+    className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
   drill: {
-    label: "Practice",
+    label: "Drill",
     icon: Dumbbell,
-    className: "border-secondary/25 bg-[#F7FEF9]",
+    className: "border-l-secondary/35",
     iconClassName: "text-secondary-dim",
   },
   next_steps: {
-    label: "Next steps",
+    label: "Next move",
     icon: ListChecks,
-    className: "border-secondary/25 bg-white",
+    className: "border-l-secondary/35",
     iconClassName: "text-secondary-dim",
   },
   clarifying_question: {
     label: "Question",
     icon: CircleHelp,
-    className: "border-primary/18 bg-primary/5",
+    className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
 };
@@ -192,8 +196,13 @@ function getRenderableMetadata(
   assistantContent = ""
 ): CoachMessageMetadata | null {
   if (!isCoachMessageMetadata(metadata)) return null;
+  const prunedMetadata = pruneCoachMetadata(metadata, {
+    assistantText: assistantContent,
+    intent: metadata.coachIntent,
+  }).metadata;
+  if (!prunedMetadata) return null;
 
-  const filteredBlocks = metadata.blocks.filter((block) => {
+  const filteredBlocks = prunedMetadata.blocks.filter((block) => {
     if (block.type === "opening_formula") return isUsefulOpeningFormula(block);
     if (block.type === "template") return isUsefulTemplate(block);
     if (block.type === "clarifying_question") {
@@ -205,11 +214,11 @@ function getRenderableMetadata(
     return true;
   });
 
-  if (metadata.visualExplainer) {
+  if (prunedMetadata.visualExplainer) {
     return {
-      ...metadata,
+      ...prunedMetadata,
       blocks: [],
-      suggestedActions: metadata.suggestedActions ?? [],
+      suggestedActions: prunedMetadata.suggestedActions ?? [],
     };
   }
 
@@ -218,7 +227,10 @@ function getRenderableMetadata(
       const text = plainTextFromMarkdown(blockText(block)).toLowerCase();
       const content = plainTextFromMarkdown(assistantContent).toLowerCase();
       if (text.length < 36 || content.length < 80) return true;
-      return !content.includes(text.slice(0, Math.min(text.length, 120)));
+      return (
+        !content.includes(text.slice(0, Math.min(text.length, 120))) &&
+        !isCoachBlockRepeatedInText(block, assistantContent)
+      );
     })
     .slice(0, 2);
 
@@ -231,7 +243,7 @@ function getRenderableMetadata(
 
   if (clarifyingBlocks.length > 0 && !hasOpeningBlueprint) {
     return {
-      ...metadata,
+      ...prunedMetadata,
       blocks: clarifyingBlocks,
       suggestedActions: [],
     };
@@ -239,16 +251,16 @@ function getRenderableMetadata(
 
   if (
     visibleBlocks.length === 0 &&
-    !metadata.visualizable &&
-    !metadata.visualExplainer
+    !prunedMetadata.visualizable &&
+    !prunedMetadata.visualExplainer
   ) {
     return null;
   }
 
   return {
-    ...metadata,
+    ...prunedMetadata,
     blocks: visibleBlocks,
-    suggestedActions: metadata.suggestedActions ?? [],
+    suggestedActions: prunedMetadata.suggestedActions ?? [],
   };
 }
 
@@ -554,31 +566,31 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
   return (
     <section
       className={cn(
-        "rounded-xl border px-3.5 py-3",
+        "rounded-none border-0 border-l-2 bg-transparent py-2 pl-3 pr-2",
         style.className
       )}
     >
       <div className="flex items-start gap-2.5">
-        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", style.iconClassName)} />
+        <Icon className={cn("mt-1 h-3.5 w-3.5 shrink-0", style.iconClassName)} />
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
             {style.label}
           </div>
           {block.title ? (
-            <h3 className="mt-1 text-sm font-semibold leading-5 text-on-surface">
+            <h3 className="mt-0.5 text-sm font-semibold leading-5 text-on-surface">
               {block.title}
             </h3>
           ) : null}
           {block.body && (
-            <MiniMarkdown className="mt-1.5 text-on-surface-variant">
+            <MiniMarkdown className="mt-1 text-on-surface-variant">
               {block.body}
             </MiniMarkdown>
           )}
           {block.items && block.items.length > 0 && (
-            <ul className="mt-2 space-y-1.5 text-sm leading-6 text-on-surface-variant">
+            <ul className="mt-1.5 space-y-1 text-sm leading-6 text-on-surface-variant">
               {block.items.map((item, itemIndex) => (
                 <li key={`${block.id}-item-${itemIndex}`} className="flex gap-2">
-                  <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+                  <span className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-primary/60" />
                   <MiniMarkdown className="min-w-0 flex-1">{item}</MiniMarkdown>
                 </li>
               ))}

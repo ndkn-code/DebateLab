@@ -21,7 +21,7 @@
     "test:stt": "tsx src/lib/stt/stt.test.ts",
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",
     "test:ai-quality": "tsx src/lib/ai/quality-model.test.ts",
-    "test:ai-coach": "tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts",
+    "test:ai-coach": "tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/metadata.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts",
     "test:debate-corpus": "tsx src/lib/corpus/config.test.ts && tsx src/lib/corpus/model.test.ts",
     "test:corpus-importer": "tsx src/lib/corpus/importer.test.ts",
     "test:truong-teen": "tsx src/lib/truong-teen/debate-dna.test.ts",
