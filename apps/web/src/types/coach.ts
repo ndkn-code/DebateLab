@@ -208,6 +208,7 @@ export interface CoachMessageMetadata {
   blocks: CoachResponseBlock[];
   suggestedActions: CoachSuggestedAction[];
   visualizable?: boolean;
+  autoVisualize?: boolean;
   visualPrompt?: string;
   visualExplainer?: CoachVisualExplainerSpec | null;
   coachIntent?: CoachRouteIntent;

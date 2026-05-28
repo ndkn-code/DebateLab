@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import posthog from "posthog-js";
 import { ConversationSidebar } from "./conversation-sidebar";
@@ -70,6 +70,7 @@ export function ChatShell({
   const [visualizingMessageId, setVisualizingMessageId] = useState<string | null>(
     null
   );
+  const autoVisualizedMessageIdsRef = useRef<Set<string>>(new Set());
 
   const refreshCoachView = useCallback(
     async ({
@@ -514,12 +515,43 @@ export function ChatShell({
         );
       } catch (error) {
         console.error("Visual explainer error:", error);
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === messageId && message.metadata
+              ? {
+                  ...message,
+                  metadata: {
+                    ...message.metadata,
+                    autoVisualize: false,
+                  },
+                }
+              : message
+          )
+        );
       } finally {
         setVisualizingMessageId(null);
       }
     },
     [activeConversationId]
   );
+
+  useEffect(() => {
+    if (visualizingMessageId) return;
+    const nextMessage = messages.find(
+      (message) =>
+        message.role === "assistant" &&
+        message.status === "complete" &&
+        !message.id.startsWith("temp-") &&
+        Boolean(message.metadata?.autoVisualize) &&
+        Boolean(message.metadata?.visualizable) &&
+        !message.metadata?.visualExplainer &&
+        !autoVisualizedMessageIdsRef.current.has(message.id)
+    );
+
+    if (!nextMessage) return;
+    autoVisualizedMessageIdsRef.current.add(nextMessage.id);
+    void requestVisualize(nextMessage.id);
+  }, [messages, requestVisualize, visualizingMessageId]);
 
   // Auto-send initial message from URL param
   useEffect(() => {

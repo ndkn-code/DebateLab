@@ -300,6 +300,7 @@ export async function POST(req: NextRequest) {
           suggestedActions: existingMetadata?.suggestedActions ?? [],
           ...(existingMetadata ?? {}),
           visualizable: true,
+          autoVisualize: false,
           visualExplainer,
           visualTemplate: visualExplainer.template,
           visualPlannerModel: modelName,

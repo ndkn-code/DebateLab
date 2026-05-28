@@ -957,6 +957,13 @@ function AssistantMessage({
     : cardBlocks;
   const canRequestVisual =
     Boolean(metadata?.visualizable) &&
+    !metadata?.autoVisualize &&
+    !metadata?.visualExplainer &&
+    !isStreaming &&
+    !message.id.startsWith("temp-");
+  const shouldShowVisualPreparing =
+    Boolean(metadata?.autoVisualize) &&
+    Boolean(metadata?.visualizable) &&
     !metadata?.visualExplainer &&
     !isStreaming &&
     !message.id.startsWith("temp-");
@@ -1043,6 +1050,8 @@ function AssistantMessage({
 
             {metadata.visualExplainer ? (
               <CoachVisualExplainerCard visual={metadata.visualExplainer} />
+            ) : shouldShowVisualPreparing ? (
+              <CoachVisualPreparingCard />
             ) : (
               <VisualizeButton
                 onClick={
@@ -1084,6 +1093,43 @@ function AssistantMessage({
         )}
       </div>
     </motion.div>
+  );
+}
+
+function CoachVisualPreparingCard() {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
+      className="mt-5 max-w-[820px] overflow-hidden rounded-[24px] border border-[#DDE7F5] bg-white shadow-[0_18px_42px_rgba(34,57,94,0.08)]"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-3 border-b border-[#EEF2F7] px-5 py-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/8 text-primary">
+          <Sparkles className="h-4 w-4" />
+        </span>
+        <div>
+          <div className="text-sm font-semibold text-on-surface">
+            Preparing visual explainer
+          </div>
+          <div className="text-xs text-on-surface-variant">
+            The diagram will appear here automatically.
+          </div>
+        </div>
+      </div>
+      <div className="space-y-5 px-5 py-6">
+        <div className="mx-auto h-5 w-3/5 animate-pulse rounded-full bg-[#EEF3FA]" />
+        <div className="flex items-center justify-center gap-4">
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:w-32" />
+          <div className="h-px w-6 bg-[#DDE7F5] sm:w-8" />
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:w-32" />
+          <div className="hidden h-px w-8 bg-[#DDE7F5] sm:block" />
+          <div className="hidden h-16 w-32 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:block" />
+        </div>
+        <div className="mx-auto h-3 w-4/5 animate-pulse rounded-full bg-[#F4F7FB]" />
+      </div>
+    </motion.section>
   );
 }
 

@@ -611,6 +611,7 @@ ${assistantText}`,
         metadata.visualizable ||
         routeIntent.intent === "visual_explainer" ||
         Boolean(parsed?.visualizable),
+      autoVisualize: routeIntent.intent === "visual_explainer",
       visualPrompt:
         cleanText(parsed?.visualPrompt, 220) ?? undefined,
       coachIntent: routeIntent.intent,
@@ -1174,6 +1175,7 @@ RULES FOR THIS CONTEXT:
               corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
               firstTokenLatencyMs,
               visualizable: routeIntent.intent === "visual_explainer",
+              autoVisualize: routeIntent.intent === "visual_explainer",
             } satisfies CoachMessageMetadata);
 
           // Save assistant message
