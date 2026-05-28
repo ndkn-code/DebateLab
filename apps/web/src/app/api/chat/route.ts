@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import Groq from "groq-sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
 import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
@@ -28,6 +27,15 @@ import {
   retrieveDebateCorpusContext,
   type DebateCorpusRetrievalResult,
 } from "@/lib/corpus/retrieval";
+import {
+  classifyGeminiError,
+  getGeminiClientForSlot,
+  getGeminiKeyCooldowns,
+  recordGeminiKeyFailure,
+  recordGeminiKeySuccess,
+  selectGeminiKeyAttempts,
+  shouldTryNextGeminiKey,
+} from "@/lib/gemini/key-pool";
 import type {
   CoachModelRoute,
   CoachMessageMetadata,
@@ -136,14 +144,6 @@ function getGroq() {
   return new Groq({
     apiKey: process.env.GROQ_API_KEY!,
   });
-}
-
-function getGemini() {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS?.split(",")[0];
-  if (!apiKey?.trim()) {
-    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
-  }
-  return new GoogleGenerativeAI(apiKey.trim());
 }
 
 const GROQ_COACH_MODEL = "llama-3.3-70b-versatile";
@@ -698,6 +698,14 @@ function getGeminiUsage(usage: {
   };
 }
 
+function getGeminiCoachErrorCode(error: unknown) {
+  const kind = classifyGeminiError(error);
+  if (kind === "rate_limit") return "RATE_LIMIT_OR_QUOTA";
+  if (kind === "service_unavailable") return "GEMINI_SERVICE_UNAVAILABLE";
+  if (kind === "access_denied") return "GEMINI_ACCESS_DENIED";
+  return "GEMINI_COACH_FAILED";
+}
+
 async function streamGeminiCoachResponse(params: {
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
   userId: string;
@@ -706,21 +714,22 @@ async function streamGeminiCoachResponse(params: {
   corpusRetrieval: DebateCorpusRetrievalResult | null;
   onText: (text: string) => void;
 }) {
-  const startedAt = Date.now();
-  const model = getGemini().getGenerativeModel({
-    model: GEMINI_DEEP_COACH_MODEL,
-    generationConfig: {
-      temperature: 0.35,
-      maxOutputTokens: 1600,
-    },
-  });
   const prompt = params.messages
     .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
     .join("\n\n");
+  const attempts = selectGeminiKeyAttempts(
+    `${GEMINI_DEEP_COACH_MODEL}:${params.userId}:${params.routeIntent.intent}:${prompt.slice(
+      0,
+      256
+    )}`
+  );
+  let lastError: unknown = null;
 
-  try {
-    const result = await model.generateContentStream(prompt);
+  for (let index = 0; index < attempts.length; index += 1) {
+    const attempt = attempts[index];
+    const startedAt = Date.now();
     let fullText = "";
+    let emittedText = false;
     let usage:
       | {
           promptTokenCount?: number;
@@ -729,54 +738,94 @@ async function streamGeminiCoachResponse(params: {
         }
       | null = null;
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (!text) continue;
-      fullText += text;
-      params.onText(text);
-    }
+    try {
+      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
+        model: GEMINI_DEEP_COACH_MODEL,
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 1600,
+        },
+      });
+      const result = await model.generateContentStream(prompt);
 
-    const finalResponse = await result.response;
-    usage = finalResponse.usageMetadata ?? usage;
-    await recordAiProviderRequest({
-      provider: "google",
-      model: GEMINI_DEEP_COACH_MODEL,
-      status: "success",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_deep_review",
-      userId: params.userId,
-      latencyMs: Date.now() - startedAt,
-      finishReason:
-        finalResponse.candidates?.[0]?.finishReason ??
-        (fullText.length > 0 ? "STOP" : null),
-      usage: getGeminiUsage(usage),
-      metadata: {
-        coachIntent: params.routeIntent.intent,
-        coachIntentReason: params.routeIntent.reason,
-        coachModelRoute: params.modelRoute,
-        coachCorpusRetrievedCount: params.corpusRetrieval?.items.length ?? 0,
-      },
-    });
-    return fullText;
-  } catch (error) {
-    await recordAiProviderRequest({
-      provider: "google",
-      model: GEMINI_DEEP_COACH_MODEL,
-      status: "error",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_deep_review",
-      userId: params.userId,
-      latencyMs: Date.now() - startedAt,
-      errorCode: "GEMINI_COACH_FAILED",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      metadata: {
-        coachIntent: params.routeIntent.intent,
-        coachIntentReason: params.routeIntent.reason,
-        coachModelRoute: params.modelRoute,
-      },
-    });
-    throw error;
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (!text) continue;
+        emittedText = true;
+        fullText += text;
+        params.onText(text);
+      }
+
+      const finalResponse = await result.response;
+      usage = finalResponse.usageMetadata ?? usage;
+      recordGeminiKeySuccess(attempt.slot);
+      await recordAiProviderRequest({
+        provider: "google",
+        model: GEMINI_DEEP_COACH_MODEL,
+        status: "success",
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+        outputType: "coach_deep_review",
+        userId: params.userId,
+        latencyMs: Date.now() - startedAt,
+        finishReason:
+          finalResponse.candidates?.[0]?.finishReason ??
+          (fullText.length > 0 ? "STOP" : null),
+        usage: getGeminiUsage(usage),
+        metadata: {
+          coachIntent: params.routeIntent.intent,
+          coachIntentReason: params.routeIntent.reason,
+          coachModelRoute: params.modelRoute,
+          coachCorpusRetrievedCount: params.corpusRetrieval?.items.length ?? 0,
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
+        },
+      });
+      return fullText;
+    } catch (error) {
+      lastError = error;
+      const cooldown = recordGeminiKeyFailure(attempt.slot, error);
+      await recordAiProviderRequest({
+        provider: "google",
+        model: GEMINI_DEEP_COACH_MODEL,
+        status: "error",
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+        outputType: "coach_deep_review",
+        userId: params.userId,
+        latencyMs: Date.now() - startedAt,
+        errorCode: getGeminiCoachErrorCode(error),
+        errorMessage: error instanceof Error ? error.message : String(error),
+        metadata: {
+          coachIntent: params.routeIntent.intent,
+          coachIntentReason: params.routeIntent.reason,
+          coachModelRoute: params.modelRoute,
+          geminiErrorKind: classifyGeminiError(error),
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
+          keyCooldownUntil: cooldown?.until ?? null,
+          emittedText,
+          activeKeyCooldowns: getGeminiKeyCooldowns().map((item) => ({
+            slot: item.slot,
+            reason: item.reason,
+            until: item.until,
+            failureCount: item.failureCount,
+          })),
+        },
+      });
+      if (
+        emittedText ||
+        !shouldTryNextGeminiKey(error) ||
+        index === attempts.length - 1
+      ) {
+        throw error;
+      }
+    }
   }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 export async function POST(req: NextRequest) {

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   requireRequestAuth,
   unauthorizedTextResponse,
@@ -15,20 +14,20 @@ import {
   extractJsonObjectFromText,
   normalizeCoachVisualExplainerSpec,
 } from "@/lib/coach/visualization";
+import {
+  classifyGeminiError,
+  getGeminiClientForSlot,
+  getGeminiKeyCooldowns,
+  runWithGeminiKeyPool,
+} from "@/lib/gemini/key-pool";
 import type { CoachMessageMetadata } from "@/types";
 
 export const maxDuration = 45;
 
+const PRIMARY_VISUAL_MODEL =
+  process.env.GEMINI_VISUAL_PLANNER_MODEL || "gemini-3.1-flash-lite";
 const PRIMARY_GEMMA_VISUAL_MODEL = "gemma-4-31b-it";
 const FALLBACK_GEMMA_VISUAL_MODEL = "gemma-4-26b-a4b-it";
-
-function getGemini() {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS?.split(",")[0];
-  if (!apiKey?.trim()) {
-    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
-  }
-  return new GoogleGenerativeAI(apiKey.trim());
-}
 
 function parseRequest(body: JsonRecord) {
   const messageId = getString(body, "messageId", {
@@ -94,55 +93,109 @@ async function planVisual(params: {
   prompt: string;
   userId: string;
   messageId: string;
+  modelFallbackCount: number;
 }) {
-  const startedAt = Date.now();
-  const model = getGemini().getGenerativeModel({
-    model: params.modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2,
-      maxOutputTokens: 900,
+  return runWithGeminiKeyPool({
+    seed: `coach-visual:${params.userId}:${params.messageId}:${params.modelName}`,
+    run: async (attempt) => {
+      const startedAt = Date.now();
+      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
+        model: params.modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+          maxOutputTokens: 900,
+        },
+      });
+      const result = await model.generateContent(params.prompt);
+      await recordAiProviderRequest({
+        provider: "google",
+        model: params.modelName,
+        status: "success",
+        sourceRoute: "/api/chat/visualize",
+        outputType: "coach_visual_planner",
+        userId: params.userId,
+        latencyMs: Date.now() - startedAt,
+        finishReason: result.response.candidates?.[0]?.finishReason ?? null,
+        usage: {
+          inputTokens: result.response.usageMetadata?.promptTokenCount,
+          outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+          totalTokens: result.response.usageMetadata?.totalTokenCount,
+        },
+        metadata: {
+          messageId: params.messageId,
+          plannerModelFallbackCount: params.modelFallbackCount,
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
+        },
+      });
+      return result.response.text();
+    },
+    onError: async (error, attempt, cooldown) => {
+      await recordAiProviderRequest({
+        provider: "google",
+        model: params.modelName,
+        status: "error",
+        sourceRoute: "/api/chat/visualize",
+        outputType: "coach_visual_planner",
+        userId: params.userId,
+        latencyMs: null,
+        errorCode: getVisualPlannerErrorCode(error),
+        errorMessage: error instanceof Error ? error.message : String(error),
+        metadata: {
+          messageId: params.messageId,
+          plannerModelFallbackCount: params.modelFallbackCount,
+          geminiErrorKind: classifyGeminiError(error),
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
+          keyCooldownUntil: cooldown?.until ?? null,
+          activeKeyCooldowns: getGeminiKeyCooldowns().map((item) => ({
+            slot: item.slot,
+            reason: item.reason,
+            until: item.until,
+            failureCount: item.failureCount,
+          })),
+        },
+      });
     },
   });
+}
 
-  try {
-    const result = await model.generateContent(params.prompt);
-    await recordAiProviderRequest({
-      provider: "google",
-      model: params.modelName,
-      status: "success",
-      sourceRoute: "/api/chat/visualize",
-      outputType: "coach_visual_planner",
-      userId: params.userId,
-      latencyMs: Date.now() - startedAt,
-      finishReason: result.response.candidates?.[0]?.finishReason ?? null,
-      usage: {
-        inputTokens: result.response.usageMetadata?.promptTokenCount,
-        outputTokens: result.response.usageMetadata?.candidatesTokenCount,
-        totalTokens: result.response.usageMetadata?.totalTokenCount,
-      },
-      metadata: {
-        messageId: params.messageId,
-      },
-    });
-    return result.response.text();
-  } catch (error) {
-    await recordAiProviderRequest({
-      provider: "google",
-      model: params.modelName,
-      status: "error",
-      sourceRoute: "/api/chat/visualize",
-      outputType: "coach_visual_planner",
-      userId: params.userId,
-      latencyMs: Date.now() - startedAt,
-      errorCode: "COACH_VISUAL_PLANNER_FAILED",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      metadata: {
-        messageId: params.messageId,
-      },
-    });
-    throw error;
-  }
+function getVisualPlannerErrorCode(error: unknown) {
+  const kind = classifyGeminiError(error);
+  if (kind === "rate_limit") return "RATE_LIMIT_OR_QUOTA";
+  if (kind === "service_unavailable") return "GEMINI_SERVICE_UNAVAILABLE";
+  if (kind === "access_denied") return "GEMINI_ACCESS_DENIED";
+  return "COACH_VISUAL_PLANNER_FAILED";
+}
+
+async function recordInvalidVisualPlan(params: {
+  modelName: string;
+  userId: string;
+  messageId: string;
+  modelFallbackCount: number;
+  error: unknown;
+}) {
+  await recordAiProviderRequest({
+    provider: "google",
+    model: params.modelName,
+    status: "error",
+    sourceRoute: "/api/chat/visualize",
+    outputType: "coach_visual_planner",
+    userId: params.userId,
+    latencyMs: null,
+    errorCode: "COACH_VISUAL_SCHEMA_INVALID",
+    errorMessage: params.error instanceof Error ? params.error.message : String(params.error),
+    metadata: {
+      messageId: params.messageId,
+      plannerModelFallbackCount: params.modelFallbackCount,
+      providerCallSucceeded: true,
+    },
+  });
 }
 
 function inferLanguage(text: string): "vi" | "en" {
@@ -204,15 +257,20 @@ export async function POST(req: NextRequest) {
       languageHint: inferLanguage(`${previousUserText ?? ""}\n${message.content}`),
     });
 
-    const plannerModels = [PRIMARY_GEMMA_VISUAL_MODEL, FALLBACK_GEMMA_VISUAL_MODEL];
+    const plannerModels = [
+      PRIMARY_VISUAL_MODEL,
+      PRIMARY_GEMMA_VISUAL_MODEL,
+      FALLBACK_GEMMA_VISUAL_MODEL,
+    ];
     let lastError: unknown = null;
-    for (const modelName of plannerModels) {
+    for (const [modelFallbackCount, modelName] of plannerModels.entries()) {
       try {
         const raw = await planVisual({
           modelName,
           prompt,
           userId: user.id,
           messageId: message.id,
+          modelFallbackCount,
         });
         const visualExplainer = normalizeCoachVisualExplainerSpec(
           extractJsonObjectFromText(raw),
@@ -222,7 +280,17 @@ export async function POST(req: NextRequest) {
           }
         );
         if (!visualExplainer) {
-          throw new Error("Planner returned invalid visual explainer JSON");
+          const schemaError = new Error(
+            "Planner returned invalid visual explainer JSON"
+          );
+          await recordInvalidVisualPlan({
+            modelName,
+            userId: user.id,
+            messageId: message.id,
+            modelFallbackCount,
+            error: schemaError,
+          });
+          throw schemaError;
         }
         const metadata: CoachMessageMetadata = {
           renderVersion: 1,

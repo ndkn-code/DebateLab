@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type {
   DebateArgumentBreakdown,
   DebateClashLink,
@@ -42,65 +41,20 @@ import {
   normalizeScoreRationale,
 } from "./feedback/depth";
 import { needsVietnameseProseRepair } from "./feedback/language-repair";
+import {
+  classifyGeminiError,
+  getGeminiClientForSlot,
+  getGeminiKeyCountForTelemetry,
+  getGeminiKeyCooldowns,
+  runWithGeminiKeyPool,
+  selectGeminiKeyAttempts,
+} from "./gemini/key-pool";
 import { getPostHogServer } from "./posthog-server";
 import { buildSttJudgeGuardrailBlock } from "./stt/prompt";
 
-const geminiClients = new Map<string, GoogleGenerativeAI>();
-
-function getGeminiApiKeys() {
-  const pooledKeys =
-    process.env.GEMINI_API_KEYS?.split(",")
-      .map((key) => key.trim())
-      .filter(Boolean) ?? [];
-  const singleKey = process.env.GEMINI_API_KEY?.trim();
-  const keys = pooledKeys.length > 0 ? pooledKeys : singleKey ? [singleKey] : [];
-  return Array.from(new Set(keys));
-}
-
-function getGeminiClientForApiKey(apiKey: string) {
-  const key = apiKey.trim();
-  const configured = getGeminiApiKeys().length > 0;
-  if (!key || !configured) {
-    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
-  }
-  const existing = geminiClients.get(key);
-  if (existing) return existing;
-  const client = new GoogleGenerativeAI(key);
-  geminiClients.set(key, client);
-  return client;
-}
-
-function hashStringToNumber(value: string) {
-  const digest = createHash("sha256").update(value).digest("hex").slice(0, 8);
-  return Number.parseInt(digest, 16) || 0;
-}
-
-function getGeminiKeySlot(seed: string, keyCount: number) {
-  if (keyCount <= 1) return 0;
-  return hashStringToNumber(seed) % keyCount;
-}
-
-function isGeminiQuotaOrRateLimitError(error: unknown) {
-  const source = error as { status?: number; code?: number; message?: string };
-  const status = source?.status ?? source?.code;
-  const message =
-    error instanceof Error ? error.message : String(source?.message ?? error);
-  return (
-    status === 429 ||
-    /429|quota|rate.?limit|resource_exhausted|too many requests/i.test(message)
-  );
-}
-
-function getGeminiKeyCountForTelemetry() {
-  return getGeminiApiKeys().length || 0;
-}
-
 function getGeminiClient() {
-  const apiKey = getGeminiApiKeys()[0];
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
-  }
-  return getGeminiClientForApiKey(apiKey);
+  const [attempt] = selectGeminiKeyAttempts("legacy-gemini-client");
+  return getGeminiClientForSlot(attempt.slot);
 }
 
 async function loadDeepSeekChatCompletion() {
@@ -529,27 +483,19 @@ async function generateGeminiStage(params: {
     metadata?: Record<string, unknown>;
   };
 }): Promise<GeminiStageResult> {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) {
-    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
-  }
-
   const seed = params.keySeed ?? `${params.modelName}:${params.stage}`;
-  const startSlot = getGeminiKeySlot(seed, keys.length);
-  let lastError: unknown = null;
-
-  for (let offset = 0; offset < keys.length; offset += 1) {
-    const slot = (startSlot + offset) % keys.length;
-    const model = getGeminiClientForApiKey(keys[slot]).getGenerativeModel({
-      model: params.modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: params.temperature ?? 0.25,
-        maxOutputTokens: params.maxOutputTokens,
-      },
-    });
-    const startTime = Date.now();
-    try {
+  return runWithGeminiKeyPool({
+    seed,
+    run: async (attempt) => {
+      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
+        model: params.modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: params.temperature ?? 0.25,
+          maxOutputTokens: params.maxOutputTokens,
+        },
+      });
+      const startTime = Date.now();
       const result = await model.generateContent(params.prompt);
       const latencyMs = Date.now() - startTime;
       const providerRequestId = await recordGeminiProviderRequest({
@@ -565,8 +511,10 @@ async function generateGeminiStage(params: {
         debateSessionId: params.audit?.debateSessionId,
         metadata: {
           stage: params.stage,
-          keySlot: slot,
-          keyFallbackCount: offset,
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
           maxOutputTokens: params.maxOutputTokens,
           temperature: params.temperature ?? 0.25,
           ...(params.audit?.metadata ?? {}),
@@ -577,42 +525,51 @@ async function generateGeminiStage(params: {
         text: result.response.text(),
         latencyMs,
         usage: result.response.usageMetadata,
-        keySlot: slot,
-        keyFallbackCount: offset,
+        keySlot: attempt.slot,
+        keyFallbackCount: attempt.fallbackCount,
         providerRequestId,
       };
-    } catch (error) {
+    },
+    onError: async (error, attempt, cooldown) => {
       await recordGeminiProviderRequest({
         model: params.modelName,
         status: "error",
         sourceRoute: params.audit?.sourceRoute,
         outputType: params.audit?.outputType,
         userId: params.audit?.userId,
-        latencyMs: Date.now() - startTime,
-        errorCode: isGeminiQuotaOrRateLimitError(error)
-          ? "RATE_LIMIT_OR_QUOTA"
-          : "GEMINI_REQUEST_FAILED",
+        latencyMs: null,
+        errorCode: (() => {
+          const kind = classifyGeminiError(error);
+          if (kind === "rate_limit") return "RATE_LIMIT_OR_QUOTA";
+          if (kind === "service_unavailable") return "GEMINI_SERVICE_UNAVAILABLE";
+          if (kind === "access_denied") return "GEMINI_ACCESS_DENIED";
+          return "GEMINI_REQUEST_FAILED";
+        })(),
         errorMessage: error instanceof Error ? error.message : String(error),
         practiceAttemptId: params.audit?.practiceAttemptId,
         analysisJobId: params.audit?.analysisJobId,
         debateSessionId: params.audit?.debateSessionId,
         metadata: {
           stage: params.stage,
-          keySlot: slot,
-          keyFallbackCount: offset,
+          keySlot: attempt.slot,
+          keyFallbackCount: attempt.fallbackCount,
+          keyCooldownSkippedCount: attempt.skippedCooldownCount,
+          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
+          geminiErrorKind: classifyGeminiError(error),
+          keyCooldownUntil: cooldown?.until ?? null,
+          activeKeyCooldowns: getGeminiKeyCooldowns().map((item) => ({
+            slot: item.slot,
+            reason: item.reason,
+            until: item.until,
+            failureCount: item.failureCount,
+          })),
           maxOutputTokens: params.maxOutputTokens,
           temperature: params.temperature ?? 0.25,
           ...(params.audit?.metadata ?? {}),
         },
       });
-      lastError = error;
-      if (!isGeminiQuotaOrRateLimitError(error) || offset === keys.length - 1) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    },
+  });
 }
 
 function summarizeGeminiStages(stages: GeminiStageResult[]) {
