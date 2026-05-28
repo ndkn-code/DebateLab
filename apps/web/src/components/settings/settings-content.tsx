@@ -101,17 +101,17 @@ function SettingsCard(props: {
   return (
     <section
       className={cn(
-        "rounded-[28px] border border-[#dbe5fb] bg-white/90 p-5 shadow-[0_18px_48px_-38px_rgba(34,67,138,0.5)] backdrop-blur",
+        "rounded-[28px] border border-[#dbe5fb] bg-white/90 p-5 shadow-[0_18px_48px_-38px_rgba(34,67,138,0.5)] backdrop-blur dark:border-outline-variant/70 dark:bg-surface/92",
         className
       )}
     >
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf3ff] text-primary">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf3ff] text-primary dark:bg-primary-container">
           {icon}
         </div>
         <div>
-          <h2 className="text-base font-semibold text-[#172554]">{title}</h2>
-          <p className="mt-1 text-sm text-[#64748b]">{description}</p>
+          <h2 className="text-base font-semibold text-[#172554] dark:text-on-surface">{title}</h2>
+          <p className="mt-1 text-sm text-[#64748b] dark:text-on-surface-variant">{description}</p>
         </div>
       </div>
       {children}
@@ -121,7 +121,7 @@ function SettingsCard(props: {
 
 function SettingLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-2 block text-sm font-medium text-[#1e3a5f]">
+    <label className="mb-2 block text-sm font-medium text-[#1e3a5f] dark:text-on-surface">
       {children}
     </label>
   );
@@ -136,10 +136,10 @@ function ToggleRow(props: {
   const { title, description, checked, onCheckedChange } = props;
 
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3">
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-[#172554]">{title}</p>
-        <p className="mt-1 text-sm text-[#64748b]">{description}</p>
+        <p className="text-sm font-medium text-[#172554] dark:text-on-surface">{title}</p>
+        <p className="mt-1 text-sm text-[#64748b] dark:text-on-surface-variant">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
@@ -205,7 +205,7 @@ function AvatarPreview(props: {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-[26px] border border-white/80 bg-[#edf3ff] shadow-inner",
+        "overflow-hidden rounded-[26px] border border-white/80 bg-[#edf3ff] shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
         sizeClassName
       )}
     >
@@ -412,17 +412,17 @@ export function SettingsContent({
   }
 
   return (
-    <div className="min-h-full bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)]">
+    <div className="min-h-full bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)] dark:bg-[linear-gradient(180deg,#070b12_0%,#0b111c_55%,#080c13_100%)]">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#172554] sm:text-[2rem]">
+            <h1 className="text-3xl font-bold text-[#172554] sm:text-[2rem] dark:text-on-surface">
               {t("headline")}
             </h1>
           </div>
 
           <div className="flex items-center gap-3 self-start">
-            <div className="hidden rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[#64748b] shadow-sm sm:block">
+            <div className="hidden rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[#64748b] shadow-sm dark:bg-surface/80 dark:text-on-surface-variant sm:block">
               {isDirty ? t("status.unsaved") : t("status.saved")}
             </div>
             <Button
@@ -441,7 +441,7 @@ export function SettingsContent({
           </div>
         </div>
 
-        <section className="mb-5 rounded-[30px] border border-[#dbe5fb] bg-white/95 p-5 shadow-[0_25px_60px_-45px_rgba(29,78,216,0.55)]">
+        <section className="mb-5 rounded-[30px] border border-[#dbe5fb] bg-white/95 p-5 shadow-[0_25px_60px_-45px_rgba(29,78,216,0.55)] dark:border-outline-variant/70 dark:bg-surface/95">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative shrink-0">
               <AvatarPreview
@@ -476,7 +476,7 @@ export function SettingsContent({
             <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#edf3ff] px-3 py-1 text-xs font-medium text-primary">
+                  <span className="rounded-full bg-[#edf3ff] px-3 py-1 text-xs font-medium text-primary dark:bg-primary-container">
                     {t(`languages.${draft.preferredLocale}`)}
                   </span>
                 </div>
@@ -488,15 +488,15 @@ export function SettingsContent({
                     updateDraft("displayName", event.target.value)
                   }
                   placeholder={t("fields.display_name_placeholder")}
-                  className="h-11 w-full max-w-xl rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-medium text-[#172554] outline-none transition-colors focus:border-primary"
+                  className="h-11 w-full max-w-xl rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-medium text-[#172554] outline-none transition-colors focus:border-primary dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
                 />
-                <p className="mt-2 truncate text-sm text-[#64748b]">{userEmail}</p>
-                <p className="mt-2 max-w-2xl text-sm text-[#64748b]">
+                <p className="mt-2 truncate text-sm text-[#64748b] dark:text-on-surface-variant">{userEmail}</p>
+                <p className="mt-2 max-w-2xl text-sm text-[#64748b] dark:text-on-surface-variant">
                   {t("hero_summary")}
                 </p>
               </div>
 
-              <div className="hidden rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] lg:block lg:max-w-xs">
+              <div className="hidden rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant lg:block lg:max-w-xs">
                 {isDirty ? t("status.unsaved") : t("status.saved")}
               </div>
             </div>
@@ -568,7 +568,7 @@ export function SettingsContent({
                   <option value="vi">{t("languages.vi")}</option>
                 </Select>
               </div>
-              <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b]">
+              <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
                 {isLocalePending
                   ? t("language_switching")
                   : t("language_hint")}
@@ -681,7 +681,7 @@ export function SettingsContent({
           </SettingsCard>
         </div>
 
-        <section className="mt-5 rounded-[28px] border border-red-200 bg-red-50/65 p-5 shadow-[0_18px_48px_-38px_rgba(220,38,38,0.3)]">
+        <section className="mt-5 rounded-[28px] border border-red-200 bg-red-50/65 p-5 shadow-[0_18px_48px_-38px_rgba(220,38,38,0.3)] dark:border-error/35 dark:bg-error-container/40">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-500">
@@ -701,7 +701,7 @@ export function SettingsContent({
               type="button"
               variant="outline"
               onClick={handleSignOut}
-              className="rounded-2xl border-red-300 bg-white text-red-500 hover:bg-red-50"
+            className="rounded-2xl border-red-300 bg-white text-red-500 hover:bg-red-50 dark:border-error/45 dark:bg-surface-container-lowest dark:text-error dark:hover:bg-error-container/35"
             >
               {t("sign_out")}
             </Button>

@@ -157,7 +157,7 @@ export function SkillSnapshotCard({
                       x={position.x}
                       y={position.y}
                       textAnchor={position.textAnchor}
-                      className="fill-[#415069] text-[12.5px] font-medium"
+                      className="fill-[#415069] text-[12.5px] font-medium dark:fill-on-surface-variant"
                     >
                       {t(`skill_labels.${metric.key}`)}
                     </text>
@@ -212,7 +212,7 @@ export function SkillSnapshotCard({
             <Link href="/profile" className="mt-3 flex justify-end">
               <Button
                 variant="outline"
-                className="rounded-xl border-primary/20 bg-[#EEF4FF] text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.08)] hover:bg-primary hover:text-on-primary"
+                className="rounded-xl border-primary/20 bg-[#EEF4FF] text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.08)] hover:bg-primary hover:text-on-primary dark:bg-primary-container/70"
               >
                 {t("view_details")}
               </Button>

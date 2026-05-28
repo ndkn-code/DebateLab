@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gift } from "@/components/ui/icons";
 import { LogoMark } from "@/components/landing/logo-mark";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 function LoginContent() {
   const t = useTranslations('auth.login');
@@ -113,6 +114,10 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <ThemeToggle
+        variant="public"
+        className="absolute right-4 top-4"
+      />
       <Suspense fallback={
         <div className="w-full max-w-sm text-center">
           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />

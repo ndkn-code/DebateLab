@@ -4,6 +4,7 @@ import type { ElementType, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronLeft } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export function OnboardingShell({
   children,
@@ -51,6 +52,7 @@ export function OnboardingShell({
             <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(222,232,248,0.92)]">
               {stepLabel}
             </span>
+            <ThemeToggle variant="public" />
           </div>
           <div className="mx-auto mt-3 h-1.5 max-w-5xl overflow-hidden rounded-full bg-outline-variant/50">
             <motion.div
@@ -65,6 +67,9 @@ export function OnboardingShell({
             />
           </div>
         </header>
+      ) : null}
+      {hideChrome ? (
+        <ThemeToggle variant="public" className="absolute right-4 top-4 z-30" />
       ) : null}
 
       <main

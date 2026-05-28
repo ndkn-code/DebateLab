@@ -43,6 +43,7 @@ import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-r
 import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
@@ -197,6 +198,7 @@ function NavContent({
 
       {/* User section */}
       <div className="shrink-0 space-y-1 p-2">
+        <ThemeToggle collapsed={collapsed} />
         {!collapsed ? (
           <SupportIssueDialog
             profile={profile}
@@ -366,6 +368,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
         </Sheet>
         <LogoMark size="icon" markOnly variant="dark" />
         <DebateModeSwitcher variant="mobile" currentLocale={currentLocale} />
+        <ThemeToggle variant="mobile" className="ml-auto" />
         <div className="shrink-0">
           <Avatar size="sm">
             {profile?.avatar_url && (

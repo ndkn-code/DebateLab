@@ -9,6 +9,7 @@ import {
   clampDurationSeconds,
 } from "@/lib/practice-durations";
 import type { PracticeLanguage } from "@/types";
+import type { AppTheme } from "@/lib/theme";
 
 export const ANALYTICS_COOKIE_NAME = "debatelab_analytics_consent";
 export const ANALYTICS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -36,6 +37,7 @@ export interface SettingsPreferences extends Record<string, unknown> {
   email_notifications?: boolean;
   analytics_cookies_enabled?: boolean;
   first_dashboard_visit?: boolean;
+  theme?: AppTheme;
 }
 
 export interface SettingsDraft {

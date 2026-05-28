@@ -43,7 +43,7 @@ export function StreakCard({
   return (
     <section
       className={cn(
-        "relative min-w-0 overflow-hidden rounded-[2rem] border border-amber-500/15 bg-gradient-to-br from-[#fff6e9] via-surface-container-lowest to-[#fffdf8] soft-shadow",
+        "relative min-w-0 overflow-hidden rounded-[2rem] border border-amber-500/15 bg-gradient-to-br from-[#fff6e9] via-surface-container-lowest to-[#fffdf8] soft-shadow dark:border-warning/25 dark:from-[#24190a] dark:via-surface-container-lowest dark:to-[#0d1119]",
         compact ? "p-5" : "p-6 sm:p-7"
       )}
     >
@@ -60,7 +60,7 @@ export function StreakCard({
           )}
         >
           <div className={cn("min-w-0", compact ? "flex-1" : "max-w-xl")}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 backdrop-blur-sm dark:border-warning/25 dark:bg-warning-container/60 dark:text-warning">
               <Sparkles className="h-3.5 w-3.5" />
               {t("streak_title")}
             </span>
@@ -98,7 +98,7 @@ export function StreakCard({
 
           <div
             className={cn(
-              "shrink-0 flex items-center justify-center border border-white/70 bg-white/75 shadow-sm backdrop-blur-sm",
+              "shrink-0 flex items-center justify-center border border-white/70 bg-white/75 shadow-sm backdrop-blur-sm dark:border-outline-variant/70 dark:bg-surface/75",
               compact
                 ? "h-16 w-16 rounded-[1.25rem] sm:h-20 sm:w-20"
                 : "h-20 w-20 rounded-[1.5rem] sm:h-24 sm:w-24"
@@ -130,7 +130,7 @@ export function StreakCard({
         >
           <div
             className={cn(
-              "rounded-[1.25rem] border border-white/70 bg-white/75 backdrop-blur-sm",
+              "rounded-[1.25rem] border border-white/70 bg-white/75 backdrop-blur-sm dark:border-outline-variant/70 dark:bg-surface/75",
               compact ? "p-3" : "p-4"
             )}
           >
@@ -148,7 +148,7 @@ export function StreakCard({
 
           <div
             className={cn(
-              "rounded-[1.25rem] border border-white/70 bg-white/75 backdrop-blur-sm",
+              "rounded-[1.25rem] border border-white/70 bg-white/75 backdrop-blur-sm dark:border-outline-variant/70 dark:bg-surface/75",
               compact ? "p-3" : "p-4"
             )}
           >
@@ -167,7 +167,7 @@ export function StreakCard({
 
         <div
           className={cn(
-            "rounded-[1.5rem] border border-white/70 bg-white/80 backdrop-blur-sm",
+            "rounded-[1.5rem] border border-white/70 bg-white/80 backdrop-blur-sm dark:border-outline-variant/70 dark:bg-surface/80",
             compact ? "mt-4 p-3.5" : "mt-6 p-4"
           )}
         >

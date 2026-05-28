@@ -22,6 +22,7 @@ import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
 import { cn } from "@/lib/utils";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import type { Profile } from "@/types/database";
 import type { AppLocale } from "@/lib/locale-switch";
 
@@ -197,6 +198,7 @@ export function DashboardSidebarRail({
               <span>{tNav("adminShort")}</span>
             </Link>
           ) : null}
+          <ThemeToggle />
           <Link
             href="/settings"
             className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground"
