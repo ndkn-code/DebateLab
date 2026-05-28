@@ -78,6 +78,8 @@ Rules:
 - clash_map: show side A vs side B and the deciding clash.
 - weighing_scale: show competing impacts and why one is heavier.
 - 3-5 steps total. Each step text must be under 28 words.
+- Teach the concept directly. Do not mention "the coach", "AI", "the app", or "Thinkfy" in title, subtitle, steps, or takeaway unless the student explicitly asked about the product.
+- Prefer concise debate terms such as "Claim", "Mechanism", "Impact", "Weighing", "Clash"; for Vietnamese, use natural equivalents like "Luận điểm", "Cơ chế", "Tác động", "So sánh".
 - Never include raw HTML, markdown tables, SVG, code, or unknown keys.
 - Do not invent facts beyond the assistant answer.
 

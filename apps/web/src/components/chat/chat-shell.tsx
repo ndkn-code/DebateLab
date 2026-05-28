@@ -23,19 +23,11 @@ export interface ChatMessageLocal {
   created_at: string;
 }
 
-const STREAM_CHUNK_INTERVAL_MS = 22;
-const STREAM_CHUNK_CHAR_BUDGET = 18;
+const STREAM_REVEAL_INTERVAL_MS = 24;
+const STREAM_REVEAL_CHAR_BUDGET = 3;
 
 function splitStreamingText(text: string) {
-  const pieces = text.match(/\S+\s*|\s+/g) ?? [text];
-  return pieces.flatMap((piece) => {
-    if (piece.length <= STREAM_CHUNK_CHAR_BUDGET) return [piece];
-    const chunks: string[] = [];
-    for (let index = 0; index < piece.length; index += STREAM_CHUNK_CHAR_BUDGET) {
-      chunks.push(piece.slice(index, index + STREAM_CHUNK_CHAR_BUDGET));
-    }
-    return chunks;
-  });
+  return Array.from(text);
 }
 
 interface ChatShellProps {
@@ -330,14 +322,14 @@ export function ChatShell({
           let nextChunk = "";
           while (
             textQueue.length > 0 &&
-            nextChunk.length < STREAM_CHUNK_CHAR_BUDGET
+            Array.from(nextChunk).length < STREAM_REVEAL_CHAR_BUDGET
           ) {
             nextChunk += textQueue.shift() ?? "";
           }
           appendAssistantText(nextChunk);
 
           if (textQueue.length > 0) {
-            streamTimer = setTimeout(pumpTextQueue, STREAM_CHUNK_INTERVAL_MS);
+            streamTimer = setTimeout(pumpTextQueue, STREAM_REVEAL_INTERVAL_MS);
             return;
           }
 
@@ -348,7 +340,7 @@ export function ChatShell({
         const enqueueAssistantText = (text: string) => {
           textQueue.push(...splitStreamingText(text));
           if (!streamTimer) {
-            streamTimer = setTimeout(pumpTextQueue, STREAM_CHUNK_INTERVAL_MS);
+            streamTimer = setTimeout(pumpTextQueue, STREAM_REVEAL_INTERVAL_MS);
           }
         };
 
