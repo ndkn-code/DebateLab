@@ -136,6 +136,7 @@ export interface CoachContextEnvelope {
 export type CoachResponseBlockType =
   | "opening_formula"
   | "template"
+  | "diagnosis"
   | "coach_tip"
   | "common_mistake"
   | "example"
@@ -158,9 +159,63 @@ export interface CoachSuggestedAction {
   variant?: "primary" | "secondary";
 }
 
+export type CoachRouteIntent =
+  | "general"
+  | "corpus_debate_help"
+  | "deep_review"
+  | "visual_explainer";
+
+export type CoachModelRoute =
+  | "groq_general"
+  | "groq_corpus"
+  | "gemini_deep_review"
+  | "visual_explainer";
+
+export type CoachVisualTemplate =
+  | "argument_chain"
+  | "rebuttal_pivot"
+  | "clash_map"
+  | "weighing_scale";
+
+export interface CoachVisualStep {
+  id: string;
+  label: string;
+  text: string;
+  accent?: "primary" | "warning" | "success" | "danger";
+}
+
+export interface CoachVisualConnector {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface CoachVisualExplainerSpec {
+  version: 1;
+  template: CoachVisualTemplate;
+  title: string;
+  subtitle?: string;
+  steps: CoachVisualStep[];
+  connectors?: CoachVisualConnector[];
+  takeaway?: string;
+  sourceMessageId?: string;
+  plannerModel?: string;
+}
+
 export interface CoachMessageMetadata {
   renderVersion: 1;
   summary?: string;
   blocks: CoachResponseBlock[];
   suggestedActions: CoachSuggestedAction[];
+  visualizable?: boolean;
+  visualPrompt?: string;
+  visualExplainer?: CoachVisualExplainerSpec | null;
+  coachIntent?: CoachRouteIntent;
+  coachModelRoute?: CoachModelRoute;
+  coachCorpusRetrievedCount?: number;
+  coachCorpusCandidateCount?: number;
+  corpusRetrievalLogId?: string | null;
+  visualTemplate?: CoachVisualTemplate;
+  visualPlannerModel?: string;
+  firstTokenLatencyMs?: number | null;
 }

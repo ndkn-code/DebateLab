@@ -70,6 +70,8 @@ assert.ok(estimateDebateCorpusTokens(first.embeddingText) > 20);
 
 assert.equal(purposeToCorpusUsableFor("rebuttal"), "rebuttal");
 assert.equal(purposeToCorpusUsableFor("judging"), "judging");
+assert.equal(purposeToCorpusUsableFor("coach"), "prep_helper");
+assert.equal(purposeToCorpusUsableFor("phrase_bank"), "phrase_bank");
 assert.equal(isSafeEvidenceStatusForRetrieval("uncertain_stt"), false);
 assert.equal(isSafeEvidenceStatusForRetrieval("mentioned_but_unverified"), true);
 

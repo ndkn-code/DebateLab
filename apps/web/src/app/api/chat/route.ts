@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
+import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
 import {
   requireRequestAuth,
   unauthorizedTextResponse,
@@ -20,7 +22,14 @@ import {
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
+import { decideCoachIntent, type CoachIntentDecision } from "@/lib/coach/intent";
+import {
+  createDebateCorpusRetrievalMetadata,
+  retrieveDebateCorpusContext,
+  type DebateCorpusRetrievalResult,
+} from "@/lib/corpus/retrieval";
 import type {
+  CoachModelRoute,
   CoachMessageMetadata,
   CoachResponseBlock,
   CoachResponseBlockType,
@@ -129,6 +138,18 @@ function getGroq() {
   });
 }
 
+function getGemini() {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS?.split(",")[0];
+  if (!apiKey?.trim()) {
+    throw new Error("GEMINI_API_KEY or GEMINI_API_KEYS is not configured");
+  }
+  return new GoogleGenerativeAI(apiKey.trim());
+}
+
+const GROQ_COACH_MODEL = "llama-3.3-70b-versatile";
+const GEMINI_DEEP_COACH_MODEL = "gemini-3.1-flash-lite";
+const CHAT_PROVIDER_SOURCE_ROUTE = "/api/chat";
+
 function parseChatRequest(body: JsonRecord): ChatRequest {
   const message = getString(body, "message", {
     required: true,
@@ -155,11 +176,12 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
   return { message, conversationId, context, contextId, practiceLanguage };
 }
 
-const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA === "true";
+const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA !== "false";
 
 const COACH_BLOCK_TYPES = [
   "opening_formula",
   "template",
+  "diagnosis",
   "coach_tip",
   "common_mistake",
   "example",
@@ -447,16 +469,27 @@ async function generateCoachMessageMetadata({
   mode,
   focusTitle,
   practiceLanguage,
+  userId,
+  routeIntent,
+  modelRoute,
+  corpusRetrieval,
+  firstTokenLatencyMs,
 }: {
   assistantText: string;
   studentMessage: string;
   mode?: string;
   focusTitle?: string;
   practiceLanguage: string;
+  userId?: string | null;
+  routeIntent: CoachIntentDecision;
+  modelRoute: CoachModelRoute;
+  corpusRetrieval: DebateCorpusRetrievalResult | null;
+  firstTokenLatencyMs?: number | null;
 }): Promise<CoachMessageMetadata | null> {
   if (!assistantText.trim()) return null;
 
   try {
+    const startedAt = Date.now();
     const result = await getGroq().chat.completions.create({
       messages: [
         {
@@ -472,7 +505,7 @@ Schema:
   "blocks": [
     {
       "id": "block-1",
-      "type": "opening_formula | template | coach_tip | common_mistake | example | drill | next_steps | clarifying_question",
+      "type": "opening_formula | template | diagnosis | coach_tip | common_mistake | example | drill | next_steps | clarifying_question",
       "title": "short card title",
       "body": "optional short paragraph",
       "items": ["optional short bullets"],
@@ -481,13 +514,17 @@ Schema:
   ],
   "suggestedActions": [
     { "label": "short button label", "prompt": "message to send", "variant": "primary | secondary" }
-  ]
+  ],
+  "visualizable": true,
+  "visualPrompt": "optional short prompt for a visual explainer"
 }
 
 Rules:
-- Use 0-4 blocks. Return "blocks": [] and "suggestedActions": [] when the reply is clearer as plain text.
+- Use 0-5 blocks. Return "blocks": [] and "suggestedActions": [] when the reply is clearer as plain text.
 - Pick block types that match the assistant reply. Do not invent facts or force a card.
 - Prefer debate-specific blocks over generic summaries only when the structure is genuinely useful.
+- Use diagnosis when the coach identifies a specific weakness or missing debate layer.
+- Use example for a concrete before/after example, drill for a timed exercise, and next_steps for a short action plan.
 - Do not create opening_formula unless it contains exactly 4 real opening parts: motion, stance, thesis, and roadmap.
 - Do not create template unless the body contains an actual editable template with bracket placeholders.
 - Use clarifying_question when the reply asks for missing topic, side, transcript, or format.
@@ -511,22 +548,234 @@ Assistant reply to structure:
 ${assistantText}`,
         },
       ],
-      model: process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile",
+      model: GROQ_COACH_MODEL,
       temperature: 0.2,
       max_tokens: 900,
       response_format: { type: "json_object" },
     });
 
     const raw = result.choices[0]?.message?.content ?? "";
-    return normalizeMetadata(parseJsonObject(raw), {
+    await recordAiProviderRequest({
+      provider: "groq",
+      model: GROQ_COACH_MODEL,
+      status: "success",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_metadata",
+      userId,
+      latencyMs: Date.now() - startedAt,
+      finishReason: result.choices[0]?.finish_reason ?? null,
+      usage: {
+        inputTokens: result.usage?.prompt_tokens,
+        outputTokens: result.usage?.completion_tokens,
+        totalTokens: result.usage?.total_tokens,
+      },
+      metadata: {
+        coachIntent: routeIntent.intent,
+        coachIntentReason: routeIntent.reason,
+        coachModelRoute: modelRoute,
+        coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+      },
+    });
+    const metadata = normalizeMetadata(parseJsonObject(raw), {
       assistantText,
       studentMessage,
     });
+    if (!metadata) return null;
+    return {
+      ...metadata,
+      visualizable:
+        metadata.visualizable ||
+        routeIntent.intent === "visual_explainer" ||
+        Boolean((parseJsonObject(raw) as Record<string, unknown> | null)?.visualizable),
+      visualPrompt:
+        cleanText((parseJsonObject(raw) as Record<string, unknown> | null)?.visualPrompt, 220) ??
+        undefined,
+      coachIntent: routeIntent.intent,
+      coachModelRoute: modelRoute,
+      coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+      coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+      corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
+      firstTokenLatencyMs: firstTokenLatencyMs ?? null,
+    };
   } catch (metadataError) {
+    await recordAiProviderRequest({
+      provider: "groq",
+      model: GROQ_COACH_MODEL,
+      status: "error",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_metadata",
+      userId,
+      errorCode: "COACH_METADATA_FAILED",
+      errorMessage:
+        metadataError instanceof Error ? metadataError.message : String(metadataError),
+      metadata: {
+        coachIntent: routeIntent.intent,
+        coachIntentReason: routeIntent.reason,
+        coachModelRoute: modelRoute,
+      },
+    });
     if (process.env.NODE_ENV === "development") {
       console.error("Coach metadata generation failed:", metadataError);
     }
     return null;
+  }
+}
+
+function getCoachModelRoute(intent: CoachIntentDecision): CoachModelRoute {
+  if (intent.intent === "deep_review") return "gemini_deep_review";
+  if (intent.intent === "visual_explainer") return "visual_explainer";
+  if (intent.intent === "corpus_debate_help") return "groq_corpus";
+  return "groq_general";
+}
+
+function buildCoachRagQuery(params: {
+  message: string;
+  focusTitle?: string;
+  focusSummary?: string;
+  promptContext?: string;
+}) {
+  return [
+    params.focusTitle ? `Focus: ${params.focusTitle}` : "",
+    params.focusSummary ? `Focus summary: ${params.focusSummary}` : "",
+    `Student question: ${params.message}`,
+    params.promptContext
+      ? `Coach context excerpt:\n${params.promptContext.slice(0, 1800)}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function buildCoachSystemPrompt(params: {
+  systemPrompt: string;
+  routeIntent: CoachIntentDecision;
+  corpusContext?: string;
+}) {
+  const routingRules =
+    params.routeIntent.intent === "deep_review"
+      ? [
+          "COACH ROUTE:",
+          "- This is a high-value review/strategy turn. Give a careful diagnosis, trend, and next drill.",
+          "- Be decisive and specific. Use bullets and short sections.",
+        ].join("\n")
+      : params.routeIntent.intent === "visual_explainer"
+        ? [
+            "COACH ROUTE:",
+            "- The student is asking for a visual explanation. Explain the idea in plain markdown first.",
+            "- Make the explanation easy to convert into a diagram with 3-5 nodes.",
+          ].join("\n")
+        : params.routeIntent.intent === "corpus_debate_help"
+          ? [
+              "COACH ROUTE:",
+              "- This is debate-specific coaching. Use Trường Teen patterns when they are relevant.",
+              "- Avoid generic advice; identify the missing layer and show a concrete move.",
+            ].join("\n")
+          : [
+              "COACH ROUTE:",
+              "- This is general coaching chat. Stay fast, warm, and useful.",
+            ].join("\n");
+
+  return [
+    params.systemPrompt,
+    routingRules,
+    params.corpusContext
+      ? `${params.corpusContext}\nCOACH RAG RULES:\n- Treat the Trường Teen context as private coaching reference material.\n- Do not cite corpus item IDs to the student.\n- Do not present debater-mentioned evidence as independently verified fact.\n- Prefer transferable debate moves over memorized phrasing.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function getGeminiUsage(usage: {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+} | null | undefined) {
+  return {
+    inputTokens: usage?.promptTokenCount,
+    outputTokens: usage?.candidatesTokenCount,
+    totalTokens: usage?.totalTokenCount,
+  };
+}
+
+async function streamGeminiCoachResponse(params: {
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  userId: string;
+  modelRoute: CoachModelRoute;
+  routeIntent: CoachIntentDecision;
+  corpusRetrieval: DebateCorpusRetrievalResult | null;
+  onText: (text: string) => void;
+}) {
+  const startedAt = Date.now();
+  const model = getGemini().getGenerativeModel({
+    model: GEMINI_DEEP_COACH_MODEL,
+    generationConfig: {
+      temperature: 0.35,
+      maxOutputTokens: 1600,
+    },
+  });
+  const prompt = params.messages
+    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+    .join("\n\n");
+
+  try {
+    const result = await model.generateContentStream(prompt);
+    let fullText = "";
+    let usage:
+      | {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+          totalTokenCount?: number;
+        }
+      | null = null;
+
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (!text) continue;
+      fullText += text;
+      params.onText(text);
+    }
+
+    const finalResponse = await result.response;
+    usage = finalResponse.usageMetadata ?? usage;
+    await recordAiProviderRequest({
+      provider: "google",
+      model: GEMINI_DEEP_COACH_MODEL,
+      status: "success",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_deep_review",
+      userId: params.userId,
+      latencyMs: Date.now() - startedAt,
+      finishReason:
+        finalResponse.candidates?.[0]?.finishReason ??
+        (fullText.length > 0 ? "STOP" : null),
+      usage: getGeminiUsage(usage),
+      metadata: {
+        coachIntent: params.routeIntent.intent,
+        coachIntentReason: params.routeIntent.reason,
+        coachModelRoute: params.modelRoute,
+        coachCorpusRetrievedCount: params.corpusRetrieval?.items.length ?? 0,
+      },
+    });
+    return fullText;
+  } catch (error) {
+    await recordAiProviderRequest({
+      provider: "google",
+      model: GEMINI_DEEP_COACH_MODEL,
+      status: "error",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_deep_review",
+      userId: params.userId,
+      latencyMs: Date.now() - startedAt,
+      errorCode: "GEMINI_COACH_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      metadata: {
+        coachIntent: params.routeIntent.intent,
+        coachIntentReason: params.routeIntent.reason,
+        coachModelRoute: params.modelRoute,
+      },
+    });
+    throw error;
   }
 }
 
@@ -567,6 +816,17 @@ export async function POST(req: NextRequest) {
 
     let systemPrompt = buildSystemPrompt(practiceLanguage);
     let coachMetadataContext: { mode?: string; focusTitle?: string } = {};
+    let coachPromptContext: {
+      focusTitle?: string;
+      focusSummary?: string;
+      promptContext?: string;
+    } = {};
+    const routeIntent = decideCoachIntent({
+      message,
+      contextType: normalizedContext,
+    });
+    const modelRoute = getCoachModelRoute(routeIntent);
+    let corpusRetrieval: DebateCorpusRetrievalResult | null = null;
 
     try {
       const coachProfile = await getCoachProfile(user.id, practiceLanguage);
@@ -581,6 +841,11 @@ export async function POST(req: NextRequest) {
       coachMetadataContext = {
         mode: envelope.mode,
         focusTitle: envelope.focusTitle,
+      };
+      coachPromptContext = {
+        focusTitle: envelope.focusTitle,
+        focusSummary: envelope.focusSummary,
+        promptContext: envelope.promptContext,
       };
 
       systemPrompt += `\n\nPERSONAL COACHING CONTEXT
@@ -604,8 +869,33 @@ RULES FOR THIS CONTEXT:
       }
     }
 
-    const chatModel =
-      process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+    if (routeIntent.corpusPurpose) {
+      corpusRetrieval = await retrieveDebateCorpusContext({
+        purpose: routeIntent.corpusPurpose,
+        practiceLanguage,
+        practiceTrack: "debate",
+        topic: coachPromptContext.focusTitle || message,
+        transcript: buildCoachRagQuery({
+          message,
+          focusTitle: coachPromptContext.focusTitle,
+          focusSummary: coachPromptContext.focusSummary,
+          promptContext: coachPromptContext.promptContext,
+        }),
+        roundsText: coachPromptContext.focusSummary
+          ? [coachPromptContext.focusSummary]
+          : undefined,
+        userId: user.id,
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      });
+    }
+
+    systemPrompt = buildCoachSystemPrompt({
+      systemPrompt,
+      routeIntent,
+      corpusContext: corpusRetrieval?.contextBlock,
+    });
+
+    const chatModel = GROQ_COACH_MODEL;
 
     // Create or load conversation
     if (conversationId) {
@@ -669,37 +959,116 @@ RULES FOR THIS CONTEXT:
       })),
     ];
 
-    // Stream response from Groq
+    // Stream response from the selected coach route
     const streamStartTime = Date.now();
-    const chatCompletion = await getGroq().chat.completions.create({
-      messages,
-      model: chatModel,
-      temperature: 0.7,
-      max_tokens: 1600,
-      stream: true,
-    });
-
     let fullResponse = "";
     let finishReason: string | null = null;
+    let firstTokenLatencyMs: number | null = null;
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
-          for await (const chunk of chatCompletion) {
-            const choice = chunk.choices[0];
-            const text = choice?.delta?.content || "";
-            if (choice?.finish_reason) {
-              finishReason = choice.finish_reason;
+          if (modelRoute === "gemini_deep_review") {
+            try {
+              fullResponse = await streamGeminiCoachResponse({
+                messages,
+                userId: user.id,
+                modelRoute,
+                routeIntent,
+                corpusRetrieval,
+                onText: (text) => {
+                  if (firstTokenLatencyMs == null) {
+                    firstTokenLatencyMs = Date.now() - streamStartTime;
+                  }
+                  fullResponse += text;
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        text,
+                        conversationId,
+                        coachIntent: routeIntent.intent,
+                      })}\n\n`
+                    )
+                  );
+                },
+              });
+              finishReason = "stop";
+            } catch (geminiError) {
+              if (process.env.NODE_ENV === "development") {
+                console.warn(
+                  "Gemini coach route failed; falling back to Groq:",
+                  geminiError instanceof Error
+                    ? geminiError.message
+                    : geminiError
+                );
+              }
+              fullResponse = "";
             }
-            if (text) {
-              fullResponse += text;
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ text, conversationId })}\n\n`
-                )
-              );
+          }
+
+          if (fullResponse.length === 0) {
+            const groqStartedAt = Date.now();
+            const chatCompletion = await getGroq().chat.completions.create({
+              messages,
+              model: chatModel,
+              temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7,
+              max_tokens: 1600,
+              stream: true,
+            });
+            for await (const chunk of chatCompletion) {
+              const choice = chunk.choices[0];
+              const text = choice?.delta?.content || "";
+              if (choice?.finish_reason) {
+                finishReason = choice.finish_reason;
+              }
+              if (text) {
+                if (firstTokenLatencyMs == null) {
+                  firstTokenLatencyMs = Date.now() - streamStartTime;
+                }
+                fullResponse += text;
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      text,
+                      conversationId,
+                      coachIntent: routeIntent.intent,
+                    })}\n\n`
+                  )
+                );
+              }
             }
+
+            await recordAiProviderRequest({
+              provider: "groq",
+              model: chatModel,
+              status: "success",
+              sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+              outputType:
+                modelRoute === "visual_explainer"
+                  ? "coach_visual_prompt"
+                  : "coach_chat",
+              userId: user.id,
+              latencyMs: Date.now() - groqStartedAt,
+              finishReason,
+              usage: {
+                outputTokens: Math.ceil(fullResponse.length / 4),
+                totalTokens: Math.ceil(
+                  (fullResponse.length +
+                    messages.reduce((sum, item) => sum + item.content.length, 0)) /
+                    4
+                ),
+              },
+              metadata: {
+                coachIntent: routeIntent.intent,
+                coachIntentReason: routeIntent.reason,
+                coachModelRoute: modelRoute,
+                coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+                coachCorpusCandidateCount:
+                  corpusRetrieval?.candidateItems.length ?? 0,
+                firstTokenLatencyMs,
+              },
+            });
           }
 
           const metadata = ENABLE_COACH_METADATA
@@ -709,16 +1078,40 @@ RULES FOR THIS CONTEXT:
                 mode: coachMetadataContext.mode,
                 focusTitle: coachMetadataContext.focusTitle,
                 practiceLanguage,
+                userId: user.id,
+                routeIntent,
+                modelRoute,
+                corpusRetrieval,
+                firstTokenLatencyMs,
               })
             : null;
 
+          const finalMetadata =
+            metadata ??
+            ({
+              renderVersion: 1,
+              blocks: [],
+              suggestedActions: [],
+              coachIntent: routeIntent.intent,
+              coachModelRoute: modelRoute,
+              coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+              coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+              corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
+              firstTokenLatencyMs,
+              visualizable: routeIntent.intent === "visual_explainer",
+            } satisfies CoachMessageMetadata);
+
           // Save assistant message
-          await supabase.from("chat_messages").insert({
-            conversation_id: conversationId,
-            role: "assistant",
-            content: fullResponse,
-            metadata,
-          });
+          const { data: assistantRow } = await supabase
+            .from("chat_messages")
+            .insert({
+              conversation_id: conversationId,
+              role: "assistant",
+              content: fullResponse,
+              metadata: finalMetadata,
+            })
+            .select("id")
+            .single();
 
           getPostHogServer().capture({
             distinctId: user.id,
@@ -732,21 +1125,60 @@ RULES FOR THIS CONTEXT:
               $ai_finish_reason: finishReason,
               $ai_trace_id: crypto.randomUUID(),
               route: "/api/chat",
+              coach_intent: routeIntent.intent,
+              coach_model_route: modelRoute,
             },
           });
 
           // Auto-generate title from first user message
           if ((history ?? []).length <= 1) {
-            generateTitle(message.trim(), conversationId!, supabase, practiceLanguage);
+            generateTitle(
+              message.trim(),
+              conversationId!,
+              supabase,
+              practiceLanguage,
+              user.id
+            );
           }
 
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ done: true, conversationId, finishReason })}\n\n`
+              `data: ${JSON.stringify({
+                done: true,
+                conversationId,
+                assistantMessageId: assistantRow?.id ?? null,
+                finishReason,
+                metadata: finalMetadata,
+                coachIntent: routeIntent.intent,
+                coachModelRoute: modelRoute,
+                corpusRetrieval: corpusRetrieval
+                  ? createDebateCorpusRetrievalMetadata(corpusRetrieval)
+                  : null,
+              })}\n\n`
             )
           );
           controller.close();
         } catch (err) {
+          await recordAiProviderRequest({
+            provider: modelRoute === "gemini_deep_review" ? "google/groq" : "groq",
+            model:
+              modelRoute === "gemini_deep_review"
+                ? `${GEMINI_DEEP_COACH_MODEL}/${chatModel}`
+                : chatModel,
+            status: "error",
+            sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+            outputType: "coach_chat",
+            userId: user.id,
+            latencyMs: Date.now() - streamStartTime,
+            errorCode: "COACH_STREAM_FAILED",
+            errorMessage: err instanceof Error ? err.message : String(err),
+            metadata: {
+              coachIntent: routeIntent.intent,
+              coachIntentReason: routeIntent.reason,
+              coachModelRoute: modelRoute,
+              firstTokenLatencyMs,
+            },
+          });
           if (process.env.NODE_ENV === 'development') console.error("Stream error:", err);
           controller.enqueue(
             encoder.encode(
@@ -786,9 +1218,11 @@ async function generateTitle(
   conversationId: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  practiceLanguage: string
+  practiceLanguage: string,
+  userId?: string | null
 ) {
   try {
+    const startedAt = Date.now();
     const result = await getGroq().chat.completions.create({
       messages: [
         {
@@ -796,7 +1230,7 @@ async function generateTitle(
           content: `Generate a short 3-5 word title in ${practiceLanguage === "vi" ? "Vietnamese" : "English"} for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`,
         },
       ],
-      model: process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile",
+      model: GROQ_COACH_MODEL,
       temperature: 0.3,
       max_tokens: 20,
     });
@@ -811,7 +1245,34 @@ async function generateTitle(
         .update({ title })
         .eq("id", conversationId);
     }
-  } catch {
+    await recordAiProviderRequest({
+      provider: "groq",
+      model: GROQ_COACH_MODEL,
+      status: "success",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_title",
+      userId,
+      latencyMs: Date.now() - startedAt,
+      finishReason: result.choices[0]?.finish_reason ?? null,
+      usage: {
+        inputTokens: result.usage?.prompt_tokens,
+        outputTokens: result.usage?.completion_tokens,
+        totalTokens: result.usage?.total_tokens,
+      },
+      metadata: { conversationId },
+    });
+  } catch (error) {
+    await recordAiProviderRequest({
+      provider: "groq",
+      model: GROQ_COACH_MODEL,
+      status: "error",
+      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+      outputType: "coach_title",
+      userId,
+      errorCode: "COACH_TITLE_FAILED",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      metadata: { conversationId },
+    });
     // Non-critical, ignore
   }
 }

@@ -60,6 +60,9 @@ export function ChatShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const [coachEnvelope, setCoachEnvelope] = useState(initialCoachEnvelope);
+  const [visualizingMessageId, setVisualizingMessageId] = useState<string | null>(
+    null
+  );
 
   const refreshCoachView = useCallback(
     async ({
@@ -298,6 +301,11 @@ export function ChatShell({
                   if (last && last.role === "assistant") {
                     updated[updated.length - 1] = {
                       ...last,
+                      id:
+                        typeof data.assistantMessageId === "string"
+                          ? data.assistantMessageId
+                          : last.id,
+                      metadata: data.metadata ?? last.metadata ?? null,
                       status: "complete",
                       finalRenderMode: "markdown",
                       finishReason,
@@ -378,6 +386,44 @@ export function ChatShell({
     ]
   );
 
+  const requestVisualize = useCallback(
+    async (messageId: string) => {
+      if (!messageId || messageId.startsWith("temp-")) return;
+      setVisualizingMessageId(messageId);
+      try {
+        const res = await fetch("/api/chat/visualize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messageId,
+            conversationId: activeConversationId,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+        const data = (await res.json()) as {
+          metadata?: CoachMessageMetadata | null;
+        };
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  metadata: data.metadata ?? message.metadata ?? null,
+                }
+              : message
+          )
+        );
+      } catch (error) {
+        console.error("Visual explainer error:", error);
+      } finally {
+        setVisualizingMessageId(null);
+      }
+    },
+    [activeConversationId]
+  );
+
   // Auto-send initial message from URL param
   useEffect(() => {
     if (initialMessage && !initialMessageSent) {
@@ -414,6 +460,8 @@ export function ChatShell({
         coachEnvelope={coachEnvelope}
         isInsightsLoading={isInsightsLoading}
         loadError={loadError}
+        visualizingMessageId={visualizingMessageId}
+        onRequestVisualize={requestVisualize}
         onRetryLoad={
           activeConversationId
             ? () => {

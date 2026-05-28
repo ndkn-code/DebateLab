@@ -14,6 +14,9 @@ import {
   Lightbulb,
   ListChecks,
   PenLine,
+  Play,
+  Radar,
+  RotateCcw,
   Sparkles,
   Target,
   ThumbsDown,
@@ -25,6 +28,7 @@ import type {
   CoachMessageMetadata,
   CoachResponseBlock,
   CoachResponseBlockType,
+  CoachVisualExplainerSpec,
 } from "@/types";
 import type { ChatMessageLocal } from "./chat-shell";
 
@@ -35,6 +39,8 @@ interface ChatBubbleProps {
   onDraftMessage?: (text: string) => void;
   actionsDisabled?: boolean;
   renderStructuredMetadata?: boolean;
+  isVisualizing?: boolean;
+  onRequestVisualize?: (messageId: string) => void;
 }
 
 const BLOCK_STYLES: Record<
@@ -57,6 +63,12 @@ const BLOCK_STYLES: Record<
     icon: PenLine,
     className: "border-primary/18 bg-white",
     iconClassName: "text-primary-dim",
+  },
+  diagnosis: {
+    label: "Diagnosis",
+    icon: Radar,
+    className: "border-primary-fixed/35 bg-[#F7FAFF]",
+    iconClassName: "text-primary",
   },
   coach_tip: {
     label: "Tip",
@@ -103,7 +115,9 @@ function isCoachMessageMetadata(
     Boolean(metadata) &&
     metadata?.renderVersion === 1 &&
     Array.isArray(metadata.blocks) &&
-    metadata.blocks.length > 0
+    (metadata.blocks.length > 0 ||
+      Boolean(metadata.visualizable) ||
+      Boolean(metadata.visualExplainer))
   );
 }
 
@@ -205,12 +219,18 @@ function getRenderableMetadata(
     };
   }
 
-  if (filteredBlocks.length === 0) return null;
+  if (
+    filteredBlocks.length === 0 &&
+    !metadata.visualizable &&
+    !metadata.visualExplainer
+  ) {
+    return null;
+  }
 
   return {
     ...metadata,
     blocks: filteredBlocks,
-    suggestedActions: [],
+    suggestedActions: metadata.suggestedActions ?? [],
   };
 }
 
@@ -558,6 +578,182 @@ function CoachFollowUpQuestion({
   );
 }
 
+function visualAccentClass(accent?: string) {
+  if (accent === "warning") return "border-[#F5B942]/45 bg-[#FFFBF1] text-[#8A6100]";
+  if (accent === "success") return "border-secondary/25 bg-[#F7FEF9] text-secondary-dim";
+  if (accent === "danger") return "border-error/24 bg-[#FFF8F8] text-error";
+  return "border-primary/18 bg-primary/5 text-primary";
+}
+
+function CoachVisualExplainerCard({
+  visual,
+}: {
+  visual: CoachVisualExplainerSpec;
+}) {
+  const [replayKey, setReplayKey] = useState(0);
+  const stepCount = visual.steps.length;
+
+  return (
+    <section className="mt-4 overflow-hidden rounded-[18px] border border-outline-variant/18 bg-white shadow-[0_18px_36px_rgba(17,35,62,0.06)]">
+      <div className="border-b border-outline-variant/12 bg-[#FBFDFF] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              Visual Explainer
+            </div>
+            <h3 className="mt-1 text-base font-semibold leading-6 text-on-surface">
+              {visual.title}
+            </h3>
+            {visual.subtitle ? (
+              <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+                {visual.subtitle}
+              </p>
+            ) : null}
+          </div>
+          <span className="rounded-full border border-primary/14 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold text-primary">
+            {visual.template.replace(/_/g, " ")}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative px-4 py-4">
+        <div className="pointer-events-none absolute inset-x-8 top-[86px] hidden border-t border-dashed border-primary/22 sm:block" />
+        <div className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(130px,1fr))] sm:items-stretch">
+          {visual.steps.map((step, index) => {
+            const connectorLabel = visual.connectors?.find(
+              (connector) => connector.from === step.id
+            )?.label;
+
+            return (
+              <motion.div
+                key={`${replayKey}-${step.id}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: index * 0.11,
+                  duration: 0.28,
+                  ease: "easeOut",
+                }}
+                className="relative min-w-0"
+              >
+                {index > 0 ? (
+                  <div className="absolute -left-2 top-1/2 hidden -translate-y-1/2 text-lg font-semibold text-primary sm:block">
+                    →
+                  </div>
+                ) : null}
+                <div
+                  className={cn(
+                    "relative z-[1] flex h-full min-h-[138px] flex-col rounded-2xl border px-3.5 py-3 text-center shadow-[0_10px_20px_rgba(17,35,62,0.035)]",
+                    visualAccentClass(step.accent)
+                  )}
+                >
+                  <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold shadow-[0_8px_18px_rgba(17,35,62,0.08)]">
+                    {index + 1}
+                  </div>
+                  <div className="mt-2 text-sm font-semibold leading-5">
+                    {step.label}
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                    {step.text}
+                  </p>
+                  {connectorLabel ? (
+                    <div className="mt-auto pt-2">
+                      <span className="inline-flex rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        {connectorLabel}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {visual.takeaway ? (
+          <motion.div
+            key={`${replayKey}-takeaway`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: stepCount * 0.1 + 0.08, duration: 0.25 }}
+            className="mt-4 rounded-2xl border border-secondary/22 bg-[#F7FEF9] px-4 py-3 text-sm leading-6 text-on-surface-variant"
+          >
+            <strong className="text-secondary-dim">Takeaway: </strong>
+            {visual.takeaway}
+          </motion.div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setReplayKey((key) => key + 1)}
+          className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-outline-variant/18 bg-white px-3 text-sm font-semibold text-on-surface shadow-[0_8px_18px_rgba(17,35,62,0.08)] transition-colors hover:border-primary/25 hover:bg-primary/5"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Replay animation
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function VisualizeButton({
+  onClick,
+  disabled,
+  loading,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  if (!onClick) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-primary/18 bg-primary/5 px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55"
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+      ) : (
+        <Play className="h-3.5 w-3.5" />
+      )}
+      {loading ? "Building visual..." : "Show visual explainer"}
+    </button>
+  );
+}
+
+function CoachSuggestedActions({
+  actions,
+  onSendMessage,
+  disabled,
+}: {
+  actions: CoachMessageMetadata["suggestedActions"];
+  onSendMessage?: (text: string) => void;
+  disabled?: boolean;
+}) {
+  if (!onSendMessage || actions.length === 0) return null;
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {actions.slice(0, 3).map((action, index) => (
+        <button
+          key={`${action.label}-${index}`}
+          type="button"
+          onClick={() => onSendMessage(action.prompt)}
+          disabled={disabled}
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+            action.variant === "primary"
+              ? "border-primary bg-primary text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.16)] hover:bg-primary-dim"
+              : "border-primary/18 bg-white text-primary hover:bg-primary/5"
+          )}
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function AssistantActions({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
@@ -617,6 +813,8 @@ function AssistantMessage({
   onDraftMessage,
   actionsDisabled,
   renderStructuredMetadata = false,
+  isVisualizing = false,
+  onRequestVisualize,
 }: ChatBubbleProps) {
   const metadata = renderStructuredMetadata
     ? getRenderableMetadata(message.metadata)
@@ -642,6 +840,11 @@ function AssistantMessage({
   const fallbackBlocks = formulaBlock
     ? cardBlocks.filter((block) => !blueprintBlockIds.has(block.id))
     : cardBlocks;
+  const canRequestVisual =
+    Boolean(metadata?.visualizable) &&
+    !metadata?.visualExplainer &&
+    !isStreaming &&
+    !message.id.startsWith("temp-");
   return (
     <motion.div
       layout
@@ -661,6 +864,23 @@ function AssistantMessage({
             </span>
           )}
         </div>
+
+        {message.content ? (
+          <motion.div
+            layout
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="max-w-[720px] px-0 py-1 text-sm"
+          >
+            <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mb-1 prose-headings:mt-3 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+              {isStreaming && (
+                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-text-bottom" />
+              )}
+            </div>
+          </motion.div>
+        ) : null}
 
         {metadata ? (
           <div className="max-w-[880px]">
@@ -700,22 +920,26 @@ function AssistantMessage({
               />
             ))}
 
+            {metadata.visualExplainer ? (
+              <CoachVisualExplainerCard visual={metadata.visualExplainer} />
+            ) : (
+              <VisualizeButton
+                onClick={
+                  canRequestVisual && onRequestVisualize
+                    ? () => onRequestVisualize(message.id)
+                    : undefined
+                }
+                disabled={actionsDisabled}
+                loading={isVisualizing}
+              />
+            )}
+
+            <CoachSuggestedActions
+              actions={metadata.suggestedActions ?? []}
+              onSendMessage={onSendMessage}
+              disabled={actionsDisabled}
+            />
           </div>
-        ) : message.content ? (
-          <motion.div
-            layout
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="max-w-[720px] px-0 py-1 text-sm"
-          >
-            <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mb-1 prose-headings:mt-3 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
-              </ReactMarkdown>
-              {isStreaming && (
-                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-text-bottom" />
-              )}
-            </div>
-          </motion.div>
         ) : null}
 
         {message.isTruncated && !isStreaming && (

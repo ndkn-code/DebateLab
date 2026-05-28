@@ -22,7 +22,11 @@ export const DEBATE_CORPUS_SAFE_EVIDENCE_STATUSES = [
 
 export type DebateCorpusItemType = (typeof DEBATE_CORPUS_ITEM_TYPES)[number];
 export type DebateCorpusUsableFor = (typeof DEBATE_CORPUS_USABLE_FOR)[number];
-export type DebateCorpusPurpose = "rebuttal" | "judging";
+export type DebateCorpusPurpose =
+  | "rebuttal"
+  | "judging"
+  | "coach"
+  | "phrase_bank";
 export type DebateCorpusEvidenceStatus =
   | "verified_from_video"
   | "mentioned_but_unverified"
@@ -212,7 +216,10 @@ export function estimateDebateCorpusTokens(value: string) {
 export function purposeToCorpusUsableFor(
   purpose: DebateCorpusPurpose
 ): DebateCorpusUsableFor {
-  return purpose === "judging" ? "judging" : "rebuttal";
+  if (purpose === "judging") return "judging";
+  if (purpose === "phrase_bank") return "phrase_bank";
+  if (purpose === "coach") return "prep_helper";
+  return "rebuttal";
 }
 
 export function isSafeEvidenceStatusForRetrieval(
@@ -488,5 +495,14 @@ export function formatRetrievedDebateCorpusContext(
     })
     .join("\n");
 
-  return `\n## Truong Teen Retrieved Context (internal)\nUse these as strategic reference patterns, not as transcript quotes. Do not claim debater-mentioned evidence is independently verified. If evidence is not video-verified, use it only as a reasoning pattern or say it was \"debater-mentioned\".\n${rows}\n`;
+  const heading =
+    purpose === "coach" || purpose === "phrase_bank"
+      ? "Truong Teen Coach Context (internal)"
+      : "Truong Teen Retrieved Context (internal)";
+  const purposeRule =
+    purpose === "phrase_bank"
+      ? "Prioritize reusable wording and style patterns. Do not force a quote into the student's speech if it does not fit their motion."
+      : "Use these as strategic reference patterns, not as transcript quotes.";
+
+  return `\n## ${heading}\n${purposeRule} Do not claim debater-mentioned evidence is independently verified. If evidence is not video-verified, use it only as a reasoning pattern or say it was \"debater-mentioned\".\n${rows}\n`;
 }

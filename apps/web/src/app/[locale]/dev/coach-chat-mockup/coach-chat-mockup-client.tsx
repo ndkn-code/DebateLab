@@ -65,6 +65,49 @@ const openingMetadata: CoachMessageMetadata = {
     },
   ],
   suggestedActions: [],
+  visualizable: true,
+  visualExplainer: {
+    version: 1,
+    template: "argument_chain",
+    title: "Opening Logic Map",
+    subtitle: "How the judge follows your first 20 seconds",
+    plannerModel: "dev-reference",
+    steps: [
+      {
+        id: "motion",
+        label: "Motion",
+        text: "Name the exact debate the room is judging.",
+        accent: "primary",
+      },
+      {
+        id: "stance",
+        label: "Stance",
+        text: "Tell the judge which world you defend.",
+        accent: "warning",
+      },
+      {
+        id: "mechanism",
+        label: "Mechanism",
+        text: "Explain what changes and who is affected.",
+        accent: "success",
+      },
+      {
+        id: "impact",
+        label: "Impact",
+        text: "Show why that change decides the round.",
+        accent: "primary",
+      },
+    ],
+    connectors: [
+      { from: "motion", to: "stance", label: "frames" },
+      { from: "stance", to: "mechanism", label: "because" },
+      { from: "mechanism", to: "impact", label: "therefore" },
+    ],
+    takeaway:
+      "A strong opening is not a greeting; it is a map of how your side wins.",
+  },
+  visualTemplate: "argument_chain",
+  visualPlannerModel: "dev-reference",
 };
 
 const drillMetadata: CoachMessageMetadata = {

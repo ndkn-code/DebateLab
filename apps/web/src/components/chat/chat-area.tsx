@@ -24,6 +24,8 @@ interface ChatAreaProps {
   coachEnvelope: CoachContextEnvelope;
   isInsightsLoading?: boolean;
   loadError?: boolean;
+  visualizingMessageId?: string | null;
+  onRequestVisualize?: (messageId: string) => void;
   onRetryLoad?: () => void;
 }
 
@@ -118,6 +120,8 @@ export function ChatArea({
   coachEnvelope,
   isInsightsLoading = false,
   loadError = false,
+  visualizingMessageId = null,
+  onRequestVisualize,
   onRetryLoad,
 }: ChatAreaProps) {
   const t = useTranslations("dashboard.chat");
@@ -233,6 +237,8 @@ export function ChatArea({
                         onDraftMessage={handleDraftMessage}
                         actionsDisabled={isLoading || isInsightsLoading}
                         renderStructuredMetadata
+                        isVisualizing={visualizingMessageId === msg.id}
+                        onRequestVisualize={onRequestVisualize}
                       />
                     );
                   })}

@@ -35,6 +35,12 @@ export type {
   CoachResponseBlockType,
   CoachResponseBlock,
   CoachSuggestedAction,
+  CoachRouteIntent,
+  CoachModelRoute,
+  CoachVisualTemplate,
+  CoachVisualStep,
+  CoachVisualConnector,
+  CoachVisualExplainerSpec,
   CoachMessageMetadata,
 } from "./coach";
 export type {
