@@ -1522,6 +1522,10 @@
     "navigation": "Navigation",
     "sign_out": "Đăng xuất"
   },
+  "theme": {
+    "switchToDark": "Bật chế độ tối",
+    "switchToLight": "Bật chế độ sáng"
+  },
   "admin": {
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",

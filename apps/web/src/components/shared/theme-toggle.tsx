@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { saveThemePreference } from "@/app/actions/theme";
 import { useInitialAppTheme } from "@/components/shared/theme-provider";
 import { Moon, Sun } from "@/components/ui/icons";
@@ -48,6 +49,7 @@ export function ThemeToggle({
   collapsed = false,
   className,
 }: ThemeToggleProps) {
+  const t = useTranslations("theme");
   const initialTheme = useInitialAppTheme();
   const { resolvedTheme, theme, setTheme } = useTheme();
   const [optimisticTheme, setOptimisticTheme] = useState<AppTheme | null>(null);
@@ -65,7 +67,7 @@ export function ThemeToggle({
   const nextTheme = getOppositeTheme(currentTheme);
   const isDark = currentTheme === "dark";
   const Icon = isDark ? Sun : Moon;
-  const label = isDark ? "Switch to Light" : "Switch to Dark";
+  const label = isDark ? t("switchToLight") : t("switchToDark");
 
   const handleToggle = () => {
     if (isPending) return;

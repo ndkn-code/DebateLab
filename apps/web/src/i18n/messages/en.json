@@ -1522,6 +1522,10 @@
     "navigation": "Navigation",
     "sign_out": "Sign Out"
   },
+  "theme": {
+    "switchToDark": "Switch to Dark",
+    "switchToLight": "Switch to Light"
+  },
   "admin": {
     "title": "Administration",
     "switchToAdmin": "Switch to Administration",
