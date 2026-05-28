@@ -23,6 +23,21 @@ export interface ChatMessageLocal {
   created_at: string;
 }
 
+const STREAM_CHUNK_INTERVAL_MS = 22;
+const STREAM_CHUNK_CHAR_BUDGET = 18;
+
+function splitStreamingText(text: string) {
+  const pieces = text.match(/\S+\s*|\s+/g) ?? [text];
+  return pieces.flatMap((piece) => {
+    if (piece.length <= STREAM_CHUNK_CHAR_BUDGET) return [piece];
+    const chunks: string[] = [];
+    for (let index = 0; index < piece.length; index += STREAM_CHUNK_CHAR_BUDGET) {
+      chunks.push(piece.slice(index, index + STREAM_CHUNK_CHAR_BUDGET));
+    }
+    return chunks;
+  });
+}
+
 interface ChatShellProps {
   conversations: ConversationWithPreview[];
   initialMessage?: string;
@@ -241,6 +256,121 @@ export function ChatShell({
         const decoder = new TextDecoder();
         let buffer = "";
         let newConversationId = activeConversationId;
+        let streamTimer: ReturnType<typeof setTimeout> | null = null;
+        let resolveStreamDrain: (() => void) | null = null;
+        let pendingFinal:
+          | {
+              assistantMessageId?: unknown;
+              metadata?: CoachMessageMetadata | null;
+              finishReason?: unknown;
+            }
+          | null = null;
+        const textQueue: string[] = [];
+
+        const appendAssistantText = (chunk: string) => {
+          if (!chunk) return;
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last && last.role === "assistant") {
+              updated[updated.length - 1] = {
+                ...last,
+                content: last.content + chunk,
+                status: "streaming",
+              };
+            }
+            return updated;
+          });
+        };
+
+        const finishAssistant = () => {
+          if (!pendingFinal) return;
+          const final = pendingFinal;
+          pendingFinal = null;
+          const finishReason =
+            typeof final.finishReason === "string" ? final.finishReason : null;
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last && last.role === "assistant") {
+              updated[updated.length - 1] = {
+                ...last,
+                id:
+                  typeof final.assistantMessageId === "string"
+                    ? final.assistantMessageId
+                    : last.id,
+                metadata: final.metadata ?? last.metadata ?? null,
+                status: "complete",
+                finalRenderMode: "markdown",
+                finishReason,
+                isTruncated: finishReason === "length",
+              };
+            }
+            return updated;
+          });
+          resolveStreamDrain?.();
+          resolveStreamDrain = null;
+        };
+
+        const resolveDrainIfIdle = () => {
+          if (pendingFinal || textQueue.length > 0 || streamTimer) return;
+          resolveStreamDrain?.();
+          resolveStreamDrain = null;
+        };
+
+        const pumpTextQueue = () => {
+          streamTimer = null;
+
+          if (textQueue.length === 0) {
+            finishAssistant();
+            resolveDrainIfIdle();
+            return;
+          }
+
+          let nextChunk = "";
+          while (
+            textQueue.length > 0 &&
+            nextChunk.length < STREAM_CHUNK_CHAR_BUDGET
+          ) {
+            nextChunk += textQueue.shift() ?? "";
+          }
+          appendAssistantText(nextChunk);
+
+          if (textQueue.length > 0) {
+            streamTimer = setTimeout(pumpTextQueue, STREAM_CHUNK_INTERVAL_MS);
+            return;
+          }
+
+          finishAssistant();
+          resolveDrainIfIdle();
+        };
+
+        const enqueueAssistantText = (text: string) => {
+          textQueue.push(...splitStreamingText(text));
+          if (!streamTimer) {
+            streamTimer = setTimeout(pumpTextQueue, STREAM_CHUNK_INTERVAL_MS);
+          }
+        };
+
+        const waitForStreamDrain = () =>
+          new Promise<void>((resolve) => {
+            if (!streamTimer && textQueue.length === 0 && !pendingFinal) {
+              resolve();
+              return;
+            }
+            resolveStreamDrain = resolve;
+          });
+
+        const stopTypewriter = () => {
+          textQueue.length = 0;
+          pendingFinal = null;
+          if (streamTimer) {
+            clearTimeout(streamTimer);
+            streamTimer = null;
+          }
+          resolveStreamDrain?.();
+          resolveStreamDrain = null;
+        };
 
         while (true) {
           const { done, value } = await reader.read();
@@ -261,21 +391,11 @@ export function ChatShell({
               }
 
               if (data.text) {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last && last.role === "assistant") {
-                    updated[updated.length - 1] = {
-                      ...last,
-                      content: last.content + data.text,
-                      status: "streaming",
-                    };
-                  }
-                  return updated;
-                });
+                enqueueAssistantText(data.text);
               }
 
               if (data.error) {
+                stopTypewriter();
                 setMessages((prev) => {
                   const updated = [...prev];
                   const last = updated[updated.length - 1];
@@ -293,27 +413,10 @@ export function ChatShell({
               }
 
               if (data.done) {
-                const finishReason =
-                  typeof data.finishReason === "string" ? data.finishReason : null;
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last && last.role === "assistant") {
-                    updated[updated.length - 1] = {
-                      ...last,
-                      id:
-                        typeof data.assistantMessageId === "string"
-                          ? data.assistantMessageId
-                          : last.id,
-                      metadata: data.metadata ?? last.metadata ?? null,
-                      status: "complete",
-                      finalRenderMode: "markdown",
-                      finishReason,
-                      isTruncated: finishReason === "length",
-                    };
-                  }
-                  return updated;
-                });
+                pendingFinal = data;
+                if (!streamTimer && textQueue.length === 0) {
+                  finishAssistant();
+                }
 
                 // Refresh conversation list
                 if (newConversationId) {
@@ -355,6 +458,8 @@ export function ChatShell({
             }
           }
         }
+
+        await waitForStreamDrain();
       } catch (err) {
         console.error("Send error:", err);
         // Update assistant message with error

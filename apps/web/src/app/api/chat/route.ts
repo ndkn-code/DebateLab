@@ -68,6 +68,8 @@ RESPONSE FORMAT RULES:
 - When listing options or examples, use bullet points (-)
 - Use **bold** for key terms and important concepts
 - Use line breaks liberally — NEVER write a wall of text
+- Do not put a heading or list item on its own line unless it is valid markdown.
+- If you name 3+ concepts, use a markdown bullet list with "- ".
 - Start with a direct answer, then elaborate if needed
 - End with either an encouraging one-liner or a precise next-step suggestion
 - Give the full useful answer as normal readable markdown. Do not rely on UI cards, section labels, or hidden metadata to complete the answer.
@@ -661,7 +663,10 @@ function buildCoachSystemPrompt(params: {
       : params.routeIntent.intent === "visual_explainer"
         ? [
             "COACH ROUTE:",
-            "- The student is asking for a visual explanation. Explain the idea in plain markdown first.",
+            "- The student is asking for a visual explanation. First give a short, polished markdown explanation in 2-3 paragraphs.",
+            "- Do NOT output a fake diagram, arrow chain, raw node list, or labels like 'Vấn Đề -> Cơ Chế -> Kết Luận' in the prose.",
+            "- If you need to name the parts, use a compact bullet list with bold labels.",
+            "- The UI will render the actual visual card separately, so your text should explain the idea, not duplicate the diagram.",
             "- Make the explanation easy to convert into a diagram with 3-5 nodes.",
           ].join("\n")
         : params.routeIntent.intent === "corpus_debate_help"

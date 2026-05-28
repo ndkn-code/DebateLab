@@ -188,7 +188,8 @@ function isUsefulClarifyingQuestion(block: CoachResponseBlock) {
 }
 
 function getRenderableMetadata(
-  metadata: ChatMessageLocal["metadata"]
+  metadata: ChatMessageLocal["metadata"],
+  assistantContent = ""
 ): CoachMessageMetadata | null {
   if (!isCoachMessageMetadata(metadata)) return null;
 
@@ -204,10 +205,27 @@ function getRenderableMetadata(
     return true;
   });
 
-  const clarifyingBlocks = filteredBlocks.filter(
+  if (metadata.visualExplainer) {
+    return {
+      ...metadata,
+      blocks: [],
+      suggestedActions: metadata.suggestedActions ?? [],
+    };
+  }
+
+  const visibleBlocks = filteredBlocks
+    .filter((block) => {
+      const text = plainTextFromMarkdown(blockText(block)).toLowerCase();
+      const content = plainTextFromMarkdown(assistantContent).toLowerCase();
+      if (text.length < 36 || content.length < 80) return true;
+      return !content.includes(text.slice(0, Math.min(text.length, 120)));
+    })
+    .slice(0, 2);
+
+  const clarifyingBlocks = visibleBlocks.filter(
     (block) => block.type === "clarifying_question"
   );
-  const hasOpeningBlueprint = filteredBlocks.some(
+  const hasOpeningBlueprint = visibleBlocks.some(
     (block) => block.type === "opening_formula"
   );
 
@@ -220,7 +238,7 @@ function getRenderableMetadata(
   }
 
   if (
-    filteredBlocks.length === 0 &&
+    visibleBlocks.length === 0 &&
     !metadata.visualizable &&
     !metadata.visualExplainer
   ) {
@@ -229,7 +247,7 @@ function getRenderableMetadata(
 
   return {
     ...metadata,
-    blocks: filteredBlocks,
+    blocks: visibleBlocks,
     suggestedActions: metadata.suggestedActions ?? [],
   };
 }
@@ -312,6 +330,33 @@ const MISSING_CONTEXT_PATTERN =
 
 function plainTextFromMarkdown(value: string) {
   return value.replace(/\*\*/g, "").replace(/`/g, "").trim();
+}
+
+function isProbablyRepeatedText(summary: string, content: string) {
+  const normalizedSummary = plainTextFromMarkdown(summary)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  const normalizedContent = plainTextFromMarkdown(content)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalizedSummary || !normalizedContent) return false;
+  if (normalizedContent.includes(normalizedSummary.slice(0, 80))) return true;
+
+  const summaryWords = new Set(
+    normalizedSummary.split(/\s+/).filter((word) => word.length > 3)
+  );
+  if (summaryWords.size < 4) return false;
+
+  const contentWords = new Set(
+    normalizedContent.split(/\s+/).filter((word) => word.length > 3)
+  );
+  const overlap = Array.from(summaryWords).filter((word) =>
+    contentWords.has(word)
+  ).length;
+  return overlap / summaryWords.size > 0.72;
 }
 
 function sentenceCase(value: string) {
@@ -630,8 +675,8 @@ function CoachVisualExplainerCard({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  delay: index * 0.11,
-                  duration: 0.28,
+                  delay: index * 0.18,
+                  duration: 0.34,
                   ease: "easeOut",
                 }}
                 className="relative min-w-0"
@@ -674,7 +719,7 @@ function CoachVisualExplainerCard({
             key={`${replayKey}-takeaway`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: stepCount * 0.1 + 0.08, duration: 0.25 }}
+            transition={{ delay: stepCount * 0.18 + 0.12, duration: 0.3 }}
             className="mt-4 rounded-2xl border border-secondary/22 bg-[#F7FEF9] px-4 py-3 text-sm leading-6 text-on-surface-variant"
           >
             <strong className="text-secondary-dim">Takeaway: </strong>
@@ -817,7 +862,7 @@ function AssistantMessage({
   onRequestVisualize,
 }: ChatBubbleProps) {
   const metadata = renderStructuredMetadata
-    ? getRenderableMetadata(message.metadata)
+    ? getRenderableMetadata(message.metadata, message.content)
     : null;
   const cardBlocks =
     metadata?.blocks.filter((block) => block.type !== "clarifying_question") ?? [];
@@ -845,6 +890,12 @@ function AssistantMessage({
     !metadata?.visualExplainer &&
     !isStreaming &&
     !message.id.startsWith("temp-");
+  const metadataSummary =
+    metadata?.summary &&
+    !metadata.visualExplainer &&
+    !isProbablyRepeatedText(metadata.summary, message.content)
+      ? metadata.summary
+      : null;
   return (
     <motion.div
       layout
@@ -869,9 +920,9 @@ function AssistantMessage({
           <motion.div
             layout
             transition={{ duration: 0.16, ease: "easeOut" }}
-            className="max-w-[720px] px-0 py-1 text-sm"
+            className="max-w-[760px] px-0 py-1 text-[15px] sm:text-base"
           >
-            <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-strong:text-primary prose-headings:text-on-surface prose-headings:mb-1 prose-headings:mt-3 prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
+            <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {message.content}
               </ReactMarkdown>
@@ -884,9 +935,9 @@ function AssistantMessage({
 
         {metadata ? (
           <div className="max-w-[880px]">
-            {metadata.summary && (
+            {metadataSummary && (
               <div className="mb-3 max-w-[780px] px-0 text-[15px] leading-7 text-on-surface-variant">
-                <MiniMarkdown>{metadata.summary}</MiniMarkdown>
+                <MiniMarkdown>{metadataSummary}</MiniMarkdown>
               </div>
             )}
 
