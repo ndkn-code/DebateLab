@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
+  ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
@@ -1074,24 +1075,20 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
     <PageTransition className="min-h-full bg-background">
       <ProductPageShell>
       <PageContainer size="standard" className="flex min-w-0 flex-col py-5 lg:py-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-on-surface md:text-[2rem]">
-              {t("title")}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
-              {t("subtitle")}
-            </p>
-          </div>
-          <RangeControl
-            currentRange={selectedRange}
-            isPending={isPending}
-            onRangeChange={handleRangeChange}
-            onRangePrefetch={prefetchRange}
-          />
-        </div>
+        <ProductPageHeader
+          title={t("title")}
+          icon={<BarChart3 />}
+          actions={
+            <RangeControl
+              currentRange={selectedRange}
+              isPending={isPending}
+              onRangeChange={handleRangeChange}
+              onRangePrefetch={prefetchRange}
+            />
+          }
+        />
 
-        <div className="mt-6 grid gap-4">
+        <div className="grid gap-4">
           <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
             <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
               <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">

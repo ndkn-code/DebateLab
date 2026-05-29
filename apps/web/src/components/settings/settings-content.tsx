@@ -12,6 +12,7 @@ import {
   Loader2,
   LogOut,
   Save,
+  Settings,
   SlidersHorizontal,
   Sparkles,
 } from "@/components/ui/icons";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { DurationControl } from "@/components/shared/duration-control";
+import { ProductPageHeader } from "@/components/shared/product-layout";
 import { showToast } from "@/components/shared/toast";
 import { VoiceSettings } from "@/components/settings/voice-settings";
 import { saveSettings } from "@/app/[locale]/(protected)/settings/actions";
@@ -414,17 +416,10 @@ export function SettingsContent({
   return (
     <div className="min-h-full bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)] dark:bg-[linear-gradient(180deg,#070b12_0%,#0b111c_55%,#080c13_100%)]">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[#172554] sm:text-[2rem] dark:text-on-surface">
-              {t("headline")}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3 self-start">
-            <div className="hidden rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[#64748b] shadow-sm dark:bg-surface/80 dark:text-on-surface-variant sm:block">
-              {isDirty ? t("status.unsaved") : t("status.saved")}
-            </div>
+        <ProductPageHeader
+          title={t("headline")}
+          icon={<Settings />}
+          actions={
             <Button
               type="button"
               onClick={handleSave}
@@ -438,8 +433,8 @@ export function SettingsContent({
               )}
               {t("save_changes")}
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         <section className="mb-5 rounded-[30px] border border-[#dbe5fb] bg-white/95 p-5 shadow-[0_25px_60px_-45px_rgba(29,78,216,0.55)] dark:border-outline-variant/70 dark:bg-surface/95">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

@@ -15,6 +15,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { CourseCard } from "@/components/courses/course-card";
 import { PageTransition } from "@/components/shared/page-motion";
+import { ProductPageHeader } from "@/components/shared/product-layout";
 import {
   CourseArtwork,
   resolveCourseArtworkVariant,
@@ -312,11 +313,11 @@ export function CourseListContent({ library }: CourseListContentProps) {
   return (
     <PageTransition className="min-h-full bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-5">
-          <h1 className="text-[2rem] font-semibold text-[#14244a] sm:text-[2.25rem]">
-            {t("page_headline")}
-          </h1>
-        </header>
+        <ProductPageHeader
+          title={t("page_headline")}
+          icon={<BookOpenCheck />}
+          className="mb-5"
+        />
 
         {library.featuredCourse ? (
           <FeaturedCourseHero course={library.featuredCourse} />

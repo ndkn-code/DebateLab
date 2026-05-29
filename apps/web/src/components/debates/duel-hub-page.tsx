@@ -6,6 +6,10 @@ import { ArrowRight, Swords } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";
+import {
+  ProductPageHeader,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { cn } from "@/lib/utils";
 
 interface DuelHubPageProps {
@@ -79,39 +83,34 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
 
   return (
     <PageTransition className="min-h-full bg-background">
-      <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">
-            <Swords className="h-4 w-4" />
-            {t("badge")}
-          </div>
-          <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-on-surface sm:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-on-surface-variant">
-            {t("subtitle")}
-          </p>
-        </div>
+      <ProductPageShell>
+        <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
+          <ProductPageHeader title={t("title")} icon={<Swords />} />
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          <ModeCard
-            title={t("match.title")}
-            description={t("match.description")}
-            href="/debates/matchmaking"
-            disabled={!isAdmin}
-            image="/images/debates/duel-preview.png"
-            unavailableLabel={t("unavailable")}
-          />
-          <ModeCard
-            title={t("friend.title")}
-            description={t("friend.description")}
-            href="/debates/new"
-            disabled={!isAdmin}
-            image="/images/debates/trophy.png"
-            unavailableLabel={t("unavailable")}
-          />
+          <div className="max-w-3xl rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant shadow-[0_16px_40px_rgba(11,20,66,0.04)] sm:p-5">
+            {t("subtitle")}
+          </div>
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            <ModeCard
+              title={t("match.title")}
+              description={t("match.description")}
+              href="/debates/matchmaking"
+              disabled={!isAdmin}
+              image="/images/debates/duel-preview.png"
+              unavailableLabel={t("unavailable")}
+            />
+            <ModeCard
+              title={t("friend.title")}
+              description={t("friend.description")}
+              href="/debates/new"
+              disabled={!isAdmin}
+              image="/images/debates/trophy.png"
+              unavailableLabel={t("unavailable")}
+            />
+          </div>
         </div>
-      </div>
+      </ProductPageShell>
     </PageTransition>
   );
 }

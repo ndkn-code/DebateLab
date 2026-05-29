@@ -9,6 +9,7 @@ import {
   ChevronDown,
   CircleHelp,
   ListFilter,
+  Scale,
   Shuffle,
   Sparkles,
 } from "@/components/ui/icons";
@@ -31,6 +32,7 @@ import { TopicCard } from "@/components/practice/topic-card";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
+  ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import {
@@ -449,14 +451,26 @@ export default function PracticePage({
         )}
       >
         <section className="min-w-0 flex-1">
-          <div className="relative min-h-[88px] lg:static">
-            <div className="max-w-[620px] pt-1">
-              <h1 className="text-[1.75rem] font-semibold leading-[1.15] text-on-surface md:text-[1.9rem]">
-                {t("page_headline")}
-              </h1>
+          <ProductPageHeader title={t("page_headline")} icon={<Scale />} />
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <CategoryTabs
+                categories={categoryOptions}
+                active={activeCategory}
+                onSelect={handleCategorySelect}
+              />
+              <button
+                type="button"
+                onClick={handleSurprise}
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#d5e3fe] bg-white px-4 py-2 text-[14px] font-medium text-primary transition-colors hover:bg-[#f8fbff]"
+              >
+                <Shuffle className="h-[14px] w-[14px]" />
+                {t("surprise_me")}
+              </button>
             </div>
 
-            <div className="mt-5 flex shrink-0 items-center gap-3 lg:absolute lg:right-0 lg:top-0 lg:mt-0">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <TopPill icon={Sparkles}>
                 <span>{t("credits_label")}:</span>
                 <span className="text-primary">{orbBalance ?? 0}</span>
@@ -504,22 +518,6 @@ export default function PracticePage({
                 </DialogContent>
               </Dialog>
             </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <CategoryTabs
-              categories={categoryOptions}
-              active={activeCategory}
-              onSelect={handleCategorySelect}
-            />
-            <button
-              type="button"
-              onClick={handleSurprise}
-              className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#d5e3fe] bg-white px-4 py-2 text-[14px] font-medium text-primary transition-colors hover:bg-[#f8fbff]"
-            >
-              <Shuffle className="h-[14px] w-[14px]" />
-              {t("surprise_me")}
-            </button>
           </div>
 
           <div className="mt-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

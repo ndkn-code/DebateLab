@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
+  ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import { storage, supabaseStorage } from "@/lib/storage";
@@ -674,31 +675,18 @@ export default function HistoryPage() {
     <PageTransition className="min-h-full bg-background text-on-surface">
       <ProductPageShell>
       <PageContainer size="standard" className="py-6">
-        <motion.header
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center"
         >
-          <div>
-            <h1 className="text-[2rem] font-bold leading-tight text-on-surface md:text-[2.25rem]">
-              {t("page_headline")}
-            </h1>
-            <p className="mt-3 text-sm font-medium leading-6 text-on-surface-variant sm:text-base">
-              {t("page_subtitle")}
-            </p>
-            <p className="mt-2 text-xs font-semibold text-primary">
-              {practiceLanguage === "vi"
-                ? t("language_scope_vi")
-                : t("language_scope_en")}
-            </p>
-          </div>
-        </motion.header>
+          <ProductPageHeader title={t("page_headline")} icon={<Clock />} />
+        </motion.div>
 
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.04 }}
-          className="mb-5 mt-7"
+          className="mb-5"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <label className="relative w-full lg:w-[320px]">
@@ -766,6 +754,11 @@ export default function HistoryPage() {
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             </div>
           </div>
+          <p className="mt-3 text-xs font-medium text-on-surface-variant">
+            {practiceLanguage === "vi"
+              ? t("language_scope_vi")
+              : t("language_scope_en")}
+          </p>
         </motion.section>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
