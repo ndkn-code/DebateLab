@@ -23,7 +23,7 @@ import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,
 } from "@/lib/analytics/skill-snapshot";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { LEADERBOARDS_ENABLED, STUDENT_COURSES_ENABLED } from "@/lib/features";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 export type {
@@ -910,6 +910,15 @@ export async function getDashboardData(
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
+    ...(LEADERBOARDS_ENABLED
+      ? ([
+          {
+            key: "leaderboards",
+            href: "/leaderboards",
+            status: "live",
+          },
+        ] satisfies DashboardNavItem[])
+      : []),
     {
       key: "duel",
       href: isAdmin ? "/debates" : undefined,

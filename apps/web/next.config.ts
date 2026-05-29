@@ -47,6 +47,7 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
+  devIndicators: false,
   transpilePackages: ["@thinkfy/shared"],
   experimental: {
     optimizePackageImports: [

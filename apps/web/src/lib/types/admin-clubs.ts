@@ -1,4 +1,5 @@
 import type { AdminClassListRow, ClassRecurrenceRule } from "@/lib/types/admin-classes";
+import type { LeaderboardSafetyAuditData } from "@/lib/leaderboards/types";
 
 export type ClubRole = "owner" | "coach" | "student";
 export type ClubStatus = "draft" | "active" | "archived";
@@ -9,6 +10,7 @@ export type ClubAssignmentType = "practice" | "case" | "speech" | "quiz" | "atte
 export type CoachReviewStatus = "open" | "resolved";
 export type ClubQaState = "empty" | "active" | "high" | "low" | "mixed";
 export type ClubInvitationStatus = "pending" | "accepted" | "revoked" | "expired";
+export type ClubJoinCodeStatus = "pending" | "redeemed" | "revoked" | "expired";
 export type ClubInviteResultStatus = "invited" | "added" | "existing_member" | "missing_account" | "email_skipped" | "failed";
 export type ClubEventType = "meeting" | "workshop" | "tournament" | "social" | "deadline" | "other";
 export type ClubEventStatus = "active" | "cancelled" | "archived";
@@ -77,6 +79,19 @@ export interface AdminClubInvitation {
   acceptedBy: string | null;
   acceptedAt: string | null;
   lastSentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminClubJoinCode {
+  id: string;
+  clubId: string;
+  status: ClubJoinCodeStatus;
+  role: "student";
+  expiresAt: string;
+  issuedBy: string | null;
+  redeemedBy: string | null;
+  redeemedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -197,8 +212,11 @@ export interface AdminClubDetailData {
   weakestSkills: AdminClubSkillSummary[];
   trend: AdminClubTrendPoint[];
   invitations: AdminClubInvitation[];
+  joinCodes: AdminClubJoinCode[];
   events: AdminClubEvent[];
   eventOccurrences: AdminClubEventOccurrence[];
+  leaderboardSafety: LeaderboardSafetyAuditData;
+  organizationJoinCodesEnabled: boolean;
   qaEnabled: boolean;
   qaState: ClubQaState | null;
   loadError: string | null;

@@ -3,6 +3,7 @@ import type { PracticeTrack } from "./practice/feedback";
 export type DashboardNavKey =
   | "dashboard"
   | "practice"
+  | "leaderboards"
   | "duel"
   | "courses"
   | "coach"

@@ -1,7 +1,6 @@
 import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
-import { useAchievementStore } from "@/stores/achievement-store";
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { recordPerformanceAttemptForSession } from "@/lib/performance/club-performance-recorder";
 import {
@@ -117,22 +116,6 @@ const supabaseAdapter = {
       });
     }
 
-    // Insert activity log
-    await supabase.from("activity_log").insert({
-      user_id: userId,
-      activity_type: "debate_completed",
-      reference_id: session.id,
-      reference_type: "debate_session",
-      xp_earned: calculateXp(session),
-      metadata: {
-        topic: session.topic.title,
-        practice_track: session.practiceTrack,
-        practice_language: session.practiceLanguage,
-        mode: session.mode,
-        score: session.feedback?.totalScore ?? null,
-        band: session.feedback?.overallBand ?? null,
-      },
-    });
     trackAnalyticsEvent({
       eventName: "practice_completed",
       featureArea: "practice",
@@ -148,38 +131,8 @@ const supabaseAdapter = {
       },
     });
 
-    // Upsert daily stats atomically via RPC
     const today = new Date().toISOString().split("T")[0];
     const durationMinutes = Math.round(session.duration / 60);
-    const xpEarned = calculateXp(session);
-
-    await supabase.rpc("upsert_daily_stats", {
-      p_user_id: userId,
-      p_sessions: 1,
-      p_minutes: durationMinutes,
-      p_xp: xpEarned,
-      p_score: session.feedback?.totalScore ?? null,
-    });
-
-    // Get current XP/level before awarding
-    const { data: preXpData } = await supabase
-      .from("profiles")
-      .select("xp, level")
-      .eq("id", userId)
-      .single();
-    const oldLevel = preXpData?.level ?? 1;
-
-    // Award XP atomically via RPC
-    await supabase.rpc("increment_xp", { user_id: userId, amount: xpEarned });
-
-    // Check for level-up
-    if (typeof window !== "undefined" && preXpData) {
-      const newXp = (preXpData.xp ?? 0) + xpEarned;
-      const newLevel = Math.floor(newXp / 500) + 1;
-      if (newLevel > oldLevel) {
-        useAchievementStore.getState().showLevelUp(newLevel);
-      }
-    }
 
     // Update session count, practice minutes, and streak
     const { data: profileData } = await supabase
@@ -300,14 +253,6 @@ const supabaseAdapter = {
     localAdapter.deleteSession(id);
   },
 };
-
-function calculateXp(session: DebateSession): number {
-  let xp = 25; // base XP for completing a debate session
-  if (session.mode === "full") {
-    xp += 10; // bonus for full round
-  }
-  return xp;
-}
 
 function readImportIdMap(): Record<string, string> {
   if (typeof window === "undefined") return {};

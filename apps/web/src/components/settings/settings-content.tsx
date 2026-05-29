@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import {
   BellRing,
+  BadgeCheck,
+  Building2,
   Camera,
   Clock3,
   Globe2,
@@ -15,6 +17,7 @@ import {
   Settings,
   SlidersHorizontal,
   Sparkles,
+  UserPlus,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -23,7 +26,11 @@ import { DurationControl } from "@/components/shared/duration-control";
 import { ProductPageHeader } from "@/components/shared/product-layout";
 import { showToast } from "@/components/shared/toast";
 import { VoiceSettings } from "@/components/settings/voice-settings";
-import { saveSettings } from "@/app/[locale]/(protected)/settings/actions";
+import {
+  claimOrganizationJoinCode,
+  saveSettings,
+} from "@/app/[locale]/(protected)/settings/actions";
+import { updateLeaderboardPrivacySettings } from "@/app/actions/leaderboards";
 import {
   AI_DIFFICULTY_OPTIONS,
   SETTINGS_DRAFT_STORAGE_KEY,
@@ -44,11 +51,24 @@ import { coerceVoiceForLanguage } from "@/lib/tts-voices";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
+import type {
+  LeaderboardDisplayMode,
+  LeaderboardPrivacySettings,
+  OrganizationAffiliationSummary,
+} from "@/lib/leaderboards/types";
+import {
+  formatOrganizationJoinCode,
+  isUsableOrganizationJoinCode,
+} from "@/lib/organizations/model";
 
 interface SettingsContentProps {
   profile: Profile | null;
   userEmail: string;
   currentLocale: SettingsLocale;
+  organizationAffiliation?: OrganizationAffiliationSummary | null;
+  organizationJoinCodesEnabled?: boolean;
+  leaderboardPrivacyControlsEnabled?: boolean;
+  leaderboardPrivacySettings?: LeaderboardPrivacySettings;
 }
 
 function readStoredSnapshot() {
@@ -231,6 +251,10 @@ export function SettingsContent({
   profile,
   userEmail,
   currentLocale,
+  organizationAffiliation,
+  organizationJoinCodesEnabled = false,
+  leaderboardPrivacyControlsEnabled = false,
+  leaderboardPrivacySettings,
 }: SettingsContentProps) {
   const t = useTranslations("settings");
   const router = useRouter();
@@ -238,8 +262,14 @@ export function SettingsContent({
   const locale = useLocale() as SettingsLocale;
   const [isSaving, startSavingTransition] = useTransition();
   const [isLocalePending, startLocaleTransition] = useTransition();
+  const [isOrganizationPending, startOrganizationTransition] = useTransition();
+  const [isLeaderboardPrivacyPending, startLeaderboardPrivacyTransition] = useTransition();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
+  const [organizationCode, setOrganizationCode] = useState("");
+  const [leaderboardPrivacy, setLeaderboardPrivacy] = useState<
+    LeaderboardPrivacySettings | null
+  >(leaderboardPrivacySettings ?? null);
 
   const serverSavedDraft = useMemo(
     () =>
@@ -401,6 +431,67 @@ export function SettingsContent({
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t("toast.save_error"),
+          "error"
+        );
+      }
+    });
+  }
+
+  function handleClaimOrganizationCode() {
+    startOrganizationTransition(async () => {
+      try {
+        const result = await claimOrganizationJoinCode(organizationCode);
+        if (result.status === "accepted") {
+          setOrganizationCode("");
+          router.refresh();
+          showToast(result.message, "success");
+          return;
+        }
+
+        showToast(result.message, "warning");
+      } catch (error) {
+        showToast(
+          error instanceof Error
+            ? error.message
+            : "Unable to join that organization right now.",
+          "error"
+        );
+      }
+    });
+  }
+
+  function updateLeaderboardPrivacyDraft(
+    patch: Partial<Pick<
+      LeaderboardPrivacySettings,
+      "displayMode" | "allowKudos" | "showOrganization" | "participateInLeaderboards"
+    >>
+  ) {
+    if (!leaderboardPrivacy) return;
+    setLeaderboardPrivacy({
+      ...leaderboardPrivacy,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  function handleSaveLeaderboardPrivacy() {
+    if (!leaderboardPrivacy) return;
+
+    startLeaderboardPrivacyTransition(async () => {
+      try {
+        const saved = await updateLeaderboardPrivacySettings({
+          displayMode: leaderboardPrivacy.displayMode,
+          allowKudos: leaderboardPrivacy.allowKudos,
+          showOrganization: leaderboardPrivacy.showOrganization,
+          participateInLeaderboards: leaderboardPrivacy.participateInLeaderboards,
+        });
+        setLeaderboardPrivacy(saved);
+        showToast("Leaderboard privacy updated.", "success");
+      } catch (error) {
+        showToast(
+          error instanceof Error
+            ? error.message
+            : "Unable to update leaderboard privacy.",
           "error"
         );
       }
@@ -583,6 +674,159 @@ export function SettingsContent({
               onVoiceChange={(voiceId) => updateDraft("ttsVoice", voiceId)}
             />
           </SettingsCard>
+
+          <SettingsCard
+            icon={<Building2 className="h-5 w-5" />}
+            title="Organization"
+            description="Your verified school, club, or training center for leaderboard ranking."
+          >
+            {organizationAffiliation ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 rounded-2xl border border-[#dbe5fb] bg-[#fbfdff] p-3 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#edf3ff] text-primary dark:bg-primary-container">
+                    {organizationAffiliation.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={organizationAffiliation.logoUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Building2 className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#172554] dark:text-on-surface">
+                      {organizationAffiliation.name}
+                    </p>
+                    <p className="mt-1 truncate text-xs font-medium text-[#64748b] dark:text-on-surface-variant">
+                      {organizationAffiliation.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7fbff] px-3 py-2 dark:bg-surface-container-lowest">
+                    <span className="text-[#64748b] dark:text-on-surface-variant">Status</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f8ee] px-2 py-1 text-xs font-bold text-[#177245]">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      Verified
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7fbff] px-3 py-2 dark:bg-surface-container-lowest">
+                    <span className="text-[#64748b] dark:text-on-surface-variant">Role</span>
+                    <span className="text-xs font-bold capitalize text-[#172554] dark:text-on-surface">
+                      {organizationAffiliation.role}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
+                  No verified organization yet.
+                </div>
+                {organizationJoinCodesEnabled ? (
+                  <div className="space-y-3">
+                    <div>
+                      <SettingLabel>Organization code</SettingLabel>
+                      <input
+                        type="text"
+                        value={organizationCode}
+                        onChange={(event) =>
+                          setOrganizationCode(
+                            formatOrganizationJoinCode(event.target.value).slice(0, 19)
+                          )
+                        }
+                        placeholder="ABCD-1234"
+                        className="h-11 w-full rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-bold tracking-[0.12em] text-[#172554] outline-none transition-colors placeholder:tracking-normal focus:border-primary dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleClaimOrganizationCode}
+                      disabled={
+                        isOrganizationPending ||
+                        !isUsableOrganizationJoinCode(organizationCode)
+                      }
+                      className="w-full gap-2 rounded-2xl bg-primary text-white"
+                    >
+                      {isOrganizationPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      Join Organization
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </SettingsCard>
+
+          {leaderboardPrivacyControlsEnabled && leaderboardPrivacy ? (
+            <SettingsCard
+              icon={<BadgeCheck className="h-5 w-5" />}
+              title="Leaderboard privacy"
+              description="Control how you appear in weekly league and organization rankings."
+            >
+              <div className="space-y-4">
+                <div>
+                  <SettingLabel>Public display</SettingLabel>
+                  <Select
+                    value={leaderboardPrivacy.displayMode}
+                    onChange={(event) =>
+                      updateLeaderboardPrivacyDraft({
+                        displayMode: event.target.value as LeaderboardDisplayMode,
+                      })
+                    }
+                  >
+                    <option value="public_name">Show my display name</option>
+                    <option value="initials_only">Show initials only</option>
+                    <option value="hidden">Hide my identity</option>
+                  </Select>
+                </div>
+                <ToggleRow
+                  title="Allow encouragement"
+                  description="Other students can send lightweight kudos that never affect rank."
+                  checked={leaderboardPrivacy.allowKudos}
+                  onCheckedChange={(checked) =>
+                    updateLeaderboardPrivacyDraft({ allowKudos: checked })
+                  }
+                />
+                <ToggleRow
+                  title="Show organization"
+                  description="Let leaderboard surfaces connect your rank with your verified organization."
+                  checked={leaderboardPrivacy.showOrganization}
+                  onCheckedChange={(checked) =>
+                    updateLeaderboardPrivacyDraft({ showOrganization: checked })
+                  }
+                />
+                <ToggleRow
+                  title="Appear on leaderboards"
+                  description="When off, future leaderboard reads use private display treatment where supported."
+                  checked={leaderboardPrivacy.participateInLeaderboards}
+                  onCheckedChange={(checked) =>
+                    updateLeaderboardPrivacyDraft({
+                      participateInLeaderboards: checked,
+                    })
+                  }
+                />
+                <Button
+                  type="button"
+                  onClick={handleSaveLeaderboardPrivacy}
+                  disabled={isLeaderboardPrivacyPending}
+                  className="w-full gap-2 rounded-2xl bg-primary text-white"
+                >
+                  {isLeaderboardPrivacyPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Leaderboard Privacy
+                </Button>
+              </div>
+            </SettingsCard>
+          ) : null}
 
           <SettingsCard
             icon={<SlidersHorizontal className="h-5 w-5" />}

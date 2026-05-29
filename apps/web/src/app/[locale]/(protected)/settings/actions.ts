@@ -18,6 +18,13 @@ import {
   normalizeAvatarUrl,
 } from "@/lib/settings";
 import { coercePracticeLanguage } from "@/lib/practice-language";
+import { ORGANIZATION_JOIN_CODES_ENABLED } from "@/lib/features";
+import {
+  getJoinCodeClaimMessage,
+  isUsableOrganizationJoinCode,
+  normalizeOrganizationJoinCode,
+  type ClubJoinCodeClaimStatus,
+} from "@/lib/organizations/model";
 import { coerceVoiceForLanguage } from "@/lib/tts-voices";
 import {
   SOLO_PREP_DURATION,
@@ -87,6 +94,69 @@ function revalidateSettingsRoutes() {
   for (const path of SETTINGS_REVALIDATE_PATHS) {
     revalidatePath(path);
   }
+}
+
+export async function claimOrganizationJoinCode(input: string) {
+  if (!ORGANIZATION_JOIN_CODES_ENABLED) {
+    throw new Error("Organization join codes are not enabled yet.");
+  }
+
+  const code = normalizeOrganizationJoinCode(input);
+  if (!isUsableOrganizationJoinCode(code)) {
+    return {
+      status: "malformed" as ClubJoinCodeClaimStatus,
+      message: getJoinCodeClaimMessage("malformed"),
+      clubId: null as string | null,
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const devAuthBypassUser = user
+    ? null
+    : await getDevAuthBypassUserFromServerContext();
+
+  if (!user && !devAuthBypassUser) {
+    return {
+      status: "auth_required" as ClubJoinCodeClaimStatus,
+      message: getJoinCodeClaimMessage("auth_required"),
+      clubId: null as string | null,
+    };
+  }
+
+  if (!user && devAuthBypassUser) {
+    revalidateSettingsRoutes();
+    return {
+      status: "accepted" as ClubJoinCodeClaimStatus,
+      message: getJoinCodeClaimMessage("accepted"),
+      clubId: "00000000-0000-4c00-8000-000000000002",
+    };
+  }
+
+  const { data, error } = await supabase.rpc("claim_club_join_code", {
+    p_code: code,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = Array.isArray(data)
+    ? (data[0] as { status?: string; message?: string; club_id?: string | null } | undefined)
+    : null;
+  const status = (row?.status ?? "not_found") as ClubJoinCodeClaimStatus;
+
+  revalidateSettingsRoutes();
+  revalidatePath("/leaderboards");
+  revalidatePath("/en/leaderboards");
+
+  return {
+    status,
+    message: row?.message ?? getJoinCodeClaimMessage(status),
+    clubId: row?.club_id ?? null,
+  };
 }
 
 function getDateFormatter() {

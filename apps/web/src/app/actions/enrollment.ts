@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import { calculateLessonXp, createXpIdempotencyKey } from "@/lib/xp/model";
+import { awardXpEvent } from "@/lib/xp/server";
 import { revalidatePath } from "next/cache";
 
 function normalizeAnswerMap(value: unknown) {
@@ -185,17 +187,29 @@ export async function markLessonCompleteAction(
       { onConflict: "user_id,lesson_id" }
     );
 
-  const xpEarned = score != null ? 25 + Math.round((score / 100) * 25) : 25;
-
-  // Log activity + award XP
-  await supabase.from("activity_log").insert({
-    user_id: user.id,
-    activity_type: "lesson_completed",
-    reference_id: lessonId,
-    reference_type: "lesson",
-    xp_earned: xpEarned,
-    metadata: { score, time_spent_seconds: safeTimeSpentSeconds },
+  const xpBreakdown = calculateLessonXp({
+    activityType: score == null ? "lesson" : "quiz",
+    score,
+    maxScore: 100,
   });
+  const award = await awardXpEvent({
+    userId: user.id,
+    sourceType: "lesson",
+    sourceId: lessonId,
+    activityType: "lesson_completed",
+    referenceType: "lesson",
+    category: "lesson",
+    idempotencyKey: createXpIdempotencyKey(["lesson", user.id, lessonId]),
+    lifetimeXp: xpBreakdown.total,
+    seasonXp: xpBreakdown.total,
+    metadata: {
+      score,
+      time_spent_seconds: safeTimeSpentSeconds,
+      xp_breakdown: xpBreakdown,
+    },
+  });
+  const xpEarned = award.lifetimeXpAwarded;
+
   await recordAnalyticsEvent(supabase, user.id, {
     eventName: "activity_completed",
     featureArea: "activities",
@@ -206,14 +220,6 @@ export async function markLessonCompleteAction(
       score,
       xp_earned: xpEarned,
     },
-  });
-
-  await supabase.rpc("increment_xp", { user_id: user.id, amount: xpEarned });
-  await supabase.rpc("upsert_daily_stats", {
-    p_user_id: user.id,
-    p_sessions: 0,
-    p_minutes: 0,
-    p_xp: xpEarned,
   });
 
   revalidatePath("/courses");

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   normalizeClubRecipients,
   normalizeEmailAddress,
@@ -15,10 +16,17 @@ import {
 } from "@/lib/api/admin-clubs-model";
 import { getAppBaseUrl } from "@/lib/email/config";
 import { sendClubInvitationEmail } from "@/lib/email/club-invitations";
+import { ORGANIZATION_JOIN_CODES_ENABLED } from "@/lib/features";
+import {
+  formatOrganizationJoinCode,
+  normalizeOrganizationJoinCode,
+} from "@/lib/organizations/model";
+import { containsIlikePattern, mergeUniqueById } from "@/lib/supabase/search";
 import type {
   ClubAssignmentInput,
   ClubRecipientInput,
   ClubRecipientResult,
+  ClubRole,
   CreateClubResult,
   SaveClubEventInput,
 } from "@/lib/types/admin-clubs";
@@ -31,7 +39,9 @@ async function verifyAdmin(supabase: Supabase) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isDevAdminBypassEnabled()) return DEV_ADMIN_PROFILE.id;
+    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
+      return DEV_ADMIN_PROFILE.id;
+    }
     throw new Error("Unauthorized");
   }
 
@@ -54,8 +64,9 @@ function cleanString(value: FormDataEntryValue | string | null | undefined) {
   return text.length > 0 ? text : null;
 }
 
-function isDevClubId(id: string) {
-  return isDevAdminBypassEnabled() && id.startsWith("00000000-0000-4c00-8000-");
+async function isDevClubBypassId(id: string) {
+  if (!id.startsWith("00000000-0000-4c00-8000-")) return false;
+  return isDevAdminBypassEnabled() || Boolean(await getDevAuthBypassUserFromServerContext());
 }
 
 async function verifyClubManager(supabase: Supabase, clubId: string) {
@@ -64,7 +75,9 @@ async function verifyClubManager(supabase: Supabase, clubId: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isDevAdminBypassEnabled()) return DEV_ADMIN_PROFILE.id;
+    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
+      return DEV_ADMIN_PROFILE.id;
+    }
     throw new Error("Unauthorized");
   }
 
@@ -108,8 +121,50 @@ function invitationTokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function joinCodeHash(code: string) {
+  return createHash("sha256").update(normalizeOrganizationJoinCode(code)).digest("hex");
+}
+
 function createInvitationToken() {
   return randomBytes(32).toString("base64url");
+}
+
+function createReadableJoinCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = randomBytes(12);
+  let code = "";
+
+  for (let index = 0; index < 12; index += 1) {
+    code += alphabet[bytes[index] % alphabet.length];
+  }
+
+  return formatOrganizationJoinCode(code);
+}
+
+async function findActiveStudentClub(userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("club_memberships")
+    .select("id, club_id")
+    .eq("user_id", userId)
+    .eq("role", "student")
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    throw new Error(error.message);
+  }
+
+  return data as { id: string; club_id: string } | null;
+}
+
+async function assertStudentCanJoinClub(userId: string, clubId: string) {
+  const activeClub = await findActiveStudentClub(userId);
+  if (activeClub && activeClub.club_id !== clubId) {
+    throw new Error("Student already belongs to another organization.");
+  }
+
+  return activeClub;
 }
 
 function safeLogoExtension(file: File) {
@@ -305,6 +360,31 @@ async function addExistingProfilesToClub(input: {
       continue;
     }
 
+    if (recipient.role === "student") {
+      const activeClub = await findActiveStudentClub(profile.id);
+      if (activeClub?.club_id === input.clubId) {
+        results.push({
+          email: recipient.email,
+          role: recipient.role,
+          status: "existing_member",
+          userId: profile.id,
+          message: "Student is already in this organization.",
+        });
+        continue;
+      }
+
+      if (activeClub) {
+        results.push({
+          email: recipient.email,
+          role: recipient.role,
+          status: "failed",
+          userId: profile.id,
+          message: "Student already belongs to another organization.",
+        });
+        continue;
+      }
+    }
+
     const { error } = await admin.from("club_memberships").upsert(
       {
         club_id: input.clubId,
@@ -460,6 +540,195 @@ async function createAndSendInvitations(input: {
   return results;
 }
 
+export async function searchProfilesForClub(query: string, clubId: string) {
+  const supabase = await createClient();
+  await verifyClubManager(supabase, clubId);
+  const term = query.trim();
+  if (term.length < 2) return [];
+
+  if (await isDevClubBypassId(clubId)) {
+    return [
+      { id: "00000000-0000-4000-8000-000000000301", displayName: "Maya Kim", email: "maya.kim@riverside.edu", role: "student", blockedReason: null },
+      { id: "00000000-0000-4000-8000-000000000302", displayName: "Aisha Nguyen", email: "aisha.nguyen@riverside.edu", role: "student", blockedReason: null },
+    ].filter((profile) =>
+      profile.displayName.toLowerCase().includes(term.toLowerCase()) ||
+      profile.email.toLowerCase().includes(term.toLowerCase())
+    );
+  }
+
+  const admin = createAdminClient();
+  const pattern = containsIlikePattern(term);
+  const [nameRes, emailRes] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("id, display_name, email, role")
+      .ilike("display_name", pattern)
+      .limit(12),
+    admin
+      .from("profiles")
+      .select("id, display_name, email, role")
+      .ilike("email", pattern)
+      .limit(12),
+  ]);
+
+  if (nameRes.error) throw new Error(nameRes.error.message);
+  if (emailRes.error) throw new Error(emailRes.error.message);
+
+  const profiles = mergeUniqueById([nameRes.data, emailRes.data], 12);
+  if (!profiles.length) return [];
+
+  const profileIds = profiles.map((profile) => profile.id as string);
+  const [currentClubRes, activeStudentClubRes] = await Promise.all([
+    admin
+      .from("club_memberships")
+      .select("user_id, role, status")
+      .eq("club_id", clubId)
+      .in("user_id", profileIds)
+      .eq("status", "active"),
+    admin
+      .from("club_memberships")
+      .select("user_id, club_id")
+      .in("user_id", profileIds)
+      .eq("role", "student")
+      .eq("status", "active"),
+  ]);
+
+  if (currentClubRes.error) throw new Error(currentClubRes.error.message);
+  if (activeStudentClubRes.error) throw new Error(activeStudentClubRes.error.message);
+
+  const currentClubUserIds = new Set((currentClubRes.data ?? []).map((row) => row.user_id as string));
+  const studentClubByUserId = new Map(
+    (activeStudentClubRes.data ?? []).map((row) => [row.user_id as string, row.club_id as string])
+  );
+
+  return profiles
+    .filter((profile) => !currentClubUserIds.has(profile.id as string))
+    .map((profile) => {
+      const activeClubId = studentClubByUserId.get(profile.id as string) ?? null;
+      return {
+        id: profile.id as string,
+        displayName: String(profile.display_name ?? profile.email ?? "Thinkfy member"),
+        email: (profile.email as string | null | undefined) ?? null,
+        role: String(profile.role ?? "student"),
+        blockedReason:
+          activeClubId && activeClubId !== clubId
+            ? "Already in another organization"
+            : null,
+      };
+    });
+}
+
+export async function addClubMember(input: {
+  clubId: string;
+  userId: string;
+  role: ClubRole;
+}) {
+  const supabase = await createClient();
+  const actorId = await verifyClubManager(supabase, input.clubId);
+  const role = input.role === "owner" || input.role === "coach" ? input.role : "student";
+
+  if (await isDevClubBypassId(input.clubId)) {
+    return { status: "added" as const };
+  }
+
+  if (role === "student") {
+    await assertStudentCanJoinClub(input.userId, input.clubId);
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("club_memberships").upsert(
+    {
+      club_id: input.clubId,
+      user_id: input.userId,
+      role,
+      status: "active",
+      removed_at: null,
+      invited_by: actorId,
+      metadata: role === "student" ? { verification_method: "admin" } : {},
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "club_id,user_id,role" }
+  );
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/admin/clubs");
+  revalidatePath(`/dashboard/admin/clubs/${input.clubId}`);
+  revalidatePath("/leaderboards");
+  revalidatePath("/en/leaderboards");
+  return { status: "added" as const };
+}
+
+export async function createClubJoinCode(clubId: string) {
+  if (!ORGANIZATION_JOIN_CODES_ENABLED) {
+    throw new Error("Organization join codes are not enabled yet.");
+  }
+
+  const supabase = await createClient();
+  const actorId = await verifyClubManager(supabase, clubId);
+
+  if (await isDevClubBypassId(clubId)) {
+    return {
+      code: "TFY3-DEMO-2026",
+      expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+    };
+  }
+
+  const admin = createAdminClient();
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = createReadableJoinCode();
+    const { data, error } = await admin
+      .from("club_join_codes")
+      .insert({
+        club_id: clubId,
+        code_hash: joinCodeHash(code),
+        status: "pending",
+        role: "student",
+        issued_by: actorId,
+        expires_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      })
+      .select("expires_at")
+      .single();
+
+    if (!error) {
+      revalidatePath(`/dashboard/admin/clubs/${clubId}`);
+      return {
+        code,
+        expiresAt: String(data.expires_at),
+      };
+    }
+
+    if (!String(error.message).toLowerCase().includes("duplicate")) {
+      throw new Error(error.message);
+    }
+  }
+
+  throw new Error("Could not generate a unique organization code.");
+}
+
+export async function revokeClubJoinCode(clubId: string, codeId: string) {
+  if (!ORGANIZATION_JOIN_CODES_ENABLED) {
+    throw new Error("Organization join codes are not enabled yet.");
+  }
+
+  const supabase = await createClient();
+  await verifyClubManager(supabase, clubId);
+
+  if (await isDevClubBypassId(clubId)) {
+    return;
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("club_join_codes")
+    .update({ status: "revoked", updated_at: new Date().toISOString() })
+    .eq("id", codeId)
+    .eq("club_id", clubId)
+    .eq("status", "pending");
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/admin/clubs/${clubId}`);
+}
+
 export async function createClubAssignment(input: ClubAssignmentInput) {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
@@ -468,7 +737,7 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
     throw new Error(validation.reason);
   }
 
-  if (isDevClubId(input.clubId)) {
+  if (await isDevClubBypassId(input.clubId)) {
     return "00000000-0000-4c20-8000-000000000999";
   }
 
@@ -505,7 +774,7 @@ export async function saveClubEvent(input: SaveClubEventInput) {
   const validation = validateClubEventInput(input);
   if (!validation.ok) throw new Error(validation.reason);
 
-  if (isDevClubId(input.clubId)) {
+  if (await isDevClubBypassId(input.clubId)) {
     return input.id ?? "dev-club-event";
   }
 
@@ -568,7 +837,7 @@ export async function deleteClubEvent(clubId: string, eventId: string) {
   const supabase = await createClient();
   await verifyClubManager(supabase, clubId);
 
-  if (isDevClubId(clubId)) return;
+  if (await isDevClubBypassId(clubId)) return;
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -626,6 +895,27 @@ export async function claimClubInvitation(token: string) {
     return { status: "email_mismatch" as const, expectedEmail: invitation.email as string };
   }
 
+  if (invitation.role === "student") {
+    const activeClub = await findActiveStudentClub(user.id);
+    if (activeClub?.club_id === invitation.club_id) {
+      await admin
+        .from("club_invitations")
+        .update({
+          status: "accepted",
+          accepted_by: user.id,
+          accepted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", invitation.id);
+
+      return { status: "accepted" as const, clubId: invitation.club_id as string };
+    }
+
+    if (activeClub) {
+      return { status: "already_in_org" as const, clubId: activeClub.club_id as string };
+    }
+  }
+
   const { error: membershipError } = await admin.from("club_memberships").upsert(
     {
       club_id: invitation.club_id,
@@ -667,7 +957,7 @@ export async function saveCoachReview(input: {
   const adminId = await verifyAdmin(supabase);
   if (!input.clubId || !input.performanceAttemptId) throw new Error("Club and attempt are required");
 
-  if (isDevClubId(input.clubId)) {
+  if (await isDevClubBypassId(input.clubId)) {
     return "dev-review";
   }
 

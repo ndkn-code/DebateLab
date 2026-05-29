@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { ORGANIZATION_JOIN_CODES_ENABLED } from "@/lib/features";
 import {
   buildAtRiskStudents,
   buildClubDashboardKpis,
@@ -8,6 +10,13 @@ import {
   buildWeakestSkills,
   normalizeClubAssignmentStatus,
 } from "@/lib/api/admin-clubs-model";
+import {
+  getLeaderboardRolloutGuardrailStatus,
+} from "@/lib/leaderboards/social-trust";
+import {
+  getLeaderboardSafetyAudit,
+  makeEmptyLeaderboardSafetyAudit,
+} from "@/lib/leaderboards/social-trust-server";
 import {
   DEFAULT_CLASS_TIMEZONE,
   expandScheduleOccurrences,
@@ -21,6 +30,7 @@ import type {
   AdminClubEvent,
   AdminClubEventOccurrence,
   AdminClubInvitation,
+  AdminClubJoinCode,
   AdminClubListRow,
   AdminClubMember,
   AdminClubPerformanceAttempt,
@@ -30,6 +40,7 @@ import type {
   ClubEventStatus,
   ClubEventType,
   ClubInvitationStatus,
+  ClubJoinCodeStatus,
   ClubQaState,
   ClubStatus,
   ClubType,
@@ -142,6 +153,26 @@ function toInvitationRow(row: Record<string, unknown>): AdminClubInvitation {
     acceptedBy: (row.accepted_by as string | null | undefined) ?? null,
     acceptedAt: (row.accepted_at as string | null | undefined) ?? null,
     lastSentAt: (row.last_sent_at as string | null | undefined) ?? null,
+    createdAt: String(row.created_at ?? new Date().toISOString()),
+    updatedAt: String(row.updated_at ?? new Date().toISOString()),
+  };
+}
+
+function normalizeJoinCodeStatus(value: unknown): ClubJoinCodeStatus {
+  if (value === "redeemed" || value === "revoked" || value === "expired") return value;
+  return "pending";
+}
+
+function toJoinCodeRow(row: Record<string, unknown>): AdminClubJoinCode {
+  return {
+    id: String(row.id),
+    clubId: String(row.club_id),
+    status: normalizeJoinCodeStatus(row.status),
+    role: "student",
+    expiresAt: String(row.expires_at ?? new Date().toISOString()),
+    issuedBy: (row.issued_by as string | null | undefined) ?? null,
+    redeemedBy: (row.redeemed_by as string | null | undefined) ?? null,
+    redeemedAt: (row.redeemed_at as string | null | undefined) ?? null,
     createdAt: String(row.created_at ?? new Date().toISOString()),
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
   };
@@ -278,7 +309,11 @@ export async function getAdminClubsPageData({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 } = {}): Promise<AdminClubsPageData> {
-  if (isDevAdminBypassEnabled()) {
+  const devBypassEnabled =
+    isDevAdminBypassEnabled() ||
+    Boolean(await getDevAuthBypassUserFromServerContext());
+
+  if (devBypassEnabled) {
     return getDevClubsPageData(qaStateFromSearch(searchParams));
   }
 
@@ -314,7 +349,11 @@ export async function getAdminClubDetail(
   searchParams?: Record<string, string | string[] | undefined>
 ): Promise<AdminClubDetailData | null> {
   const qaState = qaStateFromSearch(searchParams);
-  if (isDevAdminBypassEnabled() && clubId.startsWith("00000000-0000-4c00-8000-")) {
+  const devBypassEnabled =
+    isDevAdminBypassEnabled() ||
+    Boolean(await getDevAuthBypassUserFromServerContext());
+
+  if (devBypassEnabled && clubId.startsWith("00000000-0000-4c00-8000-")) {
     return getDevClubDetail(clubId, qaState);
   }
 
@@ -326,11 +365,11 @@ export async function getAdminClubDetail(
     .single();
 
   if (clubError || !clubRow) {
-    if (isDevAdminBypassEnabled()) return getDevClubDetail(clubId, qaState);
+    if (devBypassEnabled) return getDevClubDetail(clubId, qaState);
     return null;
   }
 
-  const [membersRes, cohortsRes, assignmentsRes, attemptsRes, reviewsRes, invitationsRes, eventsRes] = await Promise.all([
+  const [membersRes, cohortsRes, assignmentsRes, attemptsRes, reviewsRes, invitationsRes, joinCodesRes, eventsRes, leaderboardSafety] = await Promise.all([
     supabase
       .from("club_memberships")
       .select("id, user_id, role, status, joined_at")
@@ -364,12 +403,25 @@ export async function getAdminClubDetail(
       .eq("club_id", clubId)
       .order("created_at", { ascending: false })
       .limit(80),
+    ORGANIZATION_JOIN_CODES_ENABLED
+      ? supabase
+          .from("club_join_codes")
+          .select("id, club_id, status, role, expires_at, issued_by, redeemed_by, redeemed_at, created_at, updated_at")
+          .eq("club_id", clubId)
+          .order("created_at", { ascending: false })
+          .limit(80)
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("club_events")
       .select("*")
       .eq("club_id", clubId)
       .neq("status", "archived")
       .order("start_date", { ascending: true }),
+    getLeaderboardSafetyAudit({
+      supabase,
+      clubId,
+      limit: 60,
+    }),
   ]);
 
   const loadError =
@@ -379,6 +431,7 @@ export async function getAdminClubDetail(
     attemptsRes.error?.message ??
     reviewsRes.error?.message ??
     invitationsRes.error?.message ??
+    joinCodesRes.error?.message ??
     eventsRes.error?.message ??
     null;
 
@@ -386,6 +439,7 @@ export async function getAdminClubDetail(
   const cohorts = ((cohortsRes.data ?? []) as Record<string, unknown>[]).map(toClassListRow);
   const assignments = ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(toAssignmentRow);
   const invitations = ((invitationsRes.data ?? []) as Record<string, unknown>[]).map(toInvitationRow);
+  const joinCodes = ((joinCodesRes.data ?? []) as Record<string, unknown>[]).map(toJoinCodeRow);
   const scheduleRangeStart = toIsoDate(addDays(new Date(), -7));
   const scheduleRangeEnd = toIsoDate(addDays(new Date(), 90));
   const events = enrichClubEvents((eventsRes.data ?? []) as Record<string, unknown>[], cohorts, scheduleRangeStart, scheduleRangeEnd);
@@ -424,8 +478,11 @@ export async function getAdminClubDetail(
     weakestSkills: buildWeakestSkills(attempts),
     trend: buildClubTrend(attempts, assignments),
     invitations,
+    joinCodes,
     events,
     eventOccurrences,
+    leaderboardSafety,
+    organizationJoinCodesEnabled: ORGANIZATION_JOIN_CODES_ENABLED,
     qaEnabled: false,
     qaState: null,
     loadError,
@@ -684,12 +741,101 @@ function getDevClubDetail(clubId: string, state: ClubQaState): AdminClubDetailDa
     weakestSkills: buildWeakestSkills(attempts),
     trend: buildClubTrend(attempts, assignments, new Date("2026-05-15T00:00:00.000Z")),
     invitations: buildDevInvitations(resolvedState, club.id),
+    joinCodes: buildDevJoinCodes(resolvedState, club.id),
     events,
     eventOccurrences,
+    leaderboardSafety: {
+      ...makeEmptyLeaderboardSafetyAudit(),
+      guardrails: getLeaderboardRolloutGuardrailStatus({
+        suppressionRate:
+          resolvedState === "low" ? 0.1 : resolvedState === "mixed" ? 0.05 : 0.01,
+        optOutRate: resolvedState === "low" ? 0.14 : 0.04,
+        orgJoinAbuseRate: resolvedState === "mixed" ? 0.06 : 0.01,
+        churnRate: resolvedState === "low" ? 0.12 : 0.05,
+      }),
+      flags: resolvedState === "empty"
+        ? []
+        : [
+            {
+              id: "00000000-0000-4c70-8000-000000000001",
+              xpEventId: "00000000-0000-4c71-8000-000000000001",
+              seasonId: "00000000-0000-4c72-8000-000000000001",
+              userId: members[0]?.userId ?? "00000000-0000-4000-8000-000000000301",
+              displayName: members[0]?.displayName ?? "Maya Kim",
+              flagType: "low_duration",
+              severity: "medium",
+              status: "suppressed_from_leaderboards",
+              reason: "Session duration was below the minimum effort threshold.",
+              source: "system",
+              createdAt: "2026-05-29T08:00:00.000Z",
+              resolvedAt: null,
+            },
+            {
+              id: "00000000-0000-4c70-8000-000000000002",
+              xpEventId: "00000000-0000-4c71-8000-000000000002",
+              seasonId: "00000000-0000-4c72-8000-000000000001",
+              userId: members[1]?.userId ?? "00000000-0000-4000-8000-000000000302",
+              displayName: members[1]?.displayName ?? "Aisha Nguyen",
+              flagType: "missing_quality_metadata",
+              severity: "low",
+              status: "flagged_pending_review",
+              reason: "Missing quality metadata for scored leaderboard XP.",
+              source: "system",
+              createdAt: "2026-05-28T11:00:00.000Z",
+              resolvedAt: null,
+            },
+          ],
+      audit: resolvedState === "empty"
+        ? []
+        : [
+            {
+              id: "00000000-0000-4c73-8000-000000000001",
+              eventType: "leaderboard_abuse_flag_created",
+              actorUserId: null,
+              targetUserId: members[0]?.userId ?? null,
+              clubId: club.id,
+              xpEventId: "00000000-0000-4c71-8000-000000000001",
+              flagId: "00000000-0000-4c70-8000-000000000001",
+              metadata: { flagType: "low_duration", status: "suppressed_from_leaderboards" },
+              createdAt: "2026-05-29T08:00:00.000Z",
+            },
+          ],
+    },
+    organizationJoinCodesEnabled: ORGANIZATION_JOIN_CODES_ENABLED,
     qaEnabled: true,
     qaState: resolvedState,
     loadError: null,
   };
+}
+
+function buildDevJoinCodes(state: ClubQaState, clubId: string): AdminClubJoinCode[] {
+  if (state === "empty") return [];
+  return [
+    {
+      id: "00000000-0000-4c16-8000-000000000001",
+      clubId,
+      status: "pending",
+      role: "student",
+      expiresAt: "2026-06-12T09:00:00.000Z",
+      issuedBy: "00000000-0000-4000-8000-000000000001",
+      redeemedBy: null,
+      redeemedAt: null,
+      createdAt: "2026-05-29T09:00:00.000Z",
+      updatedAt: "2026-05-29T09:00:00.000Z",
+    },
+    {
+      id: "00000000-0000-4c16-8000-000000000002",
+      clubId,
+      status: "redeemed",
+      role: "student",
+      expiresAt: "2026-06-10T09:00:00.000Z",
+      issuedBy: "00000000-0000-4000-8000-000000000001",
+      redeemedBy: "00000000-0000-4000-8000-000000000301",
+      redeemedAt: "2026-05-28T12:00:00.000Z",
+      createdAt: "2026-05-27T09:00:00.000Z",
+      updatedAt: "2026-05-28T12:00:00.000Z",
+    },
+  ];
 }
 
 function buildDevInvitations(state: ClubQaState, clubId: string): AdminClubInvitation[] {

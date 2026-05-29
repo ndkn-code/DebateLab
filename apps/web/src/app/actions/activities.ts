@@ -4,6 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
+import {
+  calculateLessonXp,
+  createXpIdempotencyKey,
+} from "@/lib/xp/model";
+import { awardXpEvent } from "@/lib/xp/server";
 import { revalidatePath } from "next/cache";
 import type {
   ActivityContent,
@@ -139,18 +144,6 @@ function scoreActivityFromContent(
   if (activityType === "drag_order") return scoreDragOrder(content as DragOrderContent, responses);
   if (activityType === "flashcard") return scoreFlashcard(content as FlashcardContent, responses);
   return { score: 0, maxScore: 0 };
-}
-
-function calculateActivityXp(
-  activityType: ActivityType,
-  score: number,
-  maxScore: number
-) {
-  if (activityType === "lesson") return 10;
-  if (activityType === "flashcard") {
-    return maxScore > 0 ? Math.round((score / maxScore) * 10) : 5;
-  }
-  return maxScore > 0 ? Math.round((score / maxScore) * 15) : 0;
 }
 
 function normalizeResponses(value: Record<string, unknown>) {
@@ -293,11 +286,11 @@ export async function completeActivity(
     scoringActivity.content as ActivityContent,
     safeResponses
   );
-  const xpEarned = calculateActivityXp(
-    scoringActivity.activity_type as ActivityType,
+  const xpBreakdown = calculateLessonXp({
+    activityType: scoringActivity.activity_type as ActivityType,
     score,
-    maxScore
-  );
+    maxScore,
+  });
 
   // Find in-progress attempt
   const { data: attempts } = await supabase
@@ -338,26 +331,26 @@ export async function completeActivity(
     });
   }
 
-  // Award XP
-  if (xpEarned > 0) {
-    await supabase.rpc("increment_xp", { user_id: user.id, amount: xpEarned });
-    await supabase.rpc("upsert_daily_stats", {
-      p_user_id: user.id,
-      p_sessions: 0,
-      p_minutes: Math.round(safeTimeSpentSeconds / 60),
-      p_xp: xpEarned,
-    });
-  }
-
-  // Log activity
-  await supabase.from("activity_log").insert({
-    user_id: user.id,
-    activity_type: "lesson_completed",
-    reference_id: activityId,
-    reference_type: "activity",
-    xp_earned: xpEarned,
-    metadata: { score, maxScore, timeSpentSeconds: safeTimeSpentSeconds },
+  const award = await awardXpEvent({
+    userId: user.id,
+    sourceType: "activity",
+    sourceId: activityId,
+    activityType: "lesson_completed",
+    referenceType: "activity",
+    category: "lesson",
+    idempotencyKey: createXpIdempotencyKey(["activity", user.id, activityId]),
+    lifetimeXp: xpBreakdown.total,
+    seasonXp: xpBreakdown.total,
+    minutes: Math.round(safeTimeSpentSeconds / 60),
+    metadata: {
+      score,
+      maxScore,
+      timeSpentSeconds: safeTimeSpentSeconds,
+      xp_breakdown: xpBreakdown,
+    },
   });
+  const xpEarned = award.lifetimeXpAwarded;
+
   await recordAnalyticsEvent(supabase, user.id, {
     eventName: "activity_completed",
     featureArea: "activities",

@@ -1,24 +1,39 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  BadgeCheck,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
   Clock3,
+  Copy,
   ExternalLink,
   FileText,
   Import,
+  Loader2,
   Mail,
   MoreVertical,
   Plus,
+  ShieldCheck,
+  Search,
   Star,
+  UserPlus,
   Users,
+  XCircle,
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
+import {
+  addClubMember,
+  createClubJoinCode,
+  revokeClubJoinCode,
+  searchProfilesForClub,
+} from "@/app/actions/admin-clubs";
+import { resolveLeaderboardXpEventFlag } from "@/app/actions/leaderboards";
 import { ClubSchedulePanel } from "@/components/admin/clubs/ClubSchedulePanel";
+import { showToast } from "@/components/shared/toast";
 import { buildPracticeHref } from "@/lib/practice-prefill";
 import { cn } from "@/lib/utils";
 import type {
@@ -29,7 +44,7 @@ import type {
   ClubQaState,
 } from "@/lib/types/admin-clubs";
 
-const TABS = ["Overview", "Members", "Schedule", "Cohorts", "Assignments", "Performance", "Attendance"] as const;
+const TABS = ["Overview", "Members", "Schedule", "Cohorts", "Assignments", "Performance", "Attendance", "Safety"] as const;
 const QA_STATES: Array<{ key: ClubQaState; label: string }> = [
   { key: "empty", label: "Empty" },
   { key: "active", label: "Active" },
@@ -37,6 +52,8 @@ const QA_STATES: Array<{ key: ClubQaState; label: string }> = [
   { key: "low", label: "Low" },
   { key: "mixed", label: "Mixed" },
 ];
+
+type ClubProfileSearchResult = Awaited<ReturnType<typeof searchProfilesForClub>>[number];
 
 function formatPercent(value: number | null) {
   return value == null ? "-" : `${value}%`;
@@ -379,6 +396,172 @@ function AttemptsList({ attempts }: { attempts: AdminClubPerformanceAttempt[] })
   );
 }
 
+function SafetyPanel({ data }: { data: AdminClubDetailData }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const { leaderboardSafety } = data;
+
+  function handleResolve(flagId: string, status: "resolved_allowed" | "suppressed_from_leaderboards") {
+    startTransition(async () => {
+      try {
+        await resolveLeaderboardXpEventFlag({ flagId, status });
+        showToast("Leaderboard flag updated.", "success");
+        router.refresh();
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : "Unable to update leaderboard flag.",
+          "error"
+        );
+      }
+    });
+  }
+
+  return (
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <section className="overflow-hidden rounded-lg border border-[#DEE8F8] bg-white shadow-sm">
+        <div className="flex flex-col gap-2 border-b border-[#DEE8F8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-[#152238]">Leaderboard safety</h2>
+            <p className="mt-1 text-sm text-[#667795]">
+              Review XP event flags before they affect season outcomes.
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#CFE0FF] bg-[#EAF2FF] px-3 py-2 text-xs font-bold text-[#1E63E9]">
+            <ShieldCheck className="h-4 w-4" />
+            {leaderboardSafety.flags.length} flags
+          </span>
+        </div>
+        {leaderboardSafety.loadError ? (
+          <div className="border-b border-[#FFE2A8] bg-[#FFF7E6] px-4 py-3 text-sm font-semibold text-[#A96800]">
+            {leaderboardSafety.loadError}
+          </div>
+        ) : null}
+        <div className="hidden grid-cols-[1fr_150px_150px_140px_180px] border-b border-[#DEE8F8] bg-[#F7FAFE] px-4 py-3 text-xs font-bold text-[#667795] lg:grid">
+          <div>Event</div>
+          <div>Signal</div>
+          <div>Severity</div>
+          <div>Status</div>
+          <div />
+        </div>
+        <div className="divide-y divide-[#EEF3FA]">
+          {leaderboardSafety.flags.map((flag) => (
+            <div key={flag.id} className="grid gap-3 px-4 py-3 text-sm lg:grid-cols-[1fr_150px_150px_140px_180px] lg:items-center">
+              <div className="min-w-0">
+                <p className="truncate font-bold text-[#152238]">
+                  {flag.displayName ?? "Thinkfy member"}
+                </p>
+                <p className="mt-1 truncate text-xs text-[#667795]">
+                  {flag.reason ?? "Needs leaderboard review."}
+                </p>
+              </div>
+              <p className="truncate font-semibold capitalize text-[#40516F]">
+                {flag.flagType.replaceAll("_", " ")}
+              </p>
+              <span className={cn(
+                "w-fit rounded-lg border px-2 py-1 text-xs font-bold capitalize",
+                flag.severity === "high"
+                  ? "border-[#F0B4B4] bg-[#FFF1F1] text-[#C43D3D]"
+                  : flag.severity === "medium"
+                    ? "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
+                    : "border-[#CFE0FF] bg-[#EAF2FF] text-[#1E63E9]"
+              )}>
+                {flag.severity}
+              </span>
+              <span className={cn(
+                "w-fit rounded-lg border px-2 py-1 text-xs font-bold capitalize",
+                flag.status === "suppressed_from_leaderboards"
+                  ? "border-[#F0B4B4] bg-[#FFF1F1] text-[#C43D3D]"
+                  : flag.status === "resolved_allowed" || flag.status === "allowed"
+                    ? "border-[#C8F0D5] bg-[#EAFBF0] text-[#159947]"
+                    : "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
+              )}>
+                {flag.status.replaceAll("_", " ")}
+              </span>
+              <div className="flex gap-2 lg:justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleResolve(flag.id, "resolved_allowed")}
+                  disabled={isPending}
+                  className="inline-flex h-9 items-center rounded-lg border border-[#C8F0D5] bg-white px-3 text-xs font-bold text-[#159947] disabled:opacity-60"
+                >
+                  Allow
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResolve(flag.id, "suppressed_from_leaderboards")}
+                  disabled={isPending}
+                  className="inline-flex h-9 items-center rounded-lg border border-[#F0B4B4] bg-white px-3 text-xs font-bold text-[#C43D3D] disabled:opacity-60"
+                >
+                  Suppress
+                </button>
+              </div>
+            </div>
+          ))}
+          {!leaderboardSafety.flags.length && (
+            <div className="px-4 py-14 text-center text-sm text-[#667795]">
+              No leaderboard safety flags yet.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <aside className="space-y-4">
+        <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+          <h2 className="text-base font-bold text-[#152238]">Rollout guardrails</h2>
+          <div className="mt-4 space-y-3">
+            {leaderboardSafety.guardrails.map((metric) => (
+              <div key={metric.key} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-bold text-[#152238]">{metric.label}</p>
+                  <span className={cn(
+                    "rounded-md px-2 py-1 text-xs font-bold uppercase",
+                    metric.status === "ok"
+                      ? "bg-[#EAFBF0] text-[#159947]"
+                      : metric.status === "watch"
+                        ? "bg-[#FFF7E6] text-[#A96800]"
+                        : "bg-[#FFF1F1] text-[#C43D3D]"
+                  )}>
+                    {metric.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-2xl font-bold text-[#152238]">
+                  {(metric.value * 100).toFixed(1)}%
+                </p>
+                {metric.threshold != null ? (
+                  <p className="mt-1 text-xs text-[#667795]">
+                    Watch threshold {(metric.threshold * 100).toFixed(1)}%
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+          <h2 className="text-base font-bold text-[#152238]">Recent audit</h2>
+          <div className="mt-3 space-y-3">
+            {leaderboardSafety.audit.slice(0, 6).map((event) => (
+              <div key={event.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+                <p className="text-sm font-bold text-[#152238]">
+                  {event.eventType.replaceAll("_", " ")}
+                </p>
+                <p className="mt-1 text-xs text-[#667795]">
+                  {formatShortDate(event.createdAt)}
+                </p>
+              </div>
+            ))}
+            {!leaderboardSafety.audit.length && (
+              <p className="py-8 text-center text-sm text-[#667795]">
+                No audit events yet.
+              </p>
+            )}
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
 function eventTone(type: string) {
   if (type === "workshop") return "border-[#D7C8FF] bg-[#F4EFFF] text-[#7B4CE2]";
   if (type === "tournament") return "border-[#FFD0A8] bg-[#FFF4E9] text-[#D56B00]";
@@ -465,9 +648,80 @@ function PreviewField({ label, value }: { label: string; value: string }) {
 
 export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTab = TABS.find((tab) => tab === searchParams.get("tab")) ?? "Overview";
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>(initialTab);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState<ClubProfileSearchResult[]>([]);
+  const [createdJoinCode, setCreatedJoinCode] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [isMemberPending, startMemberTransition] = useTransition();
+  const [isJoinCodePending, startJoinCodeTransition] = useTransition();
   const completionHelper = useMemo(() => data.kpis.completionRate == null ? "No assignment baseline yet" : "6% vs last 30 days", [data.kpis.completionRate]);
+
+  function handleSearchMembers() {
+    const query = memberQuery.trim();
+    if (query.length < 2) {
+      setMemberResults([]);
+      return;
+    }
+
+    startMemberTransition(async () => {
+      try {
+        setMemberResults(await searchProfilesForClub(query, data.club.id));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Unable to search members.", "error");
+      }
+    });
+  }
+
+  function handleAddMember(userId: string) {
+    startMemberTransition(async () => {
+      try {
+        await addClubMember({ clubId: data.club.id, userId, role: "student" });
+        showToast("Member added.", "success");
+        setMemberResults((current) => current.filter((item) => item.id !== userId));
+        router.refresh();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Unable to add member.", "error");
+      }
+    });
+  }
+
+  function handleCreateJoinCode() {
+    startJoinCodeTransition(async () => {
+      try {
+        const result = await createClubJoinCode(data.club.id);
+        setCreatedJoinCode(result);
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(result.code).catch(() => undefined);
+        }
+        showToast("Join code created.", "success");
+        router.refresh();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Unable to create join code.", "error");
+      }
+    });
+  }
+
+  function handleCopyJoinCode() {
+    if (!createdJoinCode) return;
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(createdJoinCode.code);
+    }
+    showToast("Join code copied.", "success");
+  }
+
+  function handleRevokeJoinCode(codeId: string) {
+    startJoinCodeTransition(async () => {
+      try {
+        await revokeClubJoinCode(data.club.id, codeId);
+        showToast("Join code revoked.", "success");
+        router.refresh();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Unable to revoke join code.", "error");
+      }
+    });
+  }
 
   return (
     <main className="min-h-full bg-[#F7FAFE] px-4 py-5 text-[#152238] sm:px-5 lg:px-6">
@@ -582,9 +836,59 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
               <section className="overflow-hidden rounded-lg border border-[#DEE8F8] bg-white shadow-sm">
                 <div className="border-b border-[#DEE8F8] px-4 py-3">
-                  <h2 className="text-base font-bold text-[#152238]">Members</h2>
-                  <p className="mt-1 text-sm text-[#667795]">Manage club admins, coaches, and members.</p>
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-[#152238]">Members</h2>
+                      <p className="mt-1 text-sm text-[#667795]">Manage club admins, coaches, and members.</p>
+                    </div>
+                    <div className="flex w-full gap-2 xl:max-w-md">
+                      <input
+                        value={memberQuery}
+                        onChange={(event) => setMemberQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") handleSearchMembers();
+                        }}
+                        placeholder="Search by name or email"
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-medium text-[#152238] outline-none focus:border-[#4D86F7]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSearchMembers}
+                        disabled={isMemberPending || memberQuery.trim().length < 2}
+                        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#2E78F6] px-3 text-sm font-bold text-white disabled:opacity-60"
+                      >
+                        {isMemberPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Search
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                {memberResults.length > 0 && (
+                  <div className="border-b border-[#DEE8F8] bg-[#FBFDFF] px-4 py-3">
+                    <div className="grid gap-2">
+                      {memberResults.map((profile) => (
+                        <div key={profile.id} className="flex flex-col gap-2 rounded-lg border border-[#E7EEF9] bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-[#152238]">{profile.displayName}</p>
+                            <p className="truncate text-xs text-[#667795]">{profile.email ?? "No email"} · {profile.role}</p>
+                            {profile.blockedReason && (
+                              <p className="mt-1 text-xs font-semibold text-[#C43D3D]">{profile.blockedReason}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAddMember(profile.id)}
+                            disabled={isMemberPending || Boolean(profile.blockedReason)}
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#CFE0FF] bg-[#EAF2FF] px-3 text-xs font-bold text-[#1E63E9] disabled:opacity-50"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                            Add student
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="hidden grid-cols-[1.1fr_1fr_120px_90px_116px_32px] border-b border-[#DEE8F8] bg-[#F7FAFE] px-4 py-3 text-xs font-bold text-[#667795] lg:grid">
                   <div>Person</div>
                   <div>Email</div>
@@ -622,30 +926,99 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
                 )}
               </section>
 
-              <aside className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
-                <h2 className="text-base font-bold text-[#152238]">Pending invitations</h2>
-                <div className="mt-3 space-y-3">
-                  {data.invitations.map((invitation) => (
-                    <div key={invitation.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
-                      <p className="truncate text-sm font-bold text-[#152238]">{invitation.email}</p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                        <span className="rounded-md border border-[#CFE0FF] bg-white px-2 py-1 font-bold capitalize text-[#1E63E9]">
-                          {invitation.role === "owner" ? "Club admin" : invitation.role}
-                        </span>
-                        <span className={cn(
-                          "rounded-md border px-2 py-1 font-bold capitalize",
-                          invitation.status === "pending"
-                            ? "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
-                            : "border-[#C8F0D5] bg-[#EAFBF0] text-[#159947]"
-                        )}>
-                          {invitation.status}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-xs text-[#667795]">Expires {formatShortDate(invitation.expiresAt)}</p>
+              <aside className="space-y-4">
+                {data.organizationJoinCodesEnabled && (
+                  <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-base font-bold text-[#152238]">Join codes</h2>
+                      <button
+                        type="button"
+                        onClick={handleCreateJoinCode}
+                        disabled={isJoinCodePending}
+                        className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#2E78F6] px-3 text-xs font-bold text-white disabled:opacity-60"
+                      >
+                        {isJoinCodePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Create
+                      </button>
                     </div>
-                  ))}
-                  {!data.invitations.length && <p className="py-8 text-center text-sm text-[#667795]">No pending invitations.</p>}
-                </div>
+                    {createdJoinCode && (
+                      <div className="mt-3 rounded-lg border border-[#CFE0FF] bg-[#EAF2FF] p-3">
+                        <p className="text-xs font-bold uppercase text-[#1E63E9]">Created code</p>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p className="font-mono text-lg font-black tracking-[0.12em] text-[#152238]">{createdJoinCode.code}</p>
+                          <button
+                            type="button"
+                            onClick={handleCopyJoinCode}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#1E63E9]"
+                            aria-label="Copy join code"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs text-[#667795]">Expires {formatShortDate(createdJoinCode.expiresAt)}</p>
+                      </div>
+                    )}
+                    <div className="mt-3 space-y-3">
+                      {data.joinCodes.map((code) => (
+                        <div key={code.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className={cn(
+                              "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-bold capitalize",
+                              code.status === "pending"
+                                ? "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
+                                : code.status === "redeemed"
+                                  ? "border-[#C8F0D5] bg-[#EAFBF0] text-[#159947]"
+                                  : "border-[#F0B4B4] bg-[#FFF1F1] text-[#C43D3D]"
+                            )}>
+                              {code.status === "redeemed" ? <BadgeCheck className="h-3.5 w-3.5" /> : null}
+                              {code.status}
+                            </span>
+                            {code.status === "pending" && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeJoinCode(code.id)}
+                                disabled={isJoinCodePending}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#F0B4B4] bg-white px-2 text-xs font-bold text-[#C43D3D] disabled:opacity-60"
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                Revoke
+                              </button>
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs text-[#667795]">Expires {formatShortDate(code.expiresAt)}</p>
+                          {code.redeemedAt && <p className="mt-1 text-xs text-[#667795]">Redeemed {formatShortDate(code.redeemedAt)}</p>}
+                        </div>
+                      ))}
+                      {!data.joinCodes.length && <p className="py-8 text-center text-sm text-[#667795]">No join codes yet.</p>}
+                    </div>
+                  </section>
+                )}
+
+                <section className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
+                  <h2 className="text-base font-bold text-[#152238]">Pending invitations</h2>
+                  <div className="mt-3 space-y-3">
+                    {data.invitations.map((invitation) => (
+                      <div key={invitation.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
+                        <p className="truncate text-sm font-bold text-[#152238]">{invitation.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          <span className="rounded-md border border-[#CFE0FF] bg-white px-2 py-1 font-bold capitalize text-[#1E63E9]">
+                            {invitation.role === "owner" ? "Club admin" : invitation.role}
+                          </span>
+                          <span className={cn(
+                            "rounded-md border px-2 py-1 font-bold capitalize",
+                            invitation.status === "pending"
+                              ? "border-[#FFE2A8] bg-[#FFF7E6] text-[#A96800]"
+                              : "border-[#C8F0D5] bg-[#EAFBF0] text-[#159947]"
+                          )}>
+                            {invitation.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-[#667795]">Expires {formatShortDate(invitation.expiresAt)}</p>
+                      </div>
+                    ))}
+                    {!data.invitations.length && <p className="py-8 text-center text-sm text-[#667795]">No pending invitations.</p>}
+                  </div>
+                </section>
               </aside>
             </div>
 
@@ -692,6 +1065,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             {!data.cohorts.length && <EmptyPanel label="Attendance appears once cohorts exist." />}
           </div>
         )}
+        {activeTab === "Safety" && <SafetyPanel data={data} />}
       </div>
     </main>
   );

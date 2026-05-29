@@ -44,6 +44,15 @@ export const ANALYTICS_EVENT_NAMES = [
   "mobile_practice_feedback_viewed",
   "mobile_history_viewed",
   "mobile_history_detail_viewed",
+  "leaderboard_viewed",
+  "leaderboard_score_explanation_opened",
+  "leaderboard_kudos_sent",
+  "leaderboard_privacy_updated",
+  "leaderboard_league_outcome_viewed",
+  "leaderboard_org_joined",
+  "leaderboard_practice_started_from_leaderboard",
+  "leaderboard_abuse_flag_created",
+  "leaderboard_rollout_guardrail_triggered",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [
@@ -54,6 +63,7 @@ export const ANALYTICS_FEATURE_AREAS = [
   "ai_feedback",
   "admin",
   "clubs",
+  "leaderboards",
   "profile",
   "notifications",
 ] as const;
@@ -130,6 +140,7 @@ export function inferFeatureAreaFromRoute(route: string | null | undefined): Ana
 
   if (pathname.includes("/dashboard/admin/clubs")) return "clubs";
   if (pathname.includes("/dashboard/admin")) return "admin";
+  if (pathname.includes("/leaderboards")) return "leaderboards";
   if (pathname.includes("/notifications") || pathname.includes("/smart-popups")) return "notifications";
   if (pathname.includes("/activity/")) return "activities";
   if (pathname.includes("/courses")) return "courses";

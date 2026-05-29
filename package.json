@@ -46,6 +46,8 @@
     "test:smart-popup-surveys": "npm run test:smart-popup-surveys -w @thinkfy/web",
     "test:dashboard": "npm run test:dashboard -w @thinkfy/web",
     "test:skill-snapshot": "npm run test:skill-snapshot -w @thinkfy/web",
+    "test:xp": "npm run test:xp -w @thinkfy/web",
+    "test:leaderboards": "npm run test:leaderboards -w @thinkfy/web",
     "test:email-system": "npm run test:email-system -w @thinkfy/web",
     "test:support-reports": "npm run test:support-reports -w @thinkfy/web",
     "test:email-templates": "npm run test:email-templates -w @thinkfy/web",

@@ -236,6 +236,54 @@ export async function addStudentToClass(classId: string, userId: string) {
     return;
   }
 
+  const { data: classRow, error: classError } = await supabase
+    .from("classes")
+    .select("club_id")
+    .eq("id", classId)
+    .maybeSingle();
+
+  if (classError) throw new Error(classError.message);
+
+  const clubId = (classRow?.club_id as string | null | undefined) ?? null;
+
+  if (clubId) {
+    const { data: activeClub, error: activeClubError } = await supabase
+      .from("club_memberships")
+      .select("id, club_id")
+      .eq("user_id", userId)
+      .eq("role", "student")
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (activeClubError && activeClubError.code !== "PGRST116") {
+      throw new Error(activeClubError.message);
+    }
+
+    if (activeClub && activeClub.club_id !== clubId) {
+      throw new Error("Student already belongs to another organization.");
+    }
+
+    if (!activeClub) {
+      const { error: clubMembershipError } = await supabase
+        .from("club_memberships")
+        .upsert(
+          {
+            club_id: clubId,
+            user_id: userId,
+            role: "student",
+            status: "active",
+            removed_at: null,
+            invited_by: adminId,
+            metadata: { verification_method: "admin" },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "club_id,user_id,role" }
+        );
+
+      if (clubMembershipError) throw new Error(clubMembershipError.message);
+    }
+  }
+
   const { error } = await supabase.from("class_memberships").upsert(
     {
       class_id: classId,

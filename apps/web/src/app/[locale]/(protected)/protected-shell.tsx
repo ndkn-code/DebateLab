@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useReducedMotion } from "framer-motion";
 import { Sidebar } from "@/components/shared/sidebar";
 import { GlobalOverlays } from "@/components/shared/global-overlays";
 import { SessionHeartbeatProvider } from "@/components/shared/SessionHeartbeatProvider";
+import { SeasonReplayDialog } from "@/components/leaderboards/season-replay-dialog";
+import { useRouter } from "@/i18n/navigation";
+import {
+  getSeasonReplayDismissalKey,
+  isReplayableSeasonOutcome,
+} from "@/lib/leaderboards/replay";
+import type { LeaderboardSeasonOutcome } from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
 
 interface ProtectedShellProps {
@@ -12,6 +20,10 @@ interface ProtectedShellProps {
   profile: Profile | null;
   userEmail: string | null;
   userId: string;
+  seasonReplayEnabled?: boolean;
+  seasonReplayOutcome?: LeaderboardSeasonOutcome | null;
+  seasonReplayReducedMotionOverride?: boolean;
+  seasonReplayReviewMode?: boolean;
 }
 
 function useViewportScrollLock() {
@@ -133,17 +145,92 @@ export function ProtectedShell({
   profile,
   userEmail,
   userId,
+  seasonReplayEnabled = false,
+  seasonReplayOutcome = null,
+  seasonReplayReducedMotionOverride,
+  seasonReplayReviewMode = false,
 }: ProtectedShellProps) {
   useViewportScrollLock();
   const mainScrollRef = useScrollBoundaryLock<HTMLElement>();
   const pathname = usePathname();
+  const router = useRouter();
+  const detectedReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion =
+    seasonReplayReducedMotionOverride ?? detectedReducedMotion;
+  const [seasonReplayOpen, setSeasonReplayOpen] = useState(false);
   const isPracticeSession = pathname?.includes("/practice/session");
+  const seasonReplayDismissalKey = useMemo(() => {
+    if (!seasonReplayOutcome) return null;
+    return getSeasonReplayDismissalKey(userId, seasonReplayOutcome);
+  }, [seasonReplayOutcome, userId]);
+  const canShowSeasonReplay =
+    seasonReplayEnabled && isReplayableSeasonOutcome(seasonReplayOutcome);
+
+  useEffect(() => {
+    if (!canShowSeasonReplay || !seasonReplayDismissalKey) {
+      return;
+    }
+
+    let openTimer: number | null = null;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("resetReplay") === "1") {
+        window.localStorage.removeItem(seasonReplayDismissalKey);
+      }
+
+      if (!window.localStorage.getItem(seasonReplayDismissalKey)) {
+        openTimer = window.setTimeout(() => setSeasonReplayOpen(true), 0);
+      }
+    } catch {
+      openTimer = window.setTimeout(() => setSeasonReplayOpen(true), 0);
+    }
+
+    return () => {
+      if (openTimer) {
+        window.clearTimeout(openTimer);
+      }
+    };
+  }, [canShowSeasonReplay, seasonReplayDismissalKey]);
+
+  function handleSeasonReplayOpenChange(open: boolean) {
+    setSeasonReplayOpen(open);
+
+    if (!open && seasonReplayDismissalKey) {
+      try {
+        window.localStorage.setItem(seasonReplayDismissalKey, "dismissed");
+      } catch {
+        // Local replay dismissal is best-effort only.
+      }
+    }
+  }
+
+  function handleViewLeaderboard() {
+    handleSeasonReplayOpenChange(false);
+
+    if (!pathname?.includes("/leaderboards")) {
+      router.push("/leaderboards");
+    }
+  }
+
+  const seasonReplayOverlay =
+    canShowSeasonReplay && seasonReplayOutcome ? (
+      <SeasonReplayDialog
+        open={seasonReplayOpen}
+        outcome={seasonReplayOutcome}
+        onOpenChange={handleSeasonReplayOpenChange}
+        onViewLeaderboard={handleViewLeaderboard}
+        prefersReducedMotion={prefersReducedMotion}
+        reviewMode={seasonReplayReviewMode}
+      />
+    ) : null;
 
   if (isPracticeSession) {
     return (
       <div className="fixed inset-0 h-dvh min-h-0 overflow-hidden overscroll-none bg-background">
         {children}
         <GlobalOverlays />
+        {seasonReplayOverlay}
         <SessionHeartbeatProvider userId={userId} />
       </div>
     );
@@ -160,6 +247,7 @@ export function ProtectedShell({
         {children}
       </main>
       <GlobalOverlays />
+      {seasonReplayOverlay}
       <SessionHeartbeatProvider userId={userId} />
     </div>
   );

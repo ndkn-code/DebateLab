@@ -4,6 +4,12 @@ import {
   canAccessCourse,
   getCourseAccessMapFromRecords,
 } from "@/lib/utils/courseAccess";
+import {
+  calculateCourseCompletionXp,
+  calculateLessonXp,
+  createXpIdempotencyKey,
+} from "@/lib/xp/model";
+import { awardXpEvent } from "@/lib/xp/server";
 import type {
   Course,
   CourseModule,
@@ -1389,29 +1395,28 @@ export async function markLessonComplete(
 
   if (progressError) throw new Error(progressError.message);
 
-  // Calculate XP (25 base + up to 25 bonus for score)
-  const xpEarned = score != null ? 25 + Math.round((score / 100) * 25) : 25;
-
-  // Log activity
-  await supabase.from("activity_log").insert({
-    user_id: userId,
-    activity_type: "lesson_completed",
-    reference_id: lessonId,
-    reference_type: "lesson",
-    xp_earned: xpEarned,
-    metadata: { score, time_spent_seconds: safeTimeSpentSeconds },
+  const xpBreakdown = calculateLessonXp({
+    activityType: score == null ? "lesson" : "quiz",
+    score,
+    maxScore: 100,
   });
-
-  // Award XP atomically via RPC
-  await supabase.rpc("increment_xp", { user_id: userId, amount: xpEarned });
-
-  // Update daily stats atomically via RPC
-  await supabase.rpc("upsert_daily_stats", {
-    p_user_id: userId,
-    p_sessions: 0,
-    p_minutes: 0,
-    p_xp: xpEarned,
+  const award = await awardXpEvent({
+    userId,
+    sourceType: "lesson",
+    sourceId: lessonId,
+    activityType: "lesson_completed",
+    referenceType: "lesson",
+    category: "lesson",
+    idempotencyKey: createXpIdempotencyKey(["lesson", userId, lessonId]),
+    lifetimeXp: xpBreakdown.total,
+    seasonXp: xpBreakdown.total,
+    metadata: {
+      score,
+      time_spent_seconds: safeTimeSpentSeconds,
+      xp_breakdown: xpBreakdown,
+    },
   });
+  const xpEarned = award.lifetimeXpAwarded;
 
   // Recalculate course enrollment progress
   await recalculateCourseProgress(userId, courseId);
@@ -1461,17 +1466,19 @@ async function recalculateCourseProgress(userId: string, courseId: string) {
 
   // Log course completion
   if (progress >= 100) {
-    await supabase.from("activity_log").insert({
-      user_id: userId,
-      activity_type: "course_completed",
-      reference_id: courseId,
-      reference_type: "course",
-      xp_earned: 100,
-      metadata: {},
+    const xpBreakdown = calculateCourseCompletionXp();
+    await awardXpEvent({
+      userId,
+      sourceType: "course",
+      sourceId: courseId,
+      activityType: "course_completed",
+      referenceType: "course",
+      category: "course",
+      idempotencyKey: createXpIdempotencyKey(["course", userId, courseId]),
+      lifetimeXp: xpBreakdown.total,
+      seasonXp: xpBreakdown.total,
+      metadata: { xp_breakdown: xpBreakdown },
     });
-
-    // Award course completion XP atomically
-    await supabase.rpc("increment_xp", { user_id: userId, amount: 100 });
   }
 }
 

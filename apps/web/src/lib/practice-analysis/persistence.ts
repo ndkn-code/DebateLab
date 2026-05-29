@@ -3,17 +3,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { recordPerformanceAttemptForSession } from "@/lib/performance/club-performance-recorder";
+import { awardXpEvent } from "@/lib/xp/server";
+import { calculatePracticeXp, createXpIdempotencyKey } from "@/lib/xp/model";
 import type { DebateSession, DebateTopic } from "@/types";
 import type { DebateScore } from "@/types/feedback";
 import type { PracticeAttemptRecord } from "./types";
-
-function calculateXp(session: DebateSession): number {
-  let xp = 25;
-  if (session.mode === "full") {
-    xp += 10;
-  }
-  return xp;
-}
 
 function buildTopic(attempt: PracticeAttemptRecord): DebateTopic {
   return {
@@ -93,6 +87,27 @@ async function debateSessionExists(
   return Boolean(data?.id);
 }
 
+async function getPreviousBestPracticeScore(
+  supabase: SupabaseClient,
+  session: DebateSession,
+  userId: string
+) {
+  const { data } = await supabase
+    .from("debate_sessions")
+    .select("total_score")
+    .eq("user_id", userId)
+    .eq("practice_track", session.practiceTrack)
+    .eq("practice_language", session.practiceLanguage)
+    .neq("id", session.id)
+    .not("total_score", "is", null)
+    .order("total_score", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const score = (data as { total_score?: unknown } | null)?.total_score;
+  return typeof score === "number" && Number.isFinite(score) ? score : null;
+}
+
 export async function saveCompletedPracticeAttempt(
   supabase: SupabaseClient,
   params: {
@@ -139,27 +154,58 @@ export async function saveCompletedPracticeAttempt(
     return { sessionId: session.id, didCreateSession: false };
   }
 
-  const xpEarned = calculateXp(session);
   const durationMinutes = Math.round(session.duration / 60);
-  const today = new Date().toISOString().split("T")[0];
-
-  await supabase.from("activity_log").insert({
-    user_id: params.attempt.user_id,
-    activity_type: "debate_completed",
-    reference_id: session.id,
-    reference_type: "debate_session",
-    xp_earned: xpEarned,
-    metadata: {
-      topic: session.topic.title,
-      practice_track: session.practiceTrack,
-      practice_language: session.practiceLanguage,
-      mode: session.mode,
-      score: session.feedback?.totalScore ?? null,
-      band: session.feedback?.overallBand ?? null,
-      source: "analysis_job",
-      practice_attempt_id: params.attempt.id,
-    },
+  const previousBestScore = await getPreviousBestPracticeScore(
+    supabase,
+    session,
+    params.attempt.user_id
+  );
+  const xpBreakdown = calculatePracticeXp({
+    mode: session.mode,
+    durationSeconds: session.duration,
+    totalScore: session.feedback?.totalScore ?? null,
+    topicDifficulty: session.topic.difficulty,
+    aiDifficulty: session.aiDifficulty ?? null,
+    previousBestScore,
   });
+  const award = await awardXpEvent(
+    {
+      userId: params.attempt.user_id,
+      sourceType: "debate_session",
+      sourceId: session.id,
+      activityType: "debate_completed",
+      referenceType: "debate_session",
+      category: "practice",
+      idempotencyKey: createXpIdempotencyKey([
+        "practice",
+        params.attempt.id,
+        params.attempt.prompt_bundle_version,
+      ]),
+      lifetimeXp: xpBreakdown.total,
+      seasonXp: xpBreakdown.total,
+      occurredAt: session.date,
+      sessions: 1,
+      minutes: durationMinutes,
+      score: session.feedback?.totalScore ?? null,
+      clubId: session.clubContext?.clubId ?? null,
+      classId: session.clubContext?.classId ?? null,
+      metadata: {
+        topic: session.topic.title,
+        practice_track: session.practiceTrack,
+        practice_language: session.practiceLanguage,
+        mode: session.mode,
+        score: session.feedback?.totalScore ?? null,
+        band: session.feedback?.overallBand ?? null,
+        source: "analysis_job",
+        practice_attempt_id: params.attempt.id,
+        xp_breakdown: xpBreakdown,
+        previous_best_score: previousBestScore,
+      },
+    },
+    supabase
+  );
+  const xpEarned = award.lifetimeXpAwarded;
+  const today = new Date().toISOString().split("T")[0];
 
   await recordAnalyticsEvent(supabase, params.attempt.user_id, {
     eventName: "practice_completed",
@@ -174,15 +220,8 @@ export async function saveCompletedPracticeAttempt(
       practice_language: session.practiceLanguage,
       mode: session.mode,
       score: session.feedback?.totalScore ?? null,
+      xp_earned: xpEarned,
     },
-  });
-
-  await supabase.rpc("upsert_daily_stats", {
-    p_user_id: params.attempt.user_id,
-    p_sessions: 1,
-    p_minutes: durationMinutes,
-    p_xp: xpEarned,
-    p_score: session.feedback?.totalScore ?? null,
   });
 
   const { data: profileData } = await supabase
@@ -190,11 +229,6 @@ export async function saveCompletedPracticeAttempt(
     .select("total_sessions_completed, total_practice_minutes, streak_current, streak_longest, streak_last_active_date")
     .eq("id", params.attempt.user_id)
     .single();
-
-  await supabase.rpc("increment_xp", {
-    user_id: params.attempt.user_id,
-    amount: xpEarned,
-  });
 
   if (profileData) {
     let newStreak = profileData.streak_current ?? 0;

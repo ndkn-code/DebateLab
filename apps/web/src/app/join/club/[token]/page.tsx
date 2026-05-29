@@ -22,6 +22,8 @@ export default async function JoinClubInvitationPage({
   const message =
     result.status === "email_mismatch"
       ? `This invitation belongs to ${result.expectedEmail}. Sign in with that email to accept it.`
+      : result.status === "already_in_org"
+        ? "Your account is already connected to another organization. Ask an admin to move you first."
       : result.status === "expired"
         ? "This club invitation has expired. Ask the club admin to send a new one."
         : result.status === "revoked"

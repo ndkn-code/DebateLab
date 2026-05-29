@@ -272,6 +272,7 @@ export interface ActivityLog {
   user_id: string;
   activity_type:
     | "debate_completed"
+    | "duel_completed"
     | "course_started"
     | "lesson_completed"
     | "quiz_completed"
@@ -284,6 +285,139 @@ export interface ActivityLog {
   xp_earned: number;
   metadata: Record<string, unknown>;
   created_at: string;
+}
+
+export interface XpLegacyBaseline {
+  user_id: string;
+  baseline_xp: number;
+  baseline_level: number;
+  captured_at: string;
+}
+
+export interface XpSeason {
+  id: string;
+  season_key: string;
+  season_type: "weekly";
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  status: "active" | "closed";
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface XpEvent {
+  id: string;
+  user_id: string;
+  season_id: string;
+  source_type: string;
+  source_id: string | null;
+  activity_type: string | null;
+  reference_type: string | null;
+  xp_category:
+    | "practice"
+    | "lesson"
+    | "course"
+    | "duel"
+    | "assignment"
+    | "social"
+    | "legacy";
+  lifetime_xp: number;
+  season_xp: number;
+  club_id: string | null;
+  class_id: string | null;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+  idempotency_key: string;
+  created_at: string;
+}
+
+export interface XpSeasonUserTotal {
+  season_id: string;
+  user_id: string;
+  season_xp: number;
+  lifetime_xp: number;
+  event_count: number;
+  category_breakdown: Record<string, number>;
+  last_event_at: string | null;
+  updated_at: string;
+}
+
+export interface XpSeasonOrgTotal {
+  season_id: string;
+  organization_type: "club" | "class";
+  organization_id: string;
+  season_xp: number;
+  event_count: number;
+  contributing_user_count: number;
+  active_member_count: number;
+  normalized_xp: number;
+  category_breakdown: Record<string, number>;
+  last_event_at: string | null;
+  updated_at: string;
+}
+
+export type LeaderboardLeagueTier =
+  | "novice"
+  | "constructive"
+  | "rebuttal"
+  | "whip"
+  | "champion";
+
+export type LeaderboardZone =
+  | "champion"
+  | "promote"
+  | "hold"
+  | "demote"
+  | "inactive";
+
+export interface LeaderboardUserLeague {
+  user_id: string;
+  league_tier: LeaderboardLeagueTier;
+  last_season_id: string | null;
+  last_rank: number | null;
+  last_zone: LeaderboardZone | null;
+  updated_at: string;
+}
+
+export interface LeaderboardSeasonUserCohort {
+  season_id: string;
+  user_id: string;
+  league_tier: LeaderboardLeagueTier;
+  cohort_index: number;
+  cohort_key: string;
+  previous_rank: number | null;
+  previous_zone: LeaderboardZone | null;
+  assigned_at: string;
+}
+
+export interface LeaderboardSeasonResult {
+  season_id: string;
+  user_id: string;
+  league_tier: LeaderboardLeagueTier;
+  cohort_index: number;
+  final_rank: number;
+  final_zone: LeaderboardZone;
+  season_xp: number;
+  next_league_tier: LeaderboardLeagueTier;
+  outcome: "champion" | "promoted" | "held" | "demoted" | "inactive";
+  resolved_at: string;
+}
+
+export interface ClubJoinCode {
+  id: string;
+  club_id: string;
+  code_hash: string;
+  status: "pending" | "redeemed" | "revoked" | "expired";
+  role: "student";
+  expires_at: string;
+  issued_by: string | null;
+  redeemed_by: string | null;
+  redeemed_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DailyStats {

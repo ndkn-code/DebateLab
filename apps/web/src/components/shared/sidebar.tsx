@@ -18,6 +18,7 @@ import {
   Shield,
   Scale,
   Swords,
+  Trophy,
 } from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -37,7 +38,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { LEADERBOARDS_ENABLED, STUDENT_COURSES_ENABLED } from "@/lib/features";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
 import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
@@ -51,6 +52,9 @@ import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
   { href: "/practice", key: "practice", icon: Scale },
+  ...(LEADERBOARDS_ENABLED
+    ? ([{ href: "/leaderboards", key: "leaderboards", icon: Trophy }] as const)
+    : []),
   { href: "/debates", key: "duel", icon: Swords },
   { href: "/chat", key: "chat", icon: MessageCircle },
   { href: "/history", key: "history", icon: Clock },
@@ -270,6 +274,15 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
+    ...(LEADERBOARDS_ENABLED
+      ? ([
+          {
+            key: "leaderboards",
+            href: "/leaderboards",
+            status: "live",
+          },
+        ] satisfies DashboardNavItem[])
+      : []),
     {
       key: "duel",
       href: isAdmin ? "/debates" : undefined,

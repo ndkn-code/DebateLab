@@ -3,9 +3,34 @@ import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
+import { getLeaderboardPageData } from "@/lib/leaderboards/data";
+import type { LeaderboardSeasonOutcome } from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
+
+async function getShellSeasonReplayOutcome(
+  userId: string
+): Promise<LeaderboardSeasonOutcome | null> {
+  if (!LEADERBOARD_SEASON_REPLAY_ENABLED) {
+    return null;
+  }
+
+  try {
+    const data = await getLeaderboardPageData(userId, {
+      dataSource: "ledger",
+    });
+
+    if (data.status === "unavailable") {
+      return null;
+    }
+
+    return data.personal.outcome ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function ProtectedLayout({
   children,
@@ -29,6 +54,7 @@ export default async function ProtectedLayout({
           profile={DEV_ADMIN_PROFILE}
           userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
           userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
+          seasonReplayEnabled={false}
         >
           {children}
         </ProtectedShell>
@@ -43,6 +69,7 @@ export default async function ProtectedLayout({
     .select("id, display_name, avatar_url, role, onboarding_completed, preferences, orb_balance, referral_code, xp, level, selected_title")
     .eq("id", user.id)
     .single();
+  const seasonReplayOutcome = await getShellSeasonReplayOutcome(user.id);
 
   // Redirect to onboarding if profile missing or not completed
   if (!profile || !profile.onboarding_completed) {
@@ -52,6 +79,8 @@ export default async function ProtectedLayout({
           profile={DEV_ADMIN_PROFILE}
           userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
           userId={user.id}
+          seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+          seasonReplayOutcome={seasonReplayOutcome}
         >
           {children}
         </ProtectedShell>
@@ -66,6 +95,8 @@ export default async function ProtectedLayout({
       profile={profile as Profile | null}
       userEmail={user.email ?? null}
       userId={user.id}
+      seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+      seasonReplayOutcome={seasonReplayOutcome}
     >
       {children}
     </ProtectedShell>

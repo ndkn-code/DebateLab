@@ -14,6 +14,7 @@ import {
   Sparkles,
   Gift,
   Swords,
+  Trophy,
 } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -29,6 +30,7 @@ import type { AppLocale } from "@/lib/locale-switch";
 const NAV_ICONS = {
   dashboard: Home,
   practice: Scale,
+  leaderboards: Trophy,
   duel: Swords,
   courses: BookOpen,
   coach: Sparkles,
@@ -75,6 +77,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "duel") {
       return pathname.startsWith("/debates");
+    }
+
+    if (item.key === "leaderboards") {
+      return pathname.startsWith("/leaderboards");
     }
 
     if (item.key === "courses") {
