@@ -910,15 +910,11 @@ export async function getDashboardData(
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
-    ...(LEADERBOARDS_ENABLED
-      ? ([
-          {
-            key: "leaderboards",
-            href: "/leaderboards",
-            status: "live",
-          },
-        ] satisfies DashboardNavItem[])
-      : []),
+    {
+      key: "leaderboards",
+      href: LEADERBOARDS_ENABLED ? "/leaderboards" : undefined,
+      status: LEADERBOARDS_ENABLED ? "live" : "coming-soon",
+    },
     {
       key: "duel",
       href: isAdmin ? "/debates" : undefined,

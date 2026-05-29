@@ -50,15 +50,18 @@ import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/practice", key: "practice", icon: Scale },
-  ...(LEADERBOARDS_ENABLED
-    ? ([{ href: "/leaderboards", key: "leaderboards", icon: Trophy }] as const)
-    : []),
-  { href: "/debates", key: "duel", icon: Swords },
-  { href: "/chat", key: "chat", icon: MessageCircle },
-  { href: "/history", key: "history", icon: Clock },
-  { href: "/profile", key: "analytics", icon: BarChart3 },
+  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard, status: "live" },
+  { href: "/practice", key: "practice", icon: Scale, status: "live" },
+  {
+    href: LEADERBOARDS_ENABLED ? "/leaderboards" : undefined,
+    key: "leaderboards",
+    icon: Trophy,
+    status: LEADERBOARDS_ENABLED ? "live" : "coming-soon",
+  },
+  { href: "/debates", key: "duel", icon: Swords, status: "live" },
+  { href: "/chat", key: "chat", icon: MessageCircle, status: "live" },
+  { href: "/history", key: "history", icon: Clock, status: "live" },
+  { href: "/profile", key: "analytics", icon: BarChart3, status: "live" },
 ] as const;
 
 interface SidebarProps {
@@ -139,14 +142,17 @@ function NavContent({
       {/* Nav Links */}
       <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.key === "duel"
-              ? pathname.startsWith("/debates")
-              : item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const href = item.href;
+          const isActive = href
+            ? pathname === href ||
+              (item.key === "duel"
+                ? pathname.startsWith("/debates")
+                : href !== "/dashboard" && pathname.startsWith(href))
+            : false;
           const Icon = item.icon;
           const label = t(item.key);
-          const isUnavailable = item.key === "duel" && !isAdmin;
+          const isUnavailable =
+            item.status === "coming-soon" || !href || (item.key === "duel" && !isAdmin);
           const content = (
             <>
               <Icon className="h-5 w-5 shrink-0" />
@@ -164,10 +170,10 @@ function NavContent({
             </>
           );
 
-          if (isUnavailable) {
+          if (isUnavailable || !href) {
             return (
               <div
-                key={item.href}
+                key={item.key}
                 aria-disabled="true"
                 className={cn(
                   "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75",
@@ -182,8 +188,8 @@ function NavContent({
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.key}
+              href={href}
               onClick={onNavClick}
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
@@ -274,15 +280,11 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
-    ...(LEADERBOARDS_ENABLED
-      ? ([
-          {
-            key: "leaderboards",
-            href: "/leaderboards",
-            status: "live",
-          },
-        ] satisfies DashboardNavItem[])
-      : []),
+    {
+      key: "leaderboards",
+      href: LEADERBOARDS_ENABLED ? "/leaderboards" : undefined,
+      status: LEADERBOARDS_ENABLED ? "live" : "coming-soon",
+    },
     {
       key: "duel",
       href: isAdmin ? "/debates" : undefined,
