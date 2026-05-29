@@ -803,7 +803,7 @@ export function LeaderboardsPage({
           <p className="mt-2 text-base font-medium text-[#7a7f8a] sm:text-lg">
             {getRuleText(data, t)}
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-base font-black text-[#111827] shadow-[0_8px_26px_rgba(15,23,42,0.08)]">
+          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-[#111827]">
             <Clock3 className="size-5 text-[#f1c232]" />
             {t("daysLeft", { count: data.season.daysRemaining })}
           </div>
