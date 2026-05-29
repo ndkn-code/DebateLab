@@ -2146,6 +2146,102 @@
       "description": "Create a shareable room, send the code, and debate casually. These duels do not affect hidden rating."
     }
   },
+  "leaderboards": {
+    "languages": {
+      "en": "English Debate",
+      "vi": "Vietnamese Debate"
+    },
+    "languageNote": "{language} has its own weekly ranking. Use the sidebar debate switcher to change leaderboard language.",
+    "daysLeft": "{count} days left",
+    "viewLabel": "Leaderboard view",
+    "views": {
+      "personal": "Personal",
+      "organizations": "Organizations"
+    },
+    "rules": {
+      "champion": "Top {count} finish as season champions",
+      "promotionOnly": "Top {count} advance to the next league",
+      "promotionAndDemotion": "Top {promoteCount} advance, bottom {demoteCount} drop"
+    },
+    "zones": {
+      "champion": "Champion",
+      "top": "Top",
+      "advance": "Advance",
+      "drop": "Drop",
+      "inactive": "Inactive",
+      "hold": "Hold"
+    },
+    "rows": {
+      "you": "You",
+      "yours": "Yours"
+    },
+    "weeklyXp": "Weekly XP",
+    "xpDetails": "XP details",
+    "replay": "Replay",
+    "info": {
+      "triggerLabel": "How leaderboard XP works",
+      "title": "How this leaderboard works",
+      "xpTitle": "XP",
+      "xpBody": "XP is the only ranking currency. Scored practice XP in the selected debate language counts toward this weekly leaderboard; neutral XP can still count toward your lifetime profile level without changing weekly rank.",
+      "rulesTitle": "Weekly rules",
+      "orgRules": "Organization rankings are split by language and size band, so small active organizations are not crushed by larger ones.",
+      "capsTitle": "Fair play",
+      "capsBody": "Daily and weekly XP caps stay global across languages. Duplicate, incomplete, or suspicious events can be held out of leaderboard totals before season results are finalized."
+    },
+    "outcome": {
+      "champion": "Season champion finish",
+      "promoted": "Promoted last season",
+      "demoted": "Demoted last season",
+      "held": "Held your league",
+      "inactive": "Inactive last season"
+    },
+    "organizations": {
+      "sizeBandLabel": "Organization size band",
+      "title": "{band} Organizations",
+      "rowSubtitle": "{subtitle} - {contributors} contributors / {active} active",
+      "joinPrefix": "Join a verified organization in",
+      "settingsLink": "Settings",
+      "joinSuffix": ".",
+      "bands": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "bandDescriptions": {
+        "small": "1-10 active members",
+        "medium": "11-30 active members",
+        "large": "31+ active members"
+      }
+    },
+    "empty": {
+      "personalTitle": "No personal rankings yet",
+      "personalBody": "Finish a scored practice session in this language and this weekly league will start to fill in.",
+      "organizationsTitle": "No organizations in this band yet",
+      "organizationsBody": "Organizations appear here after members earn weekly XP in this language and size band."
+    },
+    "pinned": {
+      "yourRank": "Your rank",
+      "yourOrganization": "Your organization"
+    },
+    "scoreExplanation": {
+      "title": "XP explanation",
+      "counted": "{visibleXp} counted this season.",
+      "countedWithReview": "{visibleXp} counted this season, {suppressedXp} held for review.",
+      "countedLabel": "Counted",
+      "reviewedLabel": "Reviewed",
+      "empty": "XP details will appear after your first counted leaderboard event.",
+      "status": {
+        "counted": "counted",
+        "capped": "capped",
+        "suppressed": "suppressed",
+        "ineligible": "not ranked"
+      }
+    },
+    "kudos": {
+      "unavailable": "Encouragement is unavailable.",
+      "error": "Encouragement could not be sent right now."
+    }
+  },
   "analyticsPage": {
     "title": "Analytics",
     "subtitle": "Track your progress and grow your debate skills.",

@@ -1,4 +1,5 @@
 import type {
+  LeaderboardLanguage,
   LeagueTierId,
   OrganizationBand,
   OrganizationLeaderboardCandidate,
@@ -8,6 +9,8 @@ import type {
   PersonalLeagueTier,
   PromotionZone,
 } from "@/lib/leaderboards/types";
+
+export const LEADERBOARD_LANGUAGES: readonly LeaderboardLanguage[] = ["en", "vi"];
 
 export const PERSONAL_COHORT_SIZE = 30;
 export const PERSONAL_PROMOTION_COUNT = 8;
@@ -33,6 +36,17 @@ export const ORGANIZATION_BANDS: readonly OrganizationBand[] = [
   "medium",
   "large",
 ] as const;
+
+export function isLeaderboardLanguage(value: unknown): value is LeaderboardLanguage {
+  return value === "en" || value === "vi";
+}
+
+export function coerceLeaderboardLanguage(
+  value: unknown,
+  fallback: LeaderboardLanguage = "en"
+): LeaderboardLanguage {
+  return isLeaderboardLanguage(value) ? value : fallback;
+}
 
 export function getLeagueTier(tierId: LeagueTierId) {
   return LEAGUE_TIERS.find((tier) => tier.id === tierId) ?? LEAGUE_TIERS[0];

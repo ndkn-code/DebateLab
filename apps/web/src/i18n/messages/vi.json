@@ -2146,6 +2146,102 @@
       "description": "Tạo phòng có thể chia sẻ, gửi mã phòng và tranh biện thoải mái. Những trận này không ảnh hưởng điểm xếp hạng ẩn."
     }
   },
+  "leaderboards": {
+    "languages": {
+      "en": "Debate Tiếng Anh",
+      "vi": "Debate Tiếng Việt"
+    },
+    "languageNote": "{language} có bảng xếp hạng tuần riêng. Dùng nút chuyển debate ở sidebar để đổi ngôn ngữ bảng xếp hạng.",
+    "daysLeft": "Còn {count} ngày",
+    "viewLabel": "Chế độ bảng xếp hạng",
+    "views": {
+      "personal": "Cá nhân",
+      "organizations": "Tổ chức"
+    },
+    "rules": {
+      "champion": "Top {count} kết thúc mùa với danh hiệu vô địch",
+      "promotionOnly": "Top {count} thăng lên giải tiếp theo",
+      "promotionAndDemotion": "Top {promoteCount} thăng hạng, cuối bảng {demoteCount} xuống hạng"
+    },
+    "zones": {
+      "champion": "Vô địch",
+      "top": "Top",
+      "advance": "Thăng",
+      "drop": "Rớt",
+      "inactive": "Không hoạt động",
+      "hold": "Giữ"
+    },
+    "rows": {
+      "you": "Bạn",
+      "yours": "Của bạn"
+    },
+    "weeklyXp": "XP trong tuần",
+    "xpDetails": "Chi tiết XP",
+    "replay": "Xem lại",
+    "info": {
+      "triggerLabel": "Cách tính XP bảng xếp hạng",
+      "title": "Cách bảng xếp hạng hoạt động",
+      "xpTitle": "XP",
+      "xpBody": "XP là đơn vị duy nhất để xếp hạng. XP từ phiên luyện có chấm điểm bằng ngôn ngữ debate đang chọn sẽ được tính vào bảng tuần; XP trung lập vẫn có thể tính cho cấp độ hồ sơ trọn đời nhưng không đổi hạng tuần.",
+      "rulesTitle": "Luật tuần",
+      "orgRules": "Bảng xếp hạng tổ chức được tách theo ngôn ngữ và nhóm quy mô, để tổ chức nhỏ nhưng hoạt động tốt không bị tổ chức lớn áp đảo.",
+      "capsTitle": "Công bằng",
+      "capsBody": "Giới hạn XP ngày và tuần vẫn tính chung giữa các ngôn ngữ. Sự kiện trùng, chưa hoàn tất hoặc đáng nghi có thể không được tính vào leaderboard trước khi chốt kết quả mùa."
+    },
+    "outcome": {
+      "champion": "Kết thúc mùa trong nhóm vô địch",
+      "promoted": "Đã thăng hạng mùa trước",
+      "demoted": "Đã xuống hạng mùa trước",
+      "held": "Đã giữ hạng",
+      "inactive": "Không hoạt động mùa trước"
+    },
+    "organizations": {
+      "sizeBandLabel": "Nhóm quy mô tổ chức",
+      "title": "Tổ chức nhóm {band}",
+      "rowSubtitle": "{subtitle} - {contributors} người đóng góp / {active} đang hoạt động",
+      "joinPrefix": "Tham gia tổ chức đã xác minh trong",
+      "settingsLink": "Cài đặt",
+      "joinSuffix": ".",
+      "bands": {
+        "small": "Nhỏ",
+        "medium": "Vừa",
+        "large": "Lớn"
+      },
+      "bandDescriptions": {
+        "small": "1-10 thành viên hoạt động",
+        "medium": "11-30 thành viên hoạt động",
+        "large": "31+ thành viên hoạt động"
+      }
+    },
+    "empty": {
+      "personalTitle": "Chưa có xếp hạng cá nhân",
+      "personalBody": "Hoàn thành một phiên luyện có điểm bằng ngôn ngữ này để bảng tuần bắt đầu có dữ liệu.",
+      "organizationsTitle": "Chưa có tổ chức trong nhóm này",
+      "organizationsBody": "Tổ chức sẽ xuất hiện khi thành viên kiếm XP tuần bằng ngôn ngữ này trong đúng nhóm quy mô."
+    },
+    "pinned": {
+      "yourRank": "Hạng của bạn",
+      "yourOrganization": "Tổ chức của bạn"
+    },
+    "scoreExplanation": {
+      "title": "Giải thích XP",
+      "counted": "{visibleXp} được tính trong mùa này.",
+      "countedWithReview": "{visibleXp} được tính trong mùa này, {suppressedXp} đang được giữ để xem xét.",
+      "countedLabel": "Đã tính",
+      "reviewedLabel": "Đang xem",
+      "empty": "Chi tiết XP sẽ hiện sau sự kiện leaderboard hợp lệ đầu tiên.",
+      "status": {
+        "counted": "đã tính",
+        "capped": "đã giới hạn",
+        "suppressed": "đã ẩn",
+        "ineligible": "không xếp hạng"
+      }
+    },
+    "kudos": {
+      "unavailable": "Chưa gửi được lời động viên.",
+      "error": "Chưa gửi được lời động viên lúc này."
+    }
+  },
   "analyticsPage": {
     "title": "Phân tích",
     "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng tranh biện của bạn.",

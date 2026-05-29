@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 
 import {
+  coerceLeaderboardLanguage,
   classifyOrganizationBand,
   classifyPersonalZone,
   comparePersonalRows,
+  isLeaderboardLanguage,
   rankOrganizationLeaderboardRows,
   rankPersonalLeaderboardRows,
 } from "@/lib/leaderboards/model";
@@ -49,6 +51,10 @@ assert.equal(
   classifyPersonalZone({ rank: 2, activeCount: 30, currentTierId: "champion" }),
   "champion"
 );
+assert.equal(isLeaderboardLanguage("vi"), true);
+assert.equal(isLeaderboardLanguage("fr"), false);
+assert.equal(coerceLeaderboardLanguage("vi"), "vi");
+assert.equal(coerceLeaderboardLanguage(null), "en");
 
 const tieBreakerRows = rankPersonalLeaderboardRows(
   [
@@ -284,6 +290,31 @@ const reachableLedgerClient: LeaderboardSupabaseLikeClient = {
   }),
 };
 
+let capturedLeaderboardLanguage: unknown = null;
+const languageAwareLedgerClient: LeaderboardSupabaseLikeClient = {
+  from: () => ({
+    select: () => ({
+      limit: async () => ({
+        data: [],
+        error: null,
+      }),
+    }),
+  }),
+  rpc: async (_fn, args) => {
+    capturedLeaderboardLanguage = args?.p_leaderboard_language;
+    return {
+      data: {
+        ...makeMockLeaderboardPageData({
+          viewerUserId: "viewer",
+          leaderboardLanguage: "vi",
+        }),
+        source: "ledger",
+      },
+      error: null,
+    };
+  },
+};
+
 async function main() {
   const missingLedgerData = await getLeaderboardPageData("viewer", {
     dataSource: "ledger",
@@ -295,8 +326,11 @@ async function main() {
   const mockData = await getLeaderboardPageData("viewer", {
     dataSource: "mock",
     fixtureState: "outside",
+    leaderboardLanguage: "vi",
   });
   assert.equal(mockData.status, "ready");
+  assert.equal(mockData.leaderboardLanguage, "vi");
+  assert.equal(mockData.personal.cohort?.leaderboardLanguage, "vi");
   assert.equal(mockData.personal.currentUser?.rank, 24);
   assert.equal(mockData.organizations.rows.every((row) => row.organizationType === "club"), true);
 
@@ -430,6 +464,14 @@ async function main() {
   });
   assert.equal(ledgerData.source, "ledger");
   assert.equal(ledgerData.status, "ready");
+
+  const viLedgerData = await getLeaderboardPageData("viewer", {
+    dataSource: "ledger",
+    leaderboardLanguage: "vi",
+    supabaseClient: languageAwareLedgerClient,
+  });
+  assert.equal(capturedLeaderboardLanguage, "vi");
+  assert.equal(viLedgerData.leaderboardLanguage, "vi");
 
   console.log("leaderboard model tests passed");
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ChevronUp,
   Clock3,
@@ -10,26 +11,29 @@ import {
   Lock,
   Loader2,
   Medal,
-  Minus,
   RotateCcw,
-  ShieldCheck,
   ThumbsUp,
   TrendingDown,
-  TrendingUp,
   Trophy,
   Users2,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Link } from "@/i18n/navigation";
 import { PageTransition } from "@/components/shared/page-motion";
 import { PageContainer } from "@/components/shared/product-layout";
 import { SeasonReplayDialog } from "@/components/leaderboards/season-replay-dialog";
 import { sendLeaderboardKudos } from "@/app/actions/leaderboards";
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
-import { summarizeLeaderboardScoreExplanation } from "@/lib/leaderboards/social-trust";
 import { cn } from "@/lib/utils";
 import {
+  getSeasonReplayCopy,
   getLocalizedLeagueName,
   getSeasonReplayDismissalKey,
   isReplayableSeasonOutcome,
@@ -45,6 +49,10 @@ import type {
 } from "@/lib/leaderboards/types";
 
 type LeaderboardView = "personal" | "organizations";
+type LeaderboardTranslator = (
+  key: string,
+  values?: Record<string, string | number>
+) => string;
 
 const PERSONAL_VISIBLE_ROWS = 12;
 const ORGANIZATION_VISIBLE_ROWS = 10;
@@ -85,119 +93,76 @@ const leagueTone: Record<
   },
 };
 
-const bandLabels: Record<OrganizationBand, string> = {
-  small: "Small",
-  medium: "Medium",
-  large: "Large",
-};
-
-const bandDescriptions: Record<OrganizationBand, string> = {
-  small: "1-10 active members",
-  medium: "11-30 active members",
-  large: "31+ active members",
-};
-
-function formatXp(value: number) {
-  return `${new Intl.NumberFormat("en-US").format(value)} XP`;
+function formatXp(value: number, locale: string) {
+  return `${new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(
+    value
+  )} XP`;
 }
 
-function getRuleText(data: LeaderboardPageData) {
+function getRuleText(data: LeaderboardPageData, t: LeaderboardTranslator) {
   const { personal } = data;
 
   if (personal.league.id === "champion") {
-    return `Top ${personal.championCount} finish as season champions`;
+    return t("rules.champion", { count: personal.championCount });
   }
 
   if (!personal.demotionEnabled) {
-    return `Top ${personal.promotionCount} advance to the next league`;
+    return t("rules.promotionOnly", { count: personal.promotionCount });
   }
 
-  return `Top ${personal.promotionCount} advance, bottom ${personal.demotionCount} drop`;
+  return t("rules.promotionAndDemotion", {
+    promoteCount: personal.promotionCount,
+    demoteCount: personal.demotionCount,
+  });
 }
 
-function zoneLabel(zone: PromotionZone, isChampionLeague: boolean) {
-  if (zone === "champion") return "Champion";
-  if (zone === "promote") return isChampionLeague ? "Top" : "Advance";
-  if (zone === "demote") return "Drop";
-  if (zone === "inactive") return "Inactive";
-  return "Hold";
-}
-
-function zoneClassName(zone: PromotionZone) {
-  if (zone === "champion") {
-    return "border-[#e9be2c] bg-[#fff7d6] text-[#7a5500]";
-  }
-
-  if (zone === "promote") {
-    return "border-[#65d7ad] bg-[#eafaf2] text-[#13724d]";
-  }
-
-  if (zone === "demote") {
-    return "border-[#f0a0a0] bg-[#fff0f0] text-[#a33b3b]";
-  }
-
-  return "border-[#e3e7ee] bg-[#f7f9fc] text-[#657184]";
-}
-
-function RankBadge({ rank }: { rank: number }) {
-  if (rank <= 3) {
-    const medalTone =
-      rank === 1
-        ? "border-[#f0c744] bg-[#ffd84d] text-[#7b5700]"
-        : rank === 2
-          ? "border-[#b9c9d8] bg-[#dce9f5] text-[#52697d]"
-          : "border-[#d79a5e] bg-[#e7a76a] text-[#744118]";
-
-    return (
-      <span
-        className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-full border text-sm font-bold shadow-[inset_0_-2px_0_rgba(0,0,0,0.08)]",
-          medalTone
-        )}
-        aria-label={`Rank ${rank}`}
-      >
-        {rank}
-      </span>
-    );
-  }
+function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: boolean }) {
+  const medalTone =
+    rank === 1
+      ? "text-[#d4a400]"
+      : rank === 2
+        ? "text-[#7c8da1]"
+        : rank === 3
+          ? "text-[#b56f30]"
+          : highlighted
+            ? "text-current"
+            : "text-[#54b66d]";
 
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center text-sm font-bold text-[#35a451]">
+    <span
+      className={cn(
+        "flex w-8 shrink-0 justify-end text-sm font-black tabular-nums sm:w-10",
+        medalTone
+      )}
+      aria-label={`Rank ${rank}`}
+    >
       {rank}
     </span>
   );
 }
 
-function RankDelta({ delta }: { delta: number }) {
-  if (delta > 0) {
-    return (
-      <span
-        title={`Moved up ${delta}`}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-[#15965d]"
-      >
-        <TrendingUp className="size-3.5" />
-        {delta}
-      </span>
-    );
+function currentUserRowTone(zone: PromotionZone) {
+  if (zone === "champion" || zone === "promote") {
+    return "bg-[#dff4e7] text-[#101827] shadow-[0_16px_44px_rgba(34,197,94,0.16)]";
   }
 
-  if (delta < 0) {
-    return (
-      <span
-        title={`Moved down ${Math.abs(delta)}`}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-[#b94848]"
-      >
-        <TrendingDown className="size-3.5" />
-        {Math.abs(delta)}
-      </span>
-    );
+  if (zone === "demote") {
+    return "bg-[#ffe1e8] text-[#101827] shadow-[0_16px_44px_rgba(244,63,94,0.16)]";
   }
 
-  return (
-    <span title="No rank change" className="inline-flex items-center text-[#9aa3b1]">
-      <Minus className="size-3.5" />
-    </span>
-  );
+  return "bg-[#eaf2ff] text-[#101827] shadow-[0_16px_44px_rgba(77,134,247,0.14)]";
+}
+
+function currentUserAvatarTone(zone: PromotionZone) {
+  if (zone === "champion" || zone === "promote") {
+    return "bg-[#35b86f] text-white";
+  }
+
+  if (zone === "demote") {
+    return "bg-[#ef4d5f] text-white";
+  }
+
+  return "bg-[#4d86f7] text-white";
 }
 
 function LeagueCrest({
@@ -292,15 +257,15 @@ function SegmentedControl<T extends string>({
 
 function PersonalRow({
   row,
-  isChampionLeague,
   prefersReducedMotion,
+  locale,
   kudosState,
   onSendKudos,
   kudosPending,
 }: {
   row: PersonalLeaderboardRow;
-  isChampionLeague: boolean;
   prefersReducedMotion: boolean;
+  locale: string;
   kudosState?: LeaderboardKudosTargetState;
   onSendKudos?: (row: PersonalLeaderboardRow) => void;
   kudosPending?: boolean;
@@ -313,50 +278,38 @@ function PersonalRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="leaderboard-row"
       className={cn(
-        "grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 border-b border-[#e5e7eb] px-4 py-3 last:border-b-0 sm:min-h-[86px] sm:grid-cols-[52px_56px_minmax(0,1fr)_auto] sm:gap-4 sm:px-6",
-        row.isCurrentUser && "bg-[#f7fbff] shadow-[inset_3px_0_0_#4d86f7]"
+        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        row.isCurrentUser
+          ? currentUserRowTone(row.zone)
+          : "bg-transparent hover:bg-white/60"
       )}
     >
-      <RankBadge rank={row.rank} />
-      <Avatar className="hidden size-12 bg-[#eef4ff] sm:flex">
+      <RankBadge rank={row.rank} highlighted={row.isCurrentUser} />
+      <Avatar className="size-10 shrink-0 bg-[#eef2f7] sm:size-11">
         {row.avatarUrl ? <AvatarImage src={row.avatarUrl} alt={row.displayName} /> : null}
-        <AvatarFallback className="bg-[#eef4ff] text-sm font-black text-[#1f5fc9]">
+        <AvatarFallback
+          className={cn(
+            "text-sm font-black",
+            row.isCurrentUser
+              ? currentUserAvatarTone(row.zone)
+              : "bg-[#eef2f7] text-[#566170]"
+          )}
+        >
           {row.initials}
         </AvatarFallback>
       </Avatar>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1">
-          <p className="min-w-0 flex-1 truncate text-base font-black text-[#111827] sm:text-lg">
+          <p className="min-w-0 flex-1 truncate text-sm font-black sm:text-base">
             {row.displayName}
           </p>
-          {row.isCurrentUser ? (
-            <span className="shrink-0 rounded-full bg-[#e9f2ff] px-2 py-0.5 text-[11px] font-bold text-[#1f5fc9]">
-              You
-            </span>
-          ) : null}
-        </div>
-        <div className="mt-1 flex min-w-0 flex-nowrap items-center gap-2">
-          {row.title ? (
-            <p className="min-w-0 flex-1 truncate text-sm font-medium text-[#6b7280]">
-              {row.title}
-            </p>
-          ) : null}
-          <span
-            className={cn(
-              "inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[11px] font-bold",
-              zoneClassName(row.zone)
-            )}
-          >
-            {zoneLabel(row.zone, isChampionLeague)}
-          </span>
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-[#4b5563] sm:text-base">
-          {formatXp(row.seasonXp)}
+        <span className="whitespace-nowrap text-sm font-black tabular-nums sm:text-base">
+          {formatXp(row.seasonXp, locale)}
         </span>
         <div className="flex items-center gap-2">
-          <RankDelta delta={row.rankDelta} />
           {kudosState && !row.isCurrentUser ? (
             <button
               type="button"
@@ -399,9 +352,13 @@ function PersonalRow({
 function OrganizationRow({
   row,
   prefersReducedMotion,
+  locale,
+  t,
 }: {
   row: OrganizationLeaderboardRow;
   prefersReducedMotion: boolean;
+  locale: string;
+  t: LeaderboardTranslator;
 }) {
   return (
     <motion.li
@@ -411,12 +368,19 @@ function OrganizationRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="organization-leaderboard-row"
       className={cn(
-        "grid min-h-[78px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 border-b border-[#e5e7eb] px-4 py-3 last:border-b-0 sm:min-h-[88px] sm:grid-cols-[52px_52px_minmax(0,1fr)_auto] sm:gap-4 sm:px-6",
-        row.isCurrentOrganization && "bg-[#f8fff9] shadow-[inset_3px_0_0_#34a853]"
+        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        row.isCurrentOrganization
+          ? "bg-[#dff4e7] text-[#101827] shadow-[0_16px_44px_rgba(34,197,94,0.16)]"
+          : "bg-transparent hover:bg-white/60"
       )}
     >
-      <RankBadge rank={row.rank} />
-      <div className="hidden size-12 items-center justify-center overflow-hidden rounded-full bg-[#eef4ff] text-[#1f5fc9] sm:flex">
+      <RankBadge rank={row.rank} highlighted={row.isCurrentOrganization} />
+      <div
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-[#566170] sm:size-11",
+          row.isCurrentOrganization ? "bg-[#35b86f] text-white" : "bg-[#eef2f7]"
+        )}
+      >
         {row.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={row.logoUrl} alt="" className="h-full w-full object-cover" />
@@ -424,26 +388,29 @@ function OrganizationRow({
           <Users2 className="size-5" />
         )}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1">
-          <p className="min-w-0 flex-1 truncate text-base font-black text-[#111827] sm:text-lg">
-            {row.name}
+          <p className="min-w-0 flex-1 truncate text-sm font-black sm:text-base">
+          {row.name}
           </p>
-          {row.isCurrentOrganization ? (
-            <span className="shrink-0 rounded-full bg-[#e8f8ee] px-2 py-0.5 text-[11px] font-bold text-[#177245]">
-              Yours
-            </span>
-          ) : null}
         </div>
-        <p className="mt-1 truncate text-sm font-medium text-[#6b7280]">
-          {row.subtitle} - {row.contributingMembers} contributors / {row.activeMembers} active
+        <p
+          className={cn(
+            "mt-1 truncate text-xs font-semibold sm:text-sm",
+            row.isCurrentOrganization ? "text-current/68" : "text-[#8a92a0]"
+          )}
+        >
+          {t("organizations.rowSubtitle", {
+            subtitle: row.subtitle,
+            contributors: row.contributingMembers,
+            active: row.activeMembers,
+          })}
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-[#4b5563] sm:text-base">
-          {formatXp(row.seasonXp)}
+        <span className="whitespace-nowrap text-sm font-black tabular-nums sm:text-base">
+          {formatXp(row.seasonXp, locale)}
         </span>
-        <RankDelta delta={row.rankDelta} />
       </div>
     </motion.li>
   );
@@ -452,10 +419,14 @@ function OrganizationRow({
 function SeasonOutcomeBanner({
   data,
   prefersReducedMotion,
+  locale,
+  t,
   onReplay,
 }: {
   data: LeaderboardPageData;
   prefersReducedMotion: boolean;
+  locale: string;
+  t: LeaderboardTranslator;
   onReplay?: () => void;
 }) {
   const outcome = data.personal.outcome;
@@ -465,32 +436,9 @@ function SeasonOutcomeBanner({
 
   const isPositive = outcome.outcome === "promoted" || outcome.outcome === "champion";
   const isNegative = outcome.outcome === "demoted";
-  const fromLeague = getLocalizedLeagueName(outcome.fromLeagueTier, "en").name;
-  const nextLeague = getLocalizedLeagueName(outcome.nextLeagueTier, "en").name;
-  const movedDownWithinLeague =
-    outcome.outcome === "held" &&
-    typeof outcome.replayStartRank === "number" &&
-    outcome.replayStartRank < outcome.finalRank;
-  const title =
-    outcome.outcome === "champion"
-      ? "Season champion finish"
-      : outcome.outcome === "promoted"
-        ? "Promoted last season"
-        : outcome.outcome === "demoted"
-          ? "Demoted last season"
-          : movedDownWithinLeague
-            ? "Rank dropped, league held"
-            : "Held your league";
-  const body =
-    outcome.outcome === "champion"
-      ? `You finished #${outcome.finalRank} with ${formatXp(outcome.seasonXp)}.`
-      : outcome.outcome === "promoted"
-        ? `You finished #${outcome.finalRank} and advanced from ${fromLeague} to ${nextLeague}.`
-        : outcome.outcome === "demoted"
-          ? `You finished #${outcome.finalRank} and dropped from ${fromLeague} to ${nextLeague}.`
-          : movedDownWithinLeague
-            ? `You moved down to #${outcome.finalRank}, but stayed in ${nextLeague}.`
-            : `You finished #${outcome.finalRank} and stayed in ${nextLeague}.`;
+  const replayCopy = getSeasonReplayCopy(outcome, locale);
+  const title = t(`outcome.${outcome.outcome}`);
+  const body = replayCopy.transition;
 
   return (
     <motion.div
@@ -534,7 +482,7 @@ function SeasonOutcomeBanner({
           onClick={onReplay}
         >
           <RotateCcw className="size-3.5" />
-          Replay
+          {t("replay")}
         </Button>
       ) : null}
     </motion.div>
@@ -553,96 +501,71 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
-function ScoreExplanationPanel({
+function LeaderboardInfoDialog({
   data,
   open,
+  onOpenChange,
+  t,
 }: {
   data: LeaderboardPageData;
   open: boolean;
+  onOpenChange: (open: boolean) => void;
+  t: LeaderboardTranslator;
 }) {
-  const items = data.socialTrust?.scoreExplanation ?? [];
-  const summary = summarizeLeaderboardScoreExplanation(items);
-
-  if (!open) return null;
+  const language =
+    data.leaderboardLanguage === "vi" ? t("languages.vi") : t("languages.en");
+  const currentRule = getRuleText(data, t);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="border-b border-[#e5e7eb] bg-[#fbfdff] px-4 py-4 sm:px-6"
-      data-testid="leaderboard-score-explanation"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-black text-[#152238]">
-            <ShieldCheck className="size-4 text-[#159947]" />
-            XP explanation
-          </div>
-          <p className="mt-1 text-sm text-[#667795]">
-            {formatXp(summary.visibleXp)} counted this season
-            {summary.suppressedEvents > 0
-              ? `, ${formatXp(summary.suppressedXp)} held for review`
-              : ""}
-            .
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs sm:w-[220px]">
-          <div className="rounded-lg border border-[#dbe5fb] bg-white px-3 py-2">
-            <p className="font-bold uppercase text-[#8b95a5]">Counted</p>
-            <p className="mt-1 text-base font-black text-[#152238]">
-              {summary.visibleEvents}
-            </p>
-          </div>
-          <div className="rounded-lg border border-[#dbe5fb] bg-white px-3 py-2">
-            <p className="font-bold uppercase text-[#8b95a5]">Reviewed</p>
-            <p className="mt-1 text-base font-black text-[#152238]">
-              {summary.suppressedEvents}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-2">
-        {items.length ? (
-          items.map((item) => (
-            <div
-              key={item.id}
-              className="grid gap-2 rounded-lg border border-[#e5eaf4] bg-white px-3 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-            >
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate font-bold text-[#152238]">{item.label}</p>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold capitalize",
-                      item.status === "suppressed" || item.status === "ineligible"
-                        ? "bg-[#fff1f1] text-[#c43d3d]"
-                        : item.status === "capped"
-                          ? "bg-[#fff7e6] text-[#a96800]"
-                          : "bg-[#eafbf0] text-[#159947]"
-                    )}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                {item.reason ? (
-                  <p className="mt-1 text-xs font-medium text-[#667795]">
-                    {item.reason}
-                  </p>
-                ) : null}
-              </div>
-              <span className="justify-self-start whitespace-nowrap font-black tabular-nums text-[#152238] sm:justify-self-end">
-                {formatXp(item.seasonXp)}
-              </span>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-[#111827] shadow-[0_28px_80px_rgba(15,23,42,0.20)] backdrop-blur-xl sm:max-w-[460px]">
+        <div className="px-5 pb-4 pt-5 sm:px-6 sm:pb-5">
+          <div className="flex items-start gap-3 pr-8">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef4ff] text-[#1f5fc9]">
+              <Info className="size-5" />
             </div>
-          ))
-        ) : (
-          <div className="rounded-lg border border-dashed border-[#c8d7ef] bg-white px-4 py-8 text-center text-sm font-medium text-[#667795]">
-            XP details will appear after your first counted leaderboard event.
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-black tracking-normal text-[#101827]">
+                {t("info.title")}
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+                {t("languageNote", { language })}
+              </DialogDescription>
+            </div>
           </div>
-        )}
-      </div>
-    </motion.div>
+
+          <div className="mt-5 grid gap-3">
+            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
+              <h3 className="text-sm font-black text-[#101827]">
+                {t("info.xpTitle")}
+              </h3>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+                {t("info.xpBody")}
+              </p>
+            </section>
+            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
+              <h3 className="text-sm font-black text-[#101827]">
+                {t("info.rulesTitle")}
+              </h3>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+                {currentRule}
+              </p>
+              <p className="mt-2 text-sm font-medium leading-6 text-[#667085]">
+                {t("info.orgRules")}
+              </p>
+            </section>
+            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
+              <h3 className="text-sm font-black text-[#101827]">
+                {t("info.capsTitle")}
+              </h3>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+                {t("info.capsBody")}
+              </p>
+            </section>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -667,6 +590,9 @@ export function LeaderboardsPage({
   analyticsEnabled?: boolean;
   mockActionsEnabled?: boolean;
 }) {
+  const rawLocale = useLocale();
+  const locale = rawLocale === "vi" ? "vi" : "en";
+  const t = useTranslations("leaderboards") as LeaderboardTranslator;
   const detectedReducedMotion = useReducedMotion() ?? false;
   const prefersReducedMotion = reducedMotionOverride ?? detectedReducedMotion;
   const [view, setView] = useState<LeaderboardView>("personal");
@@ -674,7 +600,7 @@ export function LeaderboardsPage({
     data.organizations.currentOrganization?.band ?? "small"
   );
   const [seasonReplayOpen, setSeasonReplayOpen] = useState(false);
-  const [scoreExplanationOpen, setScoreExplanationOpen] = useState(false);
+  const [leaderboardInfoOpen, setLeaderboardInfoOpen] = useState(false);
   const [pendingKudosUserId, setPendingKudosUserId] = useState<string | null>(null);
   const [sentKudosUserIds, setSentKudosUserIds] = useState<string[]>([]);
   const [kudosActionError, setKudosActionError] = useState<string | null>(null);
@@ -686,6 +612,11 @@ export function LeaderboardsPage({
   }, [seasonOutcome, viewerUserId]);
   const canShowSeasonReplay =
     seasonReplayEnabled && isReplayableSeasonOutcome(seasonOutcome);
+  const localizedLeague = getLocalizedLeagueName(data.personal.league.id, locale);
+  const localizedTiers = data.personal.tiers.map((tier) => ({
+    ...tier,
+    ...getLocalizedLeagueName(tier.id, locale),
+  }));
 
   const isChampionLeague = data.personal.league.id === "champion";
   const visiblePersonalRows = data.personal.rows.slice(0, PERSONAL_VISIBLE_ROWS);
@@ -743,14 +674,22 @@ export function LeaderboardsPage({
       eventName: "leaderboard_viewed",
       featureArea: "leaderboards",
       route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
-      metadata: {
-        source: data.source,
-        status: data.status,
-        league: data.personal.league.id,
-        view,
-      },
+        metadata: {
+          source: data.source,
+          status: data.status,
+          league: data.personal.league.id,
+          leaderboardLanguage: data.leaderboardLanguage,
+          view,
+        },
     });
-  }, [analyticsEnabled, data.personal.league.id, data.source, data.status, view]);
+  }, [
+    analyticsEnabled,
+    data.leaderboardLanguage,
+    data.personal.league.id,
+    data.source,
+    data.status,
+    view,
+  ]);
 
   function handleSeasonReplayOpenChange(open: boolean) {
     setSeasonReplayOpen(open);
@@ -764,6 +703,7 @@ export function LeaderboardsPage({
           outcome: seasonOutcome.outcome,
           seasonId: seasonOutcome.seasonId,
           finalRank: seasonOutcome.finalRank,
+          leaderboardLanguage: data.leaderboardLanguage,
         },
       });
     }
@@ -775,26 +715,6 @@ export function LeaderboardsPage({
         // Local replay dismissal is best-effort only.
       }
     }
-  }
-
-  function handleScoreExplanationToggle() {
-    setScoreExplanationOpen((current) => {
-      const next = !current;
-
-      if (next && analyticsEnabled) {
-        trackAnalyticsEvent({
-          eventName: "leaderboard_score_explanation_opened",
-          featureArea: "leaderboards",
-          route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
-          metadata: {
-            seasonId: data.season.id,
-            itemCount: data.socialTrust?.scoreExplanation.length ?? 0,
-          },
-        });
-      }
-
-      return next;
-    });
   }
 
   function handleSendKudos(row: PersonalLeaderboardRow) {
@@ -812,7 +732,7 @@ export function LeaderboardsPage({
           });
 
           if (result.status !== "sent") {
-            setKudosActionError(result.message ?? "Encouragement is unavailable.");
+            setKudosActionError(t("kudos.unavailable"));
             return;
           }
         }
@@ -821,7 +741,7 @@ export function LeaderboardsPage({
           current.includes(row.userId) ? current : [...current, row.userId]
         );
       } catch {
-        setKudosActionError("Encouragement could not be sent right now.");
+        setKudosActionError(t("kudos.error"));
       } finally {
         setPendingKudosUserId(null);
       }
@@ -845,7 +765,16 @@ export function LeaderboardsPage({
       className="min-h-full bg-[#fbfbfc] text-[#111827]"
     >
       <PageContainer size="wide" className="flex flex-col items-center py-6 sm:py-8">
-        <section className="flex w-full max-w-[900px] flex-col items-center text-center">
+        <section className="relative flex w-full max-w-[900px] flex-col items-center text-center">
+          <button
+            type="button"
+            onClick={() => setLeaderboardInfoOpen(true)}
+            aria-label={t("info.triggerLabel")}
+            title={t("info.triggerLabel")}
+            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-[#dfe6f2] bg-white/80 text-[#64748b] shadow-[0_10px_26px_rgba(15,23,42,0.08)] backdrop-blur-md transition hover:border-[#4d86f7]/45 hover:text-[#1f5fc9]"
+          >
+            <Info className="size-5" />
+          </button>
           {data.status === "unavailable" ? (
             <div
               data-testid="leaderboard-setup-state"
@@ -856,7 +785,7 @@ export function LeaderboardsPage({
           ) : null}
 
           <div className="flex w-full items-end justify-center gap-4 overflow-hidden px-2 pb-2 pt-10 sm:gap-8 sm:pt-14">
-            {data.personal.tiers.map((tier) => (
+            {localizedTiers.map((tier) => (
               <LeagueCrest
                 key={tier.id}
                 tier={tier}
@@ -869,18 +798,20 @@ export function LeaderboardsPage({
             data-testid="league-title"
             className="mt-8 text-balance text-[32px] font-black leading-tight tracking-normal text-[#09090b] sm:text-[40px]"
           >
-            {data.personal.league.name}
+            {localizedLeague.name}
           </h1>
           <p className="mt-2 text-base font-medium text-[#7a7f8a] sm:text-lg">
-            {getRuleText(data)}
+            {getRuleText(data, t)}
           </p>
           <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-base font-black text-[#111827] shadow-[0_8px_26px_rgba(15,23,42,0.08)]">
             <Clock3 className="size-5 text-[#f1c232]" />
-            {data.season.daysRemaining} days left
+            {t("daysLeft", { count: data.season.daysRemaining })}
           </div>
           <SeasonOutcomeBanner
             data={data}
             prefersReducedMotion={prefersReducedMotion}
+            locale={locale}
+            t={t}
             onReplay={
               canShowSeasonReplay ? () => setSeasonReplayOpen(true) : undefined
             }
@@ -889,86 +820,76 @@ export function LeaderboardsPage({
 
         <section className="mt-9 flex w-full max-w-[900px] flex-col items-center gap-4">
           <SegmentedControl
-            label="Leaderboard view"
+            label={t("viewLabel")}
             value={view}
             onChange={setView}
             options={[
-              { value: "personal", label: "Personal" },
-              { value: "organizations", label: "Organizations" },
+              { value: "personal", label: t("views.personal") },
+              { value: "organizations", label: t("views.organizations") },
             ]}
           />
 
           {view === "organizations" ? (
             <SegmentedControl
-              label="Organization size band"
+              label={t("organizations.sizeBandLabel")}
               value={band}
               onChange={setBand}
               options={data.organizations.bands.map((value) => ({
                 value,
-                label: bandLabels[value],
-                helper: bandDescriptions[value],
+                label: t(`organizations.bands.${value}`),
+                helper: t(`organizations.bandDescriptions.${value}`),
               }))}
             />
           ) : null}
 
           {view === "organizations" && !data.organizations.affiliation ? (
             <div className="w-full rounded-lg border border-[#dbe7fb] bg-white px-4 py-3 text-center text-sm font-semibold text-[#4b5563] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
-              Join a verified organization in{" "}
+              {t("organizations.joinPrefix")}{" "}
               <Link href="/settings" className="text-[#1f5fc9] hover:underline">
-                Settings
+                {t("organizations.settingsLink")}
               </Link>
-              .
+              {t("organizations.joinSuffix")}
             </div>
           ) : null}
         </section>
 
         <section
           data-testid="leaderboard-card"
-          className="mt-5 w-full max-w-[900px] overflow-hidden rounded-lg border border-[#dfe3ea] bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]"
+          className="mt-6 w-full max-w-[760px]"
         >
           {view === "personal" ? (
             data.personal.rows.length > 0 ? (
               <>
-                <div className="flex items-center justify-between gap-3 border-b border-[#e5e7eb] px-4 py-3 sm:px-6">
-                  <div className="flex items-center gap-2 text-sm font-black text-[#111827]">
-                    {isChampionLeague ? (
-                      <Crown className="size-4 text-[#d0a000]" />
+                <div className="flex items-center justify-between gap-3 px-1 pb-3 sm:px-2">
+                <div className="flex items-center gap-2 text-sm font-black text-[#202633]">
+                  {isChampionLeague ? (
+                    <Crown className="size-4 text-[#d0a000]" />
                     ) : (
                       <Medal className="size-4 text-[#4d86f7]" />
                     )}
-                    Weekly XP
+                    {t("weeklyXp")}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleScoreExplanationToggle}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#dbe5fb] bg-white px-3 text-xs font-bold text-[#40516f] transition hover:border-[#4d86f7]/50 hover:text-[#1e63e9]"
-                      aria-expanded={scoreExplanationOpen}
-                    >
-                      <Info className="size-3.5" />
-                      XP details
-                    </button>
                     <div className="hidden text-xs font-bold uppercase text-[#8b95a5] sm:block">
                       {data.season.label}
                     </div>
                   </div>
                 </div>
-                <ScoreExplanationPanel data={data} open={scoreExplanationOpen} />
                 {kudosActionError ? (
                   <div
                     role="alert"
-                    className="border-b border-[#ffd8d8] bg-[#fff6f6] px-4 py-2 text-sm font-semibold text-[#a43a3a] sm:px-6"
+                    className="mb-3 rounded-xl border border-[#ffd8d8] bg-[#fff6f6] px-4 py-2 text-sm font-semibold text-[#a43a3a]"
                   >
                     {kudosActionError}
                   </div>
                 ) : null}
-                <ul>
+                <ul className="space-y-2">
                   {visiblePersonalRows.map((row) => (
                     <PersonalRow
                       key={row.userId}
                       row={row}
-                      isChampionLeague={isChampionLeague}
                       prefersReducedMotion={prefersReducedMotion}
+                      locale={locale}
                       kudosState={
                         socialSignalsEnabled
                           ? getKudosState(row.userId)
@@ -982,35 +903,37 @@ export function LeaderboardsPage({
               </>
             ) : (
               <EmptyState
-                title="No personal rankings yet"
-                body="Finish a scored practice session and this weekly league will start to fill in."
+                title={t("empty.personalTitle")}
+                body={t("empty.personalBody")}
               />
             )
           ) : visibleOrganizationRows.length > 0 ? (
             <>
-              <div className="flex flex-col gap-1 border-b border-[#e5e7eb] px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div className="flex items-center gap-2 text-sm font-black text-[#111827]">
+              <div className="flex flex-col gap-1 px-1 pb-3 text-left sm:flex-row sm:items-center sm:justify-between sm:px-2">
+                <div className="flex items-center gap-2 text-sm font-black text-[#202633]">
                   <Users2 className="size-4 text-[#34a853]" />
-                  {bandLabels[band]} Organizations
+                  {t("organizations.title", { band: t(`organizations.bands.${band}`) })}
                 </div>
                 <div className="text-xs font-bold uppercase text-[#8b95a5]">
-                  {bandDescriptions[band]}
+                  {t(`organizations.bandDescriptions.${band}`)}
                 </div>
               </div>
-              <ul>
+              <ul className="space-y-2">
                 {visibleOrganizationRows.map((row) => (
                   <OrganizationRow
                     key={`${row.organizationType}-${row.organizationId}`}
                     row={row}
                     prefersReducedMotion={prefersReducedMotion}
+                    locale={locale}
+                    t={t}
                   />
                 ))}
               </ul>
             </>
           ) : (
             <EmptyState
-              title="No organizations in this band yet"
-              body="Organizations appear here after members earn weekly XP inside this size band."
+              title={t("empty.organizationsTitle")}
+              body={t("empty.organizationsBody")}
             />
           )}
         </section>
@@ -1018,17 +941,17 @@ export function LeaderboardsPage({
         {view === "personal" && currentUserPinned ? (
           <section
             data-testid="current-rank-pinned"
-            className="mt-4 w-full max-w-[900px] overflow-hidden rounded-lg border border-[#cfe0ff] bg-white shadow-[0_12px_34px_rgba(77,134,247,0.13)]"
+            className="mt-5 w-full max-w-[760px]"
           >
-            <div className="flex items-center gap-2 border-b border-[#e5eefc] px-4 py-3 text-sm font-black text-[#1f5fc9] sm:px-6">
+            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-[#1f5fc9] sm:px-2">
               <ChevronUp className="size-4" />
-              Your rank
+              {t("pinned.yourRank")}
             </div>
-            <ul>
+            <ul className="space-y-2">
               <PersonalRow
                 row={currentUserPinned}
-                isChampionLeague={isChampionLeague}
                 prefersReducedMotion={prefersReducedMotion}
+                locale={locale}
                 kudosState={
                   socialSignalsEnabled
                     ? getKudosState(currentUserPinned.userId)
@@ -1044,20 +967,28 @@ export function LeaderboardsPage({
         {view === "organizations" && currentOrgPinned ? (
           <section
             data-testid="current-organization-pinned"
-            className="mt-4 w-full max-w-[900px] overflow-hidden rounded-lg border border-[#cfead7] bg-white shadow-[0_12px_34px_rgba(52,168,83,0.13)]"
+            className="mt-5 w-full max-w-[760px]"
           >
-            <div className="flex items-center gap-2 border-b border-[#e5f4e9] px-4 py-3 text-sm font-black text-[#177245] sm:px-6">
+            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-[#177245] sm:px-2">
               <ChevronUp className="size-4" />
-              Your organization
+              {t("pinned.yourOrganization")}
             </div>
-            <ul>
+            <ul className="space-y-2">
               <OrganizationRow
                 row={currentOrgPinned}
                 prefersReducedMotion={prefersReducedMotion}
+                locale={locale}
+                t={t}
               />
             </ul>
           </section>
         ) : null}
+        <LeaderboardInfoDialog
+          data={data}
+          open={leaderboardInfoOpen}
+          onOpenChange={setLeaderboardInfoOpen}
+          t={t}
+        />
         {canShowSeasonReplay && seasonOutcome ? (
           <SeasonReplayDialog
             open={seasonReplayOpen}

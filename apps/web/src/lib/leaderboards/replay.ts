@@ -74,11 +74,11 @@ const LEAGUE_NAMES: Record<
     champion: { name: "Champion League", shortName: "Champion" },
   },
   vi: {
-    novice: { name: "Giải Novice", shortName: "Novice" },
-    constructive: { name: "Giải Constructive", shortName: "Constructive" },
-    rebuttal: { name: "Giải Rebuttal", shortName: "Rebuttal" },
-    whip: { name: "Giải Whip", shortName: "Whip" },
-    champion: { name: "Giải Champion", shortName: "Champion" },
+    novice: { name: "Giải Tân binh", shortName: "Tân binh" },
+    constructive: { name: "Giải Xây dựng luận điểm", shortName: "Xây dựng" },
+    rebuttal: { name: "Giải Phản biện", shortName: "Phản biện" },
+    whip: { name: "Giải Tổng kết", shortName: "Tổng kết" },
+    champion: { name: "Giải Vô địch", shortName: "Vô địch" },
   },
 };
 

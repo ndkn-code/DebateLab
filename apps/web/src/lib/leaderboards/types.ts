@@ -2,6 +2,8 @@ export type LeaderboardDataSource = "mock" | "ledger";
 
 export type LeaderboardDataStatus = "ready" | "empty" | "unavailable";
 
+export type LeaderboardLanguage = "en" | "vi";
+
 export type LeaderboardRolloutStage = "off" | "internal" | "clubs" | "public";
 
 export type LeaderboardDisplayMode = "public_name" | "initials_only" | "hidden";
@@ -46,6 +48,7 @@ export type PromotionZone = "champion" | "promote" | "hold" | "demote" | "inacti
 
 export interface LeaderboardSeasonSummary {
   id: string;
+  leaderboardLanguage?: LeaderboardLanguage;
   label: string;
   startsAt: string;
   endsAt: string;
@@ -55,6 +58,7 @@ export interface LeaderboardSeasonSummary {
 
 export interface LeaderboardCohortSummary {
   seasonId: string;
+  leaderboardLanguage?: LeaderboardLanguage;
   leagueTier: LeagueTierId;
   cohortIndex: number;
   cohortSize: number;
@@ -62,6 +66,7 @@ export interface LeaderboardCohortSummary {
 
 export interface LeaderboardSeasonOutcome {
   seasonId: string;
+  leaderboardLanguage?: LeaderboardLanguage;
   finalRank: number;
   finalZone: PromotionZone;
   seasonXp: number;
@@ -246,6 +251,7 @@ export interface OrganizationAffiliationSummary {
 export interface LeaderboardPageData {
   source: LeaderboardDataSource;
   status: LeaderboardDataStatus;
+  leaderboardLanguage: LeaderboardLanguage;
   reason: string | null;
   season: LeaderboardSeasonSummary;
   personal: PersonalLeaderboardData;

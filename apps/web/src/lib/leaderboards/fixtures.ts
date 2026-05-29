@@ -1,4 +1,5 @@
 import type {
+  LeaderboardLanguage,
   LeaderboardPageData,
   LeagueTierId,
   OrganizationLeaderboardCandidate,
@@ -227,9 +228,11 @@ const ORG_CANDIDATES: readonly OrganizationLeaderboardCandidate[] = [
 export function makeMockLeaderboardPageData({
   viewerUserId,
   state = "normal",
+  leaderboardLanguage = "en",
 }: {
   viewerUserId: string;
   state?: LeaderboardFixtureState;
+  leaderboardLanguage?: LeaderboardLanguage;
 }): LeaderboardPageData {
   const currentTierId = getFixtureTierId(state);
   const personalRows = rankPersonalLeaderboardRows(
@@ -251,6 +254,7 @@ export function makeMockLeaderboardPageData({
     state === "promotion" || state === "promotion-100"
       ? {
           seasonId: "weekly:2026-05-18",
+          leaderboardLanguage,
           finalRank: 5,
           finalZone: "promote" as const,
           seasonXp: state === "promotion-100" ? 9840 : 2840,
@@ -268,6 +272,7 @@ export function makeMockLeaderboardPageData({
       : state === "demotion" || state === "demotion-100"
         ? {
             seasonId: "weekly:2026-05-18",
+            leaderboardLanguage,
             finalRank: state === "demotion-100" ? 97 : 27,
             finalZone: "demote" as const,
             seasonXp: state === "demotion-100" ? 360 : 420,
@@ -285,6 +290,7 @@ export function makeMockLeaderboardPageData({
         : state === "champion"
           ? {
               seasonId: "weekly:2026-05-18",
+              leaderboardLanguage,
               finalRank: 2,
               finalZone: "champion" as const,
               seasonXp: 4210,
@@ -296,6 +302,7 @@ export function makeMockLeaderboardPageData({
           : state === "held" || state === "held-down"
             ? {
                 seasonId: "weekly:2026-05-18",
+                leaderboardLanguage,
                 finalRank: state === "held-down" ? 18 : 14,
                 finalZone: "hold" as const,
                 seasonXp: state === "held-down" ? 1180 : 1630,
@@ -314,6 +321,7 @@ export function makeMockLeaderboardPageData({
   return {
     source: "mock",
     status: personalRows.length > 0 || organizationRows.length > 0 ? "ready" : "empty",
+    leaderboardLanguage,
     reason:
       state === "empty"
         ? "No leaderboard activity has been recorded for this fixture season."
@@ -327,6 +335,7 @@ export function makeMockLeaderboardPageData({
       tiers: buildTierProgress(currentTierId),
       cohort: {
         seasonId: makeSeasonSummary().id,
+        leaderboardLanguage,
         leagueTier: currentTierId,
         cohortIndex: 0,
         cohortSize: personalCohortSize,
@@ -419,10 +428,14 @@ export function makeMockLeaderboardPageData({
   };
 }
 
-export function makeUnavailableLeaderboardPageData(reason: string): LeaderboardPageData {
+export function makeUnavailableLeaderboardPageData(
+  reason: string,
+  leaderboardLanguage: LeaderboardLanguage = "en"
+): LeaderboardPageData {
   const data = makeMockLeaderboardPageData({
     viewerUserId: "unavailable-user",
     state: "empty",
+    leaderboardLanguage,
   });
 
   return {

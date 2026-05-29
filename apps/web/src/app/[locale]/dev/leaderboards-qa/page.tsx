@@ -7,6 +7,7 @@ import {
   makeMockLeaderboardPageData,
   type LeaderboardFixtureState,
 } from "@/lib/leaderboards/fixtures";
+import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
 
 const QA_USER_ID = DEV_ADMIN_PROFILE.id;
 
@@ -46,8 +47,10 @@ function getFixtureState(
 }
 
 export default async function LeaderboardsQaRoute({
+  params: routeParams,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     state?: string | string[];
     motion?: string | string[];
@@ -59,13 +62,15 @@ export default async function LeaderboardsQaRoute({
     notFound();
   }
 
-  const params = await searchParams;
+  const [{ locale }, params] = await Promise.all([routeParams, searchParams]);
+  const leaderboardLanguage = coerceLeaderboardLanguage(locale);
   const state = getFixtureState(params.state);
   const motion = Array.isArray(params.motion) ? params.motion[0] : params.motion;
   const review = Array.isArray(params.review) ? params.review[0] : params.review;
   const data = makeMockLeaderboardPageData({
     viewerUserId: QA_USER_ID,
     state,
+    leaderboardLanguage,
   });
 
   return (

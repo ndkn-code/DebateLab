@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LeaderboardLanguage } from "@/lib/leaderboards/types";
 import type { XpCategory, XpSourceType } from "./model";
 
 export interface AwardXpInput {
@@ -18,6 +19,7 @@ export interface AwardXpInput {
   score?: number | null;
   clubId?: string | null;
   classId?: string | null;
+  leaderboardLanguage?: LeaderboardLanguage | null;
 }
 
 export interface AwardXpResult {
@@ -75,6 +77,7 @@ export async function awardXpEvent(
     p_score: input.score ?? null,
     p_club_id: input.clubId ?? null,
     p_class_id: input.classId ?? null,
+    p_leaderboard_language: input.leaderboardLanguage ?? null,
   });
 
   if (error) {

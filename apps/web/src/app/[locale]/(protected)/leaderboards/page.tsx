@@ -11,13 +11,21 @@ import {
   LEADERBOARD_SOCIAL_SIGNALS_ENABLED,
 } from "@/lib/features";
 import { getLeaderboardPageData } from "@/lib/leaderboards/data";
+import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Leaderboards",
 };
 
-async function LeaderboardsPayload() {
+async function LeaderboardsPayload({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const leaderboardLanguage = coerceLeaderboardLanguage(locale);
+
   if (!LEADERBOARDS_ENABLED) {
     notFound();
   }
@@ -35,7 +43,10 @@ async function LeaderboardsPayload() {
   }
 
   const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
-  const data = await getLeaderboardPageData(activeUserId);
+  const data = await getLeaderboardPageData(activeUserId, {
+    dataSource: devAuthBypassUser ? "mock" : undefined,
+    leaderboardLanguage,
+  });
 
   return (
     <LeaderboardsPage
@@ -48,10 +59,14 @@ async function LeaderboardsPayload() {
   );
 }
 
-export default function LeaderboardsRoute() {
+export default function LeaderboardsRoute({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   return (
     <Suspense fallback={<StudentRouteSkeleton variant="dashboard" />}>
-      <LeaderboardsPayload />
+      <LeaderboardsPayload params={params} />
     </Suspense>
   );
 }

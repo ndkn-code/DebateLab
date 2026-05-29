@@ -5,13 +5,18 @@ import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypa
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
 import { getLeaderboardPageData } from "@/lib/leaderboards/data";
-import type { LeaderboardSeasonOutcome } from "@/lib/leaderboards/types";
+import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
+import type {
+  LeaderboardLanguage,
+  LeaderboardSeasonOutcome,
+} from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
 async function getShellSeasonReplayOutcome(
-  userId: string
+  userId: string,
+  leaderboardLanguage: LeaderboardLanguage
 ): Promise<LeaderboardSeasonOutcome | null> {
   if (!LEADERBOARD_SEASON_REPLAY_ENABLED) {
     return null;
@@ -20,6 +25,7 @@ async function getShellSeasonReplayOutcome(
   try {
     const data = await getLeaderboardPageData(userId, {
       dataSource: "ledger",
+      leaderboardLanguage,
     });
 
     if (data.status === "unavailable") {
@@ -34,9 +40,13 @@ async function getShellSeasonReplayOutcome(
 
 export default async function ProtectedLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  const leaderboardLanguage = coerceLeaderboardLanguage(locale);
   const supabase = await createClient();
 
   const {
@@ -69,7 +79,10 @@ export default async function ProtectedLayout({
     .select("id, display_name, avatar_url, role, onboarding_completed, preferences, orb_balance, referral_code, xp, level, selected_title")
     .eq("id", user.id)
     .single();
-  const seasonReplayOutcome = await getShellSeasonReplayOutcome(user.id);
+  const seasonReplayOutcome = await getShellSeasonReplayOutcome(
+    user.id,
+    leaderboardLanguage
+  );
 
   // Redirect to onboarding if profile missing or not completed
   if (!profile || !profile.onboarding_completed) {

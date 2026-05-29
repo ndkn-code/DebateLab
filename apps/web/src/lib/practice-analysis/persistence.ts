@@ -189,8 +189,10 @@ export async function saveCompletedPracticeAttempt(
       score: session.feedback?.totalScore ?? null,
       clubId: session.clubContext?.clubId ?? null,
       classId: session.clubContext?.classId ?? null,
+      leaderboardLanguage: session.practiceLanguage,
       metadata: {
         topic: session.topic.title,
+        leaderboard_language: session.practiceLanguage,
         practice_track: session.practiceTrack,
         practice_language: session.practiceLanguage,
         mode: session.mode,
