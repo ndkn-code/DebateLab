@@ -17,12 +17,18 @@ function getRolloutStage(value: string | undefined): LeaderboardRolloutStage {
 
 export const STUDENT_COURSES_ENABLED: boolean = false;
 
-export const LEADERBOARDS_ENABLED: boolean =
-  isEnabled(process.env.NEXT_PUBLIC_LEADERBOARDS_ENABLED) ||
-  isEnabled(process.env.LEADERBOARDS_ENABLED);
+const leaderboardEnabledValue =
+  process.env.NEXT_PUBLIC_LEADERBOARDS_ENABLED ?? process.env.LEADERBOARDS_ENABLED;
+
+export const LEADERBOARDS_ENABLED: boolean = leaderboardEnabledValue
+  ? isEnabled(leaderboardEnabledValue)
+  : true;
+
+const leaderboardDataSourceValue =
+  process.env.LEADERBOARDS_DATA_SOURCE ?? process.env.NEXT_PUBLIC_LEADERBOARDS_DATA_SOURCE;
 
 export const LEADERBOARDS_DATA_SOURCE: LeaderboardDataSource =
-  process.env.LEADERBOARDS_DATA_SOURCE === "ledger" ? "ledger" : "mock";
+  leaderboardDataSourceValue === "mock" ? "mock" : "ledger";
 
 export const LEADERBOARD_SEASON_REPLAY_ENABLED: boolean =
   isEnabled(process.env.NEXT_PUBLIC_LEADERBOARD_SEASON_REPLAY_ENABLED) ||
