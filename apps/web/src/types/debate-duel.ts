@@ -64,6 +64,8 @@ export interface DebateDuelParticipant {
   id: string;
   userId: string;
   displayName: string;
+  handle?: string | null;
+  profileHref?: string | null;
   avatarUrl: string | null;
   role: DebateDuelSide | null;
   joinedAt: string;

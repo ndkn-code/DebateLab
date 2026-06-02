@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ChevronUp,
+  CheckCircle2,
   Clock3,
   Crown,
   Info,
@@ -15,6 +17,7 @@ import {
   ThumbsUp,
   TrendingDown,
   Trophy,
+  UserPlus,
   Users2,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +33,7 @@ import { PageTransition } from "@/components/shared/page-motion";
 import { PageContainer } from "@/components/shared/product-layout";
 import { SeasonReplayDialog } from "@/components/leaderboards/season-replay-dialog";
 import { sendLeaderboardKudos } from "@/app/actions/leaderboards";
+import { requestProfileConnection } from "@/app/actions/profile-social";
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +42,7 @@ import {
   getSeasonReplayDismissalKey,
   isReplayableSeasonOutcome,
 } from "@/lib/leaderboards/replay";
+import { LEADERBOARD_LEAGUE_ASSETS } from "@/lib/leaderboards/league-assets";
 import type {
   LeaderboardPageData,
   LeaderboardKudosTargetState,
@@ -56,42 +61,6 @@ type LeaderboardTranslator = (
 
 const PERSONAL_VISIBLE_ROWS = 12;
 const ORGANIZATION_VISIBLE_ROWS = 10;
-
-const leagueTone: Record<
-  PersonalLeagueTier["id"],
-  { bg: string; text: string; ring: string; icon: string }
-> = {
-  novice: {
-    bg: "bg-[#f4d7bc]",
-    text: "text-[#7a451e]",
-    ring: "ring-[#e3a66d]/45",
-    icon: "N",
-  },
-  constructive: {
-    bg: "bg-[#9fe3d3]",
-    text: "text-[#075c50]",
-    ring: "ring-[#4bbda7]/40",
-    icon: "C",
-  },
-  rebuttal: {
-    bg: "bg-[#f7a7ce]",
-    text: "text-[#8a2155]",
-    ring: "ring-[#ec6ba9]/40",
-    icon: "R",
-  },
-  whip: {
-    bg: "bg-[#9db7ff]",
-    text: "text-[#183b91]",
-    ring: "ring-[#668bf4]/40",
-    icon: "W",
-  },
-  champion: {
-    bg: "bg-[#f5cf56]",
-    text: "text-[#6b4b00]",
-    ring: "ring-[#d2a912]/45",
-    icon: "Ch",
-  },
-};
 
 function formatXp(value: number, locale: string) {
   return `${new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(
@@ -143,14 +112,14 @@ function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: 
 
 function currentUserRowTone(zone: PromotionZone) {
   if (zone === "champion" || zone === "promote") {
-    return "bg-[#dff4e7] text-[#101827] shadow-[0_16px_44px_rgba(34,197,94,0.16)]";
+    return "bg-[#dff4e7] text-[#0B1424] shadow-[0_16px_44px_rgba(34,197,94,0.16)]";
   }
 
   if (zone === "demote") {
-    return "bg-[#ffe1e8] text-[#101827] shadow-[0_16px_44px_rgba(244,63,94,0.16)]";
+    return "bg-[#ffe1e8] text-[#0B1424] shadow-[0_16px_44px_rgba(244,63,94,0.16)]";
   }
 
-  return "bg-[#eaf2ff] text-[#101827] shadow-[0_16px_44px_rgba(77,134,247,0.14)]";
+  return "bg-[#eaf2ff] text-[#0B1424] shadow-[0_16px_44px_rgba(77,134,247,0.14)]";
 }
 
 function currentUserAvatarTone(zone: PromotionZone) {
@@ -172,40 +141,47 @@ function LeagueCrest({
   tier: PersonalLeagueTier;
   prefersReducedMotion: boolean;
 }) {
-  const tone = leagueTone[tier.id];
   const isCurrent = tier.status === "current";
   const isLocked = tier.status === "locked";
+  const assetSrc = LEADERBOARD_LEAGUE_ASSETS[tier.id];
 
   return (
     <div className="flex min-w-0 flex-col items-center gap-2">
       <motion.div
         layout={!prefersReducedMotion}
         className={cn(
-          "relative flex size-16 items-center justify-center text-sm font-black transition-all sm:size-[72px]",
-          isLocked
-            ? "bg-[#e5e7eb] text-[#9ca3af] opacity-70"
-            : `${tone.bg} ${tone.text}`,
+          "relative flex size-[70px] items-center justify-center transition-all sm:size-[88px]",
+          isLocked ? "opacity-45 saturate-0" : "opacity-100",
           isCurrent
-            ? `scale-110 ring-8 ${tone.ring} shadow-[0_18px_40px_rgba(15,23,42,0.12)]`
-            : "shadow-[0_10px_26px_rgba(15,23,42,0.06)]"
+            ? "scale-110 drop-shadow-[0_20px_34px_rgba(59,130,246,0.22)]"
+            : "drop-shadow-[0_10px_18px_rgba(15,23,42,0.12)]"
         )}
-        style={{
-          clipPath:
-            tier.id === "champion"
-              ? "polygon(50% 0%, 91% 25%, 78% 100%, 22% 100%, 9% 25%)"
-              : "polygon(50% 0%, 94% 31%, 78% 100%, 22% 100%, 6% 31%)",
-        }}
         aria-label={tier.name}
       >
-        {isLocked ? <Lock className="size-5" /> : tone.icon}
+        <Image
+          src={assetSrc}
+          alt=""
+          width={176}
+          height={176}
+          className="size-full object-contain"
+          draggable={false}
+          priority={isCurrent}
+        />
         {isCurrent ? (
-          <span className="absolute left-3 top-2 h-2 w-8 rotate-[-34deg] rounded-full bg-white/35" />
+          <span className="absolute inset-x-3 bottom-0 h-3 rounded-full bg-[#4d86f7]/18 blur-md" />
+        ) : null}
+        {isLocked ? (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex size-8 items-center justify-center rounded-full bg-white/82 text-[#98a2b3] shadow-[0_8px_18px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+              <Lock className="size-4" />
+            </span>
+          </span>
         ) : null}
       </motion.div>
       <span
         className={cn(
           "hidden max-w-24 truncate text-xs font-semibold sm:block",
-          isCurrent ? "text-[#111827]" : "text-[#9aa3b1]"
+          isCurrent ? "text-[#0B1424]" : "text-[#9aa3b1]"
         )}
       >
         {tier.shortName}
@@ -242,8 +218,8 @@ function SegmentedControl<T extends string>({
             className={cn(
               "min-h-9 rounded-full px-4 text-sm font-bold transition-all",
               active
-                ? "bg-white text-[#101827] shadow-[0_8px_22px_rgba(15,23,42,0.10)]"
-                : "text-[#6b7280] hover:text-[#101827]"
+                ? "bg-white text-[#0B1424] shadow-[0_8px_22px_rgba(15,23,42,0.10)]"
+                : "text-[#718096] hover:text-[#0B1424]"
             )}
             aria-pressed={active}
           >
@@ -262,6 +238,9 @@ function PersonalRow({
   kudosState,
   onSendKudos,
   kudosPending,
+  onRequestConnection,
+  connectionPending,
+  connectionRequested,
 }: {
   row: PersonalLeaderboardRow;
   prefersReducedMotion: boolean;
@@ -269,22 +248,19 @@ function PersonalRow({
   kudosState?: LeaderboardKudosTargetState;
   onSendKudos?: (row: PersonalLeaderboardRow) => void;
   kudosPending?: boolean;
+  onRequestConnection?: (row: PersonalLeaderboardRow) => void;
+  connectionPending?: boolean;
+  connectionRequested?: boolean;
 }) {
-  return (
-    <motion.li
-      layout={!prefersReducedMotion}
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
-      data-testid="leaderboard-row"
-      className={cn(
-        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
-        row.isCurrentUser
-          ? currentUserRowTone(row.zone)
-          : "bg-transparent hover:bg-white/60"
-      )}
-    >
-      <RankBadge rank={row.rank} highlighted={row.isCurrentUser} />
+  const canRequestConnection =
+    !row.isCurrentUser &&
+    (connectionRequested ||
+      row.connection?.status === "pending_sent" ||
+      row.connection?.status === "accepted" ||
+      row.viewerCanRequest ||
+      row.connection?.viewerCanRequest);
+  const profileContent = (
+    <>
       <Avatar className="size-10 shrink-0 bg-[#eef2f7] sm:size-11">
         {row.avatarUrl ? <AvatarImage src={row.avatarUrl} alt={row.displayName} /> : null}
         <AvatarFallback
@@ -304,12 +280,106 @@ function PersonalRow({
             {row.displayName}
           </p>
         </div>
+        {row.handle ? (
+          <p className="mt-0.5 truncate text-xs font-semibold text-[#8a92a0]">
+            @{row.handle}
+          </p>
+        ) : null}
       </div>
+    </>
+  );
+
+  return (
+    <motion.li
+      layout={!prefersReducedMotion}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
+      data-testid="leaderboard-row"
+      className={cn(
+        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        row.isCurrentUser
+          ? currentUserRowTone(row.zone)
+          : "bg-transparent hover:bg-white/60"
+      )}
+    >
+      <RankBadge rank={row.rank} highlighted={row.isCurrentUser} />
+      {row.profileHref ? (
+        <Link
+          href={row.profileHref}
+          onClick={() =>
+            trackAnalyticsEvent({
+              eventName: "leaderboard_profile_clicked",
+              featureArea: "leaderboards",
+              route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
+              metadata: {
+                targetUserId: row.userId,
+                rank: row.rank,
+                source: "personal_row",
+              },
+            })
+          }
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none transition hover:text-[#0B1424] focus-visible:ring-2 focus-visible:ring-[#4D86F7]/35 sm:gap-4"
+        >
+          {profileContent}
+        </Link>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+          {profileContent}
+        </div>
+      )}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span className="whitespace-nowrap text-sm font-black tabular-nums sm:text-base">
           {formatXp(row.seasonXp, locale)}
         </span>
         <div className="flex items-center gap-2">
+          {canRequestConnection ? (
+            <button
+              type="button"
+              title={
+                row.connection?.status === "accepted"
+                  ? "Friends"
+                  : connectionRequested || row.connection?.status === "pending_sent"
+                    ? "Friend request sent"
+                    : "Add friend"
+              }
+              aria-label={
+                row.connection?.status === "accepted"
+                  ? `${row.displayName} is already your friend`
+                  : connectionRequested || row.connection?.status === "pending_sent"
+                    ? `Friend request already sent to ${row.displayName}`
+                    : `Add ${row.displayName} as a friend`
+              }
+              disabled={
+                connectionPending ||
+                connectionRequested ||
+                row.connection?.status === "pending_sent" ||
+                row.connection?.status === "accepted"
+              }
+              onClick={() => onRequestConnection?.(row)}
+              className={cn(
+                "inline-flex size-7 items-center justify-center rounded-full border transition",
+                row.connection?.status === "accepted"
+                  ? "border-[#bfe8ca] bg-[#eafbf0] text-[#159947]"
+                  : connectionRequested || row.connection?.status === "pending_sent"
+                    ? "border-[#D9E5F4] bg-white text-[#4D86F7]"
+                    : "border-[#D9E5F4] bg-white text-[#667795] hover:border-[#A9C6FB] hover:text-[#3E78EC]",
+                (connectionPending ||
+                  connectionRequested ||
+                  row.connection?.status === "pending_sent" ||
+                  row.connection?.status === "accepted") &&
+                  "cursor-not-allowed opacity-70"
+              )}
+            >
+              {connectionPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : row.connection?.status === "accepted" ? (
+                <CheckCircle2 className="size-3.5" />
+              ) : (
+                <UserPlus className="size-3.5" />
+              )}
+            </button>
+          ) : null}
           {kudosState && !row.isCurrentUser ? (
             <button
               type="button"
@@ -331,7 +401,7 @@ function PersonalRow({
                 "inline-flex size-7 items-center justify-center rounded-full border transition",
                 kudosState.viewerHasSent
                   ? "border-[#bfe8ca] bg-[#eafbf0] text-[#159947]"
-                  : "border-[#dbe5fb] bg-white text-[#667795] hover:border-[#bfe8ca] hover:text-[#159947]",
+                  : "border-[#D9E5F4] bg-white text-[#667795] hover:border-[#bfe8ca] hover:text-[#159947]",
                 (!kudosState.viewerCanSend || kudosPending) &&
                   "cursor-not-allowed opacity-60"
               )}
@@ -370,7 +440,7 @@ function OrganizationRow({
       className={cn(
         "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
         row.isCurrentOrganization
-          ? "bg-[#dff4e7] text-[#101827] shadow-[0_16px_44px_rgba(34,197,94,0.16)]"
+          ? "bg-[#dff4e7] text-[#0B1424] shadow-[0_16px_44px_rgba(34,197,94,0.16)]"
           : "bg-transparent hover:bg-white/60"
       )}
     >
@@ -495,8 +565,8 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <div className="flex size-14 items-center justify-center rounded-full bg-[#f3f6fb] text-[#8a96a8]">
         <Trophy className="size-6" />
       </div>
-      <h2 className="mt-4 text-lg font-black text-[#111827]">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-[#6b7280]">{body}</p>
+      <h2 className="mt-4 text-lg font-black text-[#0B1424]">{title}</h2>
+      <p className="mt-2 max-w-md text-sm leading-6 text-[#718096]">{body}</p>
     </div>
   );
 }
@@ -518,14 +588,14 @@ function LeaderboardInfoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-[#111827] shadow-[0_28px_80px_rgba(15,23,42,0.20)] backdrop-blur-xl sm:max-w-[460px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-[#0B1424] shadow-[0_28px_80px_rgba(15,23,42,0.20)] backdrop-blur-xl sm:max-w-[460px]">
         <div className="px-5 pb-4 pt-5 sm:px-6 sm:pb-5">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef4ff] text-[#1f5fc9]">
               <Info className="size-5" />
             </div>
             <div className="min-w-0">
-              <DialogTitle className="text-lg font-black tracking-normal text-[#101827]">
+              <DialogTitle className="text-lg font-black tracking-normal text-[#0B1424]">
                 {t("info.title")}
               </DialogTitle>
               <DialogDescription className="mt-1 text-sm font-medium leading-6 text-[#667085]">
@@ -536,7 +606,7 @@ function LeaderboardInfoDialog({
 
           <div className="mt-5 grid gap-3">
             <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#101827]">
+              <h3 className="text-sm font-black text-[#0B1424]">
                 {t("info.xpTitle")}
               </h3>
               <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
@@ -544,7 +614,7 @@ function LeaderboardInfoDialog({
               </p>
             </section>
             <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#101827]">
+              <h3 className="text-sm font-black text-[#0B1424]">
                 {t("info.rulesTitle")}
               </h3>
               <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
@@ -555,7 +625,7 @@ function LeaderboardInfoDialog({
               </p>
             </section>
             <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#101827]">
+              <h3 className="text-sm font-black text-[#0B1424]">
                 {t("info.capsTitle")}
               </h3>
               <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
@@ -603,6 +673,8 @@ export function LeaderboardsPage({
   const [leaderboardInfoOpen, setLeaderboardInfoOpen] = useState(false);
   const [pendingKudosUserId, setPendingKudosUserId] = useState<string | null>(null);
   const [sentKudosUserIds, setSentKudosUserIds] = useState<string[]>([]);
+  const [pendingConnectionUserId, setPendingConnectionUserId] = useState<string | null>(null);
+  const [requestedConnectionUserIds, setRequestedConnectionUserIds] = useState<string[]>([]);
   const [kudosActionError, setKudosActionError] = useState<string | null>(null);
   const [, startKudosTransition] = useTransition();
   const seasonOutcome = data.personal.outcome;
@@ -759,10 +831,32 @@ export function LeaderboardsPage({
     };
   }
 
+  function handleRequestConnection(row: PersonalLeaderboardRow) {
+    if (!row.viewerCanRequest && !row.connection?.viewerCanRequest) return;
+
+    setPendingConnectionUserId(row.userId);
+    void requestProfileConnection({ targetUserId: row.userId })
+      .then((result) => {
+        const status =
+          result && typeof result === "object" && "status" in result
+            ? String((result as { status?: unknown }).status)
+            : "pending_sent";
+        if (status === "pending_sent" || status === "none") {
+          setRequestedConnectionUserIds((current) =>
+            current.includes(row.userId) ? current : [...current, row.userId]
+          );
+        }
+      })
+      .catch(() => {
+        setKudosActionError("Unable to send friend request.");
+      })
+      .finally(() => setPendingConnectionUserId(null));
+  }
+
   return (
     <PageTransition
       data-testid="leaderboard-page"
-      className="min-h-full bg-[#fbfbfc] text-[#111827]"
+      className="min-h-full bg-[#fbfbfc] text-[#0B1424]"
     >
       <PageContainer size="wide" className="flex flex-col items-center py-6 sm:py-8">
         <section className="relative flex w-full max-w-[900px] flex-col items-center text-center">
@@ -803,7 +897,7 @@ export function LeaderboardsPage({
           <p className="mt-2 text-base font-medium text-[#7a7f8a] sm:text-lg">
             {getRuleText(data, t)}
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-[#111827]">
+          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-[#0B1424]">
             <Clock3 className="size-5 text-[#f1c232]" />
             {t("daysLeft", { count: data.season.daysRemaining })}
           </div>
@@ -843,7 +937,7 @@ export function LeaderboardsPage({
           ) : null}
 
           {view === "organizations" && !data.organizations.affiliation ? (
-            <div className="w-full rounded-lg border border-[#dbe7fb] bg-white px-4 py-3 text-center text-sm font-semibold text-[#4b5563] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+            <div className="w-full rounded-lg border border-[#D9E5F4] bg-white px-4 py-3 text-center text-sm font-semibold text-[#415069] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
               {t("organizations.joinPrefix")}{" "}
               <Link href="/settings" className="text-[#1f5fc9] hover:underline">
                 {t("organizations.settingsLink")}
@@ -897,6 +991,9 @@ export function LeaderboardsPage({
                       }
                       onSendKudos={handleSendKudos}
                       kudosPending={pendingKudosUserId === row.userId}
+                      onRequestConnection={handleRequestConnection}
+                      connectionPending={pendingConnectionUserId === row.userId}
+                      connectionRequested={requestedConnectionUserIds.includes(row.userId)}
                     />
                   ))}
                 </ul>

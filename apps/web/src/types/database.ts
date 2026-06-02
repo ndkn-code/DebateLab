@@ -15,6 +15,8 @@ export interface Profile {
   email: string | null;
   display_name: string;
   avatar_url: string | null;
+  handle: string | null;
+  profile_status: string | null;
   role: "student" | "teacher" | "admin";
   streak_current: number;
   streak_longest: number;

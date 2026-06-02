@@ -40,7 +40,7 @@ export function RecentPracticePanel({
         </div>
 
         <Link
-          href="/history"
+          href="/profile?tab=activities"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           {t("view_all")}

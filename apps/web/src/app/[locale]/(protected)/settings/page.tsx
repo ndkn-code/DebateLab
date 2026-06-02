@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
-import type { SettingsLocale } from "@/lib/settings";
+import type { SettingsLocale, SettingsProfilePrivacy } from "@/lib/settings";
 import { SettingsContent } from "@/components/settings/settings-content";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
@@ -56,12 +56,22 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     );
   }
 
-  const [{ data: profile }, organizationAffiliation, leaderboardPrivacySettings] = await Promise.all([
+  const [
+    { data: profile },
+    { data: profilePrivacySettings },
+    organizationAffiliation,
+    leaderboardPrivacySettings,
+  ] = await Promise.all([
     supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, preferences, orb_balance, referral_code, referred_by")
+    .select("id, display_name, avatar_url, handle, profile_status, preferences, orb_balance, referral_code, referred_by")
     .eq("id", user!.id)
       .single(),
+    supabase
+      .from("profile_privacy_settings")
+      .select("profile_visibility, analytics_visibility, activities_visibility, achievements_visibility, organization_visibility, allow_connection_requests, searchable_by_handle, friend_code_discovery_enabled")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
     getUserOrganizationAffiliation(supabase, user!.id),
     getLeaderboardPrivacySettings({
       supabase,
@@ -73,6 +83,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   return (
     <SettingsContent
       profile={profile as Profile | null}
+      profilePrivacySettings={profilePrivacySettings as SettingsProfilePrivacy | null}
       userEmail={user!.email ?? ""}
       currentLocale={locale as SettingsLocale}
       organizationAffiliation={organizationAffiliation}

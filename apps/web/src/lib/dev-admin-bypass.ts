@@ -14,6 +14,8 @@ export const DEV_ADMIN_PROFILE: Profile = {
   email: "dev-admin@debate.local",
   display_name: "Dev Admin",
   avatar_url: null,
+  handle: "dev.admin",
+  profile_status: "Reviewing argument maps",
   role: "admin",
   streak_current: 0,
   streak_longest: 0,

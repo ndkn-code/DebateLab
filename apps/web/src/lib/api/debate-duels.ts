@@ -20,6 +20,7 @@ import {
   DEFAULT_PRACTICE_LANGUAGE,
   coercePracticeLanguage,
 } from "@/lib/practice-language";
+import { coercePublicProfileData } from "@/lib/profile-social/model";
 import {
   computeSkillSnapshot,
   type SkillFeedbackSource,
@@ -229,7 +230,7 @@ async function fetchRoomRows(shareCode: string) {
     throw new Error(judgmentError.message);
   }
 
-  const mappedParticipants: DebateDuelParticipant[] = (participants ?? []).map(
+  const mappedParticipantsBase: DebateDuelParticipant[] = (participants ?? []).map(
     (participant) => {
       return {
         id: participant.id,
@@ -243,6 +244,34 @@ async function fetchRoomRows(shareCode: string) {
         completedAt: participant.completed_at,
       };
     }
+  );
+  const mappedParticipants: DebateDuelParticipant[] = await Promise.all(
+    mappedParticipantsBase.map(async (participant) => {
+      try {
+        const { data, error } = await supabase.rpc("get_profile_public_data", {
+          p_target_user_id: participant.userId,
+          p_handle: null,
+          p_leaderboard_language: duel.practice_language ?? "en",
+        });
+
+        if (error) return participant;
+
+        const publicProfile = coercePublicProfileData(data);
+        const handle = publicProfile.profile?.handle ?? null;
+        return {
+          ...participant,
+          handle,
+          profileHref:
+            publicProfile.state === "self"
+              ? "/profile"
+              : handle && publicProfile.profile
+                ? `/profile/${handle}`
+                : null,
+        };
+      } catch {
+        return participant;
+      }
+    })
   );
 
   return {

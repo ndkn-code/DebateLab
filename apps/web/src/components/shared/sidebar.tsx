@@ -5,13 +5,12 @@ import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  BarChart3,
   LayoutDashboard,
   MessageCircle,
-  Clock,
   Settings,
   LogOut,
   User,
+  UserRound,
   ChevronLeft,
   Lock,
   Menu,
@@ -60,8 +59,7 @@ const NAV_ITEMS = [
   },
   { href: "/debates", key: "duel", icon: Swords, status: "live" },
   { href: "/chat", key: "chat", icon: MessageCircle, status: "live" },
-  { href: "/history", key: "history", icon: Clock, status: "live" },
-  { href: "/profile", key: "analytics", icon: BarChart3, status: "live" },
+  { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ] as const;
 
 interface SidebarProps {
@@ -150,7 +148,7 @@ function NavContent({
                 : href !== "/dashboard" && pathname.startsWith(href))
             : false;
           const Icon = item.icon;
-          const label = t(item.key);
+          const label = item.key === "analytics" ? t("profile") : t(item.key);
           const isUnavailable =
             item.status === "coming-soon" || !href || (item.key === "duel" && !isAdmin);
           const content = (
@@ -300,7 +298,6 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
         ] satisfies DashboardNavItem[])
       : []),
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
-    { key: "history", href: "/history", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
   ];
 

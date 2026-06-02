@@ -17,6 +17,10 @@ import {
   getAnalyticsCookieValue,
   normalizeAvatarUrl,
 } from "@/lib/settings";
+import {
+  normalizeProfileHandle,
+  type ProfileVisibility,
+} from "@/lib/profile-social/model";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { ORGANIZATION_JOIN_CODES_ENABLED } from "@/lib/features";
 import {
@@ -180,10 +184,28 @@ function getSupportedLocale(locale: string): SettingsLocale {
     : "vi";
 }
 
+function sanitizeVisibility(
+  value: unknown,
+  fallback: ProfileVisibility
+): ProfileVisibility {
+  if (value === "trusted") {
+    return "connections";
+  }
+
+  return value === "private" ||
+    value === "connections" ||
+    value === "public"
+    ? (value as ProfileVisibility)
+    : fallback;
+}
+
 function sanitizeDraft(input: SettingsDraft): SettingsDraft {
   const locale = getSupportedLocale(input.preferredLocale);
   const practiceLanguage = coercePracticeLanguage(locale);
   const displayName = input.displayName.trim();
+  const rawHandle = (input.handle ?? "").trim().replace(/^@+/, "").toLowerCase();
+  const handle = rawHandle ? normalizeProfileHandle(rawHandle) : "";
+  const profileStatus = (input.profileStatus ?? "").trim().slice(0, 140);
   const defaultPrepTime = clampDurationSeconds(
     input.defaultPrepTime,
     SOLO_PREP_DURATION
@@ -198,9 +220,34 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     ? input.defaultDifficulty
     : "medium";
 
+  if (rawHandle && !handle) {
+    throw new Error(
+      "Handles must be 3-30 characters and use only lowercase letters, numbers, underscores, or periods."
+    );
+  }
+
   return {
     displayName: displayName.length > 0 ? displayName.slice(0, 80) : "Debater",
+    handle: handle ?? "",
+    profileStatus,
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
+    profileVisibility: sanitizeVisibility(input.profileVisibility, "connections"),
+    analyticsVisibility: sanitizeVisibility(input.analyticsVisibility, "private"),
+    activitiesVisibility: sanitizeVisibility(
+      input.activitiesVisibility,
+      "connections"
+    ),
+    achievementsVisibility: sanitizeVisibility(
+      input.achievementsVisibility,
+      "connections"
+    ),
+    organizationVisibility: sanitizeVisibility(
+      input.organizationVisibility,
+      "connections"
+    ),
+    allowConnectionRequests: input.allowConnectionRequests !== false,
+    searchableByHandle: input.searchableByHandle !== false,
+    friendCodeDiscoveryEnabled: true,
     defaultPrepTime,
     defaultSpeechTime,
     defaultDifficulty,
@@ -216,7 +263,7 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     achievementUpdates: Boolean(input.achievementUpdates),
     smartFeaturePopups: input.smartFeaturePopups !== false,
     emailNotifications: Boolean(input.emailNotifications),
-    analyticsCookiesEnabled: Boolean(input.analyticsCookiesEnabled),
+    analyticsCookiesEnabled: true,
   };
 }
 
@@ -473,7 +520,19 @@ export async function saveSettings(input: SettingsDraft) {
     return {
       saved: buildSavedSettingsDraft({
         displayName: draft.displayName,
+        handle: draft.handle,
+        profileStatus: draft.profileStatus,
         avatarUrl: draft.avatarUrl,
+        profilePrivacy: {
+          profile_visibility: draft.profileVisibility,
+          analytics_visibility: draft.analyticsVisibility,
+          activities_visibility: draft.activitiesVisibility,
+          achievements_visibility: draft.achievementsVisibility,
+          organization_visibility: draft.organizationVisibility,
+          allow_connection_requests: draft.allowConnectionRequests,
+          searchable_by_handle: draft.searchableByHandle,
+          friend_code_discovery_enabled: draft.friendCodeDiscoveryEnabled,
+        },
         preferences,
         currentLocale: draft.preferredLocale,
       }),
@@ -482,7 +541,7 @@ export async function saveSettings(input: SettingsDraft) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("display_name, avatar_url, preferences")
+    .select("display_name, avatar_url, handle, profile_status, preferences")
     .eq("id", user!.id)
     .single();
 
@@ -499,13 +558,40 @@ export async function saveSettings(input: SettingsDraft) {
     .from("profiles")
     .update({
       display_name: draft.displayName,
+      handle: draft.handle || null,
+      profile_status: draft.profileStatus || null,
       avatar_url: draft.avatarUrl,
       preferences,
     })
     .eq("id", user!.id);
 
   if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new Error("That handle is already taken.");
+    }
     throw new Error(error.message);
+  }
+
+  const { error: privacyError } = await supabase
+    .from("profile_privacy_settings")
+    .upsert(
+      {
+        user_id: user!.id,
+        profile_visibility: draft.profileVisibility,
+        analytics_visibility: draft.analyticsVisibility,
+        activities_visibility: draft.activitiesVisibility,
+        achievements_visibility: draft.achievementsVisibility,
+        organization_visibility: draft.organizationVisibility,
+        allow_connection_requests: draft.allowConnectionRequests,
+        searchable_by_handle: draft.searchableByHandle,
+        friend_code_discovery_enabled: draft.friendCodeDiscoveryEnabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+  if (privacyError) {
+    throw new Error(privacyError.message);
   }
 
   const cookieStore = await cookies();
@@ -518,11 +604,28 @@ export async function saveSettings(input: SettingsDraft) {
   });
 
   revalidateSettingsRoutes();
+  if (draft.handle) {
+    revalidatePath(`/profile/${draft.handle}`);
+    revalidatePath(`/en/profile/${draft.handle}`);
+    revalidatePath(`/vi/profile/${draft.handle}`);
+  }
 
   return {
     saved: buildSavedSettingsDraft({
       displayName: draft.displayName,
+      handle: draft.handle,
+      profileStatus: draft.profileStatus,
       avatarUrl: draft.avatarUrl,
+      profilePrivacy: {
+        profile_visibility: draft.profileVisibility,
+        analytics_visibility: draft.analyticsVisibility,
+        activities_visibility: draft.activitiesVisibility,
+        achievements_visibility: draft.achievementsVisibility,
+        organization_visibility: draft.organizationVisibility,
+        allow_connection_requests: draft.allowConnectionRequests,
+        searchable_by_handle: draft.searchableByHandle,
+        friend_code_discovery_enabled: draft.friendCodeDiscoveryEnabled,
+      },
       preferences,
       currentLocale: draft.preferredLocale,
     }),

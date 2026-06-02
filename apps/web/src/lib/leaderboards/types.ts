@@ -164,6 +164,13 @@ export interface PersonalLeaderboardRow {
   userId: string;
   rank: number;
   displayName: string;
+  handle?: string | null;
+  profileHref?: string | null;
+  connection?: {
+    status: "none" | "pending_sent" | "pending_received" | "accepted" | "blocked" | "self";
+    viewerCanRequest: boolean;
+  } | null;
+  viewerCanRequest?: boolean;
   avatarUrl: string | null;
   initials: string;
   title: string | null;

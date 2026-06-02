@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   BookOpen,
-  ChartColumnBig,
   ChevronRight,
   Clock3,
   Home,
@@ -15,6 +14,7 @@ import {
   Gift,
   Swords,
   Trophy,
+  UserRound,
 } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -35,7 +35,7 @@ const NAV_ICONS = {
   courses: BookOpen,
   coach: Sparkles,
   history: Clock3,
-  analytics: ChartColumnBig,
+  analytics: UserRound,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -61,6 +61,7 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
+  const isProfileSurface = pathname.startsWith("/profile");
 
   const isActiveItem = (item: DashboardNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -105,15 +106,22 @@ export function DashboardSidebarRail({
   return (
     <>
       <div aria-hidden="true" className="hidden h-dvh w-55 shrink-0 md:block" />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-55 shrink-0 overflow-hidden overscroll-none border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex md:flex-col">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden h-dvh w-55 shrink-0 overflow-hidden overscroll-none border-r md:flex md:flex-col",
+          isProfileSurface
+            ? "border-[#DEE8F8] bg-white text-[#0B1424]"
+            : "border-sidebar-muted/15 bg-sidebar text-sidebar-foreground"
+        )}
+      >
       <div className="flex h-14 shrink-0 items-center px-4">
         <LogoMark
           size="sm"
-          variant="dark"
+          variant={isProfileSurface ? "light" : "dark"}
         />
       </div>
 
-      <div className="px-2 pt-3">
+      <div className={cn("px-2 pt-3", isProfileSurface && "hidden")}>
         <DebateModeSwitcher
           variant="sidebar"
           currentLocale={currentLocale}
@@ -126,15 +134,23 @@ export function DashboardSidebarRail({
           const href = item.href;
           const isUnavailable = item.status === "coming-soon" || !href;
           const isActive = isActiveItem(item);
+          const label = item.key === "analytics" ? tNav("profile") : tNav(item.key);
 
           const content = (
             <>
               <span className="flex min-w-0 items-center gap-3">
                 <Icon className="h-5 w-5 shrink-0" />
-                <span className="truncate">{tNav(item.key)}</span>
+                <span className="truncate">{label}</span>
               </span>
               {isUnavailable ? (
-                <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-muted/75">
+                <span
+                  className={cn(
+                    "ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                    isProfileSurface
+                      ? "bg-[#F1F6FD] text-[#8A96A8]"
+                      : "bg-white/[0.08] text-sidebar-muted/75"
+                  )}
+                >
                   <Lock className="h-3 w-3" />
                   {t("coming_soon")}
                 </span>
@@ -147,7 +163,10 @@ export function DashboardSidebarRail({
               <div
                 key={item.key}
                 aria-disabled="true"
-                className="flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75"
+                className={cn(
+                  "flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium opacity-75",
+                  isProfileSurface ? "text-[#8A96A8]" : "text-sidebar-muted/50"
+                )}
               >
                 {content}
               </div>
@@ -160,9 +179,13 @@ export function DashboardSidebarRail({
               href={href}
               className={cn(
                 "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
-                isActive
-                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
-                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+                isProfileSurface
+                  ? isActive
+                    ? "bg-[#EAF1FF] text-[#3E78EC]"
+                    : "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
+                  : isActive
+                    ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
+                    : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
               )}
             >
               {content}
@@ -183,10 +206,20 @@ export function DashboardSidebarRail({
               setCopied(true);
               window.setTimeout(() => setCopied(false), 1800);
             }}
-            className="flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className={cn(
+              "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+              isProfileSurface
+                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
+                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            )}
           >
             <span className="flex min-w-0 items-center gap-3">
-              <Gift className="h-5 w-5 shrink-0 text-sidebar-muted" />
+              <Gift
+                className={cn(
+                  "h-5 w-5 shrink-0",
+                  isProfileSurface ? "text-[#718096]" : "text-sidebar-muted"
+                )}
+              />
               <span className="truncate">
                 {copied
                   ? t("referral_copied")
@@ -198,16 +231,32 @@ export function DashboardSidebarRail({
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="flex h-8 items-center gap-3 rounded-lg bg-white/[0.12] px-2 text-sm font-semibold text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] transition-colors hover:bg-white/[0.16]"
+              className={cn(
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors",
+                isProfileSurface
+                  ? "bg-[#F1F6FD] text-[#0B1424] hover:bg-[#EAF1FF]"
+                  : "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] hover:bg-white/[0.16]"
+              )}
             >
               <Shield className="h-5 w-5 shrink-0" />
               <span>{tNav("adminShort")}</span>
             </Link>
           ) : null}
-          <ThemeToggle />
+          <ThemeToggle
+            className={
+              isProfileSurface
+                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
+                : undefined
+            }
+          />
           <Link
             href="/settings"
-            className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            className={cn(
+              "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors",
+              isProfileSurface
+                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
+                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            )}
           >
             <Settings className="h-5 w-5 shrink-0" />
             <span className="truncate">{t("settings_label")}</span>
@@ -215,7 +264,11 @@ export function DashboardSidebarRail({
           <SupportIssueDialog
             profile={profile}
             userEmail={userEmail}
-            triggerClassName="text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            triggerClassName={
+              isProfileSurface
+                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
+                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            }
           />
         </div>
       </div>

@@ -29,9 +29,24 @@ export async function readJsonObject(
     throw new RequestValidationError("Expected a JSON request body.", 415);
   }
 
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch {
+    throw new RequestValidationError("Unable to read request body.");
+  }
+
+  if (new TextEncoder().encode(rawBody).byteLength > maxBytes) {
+    throw new RequestValidationError("Request body is too large.", 413);
+  }
+
+  if (!rawBody.trim()) {
+    throw new RequestValidationError("Invalid JSON request body.");
+  }
+
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody) as unknown;
   } catch {
     throw new RequestValidationError("Invalid JSON request body.");
   }

@@ -7,6 +7,10 @@ function isEnabled(value: string | undefined) {
   return value === "1" || value?.toLowerCase() === "true";
 }
 
+function isEnabledByDefault(value: string | undefined) {
+  return value ? isEnabled(value) : true;
+}
+
 function getRolloutStage(value: string | undefined): LeaderboardRolloutStage {
   if (value === "internal" || value === "clubs" || value === "public") {
     return value;
@@ -58,3 +62,44 @@ export const LEADERBOARD_ROLLOUT_STAGE: LeaderboardRolloutStage = getRolloutStag
   process.env.NEXT_PUBLIC_LEADERBOARD_ROLLOUT_STAGE ??
     process.env.LEADERBOARD_ROLLOUT_STAGE
 );
+
+const profileSocialEnabledValue =
+  process.env.NEXT_PUBLIC_PROFILE_SOCIAL_ENABLED ?? process.env.PROFILE_SOCIAL_ENABLED;
+
+export const PROFILE_SOCIAL_ENABLED: boolean =
+  isEnabledByDefault(profileSocialEnabledValue);
+
+export const PROFILE_PUBLIC_READS_ENABLED: boolean =
+  PROFILE_SOCIAL_ENABLED &&
+  isEnabledByDefault(
+    process.env.NEXT_PUBLIC_PROFILE_PUBLIC_READS_ENABLED ??
+      process.env.PROFILE_PUBLIC_READS_ENABLED
+  );
+
+export const PROFILE_CONNECTIONS_ENABLED: boolean =
+  PROFILE_SOCIAL_ENABLED &&
+  isEnabledByDefault(
+    process.env.NEXT_PUBLIC_PROFILE_CONNECTIONS_ENABLED ??
+      process.env.PROFILE_CONNECTIONS_ENABLED
+  );
+
+export const PROFILE_DISCOVERY_ENABLED: boolean =
+  PROFILE_SOCIAL_ENABLED &&
+  isEnabledByDefault(
+    process.env.NEXT_PUBLIC_PROFILE_DISCOVERY_ENABLED ??
+      process.env.PROFILE_DISCOVERY_ENABLED
+  );
+
+export const PROFILE_FRIEND_CODES_ENABLED: boolean =
+  PROFILE_SOCIAL_ENABLED &&
+  isEnabledByDefault(
+    process.env.NEXT_PUBLIC_PROFILE_FRIEND_CODES_ENABLED ??
+      process.env.PROFILE_FRIEND_CODES_ENABLED
+  );
+
+export const PROFILE_SOCIAL_GUARDRAILS_ENABLED: boolean =
+  PROFILE_SOCIAL_ENABLED &&
+  isEnabledByDefault(
+    process.env.NEXT_PUBLIC_PROFILE_SOCIAL_GUARDRAILS_ENABLED ??
+      process.env.PROFILE_SOCIAL_GUARDRAILS_ENABLED
+  );

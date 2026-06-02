@@ -30,10 +30,10 @@ export function Navbar() {
             Practice
           </Link>
           <Link
-            href="/history"
+            href="/profile?tab=activities"
             className="text-sm text-zinc-400 transition-colors hover:text-white"
           >
-            History
+            Activities
           </Link>
           <Link href="/practice">
             <Button className="bg-primary text-on-primary hover:bg-primary-dim">
@@ -66,11 +66,11 @@ export function Navbar() {
               Practice
             </Link>
             <Link
-              href="/history"
+              href="/profile?tab=activities"
               className="text-sm text-zinc-400 hover:text-white"
               onClick={() => setMobileOpen(false)}
             >
-              History
+              Activities
             </Link>
             <Link href="/practice" onClick={() => setMobileOpen(false)}>
               <Button className="w-full bg-primary text-on-primary hover:bg-primary-dim">

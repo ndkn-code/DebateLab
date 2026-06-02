@@ -8,7 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   Bot,
   CheckCircle2,
@@ -370,7 +370,16 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                 {getSideLabel(side)}
               </div>
               <div className="mt-1 text-base font-semibold text-on-surface">
-                {participant?.displayName || "Waiting for opponent"}
+                {participant?.profileHref ? (
+                  <Link
+                    href={participant.profileHref}
+                    className="transition hover:text-primary hover:underline"
+                  >
+                    {participant.displayName}
+                  </Link>
+                ) : (
+                  participant?.displayName || "Waiting for opponent"
+                )}
               </div>
             </div>
           </div>

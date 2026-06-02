@@ -295,7 +295,7 @@
       "coach": "AI Coach",
       "feedback": "Feedback",
       "bookmarks": "Bookmarks",
-      "analytics": "Analytics"
+      "analytics": "Profile"
     },
     "home": {
       "greeting_morning": "Good morning",
@@ -1331,6 +1331,12 @@
     "fields": {
       "display_name": "Display Name",
       "display_name_placeholder": "Enter the name you want shown in Thinkfy",
+      "handle": "Handle",
+      "handle_placeholder": "dev.admin",
+      "handle_helper": "Use 3-30 lowercase letters, numbers, underscores, or periods.",
+      "profile_status": "Profile Status",
+      "profile_status_placeholder": "Reviewing argument maps",
+      "profile_status_helper": "A short line that can appear on your profile.",
       "avatar": "Avatar",
       "default_prep_time": "Default Prep Time",
       "default_speech_time": "Default Speech Time",
@@ -1421,8 +1427,14 @@
       "description": "Choose the voice used for rebuttals, coaching playback, and spoken prompts.",
       "female": "Female",
       "male": "Male",
-      "more_voices": "More voices",
-      "more_voices_description": "Keep the featured voices handy, or choose from the full catalog here.",
+      "current_voice": "Current voice",
+      "change_voice": "Change voice",
+      "search_description": "Search by name, accent, gender, provider, or quality.",
+      "search_placeholder": "Search voices",
+      "empty_search": "No voices match that search.",
+      "shown_count": "{shown} of {total} voices shown",
+      "more_voices": "Voice catalog",
+      "more_voices_description": "Search the full catalog and choose one voice for practice playback.",
       "preview_button": "Preview",
       "selected_label": "Selected voice",
       "high_quality": "High quality",
@@ -1917,7 +1929,7 @@
   },
   "sessionResult": {
     "backToPractice": "Back to Practice",
-    "backToHistory": "Back to History",
+    "backToHistory": "Back to Activities",
     "backToTopics": "Back to Topics",
     "tryAgain": "Try Again",
     "share": "Share Result",
@@ -2086,7 +2098,7 @@
     "actions": {
       "practiceAgain": "Practice Again",
       "newTopic": "New Topic",
-      "viewHistory": "View History",
+      "viewHistory": "View Activities",
       "askCoach": "Ask AI Coach",
       "retryTopic": "Retry This Topic",
       "deleteSession": "Delete Session"
@@ -2240,6 +2252,291 @@
     "kudos": {
       "unavailable": "Encouragement is unavailable.",
       "error": "Encouragement could not be sent right now."
+    }
+  },
+  "profileSocial": {
+    "title": "Profile",
+    "privacy_preview": "Previewing what students outside your friend list can see.",
+    "system_titles": {
+      "constructive_climber": "Constructive Climber",
+      "evidence_builder": "Evidence Builder",
+      "crossfire_ready": "Crossfire Ready",
+      "rebuttal_streak": "Rebuttal Streak",
+      "newcomer": "Newcomer",
+      "speed_demon": "Speed Demon",
+      "weekly_warrior": "Weekly Warrior",
+      "near_perfect": "Near Perfect",
+      "super_admin": "Super Admin"
+    },
+    "system_statuses": {
+      "reviewing_argument_maps": "Reviewing argument maps",
+      "practicing_rebuttals": "Practicing rebuttals"
+    },
+    "system_achievements": {
+      "constructive_climber": {
+        "title": "Constructive Climber",
+        "description": "Complete your first strong constructive case.",
+        "title_reward": "Constructive Climber"
+      },
+      "rebuttal_streak": {
+        "title": "Rebuttal Streak",
+        "description": "Practice rebuttals across five sessions.",
+        "title_reward": "Rebuttal Streak"
+      },
+      "evidence_builder": {
+        "title": "Evidence Builder",
+        "description": "Earn an 80+ score on evidence and logic.",
+        "title_reward": "Evidence Builder"
+      },
+      "crossfire_ready": {
+        "title": "Crossfire Ready",
+        "description": "Win a duel and show strong clash awareness.",
+        "title_reward": "Crossfire Ready"
+      },
+      "newcomer": {
+        "title": "Newcomer",
+        "description": "Start your DebateLab profile journey.",
+        "title_reward": "Newcomer"
+      },
+      "speed_demon": {
+        "title": "Speed Demon",
+        "description": "Complete a focused practice round quickly.",
+        "title_reward": "Speed Demon"
+      },
+      "weekly_warrior": {
+        "title": "Weekly Warrior",
+        "description": "Keep a steady practice rhythm through the week.",
+        "title_reward": "Weekly Warrior"
+      },
+      "near_perfect": {
+        "title": "Near Perfect",
+        "description": "Earn a near-perfect performance score.",
+        "title_reward": "Near Perfect"
+      }
+    },
+    "header": {
+      "no_handle": "@profile",
+      "default_title": "Constructive Climber",
+      "unranked": "Unranked",
+      "default_status": "Practicing with focus",
+      "rank_value": "Rank {rank}",
+      "rank_label": "League Rank",
+      "friends_value": "{count, plural, one {# friend} other {# friends}}",
+      "friends_label": "Friends",
+      "level_value": "Level {level}",
+      "level_label": "Level",
+      "season_xp_value": "{count} Season XP",
+      "season_xp_label": "Season XP",
+      "hidden": "Hidden"
+    },
+    "actions": {
+      "edit_profile": "Edit Profile",
+      "settings": "Profile settings",
+      "error": "Unable to update this profile right now.",
+      "requested_toast": "Friend request sent.",
+      "cancelled_toast": "Friend request cancelled.",
+      "accepted_toast": "Friend request accepted.",
+      "declined_toast": "Friend request declined.",
+      "removed_toast": "Friend removed.",
+      "reported_toast": "Profile report submitted.",
+      "blocked_toast": "Profile blocked.",
+      "add_friend": "Add Friend",
+      "requested": "Requested",
+      "accept": "Accept",
+      "decline": "Decline",
+      "friends": "Friends",
+      "report": "Report profile",
+      "block": "Block profile",
+      "find_friends": "Find Friends",
+      "edit_visibility": "Edit visibility",
+      "you": "You",
+      "unavailable": "Unavailable"
+    },
+    "discovery": {
+      "dialog_label": "Find friends",
+      "close_find_friends": "Close find friends",
+      "close": "Close",
+      "eyebrow": "Profile",
+      "title": "Find Friends",
+      "tab_search": "Search",
+      "tab_requests": "{count, plural, =0 {Requests} other {Requests #}}",
+      "tab_friends": "{count, plural, =0 {Friends} other {Friends #}}",
+      "search_label": "Search exact handle or friend code",
+      "search_button": "Search",
+      "friend_code_label": "Your friend code",
+      "loading": "Loading",
+      "copy_friend_code": "Copy friend code",
+      "rotate_friend_code": "Rotate friend code",
+      "friend_code_off": "Friend-code search is off in Settings.",
+      "search_rate_limited": "Too many missed searches. Try again later.",
+      "search_blocked": "That profile is unavailable.",
+      "search_empty": "No matching profile found.",
+      "suggestions_title": "People you may know",
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "no_incoming": "No incoming requests.",
+      "no_outgoing": "No outgoing requests.",
+      "no_friends_title": "No friends yet",
+      "no_friends_body": "Search by handle or share your friend code.",
+      "private_profile": "Private profile",
+      "load_error": "Unable to load friends.",
+      "search_error": "Unable to search profiles.",
+      "copy_unavailable": "Copy unavailable. Select the code manually.",
+      "copy_success": "Friend code copied.",
+      "copy_failed": "Copy failed. Select the code manually.",
+      "rotate_limited": "Friend code rotation limit reached. Try again later.",
+      "rotate_success": "Friend code rotated.",
+      "rotate_error": "Unable to rotate friend code."
+    },
+    "tabs": {
+      "label": "Profile sections",
+      "analytics": "Analytics",
+      "activities": "Activities",
+      "achievements": "Achievements"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "subtitle": "Track skill growth, practice rhythm, and season performance.",
+      "public_subtitle": "Public aggregate analytics only. Detailed session history stays private.",
+      "season_performance": "Season Performance",
+      "season_xp": "Season XP",
+      "in_your_league": "In your league",
+      "xp_to_next_rank": "{count} XP to next rank",
+      "current_league": "Current League",
+      "view_leaderboard": "View leaderboard",
+      "skill_snapshot": "Skill Snapshot",
+      "view_full_breakdown": "View full breakdown",
+      "weekly_practice": "Weekly Practice",
+      "minutes": "minutes",
+      "practice_delta": "{count}% from last week",
+      "view_practice_history": "View practice history",
+      "practice_mix": "Practice Mix",
+      "sessions": "sessions",
+      "view_activity_breakdown": "View activity breakdown",
+      "recent_activity": "Recent Activity",
+      "no_recent_activity": "No recent activity",
+      "activity_empty_body": "Recent actions will appear here.",
+      "recent_achievements": "Recent Achievements",
+      "no_achievements": "No achievements yet",
+      "achievements_empty_body": "Keep practicing to earn achievements.",
+      "average_score": "Average Score",
+      "score_delta": "{count} pts from last range",
+      "strongest_focus": "Strongest / Focus",
+      "profile_level": "Profile Level",
+      "lifetime_xp": "{count} lifetime XP",
+      "private_metric": "This metric is private.",
+      "sessions_in_range": "{count, plural, one {# session in this range} other {# sessions in this range}}",
+      "sessions_analyzed": "{count, plural, one {# session analyzed} other {# sessions analyzed}}",
+      "debate_sessions": "Debate",
+      "speaking_sessions": "Speaking",
+      "friend_network": "Friend Network",
+      "friends": "Friends",
+      "league_gold_iii": "Gold III",
+      "league_novice": "Novice League"
+    },
+    "activities": {
+      "search_placeholder": "Search activities",
+      "sort_newest": "Newest first",
+      "sort_oldest": "Oldest first",
+      "sort_highest": "Highest score",
+      "minutes": "{count} min",
+      "score": "{score}/100",
+      "review": "Review",
+      "empty_title": "No activities yet",
+      "empty_body": "Practice, duels, courses, and achievements will appear here.",
+      "private_title": "Activities are private",
+      "private_body": "This activity feed is not visible from your current context.",
+      "filters": {
+        "all": "All",
+        "practice": "Practice",
+        "duel": "Duels",
+        "learning": "Learning",
+        "achievement": "Achievements"
+      },
+      "kinds": {
+        "practice": "Practice",
+        "duel": "Duel",
+        "lesson": "Lesson",
+        "course": "Course",
+        "achievement": "Achievement",
+        "level": "Level",
+        "activity": "Activity"
+      }
+    },
+    "achievements": {
+      "title": "Achievements",
+      "subtitle": "Earn badges, titles, and XP while building debate skill.",
+      "featured": "Featured",
+      "all": "All",
+      "unlocked_count": "{count} / {total} unlocked",
+      "featured_limit": "Feature up to {count}",
+      "sort_featured": "Featured first",
+      "sort_recent": "Recently unlocked",
+      "sort_progress": "Closest progress",
+      "sort_category": "Category",
+      "complete": "Complete",
+      "incomplete": "Incomplete",
+      "progress": "Progress",
+      "xp_reward": "XP reward",
+      "title_reward": "Title reward",
+      "none": "None",
+      "close": "Close",
+      "feature_action": "Feature",
+      "featured_action": "Featured",
+      "featured_saved": "Featured achievements updated.",
+      "featured_error": "Unable to update featured achievements.",
+      "details_label": "View details for {title}",
+      "feature_label": "Feature {title}",
+      "unfeature_label": "Remove {title} from featured achievements",
+      "empty_title": "No achievements yet",
+      "empty_body": "Keep practicing to earn achievements.",
+      "private_title": "Achievements are private",
+      "private_body": "This student's achievements are not visible from your current context.",
+      "categories": {
+        "debate": "Debate",
+        "duel": "Duel",
+        "mastery": "Mastery",
+        "practice": "Practice",
+        "general": "General"
+      }
+    },
+    "states": {
+      "not_found": {
+        "title": "Profile not found",
+        "body": "This profile may have been moved, renamed, or made unavailable."
+      },
+      "blocked": {
+        "title": "Profile unavailable",
+        "body": "This profile is not available because a block is active."
+      },
+      "private": {
+        "title": "Private profile",
+        "body": "This student has chosen to keep their profile private."
+      },
+      "limited": {
+        "title": "Limited profile",
+        "body": "Only profile basics are visible from this context."
+      },
+      "visible": {
+        "title": "Profile visible",
+        "body": "This profile is visible from your current context."
+      },
+      "self": {
+        "title": "Your profile",
+        "body": "This is your profile."
+      },
+      "analytics_private": {
+        "title": "Analytics are private",
+        "body": "This student's analytics are only visible to them or approved friends."
+      },
+      "activities_private": {
+        "title": "Activities are private",
+        "body": "This student's activity history is not visible from your current context."
+      },
+      "achievements_private": {
+        "title": "Achievements are private",
+        "body": "This student's achievements are not visible from your current context."
+      }
     }
   },
   "analyticsPage": {

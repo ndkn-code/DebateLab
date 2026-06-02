@@ -12,7 +12,9 @@ import {
 import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
 import { Button } from "@/components/ui/button";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
+import { cn } from "@/lib/utils";
 import type { DebateDuelRoomView } from "@/types";
+import type { DebateDuelParticipant } from "@/types";
 
 interface DuelResultPageProps {
   shareCode: string;
@@ -21,6 +23,31 @@ interface DuelResultPageProps {
 interface DuelResultContentProps {
   room: DebateDuelRoomView;
   initialTab?: SessionReviewTab;
+}
+
+function ParticipantProfileName({
+  participant,
+  fallback,
+  className,
+}: {
+  participant: DebateDuelParticipant | null | undefined;
+  fallback: string;
+  className?: string;
+}) {
+  const label = participant?.displayName || fallback;
+
+  if (!participant?.profileHref) {
+    return <span className={className}>{label}</span>;
+  }
+
+  return (
+    <Link
+      href={participant.profileHref}
+      className={cn("transition hover:text-primary hover:underline", className)}
+    >
+      {label}
+    </Link>
+  );
 }
 
 export function DuelResultPage({ shareCode }: DuelResultPageProps) {
@@ -111,7 +138,10 @@ export function DuelResultContent({
                 AI verdict
               </div>
               <h1 className="mt-4 text-3xl font-bold text-on-surface sm:text-4xl">
-                {winner?.displayName || "Winner decided"}
+                <ParticipantProfileName
+                  participant={winner}
+                  fallback="Winner decided"
+                />
               </h1>
               <p className="mt-2 text-lg text-on-surface-variant">
                 {judgment.winnerSide === "proposition"
@@ -153,7 +183,10 @@ export function DuelResultContent({
                         {side}
                       </div>
                       <h2 className="mt-2 text-2xl font-semibold text-on-surface">
-                        {participant?.displayName || side}
+                        <ParticipantProfileName
+                          participant={participant}
+                          fallback={side}
+                        />
                       </h2>
                     </div>
                     {isWinner && (

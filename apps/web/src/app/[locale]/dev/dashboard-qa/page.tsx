@@ -179,7 +179,6 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
         ? ([{ key: "courses", href: "/courses", status: "live" }] as const)
         : []),
       { key: "coach", href: "/chat?context=coach-home", status: "live" },
-      { key: "history", href: "/history", status: "live" },
       { key: "analytics", href: "/profile", status: "live" },
     ],
     topBar: {

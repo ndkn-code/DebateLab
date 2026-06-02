@@ -258,13 +258,20 @@ function buildSkillNote(
       )} is your strongest skill in this range based on your ${trackLabel}.`;
 }
 
-function buildPracticeSeries(range: AnalyticsRangePreset, dailyStats: DailyStatRow[]) {
+function buildPracticeSeries(
+  range: AnalyticsRangePreset,
+  dailyStats: DailyStatRow[],
+  practiceLanguage: PracticeLanguage
+) {
   const totalDays = RANGE_DAYS[range];
   const keys = getTrailingDateKeys(totalDays);
   const byDate = new Map(
     dailyStats.map((entry) => [entry.date, entry.minutes_studied ?? 0])
   );
-  const labels = ["M", "T", "W", "T", "F", "S", "S"];
+  const labels =
+    practiceLanguage === "vi"
+      ? ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+      : ["M", "T", "W", "T", "F", "S", "S"];
 
   if (range === "7d") {
     return keys.map((key, index) => ({
@@ -646,7 +653,7 @@ export async function getAnalyticsPageData(
         currentPracticeMinutes,
         previousPracticeMinutes
       ),
-      series: buildPracticeSeries(range, currentDailyStats),
+      series: buildPracticeSeries(range, currentDailyStats, practiceLanguage),
     },
     {
       key: "speaking-vs-debate",

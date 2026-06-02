@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   coerceVoiceForLanguage,
+  filterVoicesForSearch,
   getDefaultVoiceForLanguage,
   getVoiceById,
   getVoiceSampleStoragePath,
@@ -51,6 +52,17 @@ assert.equal(getVoiceById("vi-VN-Chirp3-HD-Kore")?.quality, "high");
 assert.equal(getVoiceById("vi-VN-HoaiMyNeural")?.quality, "high");
 assert.equal(getVoiceById("vi-VN-Wavenet-A")?.provider, "google");
 assert.equal(getVoiceById("vi-VN-HoaiMyNeural")?.provider, "azure");
+assert.ok(
+  filterVoicesForSearch(vietnameseVoices, "kore google high").some(
+    (voice) => voice.id === "vi-VN-Chirp3-HD-Kore"
+  )
+);
+assert.ok(
+  filterVoicesForSearch(getVoicesForLanguage("en"), "american male").some(
+    (voice) => voice.id === "aura-orion-en"
+  )
+);
+assert.equal(filterVoicesForSearch(vietnameseVoices, "no-such-voice").length, 0);
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co/";
 assert.equal(

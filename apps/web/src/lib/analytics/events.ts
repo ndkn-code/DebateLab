@@ -53,6 +53,19 @@ export const ANALYTICS_EVENT_NAMES = [
   "leaderboard_practice_started_from_leaderboard",
   "leaderboard_abuse_flag_created",
   "leaderboard_rollout_guardrail_triggered",
+  "leaderboard_profile_clicked",
+  "profile_viewed",
+  "profile_search_performed",
+  "profile_connection_requested",
+  "profile_connection_accepted",
+  "profile_connection_declined",
+  "profile_connection_cancelled",
+  "profile_connection_removed",
+  "profile_friend_code_rotated",
+  "profile_blocked",
+  "profile_unblocked",
+  "profile_report_submitted",
+  "profile_rollout_guardrail_triggered",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [

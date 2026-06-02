@@ -3,6 +3,7 @@ import {
   coerceVoiceForLanguage,
   DEFAULT_VOICE,
 } from "@/lib/tts-voices";
+import type { ProfileVisibility } from "@/lib/profile-social/model";
 import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
@@ -42,7 +43,17 @@ export interface SettingsPreferences extends Record<string, unknown> {
 
 export interface SettingsDraft {
   displayName: string;
+  handle: string;
+  profileStatus: string;
   avatarUrl: string;
+  profileVisibility: ProfileVisibility;
+  analyticsVisibility: ProfileVisibility;
+  activitiesVisibility: ProfileVisibility;
+  achievementsVisibility: ProfileVisibility;
+  organizationVisibility: ProfileVisibility;
+  allowConnectionRequests: boolean;
+  searchableByHandle: boolean;
+  friendCodeDiscoveryEnabled: boolean;
   defaultPrepTime: number;
   defaultSpeechTime: number;
   defaultDifficulty: SettingsDifficulty;
@@ -72,6 +83,17 @@ export interface AvatarPreset {
   label: string;
   monogram: string;
   colors: [string, string];
+}
+
+export interface SettingsProfilePrivacy {
+  profile_visibility?: ProfileVisibility | null;
+  analytics_visibility?: ProfileVisibility | null;
+  activities_visibility?: ProfileVisibility | null;
+  achievements_visibility?: ProfileVisibility | null;
+  organization_visibility?: ProfileVisibility | null;
+  allow_connection_requests?: boolean | null;
+  searchable_by_handle?: boolean | null;
+  friend_code_discovery_enabled?: boolean | null;
 }
 
 export const PREP_TIME_OPTIONS = SOLO_PREP_DURATION.presetSeconds;
@@ -138,12 +160,35 @@ const DEFAULT_SETTINGS = {
   smartFeaturePopups: true,
   emailNotifications: true,
   analyticsCookiesEnabled: true,
+  profileVisibility: "connections" as ProfileVisibility,
+  analyticsVisibility: "private" as ProfileVisibility,
+  activitiesVisibility: "connections" as ProfileVisibility,
+  achievementsVisibility: "connections" as ProfileVisibility,
+  organizationVisibility: "connections" as ProfileVisibility,
+  allowConnectionRequests: true,
+  searchableByHandle: true,
+  friendCodeDiscoveryEnabled: true,
 };
 
 const avatarUrlCache = new Map<string, string>();
 
 function coerceBoolean(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function coerceProfileVisibility(
+  value: unknown,
+  fallback: ProfileVisibility
+) {
+  if (value === "trusted") {
+    return "connections" as ProfileVisibility;
+  }
+
+  return value === "private" ||
+    value === "connections" ||
+    value === "public"
+    ? (value as ProfileVisibility)
+    : fallback;
 }
 
 function coerceLocale(value: unknown, fallback: SettingsLocale) {
@@ -310,10 +355,7 @@ export function normalizeSettingsPreferences(
       source.email_notifications,
       DEFAULT_SETTINGS.emailNotifications
     ),
-    analyticsCookiesEnabled: coerceBoolean(
-      source.analytics_cookies_enabled,
-      DEFAULT_SETTINGS.analyticsCookiesEnabled
-    ),
+    analyticsCookiesEnabled: true,
   };
 }
 
@@ -327,7 +369,10 @@ function coerceDuration(
 
 export function buildSettingsDraft(input: {
   displayName?: string | null;
+  handle?: string | null;
+  profileStatus?: string | null;
   avatarUrl?: string | null;
+  profilePrivacy?: SettingsProfilePrivacy | null;
   preferences?: Record<string, unknown> | null;
   currentLocale: SettingsLocale;
 }) {
@@ -338,7 +383,38 @@ export function buildSettingsDraft(input: {
 
   return {
     displayName: input.displayName ?? "",
+    handle: input.handle ?? "",
+    profileStatus: input.profileStatus ?? "",
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
+    profileVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.profile_visibility,
+      DEFAULT_SETTINGS.profileVisibility
+    ),
+    analyticsVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.analytics_visibility,
+      DEFAULT_SETTINGS.analyticsVisibility
+    ),
+    activitiesVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.activities_visibility,
+      DEFAULT_SETTINGS.activitiesVisibility
+    ),
+    achievementsVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.achievements_visibility,
+      DEFAULT_SETTINGS.achievementsVisibility
+    ),
+    organizationVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.organization_visibility,
+      DEFAULT_SETTINGS.organizationVisibility
+    ),
+    allowConnectionRequests: coerceBoolean(
+      input.profilePrivacy?.allow_connection_requests,
+      DEFAULT_SETTINGS.allowConnectionRequests
+    ),
+    searchableByHandle: coerceBoolean(
+      input.profilePrivacy?.searchable_by_handle,
+      DEFAULT_SETTINGS.searchableByHandle
+    ),
+    friendCodeDiscoveryEnabled: true,
     defaultPrepTime: normalized.defaultPrepTime,
     defaultSpeechTime: normalized.defaultSpeechTime,
     defaultDifficulty: normalized.defaultDifficulty,
@@ -360,7 +436,10 @@ export function buildSettingsDraft(input: {
 
 export function buildSavedSettingsDraft(input: {
   displayName?: string | null;
+  handle?: string | null;
+  profileStatus?: string | null;
   avatarUrl?: string | null;
+  profilePrivacy?: SettingsProfilePrivacy | null;
   preferences?: Record<string, unknown> | null;
   currentLocale: SettingsLocale;
 }) {
@@ -371,7 +450,38 @@ export function buildSavedSettingsDraft(input: {
 
   return {
     displayName: input.displayName ?? "",
+    handle: input.handle ?? "",
+    profileStatus: input.profileStatus ?? "",
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
+    profileVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.profile_visibility,
+      DEFAULT_SETTINGS.profileVisibility
+    ),
+    analyticsVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.analytics_visibility,
+      DEFAULT_SETTINGS.analyticsVisibility
+    ),
+    activitiesVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.activities_visibility,
+      DEFAULT_SETTINGS.activitiesVisibility
+    ),
+    achievementsVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.achievements_visibility,
+      DEFAULT_SETTINGS.achievementsVisibility
+    ),
+    organizationVisibility: coerceProfileVisibility(
+      input.profilePrivacy?.organization_visibility,
+      DEFAULT_SETTINGS.organizationVisibility
+    ),
+    allowConnectionRequests: coerceBoolean(
+      input.profilePrivacy?.allow_connection_requests,
+      DEFAULT_SETTINGS.allowConnectionRequests
+    ),
+    searchableByHandle: coerceBoolean(
+      input.profilePrivacy?.searchable_by_handle,
+      DEFAULT_SETTINGS.searchableByHandle
+    ),
+    friendCodeDiscoveryEnabled: true,
     defaultPrepTime: normalized.defaultPrepTime,
     defaultSpeechTime: normalized.defaultSpeechTime,
     defaultDifficulty: normalized.defaultDifficulty,
@@ -414,6 +524,6 @@ export function draftToPreferences(
     achievement_updates: draft.achievementUpdates,
     smart_feature_popups: draft.smartFeaturePopups,
     email_notifications: draft.emailNotifications,
-    analytics_cookies_enabled: draft.analyticsCookiesEnabled,
+    analytics_cookies_enabled: true,
   } satisfies SettingsPreferences;
 }

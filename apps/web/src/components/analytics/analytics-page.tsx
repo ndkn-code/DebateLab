@@ -1250,7 +1250,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                 </div>
               </div>
               <Link
-                href="/history"
+                href="/profile?tab=activities"
                 className="mt-3 inline-flex items-center gap-2 self-end text-sm font-medium text-primary hover:underline"
               >
                 {t("cards.mix.view_breakdown")}
@@ -1378,7 +1378,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {t("recent_sessions_title")}
                 </h3>
               </div>
-              <Link href="/history" className="text-sm font-medium text-primary hover:underline">
+              <Link href="/profile?tab=activities" className="text-sm font-medium text-primary hover:underline">
                 {t("view_all")}
               </Link>
             </div>

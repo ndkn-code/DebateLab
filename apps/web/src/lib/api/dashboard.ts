@@ -762,7 +762,7 @@ export async function getDashboardData(
         supabase
           .from("profiles")
           .select(
-            "id, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
+            "id, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
           )
           .eq("id", userId)
           .single(),
@@ -930,7 +930,6 @@ export async function getDashboardData(
         ] satisfies DashboardNavItem[])
       : []),
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
-    { key: "history", href: "/history", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
   ];
 

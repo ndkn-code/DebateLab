@@ -956,7 +956,7 @@ export async function getCoachProfile(
       supabase
         .from("profiles")
         .select(
-          "id, email, display_name, avatar_url, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, selected_title, unlocked_titles, banner_color, referral_code, orb_balance, referred_by, created_at, updated_at"
+          "id, email, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, selected_title, unlocked_titles, banner_color, referral_code, orb_balance, referred_by, created_at, updated_at"
         )
         .eq("id", userId)
         .single(),

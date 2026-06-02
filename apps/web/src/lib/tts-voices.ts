@@ -112,6 +112,35 @@ export function getVoicesForLanguage(language: PracticeLanguage) {
   return TTS_VOICES.filter((voice) => voice.language === language);
 }
 
+export function getVoiceSearchText(voice: TTSVoice) {
+  return [
+    voice.id,
+    voice.name,
+    voice.nameVi,
+    voice.gender,
+    voice.accent,
+    voice.accentVi,
+    voice.language,
+    voice.provider,
+    voice.locale,
+    voice.quality,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+export function filterVoicesForSearch(voices: TTSVoice[], query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return voices;
+
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  return voices.filter((voice) => {
+    const searchText = getVoiceSearchText(voice);
+    return tokens.every((token) => searchText.includes(token));
+  });
+}
+
 export function getVoiceById(voiceId: string) {
   return TTS_VOICES.find((voice) => voice.id === voiceId) ?? null;
 }

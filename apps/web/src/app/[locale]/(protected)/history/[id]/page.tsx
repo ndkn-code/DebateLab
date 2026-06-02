@@ -95,7 +95,7 @@ export default function SessionDetailPage({
     } else {
       storage.deleteSession(session.id);
     }
-    router.push("/history");
+    router.push("/profile?tab=activities");
   };
 
   if (!mounted) {
@@ -111,7 +111,7 @@ export default function SessionDetailPage({
         <p className="mt-2 text-sm text-on-surface-variant">
           {tResult("notFoundBody")}
         </p>
-        <Link href="/history" className="mt-6">
+        <Link href="/profile?tab=activities" className="mt-6">
           <Button
             variant="outline"
             className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
@@ -162,7 +162,7 @@ export default function SessionDetailPage({
           overall={
             <SessionResultDashboard
               session={sessionWithNormalizedFeedback}
-              backHref="/history"
+              backHref="/profile?tab=activities"
               backLabel={tResult("backToHistory")}
               shareUrl={`/history/${session.id}`}
               showInlineReviewControls={false}
@@ -198,7 +198,7 @@ export default function SessionDetailPage({
             <SessionTranscriptPanel
               session={sessionWithNormalizedFeedback}
               annotations={feedback.transcriptAnnotations}
-              backHref="/history"
+              backHref="/profile?tab=activities"
               backLabel={tResult("backToHistory")}
               emptyLabel={tResult("detail.emptyTranscript")}
               suggestionLabel={tResult("annotations.suggestion")}

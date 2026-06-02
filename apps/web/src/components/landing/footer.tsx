@@ -17,10 +17,10 @@ export function Footer() {
             Practice
           </Link>
           <Link
-            href="/history"
+            href="/profile?tab=activities"
             className="text-sm text-zinc-400 transition-colors hover:text-white"
           >
-            History
+            Activities
           </Link>
         </div>
 

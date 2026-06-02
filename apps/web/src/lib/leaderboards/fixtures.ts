@@ -122,6 +122,7 @@ function makePersonalCandidates(
   return Array.from({ length: activeCount }, (_, index) => {
     const rank = index + 1;
     const [name, initials, title] = BASE_NAMES[index % BASE_NAMES.length] ?? BASE_NAMES[0];
+    const handle = name.toLowerCase().replace(/\s+/g, ".");
     const jitter = (index % 4) * 17;
     const isCurrentUser = rank === currentRank;
     const seasonXp = Math.max(80, 3120 - index * 104 - jitter);
@@ -130,6 +131,13 @@ function makePersonalCandidates(
     return {
       userId: isCurrentUser ? viewerUserId : `fixture-user-${rank}`,
       displayName: isCurrentUser ? "You" : name,
+      handle: isCurrentUser ? "dev.admin" : handle,
+      profileHref: isCurrentUser ? "/profile" : `/profile/${handle}`,
+      connection: {
+        status: isCurrentUser ? "self" : "none",
+        viewerCanRequest: !isCurrentUser,
+      },
+      viewerCanRequest: !isCurrentUser,
       avatarUrl: null,
       initials: isCurrentUser ? "YOU" : initials,
       title: isCurrentUser ? "Debate climber" : title,

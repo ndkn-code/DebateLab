@@ -673,7 +673,7 @@ export default function FeedbackPage() {
                         <Plus className="mr-2 h-4 w-4" />
                         {t("actions.newTopic")}
                       </ResultActionButton>
-                      <Link href="/history">
+                      <Link href="/profile?tab=activities">
                         <ResultActionButton>
                           <History className="mr-2 h-4 w-4" />
                           {t("actions.viewHistory")}

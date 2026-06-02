@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import { useLocale } from "next-intl";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
   type SeasonReplayMovement,
   type SeasonReplayRow,
 } from "@/lib/leaderboards/replay";
+import { LEADERBOARD_LEAGUE_ASSETS } from "@/lib/leaderboards/league-assets";
 import type {
   LeaderboardSeasonOutcome,
   LeagueTierId,
@@ -48,42 +50,6 @@ const REPLAY_VISIBLE_DISTANCE = 5;
 const REPLAY_START_VIEWER_OFFSET = 1.08;
 const REPLAY_MIN_CLIMB_DURATION_MS = 1900;
 const REPLAY_MAX_CLIMB_DURATION_MS = 3100;
-
-const crestTone: Record<
-  LeagueTierId,
-  { bg: string; text: string; ring: string; icon: string }
-> = {
-  novice: {
-    bg: "bg-[#f4d7bc]",
-    text: "text-[#7a451e]",
-    ring: "ring-[#e3a66d]/40",
-    icon: "N",
-  },
-  constructive: {
-    bg: "bg-[#9fe3d3]",
-    text: "text-[#075c50]",
-    ring: "ring-[#4bbda7]/35",
-    icon: "C",
-  },
-  rebuttal: {
-    bg: "bg-[#f7a7ce]",
-    text: "text-[#8a2155]",
-    ring: "ring-[#ec6ba9]/35",
-    icon: "R",
-  },
-  whip: {
-    bg: "bg-[#9db7ff]",
-    text: "text-[#183b91]",
-    ring: "ring-[#668bf4]/35",
-    icon: "W",
-  },
-  champion: {
-    bg: "bg-[#f5cf56]",
-    text: "text-[#6b4b00]",
-    ring: "ring-[#d2a912]/40",
-    icon: "Ch",
-  },
-};
 
 const uiCopy: Record<
   SeasonReplayLocale,
@@ -392,7 +358,7 @@ function LeagueReplayCrest({
   active?: boolean;
   prefersReducedMotion: boolean;
 }) {
-  const tone = crestTone[tierId];
+  const assetSrc = LEADERBOARD_LEAGUE_ASSETS[tierId];
 
   return (
     <motion.div
@@ -407,22 +373,22 @@ function LeagueReplayCrest({
       }
       transition={{ duration: 0.62, ease: "easeOut" }}
       className={cn(
-        "relative flex size-[68px] items-center justify-center text-sm font-black shadow-[0_18px_42px_rgba(15,23,42,0.16)] sm:size-20 sm:text-base",
-        tone.bg,
-        tone.text,
-        active && `ring-8 ${tone.ring}`
+        "relative flex size-[82px] items-center justify-center drop-shadow-[0_18px_32px_rgba(15,23,42,0.18)] sm:size-24",
+        active && "drop-shadow-[0_24px_44px_rgba(59,130,246,0.24)]"
       )}
-      style={{
-        clipPath:
-          tierId === "champion"
-            ? "polygon(50% 0%, 91% 25%, 78% 100%, 22% 100%, 9% 25%)"
-            : "polygon(50% 0%, 94% 31%, 78% 100%, 22% 100%, 6% 31%)",
-      }}
       aria-hidden
     >
-      {tone.icon}
+      <Image
+        src={assetSrc}
+        alt=""
+        width={192}
+        height={192}
+        className="size-full object-contain"
+        draggable={false}
+        priority={active}
+      />
       {active ? (
-        <span className="absolute left-3 top-3 h-1.5 w-8 rotate-[-34deg] rounded-full bg-white/38 sm:left-4 sm:w-10" />
+        <span className="absolute inset-x-3 bottom-0 h-3 rounded-full bg-[#4d86f7]/18 blur-md" />
       ) : null}
     </motion.div>
   );
@@ -563,7 +529,7 @@ function ReplayViewerRankRow({
       >
       <motion.div
         className={cn(
-          "flex h-full items-center gap-3 rounded-md px-3 text-[#111827] sm:gap-4 sm:px-4",
+          "flex h-full items-center gap-3 rounded-md px-3 text-[#0B1424] sm:gap-4 sm:px-4",
           tone.row
         )}
         initial={
@@ -946,7 +912,7 @@ export function SeasonReplayDialog({
           "!fixed !inset-0 !left-0 !top-0 !z-[70] flex !h-dvh !max-h-dvh !w-screen !max-w-none !translate-x-0 !translate-y-0 !transform-none grid-cols-1 flex-col overflow-hidden !rounded-none !border-0 p-0 shadow-none ring-0 !duration-0 data-closed:!animate-none data-open:!animate-none sm:!max-w-none",
           reviewMode && isDark
             ? "bg-[#121212] text-white"
-            : "bg-[#f7f7f5] text-[#111827]"
+            : "bg-[#F7FAFE] text-[#0B1424]"
         )}
       >
         <DialogTitle className="sr-only">{copy.title}</DialogTitle>
@@ -957,7 +923,7 @@ export function SeasonReplayDialog({
           data-replay-theme={reviewMode ? theme : "light"}
           className={cn(
             "relative flex h-full min-h-0 flex-col overflow-hidden",
-            reviewMode && isDark ? "bg-[#121212]" : "bg-[#f7f7f5]"
+            reviewMode && isDark ? "bg-[#121212]" : "bg-[#F7FAFE]"
           )}
         >
           {reviewMode ? (
@@ -995,10 +961,10 @@ export function SeasonReplayDialog({
                       theme === value
                         ? isDark
                           ? "bg-white text-[#151515]"
-                          : "bg-[#111827] text-white"
+                          : "bg-[#0B1424] text-white"
                         : isDark
                           ? "text-white/64 hover:bg-white/10 hover:text-white"
-                          : "text-[#667085] hover:bg-[#f1f4f8] hover:text-[#111827]"
+                          : "text-[#667085] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                     )}
                   >
                     {value === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
@@ -1014,7 +980,7 @@ export function SeasonReplayDialog({
                   "hidden size-9 items-center justify-center rounded-full transition sm:flex",
                   isDark
                     ? "bg-white/[0.08] text-white/72 hover:bg-white/[0.14] hover:text-white"
-                    : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                    : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                 )}
               >
                 {copied ? <Check className="size-4" /> : <Link2 className="size-4" />}
@@ -1028,7 +994,7 @@ export function SeasonReplayDialog({
                   "flex size-10 items-center justify-center rounded-full transition",
                   isDark
                     ? "bg-white/[0.08] text-white/72 hover:bg-white/[0.16] hover:text-white"
-                    : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                    : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                 )}
               >
                 <X className="size-5" />
@@ -1048,7 +1014,7 @@ export function SeasonReplayDialog({
               "absolute left-5 top-1/2 z-20 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full transition disabled:cursor-default disabled:opacity-30 lg:flex",
               isDark
                 ? "bg-white/[0.08] text-white/78 hover:bg-white/[0.16] hover:text-white"
-                : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
             )}
           >
             <ArrowLeft className="size-5" />
@@ -1065,7 +1031,7 @@ export function SeasonReplayDialog({
               "absolute right-5 top-1/2 z-20 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full transition disabled:cursor-default disabled:opacity-30 lg:flex",
               isDark
                 ? "bg-white/[0.08] text-white/78 hover:bg-white/[0.16] hover:text-white"
-                : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
             )}
           >
             <ArrowRight className="size-5" />
@@ -1086,16 +1052,9 @@ export function SeasonReplayDialog({
                       "h-full max-h-[760px] min-h-[520px] max-w-[960px] rounded-[18px] border shadow-[0_44px_120px_rgba(0,0,0,0.18)]",
                       isDark ? "border-white/10 bg-white" : "border-[#e0e4eb] bg-white"
                     )
-                  : "h-full min-h-0 max-w-none border-0 bg-[#f7f7f5] shadow-none"
+                  : "h-full min-h-0 max-w-none border-0 bg-[#F7FAFE] shadow-none"
               )}
             >
-              <div
-                className={cn(
-                  "pointer-events-none absolute left-1/2 top-14 h-36 w-72 -translate-x-1/2 opacity-[0.045]",
-                  "[background-image:linear-gradient(135deg,transparent_46%,#111827_47%,#111827_53%,transparent_54%),linear-gradient(45deg,transparent_46%,#111827_47%,#111827_53%,transparent_54%)] [background-size:38px_38px]"
-                )}
-              />
-
               <div
                 className={cn(
                   "relative z-10 flex min-h-0 flex-1 flex-col items-center text-center",
@@ -1251,7 +1210,7 @@ export function SeasonReplayDialog({
                         <motion.span
                           className={cn(
                             "absolute inset-y-0 left-0 rounded-full",
-                            isDark ? "bg-white" : "bg-[#111827]"
+                            isDark ? "bg-white" : "bg-[#0B1424]"
                           )}
                           initial={false}
                           animate={{
@@ -1270,7 +1229,7 @@ export function SeasonReplayDialog({
                           active
                             ? isDark
                               ? "text-white"
-                              : "text-[#111827]"
+                              : "text-[#0B1424]"
                             : isDark
                               ? "text-white/42"
                               : "text-[#8b95a5]"
@@ -1295,7 +1254,7 @@ export function SeasonReplayDialog({
                       "flex size-10 items-center justify-center rounded-full transition disabled:cursor-default disabled:opacity-30",
                       isDark
                         ? "bg-white/[0.08] text-white/72 hover:bg-white/[0.16] hover:text-white"
-                        : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                        : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                     )}
                   >
                     <ArrowLeft className="size-4" />
@@ -1309,7 +1268,7 @@ export function SeasonReplayDialog({
                       "flex size-10 items-center justify-center rounded-full transition",
                       isDark
                         ? "bg-white/[0.08] text-white/72 hover:bg-white/[0.16] hover:text-white"
-                        : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                        : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                     )}
                   >
                     {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
@@ -1324,7 +1283,7 @@ export function SeasonReplayDialog({
                       "flex size-10 items-center justify-center rounded-full transition disabled:cursor-default disabled:opacity-30",
                       isDark
                         ? "bg-white/[0.08] text-white/72 hover:bg-white/[0.16] hover:text-white"
-                        : "bg-white text-[#667085] shadow-sm hover:bg-[#f1f4f8] hover:text-[#111827]"
+                        : "bg-white text-[#667085] shadow-sm hover:bg-[#F1F6FD] hover:text-[#0B1424]"
                     )}
                   >
                     <ArrowRight className="size-4" />
@@ -1339,7 +1298,7 @@ export function SeasonReplayDialog({
                     className={cn(
                       isDark
                         ? "border-white/16 bg-white/[0.08] text-white hover:bg-white/[0.14]"
-                        : "border-[#dfe3ea] bg-white text-[#111827] hover:bg-[#f4f6f9]"
+                        : "border-[#D9E5F4] bg-white text-[#0B1424] hover:bg-[#F1F6FD]"
                     )}
                     onClick={finishReplay}
                   >
@@ -1351,7 +1310,7 @@ export function SeasonReplayDialog({
                     className={cn(
                       isDark
                         ? "bg-white text-[#151515] hover:bg-white/90"
-                        : "bg-[#111827] text-white hover:bg-[#1f2937]"
+                        : "bg-[#0B1424] text-white hover:bg-[#162033]"
                     )}
                     onClick={() => {
                       if (canGoForward) {

@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Pause, Play, Sparkles, Waves } from "@/components/ui/icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import {
+  Check,
+  Loader2,
+  Pause,
+  Play,
+  Search,
+  Volume2,
+  Waves,
+} from "@/components/ui/icons";
+import { InfoHint } from "@/components/settings/info-hint";
+import {
+  filterVoicesForSearch,
   getVoiceSampleUrl,
   getVoicesForLanguage,
   TTS_SAMPLE_TEXT_BY_LANGUAGE,
@@ -21,29 +30,42 @@ interface VoiceSettingsProps {
   onVoiceChange: (voiceId: string) => void;
 }
 
-const FEATURED_VOICE_IDS_BY_LANGUAGE: Record<PracticeLanguage, string[]> = {
-  en: ["aura-orion-en", "aura-asteria-en"],
-  vi: ["vi-VN-Wavenet-A", "vi-VN-HoaiMyNeural"],
-};
 const WAVE_BARS = [14, 24, 12, 20, 10, 26, 18, 12, 22, 9, 16, 20];
 
 function findVoice(voiceId: string, language: PracticeLanguage) {
   return (
-    TTS_VOICES.find((voice) => voice.id === voiceId && voice.language === language) ??
+    TTS_VOICES.find(
+      (voice) => voice.id === voiceId && voice.language === language
+    ) ??
     getVoicesForLanguage(language)[0] ??
     TTS_VOICES[0]
   );
 }
 
+function VoiceAvatar({ voice }: { voice: TTSVoice }) {
+  return (
+    <div
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold",
+        voice.gender === "male"
+          ? "border-[#D8D5FF] bg-[#F4F3FF] text-[#3E78EC]"
+          : "border-[#F8D7E7] bg-[#FFF2F7] text-[#C24174]"
+      )}
+    >
+      {voice.gender === "male" ? "M" : "F"}
+    </div>
+  );
+}
+
 function VoiceWaveform({ active }: { active: boolean }) {
   return (
-    <div className="flex h-8 items-end gap-1">
+    <div className="flex h-7 items-end gap-1" aria-hidden="true">
       {WAVE_BARS.map((height, index) => (
         <span
           key={`${height}-${index}`}
           className={cn(
             "block w-1 rounded-full transition-colors",
-            active ? "bg-primary/80" : "bg-primary/25"
+            active ? "bg-[#4D86F7]/80" : "bg-[#BCC6D3]"
           )}
           style={{ height }}
         />
@@ -52,90 +74,25 @@ function VoiceWaveform({ active }: { active: boolean }) {
   );
 }
 
-function VoiceCard(props: {
+function VoiceMeta(props: {
   voice: TTSVoice;
-  selected: boolean;
-  previewing: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-  onPreview: () => void;
   genderLabel: string;
   qualityLabel: string;
 }) {
-  const { voice, selected, previewing, disabled, onSelect, onPreview, genderLabel, qualityLabel } =
-    props;
-
-  function handleSelectKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    onSelect();
-  }
+  const { voice, genderLabel, qualityLabel } = props;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      onClick={onSelect}
-      onKeyDown={handleSelectKeyDown}
-      className={cn(
-        "group relative flex w-full flex-col gap-4 rounded-2xl border p-4 text-left transition-all",
-        selected
-          ? "border-primary/60 bg-primary/5 shadow-[0_18px_35px_-28px_rgba(44,108,246,0.8)]"
-          : "border-outline-variant/20 bg-surface-container-lowest hover:border-primary/25 hover:bg-surface"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-semibold",
-              voice.gender === "male"
-                ? "bg-primary/12 text-primary"
-                : "bg-rose-500/12 text-rose-500"
-            )}
-          >
-            {voice.gender === "male" ? "M" : "F"}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-on-surface">{voice.name}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-on-surface-variant">{genderLabel}</span>
-              {voice.quality === "high" ? (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                  {qualityLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        {selected ? (
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-            <Check className="h-4 w-4" />
-          </div>
-        ) : null}
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <VoiceWaveform active={selected || previewing} />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0 rounded-full border border-outline-variant/20"
-          onClick={(event) => {
-            event.stopPropagation();
-            onPreview();
-          }}
-          disabled={disabled}
-        >
-          {previewing ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#718096]">
+      <span>{genderLabel}</span>
+      <span aria-hidden="true">/</span>
+      <span>{voice.accent}</span>
+      <span aria-hidden="true">/</span>
+      <span className="capitalize">{voice.provider}</span>
+      {voice.quality === "high" ? (
+        <span className="rounded-full bg-[#EAF1FF] px-2 py-0.5 font-medium text-[#3E78EC]">
+          {qualityLabel}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -146,6 +103,7 @@ export function VoiceSettings({
   onVoiceChange,
 }: VoiceSettingsProps) {
   const t = useTranslations("settings");
+  const [query, setQuery] = useState("");
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [loadingVoice, setLoadingVoice] = useState<string | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
@@ -155,25 +113,16 @@ export function VoiceSettings({
     () => getVoicesForLanguage(practiceLanguage),
     [practiceLanguage]
   );
-  const featuredVoiceIds = FEATURED_VOICE_IDS_BY_LANGUAGE[practiceLanguage];
+  const filteredVoices = useMemo(
+    () => filterVoicesForSearch(voicesForLanguage, query),
+    [query, voicesForLanguage]
+  );
 
   const selectedVoice = useMemo(
     () => findVoice(currentVoice, practiceLanguage),
     [currentVoice, practiceLanguage]
   );
   const resolvedVoiceId = selectedVoice.id;
-  const featuredVoices = useMemo(
-    () =>
-      featuredVoiceIds.map((voiceId) => findVoice(voiceId, practiceLanguage)).filter(Boolean),
-    [featuredVoiceIds, practiceLanguage]
-  );
-  const additionalVoices = useMemo(
-    () =>
-      voicesForLanguage.filter(
-        (voice) => !featuredVoiceIds.includes(voice.id)
-      ),
-    [featuredVoiceIds, voicesForLanguage]
-  );
 
   const stopPreview = useCallback(() => {
     if (audioRef.current) {
@@ -272,101 +221,152 @@ export function VoiceSettings({
     }
   }
 
-  function renderVoiceOptionLabel(voice: TTSVoice) {
-    return [
-      voice.name,
-      voice.gender === "male" ? t("voice.male") : t("voice.female"),
-      voice.quality === "high" ? t("voice.high_quality") : null,
-    ]
-      .filter(Boolean)
-      .join(" / ");
+  function getGenderLabel(voice: TTSVoice) {
+    return voice.gender === "male" ? t("voice.male") : t("voice.female");
+  }
+
+  function renderPreviewIcon(voiceId: string) {
+    if (loadingVoice === voiceId) {
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+    }
+
+    if (previewingVoice === voiceId && isPlayingPreview) {
+      return <Pause className="h-4 w-4" />;
+    }
+
+    return <Play className="h-4 w-4" />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 lg:grid-cols-2">
-        {featuredVoices.map((voice) => (
-          <VoiceCard
-            key={voice.id}
-            voice={voice}
-            selected={resolvedVoiceId === voice.id}
-            previewing={previewingVoice === voice.id && isPlayingPreview}
-            disabled={Boolean(loadingVoice && loadingVoice !== voice.id)}
-            onSelect={() => onVoiceChange(voice.id)}
-            onPreview={() => handlePreview(voice.id)}
-            genderLabel={voice.gender === "male" ? t("voice.male") : t("voice.female")}
-            qualityLabel={t("voice.high_quality")}
-          />
-        ))}
-      </div>
-
-      <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
+      <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-surface text-on-surface-variant">
-            <Waves className="h-4 w-4" />
+          <VoiceAvatar voice={selectedVoice} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-normal text-[#8A96A8]">
+              {t("voice.current_voice")}
+            </p>
+            <p className="mt-1 truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+              {selectedVoice.name}
+            </p>
+            <VoiceMeta
+              voice={selectedVoice}
+              genderLabel={getGenderLabel(selectedVoice)}
+              qualityLabel={t("voice.high_quality")}
+            />
           </div>
-          <div className="flex-1 space-y-3">
-            <div>
-              <p className="text-sm font-medium text-on-surface">
-                {t("voice.more_voices")}
-              </p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                {t("voice.more_voices_description")}
-              </p>
-            </div>
+        </div>
 
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <Select
-                value={resolvedVoiceId}
-                onChange={(event) => onVoiceChange(event.target.value)}
-              >
-                {[selectedVoice, ...additionalVoices]
-                  .filter(
-                    (voice, index, voices) =>
-                      voices.findIndex((candidate) => candidate.id === voice.id) === index
-                  )
-                  .map((voice) => (
-                    <option key={voice.id} value={voice.id}>
-                      {renderVoiceOptionLabel(voice)}
-                    </option>
-                  ))}
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-2"
-                onClick={() => handlePreview(resolvedVoiceId)}
-                disabled={Boolean(loadingVoice && previewingVoice !== resolvedVoiceId)}
-              >
-                {previewingVoice === resolvedVoiceId && isPlayingPreview ? (
-                  <Pause className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                {t("voice.preview_button")}
-              </Button>
-            </div>
-          </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <VoiceWaveform
+            active={previewingVoice === resolvedVoiceId && isPlayingPreview}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2 rounded-lg border-[#DEE8F8] bg-white"
+            onClick={() => handlePreview(resolvedVoiceId)}
+            disabled={Boolean(loadingVoice && loadingVoice !== resolvedVoiceId)}
+          >
+            {renderPreviewIcon(resolvedVoiceId)}
+            {t("voice.preview_button")}
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <div>
-            <p className="text-sm font-medium text-on-surface">
-              {t("voice.selected_label")}
-            </p>
-            <p className="text-xs text-on-surface-variant">
-              {selectedVoice.name} / {selectedVoice.gender === "male" ? t("voice.male") : t("voice.female")}
-            </p>
-          </div>
+      <div className="min-w-0 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-[#0B1424] dark:text-on-surface">
+            {t("voice.change_voice")}
+          </p>
+          <InfoHint label={t("voice.search_description")} />
         </div>
-        {selectedVoice.quality === "high" ? (
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-            {t("voice.high_quality")}
-          </span>
-        ) : null}
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A96A8]" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("voice.search_placeholder")}
+            className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white pl-9 pr-3 text-sm font-medium text-[#0B1424] outline-none transition-colors placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-3 focus:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
+          />
+        </div>
+
+        <div className="max-h-[360px] space-y-2 overflow-y-auto rounded-lg bg-white dark:bg-surface-container-lowest">
+          {filteredVoices.length > 0 ? (
+            filteredVoices.map((voice) => {
+              const selected = resolvedVoiceId === voice.id;
+              const previewing = previewingVoice === voice.id && isPlayingPreview;
+
+              return (
+                <div
+                  key={voice.id}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-3 transition-colors",
+                    selected
+                      ? "border-[#4D86F7]/30 bg-[#EAF1FF]"
+                      : "border-transparent bg-[#F7FAFE] hover:border-[#DEE8F8] hover:bg-white dark:bg-surface-container-lowest"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onVoiceChange(voice.id)}
+                    aria-pressed={selected}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <VoiceAvatar voice={voice} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+                          {voice.name}
+                        </p>
+                        {selected ? (
+                          <Check className="h-4 w-4 shrink-0 text-[#3E78EC]" />
+                        ) : null}
+                      </div>
+                      <VoiceMeta
+                        voice={voice}
+                        genderLabel={getGenderLabel(voice)}
+                        qualityLabel={t("voice.high_quality")}
+                      />
+                    </div>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title={t("voice.preview_button")}
+                    className={cn(
+                      "h-9 w-9 shrink-0 rounded-lg border border-[#DEE8F8] bg-white text-[#718096]",
+                      previewing && "text-[#3E78EC]"
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handlePreview(voice.id);
+                    }}
+                    disabled={Boolean(loadingVoice && loadingVoice !== voice.id)}
+                  >
+                    {renderPreviewIcon(voice.id)}
+                  </Button>
+                </div>
+              );
+            })
+          ) : (
+            <div className="flex min-h-32 flex-col items-center justify-center gap-2 px-4 py-8 text-center text-sm text-[#718096]">
+              <Volume2 className="h-5 w-5" />
+              {t("voice.empty_search")}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-[#718096]">
+          <Waves className="h-4 w-4 text-[#4D86F7]" />
+          {t("voice.shown_count", {
+            shown: filteredVoices.length,
+            total: voicesForLanguage.length,
+          })}
+        </div>
       </div>
     </div>
   );

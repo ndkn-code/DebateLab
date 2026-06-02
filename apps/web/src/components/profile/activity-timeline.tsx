@@ -14,15 +14,15 @@ function getDotColor(activityType: string): string {
     case "session_completed":
     case "course_completed":
     case "lesson_completed":
-      return "bg-emerald-500";
+      return "bg-[#34C759]";
     case "session_started":
     case "course_enrolled":
-      return "bg-blue-500";
+      return "bg-[#4D86F7]";
     case "achievement_unlocked":
     case "level_up":
-      return "bg-amber-500";
+      return "bg-[#F5B942]";
     default:
-      return "bg-gray-400";
+      return "bg-[#8A96A8]";
   }
 }
 
@@ -69,16 +69,16 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-6">
-      <h2 className="mb-4 text-base font-semibold text-gray-900">
+    <div className="rounded-2xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)] md:p-6">
+      <h2 className="mb-4 text-base font-semibold text-[#0B1424]">
         {t("recent_activity")}
       </h2>
 
       {activity.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <History className="mb-3 h-8 w-8 text-gray-300" />
-          <p className="text-sm text-gray-500">{t("no_activity")}</p>
-          <p className="mt-1 text-xs text-gray-400">
+          <History className="mb-3 h-8 w-8 text-[#8A96A8]" />
+          <p className="text-sm text-[#718096]">{t("no_activity")}</p>
+          <p className="mt-1 text-xs text-[#8A96A8]">
             {t("no_activity_subtitle")}
           </p>
         </div>
@@ -88,7 +88,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
             <div key={entry.id} className="relative flex gap-4 pb-6 last:pb-0">
               {/* Vertical line */}
               {index < activity.length - 1 && (
-                <div className="absolute left-[7px] top-4 h-full w-px bg-gray-200" />
+                <div className="absolute left-[7px] top-4 h-full w-px bg-[#DEE8F8]" />
               )}
 
               {/* Dot */}
@@ -101,10 +101,10 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-[#415069]">
                   {getDescription(entry)}
                 </p>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="mt-0.5 text-xs text-[#8A96A8]">
                   {formatActivityTime(entry.created_at)}
                 </p>
               </div>

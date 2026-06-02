@@ -1,22 +1,32 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   BellRing,
   BadgeCheck,
   Building2,
   Camera,
   Clock3,
-  Globe2,
+  Eye,
   Loader2,
   LogOut,
+  Mail,
   Save,
   Settings,
-  SlidersHorizontal,
+  Shield,
   Sparkles,
+  Sun,
+  User,
   UserPlus,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
@@ -24,7 +34,9 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { DurationControl } from "@/components/shared/duration-control";
 import { ProductPageHeader } from "@/components/shared/product-layout";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { showToast } from "@/components/shared/toast";
+import { InfoHint } from "@/components/settings/info-hint";
 import { VoiceSettings } from "@/components/settings/voice-settings";
 import {
   claimOrganizationJoinCode,
@@ -37,9 +49,14 @@ import {
   type SettingsDraft,
   type SettingsDraftSnapshot,
   type SettingsLocale,
+  type SettingsProfilePrivacy,
   buildSavedSettingsDraft,
   buildSettingsDraft,
 } from "@/lib/settings";
+import {
+  normalizeSettingsHandleDraft,
+  normalizeSettingsStatusDraft,
+} from "@/lib/profile-social/ui-model";
 import {
   coercePracticeLanguage,
 } from "@/lib/practice-language";
@@ -63,12 +80,32 @@ import {
 
 interface SettingsContentProps {
   profile: Profile | null;
+  profilePrivacySettings?: SettingsProfilePrivacy | null;
   userEmail: string;
   currentLocale: SettingsLocale;
   organizationAffiliation?: OrganizationAffiliationSummary | null;
   organizationJoinCodesEnabled?: boolean;
   leaderboardPrivacyControlsEnabled?: boolean;
   leaderboardPrivacySettings?: LeaderboardPrivacySettings;
+}
+
+type SettingsSectionId =
+  | "profile"
+  | "practice"
+  | "voice"
+  | "privacy"
+  | "discovery"
+  | "leaderboards"
+  | "notifications"
+  | "appearance"
+  | "organization"
+  | "account";
+
+interface SettingsSectionNavItem {
+  id: SettingsSectionId;
+  label: string;
+  group: string;
+  icon: React.ReactNode;
 }
 
 function readStoredSnapshot() {
@@ -111,61 +148,190 @@ function formatInitials(name: string) {
   return tokens.map((token) => token[0]?.toUpperCase() ?? "").join("");
 }
 
-function SettingsCard(props: {
-  icon: React.ReactNode;
+function SectionPanel(props: {
+  id: string;
   title: string;
-  description: string;
-  className?: string;
+  description?: string;
   children: React.ReactNode;
 }) {
-  const { icon, title, description, className, children } = props;
+  const { id, title, description, children } = props;
 
   return (
     <section
-      className={cn(
-        "rounded-[28px] border border-[#dbe5fb] bg-white/90 p-5 shadow-[0_18px_48px_-38px_rgba(34,67,138,0.5)] backdrop-blur dark:border-outline-variant/70 dark:bg-surface/92",
-        className
-      )}
+      id={id}
+      data-settings-section-id={id}
+      aria-labelledby={`${id}-settings-title`}
+      aria-describedby={description ? `${id}-settings-description` : undefined}
+      className="scroll-mt-28 rounded-lg border border-[#DEE8F8] bg-white shadow-[0_18px_50px_-46px_rgba(17,24,39,0.28)] dark:border-outline-variant/70 dark:bg-surface/95"
     >
-      <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf3ff] text-primary dark:bg-primary-container">
-          {icon}
-        </div>
-        <div>
-          <h2 className="text-base font-semibold text-[#172554] dark:text-on-surface">{title}</h2>
-          <p className="mt-1 text-sm text-[#64748b] dark:text-on-surface-variant">{description}</p>
-        </div>
+      <div className="px-5 pb-2 pt-5">
+        <h2
+          id={`${id}-settings-title`}
+          className="text-base font-semibold text-[#0B1424] dark:text-on-surface"
+        >
+          {title}
+        </h2>
+        {description ? (
+          <p id={`${id}-settings-description`} className="sr-only">
+            {description}
+          </p>
+        ) : null}
       </div>
-      {children}
+      <div className="space-y-1 pb-4">{children}</div>
     </section>
   );
 }
 
-function SettingLabel({ children }: { children: React.ReactNode }) {
+function SettingLabel({
+  children,
+  info,
+}: {
+  children: React.ReactNode;
+  info?: string;
+}) {
   return (
-    <label className="mb-2 block text-sm font-medium text-[#1e3a5f] dark:text-on-surface">
-      {children}
+    <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-[#0B1424] dark:text-on-surface">
+      <span>{children}</span>
+      {info ? <InfoHint label={info} /> : null}
     </label>
   );
 }
 
-function ToggleRow(props: {
+function SettingRow(props: {
   title: string;
-  description: string;
+  description?: string;
+  children: React.ReactNode;
+  align?: "center" | "start";
+}) {
+  const { title, description, children, align = "center" } = props;
+
+  return (
+    <div
+      className={cn(
+        "grid gap-4 px-5 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(220px,300px)]",
+        align === "center" ? "sm:items-center" : "sm:items-start"
+      )}
+    >
+      <div className="min-w-0 pr-2">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-[#0B1424] dark:text-on-surface">
+          <span>{title}</span>
+          {description ? <InfoHint label={description} /> : null}
+        </p>
+      </div>
+      <div className="min-w-0 sm:justify-self-end">{children}</div>
+    </div>
+  );
+}
+
+function ToggleControl(props: {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
-  const { title, description, checked, onCheckedChange } = props;
-
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-[#172554] dark:text-on-surface">{title}</p>
-        <p className="mt-1 text-sm text-[#64748b] dark:text-on-surface-variant">{description}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
-    </div>
+    <Switch
+      checked={props.checked}
+      onCheckedChange={props.onCheckedChange}
+    />
   );
+}
+
+const VISIBILITY_OPTIONS: Array<{
+  value: SettingsDraft["profileVisibility"];
+  label: string;
+}> = [
+  {
+    value: "private",
+    label: "Only me",
+  },
+  {
+    value: "connections",
+    label: "Friends",
+  },
+  {
+    value: "public",
+    label: "Everyone",
+  },
+];
+
+const INPUT_CLASSNAME =
+  "h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-medium text-[#0B1424] outline-none transition-colors placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-3 focus:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+
+const SELECT_CLASSNAME =
+  "rounded-lg border-[#DEE8F8] bg-white text-[#0B1424] focus:border-[#4D86F7] focus-visible:ring-[#4D86F7]/20 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+
+type SettingsScrollContainer = HTMLElement | Window;
+
+function isWindowScrollContainer(
+  container: SettingsScrollContainer
+): container is Window {
+  return container === window;
+}
+
+function getSettingsScrollContainer(
+  element: HTMLElement | null
+): SettingsScrollContainer {
+  let current = element?.parentElement ?? null;
+
+  while (current && current !== document.body) {
+    const style = window.getComputedStyle(current);
+    const canScroll = current.scrollHeight > current.clientHeight + 2;
+    const overflowAllowsScroll =
+      style.overflowY === "auto" ||
+      style.overflowY === "scroll" ||
+      style.overflowY === "overlay";
+
+    if (canScroll && overflowAllowsScroll) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return window;
+}
+
+function getScrollContainerTop(container: SettingsScrollContainer) {
+  return isWindowScrollContainer(container) ? window.scrollY : container.scrollTop;
+}
+
+function getScrollContainerHeight(container: SettingsScrollContainer) {
+  return isWindowScrollContainer(container)
+    ? window.innerHeight
+    : container.clientHeight;
+}
+
+function getScrollContainerMaxTop(container: SettingsScrollContainer) {
+  if (isWindowScrollContainer(container)) {
+    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  }
+
+  return Math.max(0, container.scrollHeight - container.clientHeight);
+}
+
+function getElementTopInScrollContainer(
+  element: HTMLElement,
+  container: SettingsScrollContainer
+) {
+  if (isWindowScrollContainer(container)) {
+    return element.getBoundingClientRect().top + window.scrollY;
+  }
+
+  const containerRect = container.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  return elementRect.top - containerRect.top + container.scrollTop;
+}
+
+function coerceSettingsVisibilityDraft(
+  value: unknown,
+  fallback: SettingsDraft["profileVisibility"]
+): SettingsDraft["profileVisibility"] {
+  if (value === "trusted") {
+    return "connections";
+  }
+
+  return VISIBILITY_OPTIONS.some((option) => option.value === value)
+    ? (value as SettingsDraft["profileVisibility"])
+    : fallback;
 }
 
 async function fileToAvatarDataUrl(file: File) {
@@ -227,7 +393,7 @@ function AvatarPreview(props: {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-[26px] border border-white/80 bg-[#edf3ff] shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
+        "overflow-hidden rounded-full border border-[#DEE8F8] bg-[#F1F6FD] shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
         sizeClassName
       )}
     >
@@ -249,6 +415,7 @@ function AvatarPreview(props: {
 
 export function SettingsContent({
   profile,
+  profilePrivacySettings,
   userEmail,
   currentLocale,
   organizationAffiliation,
@@ -258,12 +425,10 @@ export function SettingsContent({
 }: SettingsContentProps) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = useLocale() as SettingsLocale;
   const [isSaving, startSavingTransition] = useTransition();
-  const [isLocalePending, startLocaleTransition] = useTransition();
   const [isOrganizationPending, startOrganizationTransition] = useTransition();
   const [isLeaderboardPrivacyPending, startLeaderboardPrivacyTransition] = useTransition();
+  const rootRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
   const [organizationCode, setOrganizationCode] = useState("");
@@ -275,22 +440,28 @@ export function SettingsContent({
     () =>
       buildSavedSettingsDraft({
         displayName: profile?.display_name,
+        handle: profile?.handle,
+        profileStatus: profile?.profile_status,
         avatarUrl: profile?.avatar_url,
+        profilePrivacy: profilePrivacySettings,
         preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
         currentLocale,
       }),
-    [currentLocale, profile]
+    [currentLocale, profile, profilePrivacySettings]
   );
 
   const serverDraft = useMemo(
     () =>
       buildSettingsDraft({
         displayName: profile?.display_name,
+        handle: profile?.handle,
+        profileStatus: profile?.profile_status,
         avatarUrl: profile?.avatar_url,
+        profilePrivacy: profilePrivacySettings,
         preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
         currentLocale,
       }),
-    [currentLocale, profile]
+    [currentLocale, profile, profilePrivacySettings]
   );
 
   const userId = profile?.id ?? "";
@@ -317,6 +488,58 @@ export function SettingsContent({
       );
       setDraft({
         ...snapshot.draft,
+        handle:
+          typeof snapshot.draft.handle === "string"
+            ? snapshot.draft.handle
+            : serverDraft.handle,
+        profileStatus:
+          typeof snapshot.draft.profileStatus === "string"
+            ? snapshot.draft.profileStatus
+            : serverDraft.profileStatus,
+        profileVisibility:
+          typeof snapshot.draft.profileVisibility === "string"
+            ? coerceSettingsVisibilityDraft(
+                snapshot.draft.profileVisibility,
+                serverDraft.profileVisibility
+              )
+            : serverDraft.profileVisibility,
+        analyticsVisibility:
+          typeof snapshot.draft.analyticsVisibility === "string"
+            ? coerceSettingsVisibilityDraft(
+                snapshot.draft.analyticsVisibility,
+                serverDraft.analyticsVisibility
+              )
+            : serverDraft.analyticsVisibility,
+        activitiesVisibility:
+          typeof snapshot.draft.activitiesVisibility === "string"
+            ? coerceSettingsVisibilityDraft(
+                snapshot.draft.activitiesVisibility,
+                serverDraft.activitiesVisibility
+              )
+            : serverDraft.activitiesVisibility,
+        achievementsVisibility:
+          typeof snapshot.draft.achievementsVisibility === "string"
+            ? coerceSettingsVisibilityDraft(
+                snapshot.draft.achievementsVisibility,
+                serverDraft.achievementsVisibility
+              )
+            : serverDraft.achievementsVisibility,
+        organizationVisibility:
+          typeof snapshot.draft.organizationVisibility === "string"
+            ? coerceSettingsVisibilityDraft(
+                snapshot.draft.organizationVisibility,
+                serverDraft.organizationVisibility
+              )
+            : serverDraft.organizationVisibility,
+        allowConnectionRequests:
+          typeof snapshot.draft.allowConnectionRequests === "boolean"
+            ? snapshot.draft.allowConnectionRequests
+            : serverDraft.allowConnectionRequests,
+        searchableByHandle:
+          typeof snapshot.draft.searchableByHandle === "boolean"
+            ? snapshot.draft.searchableByHandle
+            : serverDraft.searchableByHandle,
+        friendCodeDiscoveryEnabled: true,
         practiceLanguage,
         ttsVoice: coerceVoiceForLanguage(
           snapshot.draft.ttsVoice,
@@ -344,6 +567,105 @@ export function SettingsContent({
     [effectiveSavedDraft]
   );
   const isDirty = draftSignature !== savedDraftSignature;
+  const profilePreviewHref = effectiveSavedDraft.handle
+    ? `/profile/${effectiveSavedDraft.handle}?preview=public`
+    : "/profile?preview=public";
+  const settingsSections = useMemo<SettingsSectionNavItem[]>(
+    () => [
+      {
+        id: "profile",
+        label: "Profile",
+        group: "Account",
+        icon: <User className="h-4 w-4" />,
+      },
+      {
+        id: "practice",
+        label: "Practice",
+        group: "Preferences",
+        icon: <Clock3 className="h-4 w-4" />,
+      },
+      {
+        id: "voice",
+        label: "AI Voice",
+        group: "Preferences",
+        icon: <Sparkles className="h-4 w-4" />,
+      },
+      {
+        id: "privacy",
+        label: "Privacy",
+        group: "Profile Safety",
+        icon: <Shield className="h-4 w-4" />,
+      },
+      {
+        id: "discovery",
+        label: "Discovery",
+        group: "Profile Safety",
+        icon: <UserPlus className="h-4 w-4" />,
+      },
+      ...(leaderboardPrivacyControlsEnabled && leaderboardPrivacy
+        ? [
+            {
+              id: "leaderboards" as const,
+              label: "Leaderboards",
+              group: "Profile Safety",
+              icon: <BadgeCheck className="h-4 w-4" />,
+            },
+          ]
+        : []),
+      {
+        id: "notifications",
+        label: "Notifications",
+        group: "Experience",
+        icon: <BellRing className="h-4 w-4" />,
+      },
+      {
+        id: "appearance",
+        label: "Appearance",
+        group: "Experience",
+        icon: <Sun className="h-4 w-4" />,
+      },
+      {
+        id: "organization",
+        label: "Organization",
+        group: "Account",
+        icon: <Building2 className="h-4 w-4" />,
+      },
+      {
+        id: "account",
+        label: "Account Actions",
+        group: "Account",
+        icon: <LogOut className="h-4 w-4" />,
+      },
+    ],
+    [leaderboardPrivacy, leaderboardPrivacyControlsEnabled]
+  );
+  const settingsSectionGroups = useMemo(() => {
+    const groups: Array<{
+      group: string;
+      sections: SettingsSectionNavItem[];
+    }> = [];
+
+    for (const section of settingsSections) {
+      const previousGroup = groups[groups.length - 1];
+      if (previousGroup?.group === section.group) {
+        previousGroup.sections.push(section);
+      } else {
+        groups.push({ group: section.group, sections: [section] });
+      }
+    }
+
+    return groups;
+  }, [settingsSections]);
+  const [activeSection, setActiveSection] =
+    useState<SettingsSectionId>("profile");
+  const manualActiveSectionRef = useRef<SettingsSectionId | null>(null);
+  const getSectionElement = useCallback((sectionId: SettingsSectionId) => {
+    return (
+      rootRef.current?.querySelector<HTMLElement>(
+        `[data-settings-section-id="${sectionId}"]`
+      ) ?? null
+    );
+  }, []);
 
   useEffect(() => {
     if (!hasHydratedStoredDraft || !userId || typeof window === "undefined") {
@@ -362,6 +684,147 @@ export function SettingsContent({
     );
   }, [draft, effectiveSavedDraft, hasHydratedStoredDraft, userId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let frame = 0;
+    const firstSectionElement = getSectionElement(settingsSections[0].id);
+    const scrollContainer = getSettingsScrollContainer(firstSectionElement);
+
+    function updateActiveSection() {
+      frame = 0;
+      const manualActiveSection = manualActiveSectionRef.current;
+      const containerHeight = getScrollContainerHeight(scrollContainer);
+      const containerRect = isWindowScrollContainer(scrollContainer)
+        ? { top: 0, bottom: window.innerHeight }
+        : scrollContainer.getBoundingClientRect();
+
+      if (manualActiveSection) {
+        const manualElement = getSectionElement(manualActiveSection);
+        const manualRect = manualElement?.getBoundingClientRect();
+        const visibleHeight = manualRect
+          ? Math.min(manualRect.bottom, containerRect.bottom) -
+            Math.max(manualRect.top, containerRect.top)
+          : 0;
+
+        if (
+          manualRect &&
+          visibleHeight > Math.min(manualRect.height, containerHeight) * 0.12
+        ) {
+          setActiveSection(manualActiveSection);
+          return;
+        }
+      }
+
+      manualActiveSectionRef.current = null;
+      const scrollTop = getScrollContainerTop(scrollContainer);
+      const maxTop = getScrollContainerMaxTop(scrollContainer);
+      if (scrollTop >= maxTop - 2) {
+        for (const section of [...settingsSections].reverse()) {
+          const element = getSectionElement(section.id);
+          if (!element) continue;
+
+          const rect = element.getBoundingClientRect();
+          if (
+            rect.bottom > containerRect.top + 8 &&
+            rect.top < containerRect.bottom - 8
+          ) {
+            setActiveSection(section.id);
+            return;
+          }
+        }
+      }
+
+      const anchorY =
+        scrollTop + Math.min(containerHeight * 0.28, 240);
+      let nextSection = settingsSections[0].id;
+
+      for (const section of settingsSections) {
+        const element = getSectionElement(section.id);
+        if (!element) continue;
+
+        const sectionTop = getElementTopInScrollContainer(
+          element,
+          scrollContainer
+        );
+        if (sectionTop <= anchorY + 1) {
+          nextSection = section.id;
+          continue;
+        }
+
+        break;
+      }
+
+      setActiveSection(nextSection);
+    }
+
+    function scheduleActiveSectionUpdate() {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateActiveSection);
+    }
+
+    function clearManualActiveSection() {
+      if (!manualActiveSectionRef.current) return;
+      manualActiveSectionRef.current = null;
+      scheduleActiveSectionUpdate();
+    }
+
+    updateActiveSection();
+    scrollContainer.addEventListener("scroll", scheduleActiveSectionUpdate, {
+      passive: true,
+    });
+    window.addEventListener("wheel", clearManualActiveSection, {
+      passive: true,
+    });
+    window.addEventListener("touchmove", clearManualActiveSection, {
+      passive: true,
+    });
+    window.addEventListener("keydown", clearManualActiveSection);
+    window.addEventListener("resize", scheduleActiveSectionUpdate);
+
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+      scrollContainer.removeEventListener("scroll", scheduleActiveSectionUpdate);
+      window.removeEventListener("wheel", clearManualActiveSection);
+      window.removeEventListener("touchmove", clearManualActiveSection);
+      window.removeEventListener("keydown", clearManualActiveSection);
+      window.removeEventListener("resize", scheduleActiveSectionUpdate);
+    };
+  }, [getSectionElement, settingsSections]);
+
+  function scrollToSection(sectionId: SettingsSectionId) {
+    const element = getSectionElement(sectionId);
+    if (!element || typeof window === "undefined") {
+      return;
+    }
+
+    const scrollContainer = getSettingsScrollContainer(element);
+    const offset = window.innerWidth >= 1024 ? 24 : 92;
+    const rawTop =
+      getElementTopInScrollContainer(element, scrollContainer) - offset;
+    const top = Math.min(
+      Math.max(0, rawTop),
+      getScrollContainerMaxTop(scrollContainer)
+    );
+
+    let ancestor = isWindowScrollContainer(scrollContainer)
+      ? null
+      : scrollContainer.parentElement;
+    while (ancestor && ancestor !== document.body) {
+      const style = window.getComputedStyle(ancestor);
+      if (style.overflowY === "hidden") {
+        ancestor.scrollTop = 0;
+      }
+      ancestor = ancestor.parentElement;
+    }
+
+    manualActiveSectionRef.current = sectionId;
+    setActiveSection(sectionId);
+    scrollContainer.scrollTo({ top, behavior: "auto" });
+  }
+
   function updateDraft<K extends keyof SettingsDraft>(
     key: K,
     value: SettingsDraft[K]
@@ -370,23 +833,6 @@ export function SettingsContent({
       ...current,
       [key]: value,
     }));
-  }
-
-  function handleLocaleChange(nextLocale: SettingsLocale) {
-    const practiceLanguage = coercePracticeLanguage(nextLocale);
-    setDraft((current) => ({
-      ...current,
-      preferredLocale: nextLocale,
-      practiceLanguage,
-      ttsVoice: coerceVoiceForLanguage(current.ttsVoice, practiceLanguage),
-    }));
-    if (nextLocale === locale) {
-      return;
-    }
-
-    startLocaleTransition(() => {
-      router.replace(pathname, { locale: nextLocale });
-    });
   }
 
   async function handleAvatarFileChange(
@@ -505,447 +951,643 @@ export function SettingsContent({
   }
 
   return (
-    <div className="min-h-full bg-[linear-gradient(180deg,#f6f8fc_0%,#f8fbff_55%,#f3f7ff_100%)] dark:bg-[linear-gradient(180deg,#070b12_0%,#0b111c_55%,#080c13_100%)]">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div
+      ref={rootRef}
+      className="min-h-full bg-[#F7FAFE] text-[#0B1424] dark:bg-background dark:text-on-surface"
+    >
+      <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
         <ProductPageHeader
           title={t("headline")}
           icon={<Settings />}
+          className="mb-4"
           actions={
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={!isDirty || isSaving}
-              className="gap-2 rounded-2xl bg-primary px-5 text-white shadow-[0_18px_35px_-28px_rgba(44,108,246,0.9)]"
-            >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {t("save_changes")}
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-sm text-[#718096] sm:inline">
+                {isDirty ? t("status.unsaved") : t("status.saved")}
+              </span>
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={!isDirty || isSaving}
+                className="gap-2 rounded-lg bg-[#4D86F7] px-4 text-white shadow-[0_14px_30px_-24px_rgba(77,134,247,0.95)] hover:bg-[#3E78EC]"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {t("save_changes")}
+              </Button>
+            </div>
           }
         />
 
-        <section className="mb-5 rounded-[30px] border border-[#dbe5fb] bg-white/95 p-5 shadow-[0_25px_60px_-45px_rgba(29,78,216,0.55)] dark:border-outline-variant/70 dark:bg-surface/95">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative shrink-0">
-              <AvatarPreview
-                avatarUrl={draft.avatarUrl}
-                displayName={draft.displayName}
-                sizeClassName="h-24 w-24"
-                textClassName="text-2xl"
-              />
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                capture="user"
-                onChange={handleAvatarFileChange}
-                className="sr-only"
-              />
+        <div className="sticky top-0 z-20 -mx-4 mb-5 border-y border-[#DEE8F8] bg-[#F7FAFE]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {settingsSections.map((section) => (
               <button
+                key={section.id}
                 type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={isAvatarProcessing}
-                aria-label={t("avatar_upload")}
-                className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-[0_12px_28px_-18px_rgba(44,108,246,0.9)] transition hover:bg-primary/90 disabled:opacity-70"
-              >
-                {isAvatarProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
+                onClick={() => scrollToSection(section.id)}
+                aria-current={activeSection === section.id ? "page" : undefined}
+                className={cn(
+                  "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
+                  activeSection === section.id
+                    ? "bg-[#EAF1FF] text-[#3E78EC]"
+                    : "text-[#718096] hover:bg-white hover:text-[#0B1424]"
                 )}
+              >
+                {section.icon}
+                {section.label}
               </button>
-            </div>
-
-            <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#edf3ff] px-3 py-1 text-xs font-medium text-primary dark:bg-primary-container">
-                    {t(`languages.${draft.preferredLocale}`)}
-                  </span>
-                </div>
-                <SettingLabel>{t("fields.display_name")}</SettingLabel>
-                <input
-                  type="text"
-                  value={draft.displayName}
-                  onChange={(event) =>
-                    updateDraft("displayName", event.target.value)
-                  }
-                  placeholder={t("fields.display_name_placeholder")}
-                  className="h-11 w-full max-w-xl rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-medium text-[#172554] outline-none transition-colors focus:border-primary dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
-                />
-                <p className="mt-2 truncate text-sm text-[#64748b] dark:text-on-surface-variant">{userEmail}</p>
-                <p className="mt-2 max-w-2xl text-sm text-[#64748b] dark:text-on-surface-variant">
-                  {t("hero_summary")}
-                </p>
-              </div>
-
-              <div className="hidden rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant lg:block lg:max-w-xs">
-                {isDirty ? t("status.unsaved") : t("status.saved")}
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        <div className="grid gap-5 xl:grid-cols-3">
-          <SettingsCard
-            icon={<Clock3 className="h-5 w-5" />}
-            title={t("cards.practice.title")}
-            description={t("cards.practice.description")}
-          >
-            <div className="space-y-4">
-              <DurationControl
-                label={t("fields.default_prep_time")}
-                value={draft.defaultPrepTime}
-                config={SOLO_PREP_DURATION}
-                onChange={(seconds) => updateDraft("defaultPrepTime", seconds)}
-                helper={t("duration_helper.prep")}
-                compact
-              />
-
-              <DurationControl
-                label={t("fields.default_speech_time")}
-                value={draft.defaultSpeechTime}
-                config={SOLO_SPEECH_DURATION}
-                onChange={(seconds) => updateDraft("defaultSpeechTime", seconds)}
-                helper={t("duration_helper.speech")}
-                compact
-              />
-
-              <div>
-                <SettingLabel>{t("fields.default_difficulty")}</SettingLabel>
-                <Select
-                  value={draft.defaultDifficulty}
-                  onChange={(event) =>
-                    updateDraft(
-                      "defaultDifficulty",
-                      event.target.value as SettingsDraft["defaultDifficulty"]
-                    )
-                  }
+        <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="hidden lg:block">
+            <nav className="sticky top-6 rounded-lg border border-[#DEE8F8] bg-white p-3 shadow-[0_18px_50px_-42px_rgba(17,24,39,0.35)] dark:border-outline-variant/70 dark:bg-surface/95">
+              {settingsSectionGroups.map((group, groupIndex) => (
+                <div
+                  key={`${group.group}-${groupIndex}`}
+                  className="mt-5 first:mt-0"
                 >
-                  {AI_DIFFICULTY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {t(`difficulty.${option}`)}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            icon={<Globe2 className="h-5 w-5" />}
-            title={t("cards.language.title")}
-            description={t("cards.language.description")}
-          >
-            <div className="space-y-4">
-              <div>
-                <SettingLabel>{t("fields.app_language")}</SettingLabel>
-                <Select
-                  value={draft.preferredLocale}
-                  onChange={(event) =>
-                    handleLocaleChange(event.target.value as SettingsLocale)
-                  }
-                  disabled={isLocalePending}
-                >
-                  <option value="en">{t("languages.en")}</option>
-                  <option value="vi">{t("languages.vi")}</option>
-                </Select>
-              </div>
-              <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
-                {isLocalePending
-                  ? t("language_switching")
-                  : t("language_hint")}
-              </div>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            icon={<Sparkles className="h-5 w-5" />}
-            title={t("cards.voice.title")}
-            description={t("cards.voice.description")}
-            className="xl:col-span-2"
-          >
-            <VoiceSettings
-              currentVoice={draft.ttsVoice}
-              practiceLanguage={draft.practiceLanguage}
-              onVoiceChange={(voiceId) => updateDraft("ttsVoice", voiceId)}
-            />
-          </SettingsCard>
-
-          <SettingsCard
-            icon={<Building2 className="h-5 w-5" />}
-            title="Organization"
-            description="Your verified school, club, or training center for leaderboard ranking."
-          >
-            {organizationAffiliation ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 rounded-2xl border border-[#dbe5fb] bg-[#fbfdff] p-3 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#edf3ff] text-primary dark:bg-primary-container">
-                    {organizationAffiliation.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={organizationAffiliation.logoUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Building2 className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#172554] dark:text-on-surface">
-                      {organizationAffiliation.name}
-                    </p>
-                    <p className="mt-1 truncate text-xs font-medium text-[#64748b] dark:text-on-surface-variant">
-                      {organizationAffiliation.subtitle}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7fbff] px-3 py-2 dark:bg-surface-container-lowest">
-                    <span className="text-[#64748b] dark:text-on-surface-variant">Status</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f8ee] px-2 py-1 text-xs font-bold text-[#177245]">
-                      <BadgeCheck className="h-3.5 w-3.5" />
-                      Verified
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f7fbff] px-3 py-2 dark:bg-surface-container-lowest">
-                    <span className="text-[#64748b] dark:text-on-surface-variant">Role</span>
-                    <span className="text-xs font-bold capitalize text-[#172554] dark:text-on-surface">
-                      {organizationAffiliation.role}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-[#edf2fb] bg-[#fbfdff] px-4 py-3 text-sm text-[#64748b] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
-                  No verified organization yet.
-                </div>
-                {organizationJoinCodesEnabled ? (
-                  <div className="space-y-3">
-                    <div>
-                      <SettingLabel>Organization code</SettingLabel>
-                      <input
-                        type="text"
-                        value={organizationCode}
-                        onChange={(event) =>
-                          setOrganizationCode(
-                            formatOrganizationJoinCode(event.target.value).slice(0, 19)
-                          )
+                  <p className="px-2 text-xs font-semibold uppercase tracking-normal text-[#8A96A8]">
+                    {group.group}
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {group.sections.map((section) => (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => scrollToSection(section.id)}
+                        aria-current={
+                          activeSection === section.id ? "page" : undefined
                         }
-                        placeholder="ABCD-1234"
-                        className="h-11 w-full rounded-2xl border border-[#d8e3f8] bg-[#fbfdff] px-4 text-sm font-bold tracking-[0.12em] text-[#172554] outline-none transition-colors placeholder:tracking-normal focus:border-primary dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
-                      />
-                    </div>
-                    <Button
+                        className={cn(
+                          "flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-medium transition-colors",
+                          activeSection === section.id
+                            ? "bg-[#EAF1FF] text-[#3E78EC]"
+                            : "text-[#718096] hover:bg-[#F7FAFE] hover:text-[#0B1424]"
+                        )}
+                      >
+                        {section.icon}
+                        <span className="truncate">{section.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </aside>
+
+          <main className="space-y-5 pb-16">
+            <SectionPanel
+              id="profile"
+              title="Profile"
+              description="Control the identity details classmates see across profiles, duels, and leaderboards."
+            >
+              <div className="px-5 py-5">
+                <div className="mb-5 flex justify-end">
+                  <Link
+                    href={profilePreviewHref}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#0B1424] transition hover:bg-[#F7FAFE] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
+                  >
+                    <Eye className="h-4 w-4 text-[#4D86F7]" />
+                    Preview public profile
+                  </Link>
+                </div>
+                <div className="grid gap-5 lg:grid-cols-[104px_minmax(0,1fr)]">
+                  <div className="relative h-fit w-fit">
+                    <AvatarPreview
+                      avatarUrl={draft.avatarUrl}
+                      displayName={draft.displayName}
+                      sizeClassName="h-24 w-24"
+                      textClassName="text-2xl"
+                    />
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="user"
+                      onChange={handleAvatarFileChange}
+                      className="sr-only"
+                    />
+                    <button
                       type="button"
-                      onClick={handleClaimOrganizationCode}
-                      disabled={
-                        isOrganizationPending ||
-                        !isUsableOrganizationJoinCode(organizationCode)
-                      }
-                      className="w-full gap-2 rounded-2xl bg-primary text-white"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isAvatarProcessing}
+                      aria-label={t("avatar_upload")}
+                      className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#4D86F7] text-white shadow-[0_12px_28px_-18px_rgba(77,134,247,0.95)] transition hover:bg-[#3E78EC] disabled:opacity-70"
                     >
-                      {isOrganizationPending ? (
+                      {isAvatarProcessing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <UserPlus className="h-4 w-4" />
+                        <Camera className="h-4 w-4" />
                       )}
-                      Join Organization
-                    </Button>
+                    </button>
                   </div>
-                ) : null}
-              </div>
-            )}
-          </SettingsCard>
 
-          {leaderboardPrivacyControlsEnabled && leaderboardPrivacy ? (
-            <SettingsCard
-              icon={<BadgeCheck className="h-5 w-5" />}
-              title="Leaderboard privacy"
-              description="Control how you appear in weekly league and organization rankings."
+                  <div className="min-w-0 space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <SettingLabel>{t("fields.display_name")}</SettingLabel>
+                        <input
+                          type="text"
+                          value={draft.displayName}
+                          onChange={(event) =>
+                            updateDraft("displayName", event.target.value)
+                          }
+                          placeholder={t("fields.display_name_placeholder")}
+                          className={INPUT_CLASSNAME}
+                        />
+                      </div>
+                      <div>
+                        <SettingLabel>Email</SettingLabel>
+                        <div className="flex h-11 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm font-medium text-[#718096] dark:border-outline-variant/70 dark:bg-surface-container-lowest">
+                          <Mail className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{userEmail}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
+                      <div>
+                        <SettingLabel info={t("fields.handle_helper")}>
+                          {t("fields.handle")}
+                        </SettingLabel>
+                        <div className="flex h-11 items-center rounded-lg border border-[#DEE8F8] bg-white text-sm font-medium text-[#0B1424] transition-colors focus-within:border-[#4D86F7] focus-within:ring-3 focus-within:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface">
+                          <span className="pl-3 pr-1 text-[#718096]">@</span>
+                          <input
+                            type="text"
+                            value={draft.handle}
+                            onChange={(event) =>
+                              updateDraft(
+                                "handle",
+                                normalizeSettingsHandleDraft(event.target.value)
+                              )
+                            }
+                            placeholder={t("fields.handle_placeholder")}
+                            className="h-full min-w-0 flex-1 bg-transparent pr-3 outline-none placeholder:text-[#8A96A8]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <SettingLabel info={t("fields.profile_status_helper")}>
+                          {t("fields.profile_status")}
+                        </SettingLabel>
+                        <input
+                          type="text"
+                          value={draft.profileStatus}
+                          maxLength={140}
+                          onChange={(event) =>
+                            updateDraft(
+                              "profileStatus",
+                              normalizeSettingsStatusDraft(event.target.value)
+                            )
+                          }
+                          placeholder={t("fields.profile_status_placeholder")}
+                          className={INPUT_CLASSNAME}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SectionPanel>
+
+            <SectionPanel
+              id="practice"
+              title="Practice"
+              description="Set the defaults and feedback style used when you start a new round."
             >
-              <div className="space-y-4">
+              <div className="grid gap-4 px-5 py-4 lg:grid-cols-3">
+                <DurationControl
+                  label={t("fields.default_prep_time")}
+                  value={draft.defaultPrepTime}
+                  config={SOLO_PREP_DURATION}
+                  onChange={(seconds) => updateDraft("defaultPrepTime", seconds)}
+                  compact
+                />
+                <DurationControl
+                  label={t("fields.default_speech_time")}
+                  value={draft.defaultSpeechTime}
+                  config={SOLO_SPEECH_DURATION}
+                  onChange={(seconds) =>
+                    updateDraft("defaultSpeechTime", seconds)
+                  }
+                  compact
+                />
                 <div>
-                  <SettingLabel>Public display</SettingLabel>
+                  <SettingLabel>{t("fields.default_difficulty")}</SettingLabel>
+                  <Select
+                    value={draft.defaultDifficulty}
+                    onChange={(event) =>
+                      updateDraft(
+                        "defaultDifficulty",
+                        event.target.value as SettingsDraft["defaultDifficulty"]
+                      )
+                    }
+                    className={SELECT_CLASSNAME}
+                  >
+                    {AI_DIFFICULTY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(`difficulty.${option}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            </SectionPanel>
+
+            <SectionPanel
+              id="voice"
+              title="AI Voice"
+              description="Choose one voice for rebuttals, coaching playback, and spoken prompts."
+            >
+              <div className="px-5 py-5">
+                <VoiceSettings
+                  currentVoice={draft.ttsVoice}
+                  practiceLanguage={draft.practiceLanguage}
+                  onVoiceChange={(voiceId) => updateDraft("ttsVoice", voiceId)}
+                />
+              </div>
+            </SectionPanel>
+
+            <SectionPanel
+              id="privacy"
+              title="Privacy"
+              description="Choose what parts of your profile can be shown to other authenticated students."
+            >
+              {[
+                {
+                  key: "profileVisibility" as const,
+                  title: "Profile shell",
+                  description:
+                    "Your safe profile basics: name, handle, avatar, status, and compact stats.",
+                },
+                {
+                  key: "analyticsVisibility" as const,
+                  title: "Analytics",
+                  description:
+                    "Aggregate growth stats only. Raw sessions and detailed reviews stay private.",
+                },
+                {
+                  key: "activitiesVisibility" as const,
+                  title: "Activities",
+                  description:
+                    "Safe activity feed items such as practice, duels, courses, and XP moments.",
+                },
+                {
+                  key: "achievementsVisibility" as const,
+                  title: "Achievements",
+                  description:
+                    "Unlocked badges and featured achievements on your public profile.",
+                },
+                {
+                  key: "organizationVisibility" as const,
+                  title: "Organization",
+                  description:
+                    "Your verified school, club, or class summary when a profile is visible.",
+                },
+              ].map((item) => (
+                <SettingRow
+                  key={item.key}
+                  title={item.title}
+                  description={item.description}
+                  align="start"
+                >
+                  <Select
+                    value={draft[item.key]}
+                    onChange={(event) =>
+                      updateDraft(
+                        item.key,
+                        event.target.value as SettingsDraft["profileVisibility"]
+                      )
+                    }
+                    className={SELECT_CLASSNAME}
+                  >
+                    {VISIBILITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </SettingRow>
+              ))}
+            </SectionPanel>
+
+            <SectionPanel
+              id="discovery"
+              title="Discovery"
+              description="Control how classmates can find you and start mutual friend requests."
+            >
+              <SettingRow
+                title="Allow friend requests"
+                description="Other students can request a mutual connection from your profile or friend search."
+              >
+                <ToggleControl
+                  checked={draft.allowConnectionRequests}
+                  onCheckedChange={(checked) =>
+                    updateDraft("allowConnectionRequests", checked)
+                  }
+                />
+              </SettingRow>
+              <SettingRow
+                title="Search by handle"
+                description="Let authenticated students find you by your exact @handle."
+              >
+                <ToggleControl
+                  checked={draft.searchableByHandle}
+                  onCheckedChange={(checked) =>
+                    updateDraft("searchableByHandle", checked)
+                  }
+                />
+              </SettingRow>
+            </SectionPanel>
+
+            {leaderboardPrivacyControlsEnabled && leaderboardPrivacy ? (
+              <SectionPanel
+                id="leaderboards"
+                title="Leaderboards"
+                description="Control how you appear in weekly league and organization rankings."
+              >
+                <SettingRow
+                  title="Public display"
+                  description="Choose the identity treatment shown beside leaderboard scores."
+                  align="start"
+                >
                   <Select
                     value={leaderboardPrivacy.displayMode}
                     onChange={(event) =>
                       updateLeaderboardPrivacyDraft({
-                        displayMode: event.target.value as LeaderboardDisplayMode,
+                        displayMode: event.target
+                          .value as LeaderboardDisplayMode,
                       })
                     }
+                    className={SELECT_CLASSNAME}
                   >
                     <option value="public_name">Show my display name</option>
                     <option value="initials_only">Show initials only</option>
                     <option value="hidden">Hide my identity</option>
                   </Select>
-                </div>
-                <ToggleRow
+                </SettingRow>
+                <SettingRow
                   title="Allow encouragement"
                   description="Other students can send lightweight kudos that never affect rank."
-                  checked={leaderboardPrivacy.allowKudos}
-                  onCheckedChange={(checked) =>
-                    updateLeaderboardPrivacyDraft({ allowKudos: checked })
-                  }
-                />
-                <ToggleRow
+                >
+                  <ToggleControl
+                    checked={leaderboardPrivacy.allowKudos}
+                    onCheckedChange={(checked) =>
+                      updateLeaderboardPrivacyDraft({ allowKudos: checked })
+                    }
+                  />
+                </SettingRow>
+                <SettingRow
                   title="Show organization"
                   description="Let leaderboard surfaces connect your rank with your verified organization."
-                  checked={leaderboardPrivacy.showOrganization}
-                  onCheckedChange={(checked) =>
-                    updateLeaderboardPrivacyDraft({ showOrganization: checked })
-                  }
-                />
-                <ToggleRow
+                >
+                  <ToggleControl
+                    checked={leaderboardPrivacy.showOrganization}
+                    onCheckedChange={(checked) =>
+                      updateLeaderboardPrivacyDraft({
+                        showOrganization: checked,
+                      })
+                    }
+                  />
+                </SettingRow>
+                <SettingRow
                   title="Appear on leaderboards"
                   description="When off, future leaderboard reads use private display treatment where supported."
-                  checked={leaderboardPrivacy.participateInLeaderboards}
-                  onCheckedChange={(checked) =>
-                    updateLeaderboardPrivacyDraft({
-                      participateInLeaderboards: checked,
-                    })
-                  }
-                />
-                <Button
-                  type="button"
-                  onClick={handleSaveLeaderboardPrivacy}
-                  disabled={isLeaderboardPrivacyPending}
-                  className="w-full gap-2 rounded-2xl bg-primary text-white"
                 >
-                  {isLeaderboardPrivacyPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  Save Leaderboard Privacy
-                </Button>
-              </div>
-            </SettingsCard>
-          ) : null}
+                  <ToggleControl
+                    checked={leaderboardPrivacy.participateInLeaderboards}
+                    onCheckedChange={(checked) =>
+                      updateLeaderboardPrivacyDraft({
+                        participateInLeaderboards: checked,
+                      })
+                    }
+                  />
+                </SettingRow>
+                <div className="flex justify-end px-5 py-4">
+                  <Button
+                    type="button"
+                    onClick={handleSaveLeaderboardPrivacy}
+                    disabled={isLeaderboardPrivacyPending}
+                    className="gap-2 rounded-lg bg-[#4D86F7] px-4 text-white hover:bg-[#3E78EC]"
+                  >
+                    {isLeaderboardPrivacyPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save leaderboard privacy
+                  </Button>
+                </div>
+              </SectionPanel>
+            ) : null}
 
-          <SettingsCard
-            icon={<SlidersHorizontal className="h-5 w-5" />}
-            title={t("cards.preferences.title")}
-            description={t("cards.preferences.description")}
-            className="xl:col-span-2"
-          >
-            <div className="space-y-3">
-              <ToggleRow
-                title={t("toggles.detailed_feedback.title")}
-                description={t("toggles.detailed_feedback.description")}
-                checked={draft.detailedFeedback}
-                onCheckedChange={(checked) =>
-                  updateDraft("detailedFeedback", checked)
-                }
-              />
-              <ToggleRow
-                title={t("toggles.highlight_weak_areas.title")}
-                description={t("toggles.highlight_weak_areas.description")}
-                checked={draft.highlightWeakAreas}
-                onCheckedChange={(checked) =>
-                  updateDraft("highlightWeakAreas", checked)
-                }
-              />
-              <ToggleRow
-                title={t("toggles.explain_like_im_learning.title")}
-                description={t("toggles.explain_like_im_learning.description")}
-                checked={draft.explainLikeImLearning}
-                onCheckedChange={(checked) =>
-                  updateDraft("explainLikeImLearning", checked)
-                }
-              />
-              <ToggleRow
-                title={t("toggles.advanced_terminology.title")}
-                description={t("toggles.advanced_terminology.description")}
-                checked={draft.advancedTerminology}
-                onCheckedChange={(checked) =>
-                  updateDraft("advancedTerminology", checked)
-                }
-              />
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            icon={<BellRing className="h-5 w-5" />}
-            title={t("cards.notifications.title")}
-            description={t("cards.notifications.description")}
-          >
-            <div className="space-y-3">
-              <ToggleRow
+            <SectionPanel
+              id="notifications"
+              title="Notifications"
+              description="Keep momentum without turning the app into a notification machine."
+            >
+              <SettingRow
                 title={t("toggles.practice_reminders.title")}
                 description={t("toggles.practice_reminders.description")}
-                checked={draft.practiceReminders}
-                onCheckedChange={(checked) =>
-                  updateDraft("practiceReminders", checked)
-                }
-              />
-              <ToggleRow
+              >
+                <ToggleControl
+                  checked={draft.practiceReminders}
+                  onCheckedChange={(checked) =>
+                    updateDraft("practiceReminders", checked)
+                  }
+                />
+              </SettingRow>
+              <SettingRow
                 title={t("toggles.streak_reminders.title")}
                 description={t("toggles.streak_reminders.description")}
-                checked={draft.streakReminders}
-                onCheckedChange={(checked) =>
-                  updateDraft("streakReminders", checked)
-                }
-              />
-              <ToggleRow
+              >
+                <ToggleControl
+                  checked={draft.streakReminders}
+                  onCheckedChange={(checked) =>
+                    updateDraft("streakReminders", checked)
+                  }
+                />
+              </SettingRow>
+              <SettingRow
                 title={t("toggles.achievement_updates.title")}
                 description={t("toggles.achievement_updates.description")}
-                checked={draft.achievementUpdates}
-                onCheckedChange={(checked) =>
-                  updateDraft("achievementUpdates", checked)
-                }
-              />
-              <ToggleRow
+              >
+                <ToggleControl
+                  checked={draft.achievementUpdates}
+                  onCheckedChange={(checked) =>
+                    updateDraft("achievementUpdates", checked)
+                  }
+                />
+              </SettingRow>
+              <SettingRow
                 title={t("toggles.smart_feature_popups.title")}
                 description={t("toggles.smart_feature_popups.description")}
-                checked={draft.smartFeaturePopups}
-                onCheckedChange={(checked) =>
-                  updateDraft("smartFeaturePopups", checked)
-                }
-              />
-              <ToggleRow
+              >
+                <ToggleControl
+                  checked={draft.smartFeaturePopups}
+                  onCheckedChange={(checked) =>
+                    updateDraft("smartFeaturePopups", checked)
+                  }
+                />
+              </SettingRow>
+              <SettingRow
                 title={t("toggles.email_notifications.title")}
                 description={t("toggles.email_notifications.description")}
-                checked={draft.emailNotifications}
-                onCheckedChange={(checked) =>
-                  updateDraft("emailNotifications", checked)
-                }
-              />
-            </div>
-          </SettingsCard>
-        </div>
+              >
+                <ToggleControl
+                  checked={draft.emailNotifications}
+                  onCheckedChange={(checked) =>
+                    updateDraft("emailNotifications", checked)
+                  }
+                />
+              </SettingRow>
+            </SectionPanel>
 
-        <section className="mt-5 rounded-[28px] border border-red-200 bg-red-50/65 p-5 shadow-[0_18px_48px_-38px_rgba(220,38,38,0.3)] dark:border-error/35 dark:bg-error-container/40">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-500">
-                <LogOut className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-red-600">
-                  {t("sign_out")}
-                </h2>
-                <p className="mt-1 text-sm text-red-500/90">
-                  {t("sign_out_description")}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSignOut}
-            className="rounded-2xl border-red-300 bg-white text-red-500 hover:bg-red-50 dark:border-error/45 dark:bg-surface-container-lowest dark:text-error dark:hover:bg-error-container/35"
+            <SectionPanel
+              id="appearance"
+              title="Appearance"
+              description="Keep the interface quiet and readable while the broader visual refresh rolls out."
             >
-              {t("sign_out")}
-            </Button>
-          </div>
-        </section>
+              <SettingRow
+                title="Theme"
+                description="Switch between the light and dark app theme."
+              >
+                <ThemeToggle variant="public" />
+              </SettingRow>
+            </SectionPanel>
+
+            <SectionPanel
+              id="organization"
+              title="Organization"
+              description="Connect your verified school, club, or training center for rankings and profile display."
+            >
+              {organizationAffiliation ? (
+                <div className="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] text-[#4D86F7]">
+                      {organizationAffiliation.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={organizationAffiliation.logoUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Building2 className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+                        {organizationAffiliation.name}
+                      </p>
+                      <p className="truncate text-sm text-[#718096]">
+                        {organizationAffiliation.subtitle}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] px-2.5 py-1 text-xs font-semibold text-[#177245]">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      Verified
+                    </span>
+                    <span className="rounded-full border border-[#DEE8F8] px-2.5 py-1 text-xs font-semibold capitalize text-[#718096]">
+                      {organizationAffiliation.role}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <SettingRow
+                    title="Status"
+                    description="You are not connected to a verified organization yet."
+                  >
+                    <span className="inline-flex rounded-full border border-[#DEE8F8] px-2.5 py-1 text-xs font-semibold text-[#718096]">
+                      Not verified
+                    </span>
+                  </SettingRow>
+                  {organizationJoinCodesEnabled ? (
+                    <SettingRow
+                      title="Organization code"
+                      description="Enter a code from your school, club, or coach."
+                      align="start"
+                    >
+                      <div className="grid w-full gap-3">
+                        <input
+                          type="text"
+                          value={organizationCode}
+                          onChange={(event) =>
+                            setOrganizationCode(
+                              formatOrganizationJoinCode(
+                                event.target.value
+                              ).slice(0, 19)
+                            )
+                          }
+                          placeholder="ABCD-1234"
+                          className={cn(
+                            INPUT_CLASSNAME,
+                            "font-bold tracking-[0.12em] placeholder:tracking-normal"
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleClaimOrganizationCode}
+                          disabled={
+                            isOrganizationPending ||
+                            !isUsableOrganizationJoinCode(organizationCode)
+                          }
+                          className="gap-2 rounded-lg bg-[#4D86F7] text-white hover:bg-[#3E78EC]"
+                        >
+                          {isOrganizationPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <UserPlus className="h-4 w-4" />
+                          )}
+                          Join organization
+                        </Button>
+                      </div>
+                    </SettingRow>
+                  ) : null}
+                </>
+              )}
+            </SectionPanel>
+
+            <SectionPanel
+              id="account"
+              title="Account Actions"
+              description="Session-level actions for this device."
+            >
+              <div className="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+                    <LogOut className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-red-600">
+                      {t("sign_out")}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-red-500/90">
+                      {t("sign_out_description")}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSignOut}
+                  className="rounded-lg border-red-200 bg-white text-red-600 hover:bg-red-50 dark:border-error/45 dark:bg-surface-container-lowest dark:text-error"
+                >
+                  {t("sign_out")}
+                </Button>
+              </div>
+            </SectionPanel>
+          </main>
+        </div>
       </div>
     </div>
   );

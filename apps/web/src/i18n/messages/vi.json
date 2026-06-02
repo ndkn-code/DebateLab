@@ -295,7 +295,7 @@
       "coach": "HLV AI",
       "feedback": "Phản hồi",
       "bookmarks": "Đánh dấu",
-      "analytics": "Phân tích"
+      "analytics": "Hồ sơ"
     },
     "home": {
       "greeting_morning": "Chào buổi sáng",
@@ -541,7 +541,7 @@
       "coming_soon": "Sắp ra mắt",
       "skill_labels": {
         "clarity": "Độ rõ",
-        "logic": "Logic",
+        "logic": "Lý luận",
         "rebuttal": "Phản biện",
         "evidence": "Dẫn chứng",
         "delivery": "Trình bày"
@@ -1113,7 +1113,7 @@
         "unrated": "Chưa xếp hạng",
         "skill_names": {
           "clarity": "Độ rõ",
-          "logic": "Logic",
+          "logic": "Lý luận",
           "rebuttal": "Phản biện",
           "evidence": "Dẫn chứng",
           "delivery": "Trình bày"
@@ -1331,6 +1331,12 @@
     "fields": {
       "display_name": "Tên hiển thị",
     "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Thinkfy",
+    "handle": "Handle",
+    "handle_placeholder": "dev.admin",
+    "handle_helper": "Dùng 3-30 ký tự chữ thường, số, gạch dưới hoặc dấu chấm.",
+    "profile_status": "Trạng thái hồ sơ",
+    "profile_status_placeholder": "Đang xem lại bản đồ lập luận",
+    "profile_status_helper": "Một dòng ngắn có thể hiển thị trên hồ sơ của bạn.",
     "avatar": "Ảnh đại diện",
     "default_prep_time": "Thời gian chuẩn bị mặc định",
     "default_speech_time": "Thời gian nói mặc định",
@@ -1421,8 +1427,14 @@
       "description": "Chọn giọng dùng cho phản biện, phát lại coaching và các lời nhắc bằng giọng nói.",
       "female": "Nữ",
       "male": "Nam",
-      "more_voices": "Thêm giọng khác",
-      "more_voices_description": "Giữ sẵn các giọng nổi bật hoặc chọn từ toàn bộ danh sách tại đây.",
+      "current_voice": "Giọng hiện tại",
+      "change_voice": "Đổi giọng",
+      "search_description": "Tìm theo tên, giọng vùng miền, giới tính, nhà cung cấp hoặc chất lượng.",
+      "search_placeholder": "Tìm giọng",
+      "empty_search": "Không có giọng nào khớp với tìm kiếm.",
+      "shown_count": "Đang hiển thị {shown} trên {total} giọng",
+      "more_voices": "Danh sách giọng",
+      "more_voices_description": "Tìm trong toàn bộ danh sách và chọn một giọng cho phần phát lại luyện tập.",
       "preview_button": "Nghe thử",
       "selected_label": "Giọng đang chọn",
       "high_quality": "Chất lượng cao",
@@ -1917,7 +1929,7 @@
   },
   "sessionResult": {
     "backToPractice": "Quay lại Luyện tập",
-    "backToHistory": "Quay lại Lịch sử",
+    "backToHistory": "Quay lại Hoạt động",
     "backToTopics": "Quay lại chủ đề",
     "tryAgain": "Thử lại",
     "share": "Chia sẻ kết quả",
@@ -2036,7 +2048,7 @@
         "clarity": "Độ rõ",
         "mechanism": "Cơ chế",
         "evidence": "Bằng chứng",
-        "logic": "Logic",
+        "logic": "Lý luận",
         "rebuttal": "Phản biện",
         "clash": "Đối đầu",
         "weighing": "So sánh",
@@ -2086,7 +2098,7 @@
     "actions": {
       "practiceAgain": "Luyện lại",
       "newTopic": "Chủ đề mới",
-      "viewHistory": "Xem lịch sử",
+      "viewHistory": "Xem hoạt động",
       "askCoach": "Hỏi AI Coach",
       "retryTopic": "Luyện lại chủ đề này",
       "deleteSession": "Xóa phiên"
@@ -2242,6 +2254,291 @@
       "error": "Chưa gửi được lời động viên lúc này."
     }
   },
+  "profileSocial": {
+    "title": "Hồ sơ",
+    "privacy_preview": "Đang xem trước hồ sơ như học viên ngoài danh sách bạn bè sẽ thấy.",
+    "system_titles": {
+      "constructive_climber": "Người xây luận điểm tiến bộ",
+      "evidence_builder": "Người xây bằng chứng",
+      "crossfire_ready": "Sẵn sàng chất vấn",
+      "rebuttal_streak": "Chuỗi phản biện",
+      "newcomer": "Người mới",
+      "speed_demon": "Tốc độ cao",
+      "weekly_warrior": "Chiến binh tuần",
+      "near_perfect": "Gần hoàn hảo",
+      "super_admin": "Quản trị viên cao nhất"
+    },
+    "system_statuses": {
+      "reviewing_argument_maps": "Đang xem lại bản đồ lập luận",
+      "practicing_rebuttals": "Đang luyện phản biện"
+    },
+    "system_achievements": {
+      "constructive_climber": {
+        "title": "Người xây luận điểm tiến bộ",
+        "description": "Hoàn thành bài xây dựng luận điểm đầu tiên thật vững.",
+        "title_reward": "Người xây luận điểm tiến bộ"
+      },
+      "rebuttal_streak": {
+        "title": "Chuỗi phản biện",
+        "description": "Luyện phản biện qua năm phiên khác nhau.",
+        "title_reward": "Chuỗi phản biện"
+      },
+      "evidence_builder": {
+        "title": "Người xây bằng chứng",
+        "description": "Đạt từ 80 điểm trở lên ở phần bằng chứng và logic.",
+        "title_reward": "Người xây bằng chứng"
+      },
+      "crossfire_ready": {
+        "title": "Sẵn sàng chất vấn",
+        "description": "Thắng một duel và thể hiện khả năng va chạm luận điểm tốt.",
+        "title_reward": "Sẵn sàng chất vấn"
+      },
+      "newcomer": {
+        "title": "Người mới",
+        "description": "Bắt đầu hành trình hồ sơ DebateLab của bạn.",
+        "title_reward": "Người mới"
+      },
+      "speed_demon": {
+        "title": "Tốc độ cao",
+        "description": "Hoàn thành một vòng luyện tập tập trung trong thời gian ngắn.",
+        "title_reward": "Tốc độ cao"
+      },
+      "weekly_warrior": {
+        "title": "Chiến binh tuần",
+        "description": "Giữ nhịp luyện tập đều đặn trong tuần.",
+        "title_reward": "Chiến binh tuần"
+      },
+      "near_perfect": {
+        "title": "Gần hoàn hảo",
+        "description": "Đạt một điểm hiệu suất gần hoàn hảo.",
+        "title_reward": "Gần hoàn hảo"
+      }
+    },
+    "header": {
+      "no_handle": "@profile",
+      "default_title": "Người xây luận điểm tiến bộ",
+      "unranked": "Chưa xếp hạng",
+      "default_status": "Đang luyện tập tập trung",
+      "rank_value": "Hạng {rank}",
+      "rank_label": "Hạng trong giải",
+      "friends_value": "{count} bạn bè",
+      "friends_label": "Bạn bè",
+      "level_value": "Cấp {level}",
+      "level_label": "Cấp độ",
+      "season_xp_value": "{count} XP mùa",
+      "season_xp_label": "XP mùa",
+      "hidden": "Đã ẩn"
+    },
+    "actions": {
+      "edit_profile": "Sửa hồ sơ",
+      "settings": "Cài đặt hồ sơ",
+      "error": "Hiện chưa thể cập nhật hồ sơ này.",
+      "requested_toast": "Đã gửi lời mời kết bạn.",
+      "cancelled_toast": "Đã hủy lời mời kết bạn.",
+      "accepted_toast": "Đã chấp nhận lời mời kết bạn.",
+      "declined_toast": "Đã từ chối lời mời kết bạn.",
+      "removed_toast": "Đã xóa bạn bè.",
+      "reported_toast": "Đã gửi báo cáo hồ sơ.",
+      "blocked_toast": "Đã chặn hồ sơ.",
+      "add_friend": "Thêm bạn",
+      "requested": "Đã gửi",
+      "accept": "Chấp nhận",
+      "decline": "Từ chối",
+      "friends": "Bạn bè",
+      "report": "Báo cáo hồ sơ",
+      "block": "Chặn hồ sơ",
+      "find_friends": "Tìm bạn",
+      "edit_visibility": "Sửa hiển thị",
+      "you": "Bạn",
+      "unavailable": "Không khả dụng"
+    },
+    "discovery": {
+      "dialog_label": "Tìm bạn",
+      "close_find_friends": "Đóng tìm bạn",
+      "close": "Đóng",
+      "eyebrow": "Hồ sơ",
+      "title": "Tìm bạn",
+      "tab_search": "Tìm kiếm",
+      "tab_requests": "{count, plural, =0 {Lời mời} other {Lời mời #}}",
+      "tab_friends": "{count, plural, =0 {Bạn bè} other {Bạn bè #}}",
+      "search_label": "Tìm đúng handle hoặc mã bạn bè",
+      "search_button": "Tìm",
+      "friend_code_label": "Mã bạn bè của bạn",
+      "loading": "Đang tải",
+      "copy_friend_code": "Sao chép mã bạn bè",
+      "rotate_friend_code": "Đổi mã bạn bè",
+      "friend_code_off": "Tìm bằng mã bạn bè đang tắt trong Cài đặt.",
+      "search_rate_limited": "Bạn đã tìm sai quá nhiều lần. Thử lại sau nhé.",
+      "search_blocked": "Hồ sơ này không khả dụng.",
+      "search_empty": "Không tìm thấy hồ sơ phù hợp.",
+      "suggestions_title": "Có thể bạn quen",
+      "incoming": "Lời mời đến",
+      "outgoing": "Đã gửi",
+      "no_incoming": "Chưa có lời mời đến.",
+      "no_outgoing": "Chưa có lời mời đã gửi.",
+      "no_friends_title": "Chưa có bạn bè",
+      "no_friends_body": "Tìm bằng handle hoặc chia sẻ mã bạn bè của bạn.",
+      "private_profile": "Hồ sơ riêng tư",
+      "load_error": "Chưa thể tải danh sách bạn bè.",
+      "search_error": "Chưa thể tìm hồ sơ.",
+      "copy_unavailable": "Không thể sao chép. Hãy chọn mã thủ công.",
+      "copy_success": "Đã sao chép mã bạn bè.",
+      "copy_failed": "Sao chép thất bại. Hãy chọn mã thủ công.",
+      "rotate_limited": "Bạn đã đổi mã quá nhiều lần. Thử lại sau nhé.",
+      "rotate_success": "Đã đổi mã bạn bè.",
+      "rotate_error": "Chưa thể đổi mã bạn bè."
+    },
+    "tabs": {
+      "label": "Các mục hồ sơ",
+      "analytics": "Phân tích",
+      "activities": "Hoạt động",
+      "achievements": "Thành tích"
+    },
+    "analytics": {
+      "title": "Phân tích",
+      "subtitle": "Theo dõi kỹ năng, nhịp luyện tập và hiệu suất mùa.",
+      "public_subtitle": "Chỉ hiển thị phân tích tổng hợp. Lịch sử phiên chi tiết vẫn riêng tư.",
+      "season_performance": "Hiệu suất mùa",
+      "season_xp": "XP mùa",
+      "in_your_league": "Trong giải của bạn",
+      "xp_to_next_rank": "Còn {count} XP đến hạng tiếp theo",
+      "current_league": "Giải hiện tại",
+      "view_leaderboard": "Xem bảng xếp hạng",
+      "skill_snapshot": "Hồ sơ kỹ năng",
+      "view_full_breakdown": "Xem phân tích đầy đủ",
+      "weekly_practice": "Luyện tập tuần",
+      "minutes": "phút",
+      "practice_delta": "{count}% so với tuần trước",
+      "view_practice_history": "Xem lịch sử luyện tập",
+      "practice_mix": "Tỷ lệ luyện tập",
+      "sessions": "phiên",
+      "view_activity_breakdown": "Xem chi tiết hoạt động",
+      "recent_activity": "Hoạt động gần đây",
+      "no_recent_activity": "Chưa có hoạt động gần đây",
+      "activity_empty_body": "Các hoạt động gần đây sẽ hiện ở đây.",
+      "recent_achievements": "Thành tích gần đây",
+      "no_achievements": "Chưa có thành tích",
+      "achievements_empty_body": "Tiếp tục luyện tập để nhận thành tích.",
+      "average_score": "Điểm trung bình",
+      "score_delta": "{count} điểm so với kỳ trước",
+      "strongest_focus": "Mạnh nhất / Cần tập trung",
+      "profile_level": "Cấp độ hồ sơ",
+      "lifetime_xp": "{count} XP trọn đời",
+      "private_metric": "Chỉ số này đang riêng tư.",
+      "sessions_in_range": "{count, plural, one {# phiên trong khoảng này} other {# phiên trong khoảng này}}",
+      "sessions_analyzed": "{count, plural, one {# phiên được phân tích} other {# phiên được phân tích}}",
+      "debate_sessions": "Tranh biện",
+      "speaking_sessions": "Nói",
+      "friend_network": "Mạng bạn bè",
+      "friends": "Bạn bè",
+      "league_gold_iii": "Vàng III",
+      "league_novice": "Giải người mới"
+    },
+    "activities": {
+      "search_placeholder": "Tìm hoạt động",
+      "sort_newest": "Mới nhất",
+      "sort_oldest": "Cũ nhất",
+      "sort_highest": "Điểm cao nhất",
+      "minutes": "{count} phút",
+      "score": "{score}/100",
+      "review": "Xem lại",
+      "empty_title": "Chưa có hoạt động",
+      "empty_body": "Luyện tập, duel, khóa học và thành tích sẽ hiện ở đây.",
+      "private_title": "Hoạt động đang riêng tư",
+      "private_body": "Feed hoạt động này không hiển thị trong ngữ cảnh hiện tại.",
+      "filters": {
+        "all": "Tất cả",
+        "practice": "Luyện tập",
+        "duel": "Duel",
+        "learning": "Học",
+        "achievement": "Thành tích"
+      },
+      "kinds": {
+        "practice": "Luyện tập",
+        "duel": "Duel",
+        "lesson": "Bài học",
+        "course": "Khóa học",
+        "achievement": "Thành tích",
+        "level": "Cấp độ",
+        "activity": "Hoạt động"
+      }
+    },
+    "achievements": {
+      "title": "Thành tích",
+      "subtitle": "Nhận huy hiệu, danh hiệu và XP khi phát triển kỹ năng tranh biện.",
+      "featured": "Nổi bật",
+      "all": "Tất cả",
+      "unlocked_count": "Đã mở {count} / {total}",
+      "featured_limit": "Ghim tối đa {count}",
+      "sort_featured": "Nổi bật trước",
+      "sort_recent": "Mới mở gần đây",
+      "sort_progress": "Gần hoàn thành",
+      "sort_category": "Danh mục",
+      "complete": "Hoàn thành",
+      "incomplete": "Chưa hoàn thành",
+      "progress": "Tiến độ",
+      "xp_reward": "XP thưởng",
+      "title_reward": "Danh hiệu thưởng",
+      "none": "Không có",
+      "close": "Đóng",
+      "feature_action": "Ghim",
+      "featured_action": "Đã ghim",
+      "featured_saved": "Đã cập nhật thành tích nổi bật.",
+      "featured_error": "Chưa thể cập nhật thành tích nổi bật.",
+      "details_label": "Xem chi tiết {title}",
+      "feature_label": "Ghim {title}",
+      "unfeature_label": "Bỏ ghim {title} khỏi thành tích nổi bật",
+      "empty_title": "Chưa có thành tích",
+      "empty_body": "Tiếp tục luyện tập để nhận thành tích.",
+      "private_title": "Thành tích đang riêng tư",
+      "private_body": "Thành tích của học viên này không hiển thị trong ngữ cảnh hiện tại.",
+      "categories": {
+        "debate": "Tranh biện",
+        "duel": "Duel",
+        "mastery": "Thành thạo",
+        "practice": "Luyện tập",
+        "general": "Chung"
+      }
+    },
+    "states": {
+      "not_found": {
+        "title": "Không tìm thấy hồ sơ",
+        "body": "Hồ sơ này có thể đã được đổi tên, di chuyển hoặc không còn khả dụng."
+      },
+      "blocked": {
+        "title": "Hồ sơ không khả dụng",
+        "body": "Hồ sơ này không khả dụng vì đang có chặn đang hoạt động."
+      },
+      "private": {
+        "title": "Hồ sơ riêng tư",
+        "body": "Học viên này đã chọn giữ hồ sơ riêng tư."
+      },
+      "limited": {
+        "title": "Hồ sơ giới hạn",
+        "body": "Từ ngữ cảnh hiện tại, bạn chỉ thấy thông tin cơ bản."
+      },
+      "visible": {
+        "title": "Hồ sơ hiển thị",
+        "body": "Hồ sơ này hiển thị trong ngữ cảnh hiện tại của bạn."
+      },
+      "self": {
+        "title": "Hồ sơ của bạn",
+        "body": "Đây là hồ sơ của bạn."
+      },
+      "analytics_private": {
+        "title": "Phân tích đang riêng tư",
+        "body": "Phân tích của học viên này chỉ hiển thị với chính họ hoặc bạn bè được chấp thuận."
+      },
+      "activities_private": {
+        "title": "Hoạt động đang riêng tư",
+        "body": "Lịch sử hoạt động của học viên này không hiển thị trong ngữ cảnh hiện tại."
+      },
+      "achievements_private": {
+        "title": "Thành tích đang riêng tư",
+        "body": "Thành tích của học viên này không hiển thị trong ngữ cảnh hiện tại."
+      }
+    }
+  },
   "analyticsPage": {
     "title": "Phân tích",
     "subtitle": "Theo dõi tiến bộ và phát triển kỹ năng tranh biện của bạn.",
@@ -2264,7 +2561,7 @@
     "lifetime": "Trọn thời gian",
     "skills": {
       "clarity": "Độ rõ",
-      "logic": "Logic",
+      "logic": "Lý luận",
       "rebuttal": "Phản biện",
       "evidence": "Bằng chứng",
       "delivery": "Trình bày"
@@ -2289,7 +2586,7 @@
         "title": "Điểm trung bình gần đây",
         "scope": "Điểm theo ngôn ngữ hiện tại",
         "delta": "{sign}{count} điểm so với kỳ trước",
-        "no_delta": "Hoàn thành thêm phiên có điểm để mở trend này"
+        "no_delta": "Hoàn thành thêm phiên có điểm để mở xu hướng này"
       },
       "strongest_focus": {
         "title": "Mạnh nhất / Cần tập trung",
