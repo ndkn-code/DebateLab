@@ -22,7 +22,7 @@ import {
   rotateProfileFriendCode,
   searchProfileDiscovery,
 } from "@/app/actions/profile-social";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   Award,
   BarChart3,
@@ -33,7 +33,6 @@ import {
   Clock3,
   Copy,
   Eye,
-  Info,
   ListChecks,
   Loader2,
   Medal,
@@ -325,16 +324,23 @@ function ProfileMetric({
   value: ReactNode;
   label: string;
 }) {
+  const accessibilityLabel =
+    typeof value === "string" || typeof value === "number"
+      ? `${value} ${label}`
+      : label;
+
   return (
-    <div className="flex min-w-[8.5rem] items-center justify-center gap-3 border-outline-variant/70 px-4 last:border-r-0 sm:border-r">
+    <div
+      aria-label={accessibilityLabel}
+      className="flex min-w-[8.5rem] items-center justify-center gap-3 border-outline-variant/70 px-4 last:border-r-0 sm:border-r"
+    >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#4D86F7]">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[1.05rem] font-semibold leading-5 text-[#0B1424]">
+        <p className="text-[1.05rem] font-semibold leading-5 text-[#0B1424]">
           {value}
         </p>
-        <p className="mt-0.5 truncate text-xs font-medium text-[#718096]">{label}</p>
       </div>
     </div>
   );
@@ -1170,7 +1176,6 @@ function ProfileHeader({
   if (!profile) return null;
 
   const handleLabel = profile.handle ? `@${profile.handle}` : t("header.no_handle");
-  const title = profile.selectedTitle ?? t("header.default_title");
   const seasonXp = profile.season?.seasonXp ?? 0;
   const rankLabel = profile.season?.rank ? `#${profile.season.rank}` : t("header.unranked");
   const statusLine = profile.profileStatus ?? t("header.default_status");
@@ -1204,12 +1209,6 @@ function ProfileHeader({
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-          <span className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#0B1424] shadow-[0_1px_2px_rgba(11,20,36,0.05)]">
-            <Sparkles className="h-4 w-4 text-[#4D86F7]" />
-            {title}
-          </span>
-        </div>
         <HeaderFeaturedAchievements achievements={featuredAchievements} />
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm text-[#415069] lg:justify-start">
@@ -1319,35 +1318,43 @@ function ProfileTabs({
 }
 
 function AnalyticsRangeControl({
-  baseHref,
   range,
+  isPending,
+  onRangeChange,
 }: {
-  baseHref: string;
   range: AnalyticsRangePreset;
+  isPending?: boolean;
+  onRangeChange: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("analyticsPage");
   const ranges: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
 
   return (
     <div
-      className="inline-flex h-10 rounded-lg border border-[#DEE8F8] bg-white p-1"
+      className={cn(
+        "inline-flex h-10 rounded-lg border border-[#DEE8F8] bg-white p-1 transition-opacity duration-200",
+        isPending ? "opacity-90" : "opacity-100"
+      )}
       aria-label={t("range_label")}
+      aria-busy={isPending ? "true" : undefined}
     >
       {ranges.map((item) => {
         const active = item === range;
         return (
-          <Link
+          <button
             key={item}
-            href={buildAnalyticsRangeHref(baseHref, item)}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onRangeChange(item)}
             className={cn(
-              "inline-flex min-w-12 items-center justify-center rounded-md px-3 text-sm font-semibold transition",
+              "inline-flex min-w-12 items-center justify-center rounded-md px-3 text-sm font-semibold transition-all duration-200 ease-out",
               active
                 ? "bg-[#4D86F7] text-white shadow-[0_10px_24px_-18px_rgba(77,134,247,0.55)]"
                 : "text-[#718096] hover:bg-[#F7FAFE] hover:text-[#0B1424]"
             )}
           >
             {t(`range_${item}`)}
-          </Link>
+          </button>
         );
       })}
     </div>
@@ -1374,11 +1381,7 @@ function Card({
     >
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-[#0B1424]">{title}</h2>
-        {action ?? (
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#D9E5F4] text-[#718096]">
-            <Info className="h-3.5 w-3.5" />
-          </span>
-        )}
+        {action}
       </div>
       {children}
     </section>
@@ -1591,11 +1594,15 @@ function ProfileAnalyticsOverview({
   profile,
   baseHref,
   range,
+  isRangePending,
+  onRangeChange,
 }: {
   analyticsData: AnalyticsPageData;
   profile: PublicProfileShell;
   baseHref: string;
   range: AnalyticsRangePreset;
+  isRangePending?: boolean;
+  onRangeChange: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("profileSocial.analytics");
   const tAnalytics = useTranslations("analyticsPage");
@@ -1619,7 +1626,11 @@ function ProfileAnalyticsOverview({
   return (
     <div className="grid gap-5">
       <div className="flex justify-end">
-        <AnalyticsRangeControl baseHref={baseHref} range={range} />
+        <AnalyticsRangeControl
+          range={range}
+          isPending={isRangePending}
+          onRangeChange={onRangeChange}
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -1765,13 +1776,15 @@ function ProfileAnalyticsOverview({
 function PublicAnalyticsSummary({
   profile,
   data,
-  baseHref,
   range,
+  isRangePending,
+  onRangeChange,
 }: {
   profile: PublicProfileShell;
   data: ProfileAnalyticsTabData | null | undefined;
-  baseHref: string;
   range: AnalyticsRangePreset;
+  isRangePending?: boolean;
+  onRangeChange: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("profileSocial.analytics");
   const tHeader = useTranslations("profileSocial.header");
@@ -1780,7 +1793,11 @@ function PublicAnalyticsSummary({
   return (
     <div className="grid gap-5">
       <div className="flex justify-end">
-        <AnalyticsRangeControl baseHref={baseHref} range={range} />
+        <AnalyticsRangeControl
+          range={range}
+          isPending={isRangePending}
+          onRangeChange={onRangeChange}
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -1876,6 +1893,8 @@ function TabBody({
   achievementsData,
   baseHref,
   range,
+  isRangePending,
+  onRangeChange,
 }: {
   tab: ProfileSocialTab;
   data: PublicProfileData;
@@ -1885,6 +1904,8 @@ function TabBody({
   achievementsData?: ProfileAchievementsData | null;
   baseHref: string;
   range: AnalyticsRangePreset;
+  isRangePending?: boolean;
+  onRangeChange: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("profileSocial");
   const profile = data.profile;
@@ -1907,6 +1928,8 @@ function TabBody({
           profile={profile}
           baseHref={baseHref}
           range={range}
+          isRangePending={isRangePending}
+          onRangeChange={onRangeChange}
         />
       );
     }
@@ -1916,8 +1939,9 @@ function TabBody({
         <PublicAnalyticsSummary
           profile={profile}
           data={publicAnalyticsData}
-          baseHref={baseHref}
           range={range}
+          isRangePending={isRangePending}
+          onRangeChange={onRangeChange}
         />
       );
     }
@@ -1971,6 +1995,7 @@ export function SocialProfilePage({
 }: SocialProfilePageProps) {
   const t = useTranslations("profileSocial");
   const locale = useLocale();
+  const router = useRouter();
   const localizedPublicProfile = useMemo(
     () => localizePublicProfileData(publicProfile, t),
     [publicProfile, t]
@@ -1982,12 +2007,34 @@ export function SocialProfilePage({
   const profile = localizedPublicProfile.profile;
   const pageTitle = profile?.displayName ?? t("title");
   const [currentTab, setCurrentTab] = useState(activeTab);
+  const [currentRange, setCurrentRange] = useState(range);
+  const [isRangePending, startRangeTransition] = useTransition();
 
   const localeKey = useMemo(() => locale, [locale]);
 
   useEffect(() => {
     setCurrentTab(activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    setCurrentRange(range);
+  }, [range]);
+
+  const handleRangeChange = useCallback(
+    (nextRange: AnalyticsRangePreset) => {
+      if (nextRange === currentRange) {
+        return;
+      }
+
+      setCurrentRange(nextRange);
+      startRangeTransition(() => {
+        router.replace(buildAnalyticsRangeHref(baseHref, nextRange), {
+          scroll: false,
+        });
+      });
+    },
+    [baseHref, currentRange, router]
+  );
 
   useEffect(() => {
     function handlePopState() {
@@ -2027,7 +2074,7 @@ export function SocialProfilePage({
             <div className="mt-7">
               <ProfileTabs
                 activeTab={currentTab}
-                range={range}
+                range={currentRange}
                 onTabChange={setCurrentTab}
               />
             </div>
@@ -2040,7 +2087,9 @@ export function SocialProfilePage({
                 activityFeedData={activityFeedData}
                 achievementsData={localizedAchievementsData}
                 baseHref={baseHref}
-                range={range}
+                range={currentRange}
+                isRangePending={isRangePending}
+                onRangeChange={handleRangeChange}
               />
             </div>
           </>

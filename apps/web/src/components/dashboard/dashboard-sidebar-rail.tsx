@@ -61,7 +61,6 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
-  const isProfileSurface = pathname.startsWith("/profile");
 
   const isActiveItem = (item: DashboardNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -109,19 +108,17 @@ export function DashboardSidebarRail({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden h-dvh w-55 shrink-0 overflow-hidden overscroll-none border-r md:flex md:flex-col",
-          isProfileSurface
-            ? "border-[#DEE8F8] bg-white text-[#0B1424]"
-            : "border-sidebar-muted/15 bg-sidebar text-sidebar-foreground"
+          "border-sidebar-muted/15 bg-sidebar text-sidebar-foreground"
         )}
       >
       <div className="flex h-14 shrink-0 items-center px-4">
         <LogoMark
           size="sm"
-          variant={isProfileSurface ? "light" : "dark"}
+          variant="dark"
         />
       </div>
 
-      <div className={cn("px-2 pt-3", isProfileSurface && "hidden")}>
+      <div className="px-2 pt-3">
         <DebateModeSwitcher
           variant="sidebar"
           currentLocale={currentLocale}
@@ -146,9 +143,7 @@ export function DashboardSidebarRail({
                 <span
                   className={cn(
                     "ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                    isProfileSurface
-                      ? "bg-[#F1F6FD] text-[#8A96A8]"
-                      : "bg-white/[0.08] text-sidebar-muted/75"
+                    "bg-white/[0.08] text-sidebar-muted/75"
                   )}
                 >
                   <Lock className="h-3 w-3" />
@@ -165,7 +160,7 @@ export function DashboardSidebarRail({
                 aria-disabled="true"
                 className={cn(
                   "flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium opacity-75",
-                  isProfileSurface ? "text-[#8A96A8]" : "text-sidebar-muted/50"
+                  "text-sidebar-muted/50"
                 )}
               >
                 {content}
@@ -179,13 +174,9 @@ export function DashboardSidebarRail({
               href={href}
               className={cn(
                 "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
-                isProfileSurface
-                  ? isActive
-                    ? "bg-[#EAF1FF] text-[#3E78EC]"
-                    : "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
-                  : isActive
-                    ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
-                    : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+                isActive
+                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
+                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
               )}
             >
               {content}
@@ -208,16 +199,14 @@ export function DashboardSidebarRail({
             }}
             className={cn(
               "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              isProfileSurface
-                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
-                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
             )}
           >
             <span className="flex min-w-0 items-center gap-3">
               <Gift
                 className={cn(
                   "h-5 w-5 shrink-0",
-                  isProfileSurface ? "text-[#718096]" : "text-sidebar-muted"
+                  "text-sidebar-muted"
                 )}
               />
               <span className="truncate">
@@ -233,29 +222,19 @@ export function DashboardSidebarRail({
               href="/dashboard/admin"
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors",
-                isProfileSurface
-                  ? "bg-[#F1F6FD] text-[#0B1424] hover:bg-[#EAF1FF]"
-                  : "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] hover:bg-white/[0.16]"
+                "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] hover:bg-white/[0.16]"
               )}
             >
               <Shield className="h-5 w-5 shrink-0" />
               <span>{tNav("adminShort")}</span>
             </Link>
           ) : null}
-          <ThemeToggle
-            className={
-              isProfileSurface
-                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
-                : undefined
-            }
-          />
+          <ThemeToggle />
           <Link
             href="/settings"
             className={cn(
               "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors",
-              isProfileSurface
-                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
-                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
             )}
           >
             <Settings className="h-5 w-5 shrink-0" />
@@ -265,9 +244,7 @@ export function DashboardSidebarRail({
             profile={profile}
             userEmail={userEmail}
             triggerClassName={
-              isProfileSurface
-                ? "text-[#415069] hover:bg-[#F1F6FD] hover:text-[#0B1424]"
-                : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
             }
           />
         </div>
