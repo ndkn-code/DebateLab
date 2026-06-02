@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
+import { LocalizedAppProviders } from "../localized-app-providers";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
@@ -60,14 +61,16 @@ export default async function ProtectedLayout({
   if (!user) {
     if (devAdminBypass || devAuthBypassUser) {
       return (
-        <ProtectedShell
-          profile={DEV_ADMIN_PROFILE}
-          userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
-          userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
-          seasonReplayEnabled={false}
-        >
-          {children}
-        </ProtectedShell>
+        <LocalizedAppProviders>
+          <ProtectedShell
+            profile={DEV_ADMIN_PROFILE}
+            userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
+            userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
+            seasonReplayEnabled={false}
+          >
+            {children}
+          </ProtectedShell>
+        </LocalizedAppProviders>
       );
     }
 
@@ -88,15 +91,17 @@ export default async function ProtectedLayout({
   if (!profile || !profile.onboarding_completed) {
     if (devAdminBypass) {
       return (
-        <ProtectedShell
-          profile={DEV_ADMIN_PROFILE}
-          userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
-          userId={user.id}
-          seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
-          seasonReplayOutcome={seasonReplayOutcome}
-        >
-          {children}
-        </ProtectedShell>
+        <LocalizedAppProviders>
+          <ProtectedShell
+            profile={DEV_ADMIN_PROFILE}
+            userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
+            userId={user.id}
+            seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+            seasonReplayOutcome={seasonReplayOutcome}
+          >
+            {children}
+          </ProtectedShell>
+        </LocalizedAppProviders>
       );
     }
 
@@ -104,14 +109,16 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <ProtectedShell
-      profile={profile as Profile | null}
-      userEmail={user.email ?? null}
-      userId={user.id}
-      seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
-      seasonReplayOutcome={seasonReplayOutcome}
-    >
-      {children}
-    </ProtectedShell>
+    <LocalizedAppProviders>
+      <ProtectedShell
+        profile={profile as Profile | null}
+        userEmail={user.email ?? null}
+        userId={user.id}
+        seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+        seasonReplayOutcome={seasonReplayOutcome}
+      >
+        {children}
+      </ProtectedShell>
+    </LocalizedAppProviders>
   );
 }

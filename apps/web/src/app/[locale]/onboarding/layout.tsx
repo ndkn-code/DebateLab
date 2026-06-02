@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { LocalizedAppProviders } from "../localized-app-providers";
 
 export const metadata = {
   title: "Welcome to Thinkfy",
@@ -30,5 +31,9 @@ export default async function OnboardingLayout({
     redirect("/dashboard");
   }
 
-  return <div className="min-h-[100dvh] bg-background">{children}</div>;
+  return (
+    <LocalizedAppProviders>
+      <div className="min-h-[100dvh] bg-background">{children}</div>
+    </LocalizedAppProviders>
+  );
 }

@@ -1,26 +1,13 @@
-"use client";
-
 import Image from "next/image";
-import { useLocale } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import {
-  ArrowRight,
-  BarChart3,
-  BookOpen,
-  Clock3,
-  MessageCircleMore,
-  MessageSquareText,
-  Mic,
-  Star,
-  Trophy,
-  Users,
-} from "@/components/ui/icons";
-import { getLandingCopy } from "./copy";
+import type { LandingCopy, LandingLocale } from "./copy";
+import { landingHref } from "./links";
 import { LogoMark } from "./logo-mark";
 import { cn } from "@/lib/utils";
 
 interface LandingContentProps {
+  copy: LandingCopy;
   isLoggedIn: boolean;
+  locale: LandingLocale;
 }
 
 const socialAvatars = [
@@ -29,6 +16,109 @@ const socialAvatars = [
   { label: "RS", gradient: "from-[#F8D39B] to-[#E89A42]" },
   { label: "NP", gradient: "from-[#BFD8FF] to-[#89AFFF]" },
 ] as const;
+
+type LandingIconProps = {
+  className?: string;
+};
+
+function ArrowRight({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path
+        d="M13.5 5.25 20.25 12l-6.75 6.75M19.5 12H3.75"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function BarChart3({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function BookOpen({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function Clock3({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 7v5l3 2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function MessageCircleMore({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M4 12a8 8 0 1 1 4.6 7.24L4 20l.76-4.6A7.96 7.96 0 0 1 4 12Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M8.5 12h.01M12 12h.01M15.5 12h.01" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+function MessageSquareText({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function Mic({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function Star({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path
+        d="m12 3 2.78 5.63 6.22.9-4.5 4.38 1.06 6.19L12 17.18 6.44 20.1l1.06-6.19L3 9.53l6.22-.9L12 3Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function Trophy({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 12v5M8 21h8M10 17h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function Users({ className }: LandingIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M15 19a5 5 0 0 0-10 0M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 19a4 4 0 0 0-4-4M17 4.5a3.5 3.5 0 0 1 0 7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
 
 const socialIcons = {
   twitter: (
@@ -103,13 +193,13 @@ function PrimaryButton({
   label: string;
 }) {
   return (
-    <Link
+    <a
       href={href}
       className="btn-3d-primary inline-flex h-14 items-center gap-2 rounded-[16px] bg-primary px-7 text-sm font-semibold text-on-primary hover:bg-primary-dim"
     >
       {label}
       <ArrowRight className="h-4 w-4" />
-    </Link>
+    </a>
   );
 }
 
@@ -191,10 +281,11 @@ function TestimonialAvatar({
   );
 }
 
-export function LandingContent({ isLoggedIn }: LandingContentProps) {
-  const locale = useLocale();
-  const copy = getLandingCopy(locale);
-
+export function LandingContent({
+  copy,
+  isLoggedIn,
+  locale,
+}: LandingContentProps) {
   return (
     <div className="bg-[#F7FAFE] text-[#0B1424]">
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
@@ -212,7 +303,10 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
 
             <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row">
               <PrimaryButton
-                href={isLoggedIn ? "/dashboard" : "/auth/signup"}
+                href={landingHref(
+                  locale,
+                  isLoggedIn ? "/dashboard" : "/auth/signup"
+                )}
                 label={isLoggedIn ? copy.hero.primaryCtaLoggedIn : copy.hero.primaryCta}
               />
               <SecondaryButton href="#features" label={copy.hero.secondaryCta} />
@@ -401,7 +495,10 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 </p>
                 <div className="mt-8">
                   <PrimaryButton
-                    href={isLoggedIn ? "/dashboard" : "/auth/signup"}
+                    href={landingHref(
+                      locale,
+                      isLoggedIn ? "/dashboard" : "/auth/signup"
+                    )}
                     label={isLoggedIn ? copy.cta.buttonLoggedIn : copy.cta.button}
                   />
                 </div>
@@ -459,7 +556,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 {copy.footer.product.links.map((link) => (
                   <a
                     key={link.label}
-                    href={link.href}
+                    href={landingHref(locale, link.href)}
                     className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
                   >
                     {link.label}
@@ -476,7 +573,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 {copy.footer.resources.links.map((link) => (
                   <a
                     key={link.label}
-                    href={link.href}
+                    href={landingHref(locale, link.href)}
                     className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
                   >
                     {link.label}
@@ -493,7 +590,7 @@ export function LandingContent({ isLoggedIn }: LandingContentProps) {
                 {copy.footer.company.links.map((link) => (
                   <a
                     key={link.label}
-                    href={link.href}
+                    href={landingHref(locale, link.href)}
                     className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
                   >
                     {link.label}
