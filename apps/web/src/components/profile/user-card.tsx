@@ -44,8 +44,8 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
       icon: Flame,
       value: profile.streak_current,
       label: t("day_streak"),
-      color: "text-[#F5B942]",
-      bg: "bg-[#FFF8E6]",
+      color: "text-warning",
+      bg: "bg-surface-container",
     },
     {
       icon: BarChart3,
@@ -58,15 +58,15 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
       icon: Clock,
       value: formatMinutes(profile.total_practice_minutes),
       label: t("practiced"),
-      color: "text-[#34C759]",
-      bg: "bg-[#EAF9EF]",
+      color: "text-success",
+      bg: "bg-surface-container",
     },
     {
       icon: BookOpen,
       value: "\u2014",
       label: t("courses"),
-      color: "text-[#7B61FF]",
-      bg: "bg-[#F1F6FD]",
+      color: "text-on-surface-variant",
+      bg: "bg-surface-container",
     },
   ];
 

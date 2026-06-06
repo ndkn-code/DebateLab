@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
 import type { Profile } from "@/types/database";
 import type { AppLocale } from "@/lib/locale-switch";
 
@@ -59,7 +60,7 @@ export function DashboardSidebarRail({
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
-  const [copied, setCopied] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
   const pathname = usePathname();
 
   const isActiveItem = (item: DashboardNavItem) => {
@@ -175,8 +176,8 @@ export function DashboardSidebarRail({
               className={cn(
                 "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
-                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+                  ? "sidebar-nav-selected"
+                  : "sidebar-nav-idle"
               )}
             >
               {content}
@@ -191,15 +192,12 @@ export function DashboardSidebarRail({
             type="button"
             disabled={!referralCode}
             onClick={() => {
-              if (!referralCode) return;
-              const link = `${window.location.origin}/join/${referralCode}`;
-              navigator.clipboard.writeText(link);
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1800);
+              if (referralCode) setReferralOpen(true);
             }}
+            data-testid="dashboard-sidebar-referral"
             className={cn(
-              "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+                "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+              "sidebar-nav-action"
             )}
           >
             <span className="flex min-w-0 items-center gap-3">
@@ -210,9 +208,7 @@ export function DashboardSidebarRail({
                 )}
               />
               <span className="truncate">
-                {copied
-                  ? t("referral_copied")
-                  : t("invite_friend_reward", { count: inviteReward })}
+                {t("invite_friend_reward", { count: inviteReward })}
               </span>
             </span>
             <ChevronRight className="h-4 w-4" />
@@ -222,7 +218,7 @@ export function DashboardSidebarRail({
               href="/dashboard/admin"
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors",
-                "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)] hover:bg-white/[0.16]"
+                "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
               )}
             >
               <Shield className="h-5 w-5 shrink-0" />
@@ -234,7 +230,7 @@ export function DashboardSidebarRail({
             href="/settings"
             className={cn(
               "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors",
-              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+              "sidebar-nav-action"
             )}
           >
             <Settings className="h-5 w-5 shrink-0" />
@@ -244,8 +240,14 @@ export function DashboardSidebarRail({
             profile={profile}
             userEmail={userEmail}
             triggerClassName={
-              "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+              "sidebar-nav-action"
             }
+          />
+          <ReferralCreditsDialog
+            open={referralOpen}
+            onOpenChange={setReferralOpen}
+            referralCode={referralCode}
+            inviteReward={inviteReward}
           />
         </div>
       </div>

@@ -109,7 +109,7 @@ export function DuelFlowStepper({ mode }: DuelFlowStepperProps) {
               step.state === "complete" &&
                 "border-primary bg-primary text-on-primary",
               step.state === "active" &&
-                "border-primary bg-primary text-on-primary shadow-[0_8px_18px_rgba(66,133,244,0.24)]",
+                "border-primary bg-primary text-on-primary shadow-token-card",
               step.state === "upcoming" &&
                 "border-outline-variant/45 bg-surface text-on-surface-variant"
             )}
@@ -223,7 +223,7 @@ function DuelPreviewTimeline({
               className={cn(
                 "mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
                 index === 0
-                  ? "border-primary bg-primary text-on-primary shadow-[0_8px_18px_rgba(66,133,244,0.2)]"
+                  ? "border-primary bg-primary text-on-primary shadow-token-card"
                   : "border-outline-variant/40 bg-surface text-on-surface"
               )}
             >
@@ -481,7 +481,7 @@ export function DuelLobbySetupView({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)] lg:p-6">
+          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
             {startMode ? (
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-outline-variant/12 bg-surface-container-low p-5">
@@ -813,7 +813,7 @@ export function DuelLobbySetupView({
             )}
           </main>
 
-          <aside className="space-y-4 rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+          <aside className="space-y-4 rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold text-on-surface">Duel preview</h2>
               <div className="rounded-full bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
@@ -947,7 +947,7 @@ export function DuelPreviewSidebar({
   return (
     <aside
       id="duel-preview"
-      className="space-y-6 rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-[0_24px_70px_-32px_rgba(11,20,66,0.24)]"
+      className="space-y-6 rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-token-card"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-on-surface">Duel preview</h2>

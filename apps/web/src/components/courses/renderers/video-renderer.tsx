@@ -28,8 +28,8 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-white shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)]">
-        <div className="border-b border-outline-variant/10 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-6 py-4 sm:px-8">
+      <div className="overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-white shadow-token-panel">
+        <div className="border-b border-outline-variant/10 bg-[linear-gradient(180deg,#ffffff_0%,#F3FCFE_100%)] px-6 py-4 sm:px-8">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <PlayCircle className="h-5 w-5" />
@@ -68,7 +68,7 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.75rem] border border-outline-variant/15 bg-white p-5 shadow-[0_18px_50px_-44px_rgba(22,39,91,0.35)]">
+        <div className="rounded-[1.75rem] border border-outline-variant/15 bg-white p-5 shadow-token-card">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             {t("reader.video_why_matters")}
           </p>
@@ -78,7 +78,7 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
           </p>
         </div>
 
-        <div className="rounded-[1.75rem] border border-outline-variant/15 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 shadow-[0_18px_50px_-44px_rgba(77,134,247,0.35)]">
+        <div className="rounded-[1.75rem] border border-outline-variant/15 bg-[linear-gradient(180deg,#ffffff_0%,#F3FCFE_100%)] p-5 shadow-token-primary">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <ListChecks className="h-5 w-5" />

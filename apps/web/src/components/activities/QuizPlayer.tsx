@@ -167,11 +167,11 @@ export function QuizPlayer({ content, onComplete }: Props) {
                 </div>
 
                 {q.explanation && (
-                  <div className="flex gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-4">
-                    <Lightbulb className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="flex gap-3 rounded-2xl bg-info-container border border-info/30 p-4">
+                    <Lightbulb className="h-5 w-5 text-info shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-blue-700 mb-1">{t("whyCorrect")}</p>
-                      <p className="text-sm text-blue-800 leading-relaxed">{q.explanation}</p>
+                      <p className="text-sm font-semibold text-info mb-1">{t("whyCorrect")}</p>
+                      <p className="text-sm text-on-surface leading-relaxed">{q.explanation}</p>
                     </div>
                   </div>
                 )}

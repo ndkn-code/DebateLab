@@ -43,12 +43,12 @@ const CATEGORY_TONES: Record<string, PracticeCategoryTone> = {
 };
 
 const AVATAR_TONES = [
-  "bg-[#f6c4b8] text-[#7b3d2d]",
-  "bg-[#f3d9a4] text-[#7c5312]",
-  "bg-[#c8defb] text-[#2756a8]",
-  "bg-[#d5efd7] text-[#2e7a49]",
-  "bg-[#d9d1ff] text-[#5944bf]",
-  "bg-[#ffd6d8] text-[#b74f56]",
+  "bg-surface-container text-on-surface-variant",
+  "bg-surface-container text-on-surface-variant",
+  "bg-surface-container-high text-on-surface-variant",
+  "bg-surface-container-high text-on-surface-variant",
+  "bg-surface-container-high text-on-surface-variant",
+  "bg-surface-container text-on-surface-variant",
 ] as const;
 
 const AVATAR_INITIALS = [

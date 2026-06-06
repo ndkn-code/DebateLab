@@ -51,43 +51,43 @@ function getActivityMeta(kind: ProfileActivityKind): {
     case "practice":
       return {
         icon: History,
-        badgeClassName: "bg-[#F1F6FD] text-[#3E78EC]",
-        iconClassName: "text-[#3E78EC]",
+        badgeClassName: "bg-surface-container text-primary-dim",
+        iconClassName: "text-primary-dim",
         labelKey: "kinds.practice",
       };
     case "duel":
       return {
         icon: Swords,
-        badgeClassName: "bg-[#FFF8E6] text-[#A66A00]",
-        iconClassName: "text-[#A66A00]",
+        badgeClassName: "bg-surface-container text-on-surface-variant",
+        iconClassName: "text-on-surface-variant",
         labelKey: "kinds.duel",
       };
     case "lesson":
       return {
         icon: BookOpen,
-        badgeClassName: "bg-[#EAF9EF] text-[#238B45]",
-        iconClassName: "text-[#34C759]",
+        badgeClassName: "bg-surface-container text-on-surface-variant",
+        iconClassName: "text-success",
         labelKey: "kinds.lesson",
       };
     case "course":
       return {
         icon: GraduationCap,
-        badgeClassName: "bg-[#F1F6FD] text-[#3E78EC]",
-        iconClassName: "text-[#4D86F7]",
+        badgeClassName: "bg-surface-container text-primary-dim",
+        iconClassName: "text-primary",
         labelKey: "kinds.course",
       };
     case "level":
       return {
         icon: Sparkles,
-        badgeClassName: "bg-[#F1F6FD] text-[#7B61FF]",
-        iconClassName: "text-[#7B61FF]",
+        badgeClassName: "bg-surface-container text-on-surface-variant",
+        iconClassName: "text-on-surface-variant",
         labelKey: "kinds.level",
       };
     default:
       return {
         icon: Sparkles,
-        badgeClassName: "bg-[#EEF2F7] text-[#415069]",
-        iconClassName: "text-[#718096]",
+        badgeClassName: "bg-surface-container text-on-surface-variant",
+        iconClassName: "text-on-surface-variant",
         labelKey: "kinds.activity",
       };
   }
@@ -112,18 +112,18 @@ function EmptyState({
   const t = useTranslations("profileSocial.activities");
 
   return (
-    <section className="rounded-xl border border-dashed border-[#D9E5F4] bg-white px-6 py-16 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EEF2F7] text-[#718096]">
+    <section className="rounded-xl border border-dashed border-outline-variant bg-white px-6 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
         {privateState ? (
           <ShieldCheck className="h-6 w-6" />
         ) : (
           <Clock3 className="h-6 w-6" />
         )}
       </div>
-      <h2 className="mt-5 text-xl font-semibold text-[#0B1424]">
+      <h2 className="mt-5 text-xl font-semibold text-on-surface">
         {privateState ? t("private_title") : t("empty_title")}
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#718096]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
         {privateState ? t("private_body") : t("empty_body")}
       </p>
     </section>
@@ -137,8 +137,8 @@ function ActivityCard({ item }: { item: ProfileActivityFeedItem }) {
   const Icon = meta.icon;
 
   return (
-    <article className="grid gap-4 rounded-xl border border-[#DEE8F8] bg-white p-4 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)] sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#F7FAFE]">
+    <article className="grid gap-4 rounded-xl border border-outline-variant bg-white p-4 shadow-token-card sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-background">
         <Icon className={cn("h-6 w-6", meta.iconClassName)} />
       </div>
 
@@ -153,32 +153,32 @@ function ActivityCard({ item }: { item: ProfileActivityFeedItem }) {
             {t(meta.labelKey)}
           </span>
           {item.xpEarned > 0 ? (
-            <span className="text-xs font-semibold text-[#718096]">
+            <span className="text-xs font-semibold text-on-surface-variant">
               +{item.xpEarned} XP
             </span>
           ) : null}
         </div>
-        <h3 className="mt-2 line-clamp-2 text-base font-semibold leading-6 text-[#0B1424]">
+        <h3 className="mt-2 line-clamp-2 text-base font-semibold leading-6 text-on-surface">
           {item.title}
         </h3>
         {item.subtitle ? (
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#718096]">
+          <p className="mt-1 line-clamp-2 text-sm leading-5 text-on-surface-variant">
             {item.subtitle}
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-[#718096]">
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-on-surface-variant">
           <span className="inline-flex items-center gap-1.5">
-            <CalendarDays className="h-4 w-4 text-[#8A96A8]" />
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
             {formatActivityDate(item.createdAt, locale)}
           </span>
           {item.durationMinutes ? (
             <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="h-4 w-4 text-[#8A96A8]" />
+              <Clock3 className="h-4 w-4 text-muted-foreground" />
               {t("minutes", { count: item.durationMinutes })}
             </span>
           ) : null}
           {item.score != null ? (
-            <span className="font-semibold text-[#0B1424]">
+            <span className="font-semibold text-on-surface">
               {t("score", { score: item.score })}
             </span>
           ) : null}
@@ -188,7 +188,7 @@ function ActivityCard({ item }: { item: ProfileActivityFeedItem }) {
       {item.href ? (
         <Link
           href={item.href}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#4D86F7] px-4 text-sm font-semibold text-white transition hover:bg-[#3E78EC]"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary-dim"
         >
           {t("review")}
           <ArrowRight className="h-4 w-4" />
@@ -249,12 +249,12 @@ export function ProfileActivitiesTab({
     <div className="grid gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="relative w-full lg:w-[320px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A96A8]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("search_placeholder")}
-            className="h-10 w-full rounded-lg border border-[#DEE8F8] bg-white pl-9 pr-3 text-sm font-medium text-[#0B1424] outline-none transition focus:border-[#4D86F7]"
+            className="h-10 w-full rounded-lg border border-outline-variant bg-white pl-9 pr-3 text-sm font-medium text-on-surface outline-none transition focus:border-primary"
           />
         </label>
 
@@ -269,8 +269,8 @@ export function ProfileActivitiesTab({
                 className={cn(
                   "inline-flex h-10 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition",
                   active
-                    ? "border-transparent bg-[#4D86F7] text-white"
-                    : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#D9E5F4] hover:text-[#0B1424]"
+                    ? "border-transparent bg-primary text-white"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:border-outline-variant hover:text-on-surface"
                 )}
               >
                 {t(item.labelKey)}
@@ -280,17 +280,17 @@ export function ProfileActivitiesTab({
         </div>
 
         <label className="relative w-full lg:ml-auto lg:w-[220px]">
-          <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A96A8]" />
+          <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as ActivitySort)}
-            className="h-10 w-full appearance-none rounded-lg border border-[#DEE8F8] bg-white pl-9 pr-9 text-sm font-semibold text-[#0B1424] outline-none transition focus:border-[#4D86F7]"
+            className="h-10 w-full appearance-none rounded-lg border border-outline-variant bg-white pl-9 pr-9 text-sm font-semibold text-on-surface outline-none transition focus:border-primary"
           >
             <option value="newest">{t("sort_newest")}</option>
             <option value="oldest">{t("sort_oldest")}</option>
             <option value="highest">{t("sort_highest")}</option>
           </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A96A8]" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         </label>
       </div>
 

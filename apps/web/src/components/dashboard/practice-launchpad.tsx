@@ -50,7 +50,7 @@ export function PracticeLaunchpad({
           <Link key={option.key} href={option.href}>
             <div
               className={cn(
-                "group h-full rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-low transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_20px_32px_-24px_rgba(47,79,221,0.5)]",
+                "group h-full rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-low transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-token-card",
                 embedded ? "p-4" : "p-4"
               )}
             >

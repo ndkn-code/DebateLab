@@ -183,7 +183,7 @@ export function SpeakingPhase({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 pb-20 pt-3 sm:px-5 lg:px-6">
       <div className="fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2 lg:bottom-auto lg:right-5 lg:top-28">
-        <div className="inline-flex items-center gap-2 rounded-xl border border-[#D8E5FF] bg-white/95 px-3 py-2 text-sm font-bold text-[#071159] shadow-[0_18px_42px_-28px_rgba(22,39,91,0.45)] backdrop-blur">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-white/95 px-3 py-2 text-sm font-bold text-on-surface-variant shadow-token-card backdrop-blur">
           <Clock3 className="h-4 w-4 text-primary" />
           <span className="tabular-nums">{formatPracticeTime(timeLeft)}</span>
         </div>
@@ -195,7 +195,7 @@ export function SpeakingPhase({
               ? t("session.hide_motion_brief")
               : t("session.show_motion_brief")
           }
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#D8E5FF] bg-white/95 text-primary shadow-[0_18px_42px_-28px_rgba(22,39,91,0.45)] backdrop-blur transition hover:bg-[#F4F8FF]"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-white/95 text-primary shadow-token-card backdrop-blur transition hover:bg-surface-container"
         >
           <BookOpenText className="h-5 w-5" />
         </button>
@@ -212,7 +212,7 @@ export function SpeakingPhase({
             <MotionInfoPanel
               topic={topic}
               side={side}
-              className="shadow-[0_22px_62px_-34px_rgba(22,39,91,0.58)]"
+              className="shadow-token-card"
             />
           </motion.div>
         )}
@@ -250,8 +250,8 @@ export function SpeakingPhase({
                 isRecording
                   ? {
                       boxShadow: [
-                        "0 0 0 0px rgba(239,106,106,0.26)",
-                        "0 0 0 16px rgba(239,106,106,0)",
+                        "0 0 0 0px rgba(255,75,75,0.26)",
+                        "0 0 0 16px rgba(255,75,75,0)",
                       ],
                     }
                   : {}
@@ -289,7 +289,7 @@ export function SpeakingPhase({
           </div>
 
           {speechError && (
-            <div className="mt-4 flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm font-medium text-[#9b6b00]" role="alert">
+            <div className="mt-4 flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm font-medium text-on-surface-variant" role="alert">
               {speechError === "network" ? (
                 <WifiOff className="h-4 w-4 shrink-0" />
               ) : (
@@ -365,7 +365,7 @@ export function SpeakingPhase({
         <Button
           onClick={() => setShowEndConfirm(true)}
           aria-label="End speech early"
-          className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-[inset_0_-2px_0_rgba(12,57,146,0.22),0_12px_22px_-16px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
+          className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim"
         >
           <Square className="h-4 w-4" />
           {t("session.end_speech")}
@@ -389,7 +389,7 @@ export function SpeakingPhase({
               aria-modal="true"
               aria-labelledby="end-speech-confirm-title"
               onClick={(event) => event.stopPropagation()}
-              className="pointer-events-auto mx-auto flex w-full max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-[0_20px_55px_-42px_rgba(22,39,91,0.75)] backdrop-blur-xl"
+              className="pointer-events-auto mx-auto flex w-full max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-token-card backdrop-blur-xl"
             >
               <div className="text-center">
                 <p
@@ -408,7 +408,7 @@ export function SpeakingPhase({
                   </Button>
                   <Button
                     onClick={handleConfirmEnd}
-                    className="rounded-xl bg-primary text-on-primary shadow-[inset_0_-3px_0_rgba(12,57,146,0.22),0_12px_24px_-16px_rgba(77,134,247,0.95)] hover:bg-primary-dim"
+                    className="rounded-xl bg-primary text-on-primary shadow-token-primary hover:bg-primary-dim"
                   >
                     {t("session.end_now")}
                   </Button>

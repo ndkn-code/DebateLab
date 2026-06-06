@@ -29,7 +29,7 @@ function Switch({
       }}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 rounded-full border border-transparent transition-colors focus:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-outline-variant",
+        checked ? "bg-[var(--button-primary-bg)]" : "bg-outline-variant",
         className
       )}
       {...props}

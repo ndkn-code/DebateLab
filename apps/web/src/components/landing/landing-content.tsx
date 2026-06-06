@@ -12,7 +12,7 @@ interface LandingContentProps {
 
 const socialAvatars = [
   { label: "AL", gradient: "from-[#EAC3A3] to-[#C88B67]" },
-  { label: "JM", gradient: "from-[#A2C5FF] to-[#4D86F7]" },
+  { label: "JM", gradient: "from-[#8BE8F7] to-[#00B8D9]" },
   { label: "RS", gradient: "from-[#F8D39B] to-[#E89A42]" },
   { label: "NP", gradient: "from-[#BFD8FF] to-[#89AFFF]" },
 ] as const;
@@ -150,7 +150,7 @@ function StatIcon({
   type: "users" | "message" | "star" | "clock";
   className?: string;
 }) {
-  const iconClassName = cn("h-6 w-6 text-[#4D86F7]", className);
+  const iconClassName = cn("h-6 w-6 text-primary", className);
 
   if (type === "users") return <Users className={iconClassName} />;
   if (type === "message") return <MessageCircleMore className={iconClassName} />;
@@ -165,7 +165,7 @@ function FeatureIcon({
   type: "mic" | "book" | "users" | "chart" | "message" | "trophy";
   className?: string;
 }) {
-  const iconClassName = cn("h-7 w-7 text-[#4D86F7]", className);
+  const iconClassName = cn("h-7 w-7 text-primary", className);
 
   if (type === "mic") return <Mic className={iconClassName} />;
   if (type === "book") return <BookOpen className={iconClassName} />;
@@ -180,9 +180,9 @@ function StepIcon({
 }: {
   type: "book" | "users" | "chart";
 }) {
-  if (type === "book") return <BookOpen className="h-10 w-10 text-[#4D86F7]" />;
-  if (type === "users") return <Users className="h-10 w-10 text-[#4D86F7]" />;
-  return <BarChart3 className="h-10 w-10 text-[#4D86F7]" />;
+  if (type === "book") return <BookOpen className="h-10 w-10 text-primary" />;
+  if (type === "users") return <Users className="h-10 w-10 text-primary" />;
+  return <BarChart3 className="h-10 w-10 text-primary" />;
 }
 
 function PrimaryButton({
@@ -213,7 +213,7 @@ function SecondaryButton({
   return (
     <a
       href={href}
-      className="inline-flex h-14 items-center rounded-[16px] border border-[#DEE8F8] bg-white px-7 text-sm font-semibold text-[#3E78EC] shadow-[0_16px_32px_-24px_rgba(11,20,36,0.25)] transition-all hover:-translate-y-0.5 hover:border-[#C8DAF7]"
+      className="inline-flex h-14 items-center rounded-[16px] border border-outline-variant bg-white px-7 text-sm font-semibold text-primary-dim shadow-token-card transition-all hover:-translate-y-0.5 hover:border-outline-variant"
     >
       {label}
     </a>
@@ -252,7 +252,7 @@ function SocialProof({
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-1.5 text-[#F5B942]">
+        <div className="flex items-center gap-1.5 text-warning">
           {Array.from({ length: 5 }).map((_, index) => (
             <Star
               key={index}
@@ -260,8 +260,8 @@ function SocialProof({
             />
           ))}
         </div>
-        <p className="text-sm text-[#718096]">
-          {prefix} <span className="font-semibold text-[#4D86F7]">{count}</span>{" "}
+        <p className="text-sm text-on-surface-variant">
+          {prefix} <span className="font-semibold text-primary">{count}</span>{" "}
           {suffix}
         </p>
       </div>
@@ -275,7 +275,7 @@ function TestimonialAvatar({
   initials: string;
 }) {
   return (
-    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#D7E5FF] to-[#87AFFF] text-sm font-bold text-[#214EA8]">
+    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#D7E5FF] to-[#87AFFF] text-sm font-bold text-on-surface-variant">
       {initials}
     </div>
   );
@@ -287,17 +287,17 @@ export function LandingContent({
   locale,
 }: LandingContentProps) {
   return (
-    <div className="bg-[#F7FAFE] text-[#0B1424]">
+    <div className="bg-background text-on-surface">
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
           <div className="order-2 w-full min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-[560px] lg:order-1">
-            <h1 className="mt-5 break-words text-[3rem] font-bold leading-[0.98] text-[#0B1424] sm:text-[4rem] lg:mt-[4.25rem]">
+            <h1 className="mt-5 break-words text-[3rem] font-bold leading-[0.98] text-on-surface sm:text-[4rem] lg:mt-[4.25rem]">
               {copy.hero.line1}
               <br />
-              <span className="text-[#4D86F7]">{copy.hero.line2}</span>
+              <span className="text-primary">{copy.hero.line2}</span>
             </h1>
 
-            <p className="mt-7 w-full max-w-[320px] text-[1.05rem] leading-7 text-[#61718C] sm:max-w-[500px] sm:text-[1.15rem] sm:leading-8">
+            <p className="mt-7 w-full max-w-[320px] text-[1.05rem] leading-7 text-on-surface-variant sm:max-w-[500px] sm:text-[1.15rem] sm:leading-8">
               {copy.hero.description}
             </p>
 
@@ -325,7 +325,7 @@ export function LandingContent({
             <div className="relative mx-auto max-w-[874px]">
               <Image
                 src="/images/landing/hero-reference.png"
-                alt="Two debaters standing at podiums in a clean blue illustration"
+                alt="Two debaters standing at podiums in a clean debate illustration"
                 width={1536}
                 height={1024}
                 priority
@@ -339,24 +339,24 @@ export function LandingContent({
 
       <section className="px-6 pb-18 md:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="grid overflow-hidden rounded-[28px] border border-[#E3ECF8] bg-white shadow-[0_30px_60px_-40px_rgba(11,20,36,0.28)] md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid overflow-hidden rounded-[28px] border border-outline-variant bg-white shadow-token-card md:grid-cols-2 xl:grid-cols-4">
             {copy.stats.map((item, index) => (
               <div
                 key={`${item.value}-${item.label}`}
                 className={cn(
                   "flex items-center gap-5 px-8 py-8",
                   index < copy.stats.length - 1 &&
-                    "border-b border-[#EEF3FA] xl:border-b-0 xl:border-r"
+                    "border-b border-outline-variant xl:border-b-0 xl:border-r"
                 )}
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#F1F6FD]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-surface-container">
                   <StatIcon type={item.icon} />
                 </div>
                 <div>
-                  <p className="text-[2rem] font-bold tracking-[-0.03em] text-[#0B1424]">
+                  <p className="text-[2rem] font-bold tracking-[-0.03em] text-on-surface">
                     {item.value}
                   </p>
-                  <p className="text-sm text-[#718096]">{item.label}</p>
+                  <p className="text-sm text-on-surface-variant">{item.label}</p>
                 </div>
               </div>
             ))}
@@ -367,10 +367,10 @@ export function LandingContent({
       <section id="features" className="px-6 py-10 md:px-8 md:py-14">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
               {copy.features.eyebrow}
             </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
               {copy.features.title}
             </h2>
           </div>
@@ -379,15 +379,15 @@ export function LandingContent({
             {copy.features.items.map((item) => (
               <div
                 key={item.title}
-                className="rounded-[24px] border border-[#E3ECF8] bg-white p-8 shadow-[0_22px_48px_-42px_rgba(11,20,36,0.35)]"
+                className="rounded-[24px] border border-outline-variant bg-white p-8 shadow-token-card"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#F1F6FD]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-surface-container">
                   <FeatureIcon type={item.icon} />
                 </div>
-                <h3 className="mt-6 text-[1.55rem] font-semibold tracking-[-0.03em] text-[#0B1424]">
+                <h3 className="mt-6 text-[1.55rem] font-semibold tracking-[-0.03em] text-on-surface">
                   {item.title}
                 </h3>
-                <p className="mt-3 text-base leading-7 text-[#718096]">
+                <p className="mt-3 text-base leading-7 text-on-surface-variant">
                   {item.description}
                 </p>
               </div>
@@ -399,29 +399,29 @@ export function LandingContent({
       <section id="how-it-works" className="px-6 py-18 md:px-8 md:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
               {copy.steps.eyebrow}
             </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
               {copy.steps.title}
             </h2>
           </div>
 
           <div className="relative mt-16 grid gap-12 lg:grid-cols-3 lg:gap-8">
-            <div className="absolute left-[17%] right-[17%] top-[82px] hidden border-t border-dashed border-[#CFE0FB] lg:block" />
+            <div className="absolute left-[17%] right-[17%] top-[82px] hidden border-t border-dashed border-outline-variant lg:block" />
 
             {copy.steps.items.map((item, index) => (
               <div key={item.title} className="relative text-center">
-                <div className="absolute left-[18%] top-9 z-10 hidden h-9 w-9 items-center justify-center rounded-full bg-[#4D86F7] text-sm font-semibold text-white lg:flex">
+                <div className="absolute left-[18%] top-9 z-10 hidden h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white lg:flex">
                   {index + 1}
                 </div>
-                <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-[#DEE8F8] bg-[linear-gradient(180deg,#F5F9FF_0%,#EAF2FF_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-outline-variant bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_100%)] shadow-token-card">
                   <StepIcon type={item.icon} />
                 </div>
-                <h3 className="mt-7 text-[1.6rem] font-semibold tracking-[-0.03em] text-[#0B1424]">
+                <h3 className="mt-7 text-[1.6rem] font-semibold tracking-[-0.03em] text-on-surface">
                   {item.title}
                 </h3>
-                <p className="mx-auto mt-3 max-w-[320px] text-base leading-7 text-[#718096]">
+                <p className="mx-auto mt-3 max-w-[320px] text-base leading-7 text-on-surface-variant">
                   {item.description}
                 </p>
               </div>
@@ -433,10 +433,10 @@ export function LandingContent({
       <section className="px-6 py-14 md:px-8 md:py-18">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#4D86F7]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
               {copy.testimonials.eyebrow}
             </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-[#0B1424] sm:text-[3.2rem]">
+            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
               {copy.testimonials.title}
             </h2>
           </div>
@@ -445,9 +445,9 @@ export function LandingContent({
             {copy.testimonials.items.map((item) => (
               <div
                 key={item.name}
-                className="rounded-[24px] border border-[#E3ECF8] bg-white p-8 shadow-[0_22px_48px_-42px_rgba(11,20,36,0.35)]"
+                className="rounded-[24px] border border-outline-variant bg-white p-8 shadow-token-card"
               >
-                <div className="flex items-center gap-1 text-[#F5B942]">
+                <div className="flex items-center gap-1 text-warning">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <Star
                       key={index}
@@ -456,17 +456,17 @@ export function LandingContent({
                   ))}
                 </div>
 
-                <p className="mt-6 min-h-[136px] text-[1.02rem] leading-8 text-[#415069]">
+                <p className="mt-6 min-h-[136px] text-[1.02rem] leading-8 text-on-surface-variant">
                   &ldquo;{item.quote}&rdquo;
                 </p>
 
                 <div className="mt-8 flex items-center gap-3">
                   <TestimonialAvatar initials={item.initials} />
                   <div>
-                    <p className="text-base font-semibold text-[#0B1424]">
+                    <p className="text-base font-semibold text-on-surface">
                       {item.name}
                     </p>
-                    <p className="text-sm text-[#718096]">{item.role}</p>
+                    <p className="text-sm text-on-surface-variant">{item.role}</p>
                   </div>
                 </div>
               </div>
@@ -474,23 +474,23 @@ export function LandingContent({
           </div>
 
           <div className="mt-8 flex justify-center gap-2.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#4D86F7]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#D5E2F7]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <span className="h-2.5 w-2.5 rounded-full bg-surface-container-high" />
+            <span className="h-2.5 w-2.5 rounded-full bg-surface-container-high" />
+            <span className="h-2.5 w-2.5 rounded-full bg-surface-container-high" />
           </div>
         </div>
       </section>
 
       <section id="pricing" className="px-6 py-14 md:px-8 md:py-18">
         <div className="mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-[34px] border border-[#E3ECF8] bg-[linear-gradient(180deg,#F2F7FF_0%,#ECF3FF_100%)] px-8 py-10 shadow-[0_24px_56px_-44px_rgba(11,20,36,0.38)] md:px-12 md:py-12">
+          <div className="overflow-hidden rounded-[34px] border border-outline-variant bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_100%)] px-8 py-10 shadow-token-card md:px-12 md:py-12">
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_476px]">
               <div className="max-w-[560px]">
-                <h2 className="text-[2.4rem] font-bold leading-[1.15] tracking-[-0.04em] text-[#0B1424] sm:text-[3rem]">
+                <h2 className="text-[2.4rem] font-bold leading-[1.15] tracking-[-0.04em] text-on-surface sm:text-[3rem]">
                   {copy.cta.title}
                 </h2>
-                <p className="mt-5 text-[1.05rem] leading-8 text-[#718096]">
+                <p className="mt-5 text-[1.05rem] leading-8 text-on-surface-variant">
                   {copy.cta.description}
                 </p>
                 <div className="mt-8">
@@ -510,7 +510,7 @@ export function LandingContent({
                   alt="Thinkfy mascot ready to practice"
                   width={512}
                   height={654}
-                  className="mx-auto h-auto w-full max-w-[330px] object-contain drop-shadow-[0_22px_38px_rgba(35,64,96,0.16)]"
+                  className="mx-auto h-auto w-full max-w-[330px] object-contain drop-shadow-token-card"
                   sizes="(max-width: 1024px) 260px, 330px"
                 />
               </div>
@@ -526,21 +526,21 @@ export function LandingContent({
         <div className="mx-auto max-w-6xl">
           <div
             id="resources"
-            className="grid gap-10 border-t border-[#E4EDF8] pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_1.1fr]"
+            className="grid gap-10 border-t border-outline-variant pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_1.1fr]"
           >
             <div>
               <LogoMark
                 size="md"
               />
-              <p className="mt-5 max-w-[300px] text-[0.98rem] leading-7 text-[#718096]">
+              <p className="mt-5 max-w-[300px] text-[0.98rem] leading-7 text-on-surface-variant">
                 {copy.footer.brandDescription}
               </p>
-              <div className="mt-6 flex items-center gap-3 text-[#718096]">
+              <div className="mt-6 flex items-center gap-3 text-on-surface-variant">
                 {Object.values(socialIcons).map((icon, index) => (
                   <a
                     key={index}
                     href="#"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#718096] shadow-[0_10px_24px_-18px_rgba(11,20,36,0.3)] transition-colors hover:text-[#4D86F7]"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-on-surface-variant shadow-token-card transition-colors hover:text-primary"
                   >
                     {icon}
                   </a>
@@ -549,7 +549,7 @@ export function LandingContent({
             </div>
 
             <div>
-              <p className="text-sm font-bold text-[#0B1424]">
+              <p className="text-sm font-bold text-on-surface">
                 {copy.footer.product.title}
               </p>
               <div className="mt-5 flex flex-col gap-3.5">
@@ -557,7 +557,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -566,7 +566,7 @@ export function LandingContent({
             </div>
 
             <div>
-              <p className="text-sm font-bold text-[#0B1424]">
+              <p className="text-sm font-bold text-on-surface">
                 {copy.footer.resources.title}
               </p>
               <div className="mt-5 flex flex-col gap-3.5">
@@ -574,7 +574,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -583,7 +583,7 @@ export function LandingContent({
             </div>
 
             <div>
-              <p className="text-sm font-bold text-[#0B1424]">
+              <p className="text-sm font-bold text-on-surface">
                 {copy.footer.company.title}
               </p>
               <div className="mt-5 flex flex-col gap-3.5">
@@ -591,7 +591,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-[#718096] transition-colors hover:text-[#4D86F7]"
+                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -600,17 +600,17 @@ export function LandingContent({
             </div>
 
             <div>
-              <p className="text-sm font-bold text-[#0B1424]">
+              <p className="text-sm font-bold text-on-surface">
                 {copy.footer.newsletter.title}
               </p>
-              <p className="mt-5 max-w-[260px] text-[0.98rem] leading-7 text-[#718096]">
+              <p className="mt-5 max-w-[260px] text-[0.98rem] leading-7 text-on-surface-variant">
                 {copy.footer.newsletter.description}
               </p>
               <form className="mt-5 flex gap-3">
                 <input
                   type="email"
                   placeholder={copy.footer.newsletter.placeholder}
-                  className="h-12 min-w-0 flex-1 rounded-[14px] border border-[#DEE8F8] bg-white px-4 text-sm text-[#162033] outline-none placeholder:text-[#A1ADC0] focus:border-[#A9C6FB]"
+                  className="h-12 min-w-0 flex-1 rounded-[14px] border border-outline-variant bg-white px-4 text-sm text-on-surface outline-none placeholder:text-on-surface-variant focus:border-primary-fixed"
                 />
                 <button
                   type="submit"
@@ -622,7 +622,7 @@ export function LandingContent({
             </div>
           </div>
 
-          <div className="mt-10 border-t border-[#E4EDF8] pt-6 text-center text-sm text-[#8A96A8]">
+          <div className="mt-10 border-t border-outline-variant pt-6 text-center text-sm text-muted-foreground">
             {copy.footer.copyright}
           </div>
         </div>

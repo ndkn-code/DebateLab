@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 import type {
   DashboardHomeData,
   DashboardRecommendedDrill,
@@ -19,6 +20,15 @@ type DashboardQaState =
   | "weak-debate";
 
 const QA_USER_ID = DEV_ADMIN_PROFILE.id;
+const QA_REFERRAL_CODE = "QA-DEBATE";
+const QA_PROFILE = {
+  ...DEV_ADMIN_PROFILE,
+  referral_code: QA_REFERRAL_CODE,
+  orb_balance: 98300,
+  streak_current: 7,
+  level: 3,
+  xp: 1240,
+};
 
 function isLocalhostHost(host: string) {
   const normalizedHost = host.toLowerCase();
@@ -170,7 +180,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
   ] as const;
 
   return {
-    profile: DEV_ADMIN_PROFILE,
+    profile: QA_PROFILE,
     nav: [
       { key: "dashboard", href: "/dashboard", status: "live" },
       { key: "practice", href: "/practice", status: "live" },
@@ -344,8 +354,8 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
         progressPercent: hasActivity ? 40 : 0,
         metGoal: false,
       },
-      inviteOrbs: 500,
-      referralCode: "QA-DEBATE",
+      inviteOrbs: REFERRAL_REWARD_CREDITS,
+      referralCode: QA_REFERRAL_CODE,
     },
     courseContinuation: state === "course" && STUDENT_COURSES_ENABLED
       ? {
@@ -372,8 +382,8 @@ export default async function Page({
   const state = getQaState((await searchParams).state);
   return (
     <ProtectedShell
-      profile={DEV_ADMIN_PROFILE}
-      userEmail={DEV_ADMIN_PROFILE.email}
+      profile={QA_PROFILE}
+      userEmail={QA_PROFILE.email}
       userId={QA_USER_ID}
     >
       <DashboardContent

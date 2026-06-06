@@ -44,11 +44,11 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-outline-variant/10 px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-muted/15 px-4">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.08] text-sidebar-muted">
           <Shield className="h-4 w-4" />
         </div>
-        <span className="truncate text-base font-extrabold text-primary">
+        <span className="truncate text-base font-extrabold text-sidebar-foreground">
           {t("title")}
         </span>
       </div>
@@ -66,8 +66,8 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.14)]"
-                  : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                  ? "sidebar-nav-selected"
+                  : "sidebar-nav-idle"
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
@@ -78,11 +78,11 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
       </nav>
 
       {/* Back to Dashboard */}
-      <div className="shrink-0 border-t border-outline-variant/10 p-2">
+      <div className="shrink-0 border-t border-sidebar-muted/15 p-2">
         <Link
           href="/dashboard"
           onClick={onNavClick}
-          className="flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-container hover:text-on-surface"
+          className="sidebar-nav-action flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all"
         >
           <ArrowLeft className="h-5 w-5 shrink-0" />
           <span className="truncate">{t("backToDashboard")}</span>
@@ -98,24 +98,28 @@ export function AdminSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden h-full w-55 shrink-0 flex-col overflow-hidden border-r border-outline-variant/15 bg-surface-container-lowest md:flex">
+      <aside className="hidden h-full w-55 shrink-0 flex-col overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex">
         <NavLinks />
       </aside>
 
       {/* Mobile top bar + sheet */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl px-4 md:hidden">
+      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container">
+          <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-foreground">
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-55 p-0" showCloseButton={false}>
+          <SheetContent
+            side="left"
+            className="w-55 border-sidebar-muted/15 bg-sidebar p-0 text-sidebar-foreground"
+            showCloseButton={false}
+          >
             <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
             <NavLinks onNavClick={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-primary" />
-          <span className="text-lg font-extrabold text-primary tracking-tight">
+          <Shield className="h-4 w-4 text-sidebar-muted" />
+          <span className="text-lg font-extrabold tracking-tight text-sidebar-foreground">
             Admin
           </span>
         </div>

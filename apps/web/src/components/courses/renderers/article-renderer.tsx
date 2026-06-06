@@ -48,35 +48,35 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
 
   return (
     <div className="space-y-3.5">
-      <article className="rounded-[22px] border border-[#d8f0df] bg-[#f8fffb] px-5 py-4">
+      <article className="rounded-[22px] border border-outline-variant bg-surface-container px-5 py-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eaf9ee] text-[#2ca655]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
             <Lightbulb className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[1.05rem] font-semibold text-[#24a353]">
+            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
               {t("reader.article_key_idea")}
             </p>
-            <p className="mt-2 text-sm leading-7 text-[#516279]">
+            <p className="mt-2 text-sm leading-7 text-on-surface-variant">
               {summary || t("reader.article_summary_fallback")}
             </p>
           </div>
         </div>
       </article>
 
-      <article className="rounded-[22px] border border-[#dee8f8] bg-[#f8fbff] px-5 py-4">
+      <article className="rounded-[22px] border border-outline-variant bg-surface-container px-5 py-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#edf4ff] text-[#3971dd]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-on-surface-variant">
             <MessageCircle className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[1.05rem] font-semibold text-[#3971dd]">
+            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
               {t("reader.article_example")}
             </p>
-            <div className="mt-2 space-y-1.5 text-sm leading-7 text-[#415069]">
+            <div className="mt-2 space-y-1.5 text-sm leading-7 text-on-surface-variant">
               {exampleRows.map((row) => (
                 <p key={`${row.label}-${row.text}`}>
-                  <span className="font-semibold text-[#182945]">{row.label}:</span>{" "}
+                  <span className="font-semibold text-on-surface-variant">{row.label}:</span>{" "}
                   {row.text}
                 </p>
               ))}
@@ -85,52 +85,52 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <article className="rounded-[18px] border border-[#fde8c2] bg-[#fff8eb] px-4 py-3">
+      <article className="rounded-[18px] border border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff1d3] text-[#f59e0b]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#dd8a00]">
+            <p className="text-sm font-semibold text-on-surface-variant">
               {t("reader.article_common_mistake")}
             </p>
-            <p className="mt-1 text-sm leading-7 text-[#8b6a31]">
+            <p className="mt-1 text-sm leading-7 text-on-surface-variant">
               {commonMistake}
             </p>
           </div>
         </div>
       </article>
 
-      <details className="group overflow-hidden rounded-[18px] border border-[#eadfff] bg-[#f6f0ff]">
+      <details className="group overflow-hidden rounded-[18px] border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#efe4ff] text-[#8b5cf6]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
               <PenTool className="h-5 w-5" />
             </div>
-            <p className="text-[1.05rem] font-semibold text-[#7a4edc]">
+            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
               {t("reader.article_try_this")}
             </p>
           </div>
-          <ChevronDown className="h-4 w-4 text-[#8b5cf6] transition-transform group-open:rotate-180" />
+          <ChevronDown className="h-4 w-4 text-on-surface-variant transition-transform group-open:rotate-180" />
         </summary>
-        <div className="border-t border-[#eadfff] px-5 py-4">
-          <p className="text-sm leading-7 text-[#5b4c82]">{tryThis}</p>
+        <div className="border-t border-outline-variant px-5 py-4">
+          <p className="text-sm leading-7 text-on-surface-variant">{tryThis}</p>
         </div>
       </details>
 
-      <details className="group overflow-hidden rounded-[22px] border border-[#dee8f8] bg-[#f8fbff]">
+      <details className="group overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
           <div>
-            <p className="text-[1.05rem] font-semibold text-[#10213f]">
+            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
               {t("reader.article_full_notes")}
             </p>
-            <p className="mt-1 text-sm leading-7 text-[#66758d]">
+            <p className="mt-1 text-sm leading-7 text-on-surface-variant">
               {t("reader.article_full_notes_description")}
             </p>
           </div>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[#4d86f7] transition-transform group-open:rotate-180" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-primary transition-transform group-open:rotate-180" />
         </summary>
-        <div className="border-t border-[#edf3fd] px-5 py-6">
+        <div className="border-t border-outline-variant px-5 py-6">
           <MarkdownRenderer content={markdown} size="lg" />
         </div>
       </details>

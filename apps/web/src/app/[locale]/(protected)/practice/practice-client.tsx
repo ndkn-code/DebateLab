@@ -118,7 +118,7 @@ function TopPill({
   children: ReactNode;
 }) {
   return (
-    <div className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-[#e2eaf7] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#263654]">
+    <div className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-outline-variant bg-white px-3.5 py-2 text-[13px] font-semibold text-on-surface">
       <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-white">
         <Icon className="h-[10px] w-[10px]" />
       </span>
@@ -463,7 +463,7 @@ export default function PracticePage({
               <button
                 type="button"
                 onClick={handleSurprise}
-                className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#d5e3fe] bg-white px-4 py-2 text-[14px] font-medium text-primary transition-colors hover:bg-[#f8fbff]"
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-outline-variant bg-white px-4 py-2 text-[14px] font-medium text-primary transition-colors hover:bg-surface-container"
               >
                 <Shuffle className="h-[14px] w-[14px]" />
                 {t("surprise_me")}
@@ -481,19 +481,19 @@ export default function PracticePage({
                   render={
                     <button
                       type="button"
-                      className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-[#e2eaf7] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#5b6b86] transition-colors hover:bg-[#f8fbff]"
+                      className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-outline-variant bg-white px-3.5 py-2 text-[13px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
                     />
                   }
                 >
-                  <CircleHelp className="h-[15px] w-[15px] text-[#7c8db0]" />
+                  <CircleHelp className="h-[15px] w-[15px] text-on-surface-variant" />
                   {t("how_it_works")}
                 </DialogTrigger>
-                <DialogContent className="max-w-xl rounded-[1.4rem] border border-[#e5ecf8] bg-white p-6">
+                <DialogContent className="max-w-xl rounded-[1.4rem] border border-outline-variant bg-white p-6">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-on-surface">
                       {t("how_it_works_title")}
                     </DialogTitle>
-                    <DialogDescription className="text-sm leading-6 text-[#697a97]">
+                    <DialogDescription className="text-sm leading-6 text-on-surface-variant">
                       {t("how_it_works_description")}
                     </DialogDescription>
                   </DialogHeader>
@@ -501,7 +501,7 @@ export default function PracticePage({
                     {[1, 2, 3].map((step) => (
                       <div
                         key={step}
-                        className="rounded-[1.2rem] border border-[#e8eef8] bg-[#f8fbff] p-4"
+                        className="rounded-[1.2rem] border border-outline-variant bg-surface-container p-4"
                       >
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
                           {t("how_it_works_step_kicker", { step })}
@@ -509,7 +509,7 @@ export default function PracticePage({
                         <p className="mt-2 text-base font-semibold text-on-surface">
                           {t(`how_it_works_step_${step}_title`)}
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-[#697a97]">
+                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                           {t(`how_it_works_step_${step}_body`)}
                         </p>
                       </div>
@@ -525,7 +525,7 @@ export default function PracticePage({
               <h2 className="text-[1.2rem] font-semibold leading-tight text-on-surface">
                 {t("browse_topics")}
               </h2>
-              <span className="rounded-full bg-[#f1f5fb] px-3 py-1.5 text-[13px] font-medium text-[#6f809e]">
+              <span className="rounded-full bg-surface-container px-3 py-1.5 text-[13px] font-medium text-on-surface-variant">
                 {t("topic_count", { count: filteredDisplays.length })}
               </span>
             </div>
@@ -537,7 +537,7 @@ export default function PracticePage({
                   onChange={(event) =>
                     handleSortChange(event.currentTarget.value as PracticeSortOption)
                   }
-                  className="h-[44px] rounded-[0.95rem] border-[#e5ebf7] bg-white px-3.5 py-2 text-[15px] text-[#4c5c79]"
+                  className="h-[44px] rounded-[0.95rem] border-outline-variant bg-white px-3.5 py-2 text-[15px] text-on-surface-variant"
                 >
                   <option value="popular">{t("sort_popular")}</option>
                   <option value="newest">{t("sort_newest_practice")}</option>
@@ -552,10 +552,10 @@ export default function PracticePage({
                 aria-label={t("show_saved")}
                 onClick={handleToggleSavedOnly}
                 className={cn(
-                  "flex h-[44px] w-[44px] items-center justify-center rounded-[0.95rem] border bg-white text-[#7183a4] transition-colors",
+                  "flex h-[44px] w-[44px] items-center justify-center rounded-[0.95rem] border bg-white text-on-surface-variant transition-colors",
                   savedOnly
                     ? "border-primary/25 bg-primary/[0.04] text-primary"
-                    : "border-[#e5ebf7] hover:border-[#cbd9f6] hover:bg-[#f8fbff]"
+                    : "border-outline-variant hover:border-outline-variant hover:bg-surface-container"
                 )}
               >
                 <ListFilter className="h-[17px] w-[17px]" />
@@ -588,7 +588,7 @@ export default function PracticePage({
                         Math.min(current + LOAD_MORE_STEP, filteredDisplays.length)
                       )
                     }
-                    className="inline-flex min-h-[42px] items-center gap-2 rounded-[0.95rem] border border-[#e5ebf7] bg-white px-6 py-2 text-[15px] font-medium text-primary transition-colors hover:bg-[#f8fbff]"
+                    className="inline-flex min-h-[42px] items-center gap-2 rounded-[0.95rem] border border-outline-variant bg-white px-6 py-2 text-[15px] font-medium text-primary transition-colors hover:bg-surface-container"
                   >
                     {t("load_more_topics")}
                     <ChevronDown className="h-[16px] w-[16px]" />
@@ -597,11 +597,11 @@ export default function PracticePage({
               ) : null}
             </>
           ) : (
-            <div className="mt-8 rounded-[1.4rem] border border-dashed border-[#d6e0f3] bg-white p-8 text-center">
+            <div className="mt-8 rounded-[1.4rem] border border-dashed border-outline-variant bg-white p-8 text-center">
               <p className="text-lg font-semibold text-on-surface">
                 {savedOnly ? t("saved_empty_title") : t("no_topics")}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#6e7f9d]">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {savedOnly ? t("saved_empty_body") : t("no_topics_body")}
               </p>
             </div>

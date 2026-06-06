@@ -72,8 +72,8 @@ export function Features() {
               transition={{ duration: 0.4, delay: i * 0.1 }}
               className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 transition-colors hover:border-zinc-700"
             >
-              <div className="mb-4 inline-flex rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-600/10 p-3">
-                <feature.icon className="h-6 w-6 text-blue-400" />
+              <div className="mb-4 inline-flex rounded-lg bg-gradient-to-br from-primary/10 to-reward/10 p-3">
+                <feature.icon className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-white">
                 {feature.title}

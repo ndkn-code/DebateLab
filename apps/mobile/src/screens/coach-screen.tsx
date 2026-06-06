@@ -29,7 +29,7 @@ export function CoachScreen() {
           <IconBadge name="brain.head.profile" size={44} />
           <Badge tone="success">Context ready</Badge>
         </View>
-        <View style={styles.chatBubble}>
+        <View style={[styles.chatBubble, { backgroundColor: `${colors.surface}B8` }]}>
           <AppText variant="bodyStrong">Coach</AppText>
           <AppText color={colors.muted} variant="body">
             Your structure is stronger. Next, practice a sharper rebuttal with
@@ -83,7 +83,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   chatBubble: {
-    backgroundColor: "rgba(255,255,255,0.72)",
     borderRadius: 8,
     gap: spacing.xs,
     padding: spacing.lg,

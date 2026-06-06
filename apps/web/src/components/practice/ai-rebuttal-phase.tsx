@@ -448,8 +448,8 @@ export function AiRebuttalPhase({
                     : status === "typing"
                       ? {
                           boxShadow: [
-                            "0 0 0 0px rgba(77,134,247,0.22)",
-                            "0 0 0 14px rgba(77,134,247,0)",
+                            "0 0 0 0px rgba(0,184,217,0.22)",
+                            "0 0 0 14px rgba(0,184,217,0)",
                           ],
                         }
                       : {}

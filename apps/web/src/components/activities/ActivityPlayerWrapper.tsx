@@ -230,7 +230,7 @@ export function ActivityPlayerWrapper({
                       ? "bg-green-100 text-green-700"
                       : activity.phase === "practice"
                       ? "bg-amber-100 text-amber-700"
-                      : "bg-blue-100 text-blue-700"
+                      : "bg-info-container text-info"
                   }`}>
                     {activity.phase}
                   </span>

@@ -90,7 +90,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)] sm:p-8">
+      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-token-panel sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -105,7 +105,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
             </p>
           </div>
 
-          <div className="grid gap-3 rounded-[1.75rem] border border-outline-variant/15 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 lg:min-w-[320px]">
+          <div className="grid gap-3 rounded-[1.75rem] border border-outline-variant/15 bg-[linear-gradient(180deg,#ffffff_0%,#F3FCFE_100%)] p-5 lg:min-w-[320px]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Compass className="h-5 w-5" />

@@ -149,7 +149,7 @@ export default async function Page({ params }: Props) {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-sm font-bold uppercase tracking-[0.12em] text-primary-dim">Thinkfy email QA</p>
-          <h1 className="mt-2 text-3xl font-extrabold text-[#0B1424]">Email system preview</h1>
+          <h1 className="mt-2 text-3xl font-extrabold text-on-surface">Email system preview</h1>
           <p className="mt-2 w-full max-w-[calc(100vw-2rem)] text-sm leading-6 text-on-surface-variant sm:max-w-3xl">
             Development-only fixture page for visual QA of rendered lifecycle emails and the admin email monitor.
           </p>
@@ -161,7 +161,7 @@ export default async function Page({ params }: Props) {
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-extrabold text-[#0B1424]">Rendered email templates</h2>
+            <h2 className="text-2xl font-extrabold text-on-surface">Rendered email templates</h2>
             <p className="mt-1 w-full max-w-[calc(100vw-2rem)] text-sm text-on-surface-variant sm:max-w-none">
               These iframes use the production renderer and Vietnamese default copy.
             </p>
@@ -172,10 +172,10 @@ export default async function Page({ params }: Props) {
           {previews.map((preview) => (
             <article
               key={preview.templateKey}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_18px_42px_-34px_rgba(11,20,36,0.35)] sm:max-w-[430px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-token-card sm:max-w-[430px]"
             >
               <div className="border-b border-outline-variant/40 px-5 py-4">
-                <h3 className="text-base font-bold text-[#0B1424]">
+                <h3 className="text-base font-bold text-on-surface">
                   {preview.templateKey.replaceAll("_", " ")}
                 </h3>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{preview.subject}</p>
@@ -183,7 +183,7 @@ export default async function Page({ params }: Props) {
               <iframe
                 title={`${preview.templateKey} email preview`}
                 srcDoc={preview.html}
-                className="h-[760px] w-full bg-[#F7FAFE]"
+                className="h-[760px] w-full bg-background"
               />
             </article>
           ))}
@@ -192,7 +192,7 @@ export default async function Page({ params }: Props) {
 
       <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="mb-5">
-          <h2 className="text-2xl font-extrabold text-[#0B1424]">Streak correctness fixtures</h2>
+          <h2 className="text-2xl font-extrabold text-on-surface">Streak correctness fixtures</h2>
           <p className="mt-1 w-full max-w-[calc(100vw-2rem)] text-sm text-on-surface-variant sm:max-w-none">
             Mobile Gmail-style previews for active, at-risk, zero, and repaired streak states.
           </p>
@@ -202,16 +202,16 @@ export default async function Page({ params }: Props) {
           {streakCases.map((preview) => (
             <article
               key={preview.key}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_18px_42px_-34px_rgba(11,20,36,0.35)] sm:max-w-[390px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-token-card sm:max-w-[390px]"
             >
               <div className="border-b border-outline-variant/40 px-5 py-4">
-                <h3 className="text-base font-bold text-[#0B1424]">{preview.label}</h3>
+                <h3 className="text-base font-bold text-on-surface">{preview.label}</h3>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{preview.subject}</p>
               </div>
               <iframe
                 title={`${preview.key} streak email preview`}
                 srcDoc={preview.html}
-                className="h-[720px] w-full bg-[#F7FAFE]"
+                className="h-[720px] w-full bg-background"
               />
             </article>
           ))}

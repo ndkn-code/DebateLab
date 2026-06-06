@@ -49,7 +49,7 @@ export function OnboardingShell({
               <ChevronLeft className="h-4 w-4" />
               {backLabel}
             </button>
-            <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-[inset_0_0_0_1px_rgba(222,232,248,0.92)]">
+            <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-token-card">
               {stepLabel}
             </span>
             <ThemeToggle variant="public" />
@@ -113,7 +113,7 @@ export function OnboardingChoiceCard({
       animate={{ opacity: disabled && !selected ? 0.56 : 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "group relative flex min-h-[5.25rem] w-full items-center gap-4 rounded-[1.25rem] border bg-surface px-4 py-4 text-left shadow-[0_18px_52px_-44px_rgba(11,20,36,0.4)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
+        "group relative flex min-h-[5.25rem] w-full items-center gap-4 rounded-[1.25rem] border bg-surface px-4 py-4 text-left shadow-token-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary-container"
           : "border-outline-variant/70 hover:border-primary/45 hover:bg-surface-container-lowest",
@@ -182,7 +182,7 @@ export function OnboardingPill({
       className={cn(
         "min-h-[3rem] rounded-2xl border px-5 py-2.5 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-6",
         selected
-          ? "border-primary bg-primary text-on-primary shadow-[0_14px_28px_-20px_rgba(77,134,247,0.78)]"
+          ? "border-primary bg-primary text-on-primary shadow-token-primary"
           : "border-outline-variant/70 bg-surface text-on-surface-variant hover:border-primary/45 hover:bg-primary-container hover:text-on-surface",
         disabled && !selected && "pointer-events-none"
       )}
@@ -208,7 +208,7 @@ export function OnboardingPreviewCard({
   return (
     <div
       className={cn(
-        "rounded-[1.6rem] border border-outline-variant/55 bg-surface p-5 shadow-[0_24px_70px_-52px_rgba(11,20,36,0.42)]",
+        "rounded-[1.6rem] border border-outline-variant/55 bg-surface p-5 shadow-token-card",
         className
       )}
     >

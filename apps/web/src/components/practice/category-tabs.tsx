@@ -28,8 +28,8 @@ export function CategoryTabs({
               className={cn(
                 "inline-flex min-h-[40px] shrink-0 items-center rounded-full border px-[15px] py-2 text-[14px] font-medium transition-all",
                 isActive
-                  ? "border-primary bg-primary text-on-primary shadow-[0_10px_18px_-14px_rgba(77,134,247,0.95)]"
-                  : "border-[#e3eaf6] bg-[#f8fbff] text-[#617292] hover:border-[#c6d7fb] hover:bg-white hover:text-on-surface"
+                  ? "border-primary bg-primary text-on-primary shadow-token-primary"
+                  : "border-outline-variant bg-surface-container text-on-surface-variant hover:border-outline-variant hover:bg-white hover:text-on-surface"
                 )}
               >
               <span className="whitespace-nowrap">{category.label}</span>

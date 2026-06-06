@@ -48,8 +48,8 @@ function VoiceAvatar({ voice }: { voice: TTSVoice }) {
       className={cn(
         "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold",
         voice.gender === "male"
-          ? "border-[#D8D5FF] bg-[#F4F3FF] text-[#3E78EC]"
-          : "border-[#F8D7E7] bg-[#FFF2F7] text-[#C24174]"
+          ? "border-outline-variant bg-surface-container text-primary-dim"
+          : "border-outline-variant bg-surface-container text-on-surface-variant"
       )}
     >
       {voice.gender === "male" ? "M" : "F"}
@@ -65,7 +65,7 @@ function VoiceWaveform({ active }: { active: boolean }) {
           key={`${height}-${index}`}
           className={cn(
             "block w-1 rounded-full transition-colors",
-            active ? "bg-[#4D86F7]/80" : "bg-[#BCC6D3]"
+            active ? "bg-primary/80" : "bg-surface-container-high"
           )}
           style={{ height }}
         />
@@ -82,14 +82,14 @@ function VoiceMeta(props: {
   const { voice, genderLabel, qualityLabel } = props;
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#718096]">
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
       <span>{genderLabel}</span>
       <span aria-hidden="true">/</span>
       <span>{voice.accent}</span>
       <span aria-hidden="true">/</span>
       <span className="capitalize">{voice.provider}</span>
       {voice.quality === "high" ? (
-        <span className="rounded-full bg-[#EAF1FF] px-2 py-0.5 font-medium text-[#3E78EC]">
+        <span className="rounded-full bg-primary-container px-2 py-0.5 font-medium text-primary-dim">
           {qualityLabel}
         </span>
       ) : null}
@@ -239,14 +239,14 @@ export function VoiceSettings({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
-      <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
+      <div className="rounded-lg border border-outline-variant bg-background p-4 dark:border-outline-variant/70 dark:bg-surface-container-lowest">
         <div className="flex items-start gap-3">
           <VoiceAvatar voice={selectedVoice} />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-normal text-[#8A96A8]">
+            <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
               {t("voice.current_voice")}
             </p>
-            <p className="mt-1 truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+            <p className="mt-1 truncate text-sm font-semibold text-on-surface dark:text-on-surface">
               {selectedVoice.name}
             </p>
             <VoiceMeta
@@ -264,7 +264,7 @@ export function VoiceSettings({
           <Button
             type="button"
             variant="outline"
-            className="gap-2 rounded-lg border-[#DEE8F8] bg-white"
+            className="gap-2 rounded-lg border-outline-variant bg-white"
             onClick={() => handlePreview(resolvedVoiceId)}
             disabled={Boolean(loadingVoice && loadingVoice !== resolvedVoiceId)}
           >
@@ -276,20 +276,20 @@ export function VoiceSettings({
 
       <div className="min-w-0 space-y-3">
         <div className="flex items-center gap-1.5">
-          <p className="text-sm font-medium text-[#0B1424] dark:text-on-surface">
+          <p className="text-sm font-medium text-on-surface dark:text-on-surface">
             {t("voice.change_voice")}
           </p>
           <InfoHint label={t("voice.search_description")} />
         </div>
 
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A96A8]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("voice.search_placeholder")}
-            className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white pl-9 pr-3 text-sm font-medium text-[#0B1424] outline-none transition-colors placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-3 focus:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
+            className="h-11 w-full rounded-lg border border-outline-variant bg-white pl-9 pr-3 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
           />
         </div>
 
@@ -305,8 +305,8 @@ export function VoiceSettings({
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-3 py-3 transition-colors",
                     selected
-                      ? "border-[#4D86F7]/30 bg-[#EAF1FF]"
-                      : "border-transparent bg-[#F7FAFE] hover:border-[#DEE8F8] hover:bg-white dark:bg-surface-container-lowest"
+                      ? "border-primary/30 bg-primary-container"
+                      : "border-transparent bg-background hover:border-outline-variant hover:bg-white dark:bg-surface-container-lowest"
                   )}
                 >
                   <button
@@ -318,11 +318,11 @@ export function VoiceSettings({
                     <VoiceAvatar voice={voice} />
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+                        <p className="truncate text-sm font-semibold text-on-surface dark:text-on-surface">
                           {voice.name}
                         </p>
                         {selected ? (
-                          <Check className="h-4 w-4 shrink-0 text-[#3E78EC]" />
+                          <Check className="h-4 w-4 shrink-0 text-primary-dim" />
                         ) : null}
                       </div>
                       <VoiceMeta
@@ -338,8 +338,8 @@ export function VoiceSettings({
                     size="icon"
                     title={t("voice.preview_button")}
                     className={cn(
-                      "h-9 w-9 shrink-0 rounded-lg border border-[#DEE8F8] bg-white text-[#718096]",
-                      previewing && "text-[#3E78EC]"
+                      "h-9 w-9 shrink-0 rounded-lg border border-outline-variant bg-white text-on-surface-variant",
+                      previewing && "text-primary-dim"
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -353,15 +353,15 @@ export function VoiceSettings({
               );
             })
           ) : (
-            <div className="flex min-h-32 flex-col items-center justify-center gap-2 px-4 py-8 text-center text-sm text-[#718096]">
+            <div className="flex min-h-32 flex-col items-center justify-center gap-2 px-4 py-8 text-center text-sm text-on-surface-variant">
               <Volume2 className="h-5 w-5" />
               {t("voice.empty_search")}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-[#718096]">
-          <Waves className="h-4 w-4 text-[#4D86F7]" />
+        <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+          <Waves className="h-4 w-4 text-primary" />
           {t("voice.shown_count", {
             shown: filteredVoices.length,
             total: voicesForLanguage.length,

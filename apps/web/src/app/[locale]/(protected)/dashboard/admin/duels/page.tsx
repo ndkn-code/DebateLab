@@ -76,7 +76,7 @@ function StatCard({
         : "bg-primary/10 text-primary";
 
   return (
-    <div className="rounded-[24px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+    <div className="rounded-[24px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
       <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${toneClass}`}>
         {icon}
       </div>
@@ -177,7 +177,7 @@ export default async function AdminDuelsPage() {
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
             <h2 className="text-xl font-bold text-on-surface">Recent matches</h2>
             <div className="mt-5 space-y-3">
               {recentDuels.length === 0 ? (
@@ -222,7 +222,7 @@ export default async function AdminDuelsPage() {
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
             <h2 className="text-xl font-bold text-on-surface">Rating events</h2>
             <div className="mt-5 space-y-3">
               {ratingEvents.length === 0 ? (
@@ -255,7 +255,7 @@ export default async function AdminDuelsPage() {
           </section>
         </div>
 
-        <section className="mt-6 rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+        <section className="mt-6 rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-success" />
             <h2 className="text-xl font-bold text-on-surface">

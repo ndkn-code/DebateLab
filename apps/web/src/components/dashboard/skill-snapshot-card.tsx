@@ -62,7 +62,7 @@ export function SkillSnapshotCard({
   );
 
   return (
-    <section className="rounded-[1.45rem] border border-outline-variant/20 bg-surface-container-lowest shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)]">
+    <section className="rounded-[1.45rem] border border-outline-variant/20 bg-surface-container-lowest shadow-token-panel">
       <div className={compact ? "grid gap-4 p-4 2xl:grid-cols-[minmax(230px,0.9fr)_minmax(220px,0.78fr)]" : "grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6"}>
         <div>
           <div className={compact ? "mb-2 flex items-center gap-2" : "mb-3 flex items-center gap-2"}>
@@ -104,7 +104,7 @@ export function SkillSnapshotCard({
                     <polygon
                       key={step}
                       points={polygonPoints(Array(5).fill(ringValue))}
-                      fill={step % 2 === 0 ? "rgba(169,198,251,0.12)" : "transparent"}
+                      fill={step % 2 === 0 ? "rgba(168,240,215,0.12)" : "transparent"}
                       stroke="rgba(65,80,105,0.18)"
                       strokeWidth="1"
                     />
@@ -128,8 +128,8 @@ export function SkillSnapshotCard({
 
                 <polygon
                   points={polygonPoints(values)}
-                  fill="rgba(77,134,247,0.16)"
-                  stroke="rgba(62,120,236,0.95)"
+                  fill="rgba(0,184,217,0.16)"
+                  stroke="rgba(7,136,160,0.95)"
                   strokeWidth="2"
                 />
 
@@ -144,7 +144,7 @@ export function SkillSnapshotCard({
                       cx={point.x}
                       cy={point.y}
                       r="3.6"
-                      fill="rgba(62,120,236,1)"
+                      fill="rgba(7,136,160,1)"
                     />
                   );
                 })}
@@ -157,7 +157,7 @@ export function SkillSnapshotCard({
                       x={position.x}
                       y={position.y}
                       textAnchor={position.textAnchor}
-                      className="fill-[#415069] text-[12.5px] font-medium dark:fill-on-surface-variant"
+                      className="fill-primary text-[12.5px] font-medium dark:fill-on-surface-variant"
                     >
                       {t(`skill_labels.${metric.key}`)}
                     </text>
@@ -212,7 +212,7 @@ export function SkillSnapshotCard({
             <Link href="/profile" className="mt-3 flex justify-end">
               <Button
                 variant="outline"
-                className="rounded-xl border-primary/20 bg-[#EEF4FF] text-primary shadow-[inset_0_0_0_1px_rgba(77,134,247,0.08)] hover:bg-primary hover:text-on-primary dark:bg-primary-container/70"
+                className="rounded-xl border-primary/20 bg-primary-container text-primary shadow-token-primary hover:bg-primary hover:text-on-primary dark:bg-primary-container/70"
               >
                 {t("view_details")}
               </Button>

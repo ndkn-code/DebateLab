@@ -25,17 +25,17 @@ export interface TranscriptChunk {
 }
 
 export const TRANSCRIPT_ANNOTATION_ACCENTS: Record<string, string> = {
-  stance: "#3E78EC",
-  clarity: "#3E78EC",
-  structure: "#3E78EC",
-  logic: "#4D86F7",
-  mechanism: "#4D86F7",
-  weighing: "#4D86F7",
-  rebuttal: "#F5B942",
-  clash: "#F5B942",
-  evidence: "#34C759",
-  impact: "#34C759",
-  delivery: "#7B61FF",
+  stance: "#0788A0",
+  clarity: "#0788A0",
+  structure: "#0788A0",
+  logic: "#00B8D9",
+  mechanism: "#00B8D9",
+  weighing: "#00B8D9",
+  rebuttal: "#FFD166",
+  clash: "#FFD166",
+  evidence: "#00B8D9",
+  impact: "#00B8D9",
+  delivery: "#00B8D9",
 };
 
 const VALID_TRANSCRIPT_ANNOTATION_TAGS = new Set<TranscriptAnnotation["tag"]>([

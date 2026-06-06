@@ -804,13 +804,13 @@ export function DevPracticeQaPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F7FAFE]">
+    <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-[#DEE8F8] bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#4D86F7]">
+        <div className="rounded-lg border border-outline-variant bg-white p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
             Localhost QA
           </p>
-          <h1 className="mt-2 text-2xl font-bold text-[#0B1424]">
+          <h1 className="mt-2 text-2xl font-bold text-on-surface">
             Practice timing, layout, and feedback verification
           </h1>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -822,8 +822,8 @@ export function DevPracticeQaPage() {
                 className={cn(
                   "rounded-md border px-3 py-2 text-sm font-semibold",
                   activeTab === tab.key
-                    ? "border-[#4D86F7] bg-[#EEF4FF] text-[#3E78EC]"
-                    : "border-[#DEE8F8] bg-white text-[#415069] hover:bg-[#F7FAFE]"
+                    ? "border-primary bg-primary-container text-primary-dim"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:bg-background"
                 )}
               >
                 {tab.label}
@@ -911,11 +911,11 @@ export function DevPracticeQaPage() {
             }
           />
           <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8">
-            <div className="rounded-lg border border-[#DEE8F8] bg-white p-4">
-              <h2 className="text-lg font-bold text-[#0B1424]">
+            <div className="rounded-lg border border-outline-variant bg-white p-4">
+              <h2 className="text-lg font-bold text-on-surface">
                 Legacy feedback compatibility
               </h2>
-              <p className="mt-1 text-sm text-[#415069]">
+              <p className="mt-1 text-sm text-on-surface-variant">
                 This second dashboard has no transcriptAnnotations field.
               </p>
             </div>

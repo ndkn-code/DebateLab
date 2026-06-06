@@ -334,11 +334,11 @@ function ProfileMetric({
       aria-label={accessibilityLabel}
       className="flex min-w-[8.5rem] items-center justify-center gap-3 border-outline-variant/70 px-4 last:border-r-0 sm:border-r"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#4D86F7]">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center text-primary">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[1.05rem] font-semibold leading-5 text-[#0B1424]">
+        <p className="text-[1.05rem] font-semibold leading-5 text-on-surface">
           {value}
         </p>
       </div>
@@ -363,7 +363,7 @@ function ProfileActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-4 text-sm font-semibold text-[#0B1424] shadow-[0_1px_2px_rgba(11,20,36,0.06)] transition hover:border-[#D9E5F4] hover:bg-[#F7FAFE] disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-semibold text-on-surface shadow-token-card transition hover:border-outline-variant hover:bg-background disabled:cursor-not-allowed disabled:opacity-60",
         className
       )}
     >
@@ -381,11 +381,11 @@ function getDiscoveryProfileHref(shell: ProfileDiscoveryShell) {
 
 function DiscoveryAvatar({ shell }: { shell: ProfileDiscoveryShell }) {
   return (
-    <Avatar className="h-11 w-11 shrink-0 border border-[#DEE8F8] bg-[#EEF2F7]">
+    <Avatar className="h-11 w-11 shrink-0 border border-outline-variant bg-surface-container">
       {shell.profile.avatarUrl ? (
         <AvatarImage src={shell.profile.avatarUrl} alt={shell.profile.displayName} />
       ) : null}
-      <AvatarFallback className="bg-[#EEF2F7] text-sm font-semibold text-[#0B1424]">
+      <AvatarFallback className="bg-surface-container text-sm font-semibold text-on-surface">
         {getInitials(shell.profile.displayName)}
       </AvatarFallback>
     </Avatar>
@@ -441,7 +441,7 @@ function DiscoveryConnectionButton({
 
   if (cta === "self") {
     return (
-      <span className="inline-flex h-9 items-center rounded-lg bg-[#EEF2F7] px-3 text-xs font-semibold text-[#718096]">
+      <span className="inline-flex h-9 items-center rounded-lg bg-surface-container px-3 text-xs font-semibold text-on-surface-variant">
         {t("you")}
       </span>
     );
@@ -458,7 +458,7 @@ function DiscoveryConnectionButton({
             t("removed_toast")
           )
         }
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#BDEFCB] bg-[#EAF9EF] px-3 text-xs font-semibold text-[#238B45] disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
       >
         <CheckCircle2 className="h-3.5 w-3.5" />
         {t("friends")}
@@ -477,7 +477,7 @@ function DiscoveryConnectionButton({
             t("cancelled_toast")
           )
         }
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-xs font-semibold text-[#415069] disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock3 className="h-3.5 w-3.5" />}
         {t("requested")}
@@ -501,7 +501,7 @@ function DiscoveryConnectionButton({
               t("accepted_toast")
             )
           }
-          className="inline-flex h-9 items-center rounded-lg bg-[#4D86F7] px-3 text-xs font-semibold text-white disabled:opacity-60"
+          className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
         >
           {t("accept")}
         </button>
@@ -518,7 +518,7 @@ function DiscoveryConnectionButton({
               t("declined_toast")
             )
           }
-          className="inline-flex h-9 items-center rounded-lg border border-[#DEE8F8] bg-white px-3 text-xs font-semibold text-[#415069] disabled:opacity-60"
+          className="inline-flex h-9 items-center rounded-lg border border-outline-variant bg-white px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
         >
           {t("decline")}
         </button>
@@ -537,7 +537,7 @@ function DiscoveryConnectionButton({
             t("requested_toast")
           )
         }
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#4D86F7] px-3 text-xs font-semibold text-white disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
         {t("add_friend")}
@@ -546,7 +546,7 @@ function DiscoveryConnectionButton({
   }
 
   return (
-    <span className="inline-flex h-9 items-center rounded-lg bg-[#EEF2F7] px-3 text-xs font-semibold text-[#718096]">
+    <span className="inline-flex h-9 items-center rounded-lg bg-surface-container px-3 text-xs font-semibold text-on-surface-variant">
       {t("unavailable")}
     </span>
   );
@@ -574,14 +574,14 @@ function DiscoveryPersonCard({
     <>
       <DiscoveryAvatar shell={shell} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#0B1424]">
+        <p className="truncate text-sm font-semibold text-on-surface">
           {shell.profile.displayName}
         </p>
-        <p className="mt-0.5 truncate text-xs font-medium text-[#718096]">
+        <p className="mt-0.5 truncate text-xs font-medium text-on-surface-variant">
           {shell.profile.handle ? `@${shell.profile.handle}` : t("private_profile")}
         </p>
         {shell.profile.organization ? (
-          <p className="mt-1 truncate text-xs text-[#718096]">
+          <p className="mt-1 truncate text-xs text-on-surface-variant">
             {shell.profile.organization.name}
           </p>
         ) : null}
@@ -590,7 +590,7 @@ function DiscoveryPersonCard({
   );
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#DEE8F8] bg-white p-3 shadow-[0_1px_2px_rgba(11,20,36,0.05)]">
+    <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-white p-3 shadow-token-card">
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3">
           {content}
@@ -698,26 +698,26 @@ function FindFriendsDrawer({
       <button
         type="button"
         aria-label={t("close_find_friends")}
-        className="absolute inset-0 bg-[#0B1424]/35 backdrop-blur-sm"
+        className="absolute inset-0 bg-surface-container-high/35 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col border-l border-[#DEE8F8] bg-[#F7FAFE] shadow-[0_30px_90px_rgba(11,20,36,0.18)]">
-        <div className="flex items-center justify-between border-b border-[#DEE8F8] px-5 py-4">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col border-l border-outline-variant bg-background shadow-token-card">
+        <div className="flex items-center justify-between border-b border-outline-variant px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase text-[#718096]">{t("eyebrow")}</p>
-            <h2 className="text-xl font-semibold text-[#0B1424]">{t("title")}</h2>
+            <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("eyebrow")}</p>
+            <h2 className="text-xl font-semibold text-on-surface">{t("title")}</h2>
           </div>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#DEE8F8] bg-white text-[#0B1424]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface"
             aria-label={t("close")}
           >
             <X className="h-4.5 w-4.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-3 border-b border-[#DEE8F8] bg-white">
+        <div className="grid grid-cols-3 border-b border-outline-variant bg-white">
           {[
             { value: "search", label: t("tab_search"), count: 0 },
             {
@@ -737,17 +737,17 @@ function FindFriendsDrawer({
               onClick={() => setActiveView(tab.value as "search" | "requests" | "friends")}
               className={cn(
                 "relative inline-flex h-12 items-center justify-center gap-1.5 text-sm font-semibold transition",
-                activeView === tab.value ? "text-[#3E78EC]" : "text-[#718096]"
+                activeView === tab.value ? "text-primary-dim" : "text-on-surface-variant"
               )}
             >
               <span>{tab.label}</span>
               {tab.count > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#F1F6FD] px-1.5 text-[11px] leading-5 text-[#3E78EC]">
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-surface-container px-1.5 text-[11px] leading-5 text-primary-dim">
                   {tab.count}
                 </span>
               ) : null}
               {activeView === tab.value ? (
-                <span className="absolute bottom-0 left-5 right-5 h-0.5 rounded-full bg-[#4D86F7]" />
+                <span className="absolute bottom-0 left-5 right-5 h-0.5 rounded-full bg-primary" />
               ) : null}
             </button>
           ))}
@@ -755,7 +755,7 @@ function FindFriendsDrawer({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {isLoading ? (
-            <div className="flex h-32 items-center justify-center text-[#718096]">
+            <div className="flex h-32 items-center justify-center text-on-surface-variant">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : null}
@@ -763,33 +763,33 @@ function FindFriendsDrawer({
           {activeView === "search" ? (
             <div className="space-y-5">
               <form onSubmit={handleSearch} className="space-y-3">
-                <label className="text-sm font-semibold text-[#0B1424]" htmlFor="profile-discovery-search">
+                <label className="text-sm font-semibold text-on-surface" htmlFor="profile-discovery-search">
                   {t("search_label")}
                 </label>
-                <div className="flex h-11 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 focus-within:border-[#4D86F7]">
-                  <Search className="h-4 w-4 text-[#718096]" />
+                <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 focus-within:border-primary">
+                  <Search className="h-4 w-4 text-on-surface-variant" />
                   <input
                     id="profile-discovery-search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="@maya.tran or DBT-7K2M-Q8R4"
-                    className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#0B1424] outline-none placeholder:text-[#8A96A8]"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-medium text-on-surface outline-none placeholder:text-muted-foreground"
                   />
                   <button
                     type="submit"
                     disabled={isSearching}
-                    className="inline-flex h-8 items-center rounded-md bg-[#4D86F7] px-3 text-xs font-semibold text-white disabled:opacity-60"
+                    className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
                   >
                     {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("search_button")}
                   </button>
                 </div>
               </form>
 
-              <div className="rounded-lg border border-[#DEE8F8] bg-white p-4">
+              <div className="rounded-lg border border-outline-variant bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase text-[#718096]">{t("friend_code_label")}</p>
-                    <p className="mt-1 font-mono text-lg font-semibold tracking-[0.08em] text-[#0B1424]">
+                    <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("friend_code_label")}</p>
+                    <p className="mt-1 font-mono text-lg font-semibold tracking-[0.08em] text-on-surface">
                       {center?.friendCode.code ?? t("loading")}
                     </p>
                   </div>
@@ -797,7 +797,7 @@ function FindFriendsDrawer({
                     <button
                       type="button"
                       onClick={handleCopyCode}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] text-[#0B1424]"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-background text-on-surface"
                       aria-label={t("copy_friend_code")}
                     >
                       <Copy className="h-4 w-4" />
@@ -806,7 +806,7 @@ function FindFriendsDrawer({
                       type="button"
                       onClick={handleRotateCode}
                       disabled={isRotating}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] text-[#0B1424] disabled:opacity-60"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-background text-on-surface disabled:opacity-60"
                       aria-label={t("rotate_friend_code")}
                     >
                       {isRotating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -814,7 +814,7 @@ function FindFriendsDrawer({
                   </div>
                 </div>
                 {!center?.friendCode.discoveryEnabled ? (
-                  <p className="mt-3 text-xs leading-5 text-[#718096]">
+                  <p className="mt-3 text-xs leading-5 text-on-surface-variant">
                     {t("friend_code_off")}
                   </p>
                 ) : null}
@@ -827,7 +827,7 @@ function FindFriendsDrawer({
                   onChanged={refreshCenter}
                 />
               ) : searchResult && searchResult.status !== "empty" ? (
-                <div className="rounded-lg border border-dashed border-[#D9E5F4] bg-white px-4 py-8 text-center text-sm text-[#718096]">
+                <div className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-8 text-center text-sm text-on-surface-variant">
                   {searchResult.status === "rate_limited"
                     ? t("search_rate_limited")
                     : searchResult.status === "blocked"
@@ -838,7 +838,7 @@ function FindFriendsDrawer({
 
               {suggestions?.suggestions.length ? (
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-[#0B1424]">{t("suggestions_title")}</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("suggestions_title")}</h3>
                   <div className="space-y-2">
                     {suggestions.suggestions.map((shell) => (
                       <DiscoveryPersonCard
@@ -856,7 +856,7 @@ function FindFriendsDrawer({
           {activeView === "requests" ? (
             <div className="space-y-5">
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-[#0B1424]">{t("incoming")}</h3>
+                <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("incoming")}</h3>
                 <div className="space-y-2">
                   {center?.incoming.length ? (
                     center.incoming.map((shell) => (
@@ -867,14 +867,14 @@ function FindFriendsDrawer({
                       />
                     ))
                   ) : (
-                    <p className="rounded-lg border border-dashed border-[#D9E5F4] bg-white px-4 py-6 text-center text-sm text-[#718096]">
+                    <p className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-6 text-center text-sm text-on-surface-variant">
                       {t("no_incoming")}
                     </p>
                   )}
                 </div>
               </div>
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-[#0B1424]">{t("outgoing")}</h3>
+                <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("outgoing")}</h3>
                 <div className="space-y-2">
                   {center?.outgoing.length ? (
                     center.outgoing.map((shell) => (
@@ -885,7 +885,7 @@ function FindFriendsDrawer({
                       />
                     ))
                   ) : (
-                    <p className="rounded-lg border border-dashed border-[#D9E5F4] bg-white px-4 py-6 text-center text-sm text-[#718096]">
+                    <p className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-6 text-center text-sm text-on-surface-variant">
                       {t("no_outgoing")}
                     </p>
                   )}
@@ -905,10 +905,10 @@ function FindFriendsDrawer({
                   />
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-[#D9E5F4] bg-white px-4 py-12 text-center">
-                  <UserRoundPlus className="mx-auto h-8 w-8 text-[#8A96A8]" />
-                  <p className="mt-3 text-sm font-semibold text-[#0B1424]">{t("no_friends_title")}</p>
-                  <p className="mt-1 text-sm text-[#718096]">{t("no_friends_body")}</p>
+                <div className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-12 text-center">
+                  <UserRoundPlus className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <p className="mt-3 text-sm font-semibold text-on-surface">{t("no_friends_title")}</p>
+                  <p className="mt-1 text-sm text-on-surface-variant">{t("no_friends_body")}</p>
                 </div>
               )}
             </div>
@@ -940,7 +940,7 @@ function ProfileConnectionActions({
     return (
       <Link
         href="/settings#privacy"
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-4 text-sm font-semibold text-[#0B1424] transition hover:bg-[#F7FAFE]"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-semibold text-on-surface transition hover:bg-background"
       >
         <Settings className="h-4 w-4" />
         {t("actions.edit_visibility")}
@@ -982,21 +982,21 @@ function ProfileConnectionActions({
       <div className="flex flex-wrap items-center gap-3">
         <ProfileActionButton
           onClick={() => setFindFriendsOpen(true)}
-          className="border-[#DEE8F8] bg-white text-[#0B1424]"
+          className="border-outline-variant bg-white text-on-surface"
         >
           <UserPlus className="h-4 w-4" />
           {t("actions.find_friends")}
         </ProfileActionButton>
         <Link
           href="/settings"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-[#4D86F7] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_-18px_rgba(77,134,247,0.55)] transition hover:bg-[#3E78EC]"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-token-primary transition hover:bg-primary-dim"
         >
           {t("actions.edit_profile")}
         </Link>
         <Link
           href="/settings"
           aria-label={t("actions.settings")}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#DEE8F8] bg-white text-[#0B1424] transition hover:bg-[#F7FAFE]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface transition hover:bg-background"
         >
           <Settings className="h-4.5 w-4.5" />
         </Link>
@@ -1019,7 +1019,7 @@ function ProfileConnectionActions({
               t("actions.requested_toast")
             )
           }
-          className="border-transparent bg-[#4D86F7] text-white hover:bg-[#3E78EC]"
+          className="border-transparent bg-primary text-white hover:bg-primary-dim"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           {t("actions.add_friend")}
@@ -1055,7 +1055,7 @@ function ProfileConnectionActions({
                 t("actions.accepted_toast")
               )
             }
-            className="border-transparent bg-[#4D86F7] text-white hover:bg-[#3E78EC]"
+            className="border-transparent bg-primary text-white hover:bg-primary-dim"
           >
             <Check className="h-4 w-4" />
             {t("actions.accept")}
@@ -1089,13 +1089,13 @@ function ProfileConnectionActions({
             )
           }
         >
-          <CheckCircle2 className="h-4 w-4 text-[#34C759]" />
+          <CheckCircle2 className="h-4 w-4 text-success" />
           {t("actions.friends")}
         </ProfileActionButton>
       ) : null}
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#DEE8F8] bg-white text-[#0B1424] transition hover:bg-[#F7FAFE]">
+        <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface transition hover:bg-background">
           <MoreHorizontal className="h-4.5 w-4.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -1147,10 +1147,10 @@ function HeaderFeaturedAchievements({
       {achievements.slice(0, 3).map((achievement) => (
         <span
           key={achievement.id}
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-2.5 text-xs font-semibold text-[#415069] shadow-[0_1px_2px_rgba(11,20,36,0.05)]"
+          className="inline-flex h-8 items-center gap-2 rounded-lg border border-outline-variant bg-white px-2.5 text-xs font-semibold text-on-surface-variant shadow-token-card"
           title={achievement.title}
         >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#F1F6FD] text-[11px] text-[#3E78EC]">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-container text-[11px] text-primary-dim">
             {achievement.icon}
           </span>
           <span className="max-w-[8.5rem] truncate">{achievement.title}</span>
@@ -1183,11 +1183,11 @@ function ProfileHeader({
   return (
     <header className="grid gap-8 pb-9 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
       <div className="flex justify-center lg:justify-end">
-        <Avatar className="h-40 w-40 border border-[#DEE8F8] bg-[#EEF2F7] shadow-[0_20px_52px_-42px_rgba(11,20,36,0.24)] sm:h-48 sm:w-48 lg:h-56 lg:w-56">
+        <Avatar className="h-40 w-40 border border-outline-variant bg-surface-container shadow-token-card sm:h-48 sm:w-48 lg:h-56 lg:w-56">
           {profile.avatarUrl ? (
             <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
           ) : null}
-          <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,#FFFFFF_0%,#EEF2F7_52%,#DEE8F8_100%)] text-5xl font-semibold text-[#0B1424]">
+          <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,#FFFFFF_0%,#E5F8FC_52%,#CDECF3_100%)] text-5xl font-semibold text-on-surface">
             {getInitials(profile.displayName)}
           </AvatarFallback>
         </Avatar>
@@ -1196,8 +1196,8 @@ function ProfileHeader({
       <div className="min-w-0 pt-1 text-center lg:text-left">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#415069]">{handleLabel}</p>
-            <h1 className="mt-2 text-balance text-[2.45rem] font-semibold leading-none text-[#0B1424] sm:text-[3rem]">
+            <p className="text-sm font-semibold text-on-surface-variant">{handleLabel}</p>
+            <h1 className="mt-2 text-balance text-[2.45rem] font-semibold leading-none text-on-surface sm:text-[3rem]">
               {profile.displayName}
             </h1>
           </div>
@@ -1211,16 +1211,16 @@ function ProfileHeader({
 
         <HeaderFeaturedAchievements achievements={featuredAchievements} />
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm text-[#415069] lg:justify-start">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm text-on-surface-variant lg:justify-start">
           {profile.organization ? (
             <span className="inline-flex items-center gap-2">
-              <Building2 className="h-4.5 w-4.5 text-[#718096]" />
+              <Building2 className="h-4.5 w-4.5 text-on-surface-variant" />
               {profile.organization.name}
             </span>
           ) : null}
-          {profile.organization ? <span className="text-[#D9E5F4]">.</span> : null}
+          {profile.organization ? <span className="text-on-surface-variant">.</span> : null}
           <span className="inline-flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#34C759]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-success" />
             {statusLine}
           </span>
         </div>
@@ -1287,7 +1287,7 @@ function ProfileTabs({
   }
 
   return (
-    <nav className="flex justify-center border-b border-[#DEE8F8]" aria-label={t("label")}>
+    <nav className="flex justify-center border-b border-outline-variant" aria-label={t("label")}>
       <div className="flex w-full max-w-[560px] items-center justify-center gap-4 sm:gap-10">
         {PROFILE_SOCIAL_TABS.map((tab) => {
           const isActive = activeTab === tab;
@@ -1300,14 +1300,14 @@ function ProfileTabs({
               className={cn(
                 "relative inline-flex h-[3.75rem] min-w-[7.5rem] items-center justify-center gap-2 text-sm font-semibold transition-colors",
                 isActive
-                  ? "text-[#3E78EC]"
-                  : "text-[#415069] hover:text-[#0B1424]"
+                  ? "text-primary-dim"
+                  : "text-on-surface-variant hover:text-on-surface"
               )}
             >
               {TAB_ICONS[tab]}
               {t(tab)}
               {isActive ? (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-[#4D86F7]" />
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
               ) : null}
             </button>
           );
@@ -1332,7 +1332,7 @@ function AnalyticsRangeControl({
   return (
     <div
       className={cn(
-        "inline-flex h-10 rounded-lg border border-[#DEE8F8] bg-white p-1 transition-opacity duration-200",
+        "inline-flex h-10 rounded-lg border border-outline-variant bg-white p-1 transition-opacity duration-200",
         isPending ? "opacity-90" : "opacity-100"
       )}
       aria-label={t("range_label")}
@@ -1349,8 +1349,8 @@ function AnalyticsRangeControl({
             className={cn(
               "inline-flex min-w-12 items-center justify-center rounded-md px-3 text-sm font-semibold transition-all duration-200 ease-out",
               active
-                ? "bg-[#4D86F7] text-white shadow-[0_10px_24px_-18px_rgba(77,134,247,0.55)]"
-                : "text-[#718096] hover:bg-[#F7FAFE] hover:text-[#0B1424]"
+                ? "bg-primary text-white shadow-token-primary"
+                : "text-on-surface-variant hover:bg-background hover:text-on-surface"
             )}
           >
             {t(`range_${item}`)}
@@ -1375,12 +1375,12 @@ function Card({
   return (
     <section
       className={cn(
-        "min-w-0 rounded-xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)]",
+        "min-w-0 rounded-xl border border-outline-variant bg-white p-5 shadow-token-card",
         className
       )}
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-[#0B1424]">{title}</h2>
+        <h2 className="text-base font-semibold text-on-surface">{title}</h2>
         {action}
       </div>
       {children}
@@ -1426,7 +1426,7 @@ function RadarChart({
                 return `${p.x},${p.y}`;
               })
               .join(" ")}
-            fill={value === 100 ? "transparent" : "rgba(77,134,247,0.035)"}
+            fill={value === 100 ? "transparent" : "rgba(0,184,217,0.035)"}
             stroke="rgba(65,80,105,0.20)"
             strokeWidth="1"
           />
@@ -1446,8 +1446,8 @@ function RadarChart({
         })}
         <polygon
           points={polygon}
-          fill="rgba(77,134,247,0.16)"
-          stroke="#3E78EC"
+          fill="rgba(0,184,217,0.16)"
+          stroke="#0788A0"
           strokeWidth="2"
         />
         {metrics.map((metric, index) => {
@@ -1469,14 +1469,14 @@ function RadarChart({
                 <tspan
                   x={labelPoint.x}
                   dy="-0.35em"
-                  className="fill-[#415069] text-[10px] font-medium"
+                  className="fill-primary text-[10px] font-medium"
                 >
                   {t(metric.key)}
                 </tspan>
                 <tspan
                   x={labelPoint.x}
                   dy="1.35em"
-                  className="fill-[#0B1424] text-[11px] font-semibold"
+                  className="fill-primary text-[11px] font-semibold"
                 >
                   {Math.round(metric.value)}
                 </tspan>
@@ -1498,14 +1498,14 @@ function MiniBars({ insight }: { insight: PracticeMinutesInsight | undefined }) 
   const max = Math.max(...values, 1);
 
   return (
-    <div className="mt-7 flex h-[152px] items-end gap-4 border-b border-dashed border-[#DEE8F8] px-1">
+    <div className="mt-7 flex h-[152px] items-end gap-4 border-b border-dashed border-outline-variant px-1">
       {values.slice(-7).map((value, index) => (
         <div key={`${value}-${index}`} className="flex flex-1 flex-col items-center gap-2">
           <div
-            className="w-full max-w-[18px] rounded-t-md bg-[linear-gradient(180deg,#A9C6FB_0%,#4D86F7_100%)]"
+            className="w-full max-w-[18px] rounded-t-md bg-[linear-gradient(180deg,#8BE8F7_0%,#00B8D9_100%)]"
             style={{ height: `${Math.max(16, (value / max) * 128)}px` }}
           />
-          <span className="text-[11px] font-medium text-[#718096]">
+          <span className="text-[11px] font-medium text-on-surface-variant">
             {visibleSeries[index]?.label ?? ""}
           </span>
         </div>
@@ -1524,7 +1524,7 @@ function InlineCardLink({
   return (
     <Link
       href={href}
-      className="mt-5 flex h-10 items-center justify-between rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm font-medium text-[#415069] transition hover:border-[#D9E5F4] hover:text-[#0B1424]"
+      className="mt-5 flex h-10 items-center justify-between rounded-lg border border-outline-variant bg-background px-3 text-sm font-medium text-on-surface-variant transition hover:border-outline-variant hover:text-on-surface"
     >
       {children}
       <ChevronRight className="h-4 w-4" />
@@ -1543,45 +1543,45 @@ function SeasonPerformanceCard({ profile }: { profile: PublicProfileShell }) {
     <Card title={t("season_performance")}>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-5">
         <div>
-          <p className="text-2xl font-semibold leading-none text-[#3E78EC]">
+          <p className="text-2xl font-semibold leading-none text-primary-dim">
             {formatNumber(seasonXp)}
           </p>
-          <p className="mt-1 text-sm text-[#415069]">{t("season_xp")}</p>
+          <p className="mt-1 text-sm text-on-surface-variant">{t("season_xp")}</p>
         </div>
-        <div className="h-12 w-px bg-[#DEE8F8]" />
+        <div className="h-12 w-px bg-surface-container-high" />
         <div>
-          <p className="text-2xl font-semibold leading-none text-[#0B1424]">
+          <p className="text-2xl font-semibold leading-none text-on-surface">
             {profile.season?.rank ? `#${profile.season.rank}` : "-"}
           </p>
-          <p className="mt-1 text-sm text-[#415069]">{t("in_your_league")}</p>
+          <p className="mt-1 text-sm text-on-surface-variant">{t("in_your_league")}</p>
         </div>
       </div>
 
       <div className="mt-7">
-        <div className="h-2 overflow-hidden rounded-full bg-[#D9E5F4]">
+        <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
           <div
-            className="h-full rounded-full bg-[#4D86F7]"
+            className="h-full rounded-full bg-primary"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-3 text-sm text-[#718096]">
+        <p className="mt-3 text-sm text-on-surface-variant">
           {t("xp_to_next_rank", { count: remaining })}
         </p>
       </div>
 
-      <div className="mt-7 flex items-center justify-between rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-4 py-4">
+      <div className="mt-7 flex items-center justify-between rounded-lg border border-outline-variant bg-background px-4 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#F5B942] bg-[#FFF8E6] text-[#F5B942]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-warning bg-surface-container text-warning">
             <Medal className="h-6 w-6" />
           </span>
           <div>
-            <p className="text-xs font-medium text-[#718096]">{t("current_league")}</p>
-            <p className="text-base font-semibold text-[#0B1424]">
+            <p className="text-xs font-medium text-on-surface-variant">{t("current_league")}</p>
+            <p className="text-base font-semibold text-on-surface">
               {formatLeagueTier(profile.season?.leagueTier, t)}
             </p>
           </div>
         </div>
-        <ChevronRight className="h-5 w-5 text-[#0B1424]" />
+        <ChevronRight className="h-5 w-5 text-on-surface" />
       </div>
 
       <InlineCardLink href="/leaderboards">{t("view_leaderboard")}</InlineCardLink>
@@ -1643,18 +1643,18 @@ function ProfileAnalyticsOverview({
 
         <Card title={t("weekly_practice")}>
           <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold leading-none text-[#0B1424]">
+            <p className="text-[2rem] font-semibold leading-none text-on-surface">
               {formatNumber(practiceMinutes?.totalMinutes ?? 0)}
             </p>
-            <p className="pb-1 text-sm text-[#415069]">{t("minutes")}</p>
+            <p className="pb-1 text-sm text-on-surface-variant">{t("minutes")}</p>
           </div>
           <p
             className={cn(
               "mt-2 text-sm font-medium",
               practiceMinutes?.deltaPercent != null &&
                 practiceMinutes.deltaPercent >= 0
-                ? "text-[#34C759]"
-                : "text-[#718096]"
+                ? "text-success"
+                : "text-on-surface-variant"
             )}
           >
             {practiceMinutes?.deltaPercent != null
@@ -1675,41 +1675,41 @@ function ProfileAnalyticsOverview({
       <div className="grid gap-5 xl:grid-cols-3">
         <Card title={t("practice_mix")}>
           <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
-            <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-[#F1F6FD]">
+            <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-outline-variant">
               <div
                 className="absolute inset-[-10px] rounded-full"
                 style={{
-                  background: `conic-gradient(#4D86F7 ${mix?.debatePercent ?? 0}%, #A9C6FB 0)`,
+                  background: `conic-gradient(#00B8D9 ${mix?.debatePercent ?? 0}%, #8BE8F7 0)`,
                   WebkitMask:
                     "radial-gradient(circle, transparent 52%, #000 53%)",
                   mask: "radial-gradient(circle, transparent 52%, #000 53%)",
                 }}
               />
               <div className="relative text-center">
-                <p className="text-2xl font-semibold text-[#0B1424]">
+                <p className="text-2xl font-semibold text-on-surface">
                   {totalMix}
                 </p>
-                <p className="text-xs font-medium text-[#718096]">
+                <p className="text-xs font-medium text-on-surface-variant">
                   {t("sessions")}
                 </p>
               </div>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2 text-[#415069]">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#4D86F7]" />
+                <span className="inline-flex items-center gap-2 text-on-surface-variant">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
                   {tAnalytics("cards.mix.debate")}
                 </span>
-                <span className="font-semibold text-[#0B1424]">
+                <span className="font-semibold text-on-surface">
                   {mix?.debatePercent ?? 0}%
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2 text-[#415069]">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#A9C6FB]" />
+                <span className="inline-flex items-center gap-2 text-on-surface-variant">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary-fixed" />
                   {tAnalytics("cards.mix.speaking")}
                 </span>
-                <span className="font-semibold text-[#0B1424]">
+                <span className="font-semibold text-on-surface">
                   {mix?.speakingPercent ?? 0}%
                 </span>
               </div>
@@ -1722,14 +1722,14 @@ function ProfileAnalyticsOverview({
 
         <Card title={t("average_score")}>
           <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold leading-none text-[#0B1424]">
+            <p className="text-[2rem] font-semibold leading-none text-on-surface">
               {averageScore?.averageScore != null
                 ? Math.round(averageScore.averageScore)
                 : "-"}
             </p>
-            <p className="pb-1 text-sm text-[#415069]">/100</p>
+            <p className="pb-1 text-sm text-on-surface-variant">/100</p>
           </div>
-          <p className="mt-2 text-sm text-[#718096]">
+          <p className="mt-2 text-sm text-on-surface-variant">
             {averageScore?.deltaPoints != null
               ? t("score_delta", {
                   count: Math.abs(Math.round(averageScore.deltaPoints)),
@@ -1740,27 +1740,27 @@ function ProfileAnalyticsOverview({
 
         <Card title={t("strongest_focus")}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
+            <div className="rounded-lg border border-outline-variant bg-background p-4">
               <div className="flex items-center gap-3">
-                <Target className="h-5 w-5 text-[#34C759]" />
-                <span className="text-sm font-medium text-[#718096]">
+                <Target className="h-5 w-5 text-success" />
+                <span className="text-sm font-medium text-on-surface-variant">
                   {tAnalytics("cards.strongest_focus.strongest")}
                 </span>
               </div>
-              <p className="mt-3 text-lg font-semibold text-[#0B1424]">
+              <p className="mt-3 text-lg font-semibold text-on-surface">
                 {strongestFocus?.strongestSkill
                   ? tAnalytics(`skills.${strongestFocus.strongestSkill}`)
                   : "-"}
               </p>
             </div>
-            <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
+            <div className="rounded-lg border border-outline-variant bg-background p-4">
               <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-[#F5B942]" />
-                <span className="text-sm font-medium text-[#718096]">
+                <Sparkles className="h-5 w-5 text-warning" />
+                <span className="text-sm font-medium text-on-surface-variant">
                   {tAnalytics("cards.strongest_focus.focus_next")}
                 </span>
               </div>
-              <p className="mt-3 text-lg font-semibold text-[#0B1424]">
+              <p className="mt-3 text-lg font-semibold text-on-surface">
                 {strongestFocus?.focusSkill
                   ? tAnalytics(`skills.${strongestFocus.focusSkill}`)
                   : "-"}
@@ -1803,22 +1803,22 @@ function PublicAnalyticsSummary({
       <div className="grid gap-5 xl:grid-cols-3">
         <SeasonPerformanceCard profile={profile} />
         <Card title={t("weekly_practice")}>
-          <p className="text-[2rem] font-semibold text-[#0B1424]">
+          <p className="text-[2rem] font-semibold text-on-surface">
             {formatNumber(data?.totalPracticeMinutes ?? 0)}
           </p>
-          <p className="mt-1 text-sm text-[#718096]">{t("minutes")}</p>
-          <p className="mt-5 text-sm text-[#718096]">
+          <p className="mt-1 text-sm text-on-surface-variant">{t("minutes")}</p>
+          <p className="mt-5 text-sm text-on-surface-variant">
             {t("sessions_in_range", { count: data?.totalSessions ?? 0 })}
           </p>
         </Card>
         <Card title={t("average_score")}>
           <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold text-[#0B1424]">
+            <p className="text-[2rem] font-semibold text-on-surface">
               {data?.averageScore != null ? Math.round(data.averageScore) : "-"}
             </p>
-            <p className="pb-1 text-sm text-[#415069]">/100</p>
+            <p className="pb-1 text-sm text-on-surface-variant">/100</p>
           </div>
-          <p className="mt-2 text-sm text-[#718096]">
+          <p className="mt-2 text-sm text-on-surface-variant">
             {t("sessions_analyzed", { count: data?.totalSessions ?? 0 })}
           </p>
         </Card>
@@ -1826,40 +1826,40 @@ function PublicAnalyticsSummary({
 
       <div className="grid gap-5 xl:grid-cols-3">
         <Card title={t("practice_mix")}>
-          <p className="text-[2rem] font-semibold text-[#0B1424]">{totalMix}</p>
-          <p className="mt-1 text-sm text-[#718096]">{t("sessions")}</p>
+          <p className="text-[2rem] font-semibold text-on-surface">{totalMix}</p>
+          <p className="mt-1 text-sm text-on-surface-variant">{t("sessions")}</p>
           <div className="mt-5 grid gap-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[#718096]">{t("debate_sessions")}</span>
-              <span className="font-semibold text-[#0B1424]">
+              <span className="text-on-surface-variant">{t("debate_sessions")}</span>
+              <span className="font-semibold text-on-surface">
                 {data?.debateCount ?? 0}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#718096]">{t("speaking_sessions")}</span>
-              <span className="font-semibold text-[#0B1424]">
+              <span className="text-on-surface-variant">{t("speaking_sessions")}</span>
+              <span className="font-semibold text-on-surface">
                 {data?.speakingCount ?? 0}
               </span>
             </div>
           </div>
         </Card>
         <Card title={t("profile_level")}>
-          <p className="text-[2rem] font-semibold text-[#0B1424]">
+          <p className="text-[2rem] font-semibold text-on-surface">
             {data?.level != null
               ? tHeader("level_value", { level: data.level })
               : tHeader("hidden")}
           </p>
-          <p className="mt-2 text-sm text-[#718096]">
+          <p className="mt-2 text-sm text-on-surface-variant">
             {data?.lifetimeXp != null
               ? t("lifetime_xp", { count: data.lifetimeXp })
               : t("private_metric")}
           </p>
         </Card>
         <Card title={t("friend_network")}>
-          <p className="text-[2rem] font-semibold text-[#0B1424]">
+          <p className="text-[2rem] font-semibold text-on-surface">
             {profile.friendCounts.friends}
           </p>
-          <p className="mt-2 text-sm text-[#718096]">{t("friends")}</p>
+          <p className="mt-2 text-sm text-on-surface-variant">{t("friends")}</p>
         </Card>
       </div>
     </div>
@@ -1874,12 +1874,12 @@ function PrivacyPanel({
   body: string;
 }) {
   return (
-    <section className="rounded-xl border border-dashed border-[#D9E5F4] bg-white px-6 py-16 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EEF2F7] text-[#718096]">
+    <section className="rounded-xl border border-dashed border-outline-variant bg-white px-6 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
         <ShieldCheck className="h-6 w-6" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold text-[#0B1424]">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#718096]">{body}</p>
+      <h2 className="mt-5 text-xl font-semibold text-on-surface">{title}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">{body}</p>
     </section>
   );
 }
@@ -2049,7 +2049,7 @@ export function SocialProfilePage({
 
   return (
     <main
-      className="min-h-full bg-[#F7FAFE] text-[#0B1424]"
+      className="min-h-full bg-background text-on-surface"
       data-testid="profile-social-page"
       data-locale={localeKey}
     >
@@ -2061,8 +2061,8 @@ export function SocialProfilePage({
         {profile ? (
           <>
             {privacyPreview ? (
-              <div className="mb-5 flex items-center gap-3 rounded-lg border border-[#DEE8F8] bg-white px-4 py-3 text-sm text-[#415069]">
-                <Eye className="h-4 w-4 shrink-0 text-[#4D86F7]" />
+              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm text-on-surface-variant">
+                <Eye className="h-4 w-4 shrink-0 text-primary" />
                 <span>{t("privacy_preview")}</span>
               </div>
             ) : null}
@@ -2096,8 +2096,8 @@ export function SocialProfilePage({
         ) : (
           <>
             {privacyPreview ? (
-              <div className="mb-5 flex items-center gap-3 rounded-lg border border-[#DEE8F8] bg-white px-4 py-3 text-sm text-[#415069]">
-                <Eye className="h-4 w-4 shrink-0 text-[#4D86F7]" />
+              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm text-on-surface-variant">
+                <Eye className="h-4 w-4 shrink-0 text-primary" />
                 <span>{t("privacy_preview")}</span>
               </div>
             ) : null}

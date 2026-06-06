@@ -78,7 +78,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
 
   if (questions.length === 0) {
     return (
-      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-8 text-center shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)]">
+      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-8 text-center shadow-token-panel">
         <p className="text-on-surface-variant">{t("reader.quiz_empty")}</p>
       </div>
     );
@@ -91,7 +91,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
     ).length;
 
     return (
-      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-8 text-center shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)]">
+      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-8 text-center shadow-token-panel">
         <div
           className={cn(
             "mx-auto flex h-24 w-24 items-center justify-center rounded-full text-2xl font-semibold",
@@ -134,7 +134,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
   const isCorrect = selectedAnswer === current.correct_answer;
 
   return (
-    <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-[0_26px_80px_-56px_rgba(22,39,91,0.42)] sm:p-8">
+    <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-token-panel sm:p-8">
       <div className="flex flex-col gap-4 border-b border-outline-variant/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">

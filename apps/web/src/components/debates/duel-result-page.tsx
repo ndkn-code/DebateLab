@@ -64,7 +64,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
   if (error || !room || !room.judgment) {
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+        <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-token-card">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
           </h1>
@@ -99,7 +99,7 @@ export function DuelResultContent({
   if (!room.judgment) {
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+        <div className="mx-auto max-w-3xl rounded-[30px] border border-outline-variant/15 bg-surface p-6 text-center shadow-token-card">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
           </h1>
@@ -130,7 +130,7 @@ export function DuelResultContent({
         transcript={<DuelTranscriptTab room={room} />}
         clashMap={<DuelClashMap room={room} />}
         overall={
-          <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-8 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+          <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-8 shadow-token-card">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">

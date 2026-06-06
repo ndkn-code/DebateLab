@@ -26,8 +26,8 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
   return (
     <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 soft-shadow">
       <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF8E6]">
-          <Gift className="h-5 w-5 text-[#F5B942]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container">
+          <Gift className="h-5 w-5 text-warning" />
         </div>
         <h2 className="text-lg font-semibold text-on-surface">Referrals & Credits</h2>
       </div>
@@ -43,7 +43,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
           <p className="mt-0.5 text-xs text-on-surface-variant">Invited</p>
         </div>
         <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-3 text-center">
-          <p className="text-lg font-bold text-[#F5B942]">+{stats.totalOrbsEarned}</p>
+          <p className="text-lg font-bold text-warning">+{stats.totalOrbsEarned}</p>
           <p className="mt-0.5 text-xs text-on-surface-variant">Credits earned</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
           }}
         >
           {copied ? (
-            <Check className="h-3.5 w-3.5 text-[#34C759]" />
+            <Check className="h-3.5 w-3.5 text-success" />
           ) : (
             <Copy className="h-3.5 w-3.5" />
           )}
@@ -89,9 +89,9 @@ export function ReferralStats({ stats, orbBalance }: ReferralStatsProps) {
                 <span
                   className={`text-xs ${
                     u.status === "credited"
-                      ? "text-[#34C759]"
+                      ? "text-success"
                       : u.status === "pending"
-                        ? "text-[#F5B942]"
+                        ? "text-warning"
                         : "text-on-surface-variant"
                   }`}
                 >

@@ -102,114 +102,114 @@ const TAG_STYLES: Record<
   }
 > = {
   stance: {
-    accent: "#3E78EC",
-    accentRgb: "62,120,236",
-    mark: "bg-[#EEF4FF] text-[#2157C8] ring-[#A9C6FB]",
-    activeMark: "shadow-[0_0_0_3px_rgba(62,120,236,0.18)]",
-    card: "border-[#CFE0FF] bg-white",
-    badge: "bg-[#EEF4FF] text-[#2157C8]",
-    dot: "bg-[#3E78EC] text-white",
-    connector: "border-[#3E78EC]",
+    accent: "#0788A0",
+    accentRgb: "7,136,160",
+    mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   clarity: {
-    accent: "#3E78EC",
-    accentRgb: "62,120,236",
-    mark: "bg-[#EEF4FF] text-[#2157C8] ring-[#A9C6FB]",
-    activeMark: "shadow-[0_0_0_3px_rgba(62,120,236,0.18)]",
-    card: "border-[#CFE0FF] bg-white",
-    badge: "bg-[#EEF4FF] text-[#2157C8]",
-    dot: "bg-[#3E78EC] text-white",
-    connector: "border-[#3E78EC]",
+    accent: "#0788A0",
+    accentRgb: "7,136,160",
+    mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   structure: {
-    accent: "#3E78EC",
-    accentRgb: "62,120,236",
-    mark: "bg-[#EEF4FF] text-[#2157C8] ring-[#A9C6FB]",
-    activeMark: "shadow-[0_0_0_3px_rgba(62,120,236,0.18)]",
-    card: "border-[#CFE0FF] bg-white",
-    badge: "bg-[#EEF4FF] text-[#2157C8]",
-    dot: "bg-[#3E78EC] text-white",
-    connector: "border-[#3E78EC]",
+    accent: "#0788A0",
+    accentRgb: "7,136,160",
+    mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   mechanism: {
-    accent: "#4D86F7",
-    accentRgb: "77,134,247",
-    mark: "bg-[#EAF1FF] text-[#245FD6] ring-[#B9CBFA]",
-    activeMark: "shadow-[0_0_0_3px_rgba(77,134,247,0.2)]",
-    card: "border-[#D9E6FF] bg-white",
-    badge: "bg-[#EAF1FF] text-[#245FD6]",
-    dot: "bg-[#4D86F7] text-white",
-    connector: "border-[#4D86F7]",
+    accent: "#00B8D9",
+    accentRgb: "0,184,217",
+    mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-primary",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   logic: {
-    accent: "#4D86F7",
-    accentRgb: "77,134,247",
-    mark: "bg-[#EAF1FF] text-[#245FD6] ring-[#B9CBFA]",
-    activeMark: "shadow-[0_0_0_3px_rgba(77,134,247,0.2)]",
-    card: "border-[#D9E6FF] bg-white",
-    badge: "bg-[#EAF1FF] text-[#245FD6]",
-    dot: "bg-[#4D86F7] text-white",
-    connector: "border-[#4D86F7]",
+    accent: "#00B8D9",
+    accentRgb: "0,184,217",
+    mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-primary",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   weighing: {
-    accent: "#4D86F7",
-    accentRgb: "77,134,247",
-    mark: "bg-[#EAF1FF] text-[#245FD6] ring-[#B9CBFA]",
-    activeMark: "shadow-[0_0_0_3px_rgba(77,134,247,0.2)]",
-    card: "border-[#D9E6FF] bg-white",
-    badge: "bg-[#EAF1FF] text-[#245FD6]",
-    dot: "bg-[#4D86F7] text-white",
-    connector: "border-[#4D86F7]",
+    accent: "#00B8D9",
+    accentRgb: "0,184,217",
+    mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-primary",
+    card: "border-outline-variant bg-white",
+    badge: "bg-primary-container text-on-surface-variant",
+    dot: "bg-primary text-white",
+    connector: "border-primary",
   },
   impact: {
-    accent: "#34C759",
+    accent: "#00B8D9",
     accentRgb: "52,199,89",
-    mark: "bg-[#EAF9EF] text-[#1A7F46] ring-[#BFEBD0]",
-    activeMark: "shadow-[0_0_0_3px_rgba(52,199,89,0.18)]",
-    card: "border-[#CDEED9] bg-white",
-    badge: "bg-[#EAF9EF] text-[#1A9153]",
-    dot: "bg-[#34C759] text-white",
-    connector: "border-[#34C759]",
+    mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-surface-container text-on-surface-variant",
+    dot: "bg-success text-white",
+    connector: "border-outline-variant",
   },
   evidence: {
-    accent: "#34C759",
+    accent: "#00B8D9",
     accentRgb: "52,199,89",
-    mark: "bg-[#EAF9EF] text-[#1A7F46] ring-[#BFEBD0]",
-    activeMark: "shadow-[0_0_0_3px_rgba(52,199,89,0.18)]",
-    card: "border-[#CDEED9] bg-white",
-    badge: "bg-[#EAF9EF] text-[#1A9153]",
-    dot: "bg-[#34C759] text-white",
-    connector: "border-[#34C759]",
+    mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-surface-container text-on-surface-variant",
+    dot: "bg-success text-white",
+    connector: "border-outline-variant",
   },
   clash: {
-    accent: "#F5B942",
+    accent: "#FFD166",
     accentRgb: "245,185,66",
-    mark: "bg-[#FFF5E2] text-[#A05F00] ring-[#F9D889]",
-    activeMark: "shadow-[0_0_0_3px_rgba(245,185,66,0.24)]",
-    card: "border-[#F9D889] bg-white",
-    badge: "bg-[#FFF5E2] text-[#C57F00]",
-    dot: "bg-[#F5B942] text-[#0B1424]",
-    connector: "border-[#F5B942]",
+    mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-surface-container text-on-surface-variant",
+    dot: "bg-warning text-on-surface",
+    connector: "border-warning",
   },
   rebuttal: {
-    accent: "#F5B942",
+    accent: "#FFD166",
     accentRgb: "245,185,66",
-    mark: "bg-[#FFF5E2] text-[#A05F00] ring-[#F9D889]",
-    activeMark: "shadow-[0_0_0_3px_rgba(245,185,66,0.24)]",
-    card: "border-[#F9D889] bg-white",
-    badge: "bg-[#FFF5E2] text-[#C57F00]",
-    dot: "bg-[#F5B942] text-[#0B1424]",
-    connector: "border-[#F5B942]",
+    mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-surface-container text-on-surface-variant",
+    dot: "bg-warning text-on-surface",
+    connector: "border-warning",
   },
   delivery: {
-    accent: "#7B61FF",
+    accent: "#00B8D9",
     accentRgb: "123,97,255",
-    mark: "bg-[#F1EEFF] text-[#6245F5] ring-[#CFC6FF]",
-    activeMark: "shadow-[0_0_0_3px_rgba(123,97,255,0.2)]",
-    card: "border-[#D8D0FF] bg-white",
-    badge: "bg-[#F1EEFF] text-[#6245F5]",
-    dot: "bg-[#7B61FF] text-white",
-    connector: "border-[#7B61FF]",
+    mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
+    activeMark: "shadow-token-card",
+    card: "border-outline-variant bg-white",
+    badge: "bg-surface-container text-on-surface-variant",
+    dot: "bg-surface-container-high text-white",
+    connector: "border-outline-variant",
   },
 };
 
@@ -555,20 +555,20 @@ export function AnnotatedTranscript({
 
   if (!transcript.trim()) {
     return (
-      <section className="rounded-2xl border border-[#DEE8F8] bg-white p-8 text-center text-sm leading-7 text-[#415069]">
+      <section className="rounded-2xl border border-outline-variant bg-white p-8 text-center text-sm leading-7 text-on-surface-variant">
         {emptyLabel}
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_45px_rgba(16,32,72,0.035)] sm:p-6">
+    <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-normal text-[#0B1424]">
+          <h2 className="text-2xl font-bold tracking-normal text-on-surface">
             {title ?? t("title")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[#718096]">
+          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
             {description ?? t("description")}
           </p>
         </div>
@@ -577,17 +577,17 @@ export function AnnotatedTranscript({
           {leadingControl ??
             (showSpeakerControl ? (
               <label className="block">
-                <span className="text-xs font-bold text-[#718096]">
+                <span className="text-xs font-bold text-on-surface-variant">
                   {speakerControlLabel ?? t("speaker")}
                 </span>
-                <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#162033]">
+                <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-outline-variant bg-white px-3 text-sm font-semibold text-on-surface">
                   {speakerLabel ?? t("you")}
-                  <ChevronDown className="h-4 w-4 text-[#718096]" />
+                  <ChevronDown className="h-4 w-4 text-on-surface-variant" />
                 </div>
               </label>
             ) : null)}
           <label className="block">
-            <span className="text-xs font-bold text-[#718096]">
+            <span className="text-xs font-bold text-on-surface-variant">
               {t("view")}
             </span>
             <div className="relative mt-1">
@@ -596,7 +596,7 @@ export function AnnotatedTranscript({
                 onChange={(event) =>
                   setFilter(event.target.value as TranscriptAnnotationFilter)
                 }
-                className="h-11 w-full appearance-none rounded-lg border border-[#DEE8F8] bg-white px-3 pr-9 text-sm font-semibold text-[#162033] outline-none focus:border-[#4D86F7]"
+                className="h-11 w-full appearance-none rounded-lg border border-outline-variant bg-white px-3 pr-9 text-sm font-semibold text-on-surface outline-none focus:border-primary"
               >
                 {FILTER_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -604,7 +604,7 @@ export function AnnotatedTranscript({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718096]" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             </div>
           </label>
         </div>
@@ -616,7 +616,7 @@ export function AnnotatedTranscript({
       >
         <div
           ref={transcriptPaneRef}
-          className="relative z-10 min-h-[280px] overflow-y-auto rounded-xl border border-[#DEE8F8] bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
+          className="relative z-10 min-h-[280px] overflow-y-auto rounded-xl border border-outline-variant bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
         >
           <div className="space-y-7">
             {chunks.map((chunk) => {
@@ -631,10 +631,10 @@ export function AnnotatedTranscript({
                   key={chunk.id}
                   className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] gap-4"
                 >
-                  <div className="pt-1 font-mono text-xs font-bold text-[#718096]">
+                  <div className="pt-1 font-mono text-xs font-bold text-on-surface-variant">
                     {chunk.timestampLabel}
                   </div>
-                  <p className="whitespace-pre-wrap text-[0.98rem] leading-7 text-[#30427A]">
+                  <p className="whitespace-pre-wrap text-[0.98rem] leading-7 text-on-surface-variant">
                     {segments.map((segment) => {
                       if (segment.type === "text") {
                         return <span key={segment.key}>{segment.text}</span>;
@@ -672,7 +672,7 @@ export function AnnotatedTranscript({
                           onMouseEnter={() => setActiveId(segment.annotation.id)}
                           onFocus={() => setActiveId(segment.annotation.id)}
                           className={cn(
-                            "relative mx-0.5 mr-9 inline-block max-w-[calc(100%-2.5rem)] rounded px-1 py-0.5 text-left font-semibold leading-7 ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D86F7]",
+                            "relative mx-0.5 mr-9 inline-block max-w-[calc(100%-2.5rem)] rounded px-1 py-0.5 text-left font-semibold leading-7 ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                             tone.mark,
                             isActive && tone.activeMark,
                             isFilteredOut && "opacity-35"
@@ -701,7 +701,7 @@ export function AnnotatedTranscript({
                               }
                             }}
                             className={cn(
-                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.68rem] leading-5 shadow-[0_0_0_3px_#FFFFFF]",
+                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.68rem] leading-5 shadow-token-card",
                               tone.dot
                             )}
                           >
@@ -742,9 +742,9 @@ export function AnnotatedTranscript({
                   onFocus={() => setActiveId(annotation.id)}
                   tabIndex={0}
                   className={cn(
-                    "relative rounded-xl border bg-white p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D86F7]",
+                    "relative rounded-xl border bg-white p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     tone.card,
-                    isActive && "shadow-[0_16px_34px_rgba(34,67,138,0.14)]"
+                    isActive && "shadow-token-card"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -773,44 +773,44 @@ export function AnnotatedTranscript({
                         {getTagLabel(annotation.tag, t)}
                       </span>
                       {annotation.timestampLabel ? (
-                        <span className="font-mono text-xs font-bold text-[#718096]">
+                        <span className="font-mono text-xs font-bold text-on-surface-variant">
                           {annotation.timestampLabel}
                         </span>
                       ) : null}
                       {annotation.roundNumber ? (
-                        <span className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+                        <span className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
                           {roundLabel(annotation.roundNumber)}
                         </span>
                       ) : null}
                       {!annotation.matchedText ? (
-                        <span className="rounded-md bg-[#FDECEC] px-2.5 py-1 text-xs font-semibold text-[#C63B3B] ring-1 ring-[#F5B8B8]">
+                        <span className="rounded-md bg-error-container px-2.5 py-1 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
                           {unmatchedLabel}
                         </span>
                       ) : null}
                     </div>
-                    <div className="flex gap-2 text-[#718096]">
+                    <div className="flex gap-2 text-on-surface-variant">
                       <Bookmark className="h-4 w-4" />
                       <MoreVertical className="h-4 w-4" />
                     </div>
                   </div>
 
                   <blockquote
-                    className="mt-4 border-l-2 pl-3 text-sm font-bold leading-6 text-[#162033]"
+                    className="mt-4 border-l-2 pl-3 text-sm font-bold leading-6 text-on-surface"
                     style={{ borderColor: tone.accent }}
                   >
                     &ldquo;{annotation.matchedText ?? annotation.quote}&rdquo;
                   </blockquote>
-                  <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                  <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                     {annotation.feedback}
                   </p>
                   {annotation.suggestion ? (
                     <p
-                      className="mt-4 rounded-lg border bg-white p-3 text-sm leading-6 text-[#415069]"
+                      className="mt-4 rounded-lg border bg-white p-3 text-sm leading-6 text-on-surface-variant"
                       style={{
                         borderColor: `rgba(${tone.accentRgb}, 0.35)`,
                       }}
                     >
-                      <span className="font-bold text-[#0B1424]">
+                      <span className="font-bold text-on-surface">
                         {suggestionLabel}:{" "}
                       </span>
                       {annotation.suggestion}
@@ -820,8 +820,8 @@ export function AnnotatedTranscript({
               );
             })
           ) : (
-            <div className="rounded-xl border border-[#DEE8F8] bg-[#F7FAFE] p-5 text-sm leading-6 text-[#415069]">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
+            <div className="rounded-xl border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               {t("emptyFilter")}

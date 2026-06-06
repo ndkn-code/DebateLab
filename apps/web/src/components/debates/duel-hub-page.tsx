@@ -34,10 +34,10 @@ function ModeCard({
   const content = (
     <div
       className={cn(
-        "group relative min-h-[360px] overflow-hidden rounded-[30px] border bg-surface p-6 text-left shadow-[0_18px_45px_rgba(11,20,66,0.06)] transition-all",
+        "group relative min-h-[360px] overflow-hidden rounded-[30px] border bg-surface p-6 text-left shadow-token-card transition-all",
         disabled
           ? "cursor-not-allowed border-outline-variant/15 opacity-75"
-          : "border-outline-variant/15 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,20,66,0.1)]"
+          : "border-outline-variant/15 hover:-translate-y-1 hover:shadow-token-card"
       )}
     >
       <Image
@@ -87,7 +87,7 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
         <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
           <ProductPageHeader title={t("title")} icon={<Swords />} />
 
-          <div className="max-w-3xl rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant shadow-[0_16px_40px_rgba(11,20,66,0.04)] sm:p-5">
+          <div className="max-w-3xl rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant shadow-token-card sm:p-5">
             {t("subtitle")}
           </div>
 

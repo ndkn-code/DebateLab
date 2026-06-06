@@ -51,14 +51,14 @@ const WEEKDAYS: Array<{ value: RecurrenceWeekday; label: string }> = [
 ];
 
 const PROGRAM_TONE: Record<AdminClassProgram, string> = {
-  debate: "border-blue-200 bg-blue-50 text-blue-700",
-  ielts: "border-violet-200 bg-violet-50 text-violet-700",
+  debate: "border-primary/25 bg-primary-container text-primary-dim",
+  ielts: "border-info/25 bg-info-container text-info",
   public_speaking: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 const PROGRAM_BAR: Record<AdminClassProgram, string> = {
-  debate: "border-blue-300 bg-blue-50 text-blue-800",
-  ielts: "border-violet-300 bg-violet-50 text-violet-800",
+  debate: "border-primary/35 bg-primary-container text-primary-dim",
+  ielts: "border-info/35 bg-info-container text-info",
   public_speaking: "border-amber-300 bg-amber-50 text-amber-800",
 };
 

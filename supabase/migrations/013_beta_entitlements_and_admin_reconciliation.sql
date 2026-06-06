@@ -27,7 +27,7 @@ grant execute on function private.is_admin(uuid) to authenticated;
 alter table public.profiles
   add column if not exists selected_title text,
   add column if not exists unlocked_titles text[] not null default '{}'::text[],
-  add column if not exists banner_color text not null default '#4d86f7';
+  add column if not exists banner_color text not null default '#00B8D9';
 
 -- Course publishing/access fields referenced by the admin course builder.
 alter table public.courses

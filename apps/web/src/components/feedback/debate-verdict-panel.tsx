@@ -25,10 +25,10 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
     return {
       eyebrowKey: "user.eyebrow",
       titleKey: "user.title",
-      chip: "bg-[#EAF9EF] text-[#168A45] ring-[#CDEED9]",
-      iconBg: "bg-[#EAF9EF] text-[#168A45]",
-      hero: "border-[#BFEBD0] bg-[linear-gradient(135deg,#F8FFFB_0%,#F1FAF5_58%,#F8FBFF_100%)]",
-      accent: "#34C759",
+      chip: "bg-surface-container text-on-surface-variant ring-outline-variant",
+      iconBg: "bg-surface-container text-on-surface-variant",
+      hero: "border-outline-variant bg-[linear-gradient(135deg,#F8FDFF_0%,#F1FAF5_58%,#F3FCFE_100%)]",
+      accent: "#00B8D9",
       softAccent: "#EAF9EF",
       Icon: Trophy,
     };
@@ -38,10 +38,10 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
     return {
       eyebrowKey: "ai.eyebrow",
       titleKey: "ai.title",
-      chip: "bg-[#FFF5E2] text-[#B45309] ring-[#F9D889]",
-      iconBg: "bg-[#FFF5E2] text-[#B45309]",
-      hero: "border-[#F9D889] bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF7E8_58%,#F8FBFF_100%)]",
-      accent: "#F5B942",
+      chip: "bg-surface-container text-on-surface-variant ring-outline-variant",
+      iconBg: "bg-surface-container text-on-surface-variant",
+      hero: "border-outline-variant bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF7E8_58%,#F3FCFE_100%)]",
+      accent: "#FFD166",
       softAccent: "#FFF5E2",
       Icon: Bot,
     };
@@ -50,10 +50,10 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
   return {
     eyebrowKey: "tie.eyebrow",
     titleKey: "tie.title",
-    chip: "bg-[#EAF1FF] text-[#245FD6] ring-[#CFE0FF]",
-    iconBg: "bg-[#EAF1FF] text-[#245FD6]",
-    hero: "border-[#CFE0FF] bg-[linear-gradient(135deg,#FFFFFF_0%,#F1F6FD_58%,#F8FBFF_100%)]",
-    accent: "#4D86F7",
+    chip: "bg-primary-container text-on-surface-variant ring-outline-variant",
+    iconBg: "bg-primary-container text-on-surface-variant",
+    hero: "border-outline-variant bg-[linear-gradient(135deg,#FFFFFF_0%,#E5F8FC_58%,#F3FCFE_100%)]",
+    accent: "#00B8D9",
     softAccent: "#EAF1FF",
     Icon: Scale,
   };
@@ -62,11 +62,11 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
 const REASON_ICONS = [MessageCircle, UsersRound, Target] as const;
 
 const CONFETTI = [
-  "left-[3.5%] top-[23%] bg-[#F7C73E]",
-  "left-[2.5%] bottom-[20%] bg-[#F36D7E]",
-  "left-[11%] bottom-[12%] bg-[#F5A3CF]",
-  "right-[31%] top-[18%] bg-[#EF6A6A]",
-  "right-[30%] bottom-[32%] bg-[#6C99F6]",
+  "left-[3.5%] top-[23%] bg-surface-container",
+  "left-[2.5%] bottom-[20%] bg-surface-container",
+  "left-[11%] bottom-[12%] bg-surface-container",
+  "right-[31%] top-[18%] bg-error",
+  "right-[30%] bottom-[32%] bg-surface-container-high",
 ] as const;
 
 function ConfidenceRing({
@@ -105,7 +105,7 @@ function ConfidenceRing({
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center">
-        <span className="text-4xl font-black tracking-tight text-[#071159]">
+        <span className="text-4xl font-black tracking-tight text-on-surface-variant">
           {percent}%
         </span>
       </div>
@@ -119,14 +119,14 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
   if (!verdict) {
     return (
-      <section className="rounded-2xl border border-[#DEE8F8] bg-white p-8 text-center shadow-[0_18px_45px_rgba(16,32,72,0.035)]">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
+      <section className="rounded-2xl border border-outline-variant bg-white p-8 text-center shadow-token-card">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <Trophy className="h-5 w-5" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-[#0B1424]">
+        <h2 className="mt-4 text-2xl font-bold text-on-surface">
           {t("fallback.title")}
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#718096]">
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
           {t("fallback.body")}
         </p>
       </section>
@@ -139,7 +139,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
   const filledStars = Math.max(1, Math.min(5, Math.round(confidencePercent / 20)));
 
   return (
-    <section className="rounded-[28px] border border-[#DEE8F8] bg-white p-5 shadow-[0_22px_60px_rgba(16,32,72,0.045)] sm:p-7">
+    <section className="rounded-[28px] border border-outline-variant bg-white p-5 shadow-token-card sm:p-7">
       <div
         className={cn(
           "relative overflow-hidden rounded-[24px] border p-5 sm:p-7 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8",
@@ -159,7 +159,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
         <div className="relative flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center lg:gap-8">
           <div
             className={cn(
-              "flex h-28 w-28 shrink-0 items-center justify-center rounded-full border border-white/80 shadow-[0_18px_36px_rgba(22,32,51,0.06)] sm:h-32 sm:w-32",
+              "flex h-28 w-28 shrink-0 items-center justify-center rounded-full border border-white/80 shadow-token-card sm:h-32 sm:w-32",
               copy.iconBg
             )}
           >
@@ -178,24 +178,24 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                 {t(copy.eyebrowKey)}
               </span>
             </div>
-            <h2 className="mt-5 max-w-4xl text-4xl font-black leading-[1.05] tracking-normal text-[#071159] sm:text-5xl lg:text-[3.45rem]">
+            <h2 className="mt-5 max-w-4xl text-4xl font-black leading-[1.05] tracking-normal text-on-surface-variant sm:text-5xl lg:text-[3.45rem]">
               {t(copy.titleKey)}
             </h2>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-[#52648A]">
+            <p className="mt-5 max-w-3xl text-base leading-8 text-on-surface-variant">
               {verdict.summary}
             </p>
           </div>
         </div>
 
-        <div className="relative mt-6 rounded-[22px] border border-[#DEE8F8] bg-white/90 p-5 shadow-[0_18px_36px_rgba(16,32,72,0.045)] lg:mt-0">
-          <p className="text-center text-base font-bold text-[#415069]">
+        <div className="relative mt-6 rounded-[22px] border border-outline-variant bg-white/90 p-5 shadow-token-card lg:mt-0">
+          <p className="text-center text-base font-bold text-on-surface-variant">
             {t("confidence")}
           </p>
-          <ConfidenceRing confidence={verdict.confidence} accent="#4D86F7" />
-          <div className="mt-3 border-t border-[#DEE8F8] pt-4">
+          <ConfidenceRing confidence={verdict.confidence} accent="#00B8D9" />
+          <div className="mt-3 border-t border-outline-variant pt-4">
             <div
               aria-label={t("confidenceStars", { count: filledStars })}
-              className="flex justify-center gap-2 text-[#4D86F7]"
+              className="flex justify-center gap-2 text-primary"
             >
               {Array.from({ length: 5 }).map((_, index) => (
                 <Star
@@ -203,8 +203,8 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                   className={cn(
                     "h-6 w-6",
                     index < filledStars
-                      ? "fill-[#4D86F7] text-[#4D86F7]"
-                      : "fill-white text-[#4D86F7]"
+                      ? "fill-primary text-primary"
+                      : "fill-white text-primary"
                   )}
                 />
               ))}
@@ -214,10 +214,10 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_0.72fr]">
-        <div className="rounded-[24px] border border-[#DEE8F8] bg-white p-5 shadow-[0_16px_36px_rgba(16,32,72,0.035)] sm:p-6">
-          <div className="flex items-center gap-3 text-2xl font-black text-[#071159]">
+        <div className="rounded-[24px] border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+          <div className="flex items-center gap-3 text-2xl font-black text-on-surface-variant">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary"
             >
               <Scale className="h-6 w-6" />
             </div>
@@ -225,23 +225,23 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
           </div>
 
           <div className="relative mt-6 space-y-4 pl-12">
-            <span className="absolute bottom-8 left-5 top-8 w-px bg-[#DEE8F8]" />
+            <span className="absolute bottom-8 left-5 top-8 w-px bg-surface-container-high" />
             {verdict.decidingReasons.length > 0 ? (
               verdict.decidingReasons.map((reason, index) => (
                 <div
                   key={`${reason}-${index}`}
-                  className="relative rounded-[18px] border border-[#DEE8F8] bg-[linear-gradient(180deg,#FFFFFF_0%,#FBFCFF_100%)] p-4 shadow-[0_10px_22px_rgba(16,32,72,0.025)] sm:grid sm:grid-cols-[56px_minmax(0,1fr)] sm:items-center sm:gap-4"
+                  className="relative rounded-[18px] border border-outline-variant bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FDFF_100%)] p-4 shadow-token-card sm:grid sm:grid-cols-[56px_minmax(0,1fr)] sm:items-center sm:gap-4"
                 >
-                  <span className="absolute -left-[3.05rem] top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#4D86F7] text-sm font-black text-white shadow-[0_8px_18px_rgba(77,134,247,0.26)]">
+                  <span className="absolute -left-[3.05rem] top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-sm font-black text-white shadow-token-primary">
                     {index + 1}
                   </span>
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#4D86F7] sm:mb-0">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container text-primary sm:mb-0">
                     {(() => {
                       const ReasonIcon = REASON_ICONS[index % REASON_ICONS.length];
                       return <ReasonIcon className="h-5 w-5" />;
                     })()}
                   </div>
-                  <span className="text-sm leading-6 text-[#415069]">
+                  <span className="text-sm leading-6 text-on-surface-variant">
                     <span className="sr-only">
                       {t("reasonLabel", { number: index + 1 })}
                     </span>
@@ -250,36 +250,36 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                 </div>
               ))
             ) : (
-              <p className="text-sm leading-6 text-[#30427A]">
+              <p className="text-sm leading-6 text-on-surface-variant">
                 {t("emptyReasons")}
               </p>
             )}
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-[#D9E6FF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F1F6FD_100%)] p-5 shadow-[0_16px_36px_rgba(16,32,72,0.035)] sm:p-6">
-          <div className="flex items-center gap-3 text-2xl font-black text-[#071159]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
+        <div className="rounded-[24px] border border-outline-variant bg-[linear-gradient(145deg,#FFFFFF_0%,#E5F8FC_100%)] p-5 shadow-token-card sm:p-6">
+          <div className="flex items-center gap-3 text-2xl font-black text-on-surface-variant">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
               <Sparkles className="h-6 w-6" />
             </div>
             {t("nextMove")}
           </div>
 
-          <div className="mt-6 rounded-[20px] border border-[#D9E6FF] bg-white/80 p-5">
+          <div className="mt-6 rounded-[20px] border border-outline-variant bg-white/80 p-5">
             <div className="flex gap-5">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
                 <Target className="h-10 w-10" />
               </div>
-              <p className="text-xl font-black leading-8 text-[#071159]">
+              <p className="text-xl font-black leading-8 text-on-surface-variant">
                 {t("nextMovePrompt")}
               </p>
             </div>
-            <div className="mt-6 border-t border-[#DEE8F8]" />
+            <div className="mt-6 border-t border-outline-variant" />
             <div className="mt-5 flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#EAF1FF] text-[#4D86F7]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
                 <UserRound className="h-6 w-6" />
               </div>
-              <p className="text-sm font-semibold leading-6 text-[#52648A]">
+              <p className="text-sm font-semibold leading-6 text-on-surface-variant">
                 {verdict.nextMove}
               </p>
             </div>

@@ -271,11 +271,11 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
   ] as const;
 
   return (
-    <div className="min-h-dvh bg-[#F7FAFE] text-[#0B1424]">
+    <div className="min-h-dvh bg-background text-on-surface">
       <div className="flex min-h-dvh">
-        <aside className="hidden w-[220px] shrink-0 border-r border-[#DEE8F8] bg-white px-3 py-4 md:block">
+        <aside className="hidden w-[220px] shrink-0 border-r border-outline-variant bg-white px-3 py-4 md:block">
           <div className="mb-5 flex items-center gap-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4D86F7] text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
               <Shield className="h-5 w-5" />
             </div>
             <span className="text-xl font-extrabold">Thinkfy</span>
@@ -285,8 +285,8 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
               <div
                 key={label}
                 className={cn(
-                  "flex h-9 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#52627A]",
-                  index === 0 && "bg-[#EDF4FF] text-[#4D86F7]"
+                  "flex h-9 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-on-surface-variant",
+                  index === 0 && "bg-primary-container text-primary"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -300,15 +300,15 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
             <h1 className="text-2xl font-extrabold">
               {vi ? "Chào buổi tối, Jensen!" : "Good evening, Jensen!"}
             </h1>
-            <div className="hidden gap-8 text-sm font-bold text-[#52627A] sm:flex">
+            <div className="hidden gap-8 text-sm font-bold text-on-surface-variant sm:flex">
               <span>7 {vi ? "ngày" : "Day streak"}</span>
               <span>98,300 Credits</span>
               <span>Level 3</span>
             </div>
           </div>
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_380px]">
-            <section className="rounded-[28px] border border-[#DEE8F8] bg-white p-6 shadow-[0_24px_60px_-48px_rgba(11,20,36,0.65)]">
-              <span className="text-xs font-extrabold uppercase text-[#4D86F7]">
+            <section className="rounded-[28px] border border-outline-variant bg-white p-6 shadow-token-panel">
+              <span className="text-xs font-extrabold uppercase text-primary">
                 {vi ? "Đề xuất cho bạn" : "Recommended for you"}
               </span>
               <h2 className="mt-4 max-w-sm text-4xl font-extrabold leading-tight">
@@ -316,25 +316,25 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
               </h2>
               <div className="mt-5 grid max-w-sm grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-xs text-[#718096]">{vi ? "Lý do" : "Why now"}</p>
+                  <p className="text-xs text-on-surface-variant">{vi ? "Lý do" : "Why now"}</p>
                   <p className="font-extrabold">{vi ? "Kỹ năng yếu nhất" : "Weakest skill"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#718096]">{vi ? "Điểm" : "Score"}</p>
+                  <p className="text-xs text-on-surface-variant">{vi ? "Điểm" : "Score"}</p>
                   <p className="font-extrabold">63/100</p>
                 </div>
               </div>
-              <button className="mt-8 h-12 rounded-[18px] bg-[#4D86F7] px-8 font-extrabold text-white shadow-[inset_0_-5px_0_#2F62D8]">
+              <button className="mt-8 h-12 rounded-[18px] bg-primary px-8 font-extrabold text-white shadow-token-card">
                 {vi ? "Bắt đầu" : "Start"}
               </button>
             </section>
-            <section className="rounded-[28px] border border-[#DEE8F8] bg-white p-5">
+            <section className="rounded-[28px] border border-outline-variant bg-white p-5">
               <h2 className="text-lg font-extrabold">{vi ? "Kế hoạch hôm nay" : "Today's plan"}</h2>
               <div className="mt-4 space-y-3">
                 {["Continue course", "Review feedback", "Strengthen rebuttal"].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-[#DEE8F8] px-4 py-3"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-outline-variant px-4 py-3"
                   >
                     <span className="font-bold">
                       {vi
@@ -345,7 +345,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
                             : "Luyện phản biện"
                         : item}
                     </span>
-                    <span className="rounded-full bg-[#F3F7FF] px-3 py-1 text-sm font-extrabold text-[#4D86F7]">
+                    <span className="rounded-full bg-surface-container px-3 py-1 text-sm font-extrabold text-primary">
                       {vi ? "Bắt đầu" : "Start"}
                     </span>
                   </div>
@@ -390,8 +390,8 @@ export function SmartPopupQaClient() {
                   className={cn(
                     "h-10 rounded-lg border text-sm font-extrabold",
                     value === rating
-                      ? "border-[#4D86F7] bg-[#4D86F7] text-white"
-                      : "border-[#DEE8F8] bg-white text-[#415069]"
+                      ? "border-primary bg-primary text-white"
+                      : "border-outline-variant bg-white text-on-surface-variant"
                   )}
                 >
                   {rating}
@@ -399,7 +399,7 @@ export function SmartPopupQaClient() {
               )
             )}
           </div>
-          <div className="flex justify-between text-xs font-semibold text-[#718096]">
+          <div className="flex justify-between text-xs font-semibold text-on-surface-variant">
             <span>{question.minLabel}</span>
             <span>{question.maxLabel}</span>
           </div>
@@ -420,8 +420,8 @@ export function SmartPopupQaClient() {
               className={cn(
                 "min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-bold",
                 value === option.id
-                  ? "border-[#4D86F7] bg-[#EDF4FF] text-[#0B1424]"
-                  : "border-[#DEE8F8] bg-white text-[#415069]"
+                  ? "border-primary bg-primary-container text-on-surface"
+                  : "border-outline-variant bg-white text-on-surface-variant"
               )}
             >
               {option.label}
@@ -438,7 +438,7 @@ export function SmartPopupQaClient() {
           setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
         }
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-lg border border-[#DEE8F8] px-3 py-2 text-sm outline-none focus:border-[#4D86F7] focus:ring-2 focus:ring-[#A9C6FB]/40"
+        className="min-h-24 w-full rounded-lg border border-outline-variant px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
       />
     );
   }
@@ -446,7 +446,7 @@ export function SmartPopupQaClient() {
   return (
     <>
       <DashboardBackdrop locale={locale} />
-      <div className="fixed bottom-4 left-1/2 z-10 hidden -translate-x-1/2 gap-2 rounded-full border border-[#DEE8F8] bg-white/90 px-3 py-2 shadow-lg lg:flex">
+      <div className="fixed bottom-4 left-1/2 z-10 hidden -translate-x-1/2 gap-2 rounded-full border border-outline-variant bg-white/90 px-3 py-2 shadow-lg lg:flex">
         {states.map((state) => (
           <Link
             key={state}
@@ -454,8 +454,8 @@ export function SmartPopupQaClient() {
             className={cn(
               "rounded-full px-3 py-1 text-xs font-extrabold",
               state === initialState
-                ? "bg-[#4D86F7] text-white"
-                : "text-[#52627A] hover:bg-[#F3F7FF]"
+                ? "bg-primary text-white"
+                : "text-on-surface-variant hover:bg-surface-container"
             )}
           >
             {stateLabels[state]}

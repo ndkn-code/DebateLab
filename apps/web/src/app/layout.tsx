@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { ThinkfyThemeVariables } from "@/components/shared/theme-variables";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -66,6 +67,9 @@ export default async function RootLayout({
 }>) {
   return (
     <html className="light scroll-smooth" suppressHydrationWarning>
+      <head>
+        <ThinkfyThemeVariables />
+      </head>
       <body
         className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >

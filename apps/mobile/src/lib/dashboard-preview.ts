@@ -20,7 +20,7 @@ export const previewDashboardData: DashboardHomeData = {
     preferences: { daily_goal_minutes: 30 },
     selected_title: null,
     unlocked_titles: [],
-    banner_color: "#4D86F7",
+    banner_color: "#00B8D9",
     referral_code: null,
     orb_balance: 12,
     referred_by: null,

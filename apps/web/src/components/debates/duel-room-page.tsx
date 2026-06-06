@@ -419,7 +419,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   if (error || !room) {
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-2xl rounded-[28px] border border-outline-variant/20 bg-surface p-6 text-center shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+        <div className="mx-auto max-w-2xl rounded-[28px] border border-outline-variant/20 bg-surface p-6 text-center shadow-token-card">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel room unavailable
           </h1>
@@ -440,7 +440,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   return (
     <div className="min-h-full bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-6 shadow-[0_18px_45px_rgba(11,20,66,0.06)] lg:p-7">
+        <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-6 shadow-token-card lg:p-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
@@ -763,7 +763,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
             </div>
 
             <aside className="space-y-4">
-              <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+              <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
                   <Sparkles className="h-4 w-4" />
                   Round flow
@@ -838,7 +838,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                 </div>
               </div>
 
-              <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)]">
+              <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
                   <Users className="h-4 w-4" />
                   Room board

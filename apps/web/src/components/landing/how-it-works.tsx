@@ -50,10 +50,10 @@ export function HowItWorks() {
               transition={{ duration: 0.5, delay: i * 0.15 }}
               className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 text-center transition-colors hover:border-zinc-700"
             >
-              <div className="mb-6 inline-flex rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-600/10 p-4">
-                <step.icon className="h-8 w-8 text-blue-400" />
+              <div className="mb-6 inline-flex rounded-xl bg-gradient-to-br from-primary/10 to-reward/10 p-4">
+                <step.icon className="h-8 w-8 text-primary" />
               </div>
-              <div className="mb-2 text-sm font-medium text-blue-400">
+              <div className="mb-2 text-sm font-medium text-primary">
                 Step {i + 1}
               </div>
               <h3 className="text-xl font-semibold text-white">{step.title}</h3>

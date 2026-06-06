@@ -108,7 +108,7 @@ function insightToneClasses(tone: AdminAiInsightCard["tone"]) {
   if (tone === "green") return "border-emerald-200 bg-emerald-50 text-emerald-800";
   if (tone === "amber") return "border-amber-200 bg-amber-50 text-amber-800";
   if (tone === "slate") return "border-slate-200 bg-slate-50 text-slate-800";
-  return "border-[#cfe0ff] bg-[#eef5ff] text-[#0b63f6]";
+  return "border-outline-variant bg-surface-container text-on-surface-variant";
 }
 
 function featureColor(feature: string) {
@@ -150,13 +150,13 @@ function eventIcon(eventName: string): { Icon: LucideIcon; className: string } {
     return { Icon: CheckCircle2, className: "bg-emerald-100 text-emerald-700" };
   }
   if (eventName.includes("feedback")) {
-    return { Icon: MessageSquare, className: "bg-violet-100 text-violet-700" };
+    return { Icon: MessageSquare, className: "bg-info-container text-info" };
   }
   if (eventName.includes("duel") || eventName.includes("tournament")) {
     return { Icon: Trophy, className: "bg-amber-100 text-amber-700" };
   }
   if (eventName.includes("started") || eventName.includes("view")) {
-    return { Icon: PlayCircle, className: "bg-[#e8f2ff] text-[#0b63f6]" };
+    return { Icon: PlayCircle, className: "bg-surface-container text-on-surface-variant" };
   }
   return { Icon: Zap, className: "bg-slate-100 text-slate-700" };
 }
@@ -174,7 +174,7 @@ function RangeControl({
 }) {
   return (
     <div className="relative w-full md:w-auto">
-      <div className="grid grid-cols-3 rounded-lg border border-[#d2dff0] bg-white p-1 shadow-sm md:inline-flex md:grid-cols-none">
+      <div className="grid grid-cols-3 rounded-lg border border-outline-variant bg-white p-1 shadow-sm md:inline-flex md:grid-cols-none">
         {RANGE_PRESETS.map((preset) => (
           <button
             key={preset}
@@ -185,8 +185,8 @@ function RangeControl({
             className={cn(
               "flex h-9 min-w-0 items-center justify-center rounded-md px-3 text-sm font-semibold transition-colors md:min-w-[4.2rem]",
               range === preset
-                ? "bg-[#0b63f6] text-white shadow-sm"
-                : "text-[#53647f] hover:bg-[#f3f7fd] hover:text-[#14213d]"
+                ? "bg-surface-container-high text-white shadow-sm"
+                : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface-variant"
             )}
           >
             {preset.toUpperCase()}
@@ -194,7 +194,7 @@ function RangeControl({
         ))}
       </div>
       {isPending ? (
-        <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#0b63f6] shadow-sm">
+        <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-on-surface-variant shadow-sm">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </span>
       ) : null}
@@ -216,7 +216,7 @@ function KpiCard({
   tone?: "blue" | "green" | "amber" | "pink" | "slate";
 }) {
   const tones = {
-    blue: "bg-[#0b63f6] text-white",
+    blue: "bg-surface-container-high text-white",
     green: "bg-emerald-50 text-emerald-700",
     amber: "bg-amber-50 text-amber-700",
     pink: "bg-rose-50 text-rose-600",
@@ -224,20 +224,20 @@ function KpiCard({
   };
 
   return (
-    <div className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_18px_50px_-42px_rgba(15,28,53,0.34)]">
+    <div className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card">
       <div className="flex items-center gap-3">
         <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg", tones[tone])}>
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-xs font-medium text-[#53647f]">{label}</p>
-            <span className="h-3.5 w-3.5 rounded-full border border-[#b9c7dc] text-center text-[9px] leading-[12px] text-[#6d7c94]">
+            <p className="truncate text-xs font-medium text-on-surface-variant">{label}</p>
+            <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
               i
             </span>
           </div>
-          <p className="mt-0.5 text-2xl font-bold leading-tight text-[#0b1730]">{value}</p>
-          <p className="mt-1 text-xs leading-4 text-[#53647f]">
+          <p className="mt-0.5 text-2xl font-bold leading-tight text-on-surface-variant">{value}</p>
+          <p className="mt-1 text-xs leading-4 text-on-surface-variant">
             <span className="font-semibold text-emerald-600">↑</span> {delta}
           </p>
         </div>
@@ -258,33 +258,33 @@ function DesktopHeader({
   onPrefetch: (range: AnalyticsRangePreset) => void;
 }) {
   return (
-    <header className="hidden border-b border-[#dce7f7] bg-white/95 px-6 py-5 backdrop-blur md:block">
+    <header className="hidden border-b border-outline-variant bg-white/95 px-6 py-5 backdrop-blur md:block">
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0">
           <Link
             href="/dashboard/admin/users"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0b63f6] hover:text-[#084dbf]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface-variant"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Users & Access
           </Link>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal text-[#0b1730]">User Analytics</h1>
-          <p className="mt-1 text-sm text-[#53647f]">
+          <h1 className="mt-3 text-3xl font-bold tracking-normal text-on-surface-variant">User Analytics</h1>
+          <p className="mt-1 text-sm text-on-surface-variant">
             Deep dive into user activity, engagement, and performance.
           </p>
         </div>
         <div className="flex min-w-[420px] flex-col items-end gap-4">
           <div className="flex w-full items-center justify-end gap-3">
-            <div className="flex h-9 w-[360px] items-center gap-2 rounded-lg border border-[#d2dff0] bg-white px-3 text-[#8a98ad] shadow-sm">
+            <div className="flex h-9 w-[360px] items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-on-surface-variant shadow-sm">
               <Search className="h-4 w-4" />
               <span className="truncate text-sm">Search users, content, and more...</span>
-              <kbd className="ml-auto rounded-md border border-[#dce7f7] bg-[#f7faff] px-1.5 py-0.5 text-[11px] text-[#7b89a0]">
+              <kbd className="ml-auto rounded-md border border-outline-variant bg-surface-container px-1.5 py-0.5 text-[11px] text-on-surface-variant">
                 ⌘ K
               </kbd>
             </div>
             <button
               type="button"
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#0b63f6] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#084dbf]"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-surface-container-high px-4 text-sm font-semibold text-white shadow-sm hover:bg-surface-container-high"
             >
               <Download className="h-4 w-4" />
               Export
@@ -300,7 +300,7 @@ function DesktopHeader({
 
 function MobileHeader() {
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] flex h-[74px] items-center justify-between bg-[#0b63f6] px-5 text-white shadow-[0_14px_35px_-24px_rgba(11,99,246,0.9)] md:hidden">
+    <div className="fixed inset-x-0 top-0 z-[60] flex h-[74px] items-center justify-between bg-surface-container-high px-5 text-white shadow-token-card md:hidden">
       <Link href="/dashboard/admin/users" className="flex h-11 w-11 items-center justify-center rounded-lg text-white">
         <ArrowLeft className="h-6 w-6" />
         <span className="sr-only">Back to users</span>
@@ -313,25 +313,25 @@ function MobileHeader() {
 
 function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_18px_50px_-44px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="grid gap-5 md:grid-cols-[minmax(240px,1.15fr)_repeat(5,minmax(110px,0.6fr))_auto] md:items-center">
         <div className="flex min-w-0 items-center gap-4">
-          <Avatar className="h-16 w-16 shrink-0 border border-[#dce7f7] bg-[#e8f2ff] md:h-[70px] md:w-[70px]">
+          <Avatar className="h-16 w-16 shrink-0 border border-outline-variant bg-surface-container md:h-[70px] md:w-[70px]">
             {data.user.avatarUrl ? (
               <AvatarImage src={data.user.avatarUrl} alt={data.user.displayName} />
             ) : null}
-            <AvatarFallback className="bg-[#dceaff] text-xl font-bold text-[#0b63f6]">
+            <AvatarFallback className="bg-surface-container-high text-xl font-bold text-on-surface-variant">
               {initials(data.user.displayName)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-bold text-[#12213c]">{data.user.displayName}</h2>
-            <p className="truncate text-sm text-[#53647f]">{data.user.email ?? data.user.id}</p>
-            <p className="mt-1 hidden text-xs text-[#53647f] md:block">
-              Joined {formatDate(data.user.createdAt)} <span className="px-1 text-[#b7c2d4]">•</span> Last active {formatDateTime(data.rawEvents[0]?.occurredAt)}
+            <h2 className="truncate text-2xl font-bold text-on-surface-variant">{data.user.displayName}</h2>
+            <p className="truncate text-sm text-on-surface-variant">{data.user.email ?? data.user.id}</p>
+            <p className="mt-1 hidden text-xs text-on-surface-variant md:block">
+              Joined {formatDate(data.user.createdAt)} <span className="px-1 text-on-surface-variant">•</span> Last active {formatDateTime(data.rawEvents[0]?.occurredAt)}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
-              <Badge className="rounded-md border border-[#cfe0ff] bg-[#eef5ff] text-[#0b63f6]">
+              <Badge className="rounded-md border border-outline-variant bg-surface-container text-on-surface-variant">
                 <GraduationCap className="mr-1 h-3 w-3" />
                 {featureLabel(data.user.role)}
               </Badge>
@@ -344,7 +344,7 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
         </div>
 
         <SummaryMeta label="Role">
-          <Badge className="rounded-md border border-[#cfe0ff] bg-[#eef5ff] text-[#0b63f6]">
+          <Badge className="rounded-md border border-outline-variant bg-surface-container text-on-surface-variant">
             {featureLabel(data.user.role)}
           </Badge>
         </SummaryMeta>
@@ -354,22 +354,22 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
           </Badge>
         </SummaryMeta>
         <SummaryMeta label="Beta Access">
-          <Badge className="rounded-md border border-violet-200 bg-violet-50 text-violet-700">
+          <Badge className="rounded-md border border-info/25 bg-info-container text-info">
             {data.entitlement.betaAllAccess ? "AI Coach (Beta)" : "Gated"}
           </Badge>
         </SummaryMeta>
         <SummaryMeta label="Classes">
-          <Badge className="rounded-md border border-[#cfe0ff] bg-[#eef5ff] text-[#0b63f6]">
+          <Badge className="rounded-md border border-outline-variant bg-surface-container text-on-surface-variant">
             {data.classMemberships.length} assigned
           </Badge>
         </SummaryMeta>
         <SummaryMeta label="User ID">
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-[#0b1730]">{shortId(data.user.id)}</span>
+            <span className="font-semibold text-on-surface-variant">{shortId(data.user.id)}</span>
             <button
               type="button"
               title="Copy user ID"
-              className="text-[#53647f] hover:text-[#0b63f6]"
+              className="text-on-surface-variant hover:text-on-surface-variant"
               onClick={() => {
                 void navigator.clipboard?.writeText(data.user.id);
               }}
@@ -381,24 +381,24 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
 
         <Link
           href="/dashboard/admin/users"
-          className="hidden h-10 items-center gap-2 rounded-lg border border-[#d2dff0] bg-white px-4 text-sm font-semibold text-[#0b1730] hover:bg-[#f7faff] md:inline-flex"
+          className="hidden h-10 items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-semibold text-on-surface-variant hover:bg-surface-container md:inline-flex"
         >
           View Profile
           <ExternalLink className="h-4 w-4" />
         </Link>
 
-        <div className="rounded-lg border border-[#dce7f7] bg-[#fbfdff] p-4 md:hidden">
+        <div className="rounded-lg border border-outline-variant bg-surface-container p-4 md:hidden">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-[#53647f]">Effective plan</p>
+            <p className="text-sm font-semibold text-on-surface-variant">Effective plan</p>
             <Badge className="rounded-md bg-emerald-100 text-emerald-700">
               <Crown className="mr-1 h-3 w-3" />
               {data.entitlement.planType}
             </Badge>
           </div>
-          <p className="mt-3 text-base font-bold text-[#0b1730]">
+          <p className="mt-3 text-base font-bold text-on-surface-variant">
             {data.entitlement.hasPremiumAccess ? "Premium content unlocked" : "Free content only"}
           </p>
-          <p className="mt-2 text-sm leading-5 text-[#53647f]">{data.entitlement.reason}</p>
+          <p className="mt-2 text-sm leading-5 text-on-surface-variant">{data.entitlement.reason}</p>
         </div>
       </div>
     </section>
@@ -408,8 +408,8 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
 function SummaryMeta({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="hidden min-w-0 md:block">
-      <p className="text-[11px] font-semibold text-[#53647f]">{label}</p>
-      <div className="mt-2 text-xs text-[#0b1730]">{children}</div>
+      <p className="text-[11px] font-semibold text-on-surface-variant">{label}</p>
+      <div className="mt-2 text-xs text-on-surface-variant">{children}</div>
     </div>
   );
 }
@@ -427,11 +427,11 @@ function FeatureAdoptionList({ features }: { features: AdminFeatureAdoption[] })
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: featureColor(feature.featureArea) }}
               />
-              <span className="truncate text-sm font-semibold text-[#152441]">
+              <span className="truncate text-sm font-semibold text-on-surface">
                 {featureLabel(feature.featureArea)}
               </span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-[#e9eff8]">
+            <div className="h-3 overflow-hidden rounded-full bg-surface-container">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -440,7 +440,7 @@ function FeatureAdoptionList({ features }: { features: AdminFeatureAdoption[] })
                 }}
               />
             </div>
-            <span className="text-right text-sm font-bold text-[#0b63f6]">{percent}%</span>
+            <span className="text-right text-sm font-bold text-on-surface-variant">{percent}%</span>
           </div>
         );
       })}
@@ -458,18 +458,18 @@ function InsightRail({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5 xl:sticky xl:top-5",
+        "rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5 xl:sticky xl:top-5",
         className
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-[#152441]">AI Insights</p>
-          <p className="mt-1 text-xs text-[#6d7c94]">
+          <p className="text-sm font-bold text-on-surface">AI Insights</p>
+          <p className="mt-1 text-xs text-on-surface-variant">
             {data.insights.cached ? "Loaded from 1-hour cache" : data.insights.fallback ? "Fallback summary" : "Fresh Gemini summary"}
           </p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#eef5ff] text-[#0b63f6]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant">
           <Sparkles className="h-5 w-5" />
         </div>
       </div>
@@ -528,13 +528,13 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   const tickEvery = Math.max(1, Math.ceil(trendData.length / 7));
 
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-[#152441]">Activity Trend</h3>
-          <p className="mt-1 text-xs text-[#6d7c94]">Practice minutes and tracked events by day.</p>
+          <h3 className="text-base font-bold text-on-surface">Activity Trend</h3>
+          <p className="mt-1 text-xs text-on-surface-variant">Practice minutes and tracked events by day.</p>
         </div>
-        <button type="button" className="hidden h-8 items-center gap-2 rounded-lg border border-[#d2dff0] px-3 text-xs font-semibold text-[#53647f] md:inline-flex">
+        <button type="button" className="hidden h-8 items-center gap-2 rounded-lg border border-outline-variant px-3 text-xs font-semibold text-on-surface-variant md:inline-flex">
           {rangeLabel(data.range)}
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -559,7 +559,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                   stroke="#e6edf7"
                   strokeDasharray="4 4"
                 />
-                <text x={paddingX - 10} y={y + 4} textAnchor="end" className="fill-[#6d7c94] text-[10px]">
+                <text x={paddingX - 10} y={y + 4} textAnchor="end" className="fill-primary text-[10px]">
                   {Math.round((tick / 100) * combinedMax)}
                 </text>
               </g>
@@ -576,7 +576,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                 x={x}
                 y={chartHeight - 4}
                 textAnchor="middle"
-                className="fill-[#6d7c94] text-[10px]"
+                className="fill-primary text-[10px]"
               >
                 {point.label}
               </text>
@@ -594,13 +594,13 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
           />
         </svg>
       </div>
-      <div className="mt-2 flex items-center justify-center gap-6 text-xs text-[#53647f]">
+      <div className="mt-2 flex items-center justify-center gap-6 text-xs text-on-surface-variant">
         <span className="flex items-center gap-2">
-          <span className="h-0.5 w-5 rounded-full bg-[#0b63f6]" />
+          <span className="h-0.5 w-5 rounded-full bg-surface-container-high" />
           Practice Minutes
         </span>
         <span className="flex items-center gap-2">
-          <span className="h-0.5 w-5 rounded-full bg-[#94b9ff]" />
+          <span className="h-0.5 w-5 rounded-full bg-surface-container-high" />
           Events
         </span>
       </div>
@@ -610,13 +610,13 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-[#152441]">Feature Adoption</h3>
-          <p className="mt-1 text-xs text-[#6d7c94]">Admin-owned feature area tracking.</p>
+          <h3 className="text-base font-bold text-on-surface">Feature Adoption</h3>
+          <p className="mt-1 text-xs text-on-surface-variant">Admin-owned feature area tracking.</p>
         </div>
-        <button type="button" className="hidden h-8 items-center gap-2 rounded-lg border border-[#d2dff0] px-3 text-xs font-semibold text-[#53647f] md:inline-flex">
+        <button type="button" className="hidden h-8 items-center gap-2 rounded-lg border border-outline-variant px-3 text-xs font-semibold text-on-surface-variant md:inline-flex">
           Last 30 days
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -630,18 +630,18 @@ function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
 
 function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-bold text-[#152441]">Course Progress</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-[#b9c7dc] text-center text-[9px] leading-[12px] text-[#6d7c94]">
+          <h3 className="text-base font-bold text-on-surface">Course Progress</h3>
+          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
             i
           </span>
         </div>
-        <MoreHorizontal className="h-4 w-4 text-[#7b89a0]" />
+        <MoreHorizontal className="h-4 w-4 text-on-surface-variant" />
       </div>
-      <div className="mt-4 hidden overflow-hidden rounded-lg border border-[#e6edf7] md:block">
-        <div className="grid grid-cols-[minmax(180px,1fr)_110px_70px_110px] bg-[#fbfdff] px-3 py-2 text-[11px] font-semibold text-[#53647f]">
+      <div className="mt-4 hidden overflow-hidden rounded-lg border border-outline-variant md:block">
+        <div className="grid grid-cols-[minmax(180px,1fr)_110px_70px_110px] bg-surface-container px-3 py-2 text-[11px] font-semibold text-on-surface-variant">
           <span>Course</span>
           <span>Progress</span>
           <span>Score</span>
@@ -651,42 +651,42 @@ function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
           {data.courseProgress.slice(0, 5).map((course) => (
             <div key={course.courseId} className="grid grid-cols-[minmax(180px,1fr)_110px_70px_110px] items-center gap-3 px-3 py-3 text-xs">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#e8f2ff] text-[#0b63f6]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant">
                   <BookOpenCheck className="h-4 w-4" />
                 </span>
-                <span className="truncate font-semibold text-[#152441]">{course.title}</span>
+                <span className="truncate font-semibold text-on-surface">{course.title}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Progress value={course.progressPercent} className="h-1.5 w-16" />
-                <span className="font-semibold text-[#152441]">{course.progressPercent}%</span>
+                <span className="font-semibold text-on-surface">{course.progressPercent}%</span>
               </div>
-              <span className="font-semibold text-[#152441]">
+              <span className="font-semibold text-on-surface">
                 {data.kpis.averageScore == null ? "-" : `${Math.round(data.kpis.averageScore)}%`}
               </span>
-              <span className="truncate text-[#53647f]">{formatDate(course.lastActivityAt)}</span>
+              <span className="truncate text-on-surface-variant">{formatDate(course.lastActivityAt)}</span>
             </div>
           ))}
           {data.courseProgress.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-[#6d7c94]">No course progress found.</div>
+            <div className="px-4 py-8 text-center text-sm text-on-surface-variant">No course progress found.</div>
           ) : null}
         </div>
       </div>
       <div className="mt-4 space-y-3 md:hidden">
         {data.courseProgress.slice(0, 5).map((course) => (
-          <div key={course.courseId} className="rounded-lg border border-[#e6edf7] bg-[#fbfdff] p-3">
+          <div key={course.courseId} className="rounded-lg border border-outline-variant bg-surface-container p-3">
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#e8f2ff] text-[#0b63f6]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant">
                 <BookOpenCheck className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[#152441]">{course.title}</p>
-                    <p className="mt-1 text-xs text-[#53647f]">
+                    <p className="truncate text-sm font-bold text-on-surface">{course.title}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant">
                       Last accessed {formatDate(course.lastActivityAt)}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-bold text-[#0b1730]">{course.progressPercent}%</span>
+                  <span className="shrink-0 text-sm font-bold text-on-surface-variant">{course.progressPercent}%</span>
                 </div>
                 <Progress value={course.progressPercent} className="mt-3 h-1.5 w-full" />
               </div>
@@ -694,7 +694,7 @@ function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
           </div>
         ))}
         {data.courseProgress.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[#d2dff0] bg-[#fbfdff] px-4 py-8 text-center text-sm text-[#6d7c94]">
+          <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container px-4 py-8 text-center text-sm text-on-surface-variant">
             No course progress found.
           </div>
         ) : null}
@@ -730,15 +730,15 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
       : Math.round(data.base.skillSnapshot.overallScore);
 
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-bold text-[#152441]">Skill Snapshot</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-[#b9c7dc] text-center text-[9px] leading-[12px] text-[#6d7c94]">
+          <h3 className="text-base font-bold text-on-surface">Skill Snapshot</h3>
+          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
             i
           </span>
         </div>
-        <Medal className="h-4 w-4 text-[#0b63f6]" />
+        <Medal className="h-4 w-4 text-on-surface-variant" />
       </div>
       {metrics.length > 0 ? (
         <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_96px]">
@@ -769,7 +769,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                       y={label.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-[#53647f] text-[10px]"
+                      className="fill-primary text-[10px]"
                     >
                       {metric.skill}
                     </text>
@@ -784,23 +784,23 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
             </svg>
           </div>
           <div className="grid gap-2">
-            <div className="rounded-lg border border-[#dce7f7] bg-[#fbfdff] p-3">
-              <p className="text-[11px] font-semibold text-[#53647f]">Overall Skill Score</p>
-              <p className="mt-1 text-2xl font-bold text-[#0b63f6]">{overall ?? "-"}%</p>
+            <div className="rounded-lg border border-outline-variant bg-surface-container p-3">
+              <p className="text-[11px] font-semibold text-on-surface-variant">Overall Skill Score</p>
+              <p className="mt-1 text-2xl font-bold text-on-surface-variant">{overall ?? "-"}%</p>
               <p className="mt-1 text-[11px] text-emerald-600">↑ 6% vs last 30 days</p>
             </div>
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-              <p className="text-[11px] font-semibold text-[#53647f]">Top Strength</p>
-              <p className="mt-1 text-sm font-bold text-[#0b1730]">{strongest}</p>
+              <p className="text-[11px] font-semibold text-on-surface-variant">Top Strength</p>
+              <p className="mt-1 text-sm font-bold text-on-surface-variant">{strongest}</p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-[11px] font-semibold text-[#53647f]">Top Opportunity</p>
-              <p className="mt-1 text-sm font-bold text-[#0b1730]">{weakest}</p>
+              <p className="text-[11px] font-semibold text-on-surface-variant">Top Opportunity</p>
+              <p className="mt-1 text-sm font-bold text-on-surface-variant">{weakest}</p>
             </div>
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-lg border border-dashed border-[#d2dff0] bg-[#fbfdff] px-4 py-8 text-center text-sm text-[#6d7c94]">
+        <div className="mt-4 rounded-lg border border-dashed border-outline-variant bg-surface-container px-4 py-8 text-center text-sm text-on-surface-variant">
           Skill metrics appear after scored practice sessions.
         </div>
       )}
@@ -810,15 +810,15 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-bold text-[#152441]">Recent Activity</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-[#b9c7dc] text-center text-[9px] leading-[12px] text-[#6d7c94]">
+          <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
+          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
             i
           </span>
         </div>
-        <Eye className="h-4 w-4 text-[#0b63f6]" />
+        <Eye className="h-4 w-4 text-on-surface-variant" />
       </div>
       <div className="mt-4 space-y-4">
         {events.slice(0, 5).map((event) => {
@@ -829,15 +829,15 @@ function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
                 <Icon className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-[#152441]">{featureLabel(event.eventName)}</p>
-                <p className="truncate text-xs text-[#53647f]">{event.route ?? featureLabel(event.featureArea)}</p>
+                <p className="truncate text-sm font-bold text-on-surface">{featureLabel(event.eventName)}</p>
+                <p className="truncate text-xs text-on-surface-variant">{event.route ?? featureLabel(event.featureArea)}</p>
               </div>
-              <time className="shrink-0 text-xs text-[#53647f]">{formatDateTime(event.occurredAt)}</time>
+              <time className="shrink-0 text-xs text-on-surface-variant">{formatDateTime(event.occurredAt)}</time>
             </div>
           );
         })}
         {events.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[#d2dff0] bg-[#fbfdff] px-4 py-8 text-center text-sm text-[#6d7c94]">
+          <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container px-4 py-8 text-center text-sm text-on-surface-variant">
             Recent events will appear as the tracking pipeline fills.
           </div>
         ) : null}
@@ -848,13 +848,13 @@ function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
 
 function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-[#152441]">Module Progress</h3>
-          <p className="mt-1 text-xs text-[#6d7c94]">Completion by module and access level.</p>
+          <h3 className="text-base font-bold text-on-surface">Module Progress</h3>
+          <p className="mt-1 text-xs text-on-surface-variant">Completion by module and access level.</p>
         </div>
-        <BookOpenCheck className="h-4 w-4 text-[#0b63f6]" />
+        <BookOpenCheck className="h-4 w-4 text-on-surface-variant" />
       </div>
       <div className="mt-4 space-y-3">
         {data.moduleProgress.slice(0, 6).map((module) => {
@@ -866,21 +866,21 @@ function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
             <div key={module.moduleId} className="grid grid-cols-[minmax(0,1fr)_42px] items-center gap-3">
               <div className="min-w-0">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-sm font-semibold text-[#152441]">{module.title}</p>
-                  <span className="shrink-0 text-xs text-[#53647f]">
+                  <p className="truncate text-sm font-semibold text-on-surface">{module.title}</p>
+                  <span className="shrink-0 text-xs text-on-surface-variant">
                     {module.completedActivities}/{module.totalActivities}
                   </span>
                 </div>
                 <Progress value={value} className="mt-2 h-1.5 w-full" />
               </div>
-              <Badge className="justify-center rounded-md border border-[#dce7f7] bg-white text-[#53647f]">
+              <Badge className="justify-center rounded-md border border-outline-variant bg-white text-on-surface-variant">
                 {module.accessLevel ?? "free"}
               </Badge>
             </div>
           );
         })}
         {data.moduleProgress.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[#d2dff0] bg-[#fbfdff] px-4 py-8 text-center text-sm text-[#6d7c94]">
+          <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container px-4 py-8 text-center text-sm text-on-surface-variant">
             No module progress rows yet.
           </div>
         ) : null}
@@ -891,29 +891,29 @@ function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-lg border border-[#dce7f7] bg-white p-4 shadow-[0_22px_70px_-58px_rgba(15,28,53,0.35)] md:p-5">
+    <section className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-bold text-[#152441]">Raw Events</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-[#b9c7dc] text-center text-[9px] leading-[12px] text-[#6d7c94]">
+          <h3 className="text-base font-bold text-on-surface">Raw Events</h3>
+          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
             i
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#d2dff0] px-3 text-xs font-semibold text-[#53647f]">
+          <button type="button" className="inline-flex h-8 items-center gap-2 rounded-lg border border-outline-variant px-3 text-xs font-semibold text-on-surface-variant">
             <FileText className="h-3.5 w-3.5" />
             Filters
           </button>
-          <button type="button" className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#d2dff0] px-3 text-xs font-semibold text-[#53647f]">
+          <button type="button" className="inline-flex h-8 items-center gap-2 rounded-lg border border-outline-variant px-3 text-xs font-semibold text-on-surface-variant">
             <Download className="h-3.5 w-3.5" />
             Download
           </button>
         </div>
       </div>
-      <div className="mt-4 overflow-hidden rounded-lg border border-[#e6edf7]">
+      <div className="mt-4 overflow-hidden rounded-lg border border-outline-variant">
         <div className="overflow-x-auto">
           <div className="min-w-[760px] divide-y divide-[#e6edf7]">
-            <div className="grid grid-cols-[160px_160px_150px_minmax(180px,1fr)_34px] bg-[#fbfdff] px-4 py-2 text-[11px] font-semibold text-[#53647f]">
+            <div className="grid grid-cols-[160px_160px_150px_minmax(180px,1fr)_34px] bg-surface-container px-4 py-2 text-[11px] font-semibold text-on-surface-variant">
               <span>Time</span>
               <span>Event Name</span>
               <span>Category</span>
@@ -925,17 +925,17 @@ function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
                 key={event.id}
                 className="grid grid-cols-[160px_160px_150px_minmax(180px,1fr)_34px] items-center px-4 py-2 text-xs"
               >
-                <span className="text-[#53647f]">{formatDateTime(event.occurredAt)}</span>
-                <span className="truncate font-semibold text-[#152441]">{event.eventName}</span>
-                <span className="truncate text-[#53647f]">{featureLabel(event.featureArea)}</span>
-                <span className="truncate text-[#53647f]">
+                <span className="text-on-surface-variant">{formatDateTime(event.occurredAt)}</span>
+                <span className="truncate font-semibold text-on-surface">{event.eventName}</span>
+                <span className="truncate text-on-surface-variant">{featureLabel(event.featureArea)}</span>
+                <span className="truncate text-on-surface-variant">
                   {event.durationMs ? `duration: ${Math.round(event.durationMs / 1000)}s` : event.route ?? "-"}
                 </span>
-                <ChevronDown className="h-4 w-4 text-[#7b89a0]" />
+                <ChevronDown className="h-4 w-4 text-on-surface-variant" />
               </div>
             ))}
             {events.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-[#6d7c94]">
+              <div className="px-4 py-8 text-center text-sm text-on-surface-variant">
                 No raw events yet. Page views will begin filling this table after the migration is applied.
               </div>
             ) : null}
@@ -1024,7 +1024,7 @@ export function UserAnalyticsDashboard({
   };
 
   return (
-    <div className="min-h-full overflow-x-hidden bg-[#f7faff] text-[#0f1c35]">
+    <div className="min-h-full overflow-x-hidden bg-surface-container text-on-surface-variant">
       <MobileHeader />
       <DesktopHeader
         range={selectedRange}

@@ -8,8 +8,9 @@ function Progress({
   className,
   children,
   value,
+  tone = "primary",
   ...props
-}: ProgressPrimitive.Root.Props) {
+}: ProgressPrimitive.Root.Props & { tone?: "primary" | "reward" | "success" }) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -19,7 +20,7 @@ function Progress({
     >
       {children}
       <ProgressTrack>
-        <ProgressIndicator />
+        <ProgressIndicator tone={tone} />
       </ProgressTrack>
     </ProgressPrimitive.Root>
   )
@@ -40,12 +41,20 @@ function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
 
 function ProgressIndicator({
   className,
+  tone = "primary",
   ...props
-}: ProgressPrimitive.Indicator.Props) {
+}: ProgressPrimitive.Indicator.Props & { tone?: "primary" | "reward" | "success" }) {
+  const fillClass =
+    tone === "reward"
+      ? "bg-[var(--progress-reward-fill)]"
+      : tone === "success"
+        ? "bg-success"
+        : "bg-[var(--progress-fill)]";
+
   return (
     <ProgressPrimitive.Indicator
       data-slot="progress-indicator"
-      className={cn("h-full bg-primary transition-all", className)}
+      className={cn("h-full transition-all", fillClass, className)}
       {...props}
     />
   )

@@ -47,7 +47,7 @@ function CoachEmptyState({
         alt="Thinkfy AI Coach"
         width={512}
         height={654}
-        className="h-24 w-24 select-none object-contain drop-shadow-[0_14px_24px_rgba(35,64,96,0.14)] sm:h-28 sm:w-28"
+        className="h-24 w-24 select-none object-contain drop-shadow-token-card sm:h-28 sm:w-28"
         priority
       />
 
@@ -250,7 +250,7 @@ export function ChatArea({
 
         <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
           <div className="mx-auto w-full max-w-[720px]">
-            <div className="flex items-end gap-2.5 rounded-[18px] border border-outline-variant/16 bg-surface px-3 py-2.5 shadow-[0_10px_26px_rgba(11,20,36,0.035)]">
+            <div className="flex items-end gap-2.5 rounded-[18px] border border-outline-variant/16 bg-surface px-3 py-2.5 shadow-token-card">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -265,7 +265,7 @@ export function ChatArea({
                 onClick={() => handleSubmit()}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="h-9 w-9 shrink-0 rounded-xl bg-primary text-on-primary shadow-[0_10px_18px_rgba(77,134,247,0.22)] disabled:opacity-40"
+                className="h-9 w-9 shrink-0 rounded-xl bg-primary text-on-primary shadow-token-primary disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </Button>

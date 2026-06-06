@@ -10,13 +10,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "btn-3d-primary bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        default: "btn-3d-primary bg-primary text-primary-foreground [a]:hover:bg-primary/90",
+        primary: "btn-3d-primary bg-primary text-primary-foreground [a]:hover:bg-primary/90",
+        reward:
+          "btn-3d-reward bg-reward text-on-reward [a]:hover:bg-reward/85",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "btn-3d-secondary border-border bg-background text-primary-dim hover:bg-primary-container hover:text-primary-dim aria-expanded:bg-primary-container aria-expanded:text-primary-dim dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "btn-3d-secondary border-border bg-background text-primary-dim hover:bg-primary-container aria-expanded:bg-primary-container aria-expanded:text-primary-dim",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "text-primary hover:bg-primary-container hover:text-primary-dim aria-expanded:bg-primary-container aria-expanded:text-primary-dim dark:hover:bg-muted/50",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",

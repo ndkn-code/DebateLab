@@ -211,8 +211,8 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                 className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-container"
                 animate={{
                   boxShadow: [
-                    "0 0 0 0px rgba(47,79,221,0.2)",
-                    "0 0 0 16px rgba(47,79,221,0)",
+                    "0 0 0 0px rgba(0,184,217,0.2)",
+                    "0 0 0 16px rgba(0,184,217,0)",
                   ],
                 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -265,8 +265,8 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                     ? {}
                     : {
                         boxShadow: [
-                          "0 0 0 0px rgba(47,79,221,0.15)",
-                          "0 0 0 12px rgba(47,79,221,0)",
+                          "0 0 0 0px rgba(0,184,217,0.15)",
+                          "0 0 0 12px rgba(0,184,217,0)",
                         ],
                       }
                 }
@@ -351,7 +351,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -408,7 +408,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -450,7 +450,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-[0_24px_70px_-58px_rgba(22,39,91,0.55)]"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />

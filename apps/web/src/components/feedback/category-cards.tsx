@@ -77,7 +77,7 @@ const speakingCategories: CategoryConfig[] = [
     icon: Megaphone,
     maxScore: 10,
     gradient: "from-[#fff9e5] to-[#fff9e5]/50",
-    barColor: "bg-[#b28b00]",
+    barColor: "bg-surface-container-high",
     feedbackKey: "persuasionFeedback",
     subScores: [
       { key: "audienceAwareness", label: "Audience Awareness", max: 5 },
@@ -136,7 +136,7 @@ const debateCategories: CategoryConfig[] = [
     icon: Megaphone,
     maxScore: 10,
     gradient: "from-[#fff9e5] to-[#fff9e5]/50",
-    barColor: "bg-[#b28b00]",
+    barColor: "bg-surface-container-high",
     feedbackKey: "persuasionFeedback",
     subScores: [
       { key: "audienceAwareness", label: "Judge Adaptation", max: 5 },

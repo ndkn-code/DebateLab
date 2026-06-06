@@ -57,8 +57,8 @@ export function CourseCompletionScreen({
 
   const stats = [
     { icon: Star, label: "XP", value: displayXP, color: "text-amber-600", fill: "fill-amber-400 text-amber-400" },
-    { icon: BookOpen, label: "Activities", value: totalActivities, color: "text-blue-600", fill: "text-blue-500" },
-    { icon: Layers, label: "Modules", value: totalModules, color: "text-purple-600", fill: "text-purple-500" },
+    { icon: BookOpen, label: "Activities", value: totalActivities, color: "text-info", fill: "text-info" },
+    { icon: Layers, label: "Modules", value: totalModules, color: "text-primary-dim", fill: "text-primary" },
   ];
 
   return (

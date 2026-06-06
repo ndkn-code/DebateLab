@@ -46,7 +46,7 @@ export function GlobalMap({ geoData }: Props) {
       <div className="h-[350px]">
         <svg
           viewBox="0 0 100 52"
-          className="h-full w-full rounded-xl bg-[#eef3f8]"
+          className="h-full w-full rounded-xl bg-surface-container"
           role="img"
           aria-label="Global user distribution"
         >

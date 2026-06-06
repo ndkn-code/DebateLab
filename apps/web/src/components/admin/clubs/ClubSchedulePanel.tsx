@@ -56,24 +56,24 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
 
   return (
     <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="rounded-lg border border-[#DEE8F8] bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DEE8F8] px-4 py-3">
+      <section className="rounded-lg border border-outline-variant bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant px-4 py-3">
           <div>
-            <h2 className="text-base font-bold text-[#152238]">Club schedule</h2>
-            <p className="mt-0.5 text-xs text-[#667795]">Club-wide meetings, cohort-linked events, and exportable calendar entries</p>
+            <h2 className="text-base font-bold text-on-surface">Club schedule</h2>
+            <p className="mt-0.5 text-xs text-on-surface-variant">Club-wide meetings, cohort-linked events, and exportable calendar entries</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a
               href={`/api/admin/clubs/${data.club.id}/events/ics`}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-xs font-bold text-[#152238]"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-xs font-bold text-on-surface"
             >
-              <Download className="h-4 w-4 text-[#4D86F7]" />
+              <Download className="h-4 w-4 text-primary" />
               ICS
             </a>
             <button
               type="button"
               onClick={() => openEditor()}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#4D86F7] px-3 text-xs font-bold text-white"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-bold text-white"
             >
               <Plus className="h-4 w-4" />
               New event
@@ -87,58 +87,58 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
               key={event.id}
               type="button"
               onClick={() => openEditor(event)}
-              className="grid w-full gap-3 px-4 py-3 text-left transition hover:bg-[#F7FAFE] sm:grid-cols-[1fr_140px_96px]"
+              className="grid w-full gap-3 px-4 py-3 text-left transition hover:bg-background sm:grid-cols-[1fr_140px_96px]"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-bold text-[#152238]">{event.title}</p>
-                  <span className="rounded-md border border-[#CFE0FF] bg-[#EAF2FF] px-2 py-0.5 text-[10px] font-bold capitalize text-[#1E63E9]">
+                  <p className="truncate text-sm font-bold text-on-surface">{event.title}</p>
+                  <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 text-[10px] font-bold capitalize text-on-surface-variant">
                     {event.eventType}
                   </span>
                 </div>
-                <p className="mt-1 truncate text-xs text-[#667795]">
+                <p className="mt-1 truncate text-xs text-on-surface-variant">
                   {event.classTitle ?? "Whole club"} · {event.recurrenceSummary}
                 </p>
               </div>
-              <div className="text-sm font-semibold text-[#40516F]">
+              <div className="text-sm font-semibold text-on-surface-variant">
                 {formatDate(event.startDate)}
               </div>
-              <div className="text-sm font-semibold text-[#40516F]">
+              <div className="text-sm font-semibold text-on-surface-variant">
                 {formatTime(event.startTime)}-{formatTime(event.endTime)}
               </div>
             </button>
           ))}
           {!data.events.length && (
             <div className="px-4 py-16 text-center">
-              <CalendarDays className="mx-auto h-8 w-8 text-[#4D86F7]" />
-              <p className="mt-3 text-sm font-bold text-[#152238]">No club events yet</p>
-              <p className="mt-1 text-sm text-[#667795]">Create the first meeting or event for this club.</p>
+              <CalendarDays className="mx-auto h-8 w-8 text-primary" />
+              <p className="mt-3 text-sm font-bold text-on-surface">No club events yet</p>
+              <p className="mt-1 text-sm text-on-surface-variant">Create the first meeting or event for this club.</p>
             </div>
           )}
         </div>
       </section>
 
-      <aside className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-sm">
-        <h2 className="text-base font-bold text-[#152238]">Next on calendar</h2>
+      <aside className="rounded-lg border border-outline-variant bg-white p-4 shadow-sm">
+        <h2 className="text-base font-bold text-on-surface">Next on calendar</h2>
         <div className="mt-3 space-y-3">
           {upcoming.map((occurrence) => (
-            <div key={occurrence.id} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
-              <p className="text-sm font-bold text-[#152238]">{occurrence.title}</p>
-              <div className="mt-2 space-y-1 text-xs text-[#667795]">
+            <div key={occurrence.id} className="rounded-lg border border-outline-variant bg-background p-3">
+              <p className="text-sm font-bold text-on-surface">{occurrence.title}</p>
+              <div className="mt-2 space-y-1 text-xs text-on-surface-variant">
                 <span className="flex items-center gap-2">
-                  <Clock3 className="h-4 w-4 text-[#4D86F7]" />
+                  <Clock3 className="h-4 w-4 text-primary" />
                   {formatDate(occurrence.date)} · {formatTime(occurrence.startsAt.split("T")[1] ?? "")}
                 </span>
                 {(occurrence.room || occurrence.location) && (
                   <span className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-[#4D86F7]" />
+                    <MapPin className="h-4 w-4 text-primary" />
                     {[occurrence.room, occurrence.location].filter(Boolean).join(", ")}
                   </span>
                 )}
               </div>
             </div>
           ))}
-          {!upcoming.length && <p className="py-8 text-center text-sm text-[#667795]">No upcoming occurrences in range.</p>}
+          {!upcoming.length && <p className="py-8 text-center text-sm text-on-surface-variant">No upcoming occurrences in range.</p>}
         </div>
       </aside>
 
@@ -248,23 +248,23 @@ function ClubEventEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-end bg-[#0B1424]/30 backdrop-blur-sm sm:items-stretch">
-      <form onSubmit={submit} className="flex max-h-[92dvh] w-full flex-col rounded-t-lg border border-[#DEE8F8] bg-white shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:border-y-0 sm:border-r-0">
-        <div className="flex h-16 items-center justify-between border-b border-[#DEE8F8] px-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-surface-container-high/30 backdrop-blur-sm sm:items-stretch">
+      <form onSubmit={submit} className="flex max-h-[92dvh] w-full flex-col rounded-t-lg border border-outline-variant bg-white shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:border-y-0 sm:border-r-0">
+        <div className="flex h-16 items-center justify-between border-b border-outline-variant px-5">
           <div>
-            <h2 className="text-lg font-bold text-[#152238]">{event ? "Edit event" : "New event"}</h2>
-            <p className="text-xs text-[#667795]">Club schedule entry</p>
+            <h2 className="text-lg font-bold text-on-surface">{event ? "Edit event" : "New event"}</h2>
+            <p className="text-xs text-on-surface-variant">Club schedule entry</p>
           </div>
-          <button type="button" onClick={onClose} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#718096] hover:bg-[#F1F6FD]" aria-label="Close event editor">
+          <button type="button" onClick={onClose} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Close event editor">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
-          {error && <div className="rounded-lg border border-[#FFD5D5] bg-[#FFF1F1] px-3 py-2 text-sm text-[#C43D3D]">{error}</div>}
+          {error && <div className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface-variant">{error}</div>}
           <label className="block">
-            <span className="text-xs font-semibold text-[#667795]">Cohort</span>
-            <select value={classId} onChange={(changeEvent) => setClassId(changeEvent.target.value)} className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]">
+            <span className="text-xs font-semibold text-on-surface-variant">Cohort</span>
+            <select value={classId} onChange={(changeEvent) => setClassId(changeEvent.target.value)} className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary">
               <option value="">Whole club</option>
               {cohorts.map((cohort) => (
                 <option key={cohort.id} value={cohort.id}>{cohort.title}</option>
@@ -272,53 +272,53 @@ function ClubEventEditor({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-semibold text-[#667795]">Title</span>
-            <input value={title} onChange={(changeEvent) => setTitle(changeEvent.target.value)} required placeholder="Weekly sparring round" className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+            <span className="text-xs font-semibold text-on-surface-variant">Title</span>
+            <input value={title} onChange={(changeEvent) => setTitle(changeEvent.target.value)} required placeholder="Weekly sparring round" className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label>
-              <span className="text-xs font-semibold text-[#667795]">Type</span>
-              <select value={eventType} onChange={(changeEvent) => setEventType(changeEvent.target.value as ClubEventType)} className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]">
+              <span className="text-xs font-semibold text-on-surface-variant">Type</span>
+              <select value={eventType} onChange={(changeEvent) => setEventType(changeEvent.target.value as ClubEventType)} className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary">
                 {EVENT_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
             </label>
             <label>
-              <span className="text-xs font-semibold text-[#667795]">Room</span>
-              <input value={room} onChange={(changeEvent) => setRoom(changeEvent.target.value)} placeholder="Room 204" className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+              <span className="text-xs font-semibold text-on-surface-variant">Room</span>
+              <input value={room} onChange={(changeEvent) => setRoom(changeEvent.target.value)} placeholder="Room 204" className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
             </label>
           </div>
           <label className="block">
-            <span className="text-xs font-semibold text-[#667795]">Location</span>
-            <input value={location} onChange={(changeEvent) => setLocation(changeEvent.target.value)} placeholder="Ha Noi campus" className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+            <span className="text-xs font-semibold text-on-surface-variant">Location</span>
+            <input value={location} onChange={(changeEvent) => setLocation(changeEvent.target.value)} placeholder="Ha Noi campus" className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
           </label>
           <div className="grid grid-cols-3 gap-3">
             <label>
-              <span className="text-xs font-semibold text-[#667795]">Date</span>
-              <input type="date" value={startDate} onChange={(changeEvent) => setStartDate(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+              <span className="text-xs font-semibold text-on-surface-variant">Date</span>
+              <input type="date" value={startDate} onChange={(changeEvent) => setStartDate(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
             </label>
             <label>
-              <span className="text-xs font-semibold text-[#667795]">Start</span>
-              <input type="time" value={startTime} onChange={(changeEvent) => setStartTime(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+              <span className="text-xs font-semibold text-on-surface-variant">Start</span>
+              <input type="time" value={startTime} onChange={(changeEvent) => setStartTime(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
             </label>
             <label>
-              <span className="text-xs font-semibold text-[#667795]">End</span>
-              <input type="time" value={endTime} onChange={(changeEvent) => setEndTime(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm outline-none focus:border-[#4D86F7]" />
+              <span className="text-xs font-semibold text-on-surface-variant">End</span>
+              <input type="time" value={endTime} onChange={(changeEvent) => setEndTime(changeEvent.target.value)} required className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary" />
             </label>
           </div>
 
-          <section className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-[#152238]">
-              <Repeat2 className="h-4 w-4 text-[#4D86F7]" />
+          <section className="rounded-lg border border-outline-variant bg-background p-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+              <Repeat2 className="h-4 w-4 text-primary" />
               Repeat
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <select value={frequency} onChange={(changeEvent) => setFrequency(changeEvent.target.value as RecurrenceFrequency)} className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]">
+              <select value={frequency} onChange={(changeEvent) => setFrequency(changeEvent.target.value as RecurrenceFrequency)} className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary">
                 <option value="none">Does not repeat</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
               </select>
-              <input type="number" min={1} max={99} value={interval} onChange={(changeEvent) => setInterval(changeEvent.target.value)} className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]" />
+              <input type="number" min={1} max={99} value={interval} onChange={(changeEvent) => setInterval(changeEvent.target.value)} className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary" />
             </div>
             {frequency === "weekly" && (
               <div className="mt-3 grid grid-cols-7 gap-1">
@@ -330,8 +330,8 @@ function ClubEventEditor({
                     className={cn(
                       "h-9 rounded-lg border text-xs font-bold",
                       weekdays.includes(day.value)
-                        ? "border-[#4D86F7] bg-[#EAF2FF] text-[#1E63E9]"
-                        : "border-[#DEE8F8] bg-white text-[#667795]"
+                        ? "border-primary bg-surface-container text-on-surface-variant"
+                        : "border-outline-variant bg-white text-on-surface-variant"
                     )}
                   >
                     {day.label}
@@ -341,32 +341,32 @@ function ClubEventEditor({
             )}
             {frequency !== "none" && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <select value={endMode} onChange={(changeEvent) => setEndMode(changeEvent.target.value as RecurrenceEndMode)} className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]">
+                <select value={endMode} onChange={(changeEvent) => setEndMode(changeEvent.target.value as RecurrenceEndMode)} className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary">
                   <option value="never">Never ends</option>
                   <option value="on_date">Ends on date</option>
                   <option value="after_occurrences">After count</option>
                 </select>
                 {endMode === "on_date" ? (
-                  <input type="date" value={until} onChange={(changeEvent) => setUntil(changeEvent.target.value)} className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]" />
+                  <input type="date" value={until} onChange={(changeEvent) => setUntil(changeEvent.target.value)} className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary" />
                 ) : (
-                  <input type="number" min={1} max={999} value={count} onChange={(changeEvent) => setCount(changeEvent.target.value)} className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]" />
+                  <input type="number" min={1} max={999} value={count} onChange={(changeEvent) => setCount(changeEvent.target.value)} className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary" />
                 )}
               </div>
             )}
-            <p className="mt-3 rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-xs font-semibold text-[#667795]">
+            <p className="mt-3 rounded-lg border border-outline-variant bg-white px-3 py-2 text-xs font-semibold text-on-surface-variant">
               {recurrenceSummary}
             </p>
           </section>
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-[#DEE8F8] p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col-reverse gap-2 border-t border-outline-variant p-4 sm:flex-row sm:items-center sm:justify-between">
           {event ? (
-            <button type="button" onClick={archive} disabled={isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#FFD5D5] bg-white px-4 text-sm font-bold text-[#C43D3D]">
+            <button type="button" onClick={archive} disabled={isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-bold text-on-surface-variant">
               <Trash2 className="h-4 w-4" />
               Archive
             </button>
           ) : <span />}
-          <button type="submit" disabled={isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#4D86F7] px-4 text-sm font-bold text-white disabled:bg-[#BCC6D3]">
+          <button type="submit" disabled={isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white disabled:bg-surface-container-high">
             {isPending ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
             {isPending ? "Saving..." : "Save event"}
           </button>

@@ -109,7 +109,7 @@ export const AVATAR_PRESETS: AvatarPreset[] = [
     id: "atlas",
     label: "Atlas",
     monogram: "A",
-    colors: ["#4D86F7", "#8FB5FA"],
+    colors: ["#00B8D9", "#8BE8F7"],
   },
   {
     id: "nova",
@@ -121,19 +121,19 @@ export const AVATAR_PRESETS: AvatarPreset[] = [
     id: "sage",
     label: "Sage",
     monogram: "S",
-    colors: ["#34C759", "#7DE2A5"],
+    colors: ["#00B8D9", "#7DE2A5"],
   },
   {
     id: "blaze",
     label: "Blaze",
     monogram: "B",
-    colors: ["#FF8C5A", "#F5B942"],
+    colors: ["#FF8C5A", "#FFD166"],
   },
   {
     id: "echo",
     label: "Echo",
     monogram: "E",
-    colors: ["#7B61FF", "#B39CFF"],
+    colors: ["#00B8D9", "#B39CFF"],
   },
   {
     id: "lumen",

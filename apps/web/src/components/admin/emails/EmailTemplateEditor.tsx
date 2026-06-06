@@ -244,9 +244,9 @@ function PreviewFrame({
     <div className="min-w-0 overflow-auto rounded-lg bg-surface-container p-3">
       <div
         className={cn(
-          "mx-auto overflow-hidden bg-[#F7FAFE] shadow-[0_24px_70px_-38px_rgba(11,20,36,0.65)]",
+          "mx-auto overflow-hidden bg-background shadow-token-card",
           mobile
-            ? "w-[390px] max-w-full rounded-[2rem] border-[7px] border-[#162033]"
+            ? "w-[390px] max-w-full rounded-[2rem] border-[7px] border-outline-variant"
             : "w-[680px] max-w-full rounded-xl border border-outline-variant/70"
         )}
       >
@@ -261,7 +261,7 @@ function PreviewFrame({
             srcDoc={preview?.html ?? "<html><body></body></html>"}
             sandbox=""
             referrerPolicy="no-referrer"
-            className={cn("block w-full border-0 bg-[#F7FAFE]", mobile ? "h-[760px]" : "h-[720px]")}
+            className={cn("block w-full border-0 bg-background", mobile ? "h-[760px]" : "h-[720px]")}
           />
         )}
       </div>
@@ -443,9 +443,9 @@ export function EmailTemplateEditor() {
 
   return (
     <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[260px_minmax(360px,0.95fr)_minmax(390px,1.2fr)]">
-      <aside className="min-w-0 overflow-hidden rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]">
+      <aside className="min-w-0 overflow-hidden rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-token-card">
         <div className="border-b border-outline-variant/40 px-4 py-4">
-          <h2 className="text-base font-extrabold text-[#0B1424]">Templates</h2>
+          <h2 className="text-base font-extrabold text-on-surface">Templates</h2>
           <p className="mt-1 text-xs text-on-surface-variant">{payload.templates.length} lifecycle templates</p>
         </div>
         <div className="divide-y divide-outline-variant/35">
@@ -468,7 +468,7 @@ export function EmailTemplateEditor() {
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-extrabold text-[#0B1424]">{meta.title}</span>
+                  <span className="block truncate text-sm font-extrabold text-on-surface">{meta.title}</span>
                   <span className="block truncate text-xs text-on-surface-variant">{meta.helper}</span>
                 </span>
                 <span
@@ -487,12 +487,12 @@ export function EmailTemplateEditor() {
         </div>
       </aside>
 
-      <div className="min-w-0 rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]">
+      <div className="min-w-0 rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-token-card">
         <div className="flex items-start justify-between gap-3 border-b border-outline-variant/40 px-4 py-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <SelectedIcon className="h-5 w-5 text-primary" />
-              <h2 className="truncate text-lg font-extrabold text-[#0B1424]">
+              <h2 className="truncate text-lg font-extrabold text-on-surface">
                 Template editor: {selectedMeta.title}
               </h2>
               <span
@@ -576,11 +576,11 @@ export function EmailTemplateEditor() {
         </div>
       </div>
 
-      <div className="min-w-0 rounded-lg border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]">
+      <div className="min-w-0 rounded-lg border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-token-card">
         <div className="flex flex-col gap-3 border-b border-outline-variant/40 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-extrabold text-[#0B1424]">Preview studio</h2>
+              <h2 className="text-lg font-extrabold text-on-surface">Preview studio</h2>
               <p className="mt-1 text-xs text-on-surface-variant">Sandboxed render from production email HTML.</p>
             </div>
             <DeviceToggle value={device} onChange={setDevice} />
@@ -609,7 +609,7 @@ export function EmailTemplateEditor() {
               <Mail className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-extrabold text-[#0B1424]">{preview?.subject ?? fields.subject}</p>
+              <p className="truncate text-sm font-extrabold text-on-surface">{preview?.subject ?? fields.subject}</p>
               <p className="truncate text-xs text-on-surface-variant">{preview?.preheader ?? fields.preheader}</p>
             </div>
             <span className="text-xs font-semibold text-muted-foreground">9:41 AM</span>

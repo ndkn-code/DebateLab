@@ -11,6 +11,8 @@
     "build": "npm run build:web",
     "start": "npm run start:web",
     "lint": "npm run lint:web",
+    "audit:design-system": "tsx scripts/design-system-audit.ts",
+    "test:design-system": "tsx scripts/design-system-tokens.test.ts",
     "dev:web": "npm run dev -w @thinkfy/web",
     "build:web": "npm run build -w @thinkfy/web",
     "start:web": "npm run start -w @thinkfy/web",

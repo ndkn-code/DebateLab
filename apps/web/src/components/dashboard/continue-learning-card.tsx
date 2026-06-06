@@ -19,7 +19,7 @@ import type { EnrollmentWithCourse } from "@/lib/api/dashboard";
 const CATEGORY_META = {
   debate: {
     icon: Scale,
-    gradient: "from-primary via-primary-dim to-[#1f2f8c]",
+    gradient: "from-primary via-primary-dim to-primary-depth",
   },
   "public-speaking": {
     icon: Mic2,
@@ -140,7 +140,7 @@ export function ContinueLearningCard({
                 </div>
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-[#11152e]/80 via-[#11152e]/15 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary-depth/80 via-primary-depth/15 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
                 <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
                   {categoryLabel}
@@ -261,7 +261,7 @@ export function ContinueLearningCard({
               </div>
             )}
 
-            <div className="absolute inset-0 bg-gradient-to-t from-[#11152e]/85 via-[#11152e]/25 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary-depth/85 via-primary-depth/25 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
               <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
                 {categoryLabel}

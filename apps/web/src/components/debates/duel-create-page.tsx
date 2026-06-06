@@ -61,9 +61,9 @@ const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
 ];
 
 function difficultyTone(difficulty: DebateDuelTopicDifficulty) {
-  if (difficulty === "beginner") return "bg-[#edf8ef] text-[#4aa05f]";
-  if (difficulty === "intermediate") return "bg-[#fff6e8] text-[#da9b2d]";
-  return "bg-[#fff0f0] text-[#dd666b]";
+  if (difficulty === "beginner") return "bg-surface-container text-on-surface-variant";
+  if (difficulty === "intermediate") return "bg-surface-container text-on-surface-variant";
+  return "bg-error-container text-on-surface-variant";
 }
 
 function shortCategoryLabel(category: string) {
@@ -284,7 +284,7 @@ export function DuelCreatePage({
   }
 
   return (
-    <PageTransition className="min-h-full bg-[linear-gradient(180deg,#F7FAFE_0%,#EEF4FF_45%,#F7FAFE_100%)]">
+    <PageTransition className="min-h-full bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_45%,#F3FCFE_100%)]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
         <div className="mb-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
           <div>
@@ -307,7 +307,7 @@ export function DuelCreatePage({
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-[0_24px_70px_-30px_rgba(11,20,66,0.22)] sm:p-7 lg:p-8">
+          <main className="rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-token-card sm:p-7 lg:p-8">
             <section>
               <div className="flex items-start gap-4">
                 <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
@@ -364,8 +364,8 @@ export function DuelCreatePage({
                       className={cn(
                         "group relative flex min-h-[174px] flex-col rounded-[14px] border bg-surface-container-lowest p-4 text-left transition-all duration-200 hover:-translate-y-0.5",
                         selected
-                          ? "border-primary shadow-[0_12px_24px_-22px_rgba(77,134,247,0.85)]"
-                          : "border-[#e3ebf8] hover:border-[#c9d8f7] hover:shadow-[0_12px_22px_-24px_rgba(22,39,91,0.22)]"
+                          ? "border-primary shadow-token-primary"
+                          : "border-outline-variant hover:border-outline-variant hover:shadow-token-card"
                       )}
                     >
                       {selected && (
@@ -375,7 +375,7 @@ export function DuelCreatePage({
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 pr-8">
-                        <span className="rounded-full bg-[#eef4ff] px-2.5 py-[4px] text-[10px] font-semibold leading-none text-[#3d70df]">
+                        <span className="rounded-full bg-primary-container px-2.5 py-[4px] text-[10px] font-semibold leading-none text-on-surface-variant">
                           {shortCategoryLabel(topic.category)}
                         </span>
                         <span
@@ -395,7 +395,7 @@ export function DuelCreatePage({
                       </div>
 
                       {!selected && (
-                        <span className="mt-auto flex justify-end pt-4 text-[#7a89a8] transition-colors group-hover:text-primary">
+                        <span className="mt-auto flex justify-end pt-4 text-on-surface-variant transition-colors group-hover:text-primary">
                           <Star className="h-[17px] w-[17px]" />
                         </span>
                       )}

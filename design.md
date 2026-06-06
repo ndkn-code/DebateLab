@@ -27,36 +27,36 @@ The palette is centered on calm blues, soft neutrals, and very light surfaces. T
 ## Core Palette
 
 ### Primary
-- `Primary Dark`: `#3E78EC`
-- `Primary`: `#4D86F7`
-- `Primary Light`: `#A9C6FB`
+- `Primary Dark`: `#0788A0`
+- `Primary`: `#00B8D9`
+- `Primary Light`: `#8BE8F7`
 
 ### Surface
-- `Background`: `#F7FAFE`
+- `Background`: `#F3FCFE`
 - `Surface`: `#FFFFFF`
-- `Surface Alt`: `#F1F6FD`
-- `Border / Divider`: `#DEE8F8`
+- `Surface Alt`: `#E5F8FC`
+- `Border / Divider`: `#CDECF3`
 
 ## Neutral / Grayscale
-- `Heading`: `#0B1424`
-- `Text Strong`: `#162033`
-- `Text`: `#415069`
-- `Text Muted`: `#718096`
+- `Heading`: `#102936`
+- `Text Strong`: `#102936`
+- `Text`: `#657B84`
+- `Text Muted`: `#657B84`
 - `Muted`: `#8A96A8`
 - `Placeholder`: `#BCC6D3`
 - `Border Soft`: `#D9E5F4`
-- `Disabled`: `#EEF2F7`
+- `Disabled`: `#E5F8FC`
 
 ## Semantic Colors
 - `Success`: `#34C759`
-- `Info`: `#4D86F7`
+- `Info`: `#00B8D9`
 - `Warning`: `#F5B942`
 - `Error`: `#EF6A6A`
 
 ## Chart Colors
 Use these for analytics, history charts, and progress visuals:
-- `#4D86F7`
-- `#A9C6FB`
+- `#00B8D9`
+- `#8BE8F7`
 - `#34C759`
 - `#F5B942`
 - `#7B61FF`
@@ -72,19 +72,19 @@ Rules:
 ## Gradients
 
 ### Primary Gradient
-- `#A9C6FB` -> `#4D86F7`
+- `#8BE8F7` -> `#00B8D9`
 - Use for hero accents, key CTA emphasis, selected states, and premium-feeling highlights.
 
 ### Hero Gradient
-- `#F7FAFE` -> `#EEF4FF`
+- `#F3FCFE` -> `#E5F8FC`
 - Use for large page backgrounds, landing hero sections, dashboard spotlight containers.
 
 ### Soft Blue Gradient
-- `#FFFFFF` -> `#F1F6FD`
+- `#FFFFFF` -> `#E5F8FC`
 - Use for section backgrounds, information panels, and subtle card emphasis.
 
 ### Card Gradient
-- `#FFFFFF` -> `#F7FAFE`
+- `#FFFFFF` -> `#F3FCFE`
 - Use for elevated panels, large dashboard cards, and soft shells.
 
 ## Color Role Mapping
@@ -203,10 +203,10 @@ Icons should support the interface, not compete with it.
 
 ### Color Rules
 - default icon colors should come from the approved palette only
-- primary icon color: `#4D86F7`
-- darker emphasis / stroke: `#3E78EC`
-- supporting light fill: `#A9C6FB`
-- optional neutral support: `#DEE8F8` or `#F1F6FD`
+- primary icon color: `#00B8D9`
+- darker emphasis / stroke: `#0788A0`
+- supporting light fill: `#8BE8F7`
+- optional neutral support: `#CDECF3` or `#E5F8FC`
 
 Do not:
 - use unapproved saturated colors
@@ -216,7 +216,7 @@ Do not:
 
 ### Background and Contrast
 - icons must work on white and near-white surfaces
-- shapes should maintain enough contrast against `#FFFFFF`, `#F7FAFE`, and `#F1F6FD`
+- shapes should maintain enough contrast against `#FFFFFF`, `#F3FCFE`, and `#E5F8FC`
 - if a shape disappears on light surfaces, darken the fill or stroke rather than adding decorative effects
 
 ### Product Usage
@@ -243,9 +243,9 @@ They should not feel:
 - like mini illustrations dropped into UI
 
 ### Buttons
-- Primary button: `#4D86F7` background, white text
+- Primary button: `#00B8D9` background, white text
 - Primary hover: slightly darker blue or subtle gradient depth
-- Secondary button: white background, `#DEE8F8` border, primary text
+- Secondary button: white background, `#CDECF3` border, primary text
 - Text button / link: primary text with no heavy fill
 - Use one dominant primary CTA per surface.
 - Use `default` only for the primary action, `outline` for secondary actions, `ghost` for quiet utilities, and `destructive` only for destructive actions.
@@ -254,16 +254,16 @@ They should not feel:
 
 ### Cards
 - Default card background: `#FFFFFF`
-- Secondary card background: `#F7FAFE` or `#F1F6FD`
-- Border: `#DEE8F8`
+- Secondary card background: `#F3FCFE` or `#E5F8FC`
+- Border: `#CDECF3`
 - Radius should stay soft and modern
 - Shadows should be subtle and cool-toned, not muddy
 
 ### Inputs
 - Background: white
-- Border: `#DEE8F8`
+- Border: `#CDECF3`
 - Placeholder: `#BCC6D3`
-- Focus ring: derived from `#A9C6FB` / `#4D86F7`
+- Focus ring: derived from `#8BE8F7` / `#00B8D9`
 
 ### Navigation
 - Active item: blue text on very light blue background
@@ -304,25 +304,25 @@ When we roll this into the project, we should map these values into:
 Recommended token structure:
 
 ```css
---color-background: #F7FAFE;
+--color-background: #F3FCFE;
 --color-surface: #FFFFFF;
---color-surface-alt: #F1F6FD;
---color-border: #DEE8F8;
+--color-surface-alt: #E5F8FC;
+--color-border: #CDECF3;
 
---color-primary: #4D86F7;
---color-primary-light: #A9C6FB;
---color-primary-dark: #3E78EC;
+--color-primary: #00B8D9;
+--color-primary-light: #8BE8F7;
+--color-primary-dark: #0788A0;
 
---color-heading: #0B1424;
---color-text-strong: #162033;
---color-text: #415069;
---color-text-muted: #718096;
+--color-heading: #102936;
+--color-text-strong: #102936;
+--color-text: #657B84;
+--color-text-muted: #657B84;
 --color-muted: #8A96A8;
 --color-placeholder: #BCC6D3;
---color-disabled: #EEF2F7;
+--color-disabled: #E5F8FC;
 
 --color-success: #34C759;
---color-info: #4D86F7;
+--color-info: #00B8D9;
 --color-warning: #F5B942;
 --color-error: #EF6A6A;
 ```
@@ -352,16 +352,16 @@ The visual direction should stay blue-led, editorial, and trustworthy.
 Feedback popups collect immediate product feedback without interrupting core practice work. They should feel like a respectful intercept: short, clear, localized, and easy to dismiss.
 
 ### Color Profile
-- `Primary`: `#4D86F7`
-- `Primary Dark`: `#3E78EC`
-- `Primary Light`: `#A9C6FB`
-- `Background`: `#F7FAFE`
+- `Primary`: `#00B8D9`
+- `Primary Dark`: `#0788A0`
+- `Primary Light`: `#8BE8F7`
+- `Background`: `#F3FCFE`
 - `Surface`: `#FFFFFF`
-- `Surface Alt`: `#F1F6FD`
-- `Border`: `#DEE8F8`
-- `Heading`: `#0B1424`
-- `Text`: `#415069`
-- `Muted`: `#718096`
+- `Surface Alt`: `#E5F8FC`
+- `Border`: `#CDECF3`
+- `Heading`: `#102936`
+- `Text`: `#657B84`
+- `Muted`: `#657B84`
 - `Success`: `#34C759`
 - `Warning`: `#F5B942`
 - `Error`: `#EF6A6A`
@@ -539,3 +539,46 @@ DebateLab product UI should feel calm, sparse, and action-led. The OnePrep lesso
 - Check Browser viewports `1280x720`, `1440x900`, `2560x1440`, `768x1024`, and `390x844`.
 - Verify no horizontal overflow, clipped prompt rows, hidden composer controls, or text bleeding in English and Vietnamese.
 - Count copy density on every changed page: if a screen has title, subtitle, card title, card description, and helper text in the same viewport, remove one layer.
+
+## Design System Hardening Contract
+
+### Token Layers
+- Primitive colors live only in `@thinkfy/shared/design-system`.
+- App surfaces consume semantic roles, not raw hex values: `primary`, `onPrimary`, `surface`, `onSurface`, `outline`, `reward`, `success`, `warning`, `error`, `info`, `chart`, and `courseAccent`.
+- Components consume component tokens: button background/text/shadow, card background/border/shadow, input border/focus ring, badge tone pairs, and progress fills.
+- Web variables are emitted by `ThinkfyThemeVariables`; mobile colors derive from `getThinkfyTheme(mode)`.
+- `globals.css` may keep fallback values for Tailwind class generation, but the shared token source is the product contract.
+
+### Product Meaning
+- Primary is for habit-building CTAs, selected states, and the one dominant action on a surface.
+- Reward is for XP, streaks, level-up moments, badges, and celebratory CTAs.
+- Success is for correctness, completion, and healthy status.
+- Warning and error are functional states only; do not use them as decorative brand accents.
+- Info and chart colors support data visualization and coach/explanation surfaces; charts should not steal CTA colors without a reason.
+
+### Component Rules
+- Use `<Button variant="primary" />` or `<Button variant="default" />` for dominant CTAs. `default` remains an alias for compatibility.
+- Use `<Button variant="reward" />` only for XP/streak/celebration actions.
+- Use `Badge` tones for product meaning instead of hardcoded pill colors.
+- Inputs use tokenized border, focus border, and focus ring; custom focus colors are not allowed.
+- Progress bars use `primary`, `reward`, or `success` tones instead of arbitrary fills.
+
+### Allowed Literal Color Exceptions
+- Shared design-token source.
+- Generated theme variable bridge.
+- Tailwind fallback variables in `globals.css`.
+- Email templates and unsubscribe HTML.
+- Chart/data-viz palettes.
+- Course artwork palette modules.
+- Dashboard, debate, and feedback visualization palettes.
+- Landing, onboarding, practice, and profile visualization palettes.
+- Profile banner presets and Supabase-stored `banner_color` defaults.
+- Static SVG/bitmap assets.
+
+### Palette Swap Workflow
+1. Update only `@thinkfy/shared/design-system`.
+2. Run `npm run test:design-system` and `npm run audit:design-system`.
+3. Run web/mobile typechecks and lint.
+4. Use Browser QA on landing, auth, dashboard, courses, practice, feedback/history, chat/coach, leaderboards, profile/social, settings, admin, and dev QA pages.
+5. Capture screenshots for changed surfaces and compare against the approved imagegen reference board.
+6. Any visible legacy primary color outside the approved exceptions is a failure.

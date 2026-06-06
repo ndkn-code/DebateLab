@@ -131,10 +131,10 @@ export function AuthScreen() {
 
       {!canAttemptAuth ? (
         <Surface tone="warning">
-          <AppText color="#9A640F" variant="bodyStrong">
+          <AppText color={colors.onWarningContainer} variant="bodyStrong">
             Mobile auth config pending
           </AppText>
-          <AppText color="#9A640F" variant="caption">
+          <AppText color={colors.onWarningContainer} variant="caption">
             {missingEnvKeys.join(", ")}
           </AppText>
         </Surface>

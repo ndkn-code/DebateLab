@@ -162,12 +162,12 @@ function SectionPanel(props: {
       data-settings-section-id={id}
       aria-labelledby={`${id}-settings-title`}
       aria-describedby={description ? `${id}-settings-description` : undefined}
-      className="scroll-mt-28 rounded-lg border border-[#DEE8F8] bg-white shadow-[0_18px_50px_-46px_rgba(17,24,39,0.28)] dark:border-outline-variant/70 dark:bg-surface/95"
+      className="scroll-mt-28 rounded-lg border border-outline-variant bg-white shadow-token-card dark:border-outline-variant/70 dark:bg-surface/95"
     >
       <div className="px-5 pb-2 pt-5">
         <h2
           id={`${id}-settings-title`}
-          className="text-base font-semibold text-[#0B1424] dark:text-on-surface"
+          className="text-base font-semibold text-on-surface dark:text-on-surface"
         >
           {title}
         </h2>
@@ -190,7 +190,7 @@ function SettingLabel({
   info?: string;
 }) {
   return (
-    <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-[#0B1424] dark:text-on-surface">
+    <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-on-surface dark:text-on-surface">
       <span>{children}</span>
       {info ? <InfoHint label={info} /> : null}
     </label>
@@ -213,7 +213,7 @@ function SettingRow(props: {
       )}
     >
       <div className="min-w-0 pr-2">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-[#0B1424] dark:text-on-surface">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-on-surface dark:text-on-surface">
           <span>{title}</span>
           {description ? <InfoHint label={description} /> : null}
         </p>
@@ -254,10 +254,10 @@ const VISIBILITY_OPTIONS: Array<{
 ];
 
 const INPUT_CLASSNAME =
-  "h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-medium text-[#0B1424] outline-none transition-colors placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-3 focus:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+  "h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
 
 const SELECT_CLASSNAME =
-  "rounded-lg border-[#DEE8F8] bg-white text-[#0B1424] focus:border-[#4D86F7] focus-visible:ring-[#4D86F7]/20 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+  "rounded-lg border-outline-variant bg-white text-on-surface focus:border-primary focus-visible:ring-primary/20 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
 
 type SettingsScrollContainer = HTMLElement | Window;
 
@@ -393,7 +393,7 @@ function AvatarPreview(props: {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-full border border-[#DEE8F8] bg-[#F1F6FD] shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
+        "overflow-hidden rounded-full border border-outline-variant bg-surface-container shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
         sizeClassName
       )}
     >
@@ -405,7 +405,7 @@ function AvatarPreview(props: {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_#4d86f7,_#1d4ed8)] font-semibold text-white">
+        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_#00B8D9,_#0788A0)] font-semibold text-white">
           <span className={textClassName}>{initials}</span>
         </div>
       )}
@@ -953,7 +953,7 @@ export function SettingsContent({
   return (
     <div
       ref={rootRef}
-      className="min-h-full bg-[#F7FAFE] text-[#0B1424] dark:bg-background dark:text-on-surface"
+      className="min-h-full bg-background text-on-surface dark:bg-background dark:text-on-surface"
     >
       <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
         <ProductPageHeader
@@ -962,14 +962,14 @@ export function SettingsContent({
           className="mb-4"
           actions={
             <div className="flex items-center gap-3">
-              <span className="hidden text-sm text-[#718096] sm:inline">
+              <span className="hidden text-sm text-on-surface-variant sm:inline">
                 {isDirty ? t("status.unsaved") : t("status.saved")}
               </span>
               <Button
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty || isSaving}
-                className="gap-2 rounded-lg bg-[#4D86F7] px-4 text-white shadow-[0_14px_30px_-24px_rgba(77,134,247,0.95)] hover:bg-[#3E78EC]"
+                className="gap-2 rounded-lg bg-primary px-4 text-white shadow-token-primary hover:bg-primary-dim"
               >
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -982,7 +982,7 @@ export function SettingsContent({
           }
         />
 
-        <div className="sticky top-0 z-20 -mx-4 mb-5 border-y border-[#DEE8F8] bg-[#F7FAFE]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+        <div className="sticky top-0 z-20 -mx-4 mb-5 border-y border-outline-variant bg-background/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {settingsSections.map((section) => (
               <button
@@ -993,8 +993,8 @@ export function SettingsContent({
                 className={cn(
                   "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
                   activeSection === section.id
-                    ? "bg-[#EAF1FF] text-[#3E78EC]"
-                    : "text-[#718096] hover:bg-white hover:text-[#0B1424]"
+                    ? "bg-primary-container text-primary-dim"
+                    : "text-on-surface-variant hover:bg-white hover:text-on-surface"
                 )}
               >
                 {section.icon}
@@ -1006,13 +1006,13 @@ export function SettingsContent({
 
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <nav className="sticky top-6 rounded-lg border border-[#DEE8F8] bg-white p-3 shadow-[0_18px_50px_-42px_rgba(17,24,39,0.35)] dark:border-outline-variant/70 dark:bg-surface/95">
+            <nav className="sticky top-6 rounded-lg border border-outline-variant bg-white p-3 shadow-token-card dark:border-outline-variant/70 dark:bg-surface/95">
               {settingsSectionGroups.map((group, groupIndex) => (
                 <div
                   key={`${group.group}-${groupIndex}`}
                   className="mt-5 first:mt-0"
                 >
-                  <p className="px-2 text-xs font-semibold uppercase tracking-normal text-[#8A96A8]">
+                  <p className="px-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
                     {group.group}
                   </p>
                   <div className="mt-2 space-y-1">
@@ -1027,8 +1027,8 @@ export function SettingsContent({
                         className={cn(
                           "flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-medium transition-colors",
                           activeSection === section.id
-                            ? "bg-[#EAF1FF] text-[#3E78EC]"
-                            : "text-[#718096] hover:bg-[#F7FAFE] hover:text-[#0B1424]"
+                            ? "bg-primary-container text-primary-dim"
+                            : "text-on-surface-variant hover:bg-background hover:text-on-surface"
                         )}
                       >
                         {section.icon}
@@ -1051,9 +1051,9 @@ export function SettingsContent({
                 <div className="mb-5 flex justify-end">
                   <Link
                     href={profilePreviewHref}
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm font-semibold text-[#0B1424] transition hover:bg-[#F7FAFE] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-sm font-semibold text-on-surface transition hover:bg-background dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
                   >
-                    <Eye className="h-4 w-4 text-[#4D86F7]" />
+                    <Eye className="h-4 w-4 text-primary" />
                     Preview public profile
                   </Link>
                 </div>
@@ -1078,7 +1078,7 @@ export function SettingsContent({
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={isAvatarProcessing}
                       aria-label={t("avatar_upload")}
-                      className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#4D86F7] text-white shadow-[0_12px_28px_-18px_rgba(77,134,247,0.95)] transition hover:bg-[#3E78EC] disabled:opacity-70"
+                      className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-token-primary transition hover:bg-primary-dim disabled:opacity-70"
                     >
                       {isAvatarProcessing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1104,7 +1104,7 @@ export function SettingsContent({
                       </div>
                       <div>
                         <SettingLabel>Email</SettingLabel>
-                        <div className="flex h-11 items-center gap-2 rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-3 text-sm font-medium text-[#718096] dark:border-outline-variant/70 dark:bg-surface-container-lowest">
+                        <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-background px-3 text-sm font-medium text-on-surface-variant dark:border-outline-variant/70 dark:bg-surface-container-lowest">
                           <Mail className="h-4 w-4 shrink-0" />
                           <span className="truncate">{userEmail}</span>
                         </div>
@@ -1116,8 +1116,8 @@ export function SettingsContent({
                         <SettingLabel info={t("fields.handle_helper")}>
                           {t("fields.handle")}
                         </SettingLabel>
-                        <div className="flex h-11 items-center rounded-lg border border-[#DEE8F8] bg-white text-sm font-medium text-[#0B1424] transition-colors focus-within:border-[#4D86F7] focus-within:ring-3 focus-within:ring-[#4D86F7]/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface">
-                          <span className="pl-3 pr-1 text-[#718096]">@</span>
+                        <div className="flex h-11 items-center rounded-lg border border-outline-variant bg-white text-sm font-medium text-on-surface transition-colors focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface">
+                          <span className="pl-3 pr-1 text-on-surface-variant">@</span>
                           <input
                             type="text"
                             value={draft.handle}
@@ -1128,7 +1128,7 @@ export function SettingsContent({
                               )
                             }
                             placeholder={t("fields.handle_placeholder")}
-                            className="h-full min-w-0 flex-1 bg-transparent pr-3 outline-none placeholder:text-[#8A96A8]"
+                            className="h-full min-w-0 flex-1 bg-transparent pr-3 outline-none placeholder:text-muted-foreground"
                           />
                         </div>
                       </div>
@@ -1374,7 +1374,7 @@ export function SettingsContent({
                     type="button"
                     onClick={handleSaveLeaderboardPrivacy}
                     disabled={isLeaderboardPrivacyPending}
-                    className="gap-2 rounded-lg bg-[#4D86F7] px-4 text-white hover:bg-[#3E78EC]"
+                    className="gap-2 rounded-lg bg-primary px-4 text-white hover:bg-primary-dim"
                   >
                     {isLeaderboardPrivacyPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1470,7 +1470,7 @@ export function SettingsContent({
               {organizationAffiliation ? (
                 <div className="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] text-[#4D86F7]">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-background text-primary">
                       {organizationAffiliation.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -1483,20 +1483,20 @@ export function SettingsContent({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+                      <p className="truncate text-sm font-semibold text-on-surface dark:text-on-surface">
                         {organizationAffiliation.name}
                       </p>
-                      <p className="truncate text-sm text-[#718096]">
+                      <p className="truncate text-sm text-on-surface-variant">
                         {organizationAffiliation.subtitle}
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:justify-end">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF3] px-2.5 py-1 text-xs font-semibold text-[#177245]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-success">
                       <BadgeCheck className="h-3.5 w-3.5" />
                       Verified
                     </span>
-                    <span className="rounded-full border border-[#DEE8F8] px-2.5 py-1 text-xs font-semibold capitalize text-[#718096]">
+                    <span className="rounded-full border border-outline-variant px-2.5 py-1 text-xs font-semibold capitalize text-on-surface-variant">
                       {organizationAffiliation.role}
                     </span>
                   </div>
@@ -1507,7 +1507,7 @@ export function SettingsContent({
                     title="Status"
                     description="You are not connected to a verified organization yet."
                   >
-                    <span className="inline-flex rounded-full border border-[#DEE8F8] px-2.5 py-1 text-xs font-semibold text-[#718096]">
+                    <span className="inline-flex rounded-full border border-outline-variant px-2.5 py-1 text-xs font-semibold text-on-surface-variant">
                       Not verified
                     </span>
                   </SettingRow>
@@ -1541,7 +1541,7 @@ export function SettingsContent({
                             isOrganizationPending ||
                             !isUsableOrganizationJoinCode(organizationCode)
                           }
-                          className="gap-2 rounded-lg bg-[#4D86F7] text-white hover:bg-[#3E78EC]"
+                          className="gap-2 rounded-lg bg-primary text-white hover:bg-primary-dim"
                         >
                           {isOrganizationPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

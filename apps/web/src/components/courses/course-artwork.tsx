@@ -255,7 +255,7 @@ function DefaultArtwork() {
       <defs>
         <linearGradient id="default-art" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#c4d9ff" />
-          <stop offset="100%" stopColor="#4d86f7" />
+          <stop offset="100%" stopColor="#00B8D9" />
         </linearGradient>
       </defs>
       <rect width="320" height="190" fill="url(#default-art)" />

@@ -48,10 +48,10 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
   const visible = showAll ? sorted : sorted.slice(0, 6);
 
   return (
-    <div className="rounded-2xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)] md:p-6">
+    <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card md:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-[#0B1424]">{t("achievements_title")}</h2>
-        <span className="text-sm text-[#718096]">
+        <h2 className="text-base font-semibold text-on-surface">{t("achievements_title")}</h2>
+        <span className="text-sm text-on-surface-variant">
           {t("unlocked_count", { count: unlockedCount, total: totalCount })}
         </span>
       </div>
@@ -59,7 +59,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
       {totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <LottieAnimation animationData={emptyAnimation} className="w-32 h-32 mb-2" />
-          <p className="text-sm text-[#718096]">{t("no_achievements")}</p>
+          <p className="text-sm text-on-surface-variant">{t("no_achievements")}</p>
         </div>
       ) : (
         <>
@@ -70,38 +70,38 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
                 className={cn(
                   "rounded-xl p-3 transition-colors",
                   a.unlocked
-                    ? "border border-[#DEE8F8] bg-white"
-                    : "border border-dashed border-[#D9E5F4] opacity-50"
+                    ? "border border-outline-variant bg-white"
+                    : "border border-dashed border-outline-variant opacity-50"
                 )}
               >
                 <div className="flex items-start gap-3">
                   <span
                     className={cn(
                       "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg",
-                      a.unlocked ? "bg-[#FFF8E6]" : "grayscale bg-[#EEF2F7]"
+                      a.unlocked ? "bg-surface-container" : "grayscale bg-surface-container"
                     )}
                   >
-                    {a.unlocked ? a.icon : <Lock className="h-4 w-4 text-[#8A96A8]" />}
+                    {a.unlocked ? a.icon : <Lock className="h-4 w-4 text-muted-foreground" />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p
                       className={cn(
                         "text-sm font-medium",
-                        a.unlocked ? "text-[#0B1424]" : "text-[#718096]"
+                        a.unlocked ? "text-on-surface" : "text-on-surface-variant"
                       )}
                     >
                       {a.title}
                     </p>
-                    <p className="mt-0.5 text-xs text-[#8A96A8] line-clamp-2">
+                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                       {a.description}
                     </p>
                     {a.unlocked && a.unlocked_at && (
-                      <p className="mt-1 text-[11px] text-[#238B45]">
+                      <p className="mt-1 text-[11px] text-on-surface-variant">
                         {t("unlocked_date", { date: formatDate(a.unlocked_at) })}
                       </p>
                     )}
                     {a.title_reward && a.unlocked && (
-                      <p className="mt-0.5 text-[11px] font-medium text-[#A66A00]">
+                      <p className="mt-0.5 text-[11px] font-medium text-on-surface-variant">
                         {t("title_reward", { title: a.title_reward })}
                       </p>
                     )}

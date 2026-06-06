@@ -315,7 +315,7 @@ export function DuelMatchmakingPage({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.06)] lg:p-6">
+          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
             {isSearching || isMatched ? (
               <div className="min-h-[560px] rounded-[28px] border border-outline-variant/12 bg-surface-container-low p-6">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-center">

@@ -172,7 +172,7 @@ export function PracticePanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-outline-variant/70 bg-surface-container-lowest shadow-[0_18px_46px_-38px_rgba(22,39,91,0.34)]",
+        "rounded-lg border border-outline-variant/70 bg-surface-container-lowest shadow-token-card",
         className
       )}
     >
@@ -225,7 +225,7 @@ export function PracticeTimerDial({
   const markerAngle = progress * 2 * Math.PI;
   const markerX = svgNumber(140 + radius * Math.cos(markerAngle));
   const markerY = svgNumber(140 + radius * Math.sin(markerAngle));
-  const strokeColor = tone === "red" ? "#EF6A6A" : "#4D86F7";
+  const strokeColor = tone === "red" ? "#FF5A5F" : "#00B8D9";
 
   return (
     <div
@@ -522,7 +522,7 @@ export function ActionRail({
   return (
     <div
       className={cn(
-        "relative rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-[0_18px_42px_-34px_rgba(22,39,91,0.45)] backdrop-blur-xl",
+        "relative rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-token-card backdrop-blur-xl",
         className
       )}
     >
@@ -549,7 +549,7 @@ export function PrimaryActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-11 min-w-[210px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-[inset_0_-2px_0_rgba(12,57,146,0.2),0_12px_22px_-16px_rgba(77,134,247,0.85)] hover:bg-primary-dim",
+        "h-11 min-w-[210px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim",
         className
       )}
     >
@@ -576,7 +576,7 @@ export function PauseButton({
       onClick={onClick}
       variant="outline"
       className={cn(
-        "h-11 min-w-[132px] gap-2 rounded-lg border-[#D7E4F8] bg-white text-sm font-semibold text-[#0B1424] shadow-[inset_0_-2px_0_rgba(184,202,232,0.35),0_12px_22px_-18px_rgba(22,39,91,0.45)] hover:bg-[#F7FAFE]",
+        "h-11 min-w-[132px] gap-2 rounded-lg border-outline-variant bg-white text-sm font-semibold text-on-surface shadow-token-card hover:bg-background",
         className
       )}
     >

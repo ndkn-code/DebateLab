@@ -48,14 +48,14 @@ export function MotionInfoPanel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-lg border border-[#D9E6FA] bg-white shadow-[0_16px_42px_-34px_rgba(22,39,91,0.35)]",
+        "relative overflow-hidden rounded-lg border border-outline-variant bg-white shadow-token-card",
         className
       )}
     >
-      <div className="absolute inset-y-0 left-0 w-1 bg-[#4D86F7]" />
+      <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
       <div className="p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-[#EEF4FF] px-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+          <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-primary-container px-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dim">
             <BookOpenText className="h-3.5 w-3.5" />
             {t("session.motion")}
           </span>
@@ -63,76 +63,76 @@ export function MotionInfoPanel({
             className={cn(
               "inline-flex h-7 items-center rounded-md px-2.5 text-[11px] font-bold",
               side === "proposition"
-                ? "bg-[#EAF9EF] text-[#249B55]"
-                : "bg-[#FDECEC] text-[#D95C5C]"
+                ? "bg-surface-container text-success-dim"
+                : "bg-error-container text-on-surface-variant"
             )}
           >
             {sideLabel}
           </span>
-          <span className="inline-flex h-7 items-center rounded-md bg-[#F7FAFE] px-2.5 text-[11px] font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+          <span className="inline-flex h-7 items-center rounded-md bg-background px-2.5 text-[11px] font-semibold text-on-surface-variant ring-1 ring-outline-variant">
             {difficultyLabel}
           </span>
-          <span className="inline-flex h-7 min-w-0 max-w-full items-center truncate rounded-md bg-white px-2.5 text-[11px] font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+          <span className="inline-flex h-7 min-w-0 max-w-full items-center truncate rounded-md bg-white px-2.5 text-[11px] font-semibold text-on-surface-variant ring-1 ring-outline-variant">
             {topic.category}
           </span>
         </div>
 
-        <h1 className="mt-3 text-[1.15rem] font-semibold leading-snug tracking-normal text-[#0B1424] md:text-[1.35rem]">
+        <h1 className="mt-3 text-[1.15rem] font-semibold leading-snug tracking-normal text-on-surface md:text-[1.35rem]">
           {topic.title}
         </h1>
 
-        <div className="mt-3 rounded-md border border-[#DEE8F8] bg-[#F7FAFE] px-3 py-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
-            <Scale className="h-3.5 w-3.5 text-[#4D86F7]" />
+        <div className="mt-3 rounded-md border border-outline-variant bg-background px-3 py-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dim">
+            <Scale className="h-3.5 w-3.5 text-primary" />
             {t("session.info")}
           </div>
-          <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-[#415069]">
+          <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-on-surface-variant">
             {topic.context ||
               t("session.motion_default_context")}
           </p>
         </div>
 
         <div className="mt-3 grid gap-2 md:grid-cols-2">
-          <div className="rounded-md border border-[#DEE8F8] bg-white px-3 py-2.5">
-            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+          <div className="rounded-md border border-outline-variant bg-white px-3 py-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dim">
               {t("session.motion_scope")}
             </div>
-            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-[#415069]">
+            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-on-surface-variant">
               {motionBrief.scope}
             </p>
           </div>
-          <div className="rounded-md border border-[#DEE8F8] bg-white px-3 py-2.5">
-            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+          <div className="rounded-md border border-outline-variant bg-white px-3 py-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dim">
               {t("session.your_burden")}
             </div>
-            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-[#415069]">
+            <p className="mt-1.5 line-clamp-3 text-sm leading-5 text-on-surface-variant">
               {sideBurden}
             </p>
           </div>
         </div>
 
-        <div className="mt-3 rounded-md border border-[#DEE8F8] bg-[#FBFCFF] px-3 py-2.5">
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3E78EC]">
+        <div className="mt-3 rounded-md border border-outline-variant bg-surface-container px-3 py-2.5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dim">
             {t("session.model_clarification")}
           </div>
-          <p className="mt-1.5 text-sm leading-5 text-[#415069]">
+          <p className="mt-1.5 text-sm leading-5 text-on-surface-variant">
             {motionBrief.modelClarification}
           </p>
         </div>
 
         {points.length > 0 ? (
           <div className="mt-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#162033]">
-              <Lightbulb className="h-4 w-4 text-[#4D86F7]" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+              <Lightbulb className="h-4 w-4 text-primary" />
               {t("session.argument_anchors")}
             </div>
             <div className="mt-2 grid gap-2 md:grid-cols-3">
               {points.map((point) => (
                 <div
                   key={point}
-                  className="flex min-h-[44px] gap-2 rounded-md border border-[#DEE8F8] bg-white px-3 py-2 text-sm leading-5 text-[#415069]"
+                  className="flex min-h-[44px] gap-2 rounded-md border border-outline-variant bg-white px-3 py-2 text-sm leading-5 text-on-surface-variant"
                 >
-                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#34C759]" />
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                   <span className="line-clamp-2">{point}</span>
                 </div>
               ))}

@@ -23,7 +23,7 @@ export function LandingNavbar({
   locale,
 }: LandingNavbarProps) {
   return (
-    <header className="relative z-20 bg-[#F7FAFE]">
+    <header className="relative z-20 bg-background">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 md:px-8">
         <a href={`/${locale}`} className="shrink-0">
           <LogoMark size="sm" priority />
@@ -34,7 +34,7 @@ export function LandingNavbar({
             <a
               key={item.key}
               href={item.href}
-              className="text-sm font-semibold text-[#415069] transition-colors hover:text-[#4D86F7]"
+              className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
             >
               {copy.nav[item.key]}
             </a>
@@ -44,7 +44,7 @@ export function LandingNavbar({
         <div className="hidden items-center gap-4 lg:flex">
           <a
             href={landingHref(locale, isLoggedIn ? "/dashboard" : "/auth/login")}
-            className="text-sm font-semibold text-[#162033] transition-colors hover:text-[#4D86F7]"
+            className="text-sm font-semibold text-on-surface transition-colors hover:text-primary"
           >
             {isLoggedIn ? copy.nav.dashboard : copy.nav.login}
           </a>

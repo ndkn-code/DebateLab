@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  ArrowRight,
   BookOpen,
   ChartColumnBig,
   ChevronRight,
@@ -21,14 +20,14 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { LottieAnimation } from "@/components/ui/lottie-animation";
-import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
+import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
+import { DashboardStatsPanel } from "@/components/dashboard/dashboard-stats-panel";
 import { cn } from "@/lib/utils";
 import type {
   DashboardHomeData,
@@ -41,7 +40,6 @@ import {
   type DashboardSkillKey,
   type DashboardSkillMetric,
 } from "@thinkfy/shared/dashboard";
-import fireAnimation from "../../../public/lottie/fire.json";
 
 const TASK_ICONS = {
   "continue-course": BookOpen,
@@ -195,24 +193,24 @@ function getMetricTone(metric: DashboardSkillMetric | null) {
 
   if (metric.value >= 70) {
     return {
-      text: "text-[#1F9D55]",
-      ring: "border-[#34C759]/30 text-[#1F9D55]",
-      soft: "bg-[#EAF8EE]",
+      text: "text-on-surface-variant",
+      ring: "border-outline-variant/30 text-on-surface-variant",
+      soft: "bg-success-container",
     };
   }
 
   if (metric.value >= 60) {
     return {
-      text: "text-[#C77C0C]",
-      ring: "border-[#F5B942]/35 text-[#C77C0C]",
-      soft: "bg-[#FFF5E4]",
+      text: "text-warning",
+      ring: "border-warning/35 text-warning",
+      soft: "bg-warning-container",
     };
   }
 
   return {
-    text: "text-[#D94B4B]",
-    ring: "border-[#EF6A6A]/35 text-[#D94B4B]",
-    soft: "bg-[#FFF0F0]",
+    text: "text-error",
+    ring: "border-error/35 text-error",
+    soft: "bg-error-container",
   };
 }
 
@@ -221,41 +219,9 @@ function formatMetricValue(metric: DashboardSkillMetric | null) {
   return `${Math.round(metric.value)} / 100`;
 }
 
-function UtilityChip({
-  icon,
-  label,
-  value,
-  children,
-}: {
-  icon: ReactNode;
-  label: string;
-  value?: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="inline-flex min-h-12 items-center gap-3 px-3 py-1.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center text-primary">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        {value ? (
-          <p className="text-[1.05rem] font-semibold leading-none text-[#0B1424] dark:text-on-surface">
-            {value}
-          </p>
-        ) : null}
-        {label ? (
-          <p className="mt-1 text-xs leading-none text-[#415069] dark:text-on-surface-variant">{label}</p>
-        ) : null}
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
   const locale = useLocale();
   const t = useTranslations("dashboard.home");
-  const Icon = TASK_ICONS[drill.key];
   const isVietnamese = locale === "vi";
   const targetLabel = drill.skillKey
     ? t("recommended_meta_target_skill", {
@@ -283,7 +249,7 @@ function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
       <h1
         data-testid="dashboard-daily-focus-title"
         className={cn(
-          "mt-4 font-bold text-[#0B1424] dark:text-on-surface",
+          "mt-4 font-bold text-on-surface dark:text-on-surface",
           isVietnamese
             ? "max-w-[11ch] text-[2.65rem] leading-[1.04] sm:max-w-[12ch] sm:text-[3rem] lg:max-w-[420px] lg:text-[3.25rem] xl:text-[3.35rem]"
             : "max-w-[8.8ch] text-[2.85rem] leading-[0.98] sm:text-[3.45rem] lg:max-w-[13ch] lg:text-[3.8rem] xl:text-[4rem]"
@@ -292,23 +258,23 @@ function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
         {getPlanTitle(drill, t)}
       </h1>
 
-      <p className="mt-4 max-w-[28rem] text-base leading-7 text-[#415069] dark:text-on-surface-variant">
+      <p className="mt-4 max-w-[28rem] text-base leading-7 text-on-surface-variant dark:text-on-surface-variant">
         {getPlanDescription(drill, t)}
       </p>
 
       <div className="mt-5 flex w-full max-w-[250px] flex-col gap-2">
-        <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-[#DEE8F8] bg-white/85 px-4 text-sm font-semibold text-[#162033] shadow-[0_12px_34px_-28px_rgba(11,20,36,0.45)] dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
+        <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-outline-variant bg-white/85 px-4 text-sm font-semibold text-on-surface shadow-token-card dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
           <Clock3 className="h-4 w-4 text-primary" />
           {t("recommended_meta_duration", { count: drill.durationMinutes })}
         </span>
         {targetLabel ? (
-          <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-[#DEE8F8] bg-white/85 px-4 text-sm font-semibold text-[#162033] shadow-[0_12px_34px_-28px_rgba(11,20,36,0.45)] dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
+          <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-outline-variant bg-white/85 px-4 text-sm font-semibold text-on-surface shadow-token-card dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
             <Target className="h-4 w-4 text-warning" />
             {targetLabel}
           </span>
         ) : null}
         {scoreLabel ? (
-          <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-[#DEE8F8] bg-white/85 px-4 text-sm font-semibold text-[#162033] shadow-[0_12px_34px_-28px_rgba(11,20,36,0.45)] dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
+          <span className="inline-flex min-h-10 items-center gap-3 rounded-full border border-outline-variant bg-white/85 px-4 text-sm font-semibold text-on-surface shadow-token-card dark:border-outline-variant/70 dark:bg-surface/85 dark:text-on-surface">
             <Star className="h-4 w-4 text-warning" />
             {scoreLabel}
           </span>
@@ -316,10 +282,8 @@ function DailyFocusCopy({ drill }: { drill: DashboardRecommendedDrill }) {
       </div>
 
       <Link href={drill.href} data-testid="dashboard-recommended-cta">
-        <Button className="mt-5 min-h-12 rounded-full bg-primary px-7 text-base font-semibold text-on-primary shadow-[0_18px_34px_-18px_rgba(62,120,236,0.9)] hover:bg-[#3E78EC]">
-          <Icon className="mr-2 h-5 w-5" />
+        <Button className="mt-5 min-h-14 min-w-[236px] rounded-[1.7rem] bg-primary px-10 text-lg font-extrabold text-on-primary">
           {getPlanCtaLabel(drill, t)}
-          <ArrowRight className="ml-3 h-5 w-5" />
         </Button>
       </Link>
     </div>
@@ -332,7 +296,7 @@ function DrillIllustration() {
       data-testid="dashboard-recommended-illustration"
       className="relative mx-auto min-h-[250px] w-full max-w-[660px] overflow-hidden sm:min-h-[320px] lg:min-h-[360px] xl:min-h-[410px]"
     >
-      <div className="absolute left-[8%] right-[5%] top-[3%] h-[78%] rounded-full border border-[#A9C6FB]/38 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.72),rgba(238,244,255,0.34)_58%,rgba(238,244,255,0)_78%)] dark:border-primary/25 dark:bg-[radial-gradient(ellipse_at_center,rgba(120,168,255,0.16),rgba(18,32,51,0.28)_58%,rgba(18,32,51,0)_78%)]" />
+      <div className="absolute left-[8%] right-[5%] top-[3%] h-[78%] rounded-full border border-primary-fixed/38 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.72),rgba(229,248,252,0.34)_58%,rgba(229,248,252,0)_78%)] dark:border-primary/25 dark:bg-[radial-gradient(ellipse_at_center,rgba(0,184,217,0.16),rgba(6,21,26,0.28)_58%,rgba(6,21,26,0)_78%)]" />
       <Image
         src="/images/dashboard/recommended-drill-v2.webp"
         alt=""
@@ -340,7 +304,7 @@ function DrillIllustration() {
         sizes="(max-width: 768px) 92vw, (max-width: 1280px) 38vw, 620px"
         priority
         unoptimized
-        className="relative z-[1] scale-[1.08] object-contain object-center drop-shadow-[0_34px_42px_rgba(77,134,247,0.18)] [filter:saturate(1.03)_contrast(1.01)]"
+        className="relative z-[1] scale-[1.08] object-contain object-center drop-shadow-token-primary [filter:saturate(1.03)_contrast(1.01)]"
       />
     </div>
   );
@@ -374,8 +338,8 @@ function NextMoveRail({ items }: { items: DashboardTodayPlanItem[] }) {
 
           return (
             <Link key={item.id} href={item.href} data-testid="dashboard-next-move-row">
-              <div className="group grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[1.75rem] border border-[#DEE8F8] bg-white/90 px-4 py-2.5 shadow-[0_22px_48px_-34px_rgba(11,20,36,0.35)] transition-all hover:-translate-y-0.5 hover:border-[#A9C6FB] hover:shadow-[0_24px_46px_-30px_rgba(62,120,236,0.35)] dark:border-outline-variant/70 dark:bg-surface/90 dark:hover:border-primary/40">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF] text-primary dark:bg-primary-container">
+              <div className="group grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[1.75rem] border border-outline-variant bg-white/90 px-4 py-2.5 shadow-token-card transition-all hover:-translate-y-0.5 hover:border-primary-fixed hover:shadow-token-card dark:border-outline-variant/70 dark:bg-surface/90 dark:hover:border-primary/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary dark:bg-primary-container">
                   <Icon className="h-5 w-5" />
                 </div>
 
@@ -383,10 +347,10 @@ function NextMoveRail({ items }: { items: DashboardTodayPlanItem[] }) {
                   <p className="line-clamp-1 text-xs font-semibold text-primary">
                     {getPlanReason(item, t)}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-[0.95rem] font-semibold text-[#0B1424] dark:text-on-surface">
+                  <p className="mt-1 line-clamp-1 text-[0.95rem] font-semibold text-on-surface dark:text-on-surface">
                     {getPlanTitle(item, t)}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-xs text-[#415069] dark:text-on-surface-variant">
+                  <p className="mt-1 line-clamp-1 text-xs text-on-surface-variant dark:text-on-surface-variant">
                     {t("next_move_meta", {
                       duration: item.durationMinutes,
                       context,
@@ -394,7 +358,7 @@ function NextMoveRail({ items }: { items: DashboardTodayPlanItem[] }) {
                   </p>
                 </div>
 
-                <ChevronRight className="h-5 w-5 shrink-0 text-[#415069] transition-transform group-hover:translate-x-0.5 group-hover:text-primary dark:text-on-surface-variant" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary dark:text-on-surface-variant" />
               </div>
             </Link>
           );
@@ -415,7 +379,7 @@ function WeeklyGoalRing({ goal }: { goal: DashboardGoalSummary }) {
   return (
     <div className="flex items-center gap-5 lg:flex-col lg:items-center lg:gap-5">
       <div
-        className="relative flex h-[132px] w-[132px] shrink-0 items-center justify-center rounded-full bg-white shadow-[0_30px_62px_-40px_rgba(11,20,36,0.42)] dark:bg-surface lg:h-[170px] lg:w-[170px]"
+        className="relative flex h-[132px] w-[132px] shrink-0 items-center justify-center rounded-full bg-white shadow-token-card dark:bg-surface lg:h-[170px] lg:w-[170px]"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={goal.goalMinutes}
@@ -432,7 +396,7 @@ function WeeklyGoalRing({ goal }: { goal: DashboardGoalSummary }) {
             cy="85"
             r={radius}
             fill="none"
-            stroke="#EEF3FB"
+            stroke="#E5F8FC"
             strokeWidth="14"
           />
           <circle
@@ -440,7 +404,7 @@ function WeeklyGoalRing({ goal }: { goal: DashboardGoalSummary }) {
             cy="85"
             r={radius}
             fill="none"
-            stroke="#4D86F7"
+            stroke="#00B8D9"
             strokeDasharray={circumference}
             strokeDashoffset={progressOffset}
             strokeLinecap="round"
@@ -450,7 +414,7 @@ function WeeklyGoalRing({ goal }: { goal: DashboardGoalSummary }) {
 
         <div className="relative z-10 flex h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-white text-center dark:bg-surface-container-lowest lg:h-[112px] lg:w-[112px]">
           <Target className="mb-1.5 h-6 w-6 text-primary lg:h-7 lg:w-7" />
-          <p className="text-sm font-semibold text-[#0B1424] dark:text-on-surface lg:text-base">
+          <p className="text-sm font-semibold text-on-surface dark:text-on-surface lg:text-base">
             {t("weekly_goal")}
           </p>
           <p className="mt-1 whitespace-nowrap text-xs font-semibold text-primary lg:text-sm">
@@ -462,7 +426,7 @@ function WeeklyGoalRing({ goal }: { goal: DashboardGoalSummary }) {
         </div>
       </div>
 
-      <p className="max-w-[13rem] text-sm leading-6 text-[#415069] dark:text-on-surface-variant lg:hidden lg:text-center lg:text-[1.02rem] lg:leading-8">
+      <p className="max-w-[13rem] text-sm leading-6 text-on-surface-variant dark:text-on-surface-variant lg:hidden lg:text-center lg:text-[1.02rem] lg:leading-8">
         {goal.metGoal
           ? t("weekly_goal_met")
           : t("minutes_remaining", { count: goal.remainingMinutes })}
@@ -502,7 +466,7 @@ function TrainingMap({
         </h2>
       </div>
 
-      <div className="rounded-[2rem] border border-[#DCE8FA] bg-white/[0.56] px-4 py-4 shadow-[0_28px_90px_-66px_rgba(11,20,36,0.35)] backdrop-blur dark:border-outline-variant/70 dark:bg-surface/55 sm:px-5 lg:hidden">
+      <div className="rounded-[2rem] border border-outline-variant bg-white/[0.56] px-4 py-4 shadow-token-panel backdrop-blur dark:border-outline-variant/70 dark:bg-surface/55 sm:px-5 lg:hidden">
         <WeeklyGoalRing goal={weeklyGoal} />
 
         <div className="relative mt-7">
@@ -515,7 +479,7 @@ function TrainingMap({
             <path
               d="M0 42 C120 18 205 18 300 41 S500 61 610 40 S790 21 930 42"
               fill="none"
-              stroke="#A9C6FB"
+              stroke="#8BE8F7"
               strokeDasharray="6 8"
               strokeLinecap="round"
               strokeWidth="4"
@@ -523,14 +487,14 @@ function TrainingMap({
             <path
               d="M930 42 L990 42"
               fill="none"
-              stroke="#A9C6FB"
+              stroke="#8BE8F7"
               strokeLinecap="round"
               strokeWidth="4"
             />
             <path
               d="M985 27 L1000 42 L985 57"
               fill="none"
-              stroke="#A9C6FB"
+              stroke="#8BE8F7"
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="4"
@@ -548,13 +512,13 @@ function TrainingMap({
                 <div
                   key={key}
                   data-testid={`dashboard-mobile-training-map-${key}`}
-                  className="relative z-10 flex min-w-0 items-center gap-3 rounded-[1.25rem] border border-[#DEE8F8] bg-white/[0.88] p-3 shadow-[0_14px_34px_-30px_rgba(11,20,36,0.38)] dark:border-outline-variant/70 dark:bg-surface/88"
+                  className="relative z-10 flex min-w-0 items-center gap-3 rounded-[1.25rem] border border-outline-variant bg-white/[0.88] p-3 shadow-token-card dark:border-outline-variant/70 dark:bg-surface/88"
                 >
                   <div
                     className={cn(
-                      "flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-white shadow-[0_18px_36px_-30px_rgba(11,20,36,0.42)] dark:bg-surface-container-lowest",
+                      "flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-white shadow-token-card dark:bg-surface-container-lowest",
                       highlighted
-                        ? "border-primary bg-primary text-on-primary shadow-[0_0_0_9px_rgba(77,134,247,0.19),0_18px_28px_-18px_rgba(62,120,236,0.85)]"
+                        ? "border-primary bg-primary text-on-primary shadow-token-primary"
                         : tone.ring
                     )}
                   >
@@ -562,7 +526,7 @@ function TrainingMap({
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+                    <p className="truncate text-sm font-semibold text-on-surface dark:text-on-surface">
                       {t(`skill_labels.${key}`)}
                     </p>
                     <p
@@ -596,7 +560,7 @@ function TrainingMap({
           <path
             d="M138 86 C220 62 258 62 310 86 S395 111 460 86 S545 62 610 86 S690 108 760 86 S858 70 934 86"
             fill="none"
-            stroke="#9EC0FB"
+            stroke="#8BE8F7"
             strokeDasharray="5 9"
             strokeLinecap="round"
             strokeWidth="4"
@@ -604,14 +568,14 @@ function TrainingMap({
           <path
             d="M934 86 L984 86 M970 71 L990 86 L970 101"
             fill="none"
-            stroke="#9EC0FB"
+            stroke="#8BE8F7"
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="4"
           />
-          <circle cx="238" cy="86" r="5" fill="#4D86F7" />
-          <circle cx="542" cy="86" r="5" fill="#4D86F7" />
-          <circle cx="836" cy="86" r="5" fill="#4D86F7" />
+          <circle cx="238" cy="86" r="5" fill="#00B8D9" />
+          <circle cx="542" cy="86" r="5" fill="#00B8D9" />
+          <circle cx="836" cy="86" r="5" fill="#00B8D9" />
         </svg>
 
         <div className="absolute left-0 top-0">
@@ -632,23 +596,23 @@ function TrainingMap({
               style={{ left: TRAINING_NODE_POSITIONS[key] }}
             >
               {highlighted ? (
-                <span className="absolute -top-[52px] whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-[0_14px_24px_-18px_rgba(62,120,236,0.9)] after:absolute after:left-1/2 after:top-full after:h-0 after:w-0 after:-translate-x-1/2 after:border-x-[6px] after:border-t-[7px] after:border-x-transparent after:border-t-primary">
+                <span className="absolute -top-[52px] whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-token-card after:absolute after:left-1/2 after:top-full after:h-0 after:w-0 after:-translate-x-1/2 after:border-x-[6px] after:border-t-[7px] after:border-x-transparent after:border-t-primary">
                   {t("next_checkpoint")}
                 </span>
               ) : null}
 
               <div
                 className={cn(
-                  "flex h-[76px] w-[76px] items-center justify-center rounded-full border bg-white shadow-[0_18px_38px_-30px_rgba(11,20,36,0.5)] dark:bg-surface-container-lowest",
+                  "flex h-[76px] w-[76px] items-center justify-center rounded-full border bg-white shadow-token-card dark:bg-surface-container-lowest",
                   highlighted
-                    ? "border-primary bg-primary text-on-primary shadow-[0_0_0_15px_rgba(77,134,247,0.19),0_0_0_29px_rgba(77,134,247,0.09),0_24px_34px_-22px_rgba(62,120,236,0.85)]"
+                    ? "border-primary bg-primary text-on-primary shadow-token-primary"
                     : tone.ring
                 )}
               >
                 <Icon className="h-7 w-7" />
               </div>
 
-              <p className="mt-3 truncate text-[1.05rem] font-semibold text-[#0B1424] dark:text-on-surface">
+              <p className="mt-3 truncate text-[1.05rem] font-semibold text-on-surface dark:text-on-surface">
                 {t(`skill_labels.${key}`)}
               </p>
               <p
@@ -675,28 +639,44 @@ function MobileSupportCards({
   inviteReward: number;
 }) {
   const t = useTranslations("dashboard.home");
+  const [referralOpen, setReferralOpen] = useState(false);
 
   return (
     <div className="grid gap-4 lg:hidden">
-      <div className="rounded-[1.5rem] border border-[#DEE8F8] bg-white/85 p-5 shadow-[0_24px_70px_-56px_rgba(22,39,91,0.42)] dark:border-outline-variant/70 dark:bg-surface/85">
+      <button
+        type="button"
+        disabled={!referralCode}
+        data-testid="dashboard-mobile-referral-card"
+        onClick={() => {
+          if (referralCode) setReferralOpen(true);
+        }}
+        className="rounded-[1.5rem] border border-outline-variant bg-white/85 p-5 text-left shadow-token-panel transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-token-card focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-outline-variant/70 dark:bg-surface/85"
+      >
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Sparkles className="h-5 w-5" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-[#0B1424] dark:text-on-surface">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-on-surface dark:text-on-surface">
               {t("invite_friend_title")}
             </p>
             <p className="text-sm text-primary">
               {t("invite_friend_reward", { count: inviteReward })}
             </p>
           </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
         </div>
 
-        <div className="mt-4 rounded-xl border border-dashed border-[#DEE8F8] bg-[#F7FAFE] px-3 py-2 text-sm text-[#415069] dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
+        <div className="mt-4 rounded-xl border border-dashed border-outline-variant bg-background px-3 py-2 text-sm text-on-surface-variant dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface-variant">
           {referralCode ?? t("referral_code_pending")}
         </div>
-      </div>
+      </button>
+      <ReferralCreditsDialog
+        open={referralOpen}
+        onOpenChange={setReferralOpen}
+        referralCode={referralCode}
+        inviteReward={inviteReward}
+      />
     </div>
   );
 }
@@ -732,8 +712,6 @@ export function DashboardContent({
   useDashboardScrollLock();
 
   const t = useTranslations("dashboard.home");
-  const topBar = data.topBar;
-  const currentXpInLevel = topBar.xpCurrent % topBar.xpGoal;
   const checkpoint =
     data.recommendedDrill.skillKey ?? data.skillSnapshot.weakestSkill;
 
@@ -743,46 +721,17 @@ export function DashboardContent({
         <ProductPageShell className="overflow-x-hidden">
           <PageContainer size="wide" className="flex flex-col py-4 pb-32 lg:py-5 lg:pb-36">
           <div className="flex flex-wrap items-center justify-between gap-3 text-on-surface">
-            <p className="min-w-0 text-[1.05rem] font-medium text-[#0B1424] dark:text-on-surface sm:text-[1.15rem]">
+            <p className="min-w-0 text-[1.05rem] font-medium text-on-surface dark:text-on-surface sm:text-[1.15rem]">
               {t(getTimeGreetingKey())}, {displayName}{" "}
               <span aria-hidden="true">👋</span>
             </p>
 
-            <div className="flex flex-wrap items-center justify-end gap-1">
-              <UtilityChip
-                icon={
-                  <LottieAnimation
-                    animationData={fireAnimation}
-                    className="h-7 w-7"
-                    loop
-                  />
-                }
-                label={t("topbar_streak")}
-                value={topBar.currentStreak}
-              />
-              <div className="hidden h-10 w-px bg-[#DEE8F8] dark:bg-outline-variant sm:block" />
-              <UtilityChip
-                icon={<Sparkles className="h-5 w-5 text-[#F5B942]" />}
-                label={t("topbar_orbs")}
-                value={topBar.orbBalance.toLocaleString()}
-              />
-              <div className="hidden h-10 w-px bg-[#DEE8F8] dark:bg-outline-variant sm:block" />
-              <UtilityChip
-                icon={<Star className="h-5 w-5 text-primary" />}
-                label=""
-                value={t("level", { level: topBar.level })}
-              >
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-[#415069] dark:text-on-surface-variant">
-                    {currentXpInLevel} / {topBar.xpGoal} XP
-                  </span>
-                  <Progress
-                    value={(currentXpInLevel / topBar.xpGoal) * 100}
-                    className="h-1.5 w-20 bg-[#E8EEF8] dark:bg-outline-variant"
-                  />
-                </div>
-              </UtilityChip>
-            </div>
+            <DashboardStatsPanel
+              topBar={data.topBar}
+              weeklyStats={data.hero.weeklyStats}
+              referralCode={data.sidebarCards.referralCode}
+              inviteReward={data.sidebarCards.inviteOrbs}
+            />
           </div>
 
           {showWelcome ? (

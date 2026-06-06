@@ -351,6 +351,8 @@ export function TodayScreen() {
 }
 
 function DashboardLoadingScreen() {
+  const colors = useThinkfyColors();
+
   return (
     <Screen
       eyebrow="Today"
@@ -360,12 +362,12 @@ function DashboardLoadingScreen() {
     >
       <GlassSurface>
         <View style={styles.heroHeader}>
-          <View style={styles.loadingMetric} />
-          <View style={styles.loadingIcon} />
+          <View style={[styles.loadingMetric, { backgroundColor: `${colors.primary}2E` }]} />
+          <View style={[styles.loadingIcon, { backgroundColor: `${colors.secondary}29` }]} />
         </View>
-        <View style={styles.loadingLineLarge} />
-        <View style={styles.loadingLine} />
-        <View style={styles.loadingLineShort} />
+        <View style={[styles.loadingLineLarge, { backgroundColor: `${colors.foreground}1A` }]} />
+        <View style={[styles.loadingLine, { backgroundColor: `${colors.foreground}14` }]} />
+        <View style={[styles.loadingLineShort, { backgroundColor: `${colors.foreground}14` }]} />
       </GlassSurface>
       <View style={styles.grid}>
         <Surface style={styles.actionCard} tone="soft" />
@@ -618,31 +620,26 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   loadingMetric: {
-    backgroundColor: "rgba(77,134,247,0.18)",
     borderRadius: 8,
     height: 64,
     width: 86,
   },
   loadingIcon: {
-    backgroundColor: "rgba(52,199,89,0.16)",
     borderRadius: 8,
     height: 52,
     width: 52,
   },
   loadingLineLarge: {
-    backgroundColor: "rgba(22,32,51,0.1)",
     borderRadius: 8,
     height: 26,
     width: "78%",
   },
   loadingLine: {
-    backgroundColor: "rgba(22,32,51,0.08)",
     borderRadius: 8,
     height: 18,
     width: "100%",
   },
   loadingLineShort: {
-    backgroundColor: "rgba(22,32,51,0.08)",
     borderRadius: 8,
     height: 18,
     width: "56%",

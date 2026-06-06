@@ -70,16 +70,16 @@ export function TitleSelectModal({
             className={cn(
               "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-colors",
               currentTitle === null
-                ? "border-[#A9C6FB] bg-[#F1F6FD] font-medium text-[#3E78EC]"
-                : "border-[#DEE8F8] text-[#415069] hover:border-[#D9E5F4] hover:bg-[#F7FAFE]"
+                ? "border-primary-fixed bg-surface-container font-medium text-primary-dim"
+                : "border-outline-variant text-on-surface-variant hover:border-outline-variant hover:bg-background"
             )}
           >
-            <span className="italic text-[#8A96A8]">No title</span>
+            <span className="italic text-muted-foreground">No title</span>
             {currentTitle === null && <Check className="h-4 w-4 shrink-0" />}
           </button>
 
           {unlockedTitles.length === 0 ? (
-            <p className="py-4 text-center text-sm text-[#8A96A8]">
+            <p className="py-4 text-center text-sm text-muted-foreground">
               You haven&apos;t unlocked any titles yet. Keep debating!
             </p>
           ) : (
@@ -91,8 +91,8 @@ export function TitleSelectModal({
                 className={cn(
                   "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-colors",
                   currentTitle === title
-                    ? "border-[#A9C6FB] bg-[#F1F6FD] font-medium text-[#3E78EC]"
-                    : "border-[#DEE8F8] text-[#415069] hover:border-[#D9E5F4] hover:bg-[#F7FAFE]"
+                    ? "border-primary-fixed bg-surface-container font-medium text-primary-dim"
+                    : "border-outline-variant text-on-surface-variant hover:border-outline-variant hover:bg-background"
                 )}
               >
                 <span>&ldquo;{title}&rdquo;</span>

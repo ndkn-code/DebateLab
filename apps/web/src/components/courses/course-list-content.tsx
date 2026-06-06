@@ -81,10 +81,10 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
   });
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-[#dee8f8] bg-white shadow-[0_24px_50px_-42px_rgba(31,55,113,0.26)]">
+    <section className="overflow-hidden rounded-[20px] border border-outline-variant bg-white shadow-token-card">
       <div className="grid gap-0 2xl:grid-cols-[248px_minmax(0,1fr)_360px]">
         <div className="p-3">
-          <div className="overflow-hidden rounded-[15px] border border-[#e3ebfa]">
+          <div className="overflow-hidden rounded-[15px] border border-outline-variant">
             <div className="aspect-[1.13/1] xl:aspect-[1.16/1]">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
@@ -96,59 +96,59 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
             className={cn(
               "inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
               course.status === "in-progress"
-                ? "bg-[#edf4ff] text-[#4d86f7]"
+                ? "bg-primary-container text-primary"
                 : course.status === "completed"
-                  ? "bg-[#eaf9ee] text-[#2ca655]"
-                  : "bg-[#f3f6fb] text-[#7f8ea6]"
+                  ? "bg-surface-container text-on-surface-variant"
+                  : "bg-surface-container text-on-surface-variant"
             )}
           >
             {statusLabel}
           </div>
 
-          <h2 className="mt-4 text-[1.75rem] font-semibold text-[#14244a] sm:text-[2rem]">
+          <h2 className="mt-4 text-[1.75rem] font-semibold text-on-surface-variant sm:text-[2rem]">
             {course.title}
           </h2>
-          <p className="mt-3 max-w-[520px] text-[15px] leading-8 text-[#66758d]">
+          <p className="mt-3 max-w-[520px] text-[15px] leading-8 text-on-surface-variant">
             {course.description || t("description_fallback")}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-4 xl:flex-nowrap">
-            <span className="shrink-0 text-[15px] font-semibold text-[#4d86f7]">
+            <span className="shrink-0 text-[15px] font-semibold text-primary">
               {course.progressPercent}% {t("hero.complete")}
             </span>
             <Progress
               value={course.progressPercent}
-              className="h-2.5 w-full max-w-[190px] min-w-[140px] bg-[#e7eefb] [&>div]:bg-[#4d86f7]"
+              className="h-2.5 w-full max-w-[190px] min-w-[140px] bg-surface-container [&>div]:bg-primary"
             />
-            <span className="shrink-0 text-[15px] text-[#6b7b95]">
+            <span className="shrink-0 text-[15px] text-on-surface-variant">
               {course.completedLessonCount} / {course.lessonCount} {t("modules_label")}
             </span>
           </div>
         </div>
 
-        <div className="border-t border-[#edf3fd] px-7 py-6 2xl:border-l 2xl:border-t-0 2xl:py-7">
+        <div className="border-t border-outline-variant px-7 py-6 2xl:border-l 2xl:border-t-0 2xl:py-7">
           <div className="flex h-full flex-col justify-between gap-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f3f7ff] text-[#4d86f7]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-container text-primary">
                 <BookOpenCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[1.45rem] font-semibold tracking-[-0.03em] text-[#15254a]">
+                <p className="text-[1.45rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
                   {t("hero.next_up")}
                 </p>
                 {course.nextLesson ? (
                   <>
-                    <p className="mt-2 text-[15px] leading-7 text-[#4e6182]">
+                    <p className="mt-2 text-[15px] leading-7 text-on-surface-variant">
                       {course.nextLesson.title}
                     </p>
-                    <p className="mt-1 text-[15px] text-[#7a8aa3]">
+                    <p className="mt-1 text-[15px] text-on-surface-variant">
                       {t("estimated_minutes", {
                         minutes: course.nextLesson.durationMinutes,
                       })}
                     </p>
                   </>
                 ) : (
-                  <p className="mt-2 text-[15px] leading-7 text-[#66758d]">
+                  <p className="mt-2 text-[15px] leading-7 text-on-surface-variant">
                     {t("hero.completed_description")}
                   </p>
                 )}
@@ -176,7 +176,7 @@ function HeroActionLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-[#4d86f7] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_18px_34px_-24px_rgba(77,134,247,0.65)] transition-colors hover:bg-[#3f78eb]",
+        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-[15px] font-semibold text-white shadow-token-primary transition-colors hover:bg-surface-container-high",
         disabled && "pointer-events-none opacity-80"
       )}
     >
@@ -194,15 +194,15 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
   return (
     <section className="mt-8">
       <div className="mb-4 flex items-center gap-2.5">
-        <Sparkles className="h-4 w-4 text-[#4d86f7]" />
-        <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-[#15254a]">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
           {t("recommendation.title")}
         </h2>
       </div>
 
-      <div className="overflow-hidden rounded-[20px] border border-[#dee8f8] bg-white shadow-[0_24px_50px_-42px_rgba(31,55,113,0.24)]">
+      <div className="overflow-hidden rounded-[20px] border border-outline-variant bg-white shadow-token-card">
         <div className="grid gap-4 p-3 lg:grid-cols-[118px_minmax(0,1fr)_320px_156px] lg:items-center lg:gap-5 lg:p-4">
-          <div className="overflow-hidden rounded-[14px] border border-[#e3ebfa]">
+          <div className="overflow-hidden rounded-[14px] border border-outline-variant">
             <div className="aspect-square">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
@@ -210,35 +210,35 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h3 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-[#14244a]">
+              <h3 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
                 {course.title}
               </h3>
-              <span className="rounded-full bg-[#edf4ff] px-3 py-1 text-[12px] font-medium text-[#4d86f7]">
+              <span className="rounded-full bg-primary-container px-3 py-1 text-[12px] font-medium text-primary">
                 {getDifficultyLabel(course.difficulty, tp)}
               </span>
             </div>
 
-            <p className="mt-2 max-w-[540px] text-[15px] leading-8 text-[#66758d]">
+            <p className="mt-2 max-w-[540px] text-[15px] leading-8 text-on-surface-variant">
               {course.description || t("description_fallback")}
             </p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-6 text-[14px] text-[#718096]">
+            <div className="mt-4 flex flex-wrap items-center gap-6 text-[14px] text-on-surface-variant">
               <span>{t("modules_count", { count: course.moduleCount })}</span>
               <span>{getDifficultyLabel(course.difficulty, tp)}</span>
             </div>
           </div>
 
-          <div className="rounded-[16px] bg-[#f4f8ff] px-5 py-4">
-            <p className="text-[15px] font-medium text-[#495d80]">
+          <div className="rounded-[16px] bg-surface-container px-5 py-4">
+            <p className="text-[15px] font-medium text-on-surface-variant">
               {t("recommendation.why_course")}
             </p>
             <div className="mt-3 space-y-3">
               {reasons.map((reason) => (
                 <div
                   key={reason}
-                  className="flex items-start gap-2.5 text-[15px] leading-7 text-[#5f708b]"
+                  className="flex items-start gap-2.5 text-[15px] leading-7 text-on-surface-variant"
                 >
-                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#34c759]" />
+                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
                   <span>{reason}</span>
                 </div>
               ))}
@@ -249,7 +249,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Link
               href={course.isMock ? "#" : course.ctaHref}
               className={cn(
-                "inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-[#9fc0ff] bg-white px-6 py-3 text-[15px] font-semibold text-[#3c74e3] transition-colors hover:bg-[#f7fbff]",
+                "inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white px-6 py-3 text-[15px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container",
                 course.isMock && "pointer-events-none"
               )}
             >
@@ -311,7 +311,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
     .slice(0, 4);
 
   return (
-    <PageTransition className="min-h-full bg-[#f8fbff] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+    <PageTransition className="min-h-full bg-surface-container px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto max-w-6xl">
         <ProductPageHeader
           title={t("page_headline")}
@@ -336,8 +336,8 @@ export function CourseListContent({ library }: CourseListContentProps) {
                   className={cn(
                     "inline-flex min-h-[42px] items-center gap-2 rounded-[14px] border px-5 py-2.5 text-[15px] font-medium transition-colors",
                     category === filter.value
-                      ? "border-[#4d86f7] bg-[#4d86f7] text-white shadow-[0_14px_26px_-18px_rgba(77,134,247,0.55)]"
-                      : "border-[#dbe5f5] bg-white text-[#233a64] hover:bg-[#f7fbff]"
+                      ? "border-primary bg-primary text-white shadow-token-primary"
+                      : "border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -347,7 +347,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
             })}
           </div>
 
-          <h2 className="mb-4 text-[1.6rem] font-semibold tracking-[-0.03em] text-[#15254a]">
+          <h2 className="mb-4 text-[1.6rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
             {t("status.in_progress")}
           </h2>
 
@@ -370,7 +370,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-[18px] border border-dashed border-[#dbe5f5] bg-white px-6 py-10 text-center text-[#66758d]">
+            <div className="rounded-[18px] border border-dashed border-outline-variant bg-white px-6 py-10 text-center text-on-surface-variant">
               {t("empty_subtitle")}
             </div>
           )}

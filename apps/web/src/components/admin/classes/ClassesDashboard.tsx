@@ -69,7 +69,7 @@ function KpiCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_24px_60px_-48px_rgba(22,39,91,0.42)]">
+    <div className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-token-panel">
       <div className="flex items-center gap-3">
         <div className={cn("flex h-11 w-11 items-center justify-center rounded-full", tone)}>
           {icon}
@@ -283,8 +283,8 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             </div>
           )}
           <StaggeredContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming Meetings" value={schedulesData.kpis.upcomingMeetings} helper="In selected range" tone="bg-blue-50 text-primary" />
-            <KpiCard icon={<Repeat2 className="h-5 w-5" />} label="Active Schedules" value={schedulesData.kpis.activeSchedules} helper="Recurring patterns" tone="bg-violet-50 text-violet-600" />
+            <KpiCard icon={<CalendarDays className="h-5 w-5" />} label="Upcoming Meetings" value={schedulesData.kpis.upcomingMeetings} helper="In selected range" tone="bg-primary-container text-primary-dim" />
+            <KpiCard icon={<Repeat2 className="h-5 w-5" />} label="Active Schedules" value={schedulesData.kpis.activeSchedules} helper="Recurring patterns" tone="bg-info-container text-info" />
             <KpiCard icon={<Users className="h-5 w-5" />} label="Scheduled Classes" value={schedulesData.kpis.scheduledClasses} helper="With at least one meeting" tone="bg-emerald-50 text-emerald-600" />
             <KpiCard icon={<Clock3 className="h-5 w-5" />} label="Weekly Hours" value={schedulesData.kpis.weeklyHours} helper="Estimated class time" tone="bg-amber-50 text-amber-600" />
           </StaggeredContainer>
@@ -300,9 +300,9 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
       ) : (
         <>
       <StaggeredContainer className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalClasses")} value={data.kpis.totalClasses} helper={t("kpis.active", { count: data.kpis.activeClasses })} tone="bg-blue-50 text-primary" />
+        <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalClasses")} value={data.kpis.totalClasses} helper={t("kpis.active", { count: data.kpis.activeClasses })} tone="bg-primary-container text-primary-dim" />
         <KpiCard icon={<Users className="h-5 w-5" />} label={t("kpis.totalStudents")} value={data.kpis.totalStudents} helper={t("kpis.acrossAll")} tone="bg-emerald-50 text-emerald-600" />
-        <KpiCard icon={<GraduationCap className="h-5 w-5" />} label={t("kpis.assignedCourses")} value={data.kpis.assignedCourses} helper={t("kpis.acrossAll")} tone="bg-violet-50 text-violet-600" />
+        <KpiCard icon={<GraduationCap className="h-5 w-5" />} label={t("kpis.assignedCourses")} value={data.kpis.assignedCourses} helper={t("kpis.acrossAll")} tone="bg-info-container text-info" />
         <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label={t("kpis.attendance")} value={data.kpis.attendanceRate30d == null ? "-" : `${data.kpis.attendanceRate30d}%`} helper={t("kpis.averageRate")} tone="bg-emerald-50 text-emerald-600" />
         <KpiCard icon={<CalendarDays className="h-5 w-5" />} label={t("kpis.sessions")} value={data.kpis.sessions30d} helper={t("kpis.acrossAll")} tone="bg-amber-50 text-amber-600" />
       </StaggeredContainer>

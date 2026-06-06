@@ -24,11 +24,11 @@ interface CoachInsightsRailProps {
 }
 
 const SKILL_COLORS = {
-  clarity: "bg-[#4D86F7]",
-  logic: "bg-[#A9C6FB]",
-  rebuttal: "bg-[#F5B942]",
-  evidence: "bg-[#34C759]",
-  delivery: "bg-[#7B61FF]",
+  clarity: "bg-primary",
+  logic: "bg-primary-fixed",
+  rebuttal: "bg-warning",
+  evidence: "bg-success",
+  delivery: "bg-surface-container-high",
 } as const;
 
 export function CoachBrief({
@@ -45,7 +45,7 @@ export function CoachBrief({
     key ? t(`coach.skill_names.${key}`) : t("coach.not_enough_data");
 
   return (
-    <div className="rounded-[28px] border border-outline-variant/15 bg-surface px-5 py-5 shadow-[0_18px_40px_rgba(11,20,66,0.04)] sm:px-6 sm:py-6">
+    <div className="rounded-[28px] border border-outline-variant/15 bg-surface px-5 py-5 shadow-token-card sm:px-6 sm:py-6">
       <div className="max-w-3xl">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           <Sparkles className="h-3.5 w-3.5" />
@@ -181,7 +181,7 @@ export function CoachInsightsRail({
                   {Math.round(metric.value)} /100
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-[#DEE8F8]">
+              <div className="h-2 rounded-full bg-surface-container-high">
                 <div
                   className={cn(
                     "h-full rounded-full",

@@ -16,7 +16,7 @@ const TYPE_ICONS: Record<ActivityType, typeof BookOpen> = {
 const PHASE_COLORS: Record<ActivityPhase, string> = {
   learn: "bg-green-100 text-green-700",
   practice: "bg-amber-100 text-amber-700",
-  apply: "bg-blue-100 text-blue-700",
+  apply: "bg-info-container text-info",
 };
 
 interface Props {

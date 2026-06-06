@@ -187,7 +187,7 @@ export function FeedbackSections({
       <FeedbackList
         title={isDebate ? "Stronger Rebuilds" : "Suggested Stronger Arguments"}
         icon={Lightbulb}
-        accentColor="text-blue-400"
+        accentColor="text-info"
         items={strongerRebuilds}
         defaultOpen={false}
       />

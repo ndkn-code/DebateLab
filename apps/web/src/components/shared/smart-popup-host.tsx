@@ -96,7 +96,7 @@ export function SmartPopupFrame({
         showCloseButton={false}
         data-smart-popup-frame
         className={cn(
-          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-[#D6E3FA] bg-white p-0 text-[#172554] shadow-[0_32px_90px_-52px_rgba(11,20,36,0.75)] sm:w-[600px] sm:max-w-[600px]",
+          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-outline-variant bg-white p-0 text-on-surface-variant shadow-token-card sm:w-[600px] sm:max-w-[600px]",
           placement === "top" &&
             "top-4 translate-y-0 sm:top-[7vh] sm:max-h-[calc(100dvh-14vh)]"
         )}
@@ -105,7 +105,7 @@ export function SmartPopupFrame({
           type="button"
           data-smart-popup-close
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-[#DEE8F8] bg-white/95 text-[#64748B] shadow-[0_12px_24px_-18px_rgba(11,20,36,0.75)] transition hover:bg-[#F1F6FD] hover:text-[#1D4ED8]"
+          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-white/95 text-on-surface-variant shadow-token-card transition hover:bg-surface-container hover:text-on-surface-variant"
         >
           <X className="h-5 w-5" />
           <span className="sr-only">{closeLabel}</span>
@@ -127,21 +127,21 @@ export function CelebrationCluster({ tone = "default" }: { tone?: "default" | "r
   const isReward = tone === "reward";
   return (
     <div className="relative mx-auto mb-4 h-[92px] w-[230px] sm:mb-5">
-      <span className="absolute left-7 top-10 flex h-8 w-8 -rotate-12 items-center justify-center text-[#F5B942] drop-shadow-[0_8px_12px_rgba(245,185,66,0.25)]">
+      <span className="absolute left-7 top-10 flex h-8 w-8 -rotate-12 items-center justify-center text-warning drop-shadow-token-card">
         <Star className="h-8 w-8 fill-current" />
       </span>
-      <span className="absolute left-[88px] top-5 h-2.5 w-2.5 rounded-full bg-[#4D86F7]/80 shadow-[0_0_0_6px_rgba(77,134,247,0.10)]" />
-      <span className="absolute right-[92px] top-2 h-2 w-2 rounded-full bg-[#A9C6FB]" />
-      <span className="absolute right-7 top-9 flex h-8 w-8 items-center justify-center text-[#4D86F7]">
+      <span className="absolute left-[88px] top-5 h-2.5 w-2.5 rounded-full bg-primary/80 shadow-token-primary" />
+      <span className="absolute right-[92px] top-2 h-2 w-2 rounded-full bg-primary-fixed" />
+      <span className="absolute right-7 top-9 flex h-8 w-8 items-center justify-center text-primary">
         <Star className="h-8 w-8" />
       </span>
-      <span className="absolute left-[48px] top-2 h-2 w-2 rounded-full bg-[#4D86F7]" />
-      <span className="absolute right-[54px] top-0 h-6 w-1.5 rotate-[35deg] rounded-full bg-[#4D86F7]" />
-      <span className="absolute right-[36px] top-5 h-6 w-1.5 rotate-[60deg] rounded-full bg-[#4D86F7]" />
+      <span className="absolute left-[48px] top-2 h-2 w-2 rounded-full bg-primary" />
+      <span className="absolute right-[54px] top-0 h-6 w-1.5 rotate-[35deg] rounded-full bg-primary" />
+      <span className="absolute right-[36px] top-5 h-6 w-1.5 rotate-[60deg] rounded-full bg-primary" />
       <span
         className={cn(
-          "absolute left-1/2 top-8 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-[0_18px_34px_-22px_rgba(16,185,129,0.95)]",
-          isReward ? "bg-[#F5B942]" : "bg-[#34C759]"
+          "absolute left-1/2 top-8 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-token-card",
+          isReward ? "bg-warning" : "bg-success"
         )}
       >
         {isReward ? <Gift className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}
@@ -155,17 +155,17 @@ export function SmartPopupFact({ fact }: { fact: SmartPopupFact }) {
   return (
     <div
       data-smart-popup-fact
-      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-[#F3F7FF] px-4 py-3 text-left shadow-[inset_0_-1px_0_rgba(77,134,247,0.08)]"
+      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-surface-container px-4 py-3 text-left shadow-token-primary"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#BFD4FF] bg-white text-[#4D86F7]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant bg-white text-primary">
         <Icon className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-extrabold text-[#415069]">
+        <span className="block truncate text-sm font-extrabold text-on-surface-variant">
           {fact.label}
         </span>
         {fact.value ? (
-          <span className="mt-0.5 block truncate text-base font-extrabold text-[#0B1424]">
+          <span className="mt-0.5 block truncate text-base font-extrabold text-on-surface">
             {fact.value}
           </span>
         ) : null}
@@ -202,7 +202,7 @@ export function SmartPopupActions({
         disabled={disabled}
         data-smart-popup-primary
         onClick={onPrimary}
-        className="h-14 justify-center gap-3 rounded-[18px] bg-[#4D86F7] text-base font-extrabold text-white shadow-[inset_0_-5px_0_#2F62D8,0_20px_38px_-28px_rgba(29,78,216,0.95)] hover:bg-[#3E78EC] active:translate-y-0.5 active:shadow-[inset_0_-2px_0_#2F62D8,0_14px_28px_-26px_rgba(29,78,216,0.95)]"
+        className="h-14 justify-center gap-3 rounded-[18px] bg-primary text-base font-extrabold text-white shadow-token-card hover:bg-primary-dim active:translate-y-0.5 active:shadow-token-card"
       >
         {primaryLabel}
         {primaryIcon ?? <ArrowRight className="h-5 w-5" />}
@@ -214,7 +214,7 @@ export function SmartPopupActions({
           disabled={disabled}
           data-smart-popup-secondary
           onClick={onSecondary}
-          className="h-12 rounded-[18px] border-[#D6E3FA] bg-white text-sm font-extrabold text-[#4B5B74] hover:bg-[#F5F8FF] hover:text-[#1D4ED8]"
+          className="h-12 rounded-[18px] border-outline-variant bg-white text-sm font-extrabold text-on-surface-variant hover:bg-surface-container hover:text-on-surface-variant"
         >
           {secondaryLabel}
         </Button>
@@ -224,7 +224,7 @@ export function SmartPopupActions({
           disabled={disabled}
           data-smart-popup-suppress
           onClick={onDontShow}
-          className="h-12 rounded-[18px] text-sm font-bold text-[#64748B] hover:bg-[#F5F8FF] hover:text-[#1D4ED8]"
+          className="h-12 rounded-[18px] text-sm font-bold text-on-surface-variant hover:bg-surface-container hover:text-on-surface-variant"
         >
           {dontShowLabel}
         </Button>
@@ -250,12 +250,12 @@ export function FeatureNudgePopup({
     <div className="text-center">
       <CelebrationCluster />
       {popup.eyebrow ? (
-        <p className="text-sm font-extrabold text-[#2F62D8]">{popup.eyebrow}</p>
+        <p className="text-sm font-extrabold text-on-surface-variant">{popup.eyebrow}</p>
       ) : null}
-      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-[#0B1424] sm:text-[2.125rem]">
+      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
         {popup.title}
       </DialogTitle>
-      <DialogDescription className="mx-auto mt-3 max-w-[440px] text-base font-medium leading-7 text-[#52627A]">
+      <DialogDescription className="mx-auto mt-3 max-w-[440px] text-base font-medium leading-7 text-on-surface-variant">
         {popup.body}
       </DialogDescription>
       {popup.facts.length > 0 ? (
@@ -307,12 +307,12 @@ export function SurveyPopup({
       <div className="text-center">
         <CelebrationCluster tone="reward" />
         {popup.eyebrow ? (
-          <p className="text-sm font-extrabold text-[#2F62D8]">{popup.eyebrow}</p>
+          <p className="text-sm font-extrabold text-on-surface-variant">{popup.eyebrow}</p>
         ) : null}
-        <DialogTitle className="mt-2 text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-[#0B1424] sm:text-[2.05rem]">
+        <DialogTitle className="mt-2 text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.05rem]">
           {popup.title}
         </DialogTitle>
-        <DialogDescription className="mx-auto mt-3 max-w-[430px] text-base font-medium leading-7 text-[#52627A]">
+        <DialogDescription className="mx-auto mt-3 max-w-[430px] text-base font-medium leading-7 text-on-surface-variant">
           {popup.body}
         </DialogDescription>
       </div>
@@ -321,12 +321,12 @@ export function SurveyPopup({
         {survey.questions.map((question, index) => (
           <div key={question.id} className="space-y-2">
             <div>
-              <p className="text-sm font-extrabold text-[#172554]">
+              <p className="text-sm font-extrabold text-on-surface-variant">
                 {index + 1}. {question.label}
-                {question.required ? <span className="text-[#EF6A6A]"> *</span> : null}
+                {question.required ? <span className="text-error"> *</span> : null}
               </p>
               {question.description ? (
-                <p className="mt-1 text-xs leading-5 text-[#718096]">
+                <p className="mt-1 text-xs leading-5 text-on-surface-variant">
                   {question.description}
                 </p>
               ) : null}
@@ -339,7 +339,7 @@ export function SurveyPopup({
       {submitError ? (
         <div
           data-smart-popup-error
-          className="mt-4 rounded-xl border border-[#F5C2C2] bg-[#FFF1F1] px-3 py-2 text-sm font-semibold text-[#A33A3A]"
+          className="mt-4 rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant"
         >
           {submitError}
         </div>
@@ -383,11 +383,11 @@ export function SurveyThankYou({
   return (
     <div className="text-center">
       <CelebrationCluster tone="reward" />
-      <p className="text-sm font-extrabold text-[#2F62D8]">Feedback received</p>
-      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-[#0B1424] sm:text-[2.125rem]">
+      <p className="text-sm font-extrabold text-on-surface-variant">Feedback received</p>
+      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
         {title}
       </DialogTitle>
-      <DialogDescription className="mx-auto mt-3 max-w-[420px] text-base font-medium leading-7 text-[#52627A]">
+      <DialogDescription className="mx-auto mt-3 max-w-[420px] text-base font-medium leading-7 text-on-surface-variant">
         {body}
       </DialogDescription>
       <div className="mx-auto mt-5 max-w-[260px]">
@@ -403,7 +403,7 @@ export function SurveyThankYou({
         type="button"
         data-smart-popup-primary
         onClick={onDone}
-        className="mt-6 h-14 w-full justify-center rounded-[18px] bg-[#4D86F7] text-base font-extrabold text-white shadow-[inset_0_-5px_0_#2F62D8,0_20px_38px_-28px_rgba(29,78,216,0.95)] hover:bg-[#3E78EC]"
+        className="mt-6 h-14 w-full justify-center rounded-[18px] bg-primary text-base font-extrabold text-white shadow-token-card hover:bg-primary-dim"
       >
         {doneLabel}
       </Button>
@@ -667,8 +667,8 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
                   className={cn(
                     "flex h-10 items-center justify-center rounded-lg border text-sm font-extrabold transition",
                     selected
-                      ? "border-[#4D86F7] bg-[#4D86F7] text-white shadow-sm"
-                      : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB] hover:bg-[#F7FAFE]"
+                      ? "border-primary bg-primary text-white shadow-sm"
+                      : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:bg-background"
                   )}
                 >
                   {rating}
@@ -677,7 +677,7 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
             })}
           </div>
           {(question.minLabel || question.maxLabel) ? (
-            <div className="flex justify-between gap-3 text-xs font-semibold text-[#718096]">
+            <div className="flex justify-between gap-3 text-xs font-semibold text-on-surface-variant">
               <span>{question.minLabel}</span>
               <span>{question.maxLabel}</span>
             </div>
@@ -711,12 +711,12 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
                 className={cn(
                   "flex min-h-11 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition",
                   active
-                    ? "border-[#4D86F7] bg-[#EDF4FF] text-[#0B1424]"
-                    : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB]"
+                    ? "border-primary bg-primary-container text-on-surface"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed"
                 )}
               >
                 <span>{option.label}</span>
-                {active ? <CheckCircle2 className="h-4 w-4 text-[#4D86F7]" /> : null}
+                {active ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
               </button>
             );
           })}
@@ -729,7 +729,7 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
         value={typeof value === "string" ? value : ""}
         onChange={(event) => setAnswer(question.id, event.target.value)}
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-sm text-[#162033] outline-none transition placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-2 focus:ring-[#A9C6FB]/40"
+        className="min-h-24 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
       />
     );
   }

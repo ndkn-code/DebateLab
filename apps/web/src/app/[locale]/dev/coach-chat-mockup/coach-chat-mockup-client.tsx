@@ -229,12 +229,12 @@ export function CoachChatMockupClient() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7FAFE] text-on-surface">
+    <main className="min-h-screen bg-background text-on-surface">
       <div className="flex min-h-screen w-full">
-        <aside className="hidden w-[286px] shrink-0 flex-col border-r border-[#DEE8F8] bg-white/88 lg:flex">
-          <div className="flex h-[76px] items-center justify-between border-b border-[#DEE8F8] px-5">
+        <aside className="hidden w-[286px] shrink-0 flex-col border-r border-outline-variant bg-white/88 lg:flex">
+          <div className="flex h-[76px] items-center justify-between border-b border-outline-variant px-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-[0_12px_24px_rgba(77,134,247,0.2)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-token-primary">
                 <Shield className="h-5 w-5" />
               </div>
               <div className="text-xl font-semibold tracking-[-0.01em] text-on-surface">
@@ -246,8 +246,8 @@ export function CoachChatMockupClient() {
             </button>
           </div>
 
-          <div className="border-b border-[#DEE8F8] px-5 py-5">
-            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-4 text-sm font-semibold text-on-primary shadow-[0_14px_28px_rgba(77,134,247,0.24)]">
+          <div className="border-b border-outline-variant px-5 py-5">
+            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-4 text-sm font-semibold text-on-primary shadow-token-primary">
               <Plus className="h-4 w-4" />
               New chat
             </button>
@@ -290,7 +290,7 @@ export function CoachChatMockupClient() {
             </div>
           </div>
 
-          <div className="border-t border-[#DEE8F8] p-5">
+          <div className="border-t border-outline-variant p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-on-surface-variant text-sm font-semibold text-white">
                 N
@@ -305,7 +305,7 @@ export function CoachChatMockupClient() {
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-[68px] shrink-0 items-center justify-between border-b border-[#DEE8F8] bg-white/72 px-4 backdrop-blur sm:px-6">
+          <div className="flex h-[68px] shrink-0 items-center justify-between border-b border-outline-variant bg-white/72 px-4 backdrop-blur sm:px-6">
             <div className="flex items-center gap-3">
               <button className="flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant lg:hidden">
                 <Menu className="h-5 w-5" />
@@ -315,7 +315,7 @@ export function CoachChatMockupClient() {
               </div>
               <div className="text-lg font-semibold text-on-surface">AI Coach</div>
             </div>
-            <button className="hidden items-center gap-2 rounded-[12px] border border-primary/18 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-[0_10px_22px_rgba(77,134,247,0.08)] sm:flex">
+            <button className="hidden items-center gap-2 rounded-[12px] border border-primary/18 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-token-primary sm:flex">
               <UserRound className="h-4 w-4" />
               Coach profile
             </button>
@@ -341,7 +341,7 @@ export function CoachChatMockupClient() {
 
           <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
             <div className="mx-auto w-full max-w-[920px]">
-              <div className="flex items-end gap-3 rounded-[24px] border border-primary/14 bg-white px-4 py-3 shadow-[0_18px_42px_rgba(41,74,132,0.08)]">
+              <div className="flex items-end gap-3 rounded-[24px] border border-primary/14 bg-white px-4 py-3 shadow-token-card">
                 <button className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-on-surface-variant hover:bg-primary/5 hover:text-primary sm:flex">
                   <Paperclip className="h-4 w-4" />
                 </button>
@@ -362,7 +362,7 @@ export function CoachChatMockupClient() {
                 <button
                   onClick={() => sendMockMessage()}
                   disabled={!input.trim() || showTyping}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-[0_12px_24px_rgba(77,134,247,0.28)] disabled:bg-[#A9C6FB]"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-token-primary disabled:bg-primary-fixed"
                 >
                   <Send className="h-4 w-4" />
                 </button>

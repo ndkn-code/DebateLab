@@ -20,7 +20,7 @@ export default async function Home({ params }: Props) {
   } = await supabase.auth.getUser();
 
   return (
-    <main className="landing-light min-h-screen bg-[#F7FAFE] text-[#0B1424] [color-scheme:light]">
+    <main className="landing-light min-h-screen bg-background text-on-surface [color-scheme:light]">
       <LandingNavbar copy={copy} isLoggedIn={!!user} locale={landingLocale} />
       <LandingContent copy={copy} isLoggedIn={!!user} locale={landingLocale} />
     </main>

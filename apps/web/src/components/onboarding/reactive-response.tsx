@@ -16,7 +16,7 @@ export function ReactiveResponse({ text }: ReactiveResponseProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mt-6 rounded-2xl border border-primary/15 bg-primary-container px-4 py-3 text-center shadow-[0_16px_34px_-28px_rgba(77,134,247,0.6)]"
+          className="mt-6 rounded-2xl border border-primary/15 bg-primary-container px-4 py-3 text-center shadow-token-primary"
         >
           <p className="text-base font-semibold text-primary md:text-lg">
             {text}

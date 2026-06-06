@@ -12,9 +12,9 @@ export function Hero() {
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       {/* Background gradient mesh */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[120px]" />
-        <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/5 blur-[100px]" />
+        <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-[400px] w-[400px] rounded-full bg-reward/10 blur-[120px]" />
+        <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-fixed/10 blur-[100px]" />
       </div>
 
       {/* Floating abstract shapes */}
@@ -22,7 +22,7 @@ export function Hero() {
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute h-2 w-2 rounded-full bg-blue-400/20"
+            className="absolute h-2 w-2 rounded-full bg-primary-fixed/25"
             style={{
               left: `${15 + i * 15}%`,
               top: `${20 + (i % 3) * 25}%`,
@@ -61,7 +61,7 @@ export function Hero() {
         >
           <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
             Master the Art of{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary-fixed to-primary bg-clip-text text-transparent">
               Debate
             </span>
           </h1>

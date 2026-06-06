@@ -111,7 +111,7 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
             alt="Thinkfy mascot"
             width={512}
             height={607}
-            className="mb-3 h-24 w-24 object-contain drop-shadow-[0_14px_24px_rgba(35,64,96,0.14)]"
+            className="mb-3 h-24 w-24 object-contain drop-shadow-token-card"
             priority
           />
           <h2 className="text-2xl font-bold text-on-surface">

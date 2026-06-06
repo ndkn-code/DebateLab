@@ -17,17 +17,17 @@ function formatTime(seconds: number) {
 }
 
 function getTimerColor(progress: number, timeLeft: number) {
-  if (timeLeft <= 10) return "text-[#EF6A6A]";
-  if (progress > 0.75) return "text-[#EF6A6A]";
-  if (progress > 0.5) return "text-[#F5B942]";
+  if (timeLeft <= 10) return "text-error";
+  if (progress > 0.75) return "text-error";
+  if (progress > 0.5) return "text-warning";
   return "text-primary";
 }
 
 function getStrokeColor(progress: number, timeLeft: number) {
-  if (timeLeft <= 10) return "#EF6A6A";
-  if (progress > 0.75) return "#EF6A6A";
-  if (progress > 0.5) return "#F5B942";
-  return "#4D86F7";
+  if (timeLeft <= 10) return "#FF5A5F";
+  if (progress > 0.75) return "#FF5A5F";
+  if (progress > 0.5) return "#FFD166";
+  return "#00B8D9";
 }
 
 export function CountdownTimer({

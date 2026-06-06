@@ -88,14 +88,14 @@ function getRuleText(data: LeaderboardPageData, t: LeaderboardTranslator) {
 function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: boolean }) {
   const medalTone =
     rank === 1
-      ? "text-[#d4a400]"
+      ? "text-on-surface-variant"
       : rank === 2
-        ? "text-[#7c8da1]"
+        ? "text-on-surface-variant"
         : rank === 3
-          ? "text-[#b56f30]"
+          ? "text-on-surface-variant"
           : highlighted
             ? "text-current"
-            : "text-[#54b66d]";
+            : "text-on-surface-variant";
 
   return (
     <span
@@ -112,26 +112,26 @@ function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: 
 
 function currentUserRowTone(zone: PromotionZone) {
   if (zone === "champion" || zone === "promote") {
-    return "bg-[#dff4e7] text-[#0B1424] shadow-[0_16px_44px_rgba(34,197,94,0.16)]";
+    return "bg-surface-container-high text-on-surface shadow-token-card";
   }
 
   if (zone === "demote") {
-    return "bg-[#ffe1e8] text-[#0B1424] shadow-[0_16px_44px_rgba(244,63,94,0.16)]";
+    return "bg-surface-container text-on-surface shadow-token-card";
   }
 
-  return "bg-[#eaf2ff] text-[#0B1424] shadow-[0_16px_44px_rgba(77,134,247,0.14)]";
+  return "bg-surface-container text-on-surface shadow-token-primary";
 }
 
 function currentUserAvatarTone(zone: PromotionZone) {
   if (zone === "champion" || zone === "promote") {
-    return "bg-[#35b86f] text-white";
+    return "bg-surface-container-high text-white";
   }
 
   if (zone === "demote") {
-    return "bg-[#ef4d5f] text-white";
+    return "bg-surface-container text-white";
   }
 
-  return "bg-[#4d86f7] text-white";
+  return "bg-primary text-white";
 }
 
 function LeagueCrest({
@@ -153,8 +153,8 @@ function LeagueCrest({
           "relative flex size-[70px] items-center justify-center transition-all sm:size-[88px]",
           isLocked ? "opacity-45 saturate-0" : "opacity-100",
           isCurrent
-            ? "scale-110 drop-shadow-[0_20px_34px_rgba(59,130,246,0.22)]"
-            : "drop-shadow-[0_10px_18px_rgba(15,23,42,0.12)]"
+            ? "scale-110 drop-shadow-token-card"
+            : "drop-shadow-token-card"
         )}
         aria-label={tier.name}
       >
@@ -168,11 +168,11 @@ function LeagueCrest({
           priority={isCurrent}
         />
         {isCurrent ? (
-          <span className="absolute inset-x-3 bottom-0 h-3 rounded-full bg-[#4d86f7]/18 blur-md" />
+          <span className="absolute inset-x-3 bottom-0 h-3 rounded-full bg-primary/18 blur-md" />
         ) : null}
         {isLocked ? (
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex size-8 items-center justify-center rounded-full bg-white/82 text-[#98a2b3] shadow-[0_8px_18px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+            <span className="flex size-8 items-center justify-center rounded-full bg-white/82 text-on-surface-variant shadow-token-card backdrop-blur-sm">
               <Lock className="size-4" />
             </span>
           </span>
@@ -181,7 +181,7 @@ function LeagueCrest({
       <span
         className={cn(
           "hidden max-w-24 truncate text-xs font-semibold sm:block",
-          isCurrent ? "text-[#0B1424]" : "text-[#9aa3b1]"
+          isCurrent ? "text-on-surface" : "text-on-surface-variant"
         )}
       >
         {tier.shortName}
@@ -204,7 +204,7 @@ function SegmentedControl<T extends string>({
   return (
     <div
       aria-label={label}
-      className="inline-flex max-w-full rounded-full border border-[#e2e7ef] bg-[#f6f8fb] p-1"
+      className="inline-flex max-w-full rounded-full border border-outline-variant bg-surface-container p-1"
     >
       {options.map((option) => {
         const active = value === option.value;
@@ -218,8 +218,8 @@ function SegmentedControl<T extends string>({
             className={cn(
               "min-h-9 rounded-full px-4 text-sm font-bold transition-all",
               active
-                ? "bg-white text-[#0B1424] shadow-[0_8px_22px_rgba(15,23,42,0.10)]"
-                : "text-[#718096] hover:text-[#0B1424]"
+                ? "bg-white text-on-surface shadow-token-card"
+                : "text-on-surface-variant hover:text-on-surface"
             )}
             aria-pressed={active}
           >
@@ -261,14 +261,14 @@ function PersonalRow({
       row.connection?.viewerCanRequest);
   const profileContent = (
     <>
-      <Avatar className="size-10 shrink-0 bg-[#eef2f7] sm:size-11">
+      <Avatar className="size-10 shrink-0 bg-surface-container sm:size-11">
         {row.avatarUrl ? <AvatarImage src={row.avatarUrl} alt={row.displayName} /> : null}
         <AvatarFallback
           className={cn(
             "text-sm font-black",
             row.isCurrentUser
               ? currentUserAvatarTone(row.zone)
-              : "bg-[#eef2f7] text-[#566170]"
+              : "bg-surface-container text-on-surface-variant"
           )}
         >
           {row.initials}
@@ -281,7 +281,7 @@ function PersonalRow({
           </p>
         </div>
         {row.handle ? (
-          <p className="mt-0.5 truncate text-xs font-semibold text-[#8a92a0]">
+          <p className="mt-0.5 truncate text-xs font-semibold text-on-surface-variant">
             @{row.handle}
           </p>
         ) : null}
@@ -297,7 +297,7 @@ function PersonalRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="leaderboard-row"
       className={cn(
-        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-on-surface-variant transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
         row.isCurrentUser
           ? currentUserRowTone(row.zone)
           : "bg-transparent hover:bg-white/60"
@@ -319,7 +319,7 @@ function PersonalRow({
               },
             })
           }
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none transition hover:text-[#0B1424] focus-visible:ring-2 focus-visible:ring-[#4D86F7]/35 sm:gap-4"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none transition hover:text-on-surface focus-visible:ring-2 focus-visible:ring-primary/35 sm:gap-4"
         >
           {profileContent}
         </Link>
@@ -360,10 +360,10 @@ function PersonalRow({
               className={cn(
                 "inline-flex size-7 items-center justify-center rounded-full border transition",
                 row.connection?.status === "accepted"
-                  ? "border-[#bfe8ca] bg-[#eafbf0] text-[#159947]"
+                  ? "border-outline-variant bg-surface-container text-success"
                   : connectionRequested || row.connection?.status === "pending_sent"
-                    ? "border-[#D9E5F4] bg-white text-[#4D86F7]"
-                    : "border-[#D9E5F4] bg-white text-[#667795] hover:border-[#A9C6FB] hover:text-[#3E78EC]",
+                    ? "border-outline-variant bg-white text-primary"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:text-primary-dim",
                 (connectionPending ||
                   connectionRequested ||
                   row.connection?.status === "pending_sent" ||
@@ -400,8 +400,8 @@ function PersonalRow({
               className={cn(
                 "inline-flex size-7 items-center justify-center rounded-full border transition",
                 kudosState.viewerHasSent
-                  ? "border-[#bfe8ca] bg-[#eafbf0] text-[#159947]"
-                  : "border-[#D9E5F4] bg-white text-[#667795] hover:border-[#bfe8ca] hover:text-[#159947]",
+                  ? "border-outline-variant bg-surface-container text-success"
+                  : "border-outline-variant bg-white text-on-surface-variant hover:border-outline-variant hover:text-success",
                 (!kudosState.viewerCanSend || kudosPending) &&
                   "cursor-not-allowed opacity-60"
               )}
@@ -438,17 +438,17 @@ function OrganizationRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="organization-leaderboard-row"
       className={cn(
-        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-[#202633] transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-on-surface-variant transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
         row.isCurrentOrganization
-          ? "bg-[#dff4e7] text-[#0B1424] shadow-[0_16px_44px_rgba(34,197,94,0.16)]"
+          ? "bg-surface-container-high text-on-surface shadow-token-card"
           : "bg-transparent hover:bg-white/60"
       )}
     >
       <RankBadge rank={row.rank} highlighted={row.isCurrentOrganization} />
       <div
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-[#566170] sm:size-11",
-          row.isCurrentOrganization ? "bg-[#35b86f] text-white" : "bg-[#eef2f7]"
+          "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-surface-variant sm:size-11",
+          row.isCurrentOrganization ? "bg-surface-container-high text-white" : "bg-surface-container"
         )}
       >
         {row.logoUrl ? (
@@ -467,7 +467,7 @@ function OrganizationRow({
         <p
           className={cn(
             "mt-1 truncate text-xs font-semibold sm:text-sm",
-            row.isCurrentOrganization ? "text-current/68" : "text-[#8a92a0]"
+            row.isCurrentOrganization ? "text-current/68" : "text-on-surface-variant"
           )}
         >
           {t("organizations.rowSubtitle", {
@@ -515,20 +515,20 @@ function SeasonOutcomeBanner({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "mt-5 flex w-full flex-col gap-3 rounded-lg border px-4 py-3 text-left shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:flex-row sm:items-center",
+        "mt-5 flex w-full flex-col gap-3 rounded-lg border px-4 py-3 text-left shadow-token-card sm:flex-row sm:items-center",
         isPositive
-          ? "border-[#bfe8ca] bg-[#f0fbf4] text-[#145c35]"
+          ? "border-outline-variant bg-surface-container text-on-surface-variant"
           : isNegative
-            ? "border-[#f4c7c7] bg-[#fff5f5] text-[#9a3131]"
-            : "border-[#cfe0ff] bg-[#f4f8ff] text-[#1f4f99]"
+            ? "border-outline-variant bg-surface-container text-on-surface-variant"
+            : "border-outline-variant bg-surface-container text-on-surface-variant"
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full",
-          isPositive && "bg-[#dff7e7] text-[#177245]",
-          isNegative && "bg-[#ffe1e1] text-[#b94848]",
-          !isPositive && !isNegative && "bg-[#e9f2ff] text-[#1f5fc9]"
+          isPositive && "bg-surface-container-high text-success",
+          isNegative && "bg-surface-container text-on-surface-variant",
+          !isPositive && !isNegative && "bg-surface-container text-on-surface-variant"
         )}>
           {isPositive ? (
             <Trophy className="size-5" />
@@ -562,11 +562,11 @@ function SeasonOutcomeBanner({
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="flex min-h-[260px] flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="flex size-14 items-center justify-center rounded-full bg-[#f3f6fb] text-[#8a96a8]">
+      <div className="flex size-14 items-center justify-center rounded-full bg-surface-container text-muted-foreground">
         <Trophy className="size-6" />
       </div>
-      <h2 className="mt-4 text-lg font-black text-[#0B1424]">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-[#718096]">{body}</p>
+      <h2 className="mt-4 text-lg font-black text-on-surface">{title}</h2>
+      <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">{body}</p>
     </div>
   );
 }
@@ -588,47 +588,47 @@ function LeaderboardInfoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-[#0B1424] shadow-[0_28px_80px_rgba(15,23,42,0.20)] backdrop-blur-xl sm:max-w-[460px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-on-surface shadow-token-card backdrop-blur-xl sm:max-w-[460px]">
         <div className="px-5 pb-4 pt-5 sm:px-6 sm:pb-5">
           <div className="flex items-start gap-3 pr-8">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#eef4ff] text-[#1f5fc9]">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-surface-variant">
               <Info className="size-5" />
             </div>
             <div className="min-w-0">
-              <DialogTitle className="text-lg font-black tracking-normal text-[#0B1424]">
+              <DialogTitle className="text-lg font-black tracking-normal text-on-surface">
                 {t("info.title")}
               </DialogTitle>
-              <DialogDescription className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+              <DialogDescription className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
                 {t("languageNote", { language })}
               </DialogDescription>
             </div>
           </div>
 
           <div className="mt-5 grid gap-3">
-            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#0B1424]">
+            <section className="rounded-xl bg-surface-container px-4 py-3">
+              <h3 className="text-sm font-black text-on-surface">
                 {t("info.xpTitle")}
               </h3>
-              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+              <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
                 {t("info.xpBody")}
               </p>
             </section>
-            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#0B1424]">
+            <section className="rounded-xl bg-surface-container px-4 py-3">
+              <h3 className="text-sm font-black text-on-surface">
                 {t("info.rulesTitle")}
               </h3>
-              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+              <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
                 {currentRule}
               </p>
-              <p className="mt-2 text-sm font-medium leading-6 text-[#667085]">
+              <p className="mt-2 text-sm font-medium leading-6 text-on-surface-variant">
                 {t("info.orgRules")}
               </p>
             </section>
-            <section className="rounded-xl bg-[#f6f8fb] px-4 py-3">
-              <h3 className="text-sm font-black text-[#0B1424]">
+            <section className="rounded-xl bg-surface-container px-4 py-3">
+              <h3 className="text-sm font-black text-on-surface">
                 {t("info.capsTitle")}
               </h3>
-              <p className="mt-1 text-sm font-medium leading-6 text-[#667085]">
+              <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
                 {t("info.capsBody")}
               </p>
             </section>
@@ -856,7 +856,7 @@ export function LeaderboardsPage({
   return (
     <PageTransition
       data-testid="leaderboard-page"
-      className="min-h-full bg-[#fbfbfc] text-[#0B1424]"
+      className="min-h-full bg-surface-container text-on-surface"
     >
       <PageContainer size="wide" className="flex flex-col items-center py-6 sm:py-8">
         <section className="relative flex w-full max-w-[900px] flex-col items-center text-center">
@@ -865,14 +865,14 @@ export function LeaderboardsPage({
             onClick={() => setLeaderboardInfoOpen(true)}
             aria-label={t("info.triggerLabel")}
             title={t("info.triggerLabel")}
-            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-[#dfe6f2] bg-white/80 text-[#64748b] shadow-[0_10px_26px_rgba(15,23,42,0.08)] backdrop-blur-md transition hover:border-[#4d86f7]/45 hover:text-[#1f5fc9]"
+            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-outline-variant bg-white/80 text-on-surface-variant shadow-token-card backdrop-blur-md transition hover:border-primary/45 hover:text-on-surface-variant"
           >
             <Info className="size-5" />
           </button>
           {data.status === "unavailable" ? (
             <div
               data-testid="leaderboard-setup-state"
-              className="mb-6 w-full rounded-md border border-[#f1d7a5] bg-[#fff8e8] px-4 py-3 text-left text-sm font-semibold text-[#8a5a0a]"
+              className="mb-6 w-full rounded-md border border-outline-variant bg-surface-container px-4 py-3 text-left text-sm font-semibold text-on-surface-variant"
             >
               {data.reason}
             </div>
@@ -890,15 +890,15 @@ export function LeaderboardsPage({
 
           <h1
             data-testid="league-title"
-            className="mt-8 text-balance text-[32px] font-black leading-tight tracking-normal text-[#09090b] sm:text-[40px]"
+            className="mt-8 text-balance text-[32px] font-black leading-tight tracking-normal text-on-surface-variant sm:text-[40px]"
           >
             {localizedLeague.name}
           </h1>
-          <p className="mt-2 text-base font-medium text-[#7a7f8a] sm:text-lg">
+          <p className="mt-2 text-base font-medium text-on-surface-variant sm:text-lg">
             {getRuleText(data, t)}
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-[#0B1424]">
-            <Clock3 className="size-5 text-[#f1c232]" />
+          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-on-surface">
+            <Clock3 className="size-5 text-on-surface-variant" />
             {t("daysLeft", { count: data.season.daysRemaining })}
           </div>
           <SeasonOutcomeBanner
@@ -937,9 +937,9 @@ export function LeaderboardsPage({
           ) : null}
 
           {view === "organizations" && !data.organizations.affiliation ? (
-            <div className="w-full rounded-lg border border-[#D9E5F4] bg-white px-4 py-3 text-center text-sm font-semibold text-[#415069] shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+            <div className="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 text-center text-sm font-semibold text-on-surface-variant shadow-token-card">
               {t("organizations.joinPrefix")}{" "}
-              <Link href="/settings" className="text-[#1f5fc9] hover:underline">
+              <Link href="/settings" className="text-on-surface-variant hover:underline">
                 {t("organizations.settingsLink")}
               </Link>
               {t("organizations.joinSuffix")}
@@ -955,16 +955,16 @@ export function LeaderboardsPage({
             data.personal.rows.length > 0 ? (
               <>
                 <div className="flex items-center justify-between gap-3 px-1 pb-3 sm:px-2">
-                <div className="flex items-center gap-2 text-sm font-black text-[#202633]">
+                <div className="flex items-center gap-2 text-sm font-black text-on-surface-variant">
                   {isChampionLeague ? (
-                    <Crown className="size-4 text-[#d0a000]" />
+                    <Crown className="size-4 text-on-surface-variant" />
                     ) : (
-                      <Medal className="size-4 text-[#4d86f7]" />
+                      <Medal className="size-4 text-primary" />
                     )}
                     {t("weeklyXp")}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <div className="hidden text-xs font-bold uppercase text-[#8b95a5] sm:block">
+                    <div className="hidden text-xs font-bold uppercase text-on-surface-variant sm:block">
                       {data.season.label}
                     </div>
                   </div>
@@ -972,7 +972,7 @@ export function LeaderboardsPage({
                 {kudosActionError ? (
                   <div
                     role="alert"
-                    className="mb-3 rounded-xl border border-[#ffd8d8] bg-[#fff6f6] px-4 py-2 text-sm font-semibold text-[#a43a3a]"
+                    className="mb-3 rounded-xl border border-outline-variant bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface-variant"
                   >
                     {kudosActionError}
                   </div>
@@ -1007,11 +1007,11 @@ export function LeaderboardsPage({
           ) : visibleOrganizationRows.length > 0 ? (
             <>
               <div className="flex flex-col gap-1 px-1 pb-3 text-left sm:flex-row sm:items-center sm:justify-between sm:px-2">
-                <div className="flex items-center gap-2 text-sm font-black text-[#202633]">
-                  <Users2 className="size-4 text-[#34a853]" />
+                <div className="flex items-center gap-2 text-sm font-black text-on-surface-variant">
+                  <Users2 className="size-4 text-on-surface-variant" />
                   {t("organizations.title", { band: t(`organizations.bands.${band}`) })}
                 </div>
-                <div className="text-xs font-bold uppercase text-[#8b95a5]">
+                <div className="text-xs font-bold uppercase text-on-surface-variant">
                   {t(`organizations.bandDescriptions.${band}`)}
                 </div>
               </div>
@@ -1040,7 +1040,7 @@ export function LeaderboardsPage({
             data-testid="current-rank-pinned"
             className="mt-5 w-full max-w-[760px]"
           >
-            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-[#1f5fc9] sm:px-2">
+            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-on-surface-variant sm:px-2">
               <ChevronUp className="size-4" />
               {t("pinned.yourRank")}
             </div>
@@ -1066,7 +1066,7 @@ export function LeaderboardsPage({
             data-testid="current-organization-pinned"
             className="mt-5 w-full max-w-[760px]"
           >
-            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-[#177245] sm:px-2">
+            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-success sm:px-2">
               <ChevronUp className="size-4" />
               {t("pinned.yourOrganization")}
             </div>

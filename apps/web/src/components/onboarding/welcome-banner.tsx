@@ -31,7 +31,7 @@ export function WelcomeBanner({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.3 },
-          colors: ["#4D86F7", "#A9C6FB", "#3E78EC", "#F5B942", "#34C759"],
+          colors: ["#00B8D9", "#8BE8F7", "#0788A0", "#FFD166", "#00B8D9"],
         });
       }, 300);
       return () => clearTimeout(timer);
@@ -66,7 +66,7 @@ export function WelcomeBanner({
           transition={{ duration: 0.3 }}
           className="mb-6 overflow-hidden"
         >
-          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-[#EEF4FF] to-background p-6">
+          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-[#E5F8FC] to-background p-6">
             {/* Dismiss */}
             <button
               onClick={handleDismiss}

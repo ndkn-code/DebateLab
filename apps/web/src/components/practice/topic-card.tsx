@@ -24,28 +24,28 @@ interface TopicCardProps {
 }
 
 const CATEGORY_TONE_STYLES = {
-  blue: "bg-[#eef4ff] text-[#3d70df]",
-  green: "bg-[#ebf8ef] text-[#3e9a5c]",
-  teal: "bg-[#ecf8f5] text-[#2f8d79]",
-  violet: "bg-[#f4f0ff] text-[#7352dd]",
-  amber: "bg-[#fff5e8] text-[#d68a2b]",
-  indigo: "bg-[#eef2ff] text-[#5568da]",
+  blue: "bg-primary-container text-on-surface-variant",
+  green: "bg-surface-container text-on-surface-variant",
+  teal: "bg-surface-container text-on-surface-variant",
+  violet: "bg-surface-container text-on-surface-variant",
+  amber: "bg-surface-container text-on-surface-variant",
+  indigo: "bg-surface-container text-on-surface-variant",
 } as const;
 
 const DIFFICULTY_TONE_STYLES = {
-  easy: "bg-[#edf8ef] text-[#4aa05f]",
-  medium: "bg-[#fff6e8] text-[#da9b2d]",
-  hard: "bg-[#fff0f0] text-[#dd666b]",
+  easy: "bg-surface-container text-on-surface-variant",
+  medium: "bg-surface-container text-on-surface-variant",
+  hard: "bg-error-container text-on-surface-variant",
 } as const;
 
 const PRIORITY_BADGE_STYLES = {
-  blue: "border-[#cfe0ff] bg-[#f3f7ff] text-primary",
-  green: "border-[#cbeed4] bg-[#f4fbf6] text-[#3e9a5c]",
-  amber: "border-[#ffe1b7] bg-[#fff8ee] text-[#c77716]",
+  blue: "border-outline-variant bg-surface-container text-primary",
+  green: "border-outline-variant bg-surface-container text-on-surface-variant",
+  amber: "border-outline-variant bg-surface-container text-on-surface-variant",
 } as const;
 
 const AVATAR_RING_STYLE =
-  "border border-white/90 shadow-[0_4px_12px_-8px_rgba(22,32,51,0.7)]";
+  "border border-white/90 shadow-token-card";
 
 export function TopicCard({
   display,
@@ -81,8 +81,8 @@ export function TopicCard({
       className={cn(
         "group relative flex h-full min-h-[174px] w-full flex-col rounded-[14px] border bg-surface-container-lowest p-4 text-left transition-all duration-200",
         isSelected
-          ? "border-primary shadow-[0_12px_24px_-22px_rgba(77,134,247,0.85)]"
-          : "border-[#e3ebf8] hover:border-[#c9d8f7] hover:shadow-[0_12px_22px_-24px_rgba(22,39,91,0.22)]"
+          ? "border-primary shadow-token-primary"
+          : "border-outline-variant hover:border-outline-variant hover:shadow-token-card"
       )}
     >
       {isSelected && (
@@ -125,7 +125,7 @@ export function TopicCard({
         <h3 className="text-[0.98rem] font-semibold leading-[1.33] text-on-surface line-clamp-3">
           {display.topic.title}
         </h3>
-        <p className="mt-2 text-[12.5px] leading-[1.58] text-[#7183a4] line-clamp-3">
+        <p className="mt-2 text-[12.5px] leading-[1.58] text-on-surface-variant line-clamp-3">
           {display.summary}
         </p>
       </div>
@@ -147,7 +147,7 @@ export function TopicCard({
               </Avatar>
             ))}
           </AvatarGroup>
-          <span className="text-[12.5px] text-[#7383a4]">
+          <span className="text-[12.5px] text-on-surface-variant">
             {formatPracticeCountLabel(
               display.practiceCount,
               t("practice_count_label")
@@ -165,7 +165,7 @@ export function TopicCard({
             onToggleBookmark(display.topic.id);
           }}
           className={cn(
-            "flex h-7 w-7 items-center justify-center text-[#7a89a8] transition-colors",
+            "flex h-7 w-7 items-center justify-center text-on-surface-variant transition-colors",
             isBookmarked
               ? "text-primary"
               : "hover:text-primary"

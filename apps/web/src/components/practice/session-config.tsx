@@ -52,7 +52,7 @@ function FieldLabel({
     <div className="flex items-center gap-2 text-[0.88rem] font-semibold text-on-surface">
       <Icon className="h-[15px] w-[15px] text-primary" />
       <span>{label}</span>
-      <CircleHelp className="h-[13px] w-[13px] text-[#91a0be]" />
+      <CircleHelp className="h-[13px] w-[13px] text-on-surface-variant" />
     </div>
   );
 }
@@ -116,10 +116,10 @@ function SegmentButton({
         "inline-flex min-h-[45px] items-center justify-center gap-2 rounded-[14px] border px-3 py-2.5 text-[0.9rem] font-medium transition-all",
         active
           ? "border-primary/45 bg-primary/[0.03] text-primary"
-          : "border-[#e5ebf7] bg-[#f8fbff] text-[#617292]",
-        !active && !disabled && "hover:border-[#cddbf8] hover:bg-white hover:text-on-surface",
+          : "border-outline-variant bg-surface-container text-on-surface-variant",
+        !active && !disabled && "hover:border-outline-variant hover:bg-white hover:text-on-surface",
         disabled &&
-          "cursor-not-allowed border-[#ebf0fa] bg-[#f8fbff] text-[#a0acc3]"
+          "cursor-not-allowed border-outline-variant bg-surface-container text-on-surface-variant"
       )}
     >
       <Icon className="h-[15px] w-[15px]" />
@@ -165,7 +165,7 @@ function SelectRow({
         <Select
           value={value}
           onChange={(event) => onChange(event.currentTarget.value)}
-          className="h-[42px] rounded-[14px] border-[#e5ebf7] bg-white px-3.5 py-2 text-[0.9rem] text-[#475875]"
+          className="h-[42px] rounded-[14px] border-outline-variant bg-white px-3.5 py-2 text-[0.9rem] text-on-surface-variant"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -186,8 +186,8 @@ function CreditPill({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f7ff] px-3 py-2 text-[0.95rem] font-semibold text-[#263654]">
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f5b942] text-white">
+    <span className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3 py-2 text-[0.95rem] font-semibold text-on-surface">
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warning text-white">
         <Sparkles className="h-[11px] w-[11px]" />
       </span>
       <span>
@@ -264,13 +264,13 @@ export function SessionConfig({
     <>
       <div
         className={cn(
-          "rounded-[22px] border border-[#e4ebf8] bg-white px-7 py-6 shadow-[0_18px_38px_-34px_rgba(41,79,144,0.38)]",
+          "rounded-[22px] border border-outline-variant bg-white px-7 py-6 shadow-token-card",
           isDesktop && "xl:sticky xl:top-6"
         )}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[0.92rem] font-medium text-[#627394]">
+            <p className="text-[0.92rem] font-medium text-on-surface-variant">
               {t("selected_motion")}
             </p>
             <h2 className="mt-3 text-[1.55rem] font-semibold leading-[1.16] text-on-surface">
@@ -282,7 +282,7 @@ export function SessionConfig({
             type="button"
             aria-label={isBookmarked ? t("remove_bookmark") : t("save_topic")}
             onClick={() => onToggleBookmark(topic.id)}
-            className="shrink-0 pt-1 text-[#7b8caa] transition-colors hover:text-primary"
+            className="shrink-0 pt-1 text-on-surface-variant transition-colors hover:text-primary"
           >
             {isBookmarked ? (
               <BookmarkCheck className="h-[22px] w-[22px]" />
@@ -292,16 +292,16 @@ export function SessionConfig({
           </button>
         </div>
 
-        <div className="mt-5 border-t border-[#e7edf8] pt-5">
-          <div className="mb-5 rounded-xl border border-[#DDE8F8] bg-[#F8FBFF] p-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+        <div className="mt-5 border-t border-outline-variant pt-5">
+          <div className="mb-5 rounded-xl border border-outline-variant bg-surface-container p-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
               <Scale className="h-4 w-4 text-primary" />
               {t("session.motion_brief")}
             </div>
-            <p className="mt-2 text-sm leading-6 text-[#30427A]">
+            <p className="mt-2 text-sm leading-6 text-on-surface-variant">
               {motionBrief.scope}
             </p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[#52658D]">
+            <p className="mt-2 text-xs font-semibold leading-5 text-on-surface-variant">
               {motionBrief.modelClarification}
             </p>
           </div>
@@ -399,7 +399,7 @@ export function SessionConfig({
           </div>
         </div>
 
-        <div className="mt-6 border-t border-[#e7edf8] pt-5">
+        <div className="mt-6 border-t border-outline-variant pt-5">
           <div className="flex items-center justify-between gap-4">
             <FieldLabel icon={Sparkles} label={t("session_cost")} />
             <CreditPill amount={String(orbCost)} label={t("credits_label")} />

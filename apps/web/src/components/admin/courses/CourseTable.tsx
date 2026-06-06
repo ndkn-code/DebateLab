@@ -34,9 +34,9 @@ export function CourseTable({ initialCourses }: Props) {
 
   const visBadge = (v: string) => {
     const colors: Record<string, string> = {
-      public: "bg-blue-100 text-blue-700",
+      public: "bg-primary-container text-primary-dim",
       premium: "bg-amber-100 text-amber-700",
-      class_restricted: "bg-purple-100 text-purple-700",
+      class_restricted: "bg-info-container text-info",
     };
     return colors[v] ?? "bg-gray-100 text-gray-700";
   };

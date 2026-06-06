@@ -46,7 +46,7 @@ export function LandingMobileMenu({
     <>
       <button
         type="button"
-        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#DEE8F8] bg-white text-[#162033] lg:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-white text-on-surface lg:hidden"
         aria-label={mobileOpen ? "Close menu" : "Open menu"}
         aria-expanded={mobileOpen}
         onClick={() => setMobileOpen((current) => !current)}
@@ -60,7 +60,7 @@ export function LandingMobileMenu({
 
       <div
         className={cn(
-          "absolute left-0 right-0 top-full z-30 overflow-hidden border-t border-[#E8EFFA] bg-white shadow-[0_20px_40px_-32px_rgba(11,20,36,0.28)] transition-[max-height,opacity] duration-200 lg:hidden",
+          "absolute left-0 right-0 top-full z-30 overflow-hidden border-t border-outline-variant bg-white shadow-token-card transition-[max-height,opacity] duration-200 lg:hidden",
           mobileOpen ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
@@ -70,7 +70,7 @@ export function LandingMobileMenu({
               <a
                 key={item.key}
                 href={item.href}
-                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#415069] transition-colors hover:bg-[#F7FAFE] hover:text-[#4D86F7]"
+                className="rounded-xl px-3 py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-background hover:text-primary"
                 onClick={() => setMobileOpen(false)}
               >
                 {copy.nav[item.key]}
@@ -78,13 +78,13 @@ export function LandingMobileMenu({
             ))}
           </div>
 
-          <div className="mt-4 border-t border-[#E8EFFA] pt-4">
+          <div className="mt-4 border-t border-outline-variant pt-4">
             <a
               href={landingHref(
                 locale,
                 isLoggedIn ? "/dashboard" : "/auth/login"
               )}
-              className="mb-3 block rounded-xl px-3 py-3 text-sm font-semibold text-[#162033] transition-colors hover:bg-[#F7FAFE] hover:text-[#4D86F7]"
+              className="mb-3 block rounded-xl px-3 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-background hover:text-primary"
               onClick={() => setMobileOpen(false)}
             >
               {isLoggedIn ? copy.nav.dashboard : copy.nav.login}

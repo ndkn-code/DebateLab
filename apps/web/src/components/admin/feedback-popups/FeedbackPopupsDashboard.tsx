@@ -141,10 +141,10 @@ function makeQuestion(type: SmartPopupSurveyQuestionType): SmartPopupSurveyQuest
 function StatusBadge({ status }: { status: string }) {
   const cls =
     status === "active"
-      ? "bg-[#E8F8EE] text-[#16833A]"
+      ? "bg-surface-container text-on-surface-variant"
       : status === "archived"
-        ? "bg-[#F3F4F6] text-[#64748B]"
-        : "bg-[#FFF7DF] text-[#9A6A08]";
+        ? "bg-surface-container text-on-surface-variant"
+        : "bg-surface-container text-on-surface-variant";
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-bold", cls)}>
       {status}
@@ -155,10 +155,10 @@ function StatusBadge({ status }: { status: string }) {
 function HealthBadge({ status }: { status: "ok" | "warning" | "error" }) {
   const cls =
     status === "ok"
-      ? "bg-[#E8F8EE] text-[#16833A]"
+      ? "bg-surface-container text-on-surface-variant"
       : status === "error"
-        ? "bg-[#FEEEEE] text-[#B3261E]"
-        : "bg-[#FFF7DF] text-[#9A6A08]";
+        ? "bg-surface-container text-on-surface-variant"
+        : "bg-surface-container text-on-surface-variant";
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-bold", cls)}>
       {status}
@@ -253,8 +253,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                   className={cn(
                     "flex h-10 items-center justify-center rounded-lg border text-sm font-extrabold transition",
                     selected
-                      ? "border-[#4D86F7] bg-[#4D86F7] text-white shadow-sm"
-                      : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB] hover:bg-[#F7FAFE]"
+                      ? "border-primary bg-primary text-white shadow-sm"
+                      : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:bg-background"
                   )}
                 >
                   {rating}
@@ -263,7 +263,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             })}
           </div>
           {(question.minLabel || question.maxLabel) ? (
-            <div className="flex justify-between gap-3 text-xs font-semibold text-[#718096]">
+            <div className="flex justify-between gap-3 text-xs font-semibold text-on-surface-variant">
               <span>{question.minLabel}</span>
               <span>{question.maxLabel}</span>
             </div>
@@ -297,12 +297,12 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                 className={cn(
                   "flex min-h-11 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition",
                   active
-                    ? "border-[#4D86F7] bg-[#EDF4FF] text-[#0B1424]"
-                    : "border-[#DEE8F8] bg-white text-[#415069] hover:border-[#A9C6FB]"
+                    ? "border-primary bg-primary-container text-on-surface"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed"
                 )}
               >
                 <span>{option.label}</span>
-                {active ? <CheckCircle2 className="h-4 w-4 text-[#4D86F7]" /> : null}
+                {active ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
               </button>
             );
           })}
@@ -315,7 +315,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         value={typeof value === "string" ? value : ""}
         onChange={(event) => setPreviewAnswer(question.id, event.target.value)}
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-sm text-[#162033] outline-none transition placeholder:text-[#8A96A8] focus:border-[#4D86F7] focus:ring-2 focus:ring-[#A9C6FB]/40"
+        className="min-h-24 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
       />
     );
   }
@@ -405,14 +405,14 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
     <div className="mx-auto max-w-7xl min-w-0 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#EDF4FF] px-3 py-1 text-xs font-bold text-[#3E78EC]">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1 text-xs font-bold text-primary-dim">
             <MessageSquareText className="h-3.5 w-3.5" />
             In-app intercepts
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0B1424]">
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-on-surface">
             Feedback Popups
           </h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#415069]">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
             Create localized feedback prompts, send them at the next safe in-app moment, and review the responses that shape the product.
           </p>
         </div>
@@ -420,7 +420,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
           <Button
             type="button"
             variant="outline"
-            className="h-10 rounded-lg border-[#DEE8F8] bg-white text-[#415069]"
+            className="h-10 rounded-lg border-outline-variant bg-white text-on-surface-variant"
             onClick={() => {
               startTransition(async () => {
                 await refresh();
@@ -445,10 +445,10 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       {health.status !== "ok" ? (
         <section
           className={cn(
-            "rounded-lg border px-4 py-3 text-sm shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]",
+            "rounded-lg border px-4 py-3 text-sm shadow-token-card",
             health.status === "error"
-              ? "border-[#F6C7C2] bg-[#FFF7F6] text-[#5A1D18]"
-              : "border-[#F4D58D] bg-[#FFFBEA] text-[#614700]"
+              ? "border-outline-variant bg-surface-container text-on-surface-variant"
+              : "border-outline-variant bg-surface-container text-on-surface-variant"
           )}
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -479,26 +479,26 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         {data.kpis.map((kpi) => (
           <div
             key={kpi.key}
-            className="rounded-lg border border-[#DEE8F8] bg-white p-4 shadow-[0_16px_34px_-30px_rgba(11,20,36,0.35)]"
+            className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card"
           >
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-[#415069]">{kpi.label}</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EDF4FF] text-[#4D86F7]">
+              <p className="text-sm font-semibold text-on-surface-variant">{kpi.label}</p>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-primary">
                 {kpi.key === "reward" ? <Gift className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-[#0B1424]">{kpi.value}</p>
+            <p className="mt-3 text-3xl font-extrabold text-on-surface">{kpi.value}</p>
           </div>
         ))}
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] px-4 py-3 text-sm font-semibold text-[#415069]">
+        <div className="rounded-lg border border-outline-variant bg-background px-4 py-3 text-sm font-semibold text-on-surface-variant">
           {notice}
         </div>
       ) : null}
 
-      <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-[#DEE8F8] bg-[#F1F6FD] p-1">
+      <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-1">
         {[
           ["campaigns", "Campaigns", Megaphone],
           ["system", "System nudges", Eye],
@@ -514,8 +514,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             className={cn(
               "inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-bold transition-colors",
               activeTab === key
-                ? "bg-[#4D86F7] text-white shadow-sm"
-                : "text-[#415069] hover:bg-white"
+                ? "bg-primary text-white shadow-sm"
+                : "text-on-surface-variant hover:bg-white"
             )}
           >
             <Icon className="h-4 w-4" />
@@ -525,8 +525,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       </div>
 
       {activeTab === "campaigns" ? (
-        <section className="overflow-hidden rounded-lg border border-[#DEE8F8] bg-white">
-          <div className="grid min-w-[900px] grid-cols-[1.1fr_0.8fr_0.7fr_0.8fr_1fr] gap-4 border-b border-[#DEE8F8] bg-[#F7FAFE] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[#718096]">
+        <section className="overflow-hidden rounded-lg border border-outline-variant bg-white">
+          <div className="grid min-w-[900px] grid-cols-[1.1fr_0.8fr_0.7fr_0.8fr_1fr] gap-4 border-b border-outline-variant bg-background px-5 py-3 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
             <span>Campaign</span>
             <span>Status</span>
             <span>Responses</span>
@@ -535,29 +535,29 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
           </div>
           <div className="overflow-x-auto">
             {data.campaigns.length === 0 ? (
-              <p className="p-6 text-sm text-[#718096]">No feedback campaigns yet.</p>
+              <p className="p-6 text-sm text-on-surface-variant">No feedback campaigns yet.</p>
             ) : (
               data.campaigns.map((campaign) => (
                 <div
                   key={campaign.key}
-                  className="grid min-w-[900px] grid-cols-[1.1fr_0.8fr_0.7fr_0.8fr_1fr] gap-4 border-b border-[#DEE8F8]/70 px-5 py-4 text-sm last:border-b-0"
+                  className="grid min-w-[900px] grid-cols-[1.1fr_0.8fr_0.7fr_0.8fr_1fr] gap-4 border-b border-outline-variant/70 px-5 py-4 text-sm last:border-b-0"
                 >
                   <div>
-                    <p className="font-bold text-[#0B1424]">{campaign.title}</p>
-                    <p className="mt-1 text-xs text-[#718096]">{campaign.key}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-[#415069]">{campaign.body}</p>
+                    <p className="font-bold text-on-surface">{campaign.title}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant">{campaign.key}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">{campaign.body}</p>
                   </div>
                   <div className="space-y-2">
                     <StatusBadge status={campaign.status} />
-                    <p className="text-xs text-[#718096]">{campaign.deliveryMode.replace("_", " ")}</p>
+                    <p className="text-xs text-on-surface-variant">{campaign.deliveryMode.replace("_", " ")}</p>
                   </div>
                   <div>
-                    <p className="text-lg font-extrabold text-[#0B1424]">{campaign.responseCount}</p>
-                    <p className="text-xs text-[#718096]">Goal {campaign.responseGoal ?? "-"}</p>
+                    <p className="text-lg font-extrabold text-on-surface">{campaign.responseCount}</p>
+                    <p className="text-xs text-on-surface-variant">Goal {campaign.responseGoal ?? "-"}</p>
                   </div>
                   <div>
-                    <p className="text-lg font-extrabold text-[#0B1424]">{campaign.averageRating ?? "-"}</p>
-                    <p className="text-xs text-[#718096]">Last {formatDate(campaign.lastResponseAt)}</p>
+                    <p className="text-lg font-extrabold text-on-surface">{campaign.averageRating ?? "-"}</p>
+                    <p className="text-xs text-on-surface-variant">Last {formatDate(campaign.lastResponseAt)}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -643,21 +643,21 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
       {activeTab === "system" ? (
         <section className="space-y-4">
-          <div className="rounded-lg border border-[#DEE8F8] bg-white p-5">
+          <div className="rounded-lg border border-outline-variant bg-white p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-xl font-extrabold text-[#0B1424]">System nudges</h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#415069]">
+                <h2 className="text-xl font-extrabold text-on-surface">System nudges</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
                   Preview the system-managed feature nudges that can appear in the app. These are read-only here, so preview clicks never record events or change delivery state.
                 </p>
               </div>
-              <span className="inline-flex w-fit items-center rounded-full bg-[#EDF4FF] px-3 py-1 text-xs font-bold text-[#3E78EC]">
+              <span className="inline-flex w-fit items-center rounded-full bg-primary-container px-3 py-1 text-xs font-bold text-primary-dim">
                 {data.systemCampaigns.length} system managed
               </span>
             </div>
           </div>
           {data.systemCampaigns.length === 0 ? (
-            <div className="rounded-lg border border-[#DEE8F8] bg-white p-6 text-sm text-[#718096]">
+            <div className="rounded-lg border border-outline-variant bg-white p-6 text-sm text-on-surface-variant">
               No system nudges are visible from Supabase yet.
             </div>
           ) : (
@@ -665,24 +665,24 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
               {data.systemCampaigns.map((campaign) => (
                 <article
                   key={campaign.key}
-                  className="rounded-lg border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_42px_-34px_rgba(11,20,36,0.35)]"
+                  className="rounded-lg border border-outline-variant bg-white p-5 shadow-token-card"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-extrabold text-[#0B1424]">{campaign.title}</p>
-                        <span className="rounded-full bg-[#F3F7FF] px-2.5 py-1 text-xs font-bold text-[#4D86F7]">
+                        <p className="font-extrabold text-on-surface">{campaign.title}</p>
+                        <span className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-bold text-primary">
                           System managed
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-[#718096]">{campaign.key}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{campaign.key}</p>
                     </div>
                     <StatusBadge status={campaign.status} />
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#415069]">
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-on-surface-variant">
                     {campaign.body}
                   </p>
-                  <div className="mt-4 grid gap-2 text-xs font-semibold text-[#718096] sm:grid-cols-3">
+                  <div className="mt-4 grid gap-2 text-xs font-semibold text-on-surface-variant sm:grid-cols-3">
                     <span>Surface: {campaign.surface}</span>
                     <span>Mode: {campaign.deliveryMode.replace("_", " ")}</span>
                     <span>Priority: {campaign.priority}</span>
@@ -705,7 +705,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                       <Eye className="h-3.5 w-3.5" />
                       Preview VI
                     </Button>
-                    <span className="inline-flex min-h-9 items-center rounded-lg bg-[#F7FAFE] px-3 text-xs font-bold text-[#64748B]">
+                    <span className="inline-flex min-h-9 items-center rounded-lg bg-background px-3 text-xs font-bold text-on-surface-variant">
                       CTA: {campaign.ctaHref}
                     </span>
                   </div>
@@ -718,24 +718,24 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
       {activeTab === "builder" ? (
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="space-y-4 rounded-lg border border-[#DEE8F8] bg-white p-5">
+          <div className="space-y-4 rounded-lg border border-outline-variant bg-white p-5">
             <div>
-              <h2 className="text-xl font-extrabold text-[#0B1424]">Template Builder</h2>
-              <p className="mt-1 text-sm text-[#415069]">
+              <h2 className="text-xl font-extrabold text-on-surface">Template Builder</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">
                 Build one localized survey template. Completion always grants 50 Credits.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-sm font-semibold text-[#415069]">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant">
                 Campaign key
                 <input
                   value={form.campaignKey}
                   onChange={(event) => setForm({ ...form, campaignKey: event.target.value })}
                   placeholder="auto-generated if blank"
-                  className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                  className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[#415069]">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant">
                 Response goal
                 <input
                   type="number"
@@ -743,46 +743,46 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                   onChange={(event) =>
                     setForm({ ...form, responseGoal: Number(event.target.value) || 100 })
                   }
-                  className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                  className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[#415069]">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant">
                 English title
                 <input
                   value={form.titleEn}
                   onChange={(event) => setForm({ ...form, titleEn: event.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                  className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[#415069]">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant">
                 Vietnamese title
                 <input
                   value={form.titleVi}
                   onChange={(event) => setForm({ ...form, titleVi: event.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                  className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[#415069] sm:col-span-2">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant sm:col-span-2">
                 English body
                 <textarea
                   value={form.bodyEn}
                   onChange={(event) => setForm({ ...form, bodyEn: event.target.value })}
-                  className="min-h-20 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-sm outline-none focus:border-[#4D86F7]"
+                  className="min-h-20 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm outline-none focus:border-primary"
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold text-[#415069] sm:col-span-2">
+              <label className="space-y-1 text-sm font-semibold text-on-surface-variant sm:col-span-2">
                 Vietnamese body
                 <textarea
                   value={form.bodyVi}
                   onChange={(event) => setForm({ ...form, bodyVi: event.target.value })}
-                  className="min-h-20 w-full rounded-lg border border-[#DEE8F8] bg-white px-3 py-2 text-sm outline-none focus:border-[#4D86F7]"
+                  className="min-h-20 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm outline-none focus:border-primary"
                 />
               </label>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-extrabold text-[#0B1424]">Questions</h3>
+                <h3 className="text-base font-extrabold text-on-surface">Questions</h3>
                 <div className="flex flex-wrap gap-2">
                   {(["rating", "nps", "single_choice", "multi_choice", "text"] as SmartPopupSurveyQuestionType[]).map((type) => (
                     <Button
@@ -791,7 +791,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                       variant="outline"
                       size="sm"
                       onClick={() => setQuestions((current) => [...current, makeQuestion(type)])}
-                      className="border-[#DEE8F8] bg-white"
+                      className="border-outline-variant bg-white"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       {type.replace("_", " ")}
@@ -801,13 +801,13 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
               </div>
 
               {questions.map((question, index) => (
-                <div key={`${question.id}-${index}`} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
+                <div key={`${question.id}-${index}`} className="rounded-lg border border-outline-variant bg-background p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#4D86F7]">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-primary">
                       {index + 1}. {question.type.replace("_", " ")}
                     </div>
                     <div className="flex gap-2">
-                      <label className="inline-flex items-center gap-2 text-xs font-bold text-[#415069]">
+                      <label className="inline-flex items-center gap-2 text-xs font-bold text-on-surface-variant">
                         <input
                           type="checkbox"
                           checked={question.required}
@@ -840,7 +840,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                           label: { ...current.label, en: event.target.value },
                         }))
                       }
-                      className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                      className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                     />
                     <input
                       value={question.label.vi}
@@ -850,7 +850,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                           label: { ...current.label, vi: event.target.value },
                         }))
                       }
-                      className="h-10 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm outline-none focus:border-[#4D86F7]"
+                      className="h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none focus:border-primary"
                     />
                   </div>
                   {(question.type === "single_choice" || question.type === "multi_choice") ? (
@@ -869,7 +869,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                                 ),
                               }))
                             }
-                            className="h-9 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm"
+                            className="h-9 rounded-lg border border-outline-variant bg-white px-3 text-sm"
                           />
                           <input
                             value={option.label.vi}
@@ -883,7 +883,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                                 ),
                               }))
                             }
-                            className="h-9 rounded-lg border border-[#DEE8F8] bg-white px-3 text-sm"
+                            className="h-9 rounded-lg border border-outline-variant bg-white px-3 text-sm"
                           />
                           <Button
                             type="button"
@@ -904,7 +904,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-fit border-[#DEE8F8] bg-white"
+                        className="w-fit border-outline-variant bg-white"
                         onClick={() =>
                           updateQuestion(index, (current) => ({
                             ...current,
@@ -929,7 +929,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
             <div className="flex flex-wrap justify-end gap-2">
               {writeDisabledMessage ? (
-                <p className="w-full text-right text-xs font-semibold text-[#9A6A08]">
+                <p className="w-full text-right text-xs font-semibold text-on-surface-variant">
                   {writeDisabledMessage}
                 </p>
               ) : null}
@@ -956,28 +956,28 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
           <div className="space-y-4">
             {(["en", "vi"] as const).map((locale) => (
-              <div key={locale} className="rounded-lg border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_42px_-34px_rgba(11,20,36,0.35)]">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#EDF4FF] px-3 py-1 text-xs font-bold text-[#3E78EC]">
+              <div key={locale} className="rounded-lg border border-outline-variant bg-white p-5 shadow-token-card">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1 text-xs font-bold text-primary-dim">
                   <Eye className="h-3.5 w-3.5" />
                   {locale === "en" ? "English preview" : "Vietnamese preview"}
                 </div>
-                <h3 className="text-xl font-extrabold text-[#0B1424]">
+                <h3 className="text-xl font-extrabold text-on-surface">
                   {locale === "en" ? form.titleEn : form.titleVi}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-[#415069]">
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                   {locale === "en" ? form.bodyEn : form.bodyVi}
                 </p>
                 <div className="mt-4 space-y-3">
                   {questions.map((question, index) => (
-                    <div key={`${locale}-${question.id}-${index}`} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-3">
-                      <p className="text-sm font-bold text-[#0B1424]">
+                    <div key={`${locale}-${question.id}-${index}`} className="rounded-lg border border-outline-variant bg-background p-3">
+                      <p className="text-sm font-bold text-on-surface">
                         {question.label[locale]} {question.required ? "*" : ""}
                       </p>
-                      <p className="mt-1 text-xs text-[#718096]">{question.type.replace("_", " ")}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{question.type.replace("_", " ")}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-lg bg-[#E8F8EE] px-3 py-2 text-sm font-bold text-[#16833A]">
+                <div className="mt-4 rounded-lg bg-surface-container px-3 py-2 text-sm font-bold text-on-surface-variant">
                   Completion reward: 50 Credits
                 </div>
               </div>
@@ -987,33 +987,33 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       ) : null}
 
       {activeTab === "responses" ? (
-        <section className="rounded-lg border border-[#DEE8F8] bg-white">
-          <div className="border-b border-[#DEE8F8] px-5 py-4">
-            <h2 className="text-xl font-extrabold text-[#0B1424]">Recent Responses</h2>
+        <section className="rounded-lg border border-outline-variant bg-white">
+          <div className="border-b border-outline-variant px-5 py-4">
+            <h2 className="text-xl font-extrabold text-on-surface">Recent Responses</h2>
           </div>
           {latestResponses.length === 0 ? (
-            <p className="p-6 text-sm text-[#718096]">No feedback responses yet.</p>
+            <p className="p-6 text-sm text-on-surface-variant">No feedback responses yet.</p>
           ) : (
-            <div className="divide-y divide-[#DEE8F8]">
+            <div className="divide-y divide-[#CDECF3]">
               {latestResponses.map((response) => (
                 <div key={response.id} className="p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="font-bold text-[#0B1424]">{response.campaignKey}</p>
-                      <p className="text-xs text-[#718096]">
+                      <p className="font-bold text-on-surface">{response.campaignKey}</p>
+                      <p className="text-xs text-on-surface-variant">
                         {formatDate(response.submittedAt)} · {response.locale.toUpperCase()} · {response.route ?? "unknown route"}
                       </p>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F8EE] px-3 py-1 text-xs font-bold text-[#16833A]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1 text-xs font-bold text-on-surface-variant">
                       <Gift className="h-3.5 w-3.5" />
                       {response.rewardCredits} Credits
                     </span>
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     {response.answers.map((answer) => (
-                      <div key={answer.questionId} className="rounded-lg bg-[#F7FAFE] p-3 text-sm">
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#718096]">{answer.questionId}</p>
-                        <p className="mt-1 font-semibold text-[#0B1424]">
+                      <div key={answer.questionId} className="rounded-lg bg-background p-3 text-sm">
+                        <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">{answer.questionId}</p>
+                        <p className="mt-1 font-semibold text-on-surface">
                           <AnswerPreview value={answer.value} />
                         </p>
                       </div>
@@ -1028,30 +1028,30 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
       {activeTab === "analytics" ? (
         <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-lg border border-[#DEE8F8] bg-white p-5">
-            <h2 className="text-xl font-extrabold text-[#0B1424]">Rating Distribution</h2>
+          <div className="rounded-lg border border-outline-variant bg-white p-5">
+            <h2 className="text-xl font-extrabold text-on-surface">Rating Distribution</h2>
             <div className="mt-5 space-y-3">
               {ratingBuckets.length === 0 ? (
-                <p className="text-sm text-[#718096]">No ratings yet.</p>
+                <p className="text-sm text-on-surface-variant">No ratings yet.</p>
               ) : (
                 ratingBuckets.map(([rating, count]) => {
                   const max = Math.max(...ratingBuckets.map((bucket) => bucket[1]), 1);
                   return (
                     <div key={rating} className="grid grid-cols-[48px_1fr_48px] items-center gap-3 text-sm">
-                      <span className="font-bold text-[#0B1424]">{rating}</span>
-                      <span className="h-3 overflow-hidden rounded-full bg-[#F1F6FD]">
-                        <span className="block h-full rounded-full bg-[#4D86F7]" style={{ width: `${(count / max) * 100}%` }} />
+                      <span className="font-bold text-on-surface">{rating}</span>
+                      <span className="h-3 overflow-hidden rounded-full bg-surface-container">
+                        <span className="block h-full rounded-full bg-primary" style={{ width: `${(count / max) * 100}%` }} />
                       </span>
-                      <span className="text-right font-bold text-[#415069]">{count}</span>
+                      <span className="text-right font-bold text-on-surface-variant">{count}</span>
                     </div>
                   );
                 })
               )}
             </div>
           </div>
-          <div className="rounded-lg border border-[#DEE8F8] bg-white p-5">
-            <h2 className="text-xl font-extrabold text-[#0B1424]">Delivery Model</h2>
-            <div className="mt-4 space-y-3 text-sm leading-6 text-[#415069]">
+          <div className="rounded-lg border border-outline-variant bg-white p-5">
+            <h2 className="text-xl font-extrabold text-on-surface">Delivery Model</h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-on-surface-variant">
               <p>Send-now campaigns become eligible immediately, then show only at the next safe protected route.</p>
               <p>Feedback popups respect the user smart-popup preference, daily/weekly caps, and per-campaign submission limits.</p>
               <p>Completed submissions grant 50 Credits through an idempotent server-side reward path.</p>
@@ -1061,35 +1061,35 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       ) : null}
 
       {activeTab === "health" ? (
-        <section className="rounded-lg border border-[#DEE8F8] bg-white">
-          <div className="border-b border-[#DEE8F8] px-5 py-4">
-            <h2 className="text-xl font-extrabold text-[#0B1424]">Cron And Health</h2>
-            <p className="mt-1 text-sm text-[#415069]">{health.message}</p>
+        <section className="rounded-lg border border-outline-variant bg-white">
+          <div className="border-b border-outline-variant px-5 py-4">
+            <h2 className="text-xl font-extrabold text-on-surface">Cron And Health</h2>
+            <p className="mt-1 text-sm text-on-surface-variant">{health.message}</p>
           </div>
-          <div className="grid gap-3 border-b border-[#DEE8F8] p-5 md:grid-cols-2">
+          <div className="grid gap-3 border-b border-outline-variant p-5 md:grid-cols-2">
             {health.checks.map((check) => (
-              <div key={check.key} className="rounded-lg border border-[#DEE8F8] bg-[#F7FAFE] p-4">
+              <div key={check.key} className="rounded-lg border border-outline-variant bg-background p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-extrabold text-[#0B1424]">{check.label}</p>
+                  <p className="text-sm font-extrabold text-on-surface">{check.label}</p>
                   <HealthBadge status={check.status} />
                 </div>
-                <p className="mt-2 text-sm leading-6 text-[#415069]">{check.detail}</p>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{check.detail}</p>
               </div>
             ))}
           </div>
           {data.cronRuns.length === 0 ? (
-            <p className="p-6 text-sm text-[#718096]">No cron runs recorded yet.</p>
+            <p className="p-6 text-sm text-on-surface-variant">No cron runs recorded yet.</p>
           ) : (
-            <div className="divide-y divide-[#DEE8F8]">
+            <div className="divide-y divide-[#CDECF3]">
               {data.cronRuns.map((run) => (
                 <div key={run.id} className="grid gap-3 p-5 text-sm md:grid-cols-[1fr_1fr_1fr_2fr]">
-                  <div className="font-bold text-[#0B1424]">
-                    <Clock3 className="mr-2 inline h-4 w-4 text-[#4D86F7]" />
+                  <div className="font-bold text-on-surface">
+                    <Clock3 className="mr-2 inline h-4 w-4 text-primary" />
                     {formatDate(run.startedAt)}
                   </div>
                   <StatusBadge status={run.status} />
-                  <div className="text-[#415069]">{run.processedUsers} users</div>
-                  <div className="text-[#718096]">{run.errorMessage ?? `${run.generatedOpportunities} opportunities`}</div>
+                  <div className="text-on-surface-variant">{run.processedUsers} users</div>
+                  <div className="text-on-surface-variant">{run.errorMessage ?? `${run.generatedOpportunities} opportunities`}</div>
                 </div>
               ))}
             </div>

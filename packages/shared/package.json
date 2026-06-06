@@ -23,6 +23,10 @@
     "./dashboard": {
       "types": "./src/dashboard.ts",
       "default": "./src/dashboard.ts"
+    },
+    "./design-system": {
+      "types": "./src/design-system/index.ts",
+      "default": "./src/design-system/index.ts"
     }
   },
   "scripts": {

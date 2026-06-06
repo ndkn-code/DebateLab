@@ -14,12 +14,12 @@ function htmlPage(input: { title: string; body: string; status?: number }) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${input.title}</title>
     <style>
-      body { margin: 0; background: #f7fafe; color: #0b1424; font-family: Arial, Helvetica, sans-serif; }
+      body { margin: 0; background: #F3FCFE; color: #102936; font-family: Arial, Helvetica, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-      section { width: min(100%, 520px); background: #fff; border: 1px solid #dee8f8; border-radius: 24px; padding: 32px; box-shadow: 0 22px 50px -38px rgba(11,20,36,.45); }
+      section { width: min(100%, 520px); background: #fff; border: 1px solid #CDECF3; border-radius: 24px; padding: 32px; box-shadow: 0 22px 50px -38px rgba(11,20,36,.45); }
       h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.18; }
-      p { margin: 0; color: #415069; font-size: 16px; line-height: 1.6; }
-      a { color: #3e78ec; font-weight: 800; text-decoration: none; }
+      p { margin: 0; color: #657B84; font-size: 16px; line-height: 1.6; }
+      a { color: #0788A0; font-weight: 800; text-decoration: none; }
     </style>
   </head>
   <body>

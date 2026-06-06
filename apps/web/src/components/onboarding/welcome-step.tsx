@@ -70,7 +70,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         <Button
           onClick={onNext}
           size="lg"
-          className="mt-6 h-12 rounded-2xl bg-primary px-12 text-lg font-semibold text-on-primary shadow-[0_18px_34px_-24px_rgba(77,134,247,0.9)] hover:bg-primary-dim"
+          className="mt-6 h-12 rounded-2xl bg-primary px-12 text-lg font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim"
         >
           {t("welcome.cta")}
         </Button>

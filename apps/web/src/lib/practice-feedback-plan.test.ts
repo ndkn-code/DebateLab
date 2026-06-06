@@ -112,8 +112,8 @@ const chunks = buildTranscriptChunks(chunkedTranscript, 240);
 assert.equal(chunks.length, 2);
 assert.equal(chunks[0].timestampLabel, "0:00");
 assert.ok(chunks[0].text.includes("This costs learning time."));
-assert.equal(getTranscriptAnnotationAccent("evidence"), "#34C759");
-assert.equal(getTranscriptAnnotationAccent("clash"), "#F5B942");
+assert.equal(getTranscriptAnnotationAccent("evidence"), "#00B8D9");
+assert.equal(getTranscriptAnnotationAccent("clash"), "#FFD166");
 assert.notEqual(
   getTranscriptAnnotationAccent("evidence"),
   getTranscriptAnnotationAccent("clash")

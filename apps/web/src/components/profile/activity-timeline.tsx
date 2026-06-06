@@ -14,15 +14,15 @@ function getDotColor(activityType: string): string {
     case "session_completed":
     case "course_completed":
     case "lesson_completed":
-      return "bg-[#34C759]";
+      return "bg-success";
     case "session_started":
     case "course_enrolled":
-      return "bg-[#4D86F7]";
+      return "bg-primary";
     case "achievement_unlocked":
     case "level_up":
-      return "bg-[#F5B942]";
+      return "bg-warning";
     default:
-      return "bg-[#8A96A8]";
+      return "bg-surface-container-high";
   }
 }
 
@@ -69,16 +69,16 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)] md:p-6">
-      <h2 className="mb-4 text-base font-semibold text-[#0B1424]">
+    <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card md:p-6">
+      <h2 className="mb-4 text-base font-semibold text-on-surface">
         {t("recent_activity")}
       </h2>
 
       {activity.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <History className="mb-3 h-8 w-8 text-[#8A96A8]" />
-          <p className="text-sm text-[#718096]">{t("no_activity")}</p>
-          <p className="mt-1 text-xs text-[#8A96A8]">
+          <History className="mb-3 h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-on-surface-variant">{t("no_activity")}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
             {t("no_activity_subtitle")}
           </p>
         </div>
@@ -88,7 +88,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
             <div key={entry.id} className="relative flex gap-4 pb-6 last:pb-0">
               {/* Vertical line */}
               {index < activity.length - 1 && (
-                <div className="absolute left-[7px] top-4 h-full w-px bg-[#DEE8F8]" />
+                <div className="absolute left-[7px] top-4 h-full w-px bg-surface-container-high" />
               )}
 
               {/* Dot */}
@@ -101,10 +101,10 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#415069]">
+                <p className="text-sm text-on-surface-variant">
                   {getDescription(entry)}
                 </p>
-                <p className="mt-0.5 text-xs text-[#8A96A8]">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {formatActivityTime(entry.created_at)}
                 </p>
               </div>

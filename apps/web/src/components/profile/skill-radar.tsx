@@ -29,20 +29,20 @@ export function SkillRadar({ skills }: SkillRadarProps) {
   ];
 
   return (
-    <div className="rounded-2xl border border-[#DEE8F8] bg-white p-5 shadow-[0_18px_44px_-42px_rgba(62,120,236,0.22)] md:p-6">
-      <h2 className="mb-4 text-base font-semibold text-[#0B1424]">
+    <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card md:p-6">
+      <h2 className="mb-4 text-base font-semibold text-on-surface">
         {t("skill_breakdown")}
       </h2>
 
       {!hasEnoughData ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF2F7]">
-            <Brain className="h-6 w-6 text-[#8A96A8]" />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-container">
+            <Brain className="h-6 w-6 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium text-[#718096]">
+          <p className="text-sm font-medium text-on-surface-variant">
             {t("skill_empty")}
           </p>
-          <p className="mt-1 text-xs text-[#8A96A8]">
+          <p className="mt-1 text-xs text-muted-foreground">
             {t("skill_min_sessions")}
           </p>
         </div>

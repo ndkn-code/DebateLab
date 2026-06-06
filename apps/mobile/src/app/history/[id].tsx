@@ -273,7 +273,7 @@ export default function HistoryDetailRoute() {
     >
       <Surface tone="success">
         <View style={styles.scoreRow}>
-          <View style={styles.scoreCircle}>
+          <View style={[styles.scoreCircle, { borderColor: colors.primary }]}>
             <AppText color={colors.primary} style={styles.scoreText}>
               {item.totalScore ?? "--"}
             </AppText>
@@ -324,7 +324,7 @@ export default function HistoryDetailRoute() {
         <Surface>
           <SectionHeader title="Clash map" />
           {feedback.clashLinks.slice(0, 4).map((link) => (
-            <View key={link.id} style={styles.cardBlock}>
+            <View key={link.id} style={[styles.cardBlock, { borderTopColor: colors.outlineVariant }]}>
               <View style={styles.badgeRow}>
                 <Badge tone="neutral">{link.outcome}</Badge>
                 <Badge tone="neutral">{link.tag}</Badge>
@@ -349,7 +349,10 @@ export default function HistoryDetailRoute() {
         <Surface>
           <SectionHeader title="Transcript coaching" />
           {annotations.slice(0, 5).map((annotation, index) => (
-            <View key={`${annotation.quote}-${index}`} style={styles.cardBlock}>
+            <View
+              key={`${annotation.quote}-${index}`}
+              style={[styles.cardBlock, { borderTopColor: colors.outlineVariant }]}
+            >
               <View style={styles.badgeRow}>
                 <Badge tone="neutral">{annotation.tag}</Badge>
                 <Badge
@@ -401,7 +404,6 @@ const styles = StyleSheet.create({
   scoreCircle: {
     alignItems: "center",
     aspectRatio: 1,
-    borderColor: "#4D86F7",
     borderRadius: 999,
     borderWidth: 8,
     justifyContent: "center",
@@ -431,7 +433,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardBlock: {
-    borderTopColor: "#DCE6F8",
     borderTopWidth: 1,
     gap: spacing.sm,
     paddingTop: spacing.md,

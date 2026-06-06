@@ -102,7 +102,7 @@ export function DebateModeSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         sideOffset={8}
-        className="w-(--anchor-width) min-w-[210px] rounded-xl border border-outline-variant bg-white p-1.5 text-on-surface shadow-[0_22px_60px_-34px_rgba(11,20,36,0.42)]"
+        className="w-(--anchor-width) min-w-[210px] rounded-xl border border-outline-variant bg-white p-1.5 text-on-surface shadow-token-card"
       >
         {MODE_OPTIONS.map((locale) => {
           const isSelected = locale === resolvedLocale;

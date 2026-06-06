@@ -55,7 +55,7 @@ export function InfoHint({ label }: InfoHintProps) {
           event.stopPropagation();
           showTooltip();
         }}
-        className="inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-[#8A96A8] outline-none transition hover:bg-[#F1F6FD] hover:text-[#3E78EC] focus-visible:bg-[#F1F6FD] focus-visible:text-[#3E78EC] focus-visible:ring-2 focus-visible:ring-[#4D86F7]/20"
+        className="inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground outline-none transition hover:bg-surface-container hover:text-primary-dim focus-visible:bg-surface-container focus-visible:text-primary-dim focus-visible:ring-2 focus-visible:ring-primary/20"
       >
         <Info className="h-3.5 w-3.5" />
       </button>
@@ -65,7 +65,7 @@ export function InfoHint({ label }: InfoHintProps) {
               id={tooltipId}
               role="tooltip"
               data-settings-info-tooltip
-              className="pointer-events-none fixed z-[9999] max-w-72 -translate-x-1/2 -translate-y-full rounded-lg bg-[#0B1424] px-3 py-2 text-xs font-normal leading-5 text-white shadow-lg"
+              className="pointer-events-none fixed z-[9999] max-w-72 -translate-x-1/2 -translate-y-full rounded-lg bg-surface-container-high px-3 py-2 text-xs font-normal leading-5 text-white shadow-lg"
               style={{
                 left: tooltipPosition.left,
                 top: tooltipPosition.top,

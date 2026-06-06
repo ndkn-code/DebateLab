@@ -44,7 +44,7 @@ const STATUS_STYLES = {
   },
   active: {
     node: "border-primary bg-primary text-on-primary ring-4 ring-primary/15",
-    card: "border-primary/20 bg-primary/5 shadow-[0_20px_40px_-28px_rgba(47,79,221,0.6)]",
+    card: "border-primary/20 bg-primary/5 shadow-token-card",
     badge: "border-primary/20 bg-primary/10 text-primary",
   },
   locked: {

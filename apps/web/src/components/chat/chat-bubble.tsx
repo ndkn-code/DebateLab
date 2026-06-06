@@ -78,7 +78,7 @@ const BLOCK_STYLES: Record<
     label: "Tip",
     icon: Lightbulb,
     className: "border-l-[#D8A537]/45",
-    iconClassName: "text-[#B87900]",
+    iconClassName: "text-on-surface-variant",
   },
   common_mistake: {
     label: "Common mistake",
@@ -445,9 +445,9 @@ function CoachOpeningBlueprint({
             return (
               <div
                 key={`${formulaBlock.id}-step-${index}`}
-                className="flex min-h-[66px] gap-3 rounded-xl border border-outline-variant/12 bg-[#FBFDFF] p-3"
+                className="flex min-h-[66px] gap-3 rounded-xl border border-outline-variant/12 bg-surface-container p-3"
               >
-                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.2)]">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-token-primary">
                   {index + 1}
                 </span>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -487,7 +487,7 @@ function CoachOpeningBlueprint({
                       type="button"
                       onClick={() => onDraftMessage(OPENING_TEMPLATE_DRAFT)}
                       disabled={actionsDisabled}
-                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow-[0_10px_20px_rgba(77,134,247,0.18)] transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow-token-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
                       Use template
@@ -500,8 +500,8 @@ function CoachOpeningBlueprint({
 
           <div className="grid gap-3 sm:grid-cols-2">
             {tipBlock && (
-              <div className="rounded-xl border border-[#F5B942]/32 bg-[#FFFBF1] p-3">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#956300]">
+              <div className="rounded-xl border border-warning/32 bg-surface-container p-3">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-warning">
                   <Lightbulb className="h-4 w-4" />
                   Coach Tip
                 </div>
@@ -517,7 +517,7 @@ function CoachOpeningBlueprint({
             )}
 
             {mistakeBlock && (
-              <div className="rounded-xl border border-error/24 bg-[#FFF8F8] p-3">
+              <div className="rounded-xl border border-error/24 bg-surface-container p-3">
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-error">
                   <CircleAlert className="h-4 w-4" />
                   Watch Out
@@ -537,7 +537,7 @@ function CoachOpeningBlueprint({
       </div>
 
       {exampleBlock && (
-        <div className="bg-[#FBFDFF] px-3 pb-3 sm:px-4 sm:pb-4">
+        <div className="bg-surface-container px-3 pb-3 sm:px-4 sm:pb-4">
           <div className="flex items-start gap-3 rounded-xl border border-primary/12 bg-white p-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
               <BookOpen className="h-[18px] w-[18px]" />
@@ -643,8 +643,8 @@ function visualConnectorSymbol(index: number, connectorLabel?: string) {
 }
 
 function visualLineClass(accent?: string) {
-  if (accent === "warning") return "bg-[#B9852A]/70";
-  if (accent === "danger") return "bg-[#B56A5F]/65";
+  if (accent === "warning") return "bg-surface-container-high/70";
+  if (accent === "danger") return "bg-surface-container-high/65";
   return "bg-primary/72";
 }
 
@@ -686,7 +686,7 @@ function CoachVisualExplainerCard({
     normalizeFormulaText(visual.title) === normalizeFormulaText(formulaText);
 
   return (
-    <section className="mt-5 max-w-[780px] overflow-hidden rounded-[26px] border border-[#D9E2F0] bg-white shadow-[0_18px_42px_rgba(17,35,62,0.055)]">
+    <section className="mt-5 max-w-[780px] overflow-hidden rounded-[26px] border border-outline-variant bg-white shadow-token-card">
       <div className="px-5 py-6 sm:px-8 sm:py-7">
         {titleIsFormula && !visual.subtitle ? null : (
           <motion.div
@@ -790,7 +790,7 @@ function CoachVisualExplainerCard({
               duration: 0.32,
               ease: "easeOut",
             }}
-            className="mt-6 border-t border-[#E4EAF3] pt-4 text-[15px] leading-7 text-on-surface"
+            className="mt-6 border-t border-outline-variant pt-4 text-[15px] leading-7 text-on-surface"
           >
             <span className="font-semibold">Takeaway: </span>
             <span className="text-on-surface-variant">{visual.takeaway}</span>
@@ -800,7 +800,7 @@ function CoachVisualExplainerCard({
         <button
           type="button"
           onClick={() => setReplayKey((key) => key + 1)}
-          className="mt-6 inline-flex h-10 items-center gap-2 rounded-[14px] border border-[#DDE6F2] bg-white px-3.5 text-sm font-semibold text-on-surface shadow-[0_8px_18px_rgba(17,35,62,0.06)] transition-colors hover:border-primary/24 hover:bg-primary/5"
+          className="mt-6 inline-flex h-10 items-center gap-2 rounded-[14px] border border-outline-variant bg-white px-3.5 text-sm font-semibold text-on-surface shadow-token-card transition-colors hover:border-primary/24 hover:bg-primary/5"
         >
           <RotateCcw className="h-4 w-4" />
           Replay animation
@@ -858,7 +858,7 @@ function CoachSuggestedActions({
           className={cn(
             "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             action.variant === "primary"
-              ? "border-primary bg-primary text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.16)] hover:bg-primary-dim"
+              ? "border-primary bg-primary text-on-primary shadow-token-primary hover:bg-primary-dim"
               : "border-primary/18 bg-white text-primary hover:bg-primary/5"
           )}
         >
@@ -1102,10 +1102,10 @@ function CoachVisualPreparingCard() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
-      className="mt-5 max-w-[820px] overflow-hidden rounded-[24px] border border-[#DDE7F5] bg-white shadow-[0_18px_42px_rgba(34,57,94,0.08)]"
+      className="mt-5 max-w-[820px] overflow-hidden rounded-[24px] border border-outline-variant bg-white shadow-token-card"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 border-b border-[#EEF2F7] px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-outline-variant px-5 py-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/8 text-primary">
           <Sparkles className="h-4 w-4" />
         </span>
@@ -1119,15 +1119,15 @@ function CoachVisualPreparingCard() {
         </div>
       </div>
       <div className="space-y-5 px-5 py-6">
-        <div className="mx-auto h-5 w-3/5 animate-pulse rounded-full bg-[#EEF3FA]" />
+        <div className="mx-auto h-5 w-3/5 animate-pulse rounded-full bg-surface-container" />
         <div className="flex items-center justify-center gap-4">
-          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:w-32" />
-          <div className="h-px w-6 bg-[#DDE7F5] sm:w-8" />
-          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:w-32" />
-          <div className="hidden h-px w-8 bg-[#DDE7F5] sm:block" />
-          <div className="hidden h-16 w-32 animate-pulse rounded-[18px] bg-[#F3F6FB] sm:block" />
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container sm:w-32" />
+          <div className="h-px w-6 bg-surface-container-high sm:w-8" />
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container sm:w-32" />
+          <div className="hidden h-px w-8 bg-surface-container-high sm:block" />
+          <div className="hidden h-16 w-32 animate-pulse rounded-[18px] bg-surface-container sm:block" />
         </div>
-        <div className="mx-auto h-3 w-4/5 animate-pulse rounded-full bg-[#F4F7FB]" />
+        <div className="mx-auto h-3 w-4/5 animate-pulse rounded-full bg-surface-container" />
       </div>
     </motion.section>
   );
@@ -1136,10 +1136,10 @@ function CoachVisualPreparingCard() {
 function UserMessage({ message }: { message: ChatMessageLocal }) {
   return (
     <div className="flex flex-row-reverse items-start gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-[0_8px_16px_rgba(77,134,247,0.18)]">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-token-primary">
         <User className="h-4 w-4" />
       </div>
-      <div className="max-w-[min(76%,680px)] rounded-2xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-[0_10px_20px_rgba(77,134,247,0.18)]">
+      <div className="max-w-[min(76%,680px)] rounded-2xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-token-primary">
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
     </div>

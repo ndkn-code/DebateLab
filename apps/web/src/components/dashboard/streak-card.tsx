@@ -197,7 +197,7 @@ export function StreakCard({
                         ? "h-8 w-8"
                         : "h-11 w-11 sm:h-12 sm:w-12",
                       isActive
-                        ? "border-primary bg-primary text-on-primary shadow-[0_12px_24px_-16px_rgba(47,79,221,0.65)]"
+                        ? "border-primary bg-primary text-on-primary shadow-token-card"
                         : isToday
                           ? "border-primary/30 bg-primary/5 text-primary"
                           : "border-outline-variant/20 bg-surface-container-low text-on-surface-variant"

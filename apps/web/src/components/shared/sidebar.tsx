@@ -139,6 +139,23 @@ function NavContent({
 
       {/* Nav Links */}
       <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
+        {isAdmin ? (
+          <Link
+            href="/dashboard/admin/overview"
+            onClick={onNavClick}
+            className={cn(
+              "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
+              collapsed && "justify-center px-0",
+              pathname.startsWith("/dashboard/admin")
+                ? "sidebar-nav-selected"
+                : "sidebar-nav-idle"
+            )}
+            title={collapsed ? t("switchToAdmin") : undefined}
+          >
+            <Shield className="h-5 w-5 shrink-0" />
+            {!collapsed ? <span className="truncate">{t("switchToAdmin")}</span> : null}
+          </Link>
+        ) : null}
         {NAV_ITEMS.map((item) => {
           const href = item.href;
           const isActive = href
@@ -193,8 +210,8 @@ function NavContent({
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 collapsed && "justify-center px-0",
                 isActive
-                  ? "bg-white/[0.12] text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(169,198,251,0.16)]"
-                  : "text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+                  ? "sidebar-nav-selected"
+                  : "sidebar-nav-idle"
               )}
               title={collapsed ? label : undefined}
             >
@@ -211,13 +228,14 @@ function NavContent({
           <SupportIssueDialog
             profile={profile}
             userEmail={userEmail}
-            triggerClassName="text-sidebar-muted/85 hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            triggerClassName="sidebar-nav-action"
           />
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
               "flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-white/[0.08]",
+              "sidebar-nav-action",
               collapsed && "justify-center px-0"
             )}
           >

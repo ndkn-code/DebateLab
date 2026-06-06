@@ -263,7 +263,7 @@ function getAnalyticsScoreMeta(
         score >= 90
           ? t?.("score_note.excellent") ?? "Excellent"
           : t?.("score_note.very_good") ?? "Very Good",
-      badgeClassName: "bg-[#eaf8f4] text-[#00a66f]",
+      badgeClassName: "bg-surface-container text-on-surface-variant",
     };
   }
 
@@ -275,7 +275,7 @@ function getAnalyticsScoreMeta(
         score >= 74
           ? t?.("score_note.good") ?? "Good"
           : t?.("score_note.solid") ?? "Solid",
-      badgeClassName: "bg-[#edf5ff] text-[#1478ff]",
+      badgeClassName: "bg-surface-container text-primary",
     };
   }
 
@@ -283,7 +283,7 @@ function getAnalyticsScoreMeta(
     stroke: "#F59E0B",
     status: t?.("score_status.developing") ?? "Developing",
     note: t?.("score_note.keep_going") ?? "Keep going",
-    badgeClassName: "bg-[#fff4e2] text-[#F59E0B]",
+    badgeClassName: "bg-warning-container text-on-surface-variant",
   };
 }
 
@@ -293,8 +293,8 @@ function getSessionVisual(session: AnalyticsRecentSession, index: number) {
   if (session.kind === "duel") {
     return {
       Icon: Swords,
-      iconClassName: "text-[#ff9b00]",
-      iconWrapClassName: "bg-[#fff4e2]",
+      iconClassName: "text-warning",
+      iconWrapClassName: "bg-warning-container",
     };
   }
 
@@ -303,11 +303,11 @@ function getSessionVisual(session: AnalyticsRecentSession, index: number) {
     return {
       Icon: isPublicSpeaking ? UsersRound : Mic,
       iconClassName: isPublicSpeaking
-        ? "text-[#7b45f6]"
-        : "text-[#1478ff]",
+        ? "text-on-surface-variant"
+        : "text-primary",
       iconWrapClassName: isPublicSpeaking
-        ? "bg-[#f2ecff]"
-        : "bg-[#eaf2ff]",
+        ? "bg-surface-container"
+        : "bg-surface-container",
     };
   }
 
@@ -319,21 +319,21 @@ function getSessionVisual(session: AnalyticsRecentSession, index: number) {
   ) {
     return {
       Icon: Globe2,
-      iconClassName: "text-[#12b8a6]",
-      iconWrapClassName: "bg-[#e7fbf8]",
+      iconClassName: "text-on-surface-variant",
+      iconWrapClassName: "bg-surface-container",
     };
   }
 
   const visuals = [
     {
       Icon: Building2,
-      iconClassName: "text-[#7b45f6]",
-      iconWrapClassName: "bg-[#f1e9ff]",
+      iconClassName: "text-on-surface-variant",
+      iconWrapClassName: "bg-surface-container",
     },
     {
       Icon: Scale,
       iconClassName: "text-primary",
-      iconWrapClassName: "bg-[#eaf2ff]",
+      iconWrapClassName: "bg-surface-container",
     },
   ];
 
@@ -486,8 +486,8 @@ function MiniLineChart({
       >
         <defs>
           <linearGradient id="analytics-score-area" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#4D86F7" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#4D86F7" stopOpacity="0" />
+            <stop offset="0%" stopColor="#00B8D9" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="#00B8D9" stopOpacity="0" />
           </linearGradient>
           <filter id="analytics-score-glow" x="-20%" y="-80%" width="140%" height="260%">
             <feGaussianBlur stdDeviation="2.2" result="blur" />
@@ -509,7 +509,7 @@ function MiniLineChart({
               <text
                 x="3"
                 y={y + 3}
-                className="fill-[#718096] text-[8.6px] font-medium"
+                className="fill-primary text-[8.6px] font-medium"
               >
                 {tick}
               </text>
@@ -527,7 +527,7 @@ function MiniLineChart({
         <polygon points={areaPoints} fill="url(#analytics-score-area)" />
         <polyline
           fill="none"
-          stroke="rgba(77,134,247,0.22)"
+          stroke="rgba(0,184,217,0.22)"
           strokeWidth="7"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -535,7 +535,7 @@ function MiniLineChart({
         />
         <polyline
           fill="none"
-          stroke="#4D86F7"
+          stroke="#00B8D9"
           strokeWidth="3.2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -555,7 +555,7 @@ function MiniLineChart({
                 cx={point.x}
                 cy={point.y}
                 r={index === chartPoints.length - 1 ? "5" : "3.8"}
-                fill="#4D86F7"
+                fill="#00B8D9"
                 stroke="#FFFFFF"
                 strokeWidth="2"
               />
@@ -563,7 +563,7 @@ function MiniLineChart({
                 cx={point.x}
                 cy={point.y}
                 r={index === chartPoints.length - 1 ? "9" : "0"}
-                fill="rgba(77,134,247,0.18)"
+                fill="rgba(0,184,217,0.18)"
               />
               <g className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                 <rect
@@ -572,7 +572,7 @@ function MiniLineChart({
                   width="48"
                   height="22"
                   rx="8"
-                  fill="#0B1424"
+                  fill="#102936"
                   opacity="0.92"
                 />
                 <text
@@ -612,7 +612,7 @@ function DonutRing({
           cy="50"
           r={radius}
           fill="none"
-          stroke="rgba(169,198,251,0.25)"
+          stroke="rgba(168,240,215,0.25)"
           strokeWidth="12"
         />
         <circle
@@ -620,7 +620,7 @@ function DonutRing({
           cy="50"
           r={radius}
           fill="none"
-          stroke="#4D86F7"
+          stroke="#00B8D9"
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -744,7 +744,7 @@ function AnalyticsSkillSnapshotCard({
   const values = metrics.map((metric) => (metric.coverage > 0 ? metric.value : 0));
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6 lg:pb-4">
+    <section className="min-w-0 overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-token-card lg:p-6 lg:pb-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-on-surface">
@@ -777,7 +777,7 @@ function AnalyticsSkillSnapshotCard({
                   <polygon
                     key={step}
                     points={polygonPoints(Array(5).fill(ringValue))}
-                    fill={step % 2 === 0 ? "rgba(169,198,251,0.1)" : "transparent"}
+                    fill={step % 2 === 0 ? "rgba(168,240,215,0.1)" : "transparent"}
                     stroke="rgba(65,80,105,0.18)"
                     strokeWidth="1"
                   />
@@ -801,8 +801,8 @@ function AnalyticsSkillSnapshotCard({
 
               <polygon
                 points={polygonPoints(values)}
-                fill="rgba(77,134,247,0.16)"
-                stroke="rgba(62,120,236,0.95)"
+                fill="rgba(0,184,217,0.16)"
+                stroke="rgba(7,136,160,0.95)"
                 strokeWidth="2.5"
               />
 
@@ -814,7 +814,7 @@ function AnalyticsSkillSnapshotCard({
                     cx={point.x}
                     cy={point.y}
                     r="4"
-                    fill="#3E78EC"
+                    fill="#0788A0"
                   />
                 );
               })}
@@ -827,7 +827,7 @@ function AnalyticsSkillSnapshotCard({
                     x={position.x}
                     y={position.y}
                     textAnchor={position.textAnchor}
-                    className="fill-[#415069] text-[13.5px] font-medium"
+                    className="fill-primary text-[13.5px] font-medium"
                   >
                     {t(`skills.${metric.key}`)}
                   </text>
@@ -911,7 +911,7 @@ function RecentSessionCard({
         : t("recent_debate_badge");
 
   return (
-    <div className="grid min-h-[104px] items-center gap-4 rounded-[1.35rem] border border-outline-variant/22 bg-surface-container-lowest px-4 py-3.5 shadow-[0_20px_58px_-48px_rgba(22,39,91,0.36)] md:grid-cols-[56px_minmax(0,1fr)_66px_116px_116px_108px]">
+    <div className="grid min-h-[104px] items-center gap-4 rounded-[1.35rem] border border-outline-variant/22 bg-surface-container-lowest px-4 py-3.5 shadow-token-panel md:grid-cols-[56px_minmax(0,1fr)_66px_116px_116px_108px]">
       <div
         className={cn(
           "flex h-14 w-14 items-center justify-center rounded-[1.1rem]",
@@ -930,10 +930,10 @@ function RecentSessionCard({
             className={cn(
               "inline-flex h-6 items-center rounded-lg px-2 text-xs font-semibold",
               session.kind === "duel"
-                ? "bg-[#fff4e2] text-[#ff9b00]"
+                ? "bg-warning-container text-warning"
                 : session.practiceTrack === "speaking"
-                  ? "bg-[#e9f3ff] text-[#1478ff]"
-                  : "bg-[#f1e9ff] text-[#8a34ff]"
+                  ? "bg-surface-container text-primary"
+                  : "bg-surface-container text-on-surface-variant"
             )}
           >
             {tag}
@@ -1090,13 +1090,13 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
 
         <div className="grid gap-4">
           <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
-            <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-token-card lg:p-6">
               <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
-                <Avatar className="h-28 w-28 shrink-0 ring-2 ring-[#EEF4FF] shadow-[0_18px_38px_rgba(11,20,36,0.08)]">
+                <Avatar className="h-28 w-28 shrink-0 ring-2 ring-primary-container shadow-token-card">
                   {data.hero.avatarUrl ? (
                     <AvatarImage src={data.hero.avatarUrl} alt={data.hero.displayName} />
                   ) : null}
-                  <AvatarFallback className="bg-[linear-gradient(180deg,#EEF4FF_0%,#DCEAFF_100%)] text-[1.75rem] font-semibold text-primary">
+                  <AvatarFallback className="bg-[linear-gradient(180deg,#E5F8FC_0%,#DCEAFF_100%)] text-[1.75rem] font-semibold text-primary">
                     {getInitials(data.hero.displayName)}
                   </AvatarFallback>
                 </Avatar>
@@ -1148,7 +1148,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                     }
                     value={data.hero.streak}
                     label={t("hero_streak")}
-                    tone="bg-[#FFF3E8]"
+                    tone="bg-surface-container"
                   />
                   <HeroStat
                     icon={<BarChart3 className="h-5 w-5 text-primary" />}
@@ -1157,10 +1157,10 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                     tone="bg-primary/10"
                   />
                   <HeroStat
-                    icon={<Clock3 className="h-5 w-5 text-[#34C759]" />}
+                    icon={<Clock3 className="h-5 w-5 text-success" />}
                     value={formatTotalMinutes(data.hero.totalPracticeMinutes, t)}
                     label={t("hero_practice_time")}
-                    tone="bg-[#EAF8EF]"
+                    tone="bg-surface-container"
                   />
                 </div>
               </div>
@@ -1170,7 +1170,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
           </div>
 
           <div className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.practice_minutes.title")}
@@ -1217,7 +1217,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </div>
             </section>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.mix.title")}
@@ -1258,7 +1258,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </Link>
             </section>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.average_score.title")}
@@ -1299,7 +1299,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               </div>
             </section>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_16px_32px_rgba(11,20,36,0.04)]">
+            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
                 <h3 className="text-[0.98rem] font-semibold text-on-surface">
                   {t("cards.strongest_focus.title")}
@@ -1309,10 +1309,10 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                 {t("cards.strongest_focus.scope")}
               </p>
               <div className="mt-4 flex flex-1 flex-col justify-center gap-3">
-                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-[0_8px_20px_rgba(11,20,36,0.025)]">
+                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-token-card">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#34C759]/16 text-[#34C759]">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success/16 text-success">
                         <Trophy className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
@@ -1338,10 +1338,10 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                     </div>
                   </div>
                 </div>
-                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-[0_8px_20px_rgba(11,20,36,0.025)]">
+                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-token-card">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F5B942]/18 text-[#F59E0B]">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/18 text-on-surface-variant">
                         <Target className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
@@ -1371,7 +1371,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
             </section>
           </div>
 
-          <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_40px_rgba(11,20,36,0.05)] lg:p-6">
+          <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-on-surface">

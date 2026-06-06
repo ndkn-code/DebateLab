@@ -8,8 +8,8 @@ import type { MatchingContent, ActivityContent } from "@/lib/types/admin";
 import { getElapsedSecondsSince } from "@/lib/time";
 
 const PAIR_COLORS = [
-  { bg: "bg-blue-50", border: "border-blue-400", text: "text-blue-700" },
-  { bg: "bg-purple-50", border: "border-purple-400", text: "text-purple-700" },
+  { bg: "bg-primary-container", border: "border-primary", text: "text-primary-dim" },
+  { bg: "bg-info-container", border: "border-info", text: "text-info" },
   { bg: "bg-teal-50", border: "border-teal-400", text: "text-teal-700" },
   { bg: "bg-amber-50", border: "border-amber-400", text: "text-amber-700" },
   { bg: "bg-pink-50", border: "border-pink-400", text: "text-pink-700" },

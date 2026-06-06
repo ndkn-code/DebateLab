@@ -10,6 +10,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        primary: "bg-primary-container text-on-primary-container [a]:hover:bg-primary-container/80",
+        reward: "bg-reward-container text-reward-dim [a]:hover:bg-reward-container/80",
+        success: "bg-success-container text-success-dim [a]:hover:bg-success-container/80",
+        warning: "bg-warning-container text-on-warning-container [a]:hover:bg-warning-container/80",
+        info: "bg-info-container text-info [a]:hover:bg-info-container/80",
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:

@@ -55,23 +55,23 @@ interface SessionResultDashboardProps {
 const BAND_STYLES = {
   novice: {
     stroke: "#F87171",
-    chip: "bg-[#FDECEC] text-[#C63B3B]",
+    chip: "bg-error-container text-on-surface-variant",
   },
   developing: {
     stroke: "#FB923C",
-    chip: "bg-[#FFF1E7] text-[#C96A18]",
+    chip: "bg-surface-container text-on-surface-variant",
   },
   competent: {
-    stroke: "#F5B942",
-    chip: "bg-[#FFF7E5] text-[#B88300]",
+    stroke: "#FFD166",
+    chip: "bg-surface-container text-on-surface-variant",
   },
   proficient: {
     stroke: "#2F76EF",
-    chip: "bg-[#EAF9EF] text-[#1A9153]",
+    chip: "bg-surface-container text-on-surface-variant",
   },
   expert: {
-    stroke: "#34C759",
-    chip: "bg-[#EAF9EF] text-[#1A9153]",
+    stroke: "#00B8D9",
+    chip: "bg-surface-container text-on-surface-variant",
   },
 } as const;
 
@@ -84,13 +84,13 @@ const SKILL_ICONS: Partial<Record<string, LucideIcon>> = {
 };
 
 const HERO_CONFETTI = [
-  "left-2 top-10 bg-[#F7C73E]",
-  "left-0 top-[42%] bg-[#F36D7E]",
-  "left-5 bottom-12 bg-[#6C99F6]",
-  "left-14 bottom-24 bg-[#F5A3CF]",
-  "right-8 top-4 bg-[#F7C73E]",
-  "right-2 top-[38%] bg-[#F36D7E]",
-  "right-7 bottom-16 bg-[#B9CBFA]",
+  "left-2 top-10 bg-surface-container",
+  "left-0 top-[42%] bg-surface-container",
+  "left-5 bottom-12 bg-surface-container-high",
+  "left-14 bottom-24 bg-surface-container",
+  "right-8 top-4 bg-surface-container",
+  "right-2 top-[38%] bg-surface-container",
+  "right-7 bottom-16 bg-surface-container-high",
 ] as const;
 
 function toDisplayLocale(locale: string) {
@@ -178,21 +178,21 @@ function ResultList({
 }) {
   return (
     <div className="min-w-0 px-0 py-1">
-      <div className="flex items-center gap-3 text-base font-semibold text-[#071159]">
+      <div className="flex items-center gap-3 text-base font-semibold text-on-surface-variant">
         <Icon className={cn("h-5 w-5", iconClassName)} />
         {title}
       </div>
       {items.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
           {items.map((item) => (
-            <li key={item} className="flex gap-3 text-[0.92rem] leading-6 text-[#30427A]">
+            <li key={item} className="flex gap-3 text-[0.92rem] leading-6 text-on-surface-variant">
               <span className={cn("mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full", dotClassName)} />
               <span>{item}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm leading-6 text-[#30427A]">{emptyMessage}</p>
+        <p className="mt-4 text-sm leading-6 text-on-surface-variant">{emptyMessage}</p>
       )}
     </div>
   );
@@ -253,7 +253,7 @@ export function SessionResultDashboard({
   if (!viewModel) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-[#DFE8F8] bg-white p-6 text-center text-[#30427A] shadow-[0_18px_45px_rgba(16,32,72,0.035)]">
+        <div className="rounded-2xl border border-outline-variant bg-white p-6 text-center text-on-surface-variant shadow-token-card">
           {t("noFeedback")}
         </div>
       </div>
@@ -420,7 +420,7 @@ export function SessionResultDashboard({
         {backHref && backLabel ? (
           <Link
             href={backHref}
-            className="inline-flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-[#0B185A] transition-colors hover:bg-white hover:text-primary"
+            className="inline-flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-white hover:text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -434,7 +434,7 @@ export function SessionResultDashboard({
             type="button"
             variant="outline"
             onClick={handleShare}
-            className="h-12 rounded-xl border-[#E1E8F7] bg-white px-5 text-[#0B185A] shadow-none hover:bg-[#F8FAFF]"
+            className="h-12 rounded-xl border-outline-variant bg-white px-5 text-on-surface-variant shadow-none hover:bg-surface-container"
           >
             {shareState === "copied" || shareState === "shared" ? (
               <Check className="mr-2 h-4 w-4 text-primary" />
@@ -446,7 +446,7 @@ export function SessionResultDashboard({
           <Button
             type="button"
             variant="outline"
-            className="h-12 w-12 rounded-xl border-[#E1E8F7] bg-white p-0 text-[#0B185A] shadow-none hover:bg-[#F8FAFF]"
+            className="h-12 w-12 rounded-xl border-outline-variant bg-white p-0 text-on-surface-variant shadow-none hover:bg-surface-container"
             aria-label="More result actions"
           >
             <MoreVertical className="h-5 w-5" />
@@ -454,7 +454,7 @@ export function SessionResultDashboard({
         </div>
       </div>
 
-      <section className="rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_18px_45px_rgba(16,32,72,0.035)] sm:p-6">
+      <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
         <div className="grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)]">
           <div className="relative flex min-h-[245px] flex-col items-center justify-center overflow-hidden px-4 py-2">
             {HERO_CONFETTI.map((className) => (
@@ -476,7 +476,7 @@ export function SessionResultDashboard({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="10"
-                  className="text-[#E8EEF9]"
+                  className="text-on-surface-variant"
                 />
                 <circle
                   cx="110"
@@ -496,10 +496,10 @@ export function SessionResultDashboard({
                 className="absolute flex flex-col items-center"
                 aria-label={`${viewModel.feedback.totalScore} out of 100`}
               >
-                <span className="text-sm font-medium text-[#33457E]">
+                <span className="text-sm font-medium text-on-surface-variant">
                   {t("scoreLabel")}
                 </span>
-                <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-[#071159]">
+                <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-on-surface-variant">
                   {displayScore}
                 </span>
                 <span className="sr-only">out of 100</span>
@@ -517,7 +517,7 @@ export function SessionResultDashboard({
               </span>
             </div>
             {winnerResult && (
-              <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-[#D8E5FF] bg-[#F4F8FF] px-3 py-2 text-sm font-bold text-[#0B185A]">
+              <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-bold text-on-surface-variant">
                 <Trophy className="h-4 w-4 shrink-0 text-primary" />
                 <span className="min-w-0">
                   {winnerResult.kind === "tie"
@@ -534,7 +534,7 @@ export function SessionResultDashboard({
             <Button
               type="button"
               variant="ghost"
-              className="absolute right-0 top-0 hidden h-10 w-10 rounded-xl p-0 text-[#243A78] hover:bg-[#F3F6FC] sm:flex"
+              className="absolute right-0 top-0 hidden h-10 w-10 rounded-xl p-0 text-on-surface-variant hover:bg-surface-container sm:flex"
               aria-label="Save result"
             >
               <Bookmark className="h-6 w-6" />
@@ -542,15 +542,15 @@ export function SessionResultDashboard({
 
             <div className="flex flex-wrap items-start justify-between gap-4 pr-0 sm:pr-12">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight text-[#071159] sm:text-[1.7rem]">
+                <h1 className="text-2xl font-bold tracking-tight text-on-surface-variant sm:text-[1.7rem]">
                   {session.topic.title}
                 </h1>
-                <p className="mt-3 max-w-4xl text-[0.95rem] leading-6 text-[#30427A]">
+                <p className="mt-3 max-w-4xl text-[0.95rem] leading-6 text-on-surface-variant">
                   {viewModel.feedback.summary}
                 </p>
                 {winnerResult && (
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-xl bg-[#EAF1FF] px-3 py-2 text-sm font-bold text-primary ring-1 ring-[#CFE0FF]">
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
                       <Trophy className="h-4 w-4" />
                       {winnerResult.kind === "tie"
                         ? `${t("winner.tieLabel")}: ${t("winner.tie")}`
@@ -558,7 +558,7 @@ export function SessionResultDashboard({
                             `winner.sides.${winnerResult.side}`
                           )}`}
                     </span>
-                    <span className="rounded-xl bg-[#F7FAFE] px-3 py-2 text-xs font-semibold text-[#415069] ring-1 ring-[#DEE8F8]">
+                    <span className="rounded-xl bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
                       {t("winner.confidence", {
                         confidence: Math.round(winnerResult.confidence * 100),
                       })}
@@ -568,14 +568,14 @@ export function SessionResultDashboard({
               </div>
             </div>
 
-            <div className="mt-6 border-y border-[#E6ECF8] py-5">
+            <div className="mt-6 border-y border-outline-variant py-5">
               <div className="grid gap-y-5 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#E6ECF8]">
                 {metaItems.map(({ label, value, icon: Icon }) => (
                   <div key={label} className="flex gap-3 xl:px-8 xl:first:pl-0">
-                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#243A78]" />
+                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-on-surface-variant" />
                     <div>
-                      <p className="text-sm text-[#465B91]">{label}</p>
-                      <p className="mt-1 text-[0.96rem] font-bold leading-6 text-[#071159]">
+                      <p className="text-sm text-on-surface-variant">{label}</p>
+                      <p className="mt-1 text-[0.96rem] font-bold leading-6 text-on-surface-variant">
                         {value}
                       </p>
                     </div>
@@ -584,22 +584,22 @@ export function SessionResultDashboard({
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-[#33457E]">
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-on-surface-variant">
               {timelineItems.map(({ key, value, icon: Icon }, index) => (
                 <span key={key} className="inline-flex items-center gap-2">
                   {index > 0 && (
-                    <span className="-ml-2 mr-2 h-1 w-1 rounded-full bg-[#B6C4E2]" />
+                    <span className="-ml-2 mr-2 h-1 w-1 rounded-full bg-surface-container-high" />
                   )}
                   {key === "difficulty" ? (
                     <>
-                      <span className="rounded-md bg-[#EAF1FF] px-2 py-1 text-xs font-bold text-primary">
+                      <span className="rounded-md bg-primary-container px-2 py-1 text-xs font-bold text-primary">
                         AI
                       </span>
                       <span>{value}</span>
                     </>
                   ) : (
                     <>
-                      <Icon className="h-4 w-4 text-[#243A78]" />
+                      <Icon className="h-4 w-4 text-on-surface-variant" />
                       {value}
                     </>
                   )}
@@ -611,23 +611,23 @@ export function SessionResultDashboard({
       </section>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)]">
+        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#EAF9EF] text-[#1A9153]">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
               <TrendingUp className="h-9 w-9" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-[#1A9153]">
+              <p className="text-sm font-bold text-on-surface-variant">
                 {t("insights.strongest")}
               </p>
-              <p className="mt-2 text-xl font-bold text-[#071159]">
+              <p className="mt-2 text-xl font-bold text-on-surface-variant">
                 {strongestMetric ? tSkills(strongestMetric.key) : "-"}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#30427A]">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {viewModel.strongest.note ?? t("fallbacks.strongest")}
               </p>
               {strongestMetric && (
-                <span className="mt-4 inline-flex rounded-lg bg-[#EAF9EF] px-3 py-1.5 text-sm font-bold text-[#1A9153]">
+                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface-variant">
                   {strongestMetric.score}
                   <span className="sr-only"> out of 100</span>
                 </span>
@@ -636,23 +636,23 @@ export function SessionResultDashboard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)]">
+        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#FFF2E2] text-[#FF8A1F]">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
               <TrendingDown className="h-9 w-9" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-[#FF7A00]">
+              <p className="text-sm font-bold text-on-surface-variant">
                 {t("insights.needsWork")}
               </p>
-              <p className="mt-2 text-xl font-bold text-[#071159]">
+              <p className="mt-2 text-xl font-bold text-on-surface-variant">
                 {weakestMetric ? tSkills(weakestMetric.key) : "-"}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#30427A]">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {viewModel.weakest.note ?? t("fallbacks.needsWork")}
               </p>
               {weakestMetric && (
-                <span className="mt-4 inline-flex rounded-lg bg-[#FFF1E1] px-3 py-1.5 text-sm font-bold text-[#FF7A00]">
+                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface-variant">
                   {weakestMetric.score}
                   <span className="sr-only"> out of 100</span>
                 </span>
@@ -661,22 +661,22 @@ export function SessionResultDashboard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)]">
+        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF] text-primary">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
               <Target className="h-9 w-9" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-primary">
                 {t("insights.nextFocus")}
               </p>
-              <p className="mt-2 text-xl font-bold text-[#071159]">
+              <p className="mt-2 text-xl font-bold text-on-surface-variant">
                 {focusMetric ? tSkills(focusMetric.key) : "-"}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#30427A]">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {viewModel.focus.note ?? t("fallbacks.focus")}
               </p>
-              <div className="mt-4 inline-flex rounded-lg bg-[#EAF1FF] px-4 py-2 text-sm font-bold text-primary">
+              <div className="mt-4 inline-flex rounded-lg bg-primary-container px-4 py-2 text-sm font-bold text-primary">
                 {t("insights.focusCta")}
               </div>
             </div>
@@ -685,7 +685,7 @@ export function SessionResultDashboard({
       </div>
 
       <div className="mt-5">
-        <h2 className="text-base font-bold text-[#071159]">
+        <h2 className="text-base font-bold text-on-surface-variant">
           {t("skillBreakdown")}
         </h2>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
@@ -696,24 +696,24 @@ export function SessionResultDashboard({
             return (
               <div
                 key={metric.key}
-                className="rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_12px_30px_rgba(16,32,72,0.022)]"
+                className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Icon
                       className={cn(
                         "h-5 w-5",
-                        isWeakest ? "text-[#FF7A00]" : "text-primary"
+                        isWeakest ? "text-on-surface-variant" : "text-primary"
                       )}
                     />
-                    <span className="text-sm font-bold text-[#071159]">
+                    <span className="text-sm font-bold text-on-surface-variant">
                       {tSkills(metric.key)}
                     </span>
                   </div>
                   <span
                     className={cn(
                       "text-lg font-bold",
-                      isWeakest ? "text-[#FF7A00]" : "text-[#071159]"
+                      isWeakest ? "text-on-surface-variant" : "text-on-surface-variant"
                     )}
                   >
                     {metric.score}
@@ -721,17 +721,17 @@ export function SessionResultDashboard({
                   </span>
                 </div>
 
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E8EEF9]">
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface-container">
                   <div
                     className={cn(
                       "h-full rounded-full transition-[width] duration-700 ease-out",
-                      isWeakest ? "bg-[#FF8A1F]" : metric.progressClassName
+                      isWeakest ? "bg-surface-container" : metric.progressClassName
                     )}
                     style={{ width: `${metric.score}%` }}
                   />
                 </div>
 
-                <p className="mt-4 text-sm leading-6 text-[#30427A]">
+                <p className="mt-4 text-sm leading-6 text-on-surface-variant">
                   {t(`skillDescriptions.${metric.descriptionKey}`)}
                 </p>
               </div>
@@ -741,17 +741,17 @@ export function SessionResultDashboard({
       </div>
 
       {scoreRationale && (
-        <section className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
+        <section className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-[#071159]">
+              <h2 className="text-base font-bold text-on-surface-variant">
                 {t("scoreRationale.heading")}
               </h2>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-[#30427A]">
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-on-surface-variant">
                 {scoreRationale.overall}
               </p>
             </div>
-            <span className="rounded-xl bg-[#EAF1FF] px-3 py-2 text-sm font-bold text-primary ring-1 ring-[#CFE0FF]">
+            <span className="rounded-xl bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
               {t("scoreRationale.total", {
                 score: viewModel.feedback.totalScore,
               })}
@@ -762,34 +762,34 @@ export function SessionResultDashboard({
             {scoreRationaleCategories.map(({ key, value, icon: Icon }) => (
               <article
                 key={key}
-                className="rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-4"
+                className="rounded-xl border border-outline-variant bg-surface-container p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
                     <Icon className="h-4 w-4 text-primary" />
                     {t(`scoreRationale.categories.${key}`)}
                   </div>
-                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-[#071159] ring-1 ring-[#DEE8F8]">
+                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-on-surface-variant ring-1 ring-outline-variant">
                     {value.score}/{value.maxScore}
                   </span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                   {value.rationale}
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg bg-[#FFF8F2] p-3 ring-1 ring-[#FFD7B3]">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#C96A18]">
+                  <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                       {t("scoreRationale.whyNotHigher")}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                       {value.whyNotHigher}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-[#F4FCF7] p-3 ring-1 ring-[#CDEED9]">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1A9153]">
+                  <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                       {t("scoreRationale.nextStep")}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                       {value.nextStep}
                     </p>
                   </div>
@@ -801,13 +801,13 @@ export function SessionResultDashboard({
       )}
 
       {hasCasework && (
-        <div className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
+        <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-[#071159]">
+              <h2 className="text-base font-bold text-on-surface-variant">
                 {t("casework.heading")}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#30427A]">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {t("casework.subheading")}
               </p>
             </div>
@@ -818,13 +818,13 @@ export function SessionResultDashboard({
               {caseworkItems.map(({ label, value, icon: Icon }) => (
                 <div
                   key={label}
-                  className="rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-4"
+                  className="rounded-xl border border-outline-variant bg-surface-container p-4"
                 >
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#071159]">
+                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
                     <Icon className="h-4 w-4 text-primary" />
                     {label}
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                  <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                     {value}
                   </p>
                 </div>
@@ -837,44 +837,44 @@ export function SessionResultDashboard({
               {argumentBreakdowns.map((argument, index) => (
                 <article
                   key={`${argument.name}-${index}`}
-                  className="rounded-xl border border-[#E6ECF8] bg-white p-4"
+                  className="rounded-xl border border-outline-variant bg-white p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-primary">
                         {t("casework.argument", { number: index + 1 })}
                       </p>
-                      <h3 className="mt-1 text-base font-bold leading-6 text-[#071159]">
+                      <h3 className="mt-1 text-base font-bold leading-6 text-on-surface-variant">
                         {argument.name}
                       </h3>
                     </div>
-                    <span className="rounded-md bg-[#EAF1FF] px-2.5 py-1 text-xs font-bold text-primary">
+                    <span className="rounded-md bg-primary-container px-2.5 py-1 text-xs font-bold text-primary">
                       {t("casework.rebuild")}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#30427A]">
+                  <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                     {argument.summary}
                   </p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg bg-[#F4FCF7] p-3 ring-1 ring-[#CDEED9]">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1A9153]">
+                    <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                         {t("casework.worked")}
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {argument.whatWorked}
                       </p>
                     </div>
-                    <div className="rounded-lg bg-[#FFF8F2] p-3 ring-1 ring-[#FFD7B3]">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#C96A18]">
+                    <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
                         {t("casework.missing")}
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-[#30427A]">
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {argument.missingLayer}
                       </p>
                     </div>
                   </div>
-                  <p className="mt-4 rounded-lg bg-[#F1F6FD] p-4 text-sm leading-6 text-[#29406F]">
-                    <span className="font-bold text-[#071159]">
+                  <p className="mt-4 rounded-lg bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
+                    <span className="font-bold text-on-surface-variant">
                       {t("casework.betterVersion")}:{" "}
                     </span>
                     {argument.betterVersion}
@@ -886,8 +886,8 @@ export function SessionResultDashboard({
         </div>
       )}
 
-      <div className="mt-5 rounded-2xl border border-[#DFE8F8] bg-white p-5 shadow-[0_14px_34px_rgba(16,32,72,0.025)] sm:p-6">
-        <h2 className="text-base font-bold text-[#071159]">
+      <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+        <h2 className="text-base font-bold text-on-surface-variant">
           {t("detail.heading")}
         </h2>
         <div className="mt-4 grid gap-5 xl:grid-cols-[1fr_1fr_1.05fr] xl:divide-x xl:divide-[#E6ECF8]">
@@ -895,8 +895,8 @@ export function SessionResultDashboard({
             <ResultList
               title={t("detail.strengths")}
               icon={CheckCircle2}
-              iconClassName="text-[#1A9153]"
-              dotClassName="bg-[#1A9153]"
+              iconClassName="text-on-surface-variant"
+              dotClassName="bg-surface-container-high"
               items={viewModel.strengths}
               emptyMessage={t("detail.emptyStrengths")}
             />
@@ -905,32 +905,32 @@ export function SessionResultDashboard({
             <ResultList
               title={t("detail.improvements")}
               icon={Target}
-              iconClassName="text-[#FF7A00]"
-              dotClassName="bg-[#FF7A00]"
+              iconClassName="text-on-surface-variant"
+              dotClassName="bg-surface-container"
               items={viewModel.improvements}
               emptyMessage={t("detail.emptyImprovements")}
             />
           </div>
-          <div className="rounded-xl bg-[#F1F5FE] p-5 xl:ml-6">
+          <div className="rounded-xl bg-surface-container p-5 xl:ml-6">
             <div className="flex items-center gap-2 text-sm font-bold text-primary">
               <Quote className="h-5 w-5" />
               {viewModel.modelAnswerKind === "stronger-rebuild"
                 ? t("detail.strongerRebuild")
                 : t("detail.modelAnswer")}
             </div>
-            <p className="mt-4 text-sm leading-7 text-[#29406F]">
+            <p className="mt-4 text-sm leading-7 text-on-surface-variant">
               {viewModel.modelAnswer ?? viewModel.feedback.summary}
             </p>
           </div>
         </div>
 
         {showInlineReviewControls && (
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#E6ECF8] pt-5">
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-outline-variant pt-5">
             <Button
               type="button"
               variant="ghost"
               onClick={() => setShowTranscript((value) => !value)}
-              className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-[#EAF1FF]"
+              className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
             >
               <FileText className="mr-2 h-4 w-4" />
               {showTranscript ? t("detail.hideTranscript") : t("detail.showTranscript")}
@@ -946,7 +946,7 @@ export function SessionResultDashboard({
                 type="button"
                 variant="ghost"
                 onClick={() => setShowTimeline((value) => !value)}
-                className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-[#EAF1FF]"
+                className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 {showTimeline ? t("detail.hideTimeline") : t("detail.showTimeline")}
@@ -961,8 +961,8 @@ export function SessionResultDashboard({
         )}
 
         {showInlineReviewControls && showTranscript && (
-          <div className="mt-4 rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-5">
-            <h3 className="text-base font-semibold text-[#071159]">
+          <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+            <h3 className="text-base font-semibold text-on-surface-variant">
               {t("detail.transcript")}
             </h3>
             <AnnotatedTranscript
@@ -980,8 +980,8 @@ export function SessionResultDashboard({
         )}
 
         {showInlineReviewControls && showTimeline && viewModel.rounds.length > 0 && (
-          <div className="mt-4 rounded-xl border border-[#E6ECF8] bg-[#FBFCFF] p-5">
-            <h3 className="mb-4 text-base font-semibold text-[#071159]">
+          <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+            <h3 className="mb-4 text-base font-semibold text-on-surface-variant">
               {t("detail.timeline")}
             </h3>
             <DebateTimeline rounds={viewModel.rounds} />

@@ -113,7 +113,7 @@ const markdownComponents: Components = {
     return (
       <pre
         className={cn(
-          "mb-4 overflow-x-auto rounded-xl bg-[#10162f] p-4 text-sm text-slate-100",
+          "mb-4 overflow-x-auto rounded-xl bg-surface-container-high p-4 text-sm text-slate-100",
           className
         )}
         {...props}

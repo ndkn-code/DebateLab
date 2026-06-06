@@ -70,7 +70,7 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+    <div className="rounded-[24px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         {icon}
       </div>
@@ -95,7 +95,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-[0_18px_45px_rgba(11,20,66,0.05)]">
+    <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
       <h2 className="text-xl font-bold text-on-surface">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>

@@ -295,7 +295,7 @@ export default function PracticeFeedbackRoute() {
     >
       <Surface tone="success">
         <View style={styles.scoreHero}>
-          <View style={styles.scoreCircle}>
+          <View style={[styles.scoreCircle, { borderColor: colors.primary }]}>
             <AppText color={colors.primary} style={styles.scoreText}>
               {displayFeedback.totalScore}
             </AppText>
@@ -373,7 +373,10 @@ export default function PracticeFeedbackRoute() {
         <Surface>
           <SectionHeader title="Clash map" />
           {displayFeedback.clashLinks.slice(0, 3).map((link) => (
-            <View key={link.id} style={styles.annotationCard}>
+            <View
+              key={link.id}
+              style={[styles.annotationCard, { borderTopColor: colors.outlineVariant }]}
+            >
               <View style={styles.badgeRow}>
                 <Badge tone="neutral">{link.outcome}</Badge>
                 <Badge tone="neutral">{link.tag}</Badge>
@@ -396,7 +399,7 @@ export default function PracticeFeedbackRoute() {
           annotations.slice(0, 5).map((annotation, index) => (
             <View
               key={`${annotation.quote}-${index}`}
-              style={styles.annotationCard}
+              style={[styles.annotationCard, { borderTopColor: colors.outlineVariant }]}
             >
               <View style={styles.badgeRow}>
                 <Badge
@@ -486,7 +489,6 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 999,
     borderWidth: 8,
-    borderColor: "#4D86F7",
     justifyContent: "center",
     width: 96,
   },
@@ -522,7 +524,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   annotationCard: {
-    borderTopColor: "#DCE6F8",
     borderTopWidth: 1,
     gap: spacing.sm,
     paddingTop: spacing.md,

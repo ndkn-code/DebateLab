@@ -164,7 +164,7 @@ export function AiQualityRatingWidget({
       )}
       aria-live="polite"
     >
-      <div className="rounded-2xl border border-outline-variant/20 bg-surface/95 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+      <div className="rounded-2xl border border-outline-variant/20 bg-surface/95 p-3 shadow-token-card backdrop-blur-xl">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             {submitted ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}

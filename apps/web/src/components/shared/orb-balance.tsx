@@ -27,7 +27,7 @@ export function OrbBalance({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-full bg-[#F5B942] font-bold text-white shadow-sm",
+          "flex items-center justify-center rounded-full bg-warning font-bold text-white shadow-sm",
           size === "sm" && "h-5 w-5 text-[10px]",
           size === "md" && "h-6 w-6 text-xs",
           size === "lg" && "h-8 w-8 text-sm"
@@ -45,7 +45,7 @@ export function OrbBalance({
           size === "sm" && "text-xs",
           size === "md" && "text-sm",
           size === "lg" && "text-base",
-          isLow ? "text-[#F5B942]" : "text-on-surface"
+          isLow ? "text-warning" : "text-on-surface"
         )}
       >
         {balance}

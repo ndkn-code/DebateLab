@@ -33,18 +33,18 @@ export const EMAIL_TEMPLATE_META: Record<
 };
 
 const palette = {
-  background: "#F7FAFE",
+  background: "#F3FCFE",
   surface: "#FFFFFF",
-  surfaceAlt: "#F1F6FD",
-  border: "#DEE8F8",
-  primary: "#4D86F7",
-  primaryDark: "#3E78EC",
-  primarySoft: "#EEF4FF",
-  heading: "#0B1424",
-  text: "#415069",
-  muted: "#718096",
+  surfaceAlt: "#E5F8FC",
+  border: "#CDECF3",
+  primary: "#00B8D9",
+  primaryDark: "#0788A0",
+  primarySoft: "#E5F8FC",
+  heading: "#102936",
+  text: "#657B84",
+  muted: "#657B84",
   success: "#34C759",
-  warning: "#F5B942",
+  warning: "#FFD166",
   coral: "#FF7A59",
 };
 
@@ -467,7 +467,7 @@ function Mascot({ mood }: { mood: EmailTemplateVariables["mascotMood"] }) {
               width: 116,
               height: 116,
               borderRadius: 30,
-              backgroundColor: "#F7FAFE",
+              backgroundColor: "#F3FCFE",
               borderColor,
               borderStyle: "solid",
               borderWidth: 2,

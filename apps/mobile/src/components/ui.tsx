@@ -37,7 +37,7 @@ type TextVariant =
   | "caption"
   | "micro";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "reward";
 
 export function useThinkfyColors() {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -141,7 +141,7 @@ export function Surface({
   tone = "default",
   style,
 }: PropsWithChildren<{
-  tone?: "default" | "soft" | "success" | "warning" | "error" | "primary";
+  tone?: "default" | "soft" | "success" | "warning" | "error" | "primary" | "reward" | "info";
   style?: StyleProp<ViewStyle>;
 }>) {
   const colors = useThinkfyColors();
@@ -242,7 +242,7 @@ export function Badge({
   children,
   tone = "primary",
 }: PropsWithChildren<{
-  tone?: "primary" | "success" | "warning" | "error" | "neutral";
+  tone?: "primary" | "success" | "warning" | "error" | "reward" | "info" | "neutral";
 }>) {
   const colors = useThinkfyColors();
   const palette = getBadgePalette(colors, tone);
@@ -261,7 +261,7 @@ export function ProgressBar({
   tone = "primary",
 }: {
   value: number;
-  tone?: "primary" | "success" | "warning";
+  tone?: "primary" | "success" | "warning" | "reward" | "info";
 }) {
   const colors = useThinkfyColors();
   const fill =
@@ -269,7 +269,11 @@ export function ProgressBar({
       ? colors.secondary
       : tone === "warning"
         ? colors.warning
-        : colors.primary;
+        : tone === "reward"
+          ? colors.reward
+          : tone === "info"
+            ? colors.info
+            : colors.primary;
   const safeValue = Math.min(Math.max(value, 0), 1);
 
   return (
@@ -437,7 +441,7 @@ export function SectionHeader({
 
 function getSurfaceColor(
   colors: ThinkfyColors,
-  tone: "default" | "soft" | "success" | "warning" | "error" | "primary"
+  tone: "default" | "soft" | "success" | "warning" | "error" | "primary" | "reward" | "info"
 ) {
   switch (tone) {
     case "soft":
@@ -450,6 +454,10 @@ function getSurfaceColor(
       return colors.errorContainer;
     case "primary":
       return colors.primaryContainer;
+    case "reward":
+      return colors.rewardContainer;
+    case "info":
+      return colors.infoContainer;
     default:
       return colors.surface;
   }
@@ -475,6 +483,12 @@ function getButtonPalette(colors: ThinkfyColors, variant: ButtonVariant) {
         border: colors.errorContainer,
         text: colors.errorDim,
       };
+    case "reward":
+      return {
+        background: colors.reward,
+        border: colors.reward,
+        text: colors.onReward,
+      };
     default:
       return {
         background: colors.primary,
@@ -486,15 +500,19 @@ function getButtonPalette(colors: ThinkfyColors, variant: ButtonVariant) {
 
 function getBadgePalette(
   colors: ThinkfyColors,
-  tone: "primary" | "success" | "warning" | "error" | "neutral"
+  tone: "primary" | "success" | "warning" | "error" | "reward" | "info" | "neutral"
 ) {
   switch (tone) {
     case "success":
       return { background: colors.secondaryContainer, text: colors.secondaryDim };
     case "warning":
-      return { background: colors.warningContainer, text: "#9A640F" };
+      return { background: colors.warningContainer, text: colors.onWarningContainer };
     case "error":
       return { background: colors.errorContainer, text: colors.errorDim };
+    case "reward":
+      return { background: colors.rewardContainer, text: colors.rewardDim };
+    case "info":
+      return { background: colors.infoContainer, text: colors.info };
     case "neutral":
       return { background: colors.surfaceDim, text: colors.muted };
     default:

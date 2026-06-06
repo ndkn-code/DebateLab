@@ -5,7 +5,7 @@ const plugins = [
   [
     "expo-splash-screen",
     {
-      backgroundColor: "#208AEF",
+      backgroundColor: "#00B8D9",
       android: {
         image: "./assets/images/splash-icon.png",
         imageWidth: 76,
@@ -51,7 +51,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: "#F3FCFE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",

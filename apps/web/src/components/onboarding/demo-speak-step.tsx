@@ -199,7 +199,7 @@ export function DemoSpeakStep({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mb-6 min-h-[92px] rounded-[1.35rem] border border-outline-variant/60 bg-surface p-4 text-left shadow-[0_18px_44px_-38px_rgba(11,20,36,0.42)]"
+          className="mb-6 min-h-[92px] rounded-[1.35rem] border border-outline-variant/60 bg-surface p-4 text-left shadow-token-card"
         >
           {speech.transcript || speech.interimTranscript ? (
             <p className="text-base text-on-surface">

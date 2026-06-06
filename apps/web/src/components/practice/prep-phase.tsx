@@ -109,7 +109,7 @@ export function PrepPhase({
 
             <PrimaryActionButton
               onClick={onSkip}
-              className="mt-3 h-10 w-full min-w-0 rounded-lg text-sm shadow-[0_12px_24px_-18px_rgba(37,99,235,0.85)]"
+              className="mt-3 h-10 w-full min-w-0 rounded-lg text-sm shadow-token-card"
             >
               {t("session.skip_to_speaking")}
             </PrimaryActionButton>
