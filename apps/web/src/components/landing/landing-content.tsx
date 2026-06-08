@@ -324,7 +324,7 @@ export function LandingContent({
           <div className="order-1 lg:order-2">
             <div className="relative mx-auto max-w-[874px]">
               <Image
-                src="/images/landing/hero-reference.png"
+                src="/images/landing/hero-reference-aqua.png"
                 alt="Two debaters standing at podiums in a clean debate illustration"
                 width={1536}
                 height={1024}
