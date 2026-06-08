@@ -64,10 +64,10 @@ import { cn } from "@/lib/utils";
 import {
   coerceProfileConnectionStatus,
   getProfileConnectionCta,
-  normalizeProfileSocialTab,
   PROFILE_SOCIAL_TABS,
   type ProfileSocialTab,
 } from "@/lib/profile-social/ui-model";
+import { coerceProfileAchievementItem } from "@/lib/profile-social/tab-model";
 import type {
   ProfileConnectionStatus,
   ProfileConnectionCenterData,
@@ -1260,43 +1260,38 @@ function ProfileHeader({
 
 function ProfileTabs({
   activeTab,
+  baseHref,
   range,
+  pendingTab,
   onTabChange,
+  onTabPrefetch,
 }: {
   activeTab: ProfileSocialTab;
+  baseHref: string;
   range: AnalyticsRangePreset;
   onTabChange: (tab: ProfileSocialTab) => void;
+  onTabPrefetch: (tab: ProfileSocialTab) => void;
+  pendingTab?: ProfileSocialTab | null;
 }) {
   const t = useTranslations("profileSocial.tabs");
-
-  function selectTab(tab: ProfileSocialTab) {
-    onTabChange(tab);
-
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", tab);
-    if (tab === "analytics") {
-      url.searchParams.set("range", range);
-    } else {
-      url.searchParams.delete("range");
-    }
-    window.history.pushState(null, "", `${url.pathname}?${url.searchParams.toString()}`);
-  }
 
   return (
     <nav className="flex justify-center border-b border-outline-variant" aria-label={t("label")}>
       <div className="flex w-full max-w-[560px] items-center justify-center gap-4 sm:gap-10">
         {PROFILE_SOCIAL_TABS.map((tab) => {
           const isActive = activeTab === tab;
+          const isPending = pendingTab === tab;
+          const href = buildTabHref(baseHref, tab, range);
           return (
             <button
               key={tab}
               type="button"
-              onClick={() => selectTab(tab)}
+              onClick={() => onTabChange(tab)}
+              onFocus={() => onTabPrefetch(tab)}
+              onPointerEnter={() => onTabPrefetch(tab)}
               aria-current={isActive ? "page" : undefined}
+              aria-busy={isPending ? true : undefined}
+              data-href={href}
               className={cn(
                 "relative inline-flex h-[3.75rem] min-w-[7.5rem] items-center justify-center gap-2 text-sm font-semibold transition-colors",
                 isActive
@@ -1304,7 +1299,7 @@ function ProfileTabs({
                   : "text-on-surface-variant hover:text-on-surface"
               )}
             >
-              {TAB_ICONS[tab]}
+              {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : TAB_ICONS[tab]}
               {t(tab)}
               {isActive ? (
                 <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
@@ -1315,6 +1310,18 @@ function ProfileTabs({
       </div>
     </nav>
   );
+}
+
+function coerceShellFeaturedAchievements(
+  value: PublicProfileShell["featuredAchievements"],
+  t: ReturnType<typeof useTranslations<"profileSocial">>
+) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(coerceProfileAchievementItem)
+    .filter((achievement): achievement is ProfileAchievementItem => Boolean(achievement))
+    .map((achievement) => localizeAchievementItem(achievement, t));
 }
 
 function AnalyticsRangeControl({
@@ -2004,21 +2011,57 @@ export function SocialProfilePage({
     () => localizeAchievementsData(achievementsData, t),
     [achievementsData, t]
   );
+  const shellFeaturedAchievements = useMemo(
+    () =>
+      coerceShellFeaturedAchievements(
+        localizedPublicProfile.profile?.featuredAchievements ?? null,
+        t
+      ),
+    [localizedPublicProfile.profile?.featuredAchievements, t]
+  );
   const profile = localizedPublicProfile.profile;
   const pageTitle = profile?.displayName ?? t("title");
-  const [currentTab, setCurrentTab] = useState(activeTab);
   const [currentRange, setCurrentRange] = useState(range);
+  const [pendingTab, setPendingTab] = useState<ProfileSocialTab | null>(null);
+  const [isTabPending, startTabTransition] = useTransition();
   const [isRangePending, startRangeTransition] = useTransition();
 
   const localeKey = useMemo(() => locale, [locale]);
 
   useEffect(() => {
-    setCurrentTab(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
     setCurrentRange(range);
   }, [range]);
+
+  useEffect(() => {
+    setPendingTab(null);
+  }, [activeTab]);
+
+  const handleTabChange = useCallback(
+    (nextTab: ProfileSocialTab) => {
+      if (nextTab === activeTab) {
+        return;
+      }
+
+      setPendingTab(nextTab);
+      startTabTransition(() => {
+        router.push(buildTabHref(baseHref, nextTab, currentRange), {
+          scroll: false,
+        });
+      });
+    },
+    [activeTab, baseHref, currentRange, router]
+  );
+
+  const handleTabPrefetch = useCallback(
+    (nextTab: ProfileSocialTab) => {
+      if (nextTab === activeTab) {
+        return;
+      }
+
+      router.prefetch(buildTabHref(baseHref, nextTab, currentRange));
+    },
+    [activeTab, baseHref, currentRange, router]
+  );
 
   const handleRangeChange = useCallback(
     (nextRange: AnalyticsRangePreset) => {
@@ -2035,17 +2078,6 @@ export function SocialProfilePage({
     },
     [baseHref, currentRange, router]
   );
-
-  useEffect(() => {
-    function handlePopState() {
-      setCurrentTab(
-        normalizeProfileSocialTab(new URLSearchParams(window.location.search).get("tab"))
-      );
-    }
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
 
   return (
     <main
@@ -2068,19 +2100,24 @@ export function SocialProfilePage({
             ) : null}
             <ProfileHeader
               data={localizedPublicProfile}
-              featuredAchievements={localizedAchievementsData?.featured ?? []}
+              featuredAchievements={
+                localizedAchievementsData?.featured ?? shellFeaturedAchievements
+              }
               isPrivacyPreview={privacyPreview}
             />
             <div className="mt-7">
               <ProfileTabs
-                activeTab={currentTab}
+                activeTab={activeTab}
+                baseHref={baseHref}
                 range={currentRange}
-                onTabChange={setCurrentTab}
+                pendingTab={isTabPending ? pendingTab : null}
+                onTabChange={handleTabChange}
+                onTabPrefetch={handleTabPrefetch}
               />
             </div>
             <div className="mt-5">
               <TabBody
-                tab={currentTab}
+                tab={activeTab}
                 data={localizedPublicProfile}
                 analyticsData={analyticsData}
                 publicAnalyticsData={publicAnalyticsData}

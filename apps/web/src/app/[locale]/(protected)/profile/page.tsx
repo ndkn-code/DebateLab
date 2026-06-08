@@ -50,16 +50,19 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
     const activeTab = normalizeProfileSocialTab(query.tab);
     const targetUserId = publicProfile.profile?.userId ?? null;
     const isSelfProfile = publicProfile.state === "self";
+    const shouldLoadAnalytics = activeTab === "analytics";
+    const shouldLoadActivities = activeTab === "activities";
+    const shouldLoadAchievements = activeTab === "achievements";
     const [
       analyticsData,
       publicAnalyticsData,
       activityFeedData,
       achievementsData,
     ] = await Promise.all([
-      isSelfProfile && publicProfile.profile
+      shouldLoadAnalytics && isSelfProfile && publicProfile.profile
         ? getAnalyticsPageData(publicProfile.profile.userId, range, practiceLanguage)
         : Promise.resolve(null),
-      targetUserId && !isSelfProfile
+      shouldLoadAnalytics && targetUserId && !isSelfProfile
         ? getProfileAnalyticsTabData({
             targetUserId,
             leaderboardLanguage: practiceLanguage,
@@ -67,14 +70,14 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
             previewAsPublic,
           })
         : Promise.resolve(null),
-      targetUserId
+      shouldLoadActivities && targetUserId
         ? getProfileActivityFeedData({
             targetUserId,
             leaderboardLanguage: practiceLanguage,
             previewAsPublic,
           })
         : Promise.resolve(null),
-      targetUserId
+      shouldLoadAchievements && targetUserId
         ? getProfileAchievementsData({
             targetUserId,
             leaderboardLanguage: practiceLanguage,

@@ -43,6 +43,13 @@ function queryClient(supabase: unknown): QueryClient {
   return supabase as QueryClient;
 }
 
+function isMissingRpc(error: { message?: string; code?: string } | null) {
+  return (
+    error?.code === "PGRST202" ||
+    Boolean(error?.message?.includes("Could not find the function"))
+  );
+}
+
 function isDevSelfTarget(input: GetPublicProfileDataInput) {
   if (input.targetUserId) {
     return input.targetUserId === DEV_ADMIN_PROFILE.id;
@@ -209,6 +216,20 @@ export async function getPublicProfileData(
 
   if (devUser) {
     return makeDevPublicProfileData(input);
+  }
+
+  if (!input.previewAsPublic && !input.targetUserId && !input.handle) {
+    const { data, error } = await rpcClient(supabase).rpc("get_profile_self_shell", {
+      p_leaderboard_language: input.leaderboardLanguage ?? "en",
+    });
+
+    if (!error) {
+      return coercePublicProfileData(data);
+    }
+
+    if (!isMissingRpc(error)) {
+      throw new Error(error.message ?? "Unable to load profile.");
+    }
   }
 
   const { data, error } = await rpcClient(supabase).rpc("get_profile_public_data", {

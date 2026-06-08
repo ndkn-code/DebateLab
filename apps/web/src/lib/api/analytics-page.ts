@@ -85,6 +85,18 @@ type DuelSpeechRow = {
   duration_seconds: number;
 };
 
+type AnalyticsProfileRow = Pick<
+  Profile,
+  | "display_name"
+  | "avatar_url"
+  | "selected_title"
+  | "level"
+  | "xp"
+  | "streak_current"
+  | "total_sessions_completed"
+  | "total_practice_minutes"
+>;
+
 function normalizeRangePreset(value?: string): AnalyticsRangePreset {
   return value === "7d" || value === "30d" || value === "90d" ? value : "30d";
 }
@@ -492,7 +504,13 @@ export async function getAnalyticsPageData(
     rangeDuelParticipantsRes,
     recentDuelParticipantsRes,
   ] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase
+        .from("profiles")
+        .select(
+          "display_name, avatar_url, selected_title, level, xp, streak_current, total_sessions_completed, total_practice_minutes"
+        )
+        .eq("id", userId)
+        .single(),
       supabase
         .from("daily_stats")
         .select("date, minutes_studied, sessions_completed, average_score")
@@ -520,7 +538,7 @@ export async function getAnalyticsPageData(
         .limit(12),
     ]);
 
-  const profile = (profileRes.data as Profile | null) ?? null;
+  const profile = (profileRes.data as AnalyticsProfileRow | null) ?? null;
   const dailyStats = (dailyStatsRes.data ?? []) as DailyStatRow[];
   const mapSoloSession = (session: SoloSessionRow) => ({
       ...session,
