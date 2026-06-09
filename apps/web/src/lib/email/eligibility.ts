@@ -30,6 +30,10 @@ export interface CandidateEvaluation {
 }
 
 const ONCE_PER_USER_TEMPLATES = new Set<EmailTemplateKey>(["welcome"]);
+const REMINDER_ONLY_TEMPLATES = new Set<EmailTemplateKey>([
+  "practice_reminder",
+  "streak_rescue",
+]);
 
 function getBooleanPreference(
   preferences: Record<string, unknown> | null,
@@ -42,6 +46,10 @@ function getBooleanPreference(
 
 function isGloballyOptedIn(preferences: Record<string, unknown> | null) {
   return getBooleanPreference(preferences, "email_notifications", true);
+}
+
+function isReminderOnlyEmailScope(preferences: Record<string, unknown> | null) {
+  return preferences?.email_opt_in_scope === "reminders_only";
 }
 
 function isTemplatePreferenceEnabled(
@@ -181,6 +189,13 @@ export function evaluateEmailCandidatesForProfile(input: {
 
   const maybeAdd = (templateKey: EmailTemplateKey, sendKey: string, blocked: boolean) => {
     if (blocked) return;
+    if (
+      isReminderOnlyEmailScope(profile.preferences) &&
+      !REMINDER_ONLY_TEMPLATES.has(templateKey)
+    ) {
+      skippedReasons.push(`${templateKey}_scope_disabled`);
+      return;
+    }
     if (!isTemplatePreferenceEnabled(templateKey, profile.preferences)) {
       skippedReasons.push(`${templateKey}_preference_disabled`);
       return;

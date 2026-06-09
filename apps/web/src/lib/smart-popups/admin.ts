@@ -77,6 +77,17 @@ export interface FeedbackPopupCronRunSummary {
   errorMessage: string | null;
 }
 
+export interface SmartPopupAdminEventAnalytics {
+  impressions: number;
+  ctaClicks: number;
+  dismissals: number;
+  ctr: number;
+  surveyStarts: number;
+  surveySubmissions: number;
+  surveyAbandons: number;
+  reminderOptIns: number;
+}
+
 export type FeedbackPopupAdminHealthStatus = "ok" | "warning" | "error";
 
 export type FeedbackPopupAdminDataSource = "service_role" | "session" | "none";
@@ -101,6 +112,7 @@ export interface FeedbackPopupAdminData {
   systemCampaigns: SmartPopupSystemCampaignSummary[];
   responses: FeedbackPopupResponseSummary[];
   cronRuns: FeedbackPopupCronRunSummary[];
+  eventAnalytics: SmartPopupAdminEventAnalytics;
   health: FeedbackPopupAdminHealth;
   kpis: Array<{
     key: string;
@@ -199,6 +211,47 @@ function buildKpis(input: {
   ];
 }
 
+function emptyEventAnalytics(): SmartPopupAdminEventAnalytics {
+  return {
+    impressions: 0,
+    ctaClicks: 0,
+    dismissals: 0,
+    ctr: 0,
+    surveyStarts: 0,
+    surveySubmissions: 0,
+    surveyAbandons: 0,
+    reminderOptIns: 0,
+  };
+}
+
+function buildEventAnalytics(input: {
+  smartPopupEvents: Array<{ event_type: string | null }>;
+  reminderEvents: Array<{ event_name: string | null }>;
+}): SmartPopupAdminEventAnalytics {
+  const analytics = emptyEventAnalytics();
+
+  for (const event of input.smartPopupEvents) {
+    if (event.event_type === "impression") analytics.impressions += 1;
+    if (event.event_type === "cta_clicked") analytics.ctaClicks += 1;
+    if (event.event_type === "dismissed" || event.event_type === "dont_show_again") {
+      analytics.dismissals += 1;
+    }
+    if (event.event_type === "survey_started") analytics.surveyStarts += 1;
+    if (event.event_type === "survey_submitted") analytics.surveySubmissions += 1;
+    if (event.event_type === "survey_abandoned") analytics.surveyAbandons += 1;
+  }
+
+  analytics.reminderOptIns = input.reminderEvents.filter(
+    (event) => event.event_name === "popup_reminder_opt_in"
+  ).length;
+  analytics.ctr =
+    analytics.impressions > 0
+      ? Math.round((analytics.ctaClicks / analytics.impressions) * 1000) / 10
+      : 0;
+
+  return analytics;
+}
+
 function resolveHealthStatus(
   checks: FeedbackPopupAdminHealthCheck[]
 ): FeedbackPopupAdminHealthStatus {
@@ -228,7 +281,7 @@ export function buildFeedbackPopupAdminHealth(input: {
       label: "Service-role env",
       status: serviceRoleConfigured ? "ok" : "warning",
       detail: serviceRoleConfigured
-        ? "SUPABASE_SERVICE_ROLE_KEY is available for admin writes."
+        ? "SUPABASE_SERVICE_ROLE_KEY is available for admin read aggregation."
         : "SUPABASE_SERVICE_ROLE_KEY is missing; reads can fall back to the signed-in admin session.",
     },
     {
@@ -284,7 +337,7 @@ export function buildFeedbackPopupAdminHealth(input: {
   const message =
     input.loadError ??
     (!serviceRoleConfigured
-      ? "Feedback popup reads are using a session fallback. Add SUPABASE_SERVICE_ROLE_KEY before publishing or sending campaigns."
+      ? "Feedback popup reads are using a session fallback. Some aggregate rows may be limited by policy."
       : status === "ok"
         ? "Feedback popup admin is connected."
         : "Feedback popup admin is connected with warnings to review.");
@@ -311,6 +364,7 @@ export function createEmptyFeedbackPopupAdminData(
     systemCampaigns: [],
     responses: [],
     cronRuns: [],
+    eventAnalytics: emptyEventAnalytics(),
     health: {
       ...generatedHealth,
       ...health,
@@ -380,6 +434,10 @@ function buildAdminPreviewTraits(): SmartPopupUserTraits {
     role: "student",
     onboardingCompleted: true,
     smartFeaturePopupsEnabled: true,
+    emailNotificationsEnabled: false,
+    practiceRemindersEnabled: false,
+    streakRemindersEnabled: false,
+    emailOptInScope: null,
     firstDashboardVisit: false,
     totalSessionsCompleted: 7,
     daysSinceSignup: 14,
@@ -566,7 +624,7 @@ export async function getFeedbackPopupAdminData(
   supabase: SupabaseClient,
   options: FeedbackPopupAdminDataOptions = {}
 ): Promise<FeedbackPopupAdminData> {
-  const [campaignsRes, versionsRes, responsesRes, cronRes] = await Promise.all([
+  const [campaignsRes, versionsRes, responsesRes, cronRes, eventsRes, reminderEventsRes] = await Promise.all([
     supabase
       .from("smart_popup_campaigns")
       .select(
@@ -587,6 +645,17 @@ export async function getFeedbackPopupAdminData(
       .select("id, status, started_at, finished_at, processed_users, generated_opportunities, error_message")
       .order("started_at", { ascending: false })
       .limit(8),
+    supabase
+      .from("smart_popup_events")
+      .select("event_type, metadata, occurred_at")
+      .order("occurred_at", { ascending: false })
+      .limit(5000),
+    supabase
+      .from("analytics_events")
+      .select("event_name, metadata, occurred_at")
+      .eq("event_name", "popup_reminder_opt_in")
+      .order("occurred_at", { ascending: false })
+      .limit(5000),
   ]);
 
   if (campaignsRes.error) throw new Error(campaignsRes.error.message);
@@ -632,12 +701,21 @@ export async function getFeedbackPopupAdminData(
     generatedOpportunities: run.generated_opportunities,
     errorMessage: run.error_message,
   }));
+  const eventAnalytics = buildEventAnalytics({
+    smartPopupEvents: (eventsRes.error ? [] : eventsRes.data ?? []) as Array<{
+      event_type: string | null;
+    }>,
+    reminderEvents: (reminderEventsRes.error ? [] : reminderEventsRes.data ?? []) as Array<{
+      event_name: string | null;
+    }>,
+  });
 
   return {
     campaigns,
     systemCampaigns,
     responses,
     cronRuns,
+    eventAnalytics,
     health: buildFeedbackPopupAdminHealth({
       dataSource: options.dataSource,
       serviceRoleConfigured: options.serviceRoleConfigured,

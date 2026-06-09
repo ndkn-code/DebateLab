@@ -663,7 +663,8 @@ export interface AnalyticsEvent {
     | "popup_dont_show_again"
     | "popup_survey_started"
     | "popup_survey_submitted"
-    | "popup_survey_abandoned";
+    | "popup_survey_abandoned"
+    | "popup_reminder_opt_in";
   feature_area:
     | "courses"
     | "activities"

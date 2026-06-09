@@ -1,10 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
-  getEnum,
-  getJsonRecord,
-  getNumber,
-  getString,
-  readJsonObject,
   RequestValidationError,
 } from "@/lib/api/request-validation";
 import { isAdminUser } from "@/lib/auth/admin";
@@ -13,9 +8,6 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   createEmptyFeedbackPopupAdminData,
   getFeedbackPopupAdminData,
-  saveFeedbackPopupCampaign,
-  sendFeedbackPopupNow,
-  setFeedbackPopupCampaignStatus,
 } from "@/lib/smart-popups/admin";
 import { getAdminClientConfigStatus, tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -85,17 +77,6 @@ function getServiceRoleConfigStatus() {
   return config.hasUrl && config.hasServiceRoleKey;
 }
 
-function getAdminWriteClient() {
-  const admin = tryCreateAdminClient();
-  if (!admin) {
-    throw new RequestValidationError(
-      "Feedback popup admin writes need SUPABASE_SERVICE_ROLE_KEY configured.",
-      503
-    );
-  }
-  return admin;
-}
-
 export async function GET() {
   try {
     const { supabase, devBypass } = await requireAdmin();
@@ -127,106 +108,12 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const { supabase, actorId, devBypass } = await requireAdmin();
-    const limited = await rateLimitAdmin(supabase, { skip: devBypass });
-    if (limited) return limited;
-
-    const body = await readJsonObject(request, { maxBytes: 96 * 1024 });
-    const action = getEnum(
-      body,
-      "action",
-      ["save", "set_status", "send_now"] as const,
-      { required: true }
-    );
-    const admin = getAdminWriteClient();
-
-    if (action === "save") {
-      const result = await saveFeedbackPopupCampaign(admin, {
-        actorId,
-        campaignKey: getString(body, "campaignKey", { maxLength: 120 }),
-        titleEn:
-          getString(body, "titleEn", {
-            required: true,
-            minLength: 3,
-            maxLength: 160,
-          }) ?? "",
-        bodyEn:
-          getString(body, "bodyEn", {
-            required: true,
-            minLength: 3,
-            maxLength: 400,
-          }) ?? "",
-        titleVi:
-          getString(body, "titleVi", {
-            required: true,
-            minLength: 3,
-            maxLength: 180,
-          }) ?? "",
-        bodyVi:
-          getString(body, "bodyVi", {
-            required: true,
-            minLength: 3,
-            maxLength: 420,
-          }) ?? "",
-        questions: body.questions,
-        status: getEnum(body, "status", ["active", "paused", "archived"] as const, {
-          defaultValue: "paused",
-        }),
-        deliveryMode: getEnum(
-          body,
-          "deliveryMode",
-          ["targeted", "send_now", "scheduled"] as const,
-          { defaultValue: "targeted" }
-        ),
-        priority: getNumber(body, "priority", {
-          min: 1,
-          max: 200,
-          defaultValue: 25,
-        }),
-        responseGoal: getNumber(body, "responseGoal", {
-          min: 1,
-          max: 100000,
-        }),
-        rules: getJsonRecord(body, "rules", {
-          maxBytes: 8 * 1024,
-          defaultValue: {},
-        }),
-      });
-      return NextResponse.json({
-        ok: true,
-        result,
-        data: await getFeedbackPopupAdminData(admin),
-      });
-    }
-
-    const campaignKey =
-      getString(body, "campaignKey", {
-        required: true,
-        minLength: 1,
-        maxLength: 120,
-      }) ?? "";
-
-    if (action === "send_now") {
-      await sendFeedbackPopupNow(admin, { actorId, campaignKey });
-    } else {
-      const status =
-        getEnum(body, "status", ["active", "paused", "archived"] as const, {
-          required: true,
-        }) ?? "paused";
-      await setFeedbackPopupCampaignStatus(admin, {
-        actorId,
-        campaignKey,
-        status,
-      });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      data: await getFeedbackPopupAdminData(admin),
-    });
-  } catch (error) {
-    return jsonError(error, "Unable to update feedback popups.");
-  }
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "Feedback popup campaigns are developer-defined in code and migrations. Admin is read-only in this release.",
+    },
+    { status: 405 }
+  );
 }

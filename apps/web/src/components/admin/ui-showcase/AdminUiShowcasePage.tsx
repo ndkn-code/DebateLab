@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type RefObject } from "react";
 import { Link } from "@/i18n/navigation";
 import {
   AlertTriangle,
   Bot,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -31,6 +32,12 @@ import { Button } from "@/components/ui/button";
 import { DuelCreatePage } from "@/components/debates/duel-create-page";
 import { DuelMatchmakingPage } from "@/components/debates/duel-matchmaking-page";
 import { DuelResultContent } from "@/components/debates/duel-result-page";
+import {
+  FeatureNudgePopup,
+  SmartPopupFrame,
+  SurveyPopup,
+  SurveyThankYou,
+} from "@/components/shared/smart-popup-host";
 import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";
 import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
 import {
@@ -74,6 +81,11 @@ import type {
   ShowcaseScenarioId,
   ShowcaseSurface,
 } from "@/lib/admin-ui-showcase/types";
+import type { LocalizedSurveyQuestion } from "@/lib/smart-popups/survey";
+import type {
+  SmartPopupPayload,
+  SmartPopupSurveyPayload,
+} from "@/lib/smart-popups/types";
 import type { DebateDuelRoomView } from "@/types";
 
 interface AdminUiShowcasePageProps {
@@ -83,10 +95,14 @@ interface AdminUiShowcasePageProps {
   coverageRows: ShowcaseCoverageRow[];
 }
 
+type PopupPortalContainer = RefObject<HTMLElement | ShadowRoot | null>;
+type PopupShowcaseAnswer = number | string | string[];
+
 const SURFACE_ICONS: Record<ShowcaseSurface, LucideIcon> = {
   practice: LayoutGrid,
   feedback: FileText,
   duel: Swords,
+  popups: Sparkles,
 };
 
 const TABLE_LABELS: Record<ShowcaseCoverageRow["tableName"], string> = {
@@ -159,6 +175,7 @@ function getScenarioIcon(scenario: ShowcaseScenario): LucideIcon {
   if (scenario.id.startsWith("feedback-ai")) return Trophy;
   if (scenario.id.includes("clash")) return GitBranch;
   if (scenario.id.includes("transcript")) return FileText;
+  if (scenario.surface === "popups") return Sparkles;
   if (scenario.surface === "duel") return Swords;
   if (scenario.surface === "feedback") return FileText;
   return LayoutGrid;
@@ -204,6 +221,10 @@ function getScenarioCategory(scenario: ShowcaseScenario): ShowcaseCategoryFilter
     return scenario.id.includes("result") ? "review" : "duel-room";
   }
 
+  if (scenario.surface === "popups") {
+    return "transient";
+  }
+
   return "review";
 }
 
@@ -242,6 +263,130 @@ function formatSeconds(seconds: number) {
   const remainder = seconds % 60;
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
+
+const POPUP_PLACEHOLDER_IMAGE = "/images/smart-popups/popup-placeholder-v1.png";
+
+const POPUP_SURVEY: SmartPopupSurveyPayload = {
+  versionId: "showcase-survey-v1",
+  version: 1,
+  rewardCredits: 50,
+  thankYou: {
+    title: "Thanks for the feedback.",
+    body: "Your reward has been added to this preview state.",
+  },
+  questions: [
+    {
+      id: "overall",
+      type: "rating",
+      required: true,
+      min: 1,
+      max: 5,
+      label: "How useful is this prompt?",
+      minLabel: "Rough",
+      maxLabel: "Great",
+    },
+    {
+      id: "focus",
+      type: "single_choice",
+      required: true,
+      label: "What should improve first?",
+      options: [
+        { id: "practice", label: "Practice flow" },
+        { id: "feedback", label: "AI feedback" },
+        { id: "reminders", label: "Reminders" },
+      ],
+    },
+  ],
+};
+
+function makePopupPreviewPayload(
+  id: ShowcaseScenarioId,
+  overrides: Partial<SmartPopupPayload>
+): SmartPopupPayload {
+  const base: SmartPopupPayload = {
+    key: id,
+    surface: "dashboard",
+    campaignType: "feature_nudge",
+    popupKind: "practice_suggestion",
+    segment: "active_user",
+    title: "Practice smarter in 10 minutes.",
+    body: "Pick one focused next step and keep the momentum going.",
+    eyebrow: "Next step",
+    ctaLabel: "Start practice",
+    dismissLabel: "Later",
+    dontShowAgainLabel: "Don't show again",
+    ctaHref: "/practice",
+    imageSrc: POPUP_PLACEHOLDER_IMAGE,
+    imageAlt: "Blue Thinkfy star mascot holding a notification bell and cue card",
+    facts: [],
+    priority: 1,
+    metadata: {
+      previewOnly: true,
+      actionSource: "ui_showcase",
+      uiPattern: "duolingo_simple_modal_v2",
+    },
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    metadata: {
+      ...base.metadata,
+      ...(overrides.metadata ?? {}),
+    },
+  };
+}
+
+const POPUP_PREVIEWS: Partial<Record<ShowcaseScenarioId, SmartPopupPayload>> = {
+  "popup-feature-announcement": makePopupPreviewPayload("popup-feature-announcement", {
+    popupKind: "feature_announcement",
+    eyebrow: "New in Thinkfy",
+    title: "Cleaner practice nudges are here.",
+    body: "Each popup now focuses on one useful next step, without extra clutter.",
+    ctaLabel: "Try a practice round",
+    facts: [
+      { icon: "target", label: "Focus", value: "One step" },
+      { icon: "clock", label: "Preview", value: "10 min" },
+    ],
+  }),
+  "popup-practice-suggestion": makePopupPreviewPayload("popup-practice-suggestion", {
+    popupKind: "practice_suggestion",
+    eyebrow: "Next best step",
+    title: "Drill rebuttal for 10 minutes.",
+    body: "This is the fastest improvement path from your recent practice rounds.",
+    ctaLabel: "Start rebuttal drill",
+    facts: [
+      { icon: "target", label: "Weakest skill", value: "Rebuttal" },
+      { icon: "chart", label: "Last score", value: "68/100" },
+    ],
+  }),
+  "popup-reminder-opt-in": makePopupPreviewPayload("popup-reminder-opt-in", {
+    popupKind: "reminder_opt_in",
+    eyebrow: "Stay on track",
+    title: "Want gentle practice reminders?",
+    body: "Enable email practice and streak reminders only. Product updates stay off unless you turn them on in Settings.",
+    ctaLabel: "Enable email reminders",
+    dismissLabel: "Not now",
+    ctaHref: "/settings#notifications",
+    facts: [
+      { icon: "flame", label: "Scope", value: "Practice + streak" },
+      { icon: "clock", label: "Control", value: "Settings" },
+    ],
+  }),
+  "popup-feedback-survey": makePopupPreviewPayload("popup-feedback-survey", {
+    campaignType: "feedback_survey",
+    popupKind: "feedback_survey",
+    eyebrow: "Quick feedback",
+    title: "How is Thinkfy feeling?",
+    body: "Two quick answers help us improve your next practice session.",
+    ctaLabel: "Share feedback",
+    facts: [
+      { icon: "gift", label: "Reward", value: "+50 Credits" },
+      { icon: "clock", label: "Time", value: "1 min" },
+    ],
+    survey: POPUP_SURVEY,
+  }),
+};
 
 function getInitials(name: string) {
   return name
@@ -287,12 +432,12 @@ function ShowcaseToolbar({
 
   return (
     <section className="border-b border-outline-variant/20 bg-white px-4 py-3 sm:px-6 lg:px-7">
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[315px_115px_115px_minmax(435px,1fr)_125px]">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[380px_115px_115px_minmax(435px,1fr)_125px]">
         <div className="min-w-0">
           <div className="mb-2 text-xs font-black text-on-surface">
             Surface
           </div>
-          <div className="grid min-w-0 grid-cols-3 overflow-hidden rounded-lg border border-outline-variant/25 bg-surface">
+          <div className="grid min-w-0 grid-cols-4 overflow-hidden rounded-lg border border-outline-variant/25 bg-surface">
             {SHOWCASE_SURFACES.map((surface) => {
               const Icon = SURFACE_ICONS[surface.id];
               const isActive = activeSurface === surface.id;
@@ -755,18 +900,219 @@ function DuelUnavailablePreview() {
   );
 }
 
+function PopupFixturePreview({
+  scenario,
+  portalContainer,
+}: {
+  scenario: ShowcaseScenario;
+  portalContainer?: PopupPortalContainer;
+}) {
+  const [open, setOpen] = useState(true);
+  const [answers, setAnswers] = useState<Record<string, PopupShowcaseAnswer>>({});
+  const [submitted, setSubmitted] = useState(scenario.id === "popup-thank-you");
+  const [error, setError] = useState<string | null>(null);
+  const popup = POPUP_PREVIEWS[scenario.id] ?? POPUP_PREVIEWS["popup-practice-suggestion"]!;
+  const isSurvey = popup.campaignType === "feedback_survey" && popup.survey;
+
+  function setAnswer(questionId: string, value: PopupShowcaseAnswer) {
+    setAnswers((current) => ({ ...current, [questionId]: value }));
+  }
+
+  function renderQuestion(question: LocalizedSurveyQuestion) {
+    const value = answers[question.id];
+
+    if (question.type === "rating" || question.type === "nps") {
+      const min = question.min ?? (question.type === "nps" ? 0 : 1);
+      const max = question.max ?? (question.type === "nps" ? 10 : 5);
+      const values = Array.from({ length: max - min + 1 }, (_, index) => min + index);
+
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-5 gap-2">
+            {values.map((rating) => {
+              const selected = value === rating;
+              return (
+                <button
+                  key={rating}
+                  type="button"
+                  onClick={() => setAnswer(question.id, rating)}
+                  className={cn(
+                    "flex h-10 items-center justify-center rounded-lg border text-sm font-extrabold transition",
+                    selected
+                      ? "border-primary bg-primary text-white shadow-sm"
+                      : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:bg-background"
+                  )}
+                >
+                  {rating}
+                </button>
+              );
+            })}
+          </div>
+          {(question.minLabel || question.maxLabel) ? (
+            <div className="flex justify-between gap-3 text-xs font-semibold text-on-surface-variant">
+              <span>{question.minLabel}</span>
+              <span>{question.maxLabel}</span>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (question.type === "single_choice" || question.type === "multi_choice") {
+      const selected = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+      return (
+        <div className="grid gap-2">
+          {(question.options ?? []).map((option) => {
+            const active = selected.includes(option.id);
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  if (question.type === "single_choice") {
+                    setAnswer(question.id, option.id);
+                    return;
+                  }
+                  setAnswer(
+                    question.id,
+                    active
+                      ? selected.filter((item) => item !== option.id)
+                      : [...selected, option.id]
+                  );
+                }}
+                className={cn(
+                  "flex min-h-11 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition",
+                  active
+                    ? "border-primary bg-primary-container text-on-surface"
+                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed"
+                )}
+              >
+                <span>{option.label}</span>
+                {active ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <textarea
+        value={typeof value === "string" ? value : ""}
+        onChange={(event) => setAnswer(question.id, event.currentTarget.value)}
+        placeholder={question.placeholder}
+        className="min-h-24 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
+      />
+    );
+  }
+
+  function submitSurvey(survey: SmartPopupSurveyPayload) {
+    const missing = survey.questions.find((question) => {
+      if (!question.required) return false;
+      const value = answers[question.id];
+      if (Array.isArray(value)) return value.length === 0;
+      return value == null || value === "";
+    });
+
+    if (missing) {
+      setError("Please answer the required questions.");
+      return;
+    }
+
+    setError(null);
+    setSubmitted(true);
+  }
+
+  return (
+    <div className="relative min-h-[900px] overflow-hidden bg-background sm:min-h-[720px]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 grid gap-4 p-5 opacity-80 blur-[2px] sm:grid-cols-[1fr_320px] sm:p-8"
+      >
+        <div className="space-y-4">
+          <div className="h-16 rounded-lg bg-primary" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="h-28 rounded-lg border border-outline-variant/30 bg-white" />
+            <div className="h-28 rounded-lg border border-outline-variant/30 bg-white" />
+          </div>
+          <div className="h-64 rounded-lg border border-outline-variant/30 bg-white" />
+        </div>
+        <aside className="hidden space-y-4 sm:block">
+          <div className="h-36 rounded-lg border border-outline-variant/30 bg-white" />
+          <div className="h-48 rounded-lg border border-outline-variant/30 bg-white" />
+        </aside>
+      </div>
+
+      {!open ? (
+        <div className="relative z-10 grid min-h-[900px] place-items-center p-6 sm:min-h-[720px]">
+          <Button type="button" onClick={() => setOpen(true)} className="h-11 rounded-lg">
+            Reopen preview
+          </Button>
+        </div>
+      ) : null}
+
+      <SmartPopupFrame
+        open={open}
+        closeLabel={popup.dismissLabel}
+        placement={isSurvey && !submitted ? "top" : "center"}
+        portalContainer={portalContainer}
+        onClose={() => setOpen(false)}
+        onOpenChange={setOpen}
+      >
+        {submitted ? (
+          <SurveyThankYou
+            title={POPUP_SURVEY.thankYou.title}
+            body={POPUP_SURVEY.thankYou.body}
+            rewardCredits={POPUP_SURVEY.rewardCredits}
+            onDone={() => setOpen(false)}
+          />
+        ) : isSurvey && popup.survey ? (
+          <SurveyPopup
+            popup={popup}
+            survey={popup.survey}
+            submitError={error}
+            renderQuestion={renderQuestion}
+            onSubmit={() => submitSurvey(popup.survey!)}
+            onDismiss={() => setOpen(false)}
+          />
+        ) : (
+          <FeatureNudgePopup
+            popup={popup}
+            onCta={() => setOpen(false)}
+            onDismiss={() => setOpen(false)}
+          />
+        )}
+      </SmartPopupFrame>
+    </div>
+  );
+}
+
 function ShowcasePreview({
   scenario,
   initialTab,
+  portalContainer,
 }: {
   scenario: ShowcaseScenario;
   initialTab?: SessionReviewTab;
+  portalContainer?: PopupPortalContainer;
 }) {
   const [prepNotes, setPrepNotes] = useState(showcasePrepNotes);
   const noop = () => undefined;
   const reviewTab = initialTab ?? scenario.defaultTab ?? "overall";
 
   switch (scenario.id) {
+    case "popup-feature-announcement":
+    case "popup-practice-suggestion":
+    case "popup-reminder-opt-in":
+    case "popup-feedback-survey":
+    case "popup-thank-you":
+      return (
+        <PopupFixturePreview
+          key={scenario.id}
+          scenario={scenario}
+          portalContainer={portalContainer}
+        />
+      );
     case "practice-setup":
       return (
         <div className="mx-auto max-w-xl px-4 py-6">
@@ -1019,6 +1365,7 @@ export function AdminUiShowcasePage({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<"all" | ShowcaseScenario["status"]>("all");
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const surfaceScenarios = getScenariosForSurface(activeSurface);
   const activeScenarioIndex = Math.max(
     0,
@@ -1146,12 +1493,14 @@ export function AdminUiShowcasePage({
 
             <div className="p-3">
               <div
+                ref={previewContainerRef}
                 data-showcase-preview
                 className="admin-ui-showcase-preview relative min-h-[640px] overflow-auto rounded-lg border border-outline-variant/20 bg-white"
               >
                 <ShowcasePreview
                   scenario={activeScenario}
                   initialTab={initialTab}
+                  portalContainer={previewContainerRef}
                 />
               </div>
             </div>

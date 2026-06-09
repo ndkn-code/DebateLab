@@ -23,6 +23,7 @@ export const ANALYTICS_EVENT_NAMES = [
   "popup_survey_started",
   "popup_survey_submitted",
   "popup_survey_abandoned",
+  "popup_reminder_opt_in",
   "mobile_dashboard_viewed",
   "mobile_dashboard_quick_action_tapped",
   "mobile_dashboard_recommended_drill_tapped",

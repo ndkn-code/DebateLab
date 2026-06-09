@@ -7,6 +7,7 @@ import type {
   SmartPopupFactIcon,
   SmartPopupImpressionCounts,
   SmartPopupLocale,
+  SmartPopupKind,
   SmartPopupPayload,
   SmartPopupSegment,
   SmartPopupUserTraits,
@@ -68,6 +69,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asText(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function getPopupKind(campaign: SmartPopupCampaign): SmartPopupKind {
+  if (campaign.campaign_type === "feedback_survey") return "feedback_survey";
+
+  const metadataKind = campaign.metadata?.popupKind;
+  if (
+    metadataKind === "feature_announcement" ||
+    metadataKind === "practice_suggestion" ||
+    metadataKind === "reminder_opt_in"
+  ) {
+    return metadataKind;
+  }
+
+  return "practice_suggestion";
 }
 
 function hasAnySegment(
@@ -151,6 +167,10 @@ export function buildPopupSegments(
 
   const segments: SmartPopupSegment[] = [];
 
+  if (traits.totalSessionsCompleted > 0) {
+    segments.push("active_user");
+  }
+
   if (traits.totalSessionsCompleted <= 0) {
     segments.push("first_time_user");
   }
@@ -202,6 +222,18 @@ export function isCampaignEligible(input: {
     !traits.smartFeaturePopupsEnabled ||
     !traits.onboardingCompleted ||
     traits.firstDashboardVisit
+  ) {
+    return false;
+  }
+
+  const hasExplicitReminderEmailScope =
+    traits.emailOptInScope === "reminders_only" || traits.emailOptInScope === "all";
+  if (
+    rules.requiresReminderEmailOptIn &&
+    hasExplicitReminderEmailScope &&
+    traits.emailNotificationsEnabled &&
+    traits.practiceRemindersEnabled &&
+    traits.streakRemindersEnabled
   ) {
     return false;
   }
@@ -555,6 +587,7 @@ export function createSmartPopupPayload(input: {
     key: input.campaign.key,
     surface: input.campaign.surface,
     campaignType: input.campaign.campaign_type,
+    popupKind: getPopupKind(input.campaign),
     segment: pickPrimarySegment(input.campaign, input.traits),
     title,
     body,
@@ -599,6 +632,8 @@ export function createSmartPopupPayload(input: {
     priority: input.campaign.priority,
     metadata: {
       campaignKey: input.campaign.key,
+      popupKind: getPopupKind(input.campaign),
+      notificationPattern: input.campaign.metadata?.notificationPattern,
       segment: pickPrimarySegment(input.campaign, input.traits),
       weakestSkill: input.traits.weakestSkill,
       lastScoredSessionScore: input.traits.lastScoredSessionScore,

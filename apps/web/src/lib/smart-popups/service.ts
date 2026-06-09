@@ -149,6 +149,10 @@ function normalizeRules(value: unknown): SmartPopupRules {
       : undefined,
     repeatIntervalDays: asNullableNumber(source.repeatIntervalDays),
     maxSubmissionsPerUser: asNullableNumber(source.maxSubmissionsPerUser),
+    requiresReminderEmailOptIn:
+      typeof source.requiresReminderEmailOptIn === "boolean"
+        ? source.requiresReminderEmailOptIn
+        : undefined,
   };
 }
 
@@ -252,6 +256,15 @@ function getCoachEventCount(events: AnalyticsRow[]) {
       route.includes("/chat")
     );
   }).length;
+}
+
+function getBooleanPreference(
+  preferences: Record<string, unknown>,
+  key: string,
+  fallback = true
+) {
+  const value = preferences[key];
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function countImpressionsByCampaign(
@@ -376,6 +389,25 @@ async function fetchUserTraits(
     role: profile.role ?? "student",
     onboardingCompleted: profile.onboarding_completed === true,
     smartFeaturePopupsEnabled: preferences.smart_feature_popups !== false,
+    emailNotificationsEnabled: getBooleanPreference(
+      preferences,
+      "email_notifications",
+      true
+    ),
+    practiceRemindersEnabled: getBooleanPreference(
+      preferences,
+      "practice_reminders",
+      true
+    ),
+    streakRemindersEnabled: getBooleanPreference(
+      preferences,
+      "streak_reminders",
+      true
+    ),
+    emailOptInScope:
+      typeof preferences.email_opt_in_scope === "string"
+        ? preferences.email_opt_in_scope
+        : null,
     firstDashboardVisit: preferences.first_dashboard_visit === true,
     totalSessionsCompleted,
     daysSinceSignup: getDaysBetween(profile.created_at, now) ?? 0,
@@ -394,6 +426,87 @@ async function fetchUserTraits(
   return {
     ...baseTraits,
     segments: buildPopupSegments(baseTraits),
+  };
+}
+
+async function fetchProfilePreferences(
+  supabase: SupabaseClient,
+  userId: string
+) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("preferences")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const preferences = (data as { preferences?: unknown } | null)?.preferences;
+  return isRecord(preferences) ? preferences : {};
+}
+
+export async function optInSmartPopupReminderEmails(input: {
+  supabase: SupabaseClient;
+  userId: string;
+  campaignKey: string;
+  locale?: string | null;
+  surface?: string | null;
+  route?: string | null;
+  metadata?: Record<string, unknown>;
+  now?: Date;
+}) {
+  const now = input.now ?? new Date();
+  const surface = normalizeSurface(input.surface);
+  const preferences = await fetchProfilePreferences(input.supabase, input.userId);
+  const nextPreferences = {
+    ...preferences,
+    email_notifications: true,
+    practice_reminders: true,
+    streak_reminders: true,
+    email_opt_in_scope: "reminders_only",
+    reminder_email_opted_in_at: now.toISOString(),
+  };
+
+  const { error } = await input.supabase
+    .from("profiles")
+    .update({ preferences: nextPreferences })
+    .eq("id", input.userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await recordAnalyticsEvent(
+    input.supabase,
+    input.userId,
+    {
+      eventName: "popup_reminder_opt_in",
+      featureArea: "notifications",
+      route: input.route ?? null,
+      metadata: {
+        campaignKey: input.campaignKey,
+        popupKind: "reminder_opt_in",
+        surface,
+        locale: normalizeLocale(input.locale),
+        actionSource: "smart_popup",
+        ctaOutcome: "reminder_email_opt_in",
+        emailOptInScope: "reminders_only",
+        ...(input.metadata ?? {}),
+      },
+    },
+    "server"
+  );
+
+  return {
+    ok: true,
+    preferences: {
+      emailNotifications: true,
+      practiceReminders: true,
+      streakReminders: true,
+      emailOptInScope: "reminders_only",
+    },
   };
 }
 

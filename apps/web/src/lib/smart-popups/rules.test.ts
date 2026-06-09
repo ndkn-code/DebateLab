@@ -84,6 +84,10 @@ function traits(
     role: "student",
     onboardingCompleted: true,
     smartFeaturePopupsEnabled: true,
+    emailNotificationsEnabled: true,
+    practiceRemindersEnabled: true,
+    streakRemindersEnabled: true,
+    emailOptInScope: "all",
     firstDashboardVisit: false,
     totalSessionsCompleted: 0,
     daysSinceSignup: 0,
@@ -152,6 +156,7 @@ run("ranks returning user reminder ahead of lower-priority opportunities", () =>
   });
 
   assert.deepEqual(user.segments, [
+    "active_user",
     "returning_user",
     "skill_focus",
     "course_discovery",
@@ -212,6 +217,70 @@ run("honors don't-show-again opt-out state", () => {
   });
 
   assert.equal(ranked.some((item) => item.key === "first-practice"), false);
+});
+
+run("blocks reminder opt-in when reminder emails are already scoped on", () => {
+  const reminderCampaign = campaign(
+    "reminder-email-opt-in",
+    5,
+    {
+      segments: ["active_user"],
+      requiresReminderEmailOptIn: true,
+    },
+    {
+      metadata: {
+        popupKind: "reminder_opt_in",
+      },
+    }
+  );
+
+  const ranked = rankSmartPopupCandidates({
+    campaigns: [reminderCampaign],
+    traits: traits({
+      totalSessionsCompleted: 2,
+      emailNotificationsEnabled: true,
+      practiceRemindersEnabled: true,
+      streakRemindersEnabled: true,
+      emailOptInScope: "reminders_only",
+    }),
+    impressionCountsByCampaign: {
+      "reminder-email-opt-in": zeroCounts(),
+    },
+  });
+
+  assert.equal(ranked.length, 0);
+});
+
+run("allows reminder opt-in when email scope has not been explicitly set", () => {
+  const reminderCampaign = campaign(
+    "reminder-email-opt-in",
+    5,
+    {
+      segments: ["active_user"],
+      requiresReminderEmailOptIn: true,
+    },
+    {
+      metadata: {
+        popupKind: "reminder_opt_in",
+      },
+    }
+  );
+
+  const ranked = rankSmartPopupCandidates({
+    campaigns: [reminderCampaign],
+    traits: traits({
+      totalSessionsCompleted: 2,
+      emailNotificationsEnabled: true,
+      practiceRemindersEnabled: true,
+      streakRemindersEnabled: true,
+      emailOptInScope: null,
+    }),
+    impressionCountsByCampaign: {
+      "reminder-email-opt-in": zeroCounts(),
+    },
+  });
+
+  assert.equal(ranked[0]?.key, "reminder-email-opt-in");
 });
 
 run("preview ranking does not mutate state, commit impression does", () => {

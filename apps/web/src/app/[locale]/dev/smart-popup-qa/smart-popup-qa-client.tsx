@@ -196,6 +196,12 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
     key: state,
     surface: "dashboard",
     campaignType: state === "feedback-survey" ? "feedback_survey" : "feature_nudge",
+    popupKind:
+      state === "feedback-survey"
+        ? "feedback_survey"
+        : state === "course" || state === "ask-coach"
+          ? "feature_announcement"
+          : "practice_suggestion",
     segment: "active_user",
     title: copy.title,
     body: copy.body,
@@ -204,13 +210,20 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
     dismissLabel: vi ? "Để sau" : "Later",
     dontShowAgainLabel: vi ? "Đừng hiện lại" : "Don't show again",
     ctaHref: copy.href,
-    imageSrc: "/images/smart-popups/feedback-star.webp",
+    imageSrc: "/images/smart-popups/popup-placeholder-v1.png",
     imageAlt: "Smart popup QA fixture",
     facts: makeFacts(state, locale),
     priority: 1,
     metadata: {
       qaState: state,
       locale,
+      popupKind:
+        state === "feedback-survey"
+          ? "feedback_survey"
+          : state === "course" || state === "ask-coach"
+            ? "feature_announcement"
+            : "practice_suggestion",
+      previewOnly: true,
     },
   };
 }
@@ -499,7 +512,6 @@ export function SmartPopupQaClient() {
                 setSubmitted(true);
               }}
               onDismiss={() => setOpen(false)}
-              onDontShowAgain={() => setOpen(false)}
             />
           ) : (
             <FeatureNudgePopup
@@ -508,7 +520,6 @@ export function SmartPopupQaClient() {
                 window.location.assign(popup.ctaHref);
               }}
               onDismiss={() => setOpen(false)}
-              onDontShowAgain={() => setOpen(false)}
             />
           )}
         </SmartPopupFrame>

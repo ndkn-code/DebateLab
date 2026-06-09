@@ -253,6 +253,35 @@ function testEligibility() {
 
   assert.equal(noPractice.candidates.some((candidate) => candidate.templateKey === "winback"), false);
   assert.ok(noPractice.skippedReasons.includes("winback_preference_disabled"));
+
+  const reminderOnly = evaluateEmailCandidatesForProfile({
+    profile: baseProfile({
+      preferences: {
+        email_notifications: true,
+        practice_reminders: true,
+        streak_reminders: true,
+        achievement_updates: true,
+        email_opt_in_scope: "reminders_only",
+      },
+    }),
+    summary: baseSummary({
+      lastActivityAt: "2026-05-13T00:00:00.000Z",
+      lastPracticeAt: "2026-05-13T00:00:00.000Z",
+      latestAchievementKey: "level_3",
+      latestAchievementLabel: "Level 3",
+    }),
+    history: [],
+    now,
+  });
+
+  assert.ok(
+    reminderOnly.candidates.every((candidate) =>
+      candidate.templateKey === "practice_reminder" ||
+      candidate.templateKey === "streak_rescue"
+    )
+  );
+  assert.ok(reminderOnly.skippedReasons.includes("achievement_scope_disabled"));
+  assert.ok(reminderOnly.skippedReasons.includes("winback_scope_disabled"));
 }
 
 function testVietnamStreakBoundaries() {

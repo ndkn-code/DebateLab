@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale } from "next-intl";
 import {
   useCallback,
@@ -7,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type RefObject,
   type ReactNode,
 } from "react";
 import {
@@ -63,6 +65,11 @@ type SurveySubmitResponse = {
   error?: string;
 };
 
+type ReminderOptInResponse = {
+  ok?: boolean;
+  error?: string;
+};
+
 const factIcons: Record<SmartPopupFactIcon, typeof Target> = {
   target: Target,
   chart: BarChart3,
@@ -77,6 +84,7 @@ interface SmartPopupFrameProps {
   open?: boolean;
   closeLabel: string;
   placement?: "center" | "top";
+  portalContainer?: HTMLElement | ShadowRoot | RefObject<HTMLElement | ShadowRoot | null> | null;
   onOpenChange?: (open: boolean) => void;
   onClose: () => void;
   children: ReactNode;
@@ -86,6 +94,7 @@ export function SmartPopupFrame({
   open = true,
   closeLabel,
   placement = "center",
+  portalContainer,
   onOpenChange,
   onClose,
   children,
@@ -95,8 +104,9 @@ export function SmartPopupFrame({
       <DialogContent
         showCloseButton={false}
         data-smart-popup-frame
+        portalContainer={portalContainer}
         className={cn(
-          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-outline-variant bg-white p-0 text-on-surface-variant shadow-token-card sm:w-[600px] sm:max-w-[600px]",
+          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-4rem)] max-w-[calc(100vw-4rem)] overflow-hidden rounded-[28px] border border-outline-variant bg-white p-0 text-on-surface-variant shadow-token-card sm:w-[600px] sm:max-w-[600px]",
           placement === "top" &&
             "top-4 translate-y-0 sm:top-[7vh] sm:max-h-[calc(100dvh-14vh)]"
         )}
@@ -177,26 +187,22 @@ export function SmartPopupFact({ fact }: { fact: SmartPopupFact }) {
 interface SmartPopupActionsProps {
   primaryLabel: string;
   secondaryLabel: string;
-  dontShowLabel: string;
   primaryIcon?: ReactNode;
   disabled?: boolean;
   onPrimary: () => void;
   onSecondary: () => void;
-  onDontShow: () => void;
 }
 
 export function SmartPopupActions({
   primaryLabel,
   secondaryLabel,
-  dontShowLabel,
   primaryIcon,
   disabled,
   onPrimary,
   onSecondary,
-  onDontShow,
 }: SmartPopupActionsProps) {
   return (
-    <div className="mt-5 flex flex-col gap-3 sm:mt-6">
+    <div className="mx-auto mt-5 flex max-w-[440px] flex-col gap-3 sm:mt-6">
       <Button
         type="button"
         disabled={disabled}
@@ -207,50 +213,68 @@ export function SmartPopupActions({
         {primaryLabel}
         {primaryIcon ?? <ArrowRight className="h-5 w-5" />}
       </Button>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          data-smart-popup-secondary
-          onClick={onSecondary}
-          className="h-12 rounded-[18px] border-outline-variant bg-white text-sm font-extrabold text-on-surface-variant hover:bg-surface-container hover:text-on-surface-variant"
-        >
-          {secondaryLabel}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={disabled}
-          data-smart-popup-suppress
-          onClick={onDontShow}
-          className="h-12 rounded-[18px] text-sm font-bold text-on-surface-variant hover:bg-surface-container hover:text-on-surface-variant"
-        >
-          {dontShowLabel}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={disabled}
+        data-smart-popup-secondary
+        onClick={onSecondary}
+        className="h-11 rounded-[18px] text-sm font-extrabold text-primary hover:bg-primary-container hover:text-primary"
+      >
+        {secondaryLabel}
+      </Button>
+    </div>
+  );
+}
+
+export function SmartPopupIllustration({
+  src,
+  alt,
+  tone = "default",
+}: {
+  src: string;
+  alt: string;
+  tone?: "default" | "reward";
+}) {
+  return (
+    <div
+      className={cn(
+        "relative mx-auto mb-4 h-[132px] w-[172px] overflow-hidden rounded-[22px] sm:mb-5 sm:h-[150px] sm:w-[196px]",
+        tone === "reward" ? "bg-warning/10" : "bg-primary-container/70"
+      )}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="196px"
+        className="object-contain p-1.5"
+        priority
+      />
     </div>
   );
 }
 
 interface FeatureNudgePopupProps {
   popup: SmartPopupPayload;
+  ctaLoading?: boolean;
+  ctaError?: string | null;
   onCta: () => void;
   onDismiss: () => void;
-  onDontShowAgain: () => void;
 }
 
 export function FeatureNudgePopup({
   popup,
+  ctaLoading,
+  ctaError,
   onCta,
   onDismiss,
-  onDontShowAgain,
 }: FeatureNudgePopupProps) {
   return (
     <div className="text-center">
-      <CelebrationCluster />
+      <SmartPopupIllustration src={popup.imageSrc} alt={popup.imageAlt} />
       {popup.eyebrow ? (
-        <p className="text-sm font-extrabold text-on-surface-variant">{popup.eyebrow}</p>
+        <p className="text-sm font-extrabold text-primary">{popup.eyebrow}</p>
       ) : null}
       <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
         {popup.title}
@@ -265,13 +289,24 @@ export function FeatureNudgePopup({
           ))}
         </div>
       ) : null}
+      {ctaError ? (
+        <div className="mx-auto mt-4 max-w-[420px] rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant">
+          {ctaError}
+        </div>
+      ) : null}
       <SmartPopupActions
-        primaryLabel={popup.ctaLabel}
+        primaryLabel={ctaLoading ? "Saving..." : popup.ctaLabel}
         secondaryLabel={popup.dismissLabel}
-        dontShowLabel={popup.dontShowAgainLabel}
+        primaryIcon={
+          ctaLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <ArrowRight className="h-5 w-5" />
+          )
+        }
+        disabled={ctaLoading}
         onPrimary={onCta}
         onSecondary={onDismiss}
-        onDontShow={onDontShowAgain}
       />
     </div>
   );
@@ -285,7 +320,6 @@ interface SurveyPopupProps {
   renderQuestion: (question: LocalizedSurveyQuestion) => ReactNode;
   onSubmit: () => void;
   onDismiss: () => void;
-  onDontShowAgain: () => void;
 }
 
 export function SurveyPopup({
@@ -296,7 +330,6 @@ export function SurveyPopup({
   renderQuestion,
   onSubmit,
   onDismiss,
-  onDontShowAgain,
 }: SurveyPopupProps) {
   const rewardLabel =
     survey.rewardCredits > 0 ? ` +${survey.rewardCredits} Credits` : "";
@@ -305,9 +338,13 @@ export function SurveyPopup({
   return (
     <div>
       <div className="text-center">
-        <CelebrationCluster tone="reward" />
+        <SmartPopupIllustration
+          src={popup.imageSrc}
+          alt={popup.imageAlt}
+          tone="reward"
+        />
         {popup.eyebrow ? (
-          <p className="text-sm font-extrabold text-on-surface-variant">{popup.eyebrow}</p>
+          <p className="text-sm font-extrabold text-primary">{popup.eyebrow}</p>
         ) : null}
         <DialogTitle className="mt-2 text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.05rem]">
           {popup.title}
@@ -348,7 +385,6 @@ export function SurveyPopup({
       <SmartPopupActions
         primaryLabel={submitLabel}
         secondaryLabel={popup.dismissLabel}
-        dontShowLabel={popup.dontShowAgainLabel}
         primaryIcon={
           submitting ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -359,7 +395,6 @@ export function SurveyPopup({
         disabled={submitting}
         onPrimary={onSubmit}
         onSecondary={onDismiss}
-        onDontShow={onDontShowAgain}
       />
     </div>
   );
@@ -450,15 +485,21 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
   const [submitResult, setSubmitResult] = useState<SurveySubmitResponse | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [ctaError, setCtaError] = useState<string | null>(null);
+  const [ctaLoading, setCtaLoading] = useState(false);
   const lastRequestKeyRef = useRef<string | null>(null);
   const handledCloseRef = useRef(false);
   const surveyStartedRef = useRef<string | null>(null);
   const suppressed = paused || isSuppressedPath(pathname);
   const isSurveyPopup = popup?.campaignType === "feedback_survey" && popup.survey;
+  const isReminderOptIn = popup?.popupKind === "reminder_opt_in";
   const surface = resolveSurface(pathname);
 
   const trackEvent = useCallback(
-    (eventType: Exclude<SmartPopupEventType, "impression">) => {
+    (
+      eventType: Exclude<SmartPopupEventType, "impression">,
+      metadata: Record<string, unknown> = {}
+    ) => {
       if (!popup) return;
 
       void fetch("/api/client/smart-popups/events", {
@@ -470,7 +511,11 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
           eventType,
           surface: popup.surface,
           route: pathname,
-          metadata: popup.metadata,
+          metadata: {
+            ...popup.metadata,
+            actionSource: "smart_popup",
+            ...metadata,
+          },
         }),
       }).catch(() => undefined);
     },
@@ -478,13 +523,16 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
   );
 
   const closeWithEvent = useCallback(
-    (eventType: Exclude<SmartPopupEventType, "impression">) => {
+    (
+      eventType: Exclude<SmartPopupEventType, "impression">,
+      metadata: Record<string, unknown> = {}
+    ) => {
       if (handledCloseRef.current) {
         setOpen(false);
         return;
       }
       handledCloseRef.current = true;
-      trackEvent(eventType);
+      trackEvent(eventType, metadata);
       setOpen(false);
     },
     [trackEvent]
@@ -492,7 +540,10 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
 
   useEffect(() => {
     if (!suppressed || !open || !popup) return;
-    const timer = window.setTimeout(() => closeWithEvent("dismissed"), 0);
+    const timer = window.setTimeout(
+      () => closeWithEvent("dismissed", { dismissMethod: "suppressed_route" }),
+      0
+    );
     return () => window.clearTimeout(timer);
   }, [closeWithEvent, open, popup, suppressed]);
 
@@ -549,6 +600,8 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
         setSubmitted(false);
         setSubmitResult(null);
         setSubmitError(null);
+        setCtaError(null);
+        setCtaLoading(false);
         surveyStartedRef.current = null;
         setOpen(true);
       } catch {
@@ -566,7 +619,7 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
     if (!open || !popup || !isSurveyPopup) return;
     if (surveyStartedRef.current === popup.key) return;
     surveyStartedRef.current = popup.key;
-    trackEvent("survey_started");
+    trackEvent("survey_started", { actionSource: "survey_form" });
   }, [isSurveyPopup, open, popup, trackEvent]);
 
   const answeredCount = useMemo(
@@ -644,6 +697,49 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handlePrimaryCta() {
+    if (!popup || ctaLoading) return;
+
+    if (!isReminderOptIn) {
+      closeWithEvent("cta_clicked", {
+        actionSource: "primary_button",
+        ctaOutcome: "navigate",
+      });
+      router.push(popup.ctaHref);
+      return;
+    }
+
+    setCtaError(null);
+    setCtaLoading(true);
+    try {
+      const res = await fetch("/api/client/smart-popups/reminder-opt-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignKey: popup.key,
+          locale,
+          route: pathname,
+          surface: popup.surface,
+          metadata: popup.metadata,
+        }),
+      });
+      const payload = (await res.json()) as ReminderOptInResponse;
+      if (!res.ok || payload.error) {
+        throw new Error(payload.error ?? "Unable to enable reminders.");
+      }
+      closeWithEvent("cta_clicked", {
+        actionSource: "primary_button",
+        ctaOutcome: "reminder_email_opt_in",
+      });
+    } catch (error) {
+      setCtaError(
+        error instanceof Error ? error.message : "Unable to enable reminders."
+      );
+    } finally {
+      setCtaLoading(false);
     }
   }
 
@@ -743,10 +839,12 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
       open={open}
       closeLabel={popup.dismissLabel}
       placement={isSurveyPopup ? "top" : "center"}
-      onClose={() => closeWithEvent(getCloseEvent())}
+      onClose={() =>
+        closeWithEvent(getCloseEvent(), { dismissMethod: "close_button" })
+      }
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          closeWithEvent(getCloseEvent());
+          closeWithEvent(getCloseEvent(), { dismissMethod: "modal_close" });
         } else {
           setOpen(true);
         }
@@ -768,19 +866,24 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
             submitError={submitError}
             renderQuestion={renderQuestion}
             onSubmit={() => submitSurvey(popup.survey!)}
-            onDismiss={() => closeWithEvent(getCloseEvent())}
-            onDontShowAgain={() => closeWithEvent("dont_show_again")}
+            onDismiss={() =>
+              closeWithEvent(getCloseEvent(), {
+                dismissMethod: "secondary_button",
+              })
+            }
           />
         )
       ) : (
         <FeatureNudgePopup
           popup={popup}
-          onCta={() => {
-            closeWithEvent("cta_clicked");
-            router.push(popup.ctaHref);
-          }}
-          onDismiss={() => closeWithEvent("dismissed")}
-          onDontShowAgain={() => closeWithEvent("dont_show_again")}
+          ctaLoading={ctaLoading}
+          ctaError={ctaError}
+          onCta={handlePrimaryCta}
+          onDismiss={() =>
+            closeWithEvent("dismissed", {
+              dismissMethod: "secondary_button",
+            })
+          }
         />
       )}
     </SmartPopupFrame>

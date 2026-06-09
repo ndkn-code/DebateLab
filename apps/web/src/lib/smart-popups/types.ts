@@ -29,6 +29,11 @@ export type SmartPopupLocale = "en" | "vi";
 export type SmartPopupSurface = "dashboard" | "global";
 export type SmartPopupCampaignType = "feature_nudge" | "feedback_survey";
 export type SmartPopupDeliveryMode = "targeted" | "send_now" | "scheduled";
+export type SmartPopupKind =
+  | "feature_announcement"
+  | "practice_suggestion"
+  | "reminder_opt_in"
+  | "feedback_survey";
 export type SmartPopupFactIcon =
   | "target"
   | "chart"
@@ -67,6 +72,7 @@ export interface SmartPopupRules {
   routeIncludes?: string[];
   repeatIntervalDays?: number;
   maxSubmissionsPerUser?: number;
+  requiresReminderEmailOptIn?: boolean;
 }
 
 export interface SmartPopupCampaign {
@@ -119,6 +125,10 @@ export interface SmartPopupUserTraits {
   role: string;
   onboardingCompleted: boolean;
   smartFeaturePopupsEnabled: boolean;
+  emailNotificationsEnabled: boolean;
+  practiceRemindersEnabled: boolean;
+  streakRemindersEnabled: boolean;
+  emailOptInScope: string | null;
   firstDashboardVisit: boolean;
   totalSessionsCompleted: number;
   daysSinceSignup: number;
@@ -144,6 +154,7 @@ export interface SmartPopupPayload {
   key: string;
   surface: SmartPopupSurface;
   campaignType: SmartPopupCampaignType;
+  popupKind: SmartPopupKind;
   segment: SmartPopupSegment;
   title: string;
   body: string;

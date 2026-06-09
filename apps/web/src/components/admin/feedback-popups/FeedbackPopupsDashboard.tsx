@@ -6,18 +6,16 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Edit3,
   Eye,
   Gift,
   Megaphone,
   MessageSquareText,
-  Pause,
   Plus,
   RefreshCw,
-  Send,
   ShieldCheck,
   Trash2,
 } from "@/components/ui/icons";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import {
   FeatureNudgePopup,
@@ -48,6 +46,9 @@ type PreviewState = {
 interface Props {
   initialData: FeedbackPopupAdminData;
 }
+
+const POPUP_SHOWCASE_HREF =
+  "/dashboard/admin/ui-showcase?surface=popups&state=popup-feedback-survey";
 
 const DEFAULT_QUESTIONS: SmartPopupSurveyQuestion[] = [
   {
@@ -191,12 +192,9 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
   const [previewSubmitted, setPreviewSubmitted] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const health = data.health;
-  const writesDisabled = !health.serviceRoleConfigured || health.status === "error";
-  const writeDisabledMessage = !health.serviceRoleConfigured
-    ? "Publishing and send-now actions need SUPABASE_SERVICE_ROLE_KEY configured."
-    : health.status === "error"
-      ? "Resolve the feedback popup health error before changing campaigns."
-      : undefined;
+  const writesDisabled = true;
+  const writeDisabledMessage =
+    "Popup campaigns are developer-defined in code and migrations. This admin page is read-only.";
 
   const latestResponses = data.responses.slice(0, 8);
   const ratingBuckets = useMemo(() => {
@@ -348,27 +346,9 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
   }
 
   function mutate(body: Record<string, unknown>, successMessage: string) {
-    setNotice(null);
-    if (writesDisabled) {
-      setNotice(writeDisabledMessage ?? "Feedback popup writes are currently disabled.");
-      return;
-    }
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/admin/feedback-popups", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const payload = (await res.json()) as { error?: string; data?: FeedbackPopupAdminData };
-        if (!res.ok) throw new Error(payload.error ?? "Action failed.");
-        if (payload.data) setData(payload.data);
-        setNotice(successMessage);
-        if (body.action === "save") setActiveTab("campaigns");
-      } catch (error) {
-        setNotice(error instanceof Error ? error.message : "Action failed.");
-      }
-    });
+    void body;
+    void successMessage;
+    setNotice(writeDisabledMessage);
   }
 
   function updateQuestion(
@@ -413,7 +393,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             Feedback Popups
           </h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-on-surface-variant">
-            Create localized feedback prompts, send them at the next safe in-app moment, and review the responses that shape the product.
+            Monitor code-owned popup campaigns, preview current variants, and review the responses that shape the product.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -431,14 +411,13 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button
-            type="button"
-            className="h-10 rounded-lg"
-            onClick={() => setActiveTab("builder")}
+          <Link
+            href={POPUP_SHOWCASE_HREF}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-bold text-white shadow-token-card transition hover:bg-primary-dim"
           >
-            <Plus className="h-4 w-4" />
-            New feedback
-          </Button>
+            <Eye className="h-4 w-4" />
+            Preview popups
+          </Link>
         </div>
       </div>
 
@@ -502,7 +481,6 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         {[
           ["campaigns", "Campaigns", Megaphone],
           ["system", "System nudges", Eye],
-          ["builder", "Builder", Edit3],
           ["responses", "Responses", MessageSquareText],
           ["analytics", "Analytics", BarChart3],
           ["health", "Cron/Health", ShieldCheck],
@@ -578,61 +556,13 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                       <Eye className="h-3.5 w-3.5" />
                       Preview VI
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={isPending || writesDisabled}
-                      title={writeDisabledMessage}
-                      onClick={() =>
-                        mutate(
-                          { action: "send_now", campaignKey: campaign.key },
-                          "Campaign is live for next safe page delivery."
-                        )
-                      }
+                    <Link
+                      href={POPUP_SHOWCASE_HREF}
+                      className="inline-flex h-7 items-center justify-center gap-1 rounded-lg border border-outline-variant bg-background px-2.5 text-[0.8rem] font-medium text-primary-dim transition hover:bg-primary-container"
                     >
-                      <Send className="h-3.5 w-3.5" />
-                      Send now
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={isPending || writesDisabled}
-                      title={writeDisabledMessage}
-                      onClick={() =>
-                        mutate(
-                          {
-                            action: "set_status",
-                            campaignKey: campaign.key,
-                            status: campaign.status === "active" ? "paused" : "active",
-                          },
-                          campaign.status === "active" ? "Campaign paused." : "Campaign activated."
-                        )
-                      }
-                    >
-                      {campaign.status === "active" ? <Pause className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                      {campaign.status === "active" ? "Pause" : "Activate"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      disabled={isPending || writesDisabled}
-                      title={writeDisabledMessage}
-                      onClick={() =>
-                        mutate(
-                          {
-                            action: "set_status",
-                            campaignKey: campaign.key,
-                            status: "archived",
-                          },
-                          "Campaign archived."
-                        )
-                      }
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Archive
-                    </Button>
+                      <Eye className="h-3.5 w-3.5" />
+                      UI Showcase
+                    </Link>
                   </div>
                 </div>
               ))
@@ -708,6 +638,13 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                     <span className="inline-flex min-h-9 items-center rounded-lg bg-background px-3 text-xs font-bold text-on-surface-variant">
                       CTA: {campaign.ctaHref}
                     </span>
+                    <Link
+                      href={POPUP_SHOWCASE_HREF}
+                      className="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg border border-outline-variant bg-background px-3 text-xs font-bold text-primary-dim transition hover:bg-primary-container"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      UI Showcase
+                    </Link>
                   </div>
                 </article>
               ))}
@@ -1027,34 +964,54 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       ) : null}
 
       {activeTab === "analytics" ? (
-        <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-lg border border-outline-variant bg-white p-5">
-            <h2 className="text-xl font-extrabold text-on-surface">Rating Distribution</h2>
-            <div className="mt-5 space-y-3">
-              {ratingBuckets.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">No ratings yet.</p>
-              ) : (
-                ratingBuckets.map(([rating, count]) => {
-                  const max = Math.max(...ratingBuckets.map((bucket) => bucket[1]), 1);
-                  return (
-                    <div key={rating} className="grid grid-cols-[48px_1fr_48px] items-center gap-3 text-sm">
-                      <span className="font-bold text-on-surface">{rating}</span>
-                      <span className="h-3 overflow-hidden rounded-full bg-surface-container">
-                        <span className="block h-full rounded-full bg-primary" style={{ width: `${(count / max) * 100}%` }} />
-                      </span>
-                      <span className="text-right font-bold text-on-surface-variant">{count}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+        <section className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Impressions", data.eventAnalytics.impressions],
+              ["CTA clicks", data.eventAnalytics.ctaClicks],
+              ["Dismissals", data.eventAnalytics.dismissals],
+              ["CTR", `${data.eventAnalytics.ctr}%`],
+              ["Survey starts", data.eventAnalytics.surveyStarts],
+              ["Survey submits", data.eventAnalytics.surveySubmissions],
+              ["Survey abandons", data.eventAnalytics.surveyAbandons],
+              ["Reminder opt-ins", data.eventAnalytics.reminderOptIns],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-outline-variant bg-white p-4 shadow-token-card">
+                <p className="text-sm font-semibold text-on-surface-variant">{label}</p>
+                <p className="mt-2 text-2xl font-extrabold text-on-surface">{value}</p>
+              </div>
+            ))}
           </div>
-          <div className="rounded-lg border border-outline-variant bg-white p-5">
-            <h2 className="text-xl font-extrabold text-on-surface">Delivery Model</h2>
-            <div className="mt-4 space-y-3 text-sm leading-6 text-on-surface-variant">
-              <p>Send-now campaigns become eligible immediately, then show only at the next safe protected route.</p>
-              <p>Feedback popups respect the user smart-popup preference, daily/weekly caps, and per-campaign submission limits.</p>
-              <p>Completed submissions grant 50 Credits through an idempotent server-side reward path.</p>
+
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <div className="rounded-lg border border-outline-variant bg-white p-5">
+              <h2 className="text-xl font-extrabold text-on-surface">Rating Distribution</h2>
+              <div className="mt-5 space-y-3">
+                {ratingBuckets.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant">No ratings yet.</p>
+                ) : (
+                  ratingBuckets.map(([rating, count]) => {
+                    const max = Math.max(...ratingBuckets.map((bucket) => bucket[1]), 1);
+                    return (
+                      <div key={rating} className="grid grid-cols-[48px_1fr_48px] items-center gap-3 text-sm">
+                        <span className="font-bold text-on-surface">{rating}</span>
+                        <span className="h-3 overflow-hidden rounded-full bg-surface-container">
+                          <span className="block h-full rounded-full bg-primary" style={{ width: `${(count / max) * 100}%` }} />
+                        </span>
+                        <span className="text-right font-bold text-on-surface-variant">{count}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+            <div className="rounded-lg border border-outline-variant bg-white p-5">
+              <h2 className="text-xl font-extrabold text-on-surface">Delivery Policy</h2>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-on-surface-variant">
+                <p>Popup campaigns are code-owned and admin-preview-only in this release.</p>
+                <p>Live delivery respects smart-popup preferences, cooldowns, daily/weekly caps, and historical hidden state.</p>
+                <p>Reminder opt-in enables only practice and streak reminder emails; broader lifecycle emails require Settings opt-in.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -1122,7 +1079,6 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
             renderQuestion={renderPreviewQuestion}
             onSubmit={() => submitPreviewSurvey(preview.popup.survey!, preview.locale)}
             onDismiss={closePreview}
-            onDontShowAgain={closePreview}
           />
         ) : (
           <FeatureNudgePopup
@@ -1132,7 +1088,6 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
               closePreview();
             }}
             onDismiss={closePreview}
-            onDontShowAgain={closePreview}
           />
         )}
       </SmartPopupFrame>

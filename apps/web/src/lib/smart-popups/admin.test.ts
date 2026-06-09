@@ -29,7 +29,8 @@ function testSessionFallbackWarning() {
 
   assert.equal(health.status, "warning");
   assert.equal(health.serviceRoleConfigured, false);
-  assert.match(health.message, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(health.message, /session fallback/);
+  assert.match(health.message, /aggregate rows/);
 }
 
 function testEmptyDataPreservesFallbackContext() {
@@ -44,6 +45,16 @@ function testEmptyDataPreservesFallbackContext() {
   assert.deepEqual(data.systemCampaigns, []);
   assert.deepEqual(data.responses, []);
   assert.deepEqual(data.cronRuns, []);
+  assert.deepEqual(data.eventAnalytics, {
+    impressions: 0,
+    ctaClicks: 0,
+    dismissals: 0,
+    ctr: 0,
+    surveyStarts: 0,
+    surveySubmissions: 0,
+    surveyAbandons: 0,
+    reminderOptIns: 0,
+  });
   assert.equal(data.health.status, "error");
   assert.equal(data.health.message, "Data API read failed.");
   assert.equal(data.health.dataSource, "session");

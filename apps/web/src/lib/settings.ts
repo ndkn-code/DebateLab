@@ -36,6 +36,7 @@ export interface SettingsPreferences extends Record<string, unknown> {
   achievement_updates?: boolean;
   smart_feature_popups?: boolean;
   email_notifications?: boolean;
+  email_opt_in_scope?: "all" | "reminders_only" | null;
   analytics_cookies_enabled?: boolean;
   first_dashboard_visit?: boolean;
   theme?: AppTheme;
@@ -524,6 +525,7 @@ export function draftToPreferences(
     achievement_updates: draft.achievementUpdates,
     smart_feature_popups: draft.smartFeaturePopups,
     email_notifications: draft.emailNotifications,
+    email_opt_in_scope: draft.emailNotifications ? "all" : null,
     analytics_cookies_enabled: true,
   } satisfies SettingsPreferences;
 }

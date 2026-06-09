@@ -1,4 +1,4 @@
-export type ShowcaseSurface = "practice" | "feedback" | "duel";
+export type ShowcaseSurface = "practice" | "feedback" | "duel" | "popups";
 
 export type ShowcaseQaStatus = "ready" | "needs-review" | "blocked";
 
@@ -39,6 +39,11 @@ export type ShowcaseScenarioId =
   | "feedback-history-clash"
   | "feedback-ai-verdict"
   | "feedback-unmatched-annotation"
+  | "popup-feature-announcement"
+  | "popup-practice-suggestion"
+  | "popup-reminder-opt-in"
+  | "popup-feedback-survey"
+  | "popup-thank-you"
   | "duel-create"
   | "duel-matchmaking"
   | "duel-lobby"
