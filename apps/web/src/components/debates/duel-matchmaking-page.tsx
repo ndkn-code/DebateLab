@@ -87,8 +87,10 @@ function formatQueueTimer(seconds: number) {
 
 export function DuelMatchmakingPage({
   initialTopics,
+  showcaseMode = false,
 }: {
   initialTopics: DebateTopic[];
+  showcaseMode?: boolean;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -128,7 +130,8 @@ export function DuelMatchmakingPage({
   const [pending, startTransition] = useTransition();
 
   const { data: polledTicket, mutate } = useSWR(
-    localTicket?.status === "queued" || localTicket?.status === "matched"
+    !showcaseMode &&
+      (localTicket?.status === "queued" || localTicket?.status === "matched")
       ? "/api/debate-duels/matchmaking/ticket"
       : null,
     fetchTicket,
@@ -192,15 +195,21 @@ export function DuelMatchmakingPage({
   }, [activeTicket, isSearching]);
 
   useEffect(() => {
+    if (showcaseMode) return;
     if (!isMatched || !activeTicket?.shareCode) return;
     const timeout = window.setTimeout(() => {
       router.replace(`/debates/${activeTicket.shareCode}`);
     }, 900);
     return () => window.clearTimeout(timeout);
-  }, [activeTicket?.shareCode, isMatched, router]);
+  }, [activeTicket?.shareCode, isMatched, router, showcaseMode]);
 
   const enterQueue = () => {
     setActionError(null);
+    if (showcaseMode) {
+      setActionError("Showcase mode keeps matchmaking actions disabled.");
+      return;
+    }
+
     if (!previewTopic) {
       setActionError("No active motions are available for this language yet.");
       return;
@@ -235,6 +244,12 @@ export function DuelMatchmakingPage({
 
   const cancelQueue = () => {
     setActionError(null);
+    if (showcaseMode) {
+      setLocalTicket(null);
+      setQueueRemaining(0);
+      return;
+    }
+
     startTransition(async () => {
       const response = await fetch("/api/debate-duels/matchmaking/ticket", {
         method: "DELETE",

@@ -10,14 +10,21 @@ import { unlockTtsAutoplay } from '@/hooks/use-tts';
 
 interface AudioCheckProps {
   onPassed: () => void;
+  showcaseStatus?: "idle" | "playing" | "passed";
 }
 
-export function AudioCheck({ onPassed }: AudioCheckProps) {
+export function AudioCheck({ onPassed, showcaseStatus }: AudioCheckProps) {
   const t = useTranslations('dashboard.practice');
   const [status, setStatus] = useState<'idle' | 'playing' | 'passed'>('idle');
+  const resolvedStatus = showcaseStatus ?? status;
   const posthog = usePostHog();
 
   const playTestSound = () => {
+    if (showcaseStatus) {
+      setStatus('playing');
+      return;
+    }
+
     void unlockTtsAutoplay();
     setStatus('playing');
 
@@ -71,7 +78,7 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
         </p>
 
         <AnimatePresence mode="wait">
-          {status === 'idle' && (
+          {resolvedStatus === 'idle' && (
             <motion.div key="test" className="mt-6" exit={{ opacity: 0 }}>
               <Button onClick={playTestSound} size="lg" className="h-11 gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary">
                 <Volume2 className="h-5 w-5" />
@@ -82,7 +89,7 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
               </p>
             </motion.div>
           )}
-          {status === 'playing' && (
+          {resolvedStatus === 'playing' && (
             <motion.div
               key="playing"
               initial={{ opacity: 0 }}
@@ -103,7 +110,7 @@ export function AudioCheck({ onPassed }: AudioCheckProps) {
               <span className="text-sm font-semibold">{t('audioCheck.playing')}</span>
             </motion.div>
           )}
-          {status === 'passed' && (
+          {resolvedStatus === 'passed' && (
             <motion.div
               key="passed"
               initial={{ opacity: 0, scale: 0.95 }}

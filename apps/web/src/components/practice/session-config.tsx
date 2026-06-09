@@ -39,6 +39,7 @@ interface SessionConfigProps {
   referralCode: string;
   onBalanceChange: (balance: number) => void;
   layout?: "desktop" | "mobile";
+  showcaseMode?: boolean;
 }
 
 function FieldLabel({
@@ -205,6 +206,7 @@ export function SessionConfig({
   referralCode,
   onBalanceChange,
   layout = "desktop",
+  showcaseMode = false,
 }: SessionConfigProps) {
   const router = useRouter();
   const t = useTranslations("dashboard.practice");
@@ -236,6 +238,12 @@ export function SessionConfig({
   const motionBrief = getMotionBrief(topic, locale === "vi" ? "vi" : "en");
 
   const handleBegin = async () => {
+    if (showcaseMode) {
+      setShowBeginTransition(true);
+      window.setTimeout(() => setShowBeginTransition(false), 900);
+      return;
+    }
+
     if (orbBalance !== null && orbBalance < orbCost) {
       setShowOrbModal(true);
       return;

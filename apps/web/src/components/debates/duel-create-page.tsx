@@ -49,6 +49,7 @@ interface DuelCreatePageProps {
   initialTopics: DebateTopic[];
   initialTopicTitle?: string;
   initialRoomShareCode?: string;
+  showcaseMode?: boolean;
 }
 
 type DifficultyFilter = "all" | DebateDuelTopicDifficulty;
@@ -78,6 +79,7 @@ export function DuelCreatePage({
   initialTopics,
   initialTopicTitle,
   initialRoomShareCode,
+  showcaseMode = false,
 }: DuelCreatePageProps) {
   const router = useRouter();
   const locale = useLocale();
@@ -141,13 +143,19 @@ export function DuelCreatePage({
   }, [categoryFilter, difficultyFilter, localizedTopics]);
 
   useEffect(() => {
+    if (showcaseMode) return;
     if (activeRoom && activeRoom.status !== "lobby") {
       router.replace(`/debates/${activeRoom.shareCode}`);
     }
-  }, [activeRoom, router]);
+  }, [activeRoom, router, showcaseMode]);
 
   const handleCreate = () => {
     setError(null);
+    if (showcaseMode) {
+      setError("Showcase mode keeps duel creation disabled.");
+      return;
+    }
+
     if (!selectedTopic) {
       setError("No active motions are available for this language yet.");
       return;

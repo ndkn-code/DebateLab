@@ -46,6 +46,7 @@ interface SpeakingPhaseProps {
   isPaused: boolean;
   hasDetectedAudio?: boolean;
   hasReceivedSpeech?: boolean;
+  showcaseEndConfirm?: boolean;
 }
 
 export function SpeakingPhase({
@@ -67,6 +68,7 @@ export function SpeakingPhase({
   isPaused,
   hasDetectedAudio = false,
   hasReceivedSpeech = false,
+  showcaseEndConfirm = false,
 }: SpeakingPhaseProps) {
   const t = useTranslations("dashboard.practice");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -84,6 +86,7 @@ export function SpeakingPhase({
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
   const hasHeardAudio = hasDetectedAudio || hasReceivedSpeech;
+  const shouldShowEndConfirm = showcaseEndConfirm || showEndConfirm;
 
   const handleTranscriptScroll = () => {
     const pane = transcriptPaneRef.current;
@@ -153,7 +156,9 @@ export function SpeakingPhase({
     !isPaused;
 
   const handleConfirmEnd = () => {
-    setShowEndConfirm(false);
+    if (!showcaseEndConfirm) {
+      setShowEndConfirm(false);
+    }
     onEnd();
   };
 
@@ -357,7 +362,7 @@ export function SpeakingPhase({
         </PracticePanel>
       </div>
 
-      <ActionRail className={cn("mx-auto w-fit", showEndConfirm && "invisible")}>
+      <ActionRail className={cn("mx-auto w-fit", shouldShowEndConfirm && "invisible")}>
         <PauseButton
           isPaused={isPaused}
           onClick={isPaused ? onResume : onPause}
@@ -373,7 +378,7 @@ export function SpeakingPhase({
       </ActionRail>
 
       <AnimatePresence>
-        {showEndConfirm && (
+        {shouldShowEndConfirm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -40,6 +40,8 @@ type RebuttalApiResponse = {
   _aiRunId?: string | null;
 };
 
+const EMPTY_HIGHLIGHTS: AiHighlight[] = [];
+
 interface AiRebuttalPhaseProps {
   topic: string;
   side: "proposition" | "opposition";
@@ -60,6 +62,20 @@ interface AiRebuttalPhaseProps {
   initialResponse?: string;
   initialHighlights?: AiHighlight[];
   ttsVoice?: string;
+  showcaseState?: "loading" | "streaming" | "done" | "error";
+  showcaseStreamingText?: string;
+  showcaseError?: string;
+}
+
+function getInitialShowcaseStatus(
+  showcaseState: AiRebuttalPhaseProps["showcaseState"],
+  hasInitialResponse: boolean
+) {
+  if (showcaseState === "error") return "error";
+  if (showcaseState === "loading" || showcaseState === "streaming") {
+    return "loading";
+  }
+  return hasInitialResponse ? "done" : "loading";
 }
 
 function getHighlightClass(type: AiHighlight["type"]) {
@@ -175,29 +191,39 @@ export function AiRebuttalPhase({
   onComplete,
   onGenerated,
   initialResponse = "",
-  initialHighlights = [],
+  initialHighlights = EMPTY_HIGHLIGHTS,
   ttsVoice = 'aura-asteria-en',
+  showcaseState,
+  showcaseStreamingText = "",
+  showcaseError = "AI response generation failed in this fixture state.",
 }: AiRebuttalPhaseProps) {
   const t = useTranslations('dashboard.practice');
-  const normalizedInitialResponse = normalizeStructuredRebuttalResponse(
-    initialResponse,
-    initialHighlights
+  const normalizedInitialResponse = useMemo(
+    () => normalizeStructuredRebuttalResponse(initialResponse, initialHighlights),
+    [initialHighlights, initialResponse]
   );
+  const isShowcase = Boolean(showcaseState);
   const [status, setStatus] = useState<"loading" | "typing" | "done" | "error">(
-    normalizedInitialResponse.rebuttal ? "done" : "loading"
+    getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal))
   );
   const [fullText, setFullText] = useState(normalizedInitialResponse.rebuttal);
   const [displayedText, setDisplayedText] = useState(
     normalizedInitialResponse.rebuttal
   );
-  const [streamingText, setStreamingText] = useState("");
+  const [streamingText, setStreamingText] = useState(
+    showcaseState === "streaming" ? showcaseStreamingText : ""
+  );
   const [highlights, setHighlights] = useState<AiHighlight[]>(
     normalizedInitialResponse.highlights
   );
   const [aiRunId, setAiRunId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    showcaseState === "error" ? showcaseError : null
+  );
   const [typewriterDelayMs, setTypewriterDelayMs] = useState(18);
-  const hasFetched = useRef(Boolean(normalizedInitialResponse.rebuttal));
+  const hasFetched = useRef(
+    Boolean(normalizedInitialResponse.rebuttal) || isShowcase
+  );
   const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsTriggeredRef = useRef(false);
   const ttsWasLoadingRef = useRef(false);
@@ -355,11 +381,29 @@ export function AiRebuttalPhase({
 
   // Fetch on mount
   useEffect(() => {
-    if (!hasFetched.current) {
+    if (!hasFetched.current && !isShowcase) {
       hasFetched.current = true;
       fetchRebuttal();
     }
-  }, [fetchRebuttal]);
+  }, [fetchRebuttal, isShowcase]);
+
+  useEffect(() => {
+    if (!showcaseState) return;
+
+    setStatus(getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal)));
+    setFullText(normalizedInitialResponse.rebuttal);
+    setDisplayedText(normalizedInitialResponse.rebuttal);
+    setStreamingText(showcaseState === "streaming" ? showcaseStreamingText : "");
+    setHighlights(normalizedInitialResponse.highlights);
+    setError(showcaseState === "error" ? showcaseError : null);
+    hasFetched.current = true;
+  }, [
+    normalizedInitialResponse.highlights,
+    normalizedInitialResponse.rebuttal,
+    showcaseError,
+    showcaseState,
+    showcaseStreamingText,
+  ]);
 
   // Typewriter effect
   useEffect(() => {
@@ -407,6 +451,7 @@ export function AiRebuttalPhase({
   };
 
   const handleRetry = () => {
+    if (isShowcase) return;
     hasFetched.current = false;
     fetchRebuttal();
   };

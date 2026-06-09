@@ -18,18 +18,37 @@ type MicCheckStatus =
 interface MicCheckProps {
   onReady: (stream: MediaStream) => void;
   onBack: () => void;
+  showcaseStatus?: MicCheckStatus;
+  showcaseAudioDetected?: boolean;
+  showcaseLevels?: number[];
 }
 
 const LEVEL_BAR_COUNT = 16;
 const AUDIO_THRESHOLD = 0.05;
 const AUDIO_CONFIRM_MS = 800;
 
-export function MicCheck({ onReady, onBack }: MicCheckProps) {
+export function MicCheck({
+  onReady,
+  onBack,
+  showcaseStatus,
+  showcaseAudioDetected,
+  showcaseLevels,
+}: MicCheckProps) {
   const t = useTranslations("dashboard.practice");
-  const [status, setStatus] = useState<MicCheckStatus>("requesting");
+  const [status, setStatus] = useState<MicCheckStatus>(
+    showcaseStatus ?? "requesting"
+  );
   const [errorMessage, setErrorMessage] = useState("");
-  const [levels, setLevels] = useState<number[]>(new Array(LEVEL_BAR_COUNT).fill(0));
+  const [levels, setLevels] = useState<number[]>(
+    showcaseLevels ?? new Array(LEVEL_BAR_COUNT).fill(0)
+  );
   const [audioDetected, setAudioDetected] = useState(false);
+  const resolvedAudioDetected =
+    showcaseStatus === "testing"
+      ? showcaseAudioDetected ?? true
+      : audioDetected;
+  const resolvedLevels =
+    showcaseStatus === "testing" && showcaseLevels ? showcaseLevels : levels;
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -143,12 +162,20 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
 
   // Request mic on mount
   useEffect(() => {
+    if (showcaseStatus) return;
     requestMic();
     return () => {
       // Only clean up analysis, NOT the stream — it might be passed to onReady
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!showcaseStatus) return;
+    setStatus(showcaseStatus);
+    if (showcaseLevels) setLevels(showcaseLevels);
+    setAudioDetected(showcaseAudioDetected ?? showcaseStatus === "testing");
+  }, [showcaseAudioDetected, showcaseLevels, showcaseStatus]);
 
   // Cleanup on unmount if we haven't handed off the stream
   useEffect(() => {
@@ -162,6 +189,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
   }, [cleanup]);
 
   const handleStart = () => {
+    if (showcaseStatus) return;
     if (!streamRef.current) return;
     // Stop the analysis but keep the stream alive
     cleanup();
@@ -172,6 +200,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
   };
 
   const handleSkipTest = () => {
+    if (showcaseStatus) return;
     if (!streamRef.current) return;
     cleanup();
     const stream = streamRef.current;
@@ -258,10 +287,12 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               <motion.div
                 className={cn(
                   "flex h-24 w-24 items-center justify-center rounded-full transition-colors",
-                  audioDetected ? "bg-secondary-container/80" : "bg-primary-container"
+                  resolvedAudioDetected
+                    ? "bg-secondary-container/80"
+                    : "bg-primary-container"
                 )}
                 animate={
-                  audioDetected
+                  resolvedAudioDetected
                     ? {}
                     : {
                         boxShadow: [
@@ -271,10 +302,12 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                       }
                 }
                 transition={
-                  audioDetected ? {} : { duration: 1.5, repeat: Infinity }
+                  resolvedAudioDetected
+                    ? {}
+                    : { duration: 1.5, repeat: Infinity }
                 }
               >
-                {audioDetected ? (
+                {resolvedAudioDetected ? (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -289,24 +322,24 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
 
               <div>
                 <h2 className="text-2xl font-semibold tracking-normal text-on-surface">
-                  {audioDetected
+                  {resolvedAudioDetected
                     ? t("session.mic_working")
                     : t("session.test_microphone")}
                 </h2>
                 <p className="mt-3 text-sm font-medium text-on-surface-variant">
-                  {audioDetected
+                  {resolvedAudioDetected
                     ? t("session.mic_detected")
                     : t("session.speak_to_test_mic")}
                 </p>
               </div>
 
               <div className="flex h-12 items-end justify-center gap-1.5">
-                {levels.map((level, i) => (
+                {resolvedLevels.map((level, i) => (
                   <motion.div
                     key={i}
                     className={cn(
                       "w-2.5 rounded-full transition-colors",
-                      audioDetected ? "bg-secondary" : "bg-primary"
+                      resolvedAudioDetected ? "bg-secondary" : "bg-primary"
                     )}
                     style={{
                       height: `${Math.max(4, level * 40)}px`,
@@ -320,10 +353,10 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
               <div className="flex w-full flex-col items-center gap-3 pt-2">
                 <Button
                   onClick={handleStart}
-                  disabled={!audioDetected}
+                  disabled={!resolvedAudioDetected}
                   className={cn(
                     "h-11 w-full max-w-[300px] gap-2 rounded-lg text-sm font-semibold",
-                    audioDetected
+                    resolvedAudioDetected
                       ? "bg-primary text-on-primary hover:bg-primary/90"
                       : "cursor-not-allowed bg-primary/40 text-on-primary/60"
                   )}
@@ -332,7 +365,7 @@ export function MicCheck({ onReady, onBack }: MicCheckProps) {
                     <ArrowRight className="h-4 w-4" />
                   </Button>
 
-                {!audioDetected && (
+                {!resolvedAudioDetected && (
                   <button
                     onClick={handleSkipTest}
                     className="text-xs text-on-surface-variant transition-colors hover:text-on-surface"

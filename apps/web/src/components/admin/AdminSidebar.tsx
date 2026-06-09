@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  LayoutGrid,
   Layers3,
   Mail,
   Menu,
@@ -26,6 +27,7 @@ import { Link } from "@/i18n/navigation";
 const ADMIN_NAV = [
   { href: "/dashboard/admin/overview", key: "overview" as const, icon: BarChart3 },
   { href: "/dashboard/admin/ai-quality", key: "aiQuality" as const, icon: BrainCircuit },
+  { href: "/dashboard/admin/ui-showcase", key: "uiShowcase" as const, icon: LayoutGrid },
   { href: "/dashboard/admin/corpus", key: "corpus" as const, icon: Layers3 },
   { href: "/dashboard/admin/users", key: "users" as const, icon: Users },
   { href: "/dashboard/admin/classes", key: "classes" as const, icon: CalendarDays },
