@@ -107,6 +107,27 @@ const fixture = `
       "debate_moments": [],
       "phrase_bank": [],
       "judging_lessons": [],
+      "case_skeletons": [
+        {
+          "side": "opposition",
+          "independent_claims": [
+            {
+              "side": "opposition",
+              "label": "Thành công sớm có thể truyền cảm hứng có điều kiện",
+              "claim": "Truyền thông không cần ngừng ca ngợi hoàn toàn, mà cần ca ngợi kèm quá trình và điều kiện thành công.",
+              "mechanism": "Khi câu chuyện nhấn vào quá trình học, thất bại và hỗ trợ, người trẻ học được mô hình hành động thay vì chỉ so sánh kết quả.",
+              "impact": "Nguồn cảm hứng vẫn tồn tại nhưng giảm FOMO và áp lực phi thực tế.",
+              "answerability": "Phe ủng hộ có thể phản biện rằng truyền thông đại chúng hiếm khi giữ được sắc thái này."
+            }
+          ],
+          "mechanisms": ["Ca ngợi có ngữ cảnh chuyển trọng tâm từ kết quả sang quá trình."],
+          "examples": ["Câu chuyện khởi nghiệp có nhắc tới thất bại và nguồn lực hỗ trợ."],
+          "weighing_hooks": ["Cân lợi ích cảm hứng với rủi ro FOMO."],
+          "common_clashes": ["Ngừng ca ngợi hoàn toàn hay sửa cách ca ngợi."],
+          "evidence_status": "not_applicable",
+          "confidence": 0.85
+        }
+      ],
       "extraction_notes": { "human_review_needed": true }
     }
   ],
@@ -128,9 +149,10 @@ const corpus = normalizeTruongTeenCorpus(inputPath);
 assert.equal(corpus.summary.sources, 2);
 assert.equal(corpus.summary.source_matches, 2);
 assert.equal(corpus.summary.canonical_matches, 1);
-assert.equal(corpus.summary.candidate_matches, 0);
-assert.equal(corpus.summary.phrase_only_matches, 1);
-assert.equal(corpus.summary.debate_moments, 0);
+assert.equal(corpus.summary.candidate_matches, 1);
+assert.equal(corpus.summary.phrase_only_matches, 0);
+assert.equal(corpus.summary.debate_moments, 1);
+assert.equal(corpus.summary.case_skeletons, 1);
 assert.equal(corpus.sources[0]?.youtube_url, "https://youtu.be/example123");
 assert.equal(corpus.sources[0]?.transcript_quality, "medium");
 assert.equal(corpus.source_matches[0]?.segment_map[0]?.side, "unknown");
@@ -140,5 +162,6 @@ assert.deepEqual(corpus.source_matches[0]?.debate_moments[0]?.usable_for, [
 ]);
 assert.equal(corpus.source_matches[0]?.phrase_bank[0]?.english_meaning, "Do not set an alarm for success.");
 assert.equal(corpus.source_matches[0]?.phrase_bank[0]?.function, "burden");
+assert.equal(corpus.source_matches[1]?.case_skeletons[0]?.independent_claims.length, 1);
 
 console.log("Truong Teen corpus normalizer tests passed.");

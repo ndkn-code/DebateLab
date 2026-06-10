@@ -6,11 +6,13 @@ import {
   BrainCircuit,
   CheckCircle2,
   Clock3,
+  FileSearch,
   Filter,
   Loader2,
   MessageSquareText,
   Search,
   ShieldCheck,
+  Wand2,
   X,
   XCircle,
 } from "@/components/ui/icons";
@@ -79,6 +81,15 @@ type CorpusRagStatus =
   | "none";
 
 type SttStatus = "normalized" | "fallback" | "warning" | "clean" | "none";
+type SttRepairStatus =
+  | "not_attempted"
+  | "skipped"
+  | "repaired"
+  | "uncertain"
+  | "hallucination_risk"
+  | "failed";
+type SttRepairFilter = "all" | "has_repair" | "needs_review" | "repaired" | "risk";
+type OpponentOnlyRebuttalRisk = "low" | "medium" | "high";
 
 interface DashboardResponse {
   kpis: {
@@ -106,6 +117,8 @@ interface DashboardResponse {
   providerRequestsByRunId: Record<string, ProviderRequestRow[]>;
   rows: Row[];
 }
+
+const EMPTY_ROWS: Row[] = [];
 
 const OUTPUT_LABELS: Record<AiQualityOutputType, string> = {
   rebuttal: "Rebuttal",
@@ -146,10 +159,24 @@ function formatCompactNumber(value: number | null | undefined) {
   }).format(value);
 }
 
+function formatSignedNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${value > 0 ? "+" : ""}${value.toFixed(Math.abs(value) < 1 ? 1 : 0)}`;
+}
+
 function formatSimilarity(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? value.toFixed(2)
     : "—";
+}
+
+function median(values: number[]) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[middle - 1] + sorted[middle]) / 2)
+    : sorted[middle];
 }
 
 function formatDate(value: string) {
@@ -262,6 +289,42 @@ function getCorpusMetadata(row: Row) {
   };
 }
 
+function readRecordArray(value: unknown, limit: number) {
+  return Array.isArray(value)
+    ? value
+        .filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item && typeof item === "object" && !Array.isArray(item))
+        )
+        .slice(0, limit)
+    : [];
+}
+
+function readStringArray(value: unknown, limit = 24) {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, limit)
+    : [];
+}
+
+function getScoreMetadata(row: Row) {
+  const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+  return {
+    shadowVariant:
+      typeof metadata.shadowVariant === "string" ? metadata.shadowVariant : "baseline",
+    scoreBefore:
+      typeof metadata.scoreBefore === "number" ? metadata.scoreBefore : null,
+    scoreAfter:
+      typeof metadata.scoreAfter === "number" ? metadata.scoreAfter : null,
+    scoreDelta:
+      typeof metadata.scoreDelta === "number" ? metadata.scoreDelta : null,
+    softCapReasons: readStringArray(metadata.softCapReasons),
+  };
+}
+
 function getTranscriptionMetadata(row: Row) {
   const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
   const transcription =
@@ -272,25 +335,54 @@ function getTranscriptionMetadata(row: Row) {
       : null;
   if (!transcription) return null;
 
-  const warnings = Array.isArray(transcription.warnings)
-    ? transcription.warnings.filter((item): item is string => typeof item === "string")
-    : [];
-  const normalizationHints = Array.isArray(transcription.normalizationHints)
-    ? transcription.normalizationHints
-        .filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item && typeof item === "object" && !Array.isArray(item))
-        )
-        .slice(0, 8)
-    : [];
-  const alternatives = Array.isArray(transcription.alternativeProviders)
-    ? transcription.alternativeProviders
-        .filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item && typeof item === "object" && !Array.isArray(item))
-        )
-        .slice(0, 4)
-    : [];
+  const warnings = readStringArray(transcription.warnings);
+  const normalizationHints = readRecordArray(transcription.normalizationHints, 8);
+  const alternatives = readRecordArray(transcription.alternativeProviders, 4);
+  const repairSource =
+    transcription.repair &&
+    typeof transcription.repair === "object" &&
+    !Array.isArray(transcription.repair)
+      ? (transcription.repair as Record<string, unknown>)
+      : null;
+  const repair = repairSource
+    ? {
+        version:
+          typeof repairSource.version === "number" ? repairSource.version : null,
+        provider:
+          typeof repairSource.provider === "string" ? repairSource.provider : "unknown",
+        model:
+          typeof repairSource.model === "string" ? repairSource.model : "unknown",
+        status:
+          typeof repairSource.status === "string"
+            ? (repairSource.status as SttRepairStatus)
+            : "skipped",
+        mode:
+          typeof repairSource.mode === "string" ? repairSource.mode : "shadow",
+        latencyMs:
+          typeof repairSource.latencyMs === "number" ? repairSource.latencyMs : null,
+        rawTranscriptHash:
+          typeof repairSource.rawTranscriptHash === "string"
+            ? repairSource.rawTranscriptHash
+            : null,
+        editCount:
+          typeof repairSource.editCount === "number"
+            ? repairSource.editCount
+            : readRecordArray(repairSource.edits, 24).length,
+        uncertainSpanCount:
+          typeof repairSource.uncertainSpanCount === "number"
+            ? repairSource.uncertainSpanCount
+            : readRecordArray(repairSource.uncertainSpans, 16).length,
+        warnings: readStringArray(repairSource.warnings),
+        hallucinationRisk:
+          typeof repairSource.hallucinationRisk === "number"
+            ? repairSource.hallucinationRisk
+            : null,
+        repairedAt:
+          typeof repairSource.repairedAt === "string" ? repairSource.repairedAt : null,
+        edits: readRecordArray(repairSource.edits, 24),
+        uncertainSpans: readRecordArray(repairSource.uncertainSpans, 16),
+      }
+    : null;
   const provider =
     typeof transcription.provider === "string" ? transcription.provider : "unknown";
   const model = typeof transcription.model === "string" ? transcription.model : "unknown";
@@ -312,7 +404,70 @@ function getTranscriptionMetadata(row: Row) {
     warnings,
     normalizationHints,
     alternatives,
+    hasJudgeTranscript: Boolean(transcription.hasJudgeTranscript),
+    rawTranscriptPreview:
+      typeof transcription.rawTranscriptPreview === "string"
+        ? transcription.rawTranscriptPreview
+        : null,
+    judgeTranscriptPreview:
+      typeof transcription.judgeTranscriptPreview === "string"
+        ? transcription.judgeTranscriptPreview
+        : null,
+    repair,
     status,
+  };
+}
+
+function computeSttRepairKpis(rows: Row[]) {
+  const practiceRows = rows.filter((row) => row.output_type === "practice_judging");
+  const repairRows = practiceRows
+    .map((row) => ({ row, transcription: getTranscriptionMetadata(row) }))
+    .filter((item) => item.transcription?.repair);
+  const latencies = repairRows
+    .map((item) => item.transcription?.repair?.latencyMs)
+    .filter((value): value is number => typeof value === "number");
+  const scoreDeltas = practiceRows
+    .map((row) => getScoreMetadata(row).scoreDelta)
+    .filter((value): value is number => typeof value === "number");
+  const riskCount = repairRows.filter((item) => {
+    const repair = item.transcription?.repair;
+    return (
+      repair?.status === "hallucination_risk" ||
+      (repair?.hallucinationRisk ?? 0) >= 0.35
+    );
+  }).length;
+  const needsReviewCount = repairRows.filter((item) => {
+    const repair = item.transcription?.repair;
+    return (
+      repair?.status === "uncertain" ||
+      repair?.status === "hallucination_risk" ||
+      repair?.status === "failed" ||
+      (repair?.warnings.length ?? 0) > 0
+    );
+  }).length;
+  const reviewedCount = repairRows.filter((item) =>
+    ["reviewed", "flagged", "ignored"].includes(item.row.review_status)
+  ).length;
+  const reviewedFailCount = repairRows.filter(
+    (item) => item.row.review_status === "flagged"
+  ).length;
+  const reviewedPassCount = repairRows.filter(
+    (item) => item.row.review_status === "reviewed"
+  ).length;
+  const avgScoreDelta = scoreDeltas.length
+    ? scoreDeltas.reduce((sum, value) => sum + value, 0) / scoreDeltas.length
+    : null;
+
+  return {
+    coverage: practiceRows.length ? repairRows.length / practiceRows.length : null,
+    repairCount: repairRows.length,
+    needsReviewCount,
+    riskCount,
+    medianLatencyMs: median(latencies),
+    reviewedCount,
+    reviewedPassCount,
+    reviewedFailCount,
+    avgScoreDelta,
   };
 }
 
@@ -365,6 +520,124 @@ function getSpeedMetadata(row: Row) {
   };
 }
 
+function getOpponentQualityMetadata(row: Row) {
+  const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+  const metrics =
+    metadata.opponentQualityMetrics &&
+    typeof metadata.opponentQualityMetrics === "object" &&
+    !Array.isArray(metadata.opponentQualityMetrics)
+      ? (metadata.opponentQualityMetrics as Record<string, unknown>)
+      : null;
+  const usage =
+    metadata.opponentCasePlanUsage &&
+    typeof metadata.opponentCasePlanUsage === "object" &&
+    !Array.isArray(metadata.opponentCasePlanUsage)
+      ? (metadata.opponentCasePlanUsage as Record<string, unknown>)
+      : null;
+
+  return {
+    hasMetrics: Boolean(metrics),
+    standaloneClaimCount:
+      typeof metrics?.standaloneClaimCount === "number"
+        ? metrics.standaloneClaimCount
+        : null,
+    hasStandaloneOffense:
+      typeof metrics?.hasStandaloneOffense === "boolean"
+        ? metrics.hasStandaloneOffense
+        : null,
+    hasWeighing:
+      typeof metrics?.hasWeighing === "boolean" ? metrics.hasWeighing : null,
+    hasInventedEvidenceRisk:
+      typeof metrics?.hasInventedEvidenceRisk === "boolean"
+        ? metrics.hasInventedEvidenceRisk
+        : null,
+    onlyRebuttalRisk:
+      metrics?.onlyRebuttalRisk === "low" ||
+      metrics?.onlyRebuttalRisk === "medium" ||
+      metrics?.onlyRebuttalRisk === "high"
+        ? (metrics.onlyRebuttalRisk as OpponentOnlyRebuttalRisk)
+        : null,
+    rebuttalCueParagraphRatio:
+      typeof metrics?.rebuttalCueParagraphRatio === "number"
+        ? metrics.rebuttalCueParagraphRatio
+        : null,
+    wordCount:
+      typeof metrics?.wordCount === "number" ? metrics.wordCount : null,
+    paragraphCount:
+      typeof metrics?.paragraphCount === "number" ? metrics.paragraphCount : null,
+    casePlanVersion:
+      typeof metadata.opponentCasePlanVersion === "string"
+        ? metadata.opponentCasePlanVersion
+        : null,
+    casePlanSource:
+      typeof metadata.opponentCasePlanSource === "string"
+        ? metadata.opponentCasePlanSource
+        : null,
+    casePlanCacheHit:
+      typeof metadata.opponentCasePlanCacheHit === "boolean"
+        ? metadata.opponentCasePlanCacheHit
+        : null,
+    casePlanLatencyMs:
+      typeof metadata.opponentCasePlanLatencyMs === "number"
+        ? metadata.opponentCasePlanLatencyMs
+        : null,
+    casePlanClaimCount:
+      typeof metadata.opponentCasePlanClaimCount === "number"
+        ? metadata.opponentCasePlanClaimCount
+        : null,
+    exactMotionSkeletonCount:
+      typeof metadata.opponentCasePlanExactMotionSkeletonCount === "number"
+        ? metadata.opponentCasePlanExactMotionSkeletonCount
+        : null,
+    casePlanInputTokens:
+      typeof usage?.inputTokens === "number" ? usage.inputTokens : null,
+    casePlanOutputTokens:
+      typeof usage?.outputTokens === "number" ? usage.outputTokens : null,
+    casePlanCacheHitTokens:
+      typeof usage?.cacheHitTokens === "number" ? usage.cacheHitTokens : null,
+    casePlanCacheMissTokens:
+      typeof usage?.cacheMissTokens === "number" ? usage.cacheMissTokens : null,
+  };
+}
+
+function computeOpponentQualityKpis(rows: Row[]) {
+  const opponentRows = rows
+    .map((row) => getOpponentQualityMetadata(row))
+    .filter((item) => item.hasMetrics);
+  const casePlanRows = opponentRows.filter((item) => item.casePlanVersion);
+  const standaloneRows = opponentRows.filter(
+    (item) => item.hasStandaloneOffense === true
+  );
+  const claimCounts = opponentRows
+    .map((item) => item.standaloneClaimCount)
+    .filter((value): value is number => typeof value === "number");
+  const casePlanLatencies = casePlanRows
+    .map((item) => item.casePlanLatencyMs)
+    .filter((value): value is number => typeof value === "number");
+  const cacheEligible = casePlanRows.filter(
+    (item) => typeof item.casePlanCacheHit === "boolean"
+  );
+
+  return {
+    coverage: rows.length ? opponentRows.length / rows.length : null,
+    standaloneRate: opponentRows.length
+      ? standaloneRows.length / opponentRows.length
+      : null,
+    avgStandaloneClaims: claimCounts.length
+      ? claimCounts.reduce((sum, value) => sum + value, 0) / claimCounts.length
+      : null,
+    onlyRebuttalRiskCount: opponentRows.filter(
+      (item) => item.onlyRebuttalRisk === "high"
+    ).length,
+    casePlanCount: casePlanRows.length,
+    casePlanCacheHitRate: cacheEligible.length
+      ? cacheEligible.filter((item) => item.casePlanCacheHit).length /
+        cacheEligible.length
+      : null,
+    medianCasePlanLatencyMs: median(casePlanLatencies),
+  };
+}
+
 function createQuery(params: Record<string, string>) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -382,6 +655,7 @@ export function AiQualityDashboard() {
   const [usefulness, setUsefulness] = useState("all");
   const [fairness, setFairness] = useState("all");
   const [reasonTag, setReasonTag] = useState("all");
+  const [sttRepairFilter, setSttRepairFilter] = useState<SttRepairFilter>("all");
   const [tab, setTab] = useState<"all" | "flagged">("all");
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [selectedRow, setSelectedRow] = useState<Row | null>(null);
@@ -430,7 +704,39 @@ export function AiQualityDashboard() {
     };
   }, [query]);
 
-  const rows = data?.rows ?? [];
+  const rows = data?.rows ?? EMPTY_ROWS;
+  const displayRows = useMemo(
+    () =>
+      rows.filter((row) => {
+        if (sttRepairFilter === "all") return true;
+        const transcription = getTranscriptionMetadata(row);
+        const repair = transcription?.repair;
+        if (sttRepairFilter === "has_repair") return Boolean(repair);
+        if (sttRepairFilter === "repaired") return repair?.status === "repaired";
+        if (sttRepairFilter === "risk") {
+          return (
+            repair?.status === "hallucination_risk" ||
+            (repair?.hallucinationRisk ?? 0) >= 0.35
+          );
+        }
+        if (sttRepairFilter === "needs_review") {
+          return Boolean(
+            repair &&
+              (repair.status === "uncertain" ||
+                repair.status === "hallucination_risk" ||
+                repair.status === "failed" ||
+                repair.warnings.length > 0)
+          );
+        }
+        return true;
+      }),
+    [rows, sttRepairFilter]
+  );
+  const sttRepairKpis = useMemo(() => computeSttRepairKpis(rows), [rows]);
+  const opponentQualityKpis = useMemo(
+    () => computeOpponentQualityKpis(rows),
+    [rows]
+  );
   const kpis = data?.kpis;
   const providerKpis = data?.providerRequestKpis;
   const providerGroups = data?.providerRequestGroups ?? [];
@@ -534,12 +840,92 @@ export function AiQualityDashboard() {
           />
         </section>
 
+        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
+          <Kpi
+            label="Opponent coverage"
+            value={formatPercent(opponentQualityKpis.coverage)}
+            icon={BrainCircuit}
+          />
+          <Kpi
+            label="Standalone offense"
+            value={formatPercent(opponentQualityKpis.standaloneRate)}
+            icon={MessageSquareText}
+          />
+          <Kpi
+            label="Avg claims"
+            value={
+              opponentQualityKpis.avgStandaloneClaims == null
+                ? "—"
+                : opponentQualityKpis.avgStandaloneClaims.toFixed(1)
+            }
+            icon={CheckCircle2}
+          />
+          <Kpi
+            label="Only-rebuttal risk"
+            value={formatCompactNumber(opponentQualityKpis.onlyRebuttalRiskCount)}
+            icon={AlertTriangle}
+          />
+          <Kpi
+            label="Case plans"
+            value={formatCompactNumber(opponentQualityKpis.casePlanCount)}
+            icon={FileSearch}
+          />
+          <Kpi
+            label="Plan cache"
+            value={formatPercent(opponentQualityKpis.casePlanCacheHitRate)}
+            icon={Clock3}
+          />
+          <Kpi
+            label="Plan latency"
+            value={formatLatency(opponentQualityKpis.medianCasePlanLatencyMs)}
+            icon={Search}
+          />
+        </section>
+
+        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
+          <Kpi
+            label="STT repair coverage"
+            value={formatPercent(sttRepairKpis.coverage)}
+            icon={Wand2}
+          />
+          <Kpi
+            label="Repair runs"
+            value={formatCompactNumber(sttRepairKpis.repairCount)}
+            icon={FileSearch}
+          />
+          <Kpi
+            label="Needs review"
+            value={formatCompactNumber(sttRepairKpis.needsReviewCount)}
+            icon={AlertTriangle}
+          />
+          <Kpi
+            label="Risk count"
+            value={formatCompactNumber(sttRepairKpis.riskCount)}
+            icon={ShieldCheck}
+          />
+          <Kpi
+            label="Repair latency"
+            value={formatLatency(sttRepairKpis.medianLatencyMs)}
+            icon={Clock3}
+          />
+          <Kpi
+            label="Avg score delta"
+            value={formatSignedNumber(sttRepairKpis.avgScoreDelta)}
+            icon={Search}
+          />
+          <Kpi
+            label="Reviewed pass/fail"
+            value={`${sttRepairKpis.reviewedPassCount}/${sttRepairKpis.reviewedFailCount}`}
+            icon={CheckCircle2}
+          />
+        </section>
+
         <section className="rounded-2xl border border-outline-variant/15 bg-surface p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-on-surface">
             <Filter className="h-4 w-4 text-primary" />
             Filters
           </div>
-          <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+          <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-9">
             <Select label="Range" value={rangeDays} onChange={setRangeDays} options={[["7", "7d"], ["30", "30d"], ["90", "90d"]]} />
             <Select label="Type" value={outputType} onChange={setOutputType} options={[["all", "All"], ["rebuttal", "Rebuttal"], ["practice_judging", "Practice judge"], ["duel_judging", "Duel judge"]]} />
             <Select label="Language" value={language} onChange={setLanguage} options={[["all", "All"], ["en", "English"], ["vi", "Vietnamese"]]} />
@@ -548,6 +934,7 @@ export function AiQualityDashboard() {
             <Select label="Useful" value={usefulness} onChange={setUsefulness} options={[["all", "All"], ["yes", "Yes"], ["somewhat", "Somewhat"], ["no", "No"]]} />
             <Select label="Fairness" value={fairness} onChange={setFairness} options={[["all", "All"], ["too_harsh", "Too harsh"], ["fair", "Fair"], ["too_generous", "Too generous"]]} />
             <Select label="Reason" value={reasonTag} onChange={setReasonTag} options={[["all", "All"], ...REASON_OPTIONS.map((item) => [item.value, item.label] as [string, string])]} />
+            <Select label="STT Repair" value={sttRepairFilter} onChange={(value) => setSttRepairFilter(value as SttRepairFilter)} options={[["all", "All"], ["has_repair", "Has repair"], ["needs_review", "Needs review"], ["repaired", "Repaired"], ["risk", "Risk"]]} />
           </div>
         </section>
 
@@ -562,7 +949,7 @@ export function AiQualityDashboard() {
               <AlertTriangle className="mr-2 h-5 w-5" />
               {error}
             </div>
-          ) : rows.length === 0 ? (
+          ) : displayRows.length === 0 ? (
             <div className="flex h-64 items-center justify-center text-on-surface-variant">
               No AI quality runs match these filters yet.
             </div>
@@ -582,7 +969,7 @@ export function AiQualityDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10 text-sm">
-                  {rows.map((row) => (
+                  {displayRows.map((row) => (
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRow(row)}
@@ -801,6 +1188,8 @@ function DetailDrawer({
   const corpusMetadata = getCorpusMetadata(row);
   const transcriptionMetadata = getTranscriptionMetadata(row);
   const speedMetadata = getSpeedMetadata(row);
+  const scoreMetadata = getScoreMetadata(row);
+  const opponentQualityMetadata = getOpponentQualityMetadata(row);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
@@ -943,6 +1332,127 @@ function DetailDrawer({
           </div>
         )}
 
+        {(opponentQualityMetadata.hasMetrics ||
+          opponentQualityMetadata.casePlanVersion) && (
+          <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-on-surface">
+                  Opponent quality
+                </h3>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Standalone offense, case-plan usage, and DeepSeek cache signals.
+                </p>
+              </div>
+              {opponentQualityMetadata.onlyRebuttalRisk && (
+                <RatingPill
+                  tone={
+                    opponentQualityMetadata.onlyRebuttalRisk === "high"
+                      ? "warning"
+                      : opponentQualityMetadata.onlyRebuttalRisk === "medium"
+                        ? "neutral"
+                        : "success"
+                  }
+                >
+                  {opponentQualityMetadata.onlyRebuttalRisk} risk
+                </RatingPill>
+              )}
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <MiniMetric
+                label="Standalone claims"
+                value={String(opponentQualityMetadata.standaloneClaimCount ?? "—")}
+              />
+              <MiniMetric
+                label="Has offense"
+                value={
+                  opponentQualityMetadata.hasStandaloneOffense == null
+                    ? "—"
+                    : opponentQualityMetadata.hasStandaloneOffense
+                      ? "yes"
+                      : "no"
+                }
+              />
+              <MiniMetric
+                label="Has weighing"
+                value={
+                  opponentQualityMetadata.hasWeighing == null
+                    ? "—"
+                    : opponentQualityMetadata.hasWeighing
+                      ? "yes"
+                      : "no"
+                }
+              />
+              <MiniMetric
+                label="Evidence risk"
+                value={
+                  opponentQualityMetadata.hasInventedEvidenceRisk == null
+                    ? "—"
+                    : opponentQualityMetadata.hasInventedEvidenceRisk
+                      ? "yes"
+                      : "no"
+                }
+              />
+              <MiniMetric
+                label="Rebuttal ratio"
+                value={formatPercent(
+                  opponentQualityMetadata.rebuttalCueParagraphRatio
+                )}
+              />
+              <MiniMetric
+                label="Case plan"
+                value={opponentQualityMetadata.casePlanSource ?? "—"}
+              />
+              <MiniMetric
+                label="Plan cache"
+                value={
+                  opponentQualityMetadata.casePlanCacheHit == null
+                    ? "—"
+                    : opponentQualityMetadata.casePlanCacheHit
+                      ? "hit"
+                      : "miss"
+                }
+              />
+              <MiniMetric
+                label="Plan latency"
+                value={formatLatency(opponentQualityMetadata.casePlanLatencyMs)}
+              />
+              <MiniMetric
+                label="Exact skeletons"
+                value={String(
+                  opponentQualityMetadata.exactMotionSkeletonCount ?? "—"
+                )}
+              />
+              <MiniMetric
+                label="Plan tokens"
+                value={
+                  opponentQualityMetadata.casePlanInputTokens ||
+                  opponentQualityMetadata.casePlanOutputTokens
+                    ? `${formatCompactNumber(opponentQualityMetadata.casePlanInputTokens)} in / ${formatCompactNumber(opponentQualityMetadata.casePlanOutputTokens)} out`
+                    : "—"
+                }
+              />
+              <MiniMetric
+                label="Plan cache tokens"
+                value={
+                  opponentQualityMetadata.casePlanCacheHitTokens ||
+                  opponentQualityMetadata.casePlanCacheMissTokens
+                    ? `${formatCompactNumber(opponentQualityMetadata.casePlanCacheHitTokens)} hit / ${formatCompactNumber(opponentQualityMetadata.casePlanCacheMissTokens)} miss`
+                    : "—"
+                }
+              />
+              <MiniMetric
+                label="Words"
+                value={String(opponentQualityMetadata.wordCount ?? "—")}
+              />
+              <MiniMetric
+                label="Paragraphs"
+                value={String(opponentQualityMetadata.paragraphCount ?? "—")}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
           <h3 className="font-semibold text-on-surface">User rating</h3>
           {row.rating ? (
@@ -1039,6 +1549,129 @@ function DetailDrawer({
               <p className="mt-3 rounded-xl border border-primary/15 bg-primary/8 px-3 py-2 text-xs font-semibold text-primary">
                 Possible speech-to-text artifacts: do not penalize pronunciation without audio evidence.
               </p>
+            </div>
+          )}
+          {transcriptionMetadata?.repair && (
+            <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-on-surface">STT Repair</h3>
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    v{transcriptionMetadata.repair.version ?? "—"} ·{" "}
+                    {transcriptionMetadata.repair.provider} ·{" "}
+                    {transcriptionMetadata.repair.model}
+                  </p>
+                </div>
+                <SttRepairStatusPill status={transcriptionMetadata.repair.status} />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                <MiniMetric label="Mode" value={String(transcriptionMetadata.repair.mode)} />
+                <MiniMetric
+                  label="Latency"
+                  value={formatLatency(transcriptionMetadata.repair.latencyMs)}
+                />
+                <MiniMetric
+                  label="Edits"
+                  value={String(transcriptionMetadata.repair.editCount ?? 0)}
+                />
+                <MiniMetric
+                  label="Risk"
+                  value={formatSimilarity(transcriptionMetadata.repair.hallucinationRisk)}
+                />
+                <MiniMetric
+                  label="Score before"
+                  value={String(scoreMetadata.scoreBefore ?? "—")}
+                />
+                <MiniMetric
+                  label="Score after"
+                  value={String(scoreMetadata.scoreAfter ?? "—")}
+                />
+                <MiniMetric
+                  label="Score delta"
+                  value={formatSignedNumber(scoreMetadata.scoreDelta)}
+                />
+                <MiniMetric
+                  label="Variant"
+                  value={scoreMetadata.shadowVariant.replaceAll("_", " ")}
+                />
+              </div>
+              {(transcriptionMetadata.repair.warnings.length > 0 ||
+                scoreMetadata.softCapReasons.length > 0) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {transcriptionMetadata.repair.warnings.map((warning) => (
+                    <span
+                      key={warning}
+                      className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-semibold text-warning"
+                    >
+                      {warning.replaceAll("_", " ")}
+                    </span>
+                  ))}
+                  {scoreMetadata.softCapReasons.map((reason) => (
+                    <span
+                      key={reason}
+                      className="rounded-lg bg-primary/8 px-2.5 py-1.5 text-xs font-semibold text-primary"
+                    >
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {(transcriptionMetadata.rawTranscriptPreview ||
+                transcriptionMetadata.judgeTranscriptPreview) && (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <TranscriptPreview
+                    title="Raw preview"
+                    value={transcriptionMetadata.rawTranscriptPreview}
+                  />
+                  <TranscriptPreview
+                    title="Repaired preview"
+                    value={transcriptionMetadata.judgeTranscriptPreview}
+                  />
+                </div>
+              )}
+              {transcriptionMetadata.repair.edits.length > 0 && (
+                <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
+                  <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+                    <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <tr>
+                        <th className="px-3 py-2">Raw</th>
+                        <th className="px-3 py-2">Repair</th>
+                        <th className="px-3 py-2">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {transcriptionMetadata.repair.edits.map((edit, index) => (
+                        <tr key={`${String(edit.raw)}-${index}`}>
+                          <td className="max-w-[180px] break-words px-3 py-2 font-mono text-warning">
+                            {String(edit.raw ?? "—")}
+                          </td>
+                          <td className="max-w-[180px] break-words px-3 py-2 font-semibold text-secondary">
+                            {String(edit.repaired ?? "—")}
+                          </td>
+                          <td className="max-w-[260px] break-words px-3 py-2 text-on-surface-variant">
+                            {String(edit.category ?? "edit")} · {String(edit.reason ?? "—")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {transcriptionMetadata.repair.uncertainSpans.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {transcriptionMetadata.repair.uncertainSpans.map((span, index) => (
+                    <div
+                      key={`${String(span.text)}-${index}`}
+                      className="rounded-xl border border-warning/20 bg-warning/10 px-3 py-2 text-xs text-warning"
+                    >
+                      <div className="font-semibold">{String(span.text ?? "—")}</div>
+                      <div className="mt-1 text-warning/80">
+                        {String(span.reason ?? "uncertain")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {(corpusMetadata.enabled != null ||
@@ -1185,13 +1818,83 @@ function SttStatusPill({ status }: { status: SttStatus }) {
   );
 }
 
+function SttRepairStatusPill({ status }: { status: SttRepairStatus }) {
+  const config = {
+    not_attempted: {
+      label: "Not attempted",
+      icon: BrainCircuit,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+    skipped: {
+      label: "Skipped",
+      icon: Clock3,
+      className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    },
+    repaired: {
+      label: "Repaired",
+      icon: CheckCircle2,
+      className: "border-secondary/20 bg-secondary/10 text-secondary",
+    },
+    uncertain: {
+      label: "Uncertain",
+      icon: AlertTriangle,
+      className: "border-warning/30 bg-warning/15 text-warning",
+    },
+    hallucination_risk: {
+      label: "Risk",
+      icon: XCircle,
+      className: "border-error/20 bg-error-container text-error",
+    },
+    failed: {
+      label: "Failed",
+      icon: XCircle,
+      className: "border-error/20 bg-error-container text-error",
+    },
+  }[status] ?? {
+    label: "Repair",
+    icon: Wand2,
+    className: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+  };
+  const Icon = config.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        config.className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {config.label}
+    </span>
+  );
+}
+
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
       <div className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
         {label}
       </div>
-      <div className="mt-2 text-lg font-bold text-on-surface">{value}</div>
+      <div className="mt-2 break-words text-lg font-bold text-on-surface">{value}</div>
+    </div>
+  );
+}
+
+function TranscriptPreview({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | null;
+}) {
+  return (
+    <div className="rounded-xl border border-outline-variant/15 bg-surface p-3">
+      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+        {title}
+      </div>
+      <pre className="mt-2 max-h-56 whitespace-pre-wrap break-words text-xs leading-5 text-on-surface-variant">
+        {value || "No preview recorded."}
+      </pre>
     </div>
   );
 }
@@ -1256,7 +1959,7 @@ function TextBlock({ title, value }: { title: string; value: string | null }) {
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
       <h3 className="font-semibold text-on-surface">{title}</h3>
-      <pre className="mt-3 max-h-72 whitespace-pre-wrap rounded-xl bg-surface p-4 text-sm leading-6 text-on-surface-variant">
+      <pre className="mt-3 max-h-72 whitespace-pre-wrap break-words rounded-xl bg-surface p-4 text-sm leading-6 text-on-surface-variant">
         {value || "No content recorded."}
       </pre>
     </div>

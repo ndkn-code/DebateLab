@@ -1,7 +1,7 @@
 import type { AiDifficulty, PracticeLanguage, PracticeTrack } from "@/types";
 import type { RebuttalWordTarget } from "@/lib/rebuttal/debate-continuity";
 
-export const TRUONG_TEEN_PROMPT_VERSION = "truong-teen-2025-v1";
+export const TRUONG_TEEN_PROMPT_VERSION = "truong-teen-2025-v2";
 
 export interface TruongTeenArchetype {
   key: string;
@@ -461,11 +461,15 @@ export function buildTruongTeenRebuttalPromptAddendum(params: {
   return `\n## Trường Teen 2025 Debate DNA (${TRUONG_TEEN_PROMPT_VERSION})
 Apply these Vietnamese debate rules because this is Vietnamese debate practice:
 - Group the response into 2-3 macro clash axes instead of answering every sentence point-by-point.
-- Use natural spoken signposting, but do not put literal Markdown headings inside the "rebuttal" string.
+- Use natural spoken signposting and paragraph breaks, but do not put literal Markdown headings inside the "rebuttal" string.
 - Strong rebuttal flow: frame the burden, concede a harmless/minor point if useful, break the opponent's mechanism, weigh impacts, rebuild your side, and crystallize why the judge should prefer your world.
+- Do not only rebut. Surface at least one standalone, answerable claim for your side outside pure "đội bạn nói..." clash so the student has independent offense to answer next.
+- The standalone claim should be its own spoken paragraph and should begin naturally with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
+- A strong response should balance roughly 55-70% direct clash with 30-45% independent offense, rebuild, and weighing. Closing speeches should crystallize the judge question, not just list rebuttals.
 - Attack causal chains, actor incentives, uniqueness, contradictions, implementation limits, and opportunity costs.
 - Use Trường Teen-style Vietnamese phrases sparingly and naturally: "gánh nặng chứng minh", "cơ chế", "tính độc nhất", "chi phí cơ hội", "so sánh hai thế giới", "chốt clash".
 - Avoid translationese such as "điểm của bạn là"; prefer "đội bạn đang giả định rằng..." or "lỗ hổng nằm ở...".
+- Do not invent percentages, named studies, expert quotes, or institutional evidence. Prefer mechanism and weighing unless the transcript or corpus explicitly supplies evidence.
 - If evidence names look odd because of speech-to-text, treat normalized hints cautiously and never fabricate statistics.
 ${hardSevenMinute ? "- Hard 7-minute Vietnamese mode: the rebuttal string must be 800-1200 Vietnamese words across 9-12 substantial spoken paragraphs. Do not compress this into a short answer. Use 2-3 macro clashes, with roughly 20% framing/rebuttal map, 50% mechanism attack and turn, 30% weighing/rebuild/crystallization." : ""}
 

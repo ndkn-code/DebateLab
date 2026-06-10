@@ -34,6 +34,8 @@
     "test:practice-feedback-plan": "npm run test:practice-feedback-plan -w @thinkfy/web",
     "test:practice-analysis": "npm run test:practice-analysis -w @thinkfy/web",
     "test:stt": "npm run test:stt -w @thinkfy/web",
+    "stt:repair:eval": "tsx scripts/stt-repair-shadow-eval.ts",
+    "ai:opponent:shadow": "cd apps/web && tsx ../../scripts/ai-opponent-shadow-test.ts",
     "test:feedback-annotations": "npm run test:feedback-annotations -w @thinkfy/web",
     "test:ai-quality": "npm run test:ai-quality -w @thinkfy/web",
     "test:ai-coach": "npm run test:ai-coach -w @thinkfy/web",

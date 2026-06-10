@@ -4,6 +4,7 @@ export const DEBATE_CORPUS_ITEM_TYPES = [
   "debate_moment",
   "phrase_bank",
   "judging_lesson",
+  "case_skeleton",
 ] as const;
 
 export const DEBATE_CORPUS_USABLE_FOR = [
@@ -78,6 +79,7 @@ export interface DebateCorpusCanonicalMatchSeed {
   debate_moments?: DebateMomentSeed[];
   phrase_bank?: PhraseBankSeed[];
   judging_lessons?: JudgingLessonSeed[];
+  case_skeletons?: CaseSkeletonSeed[];
   rejected_reason?: string | null;
 }
 
@@ -117,6 +119,29 @@ export interface JudgingLessonSeed {
   rewarded_behavior: string;
   penalized_behavior: string;
   thinkfy_judge_rule: string;
+  evidence_status: DebateCorpusEvidenceStatus;
+  confidence: number;
+  canonical_fingerprint: string;
+}
+
+export interface CaseSkeletonClaimSeed {
+  side: DebateCorpusSide;
+  label: string;
+  claim: string;
+  mechanism: string;
+  impact: string;
+  answerability?: string | null;
+}
+
+export interface CaseSkeletonSeed {
+  source_id: string;
+  source_match_key: string;
+  side: DebateCorpusSide;
+  independent_claims: CaseSkeletonClaimSeed[];
+  mechanisms: string[];
+  examples: string[];
+  weighing_hooks: string[];
+  common_clashes: string[];
   evidence_status: DebateCorpusEvidenceStatus;
   confidence: number;
   canonical_fingerprint: string;
@@ -354,13 +379,36 @@ Thinkfy judge rule: ${lesson.thinkfy_judge_rule}
 `);
 }
 
+function buildCaseSkeletonEmbeddingText(params: {
+  match: DebateCorpusCanonicalMatchSeed;
+  skeleton: CaseSkeletonSeed;
+}) {
+  const { match, skeleton } = params;
+  const claims = skeleton.independent_claims
+    .map(
+      (claim) =>
+        `${claim.side}: ${claim.label} - ${claim.claim} Mechanism: ${claim.mechanism} Impact: ${claim.impact}`
+    )
+    .join(" | ");
+  return compactWhitespace(`
+Type: case skeleton
+Motion: ${match.motion.vi}
+Side: ${skeleton.side}
+Claims: ${claims}
+Mechanisms: ${skeleton.mechanisms.join(" | ")}
+Examples: ${skeleton.examples.join(" | ")}
+Weighing hooks: ${skeleton.weighing_hooks.join(" | ")}
+Common clashes: ${skeleton.common_clashes.join(" | ")}
+`);
+}
+
 export function buildDebateCorpusItemPlans(
   corpus: DebateCorpusSeed
 ): DebateCorpusItemPlan[] {
   const items: DebateCorpusItemPlan[] = [];
 
   for (const match of corpus.canonical_matches) {
-    if (match.import_decision === "metadata_only" || match.import_decision === "reject") {
+    if (match.import_decision === "reject") {
       continue;
     }
 
@@ -438,6 +486,37 @@ export function buildDebateCorpusItemPlans(
         content,
       });
     }
+
+    for (const skeleton of match.case_skeletons ?? []) {
+      const content = {
+        item_type: "case_skeleton",
+        motion: match.motion,
+        case_skeleton: skeleton,
+      };
+      const embeddingText = buildCaseSkeletonEmbeddingText({ match, skeleton });
+      items.push({
+        canonicalMatchKey: match.canonical_match_key,
+        sourceId: skeleton.source_id,
+        sourceMatchKey: skeleton.source_match_key,
+        itemType: "case_skeleton",
+        canonicalFingerprint: skeleton.canonical_fingerprint,
+        language: "vi",
+        side: skeleton.side,
+        usableFor: ["rebuttal", "prep_helper", "eval"],
+        evidenceStatus: skeleton.evidence_status,
+        confidence: skeleton.confidence,
+        reviewStatus: "candidate",
+        embeddingText,
+        contentHash: hashDebateCorpusContent({ content, embeddingText }),
+        content,
+        metadata: {
+          independentClaimCount: skeleton.independent_claims.length,
+          mechanismCount: skeleton.mechanisms.length,
+          weighingHookCount: skeleton.weighing_hooks.length,
+          commonClashCount: skeleton.common_clashes.length,
+        },
+      });
+    }
   }
 
   return items;
@@ -459,6 +538,39 @@ function summarizeRetrievedContent(item: RetrievedDebateCorpusItem) {
       `phrase=${clip(phrase.phrase_vi as string, 220)}`,
       `function=${clip(phrase.function as string, 80)}`,
       `meaning=${clip(phrase.english_meaning as string, 200)}`,
+    ].join("; ");
+  }
+
+  if (item.item_type === "case_skeleton") {
+    const skeleton = (item.content.case_skeleton ?? {}) as Record<string, unknown>;
+    const claims = Array.isArray(skeleton.independent_claims)
+      ? skeleton.independent_claims
+          .map((claim) => {
+            const source = (claim ?? {}) as Record<string, unknown>;
+            return clip(
+              [source.label, source.claim, source.mechanism, source.impact]
+                .filter(Boolean)
+                .join(": "),
+              300
+            );
+          })
+          .filter(Boolean)
+          .slice(0, 3)
+      : [];
+    return [
+      `claims=${claims.join(" | ")}`,
+      `weighing=${clip(
+        Array.isArray(skeleton.weighing_hooks)
+          ? skeleton.weighing_hooks.join(" | ")
+          : "",
+        240
+      )}`,
+      `clashes=${clip(
+        Array.isArray(skeleton.common_clashes)
+          ? skeleton.common_clashes.join(" | ")
+          : "",
+        240
+      )}`,
     ].join("; ");
   }
 

@@ -304,6 +304,8 @@ export default function SessionPage() {
       roundSpeechStartRef.current = Date.now();
 
       if (stream) {
+        speech.resetTranscript();
+        setTranscript("");
         speech.startListening(stream);
         audio.startRecording(stream);
       }
@@ -311,6 +313,7 @@ export default function SessionPage() {
     transitionTimersRef.current.push(tid);
   }, [
     setPhase,
+    setTranscript,
     speechTimer,
     speech,
     audio,
@@ -353,52 +356,31 @@ export default function SessionPage() {
     }
   }, []);
 
-  /** Called when a speaking round ends (timer or manual) */
-  const handleRoundSpeechEnd = useCallback(() => {
-    speech.stopListening();
-    audio.stopRecording();
-    // Don't fully stop stream between rounds in full-round mode
-    if (!isFullRound || currentRound >= totalRounds) {
-      stopMicStream();
-    }
+  const navigateToFeedback = useCallback(() => {
+    stopMicStream();
+    const tid1 = setTimeout(() => {
+      if (audio.audioBlob) setAudioBlob(audio.audioBlob);
+      if (audio.audioUrl) setAudioUrl(audio.audioUrl);
 
-    const finalTranscript = speech.transcript;
-    setTranscript(finalTranscript);
+      setTransitionMessage(t("session.transition_analyzing"));
+      setTransitionSub(t("session.transition_analyzing_subtitle"));
+      setShowTransition(true);
+      setPhase("analyzing");
 
-    const duration = roundSpeechStartRef.current
-      ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
-      : 0;
-
-    const wordCount = finalTranscript
-      .split(/\s+/)
-      .filter((w) => w.length > 0).length;
-
-    // Save transcript for current round (Full Round)
-    if (isFullRound) {
-      saveRoundTranscript(currentRound, finalTranscript, duration);
-    }
-
-    if (wordCount < 20) {
-      setShortWordCount(wordCount);
-      setShowShortDialog(true);
-      return;
-    }
-
-    proceedAfterSpeech(finalTranscript, duration);
-  }, [
-    speech,
-    audio,
-    stopMicStream,
-    setTranscript,
-    isFullRound,
-    currentRound,
-    totalRounds,
-    saveRoundTranscript,
-  ]);
+      const tid2 = setTimeout(() => {
+        router.push("/practice/feedback");
+      }, 1500);
+      transitionTimersRef.current.push(tid2);
+    }, 300);
+    transitionTimersRef.current.push(tid1);
+  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream, t]);
 
   /** After a valid speech round, decide what comes next */
   const proceedAfterSpeech = useCallback(
-    (transcript: string, duration: number) => {
+    (_transcript: string, _duration: number) => {
+      void _transcript;
+      void _duration;
+
       if (!isFullRound) {
         navigateToFeedback();
         return;
@@ -442,9 +424,53 @@ export default function SessionPage() {
       getAllTranscripts,
       setTranscript,
       getRoundLabel,
+      navigateToFeedback,
       t,
     ]
   );
+
+  const handleRoundSpeechEnd = useCallback(() => {
+    speech.stopListening();
+    audio.stopRecording();
+    // Don't fully stop stream between rounds in full-round mode
+    if (!isFullRound || currentRound >= totalRounds) {
+      stopMicStream();
+    }
+
+    const finalTranscript = speech.transcript;
+    setTranscript(finalTranscript);
+
+    const duration = roundSpeechStartRef.current
+      ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
+      : 0;
+
+    const wordCount = finalTranscript
+      .split(/\s+/)
+      .filter((w) => w.length > 0).length;
+
+    // Save transcript for current round (Full Round)
+    if (isFullRound) {
+      saveRoundTranscript(currentRound, finalTranscript, duration);
+    }
+
+    if (wordCount < 20) {
+      setShortWordCount(wordCount);
+      setShowShortDialog(true);
+      return;
+    }
+
+    proceedAfterSpeech(finalTranscript, duration);
+  }, [
+    speech,
+    audio,
+    stopMicStream,
+    setTranscript,
+    isFullRound,
+    currentRound,
+    totalRounds,
+    saveRoundTranscript,
+    proceedAfterSpeech,
+  ]);
 
   /** Called when AI rebuttal completes */
   const handleAiRebuttalComplete = useCallback(
@@ -484,6 +510,8 @@ export default function SessionPage() {
 
           const stream = await acquireMicStream();
           if (stream) {
+            speech.resetTranscript();
+            setTranscript("");
             speech.startListening(stream);
             audio.startRecording(stream);
           }
@@ -505,6 +533,7 @@ export default function SessionPage() {
       getAllTranscripts,
       setTranscript,
       getRoundLabel,
+      navigateToFeedback,
       t,
     ]
   );
@@ -515,25 +544,6 @@ export default function SessionPage() {
     },
     [currentRound, saveAiRebuttal]
   );
-
-  const navigateToFeedback = useCallback(() => {
-    stopMicStream();
-    const tid1 = setTimeout(() => {
-      if (audio.audioBlob) setAudioBlob(audio.audioBlob);
-      if (audio.audioUrl) setAudioUrl(audio.audioUrl);
-
-      setTransitionMessage(t("session.transition_analyzing"));
-      setTransitionSub(t("session.transition_analyzing_subtitle"));
-      setShowTransition(true);
-      setPhase("analyzing");
-
-      const tid2 = setTimeout(() => {
-        router.push("/practice/feedback");
-      }, 1500);
-      transitionTimersRef.current.push(tid2);
-    }, 300);
-    transitionTimersRef.current.push(tid1);
-  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream, t]);
 
   /** Manual end button during speaking */
   const handleEndSession = useCallback(() => {

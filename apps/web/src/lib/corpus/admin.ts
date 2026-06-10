@@ -117,6 +117,7 @@ function toMatchRows(seed: DebateCorpusSeed) {
       debateMomentCount: match.debate_moments?.length ?? 0,
       phraseCount: match.phrase_bank?.length ?? 0,
       judgingLessonCount: match.judging_lessons?.length ?? 0,
+      caseSkeletonCount: match.case_skeletons?.length ?? 0,
     },
     updated_at: nowIso(),
   }));

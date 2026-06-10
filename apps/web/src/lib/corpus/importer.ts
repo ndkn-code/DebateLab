@@ -6,6 +6,7 @@ import {
   hashDebateCorpusContent,
   type DebateCorpusCanonicalMatchSeed,
   type DebateCorpusEvidenceStatus,
+  type CaseSkeletonSeed,
   type PhraseBankSeed,
   type DebateCorpusSeed,
   type DebateCorpusSide,
@@ -296,6 +297,50 @@ function normalizeJudgingLessons(match: JsonRecord, sourceId: string, sourceMatc
     .filter((lesson) => lesson.lesson && lesson.thinkfy_judge_rule);
 }
 
+function normalizeCaseSkeletons(match: JsonRecord, sourceId: string, sourceMatchKey: string) {
+  return asArray(match.case_skeletons)
+    .filter(isRecord)
+    .map((skeleton) => {
+      const side = normalizeSide(skeleton.side);
+      const independentClaims = asArray(skeleton.independent_claims)
+        .filter(isRecord)
+        .map((claim) => ({
+          side: normalizeSide(claim.side) === "unknown" ? side : normalizeSide(claim.side),
+          label: asString(claim.label).slice(0, 160),
+          claim: asString(claim.claim).slice(0, 800),
+          mechanism: asString(claim.mechanism).slice(0, 900),
+          impact: asString(claim.impact).slice(0, 700),
+          answerability: asString(claim.answerability).slice(0, 700) || null,
+        }))
+        .filter((claim) => claim.label && claim.claim && claim.mechanism && claim.impact);
+      const normalized: CaseSkeletonSeed = {
+        source_id: asString(skeleton.source_id, sourceId),
+        source_match_key: asString(skeleton.source_match_key, sourceMatchKey),
+        side,
+        independent_claims: independentClaims,
+        mechanisms: asArray(skeleton.mechanisms)
+          .map((item) => asString(item).slice(0, 700))
+          .filter(Boolean),
+        examples: asArray(skeleton.examples)
+          .map((item) => asString(item).slice(0, 500))
+          .filter(Boolean),
+        weighing_hooks: asArray(skeleton.weighing_hooks)
+          .map((item) => asString(item).slice(0, 600))
+          .filter(Boolean),
+        common_clashes: asArray(skeleton.common_clashes)
+          .map((item) => asString(item).slice(0, 600))
+          .filter(Boolean),
+        evidence_status: normalizeEvidenceStatus(skeleton.evidence_status),
+        confidence: Math.max(0, Math.min(1, asNumber(skeleton.confidence, 0.75))),
+        canonical_fingerprint:
+          asString(skeleton.canonical_fingerprint) ||
+          fingerprint("case", [side, independentClaims, skeleton.weighing_hooks]),
+      };
+      return normalized;
+    })
+    .filter((skeleton) => skeleton.independent_claims.length > 0);
+}
+
 function normalizeMatch(
   match: JsonRecord,
   source: DebateCorpusSourceSeed,
@@ -310,7 +355,8 @@ function normalizeMatch(
   const hasDebateContent =
     asArray(match.debate_moments).length > 0 ||
     asArray(match.phrase_bank).length > 0 ||
-    asArray(match.judging_lessons).length > 0;
+    asArray(match.judging_lessons).length > 0 ||
+    asArray(match.case_skeletons).length > 0;
 
   return {
     canonical_match_key: asString(match.canonical_match_key, sourceMatchKey),
@@ -338,6 +384,7 @@ function normalizeMatch(
     debate_moments: normalizeDebateMoments(match, source.source_id, sourceMatchKey),
     phrase_bank: normalizePhraseBank(match, source.source_id, sourceMatchKey),
     judging_lessons: normalizeJudgingLessons(match, source.source_id, sourceMatchKey),
+    case_skeletons: normalizeCaseSkeletons(match, source.source_id, sourceMatchKey),
     rejected_reason: asString(match.rejected_reason) || null,
   };
 }
@@ -391,6 +438,10 @@ function mergeSeeds(seeds: DebateCorpusSeed[]): DebateCorpusSeed {
           judging_lessons: [
             ...(existing.judging_lessons ?? []),
             ...(match.judging_lessons ?? []),
+          ],
+          case_skeletons: [
+            ...(existing.case_skeletons ?? []),
+            ...(match.case_skeletons ?? []),
           ],
         });
       }

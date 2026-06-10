@@ -61,6 +61,7 @@ interface RawMatch {
   debate_moments?: Array<Record<string, unknown>>;
   phrase_bank?: Array<Record<string, unknown>>;
   judging_lessons?: Array<Record<string, unknown>>;
+  case_skeletons?: Array<Record<string, unknown>>;
   extraction_notes?: Record<string, unknown>;
 }
 
@@ -152,6 +153,30 @@ interface NormalizedJudgingLesson {
   canonical_fingerprint: string;
 }
 
+interface NormalizedCaseSkeletonClaim {
+  side: Side;
+  label: string;
+  claim: string;
+  mechanism: string;
+  impact: string;
+  answerability: string | null;
+}
+
+interface NormalizedCaseSkeleton {
+  skeleton_id: string;
+  source_id: string;
+  source_match_key: string;
+  side: Side;
+  independent_claims: NormalizedCaseSkeletonClaim[];
+  mechanisms: string[];
+  examples: string[];
+  weighing_hooks: string[];
+  common_clashes: string[];
+  evidence_status: EvidenceStatus;
+  confidence: number;
+  canonical_fingerprint: string;
+}
+
 interface NormalizedMatch {
   source_id: string;
   source_match_key: string;
@@ -171,6 +196,7 @@ interface NormalizedMatch {
   debate_moments: NormalizedMoment[];
   phrase_bank: NormalizedPhrase[];
   judging_lessons: NormalizedJudgingLesson[];
+  case_skeletons: NormalizedCaseSkeleton[];
   extraction_notes: {
     uncertain_areas: string[];
     possible_stt_errors: string[];
@@ -195,6 +221,7 @@ interface CanonicalMatch {
   debate_moments: NormalizedMoment[];
   phrase_bank: NormalizedPhrase[];
   judging_lessons: NormalizedJudgingLesson[];
+  case_skeletons: NormalizedCaseSkeleton[];
   rejected_reason: string | null;
 }
 
@@ -216,6 +243,7 @@ interface NormalizedCorpus {
     debate_moments: number;
     phrase_bank_entries: number;
     judging_lessons: number;
+    case_skeletons: number;
     issues: Record<CorpusIssue["severity"], number>;
   };
   sources: NormalizedSource[];
@@ -368,6 +396,15 @@ function asStringArray(value: unknown) {
         .filter((item): item is string => typeof item === "string")
         .map((item) => item.trim())
         .filter(Boolean)
+    : [];
+}
+
+function asRecordArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is Record<string, unknown> =>
+          Boolean(item && typeof item === "object" && !Array.isArray(item))
+      )
     : [];
 }
 
@@ -708,6 +745,21 @@ function lessonFingerprint(lesson: Pick<NormalizedJudgingLesson, "lesson" | "thi
   return hash(`${normalizeTextKey(lesson.lesson)}|${normalizeTextKey(lesson.thinkfy_judge_rule)}`, 16);
 }
 
+function skeletonFingerprint(
+  skeleton: Pick<NormalizedCaseSkeleton, "side" | "independent_claims" | "weighing_hooks">
+) {
+  return hash(
+    [
+      skeleton.side,
+      ...skeleton.independent_claims.map((claim) =>
+        `${claim.side}|${normalizeTextKey(claim.label)}|${normalizeTextKey(claim.claim)}`
+      ),
+      ...skeleton.weighing_hooks.map(normalizeTextKey),
+    ].join("|"),
+    16
+  );
+}
+
 function normalizeSource(
   raw: RawSourceObject,
   sourceIndex: number,
@@ -941,6 +993,63 @@ function normalizeMatch(
     };
   });
 
+  const caseSkeletons = (raw.case_skeletons ?? [])
+    .map((skeleton, skeletonIndex) => {
+      const side = normalizeSide(
+        skeleton.side,
+        `${pathBase}.case_skeletons[${skeletonIndex}].side`,
+        issues
+      );
+      const independentClaims = asRecordArray(skeleton.independent_claims)
+        .map((claim, claimIndex) => ({
+          side: normalizeSide(
+            claim.side ?? side,
+            `${pathBase}.case_skeletons[${skeletonIndex}].independent_claims[${claimIndex}].side`,
+            issues
+          ),
+          label: compactWhitespace(asString(claim.label)),
+          claim: compactWhitespace(asString(claim.claim)),
+          mechanism: compactWhitespace(asString(claim.mechanism)),
+          impact: compactWhitespace(asString(claim.impact)),
+          answerability: compactWhitespace(asString(claim.answerability)) || null,
+        }))
+        .filter(
+          (claim) =>
+            claim.label && claim.claim && claim.mechanism && claim.impact
+        );
+      const normalized: Omit<
+        NormalizedCaseSkeleton,
+        "skeleton_id" | "canonical_fingerprint"
+      > = {
+        source_id: source.source_id,
+        source_match_key: sourceMatchKey,
+        side,
+        independent_claims: independentClaims,
+        mechanisms: asStringArray(skeleton.mechanisms).map(compactWhitespace),
+        examples: asStringArray(skeleton.examples).map(compactWhitespace),
+        weighing_hooks: asStringArray(skeleton.weighing_hooks).map(compactWhitespace),
+        common_clashes: asStringArray(skeleton.common_clashes).map(compactWhitespace),
+        evidence_status: normalizeEvidenceStatus(
+          skeleton.evidence_status,
+          `${pathBase}.case_skeletons[${skeletonIndex}].evidence_status`,
+          issues
+        ),
+        confidence: clampConfidence(
+          skeleton.confidence,
+          `${pathBase}.case_skeletons[${skeletonIndex}].confidence`,
+          issues,
+          0.5
+        ),
+      };
+      const fingerprint = skeletonFingerprint(normalized);
+      return {
+        ...normalized,
+        skeleton_id: `case_${source.source_id}_${sourceMatchKey}_${fingerprint}`,
+        canonical_fingerprint: fingerprint,
+      };
+    })
+    .filter((skeleton) => skeleton.independent_claims.length > 0);
+
   const importNotes: string[] = [];
   const extractionNotes = {
     uncertain_areas: asStringArray(raw.extraction_notes?.uncertain_areas),
@@ -959,6 +1068,7 @@ function normalizeMatch(
     debateMoments,
     phraseBank,
     judgingLessons,
+    caseSkeletons,
     matchConfidence: clampConfidence(
       raw.match_confidence,
       `${pathBase}.match_confidence`,
@@ -999,6 +1109,7 @@ function normalizeMatch(
     debate_moments: debateMoments,
     phrase_bank: phraseBank,
     judging_lessons: judgingLessons,
+    case_skeletons: caseSkeletons,
     extraction_notes: extractionNotes,
   };
 }
@@ -1007,6 +1118,7 @@ function decideImport(input: {
   debateMoments: NormalizedMoment[];
   phraseBank: NormalizedPhrase[];
   judgingLessons: NormalizedJudgingLesson[];
+  caseSkeletons: NormalizedCaseSkeleton[];
   matchConfidence: number;
   sourceStatus: ImportStatus;
   extractionNotes: NormalizedMatch["extraction_notes"];
@@ -1017,19 +1129,27 @@ function decideImport(input: {
     return "reject";
   }
 
-  if (input.debateMoments.length === 0) {
-    input.importNotes.push("No debate moments; keep only source/match metadata.");
-    return "metadata_only";
+  if (input.debateMoments.length === 0 && input.caseSkeletons.length === 0) {
+    input.importNotes.push("No debate moments or case skeletons; keep only source/match metadata.");
+    return input.phraseBank.length > 0 ? "phrase_only" : "metadata_only";
   }
 
   if (input.matchConfidence < 0.75) {
     input.importNotes.push("Low match confidence; use only phrases/metadata unless reviewed.");
-    return input.phraseBank.length > 0 ? "phrase_only" : "metadata_only";
+    return input.caseSkeletons.length > 0
+      ? "candidate"
+      : input.phraseBank.length > 0
+        ? "phrase_only"
+        : "metadata_only";
   }
 
   if (input.debateMoments.length < 2 && input.judgingLessons.length === 0) {
     input.importNotes.push("Too few strategic moments for RAG; phrase/style only.");
-    return input.phraseBank.length > 0 ? "phrase_only" : "metadata_only";
+    return input.caseSkeletons.length > 0
+      ? "candidate"
+      : input.phraseBank.length > 0
+        ? "phrase_only"
+        : "metadata_only";
   }
 
   return "candidate";
@@ -1087,6 +1207,7 @@ function buildCanonicalMatches(
       const allMoments = group.flatMap((match) => match.debate_moments);
       const allPhrases = group.flatMap((match) => match.phrase_bank);
       const allLessons = group.flatMap((match) => match.judging_lessons);
+      const allCaseSkeletons = group.flatMap((match) => match.case_skeletons);
       const aggregateConfidence =
         group.reduce((sum, match) => sum + match.match_confidence, 0) / group.length;
 
@@ -1104,6 +1225,13 @@ function buildCanonicalMatches(
         judging_lessons: decision === "candidate" || decision === "phrase_only"
           ? bestByConfidence(allLessons, (lesson) => lesson.canonical_fingerprint)
           : [],
+        case_skeletons:
+          decision === "candidate" || allCaseSkeletons.length > 0
+            ? bestByConfidence(
+                allCaseSkeletons,
+                (skeleton) => skeleton.canonical_fingerprint
+              )
+            : [],
         rejected_reason:
           decision === "metadata_only" ? "No usable debate moments in source matches." : null,
       };
@@ -1183,6 +1311,10 @@ export function normalizeTruongTeenCorpus(inputFile: string, now = "2026-05-24T0
         (sum, match) => sum + match.judging_lessons.length,
         0
       ),
+      case_skeletons: canonicalMatches.reduce(
+        (sum, match) => sum + match.case_skeletons.length,
+        0
+      ),
       issues: issueCounts,
     },
     sources,
@@ -1213,6 +1345,7 @@ export function buildMarkdownReport(corpus: NormalizedCorpus) {
     `- Debate moments after dedupe: ${corpus.summary.debate_moments}`,
     `- Phrase-bank entries after dedupe: ${corpus.summary.phrase_bank_entries}`,
     `- Judging lessons after dedupe: ${corpus.summary.judging_lessons}`,
+    `- Case skeletons after dedupe: ${corpus.summary.case_skeletons}`,
     `- Issues: ${corpus.summary.issues.info} info, ${corpus.summary.issues.warning} warning, ${corpus.summary.issues.error} error`,
     "",
     "## Canonical Matches",
@@ -1227,6 +1360,7 @@ export function buildMarkdownReport(corpus: NormalizedCorpus) {
       `- Moments: ${match.debate_moments.length}`,
       `- Phrases: ${match.phrase_bank.length}`,
       `- Judging lessons: ${match.judging_lessons.length}`,
+      `- Case skeletons: ${match.case_skeletons.length}`,
       match.rejected_reason ? `- Reason: ${match.rejected_reason}` : "",
       "",
     ]),

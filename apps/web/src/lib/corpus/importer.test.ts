@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { buildDebateCorpusItemPlans } from "./model";
 import {
   buildCorpusMotionCandidatePlans,
   hashCorpusMotionTitle,
@@ -63,6 +64,27 @@ const bundle = {
           confidence: 0.95,
         },
       ],
+      case_skeletons: [
+        {
+          side: "opposition",
+          independent_claims: [
+            {
+              side: "opposition",
+              label: "Chuẩn hóa công bằng",
+              claim: "Một kỳ thi chung tạo điểm so sánh tối thiểu giữa các địa phương.",
+              mechanism: "Khi mọi học sinh đi qua cùng một chuẩn, trường đại học và xã hội có tín hiệu nền đáng tin hơn.",
+              impact: "Nhóm yếu thế được bảo vệ khỏi đánh giá hoàn toàn tùy nghi.",
+              answerability: "Phe ủng hộ có thể phản biện rằng chuẩn chung vẫn có thể đến từ học bạ chuẩn hóa.",
+            },
+          ],
+          mechanisms: ["Chuẩn chung làm giảm tùy tiện trong tuyển chọn."],
+          examples: ["Khác biệt chất lượng chấm học bạ giữa địa phương."],
+          weighing_hooks: ["Cân áp lực kỳ thi với rủi ro phân mảnh chuẩn đánh giá."],
+          common_clashes: ["Áp lực thi cử không đồng nghĩa kỳ thi không có chức năng."],
+          evidence_status: "mentioned_but_unverified",
+          confidence: 0.9,
+        },
+      ],
     },
     {
       match_key: "metadata_only_intro",
@@ -87,8 +109,15 @@ assert.equal(parsed.seed.canonical_matches.length, 2);
 const summary = summarizeCorpusSeed(parsed.seed);
 assert.equal(summary.sources, 1);
 assert.equal(summary.matches, 2);
-assert.equal(summary.items, 3);
+assert.equal(summary.items, 4);
 assert.equal(summary.motions, 2);
+assert.equal(parsed.seed.canonical_matches[0]?.case_skeletons?.length, 1);
+assert.equal(
+  buildDebateCorpusItemPlans(parsed.seed).some(
+    (item) => item.itemType === "case_skeleton"
+  ),
+  true
+);
 
 const candidates = buildCorpusMotionCandidatePlans(parsed.seed);
 assert.equal(candidates[0]?.categoryKey, "education");

@@ -14,7 +14,7 @@ import {
   shouldUseTruongTeenPrompt,
 } from "./debate-dna";
 
-assert.equal(TRUONG_TEEN_PROMPT_VERSION, "truong-teen-2025-v1");
+assert.equal(TRUONG_TEEN_PROMPT_VERSION, "truong-teen-2025-v2");
 assert.ok(TRUONG_TEEN_REBUTTAL_ARCHETYPES.length >= 10);
 assert.ok(
   TRUONG_TEEN_REBUTTAL_ARCHETYPES.some(
@@ -58,6 +58,7 @@ const rebuttalAddendum = buildTruongTeenRebuttalPromptAddendum({
   wordTarget: hardTarget,
 });
 assert.match(rebuttalAddendum, /2-3 macro clash axes/);
+assert.match(rebuttalAddendum, /standalone, answerable claim/);
 assert.match(rebuttalAddendum, /800-1200 Vietnamese words/);
 assert.match(rebuttalAddendum, /Goodhart|Độc tính chỉ số/);
 
