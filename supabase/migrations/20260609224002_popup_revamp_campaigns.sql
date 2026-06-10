@@ -70,9 +70,9 @@ values
     '/images/smart-popups/popup-placeholder-v1.png',
     $json$
     {
-      "eyebrow": "New in Thinkfy",
+      "eyebrow": "",
       "title": "Cleaner practice nudges are here.",
-      "body": "We simplified in-app tips so each one gives you one useful next step.",
+      "body": "",
       "ctaLabel": "Try a practice round",
       "dismissLabel": "Later",
       "dontShowLabel": "Don't show again",
@@ -81,9 +81,9 @@ values
     $json$::jsonb,
     $json$
     {
-      "eyebrow": "Mới trong Thinkfy",
+      "eyebrow": "",
       "title": "Popup gợi ý đã gọn hơn.",
-      "body": "Mỗi gợi ý giờ chỉ tập trung vào một bước hữu ích tiếp theo.",
+      "body": "",
       "ctaLabel": "Thử một vòng luyện tập",
       "dismissLabel": "Để sau",
       "dontShowLabel": "Đừng hiện lại",
@@ -101,17 +101,7 @@ values
       "popupKind": "feature_announcement",
       "uiPattern": "duolingo_simple_modal_v2",
       "notificationPattern": "duolingo_compact_v2",
-      "durationMinutes": 10,
-      "facts": {
-        "en": [
-          { "icon": "target", "label": "Focus", "value": "One step" },
-          { "icon": "clock", "label": "Practice", "value": "{durationMinutes} min" }
-        ],
-        "vi": [
-          { "icon": "target", "label": "Trọng tâm", "value": "Một bước" },
-          { "icon": "clock", "label": "Luyện tập", "value": "{durationMinutes} phút" }
-        ]
-      }
+      "durationMinutes": 10
     }
     $json$::jsonb
   ),
@@ -132,9 +122,9 @@ values
     '/images/smart-popups/popup-placeholder-v1.png',
     $json$
     {
-      "eyebrow": "Stay on track",
+      "eyebrow": "",
       "title": "Want gentle practice reminders?",
-      "body": "We can send only practice and streak reminder emails. Product updates stay off unless you enable them in Settings.",
+      "body": "",
       "ctaLabel": "Enable reminder emails",
       "dismissLabel": "Not now",
       "dontShowLabel": "Don't show again",
@@ -143,9 +133,9 @@ values
     $json$::jsonb,
     $json$
     {
-      "eyebrow": "Giữ nhịp luyện",
+      "eyebrow": "",
       "title": "Bạn muốn nhận nhắc luyện tập nhẹ nhàng?",
-      "body": "Thinkfy chỉ bật email nhắc luyện tập và streak. Cập nhật sản phẩm vẫn tắt trừ khi bạn bật trong Cài đặt.",
+      "body": "",
       "ctaLabel": "Bật email nhắc luyện",
       "dismissLabel": "Không phải bây giờ",
       "dontShowLabel": "Đừng hiện lại",
@@ -163,17 +153,7 @@ values
     {
       "popupKind": "reminder_opt_in",
       "uiPattern": "duolingo_simple_modal_v2",
-      "notificationPattern": "duolingo_compact_v2",
-      "facts": {
-        "en": [
-          { "icon": "flame", "label": "Streak", "value": "Reminder only" },
-          { "icon": "clock", "label": "Cadence", "value": "Gentle" }
-        ],
-        "vi": [
-          { "icon": "flame", "label": "Streak", "value": "Chỉ nhắc nhở" },
-          { "icon": "clock", "label": "Tần suất", "value": "Nhẹ nhàng" }
-        ]
-      }
+      "notificationPattern": "duolingo_compact_v2"
     }
     $json$::jsonb
   )

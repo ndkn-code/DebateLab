@@ -13,16 +13,10 @@ import {
 } from "react";
 import {
   ArrowRight,
-  BarChart3,
-  BookOpen,
   CheckCircle2,
-  Clock3,
-  Flame,
   Gift,
   Loader2,
-  MessageCircle,
   Star,
-  Target,
   X,
 } from "@/components/ui/icons";
 import { usePathname, useRouter } from "@/i18n/navigation";
@@ -30,14 +24,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type {
   SmartPopupEventType,
-  SmartPopupFact,
-  SmartPopupFactIcon,
   SmartPopupPayload,
   SmartPopupSurveyPayload,
 } from "@/lib/smart-popups/types";
@@ -68,16 +59,6 @@ type SurveySubmitResponse = {
 type ReminderOptInResponse = {
   ok?: boolean;
   error?: string;
-};
-
-const factIcons: Record<SmartPopupFactIcon, typeof Target> = {
-  target: Target,
-  chart: BarChart3,
-  clock: Clock3,
-  gift: Gift,
-  book: BookOpen,
-  chat: MessageCircle,
-  flame: Flame,
 };
 
 interface SmartPopupFrameProps {
@@ -155,30 +136,6 @@ export function CelebrationCluster({ tone = "default" }: { tone?: "default" | "r
         )}
       >
         {isReward ? <Gift className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}
-      </span>
-    </div>
-  );
-}
-
-export function SmartPopupFact({ fact }: { fact: SmartPopupFact }) {
-  const Icon = factIcons[fact.icon] ?? Target;
-  return (
-    <div
-      data-smart-popup-fact
-      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-surface-container px-4 py-3 text-left shadow-token-primary"
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant bg-white text-primary">
-        <Icon className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-extrabold text-on-surface-variant">
-          {fact.label}
-        </span>
-        {fact.value ? (
-          <span className="mt-0.5 block truncate text-base font-extrabold text-on-surface">
-            {fact.value}
-          </span>
-        ) : null}
       </span>
     </div>
   );
@@ -273,22 +230,9 @@ export function FeatureNudgePopup({
   return (
     <div className="text-center">
       <SmartPopupIllustration src={popup.imageSrc} alt={popup.imageAlt} />
-      {popup.eyebrow ? (
-        <p className="text-sm font-extrabold text-primary">{popup.eyebrow}</p>
-      ) : null}
-      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
+      <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
         {popup.title}
       </DialogTitle>
-      <DialogDescription className="mx-auto mt-3 max-w-[440px] text-base font-medium leading-7 text-on-surface-variant">
-        {popup.body}
-      </DialogDescription>
-      {popup.facts.length > 0 ? (
-        <div className="mx-auto mt-5 grid max-w-[420px] grid-cols-1 gap-3 sm:grid-cols-2">
-          {popup.facts.map((fact, index) => (
-            <SmartPopupFact key={`${fact.icon}-${fact.label}-${index}`} fact={fact} />
-          ))}
-        </div>
-      ) : null}
       {ctaError ? (
         <div className="mx-auto mt-4 max-w-[420px] rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant">
           {ctaError}
@@ -343,15 +287,9 @@ export function SurveyPopup({
           alt={popup.imageAlt}
           tone="reward"
         />
-        {popup.eyebrow ? (
-          <p className="text-sm font-extrabold text-primary">{popup.eyebrow}</p>
-        ) : null}
-        <DialogTitle className="mt-2 text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.05rem]">
+        <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.05rem]">
           {popup.title}
         </DialogTitle>
-        <DialogDescription className="mx-auto mt-3 max-w-[430px] text-base font-medium leading-7 text-on-surface-variant">
-          {popup.body}
-        </DialogDescription>
       </div>
 
       <div className="mt-5 space-y-4">
@@ -402,38 +340,21 @@ export function SurveyPopup({
 
 interface SurveyThankYouProps {
   title: string;
-  body: string;
-  rewardCredits: number;
   doneLabel?: string;
   onDone: () => void;
 }
 
 export function SurveyThankYou({
   title,
-  body,
-  rewardCredits,
   doneLabel = "Done",
   onDone,
 }: SurveyThankYouProps) {
   return (
     <div className="text-center">
       <CelebrationCluster tone="reward" />
-      <p className="text-sm font-extrabold text-on-surface-variant">Feedback received</p>
-      <DialogTitle className="mt-2 text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
+      <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
         {title}
       </DialogTitle>
-      <DialogDescription className="mx-auto mt-3 max-w-[420px] text-base font-medium leading-7 text-on-surface-variant">
-        {body}
-      </DialogDescription>
-      <div className="mx-auto mt-5 max-w-[260px]">
-        <SmartPopupFact
-          fact={{
-            icon: "gift",
-            label: "Reward",
-            value: `+${rewardCredits} Credits`,
-          }}
-        />
-      </div>
       <Button
         type="button"
         data-smart-popup-primary
@@ -854,8 +775,6 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
         submitted ? (
           <SurveyThankYou
             title={submitResult?.thankYou?.title ?? popup.survey.thankYou.title}
-            body={submitResult?.thankYou?.body ?? popup.survey.thankYou.body}
-            rewardCredits={submitResult?.rewardCredits ?? popup.survey.rewardCredits}
             onDone={() => setOpen(false)}
           />
         ) : (

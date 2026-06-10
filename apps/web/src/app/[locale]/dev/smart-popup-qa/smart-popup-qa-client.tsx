@@ -20,7 +20,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { LocalizedSurveyQuestion } from "@/lib/smart-popups/survey";
 import type {
-  SmartPopupFact,
   SmartPopupPayload,
   SmartPopupSurveyPayload,
 } from "@/lib/smart-popups/types";
@@ -66,54 +65,6 @@ function getState(value: string | null): QaPopupState {
 function getLocale(value: string | string[] | undefined): QaLocale {
   const locale = Array.isArray(value) ? value[0] : value;
   return locale === "vi" ? "vi" : "en";
-}
-
-function fact(icon: SmartPopupFact["icon"], label: string, value?: string): SmartPopupFact {
-  return { icon, label, value };
-}
-
-function makeFacts(state: QaPopupState, locale: QaLocale): SmartPopupFact[] {
-  const vi = locale === "vi";
-
-  if (state === "feedback-survey" || state === "thank-you") {
-    return [
-      fact("gift", vi ? "Phần thưởng" : "Reward", "+50 Credits"),
-      fact("clock", vi ? "Thời gian" : "Time", vi ? "2 phút" : "2 min"),
-    ];
-  }
-
-  if (state === "resume-streak") {
-    return [
-      fact("flame", vi ? "Chuỗi ngày" : "Streak", vi ? "7 ngày" : "7 days"),
-      fact("clock", vi ? "Thời gian" : "Time", vi ? "10 phút" : "10 min"),
-    ];
-  }
-
-  if (state === "course") {
-    return [
-      fact("book", vi ? "Khóa học" : "Course", vi ? "Thuyết phục" : "Persuasion"),
-      fact("clock", vi ? "Thời gian" : "Time", vi ? "12 phút" : "12 min"),
-    ];
-  }
-
-  if (state === "ask-coach") {
-    return [
-      fact("chat", "AI Coach", vi ? "Gợi ý nhanh" : "Quick help"),
-      fact("clock", vi ? "Thời gian" : "Time", vi ? "2 phút" : "2 min"),
-    ];
-  }
-
-  if (state === "first-practice") {
-    return [
-      fact("clock", vi ? "Thời gian" : "Time", vi ? "10 phút" : "10 min"),
-      fact("chart", vi ? "Mở khóa" : "Unlocks", vi ? "Phản hồi" : "Feedback"),
-    ];
-  }
-
-  return [
-    fact("target", vi ? "Kỹ năng yếu nhất" : "Weakest skill", vi ? "Phản biện" : "Rebuttal"),
-    fact("chart", vi ? "Điểm gần nhất" : "Last score", "63/100"),
-  ];
 }
 
 function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
@@ -212,7 +163,7 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
     ctaHref: copy.href,
     imageSrc: "/images/smart-popups/popup-placeholder-v1.png",
     imageAlt: "Smart popup QA fixture",
-    facts: makeFacts(state, locale),
+    facts: [],
     priority: 1,
     metadata: {
       qaState: state,
@@ -485,8 +436,6 @@ export function SmartPopupQaClient() {
           {submitted || initialState === "thank-you" ? (
             <SurveyThankYou
               title={survey.thankYou.title}
-              body={survey.thankYou.body}
-              rewardCredits={survey.rewardCredits}
               doneLabel={locale === "vi" ? "Xong" : "Done"}
               onDone={() => setOpen(false)}
             />

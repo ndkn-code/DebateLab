@@ -310,8 +310,8 @@ function makePopupPreviewPayload(
     popupKind: "practice_suggestion",
     segment: "active_user",
     title: "Practice smarter in 10 minutes.",
-    body: "Pick one focused next step and keep the momentum going.",
-    eyebrow: "Next step",
+    body: "",
+    eyebrow: "",
     ctaLabel: "Start practice",
     dismissLabel: "Later",
     dontShowAgainLabel: "Don't show again",
@@ -340,50 +340,38 @@ function makePopupPreviewPayload(
 const POPUP_PREVIEWS: Partial<Record<ShowcaseScenarioId, SmartPopupPayload>> = {
   "popup-feature-announcement": makePopupPreviewPayload("popup-feature-announcement", {
     popupKind: "feature_announcement",
-    eyebrow: "New in Thinkfy",
+    eyebrow: "",
     title: "Cleaner practice nudges are here.",
-    body: "Each popup now focuses on one useful next step, without extra clutter.",
+    body: "",
     ctaLabel: "Try a practice round",
-    facts: [
-      { icon: "target", label: "Focus", value: "One step" },
-      { icon: "clock", label: "Preview", value: "10 min" },
-    ],
+    facts: [],
   }),
   "popup-practice-suggestion": makePopupPreviewPayload("popup-practice-suggestion", {
     popupKind: "practice_suggestion",
-    eyebrow: "Next best step",
+    eyebrow: "",
     title: "Drill rebuttal for 10 minutes.",
-    body: "This is the fastest improvement path from your recent practice rounds.",
+    body: "",
     ctaLabel: "Start rebuttal drill",
-    facts: [
-      { icon: "target", label: "Weakest skill", value: "Rebuttal" },
-      { icon: "chart", label: "Last score", value: "68/100" },
-    ],
+    facts: [],
   }),
   "popup-reminder-opt-in": makePopupPreviewPayload("popup-reminder-opt-in", {
     popupKind: "reminder_opt_in",
-    eyebrow: "Stay on track",
+    eyebrow: "",
     title: "Want gentle practice reminders?",
-    body: "Enable email practice and streak reminders only. Product updates stay off unless you turn them on in Settings.",
+    body: "",
     ctaLabel: "Enable email reminders",
     dismissLabel: "Not now",
     ctaHref: "/settings#notifications",
-    facts: [
-      { icon: "flame", label: "Scope", value: "Practice + streak" },
-      { icon: "clock", label: "Control", value: "Settings" },
-    ],
+    facts: [],
   }),
   "popup-feedback-survey": makePopupPreviewPayload("popup-feedback-survey", {
     campaignType: "feedback_survey",
     popupKind: "feedback_survey",
-    eyebrow: "Quick feedback",
+    eyebrow: "",
     title: "How is Thinkfy feeling?",
-    body: "Two quick answers help us improve your next practice session.",
+    body: "",
     ctaLabel: "Share feedback",
-    facts: [
-      { icon: "gift", label: "Reward", value: "+50 Credits" },
-      { icon: "clock", label: "Time", value: "1 min" },
-    ],
+    facts: [],
     survey: POPUP_SURVEY,
   }),
 };
@@ -1062,8 +1050,6 @@ function PopupFixturePreview({
         {submitted ? (
           <SurveyThankYou
             title={POPUP_SURVEY.thankYou.title}
-            body={POPUP_SURVEY.thankYou.body}
-            rewardCredits={POPUP_SURVEY.rewardCredits}
             onDone={() => setOpen(false)}
           />
         ) : isSurvey && popup.survey ? (

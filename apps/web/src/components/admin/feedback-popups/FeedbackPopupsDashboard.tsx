@@ -1066,8 +1066,6 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         {previewSubmitted && preview.popup.survey ? (
           <SurveyThankYou
             title={preview.popup.survey.thankYou.title}
-            body={preview.popup.survey.thankYou.body}
-            rewardCredits={preview.popup.survey.rewardCredits}
             doneLabel={preview.locale === "vi" ? "Xong" : "Done"}
             onDone={closePreview}
           />
