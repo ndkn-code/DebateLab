@@ -83,7 +83,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1E0]"
               >
                 <Image
-                  src="/images/landing-v3/icon-flame.webp"
+                  src="/images/rewards/streak-fire.webp"
                   alt=""
                   aria-hidden="true"
                   width={1254}

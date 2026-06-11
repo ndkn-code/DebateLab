@@ -48,7 +48,10 @@ export function DashboardStatsPanel({
         ariaLabel={t("stats.streak_aria")}
         dataTestId="dashboard-stats-streak"
         iconSrc={STREAK_ICON_SRC}
-        iconClassName="h-10 w-10 sm:h-11 sm:w-11"
+        iconClassName={cn(
+          "h-10 w-10 sm:h-11 sm:w-11",
+          topBar.currentStreak === 0 && "opacity-40 grayscale"
+        )}
         value={streakCount}
       >
         <StreakPopover
@@ -235,7 +238,7 @@ function StreakPopover({
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
                       isActive
-                        ? "bg-reward text-on-reward shadow-token-card"
+                        ? "bg-[#FF9F45] text-white shadow-token-card"
                         : "bg-outline-variant/30 text-on-surface-variant"
                     )}
                   >
