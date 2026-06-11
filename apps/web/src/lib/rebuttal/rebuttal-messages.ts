@@ -29,6 +29,13 @@ export interface DeepSeekRebuttalMessageParams {
 export function buildDeepSeekRebuttalMessages(
   params: DeepSeekRebuttalMessageParams
 ): DeepSeekMessage[] {
+  const isClosingRound = params.roundLabel.toLowerCase().includes("closing");
+  const roundSpecificRules = isClosingRound
+    ? `- Closing discipline: do not introduce a new LD, new independent argument, new model, or standalone constructive claim.
+- Do not use closing signposts like "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
+- Use longer closing time to deepen mechanism comparison, impact weighing, rebuild, and crystallization.`
+    : `- Include one clearly standalone constructive/offensive claim for your side, separate from pure line-by-line rebuttal.
+- Put that standalone claim in its own paragraph using the spoken signpost "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".`;
   const jsonContract = `Return ONLY valid JSON in this exact shape:
 {
   "rebuttal": "the spoken rebuttal text only",
@@ -63,7 +70,8 @@ Rules:
 Format: Trường Teen-style practice debate.
 Follow the duration-aware word target given in the dynamic request.
 Directly clash, explain mechanisms, compare worlds, weigh impacts, rebuild your own side, and keep the side consistent.
-For Vietnamese Trường Teen rounds, every rebuttal must include at least one standalone offensive claim the student can answer later; place it in its own spoken paragraph beginning with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
+For Vietnamese Trường Teen rebuttal rounds, include at least one standalone offensive claim the student can answer later; place it in its own spoken paragraph beginning with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
+For Vietnamese Trường Teen closing rounds, never introduce a new LD or standalone claim; only rebuild prior AI material, weigh, crystallize, and answer final clashes.
 Do not make every paragraph depend on "đội bạn nói".
 Use natural spoken debate language; prioritize clear logic over ornamental wording.`,
     },
@@ -117,8 +125,7 @@ ${params.roundInstructions}
 
 Rules:
 - Directly address and counter specific points from the opponent's speech
-- Include one clearly standalone constructive/offensive claim for your side, separate from pure line-by-line rebuttal
-- Put that standalone claim in its own paragraph using the spoken signpost "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là..."
+${roundSpecificRules}
 - Structure your logic around: argument label -> explanation or mechanism -> comparison or weighing -> impact -> link back to your side
 - Prioritize depth over fancy wording
 - Do not invent percentages, studies, named evidence, or citations. Use mechanisms, comparison, transcript details, and retrieved corpus only.

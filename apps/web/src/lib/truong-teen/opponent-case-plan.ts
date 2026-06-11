@@ -830,9 +830,31 @@ export async function getTruongTeenOpponentCasePlan(
 }
 
 export function formatTruongTeenOpponentCasePlanPromptBlock(
-  plan: TruongTeenOpponentCasePlan | null | undefined
+  plan: TruongTeenOpponentCasePlan | null | undefined,
+  debateFormat: "rebuttal" | "closing" = "rebuttal"
 ) {
   if (!plan) return "";
+
+  const targets = plan.expectedRebuttalTargets
+    .map((target) => `- ${target}`)
+    .join("\n");
+  const weighing = plan.weighingHooks.map((hook) => `- ${hook}`).join("\n");
+
+  if (debateFormat === "closing") {
+    return `\n## Cached AI Opponent Case Plan (${plan.version})
+Use this only as closing strategy. Do not introduce any new independent claim, new LD, new model, or "Luận điểm độc lập..." / "Một luận điểm riêng..." signpost. Rebuild only arguments already present in prior AI material, then weigh and crystallize.
+Source: ${plan.generationSource}${plan.cacheHit ? " (cache hit)" : ""}
+
+Expected rebuttal targets:
+${targets || "- No specific targets supplied."}
+
+Weighing hooks:
+${weighing || "- Compare probability, scale, severity, reversibility, and affected group."}
+
+Crystallization:
+${plan.crystallization}
+`;
+  }
 
   const claims = plan.independentClaims
     .map(
@@ -840,10 +862,6 @@ export function formatTruongTeenOpponentCasePlanPromptBlock(
         `${index + 1}. ${claim.label}: ${claim.claim} Mechanism: ${claim.mechanism} Impact: ${claim.impact} Answerable opening: ${claim.answerability}`
     )
     .join("\n");
-  const targets = plan.expectedRebuttalTargets
-    .map((target) => `- ${target}`)
-    .join("\n");
-  const weighing = plan.weighingHooks.map((hook) => `- ${hook}`).join("\n");
 
   return `\n## Cached AI Opponent Case Plan (${plan.version})
 Use this as internal strategy. You still must answer the latest speech, but you must also surface at least one standalone claim from this plan so the student has independent offense to rebut.

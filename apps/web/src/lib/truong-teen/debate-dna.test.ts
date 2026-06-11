@@ -9,12 +9,13 @@ import {
   buildFuzzyEvidenceHintBlock,
   buildTruongTeenJudgingPromptAddendum,
   buildTruongTeenRebuttalPromptAddendum,
+  buildTruongTeenRoundInstructions,
   findFuzzyEvidenceHints,
   getTruongTeenWordTarget,
   shouldUseTruongTeenPrompt,
 } from "./debate-dna";
 
-assert.equal(TRUONG_TEEN_PROMPT_VERSION, "truong-teen-2025-v2");
+assert.equal(TRUONG_TEEN_PROMPT_VERSION, "truong-teen-2025-v3");
 assert.ok(TRUONG_TEEN_REBUTTAL_ARCHETYPES.length >= 10);
 assert.ok(
   TRUONG_TEEN_REBUTTAL_ARCHETYPES.some(
@@ -56,11 +57,28 @@ assert.deepEqual(hardTarget, { min: 800, max: 1200, label: "7-minute" });
 const rebuttalAddendum = buildTruongTeenRebuttalPromptAddendum({
   difficulty: "hard",
   wordTarget: hardTarget,
+  debateFormat: "rebuttal",
 });
 assert.match(rebuttalAddendum, /2-3 macro clash axes/);
 assert.match(rebuttalAddendum, /standalone, answerable claim/);
 assert.match(rebuttalAddendum, /800-1200 Vietnamese words/);
 assert.match(rebuttalAddendum, /Goodhart|Độc tính chỉ số/);
+
+const closingAddendum = buildTruongTeenRebuttalPromptAddendum({
+  difficulty: "hard",
+  wordTarget: hardTarget,
+  debateFormat: "closing",
+});
+assert.match(closingAddendum, /do not introduce any new LD/);
+assert.match(closingAddendum, /deeper weighing and impact comparison/);
+
+const closingInstructions = buildTruongTeenRoundInstructions({
+  debateFormat: "closing",
+  speechTimeSeconds: 420,
+  wordTarget: hardTarget,
+});
+assert.match(closingInstructions, /Do not introduce a new LD/);
+assert.match(closingInstructions, /never add extra new arguments/);
 
 const judgingAddendum = buildTruongTeenJudgingPromptAddendum();
 assert.match(judgingAddendum, /Assertion dumping/);

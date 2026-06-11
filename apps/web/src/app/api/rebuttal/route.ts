@@ -55,6 +55,7 @@ import {
   TRUONG_TEEN_PROMPT_VERSION,
   buildFuzzyEvidenceHintBlock,
   buildTruongTeenRebuttalPromptAddendum,
+  buildTruongTeenRoundInstructions,
   getTruongTeenWordTarget,
   shouldUseTruongTeenPrompt,
 } from "@/lib/truong-teen/debate-dna";
@@ -745,8 +746,13 @@ export async function POST(req: NextRequest) {
       userTranscript,
       ...(previousRounds?.map((round) => round.text) ?? []),
     ];
+    const opponentQualitySourceText = transcriptCorpus.join("\n\n");
     const truongTeenPromptContext = useTruongTeenPrompt
-      ? buildTruongTeenRebuttalPromptAddendum({ difficulty, wordTarget })
+      ? buildTruongTeenRebuttalPromptAddendum({
+          difficulty,
+          wordTarget,
+          debateFormat,
+        })
       : "";
     const evidenceHintContext = useTruongTeenPrompt
       ? buildFuzzyEvidenceHintBlock(transcriptCorpus)
@@ -785,7 +791,7 @@ export async function POST(req: NextRequest) {
     opponentCasePlanMetadata =
       createTruongTeenOpponentCasePlanMetadata(opponentCasePlan);
     const casePlanPromptContext =
-      formatTruongTeenOpponentCasePlanPromptBlock(opponentCasePlan);
+      formatTruongTeenOpponentCasePlanPromptBlock(opponentCasePlan, debateFormat);
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
@@ -795,10 +801,18 @@ export async function POST(req: NextRequest) {
           .join("\n\n");
     }
 
-    const roundInstructions =
-      roundLabel.toLowerCase().includes("closing")
-        ? `This is a closing speech. Summarize the winning comparative framing, explain why your side wins on the key weighing, rebuild one independent claim from your case in its own spoken paragraph, and crystallize the most important impacts. Do not just repeat earlier claims or only answer line-by-line.`
-        : `This is a rebuttal speech. Directly answer the opponent's main claims by exposing weak assumptions, breaking their mechanism, comparing worlds, and weighing impacts. Also introduce or rebuild at least one standalone offensive claim from your side in its own spoken paragraph so the student has independent material to rebut next.`;
+    const roundInstructions = buildTruongTeenRoundInstructions({
+      debateFormat,
+      speechTimeSeconds,
+      wordTarget,
+    });
+    const roundSpecificRules =
+      debateFormat === "closing"
+        ? `- Do not introduce a new LD, new independent argument, new model, or standalone constructive claim in closing
+- Do not use "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là..." in closing
+- Use longer closing time to deepen mechanism comparison, impact weighing, rebuild, and crystallization`
+        : `- Include one clearly standalone constructive/offensive claim for your side, separate from pure line-by-line rebuttal
+- Put that standalone claim in its own spoken paragraph beginning with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là..."`;
 
     const prompt = `You are a debate AI playing the ${aiSide} side in a Trường Teen-style debate.
 
@@ -837,8 +851,7 @@ ${roundInstructions}
 
 Rules:
 - Directly address and counter specific points from the opponent's speech
-- Include one clearly standalone constructive/offensive claim for your side, separate from pure line-by-line rebuttal
-- Put that standalone claim in its own spoken paragraph beginning with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là..."
+${roundSpecificRules}
 - Structure your logic around: argument label -> explanation or mechanism -> comparison or weighing -> impact -> link back to your side
 - Prioritize depth over fancy wording
 - Do not invent percentages, studies, named evidence, or citations. Use mechanisms, comparison, transcript details, and retrieved corpus only.
@@ -1072,12 +1085,13 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               truongTeenLengthRetryUsed = true;
             }
             const opponentOffenseGuardrail = useTruongTeenPrompt
-              ? ensureTruongTeenStandaloneOffense({
-                  text: structuredResponse.rebuttal,
-                  mode: debateFormat,
-                  casePlan: opponentCasePlan,
-                })
-              : null;
+                ? ensureTruongTeenStandaloneOffense({
+                    text: structuredResponse.rebuttal,
+                    mode: debateFormat,
+                    casePlan: opponentCasePlan,
+                    sourceText: opponentQualitySourceText,
+                  })
+                : null;
             if (opponentOffenseGuardrail) {
               if (opponentOffenseGuardrail.insertedParagraph) {
                 send("delta", {
@@ -1093,7 +1107,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               ? (opponentOffenseGuardrail?.metrics ??
                 analyzeTruongTeenOpponentOutput(
                   structuredResponse.rebuttal,
-                  debateFormat
+                  debateFormat,
+                  { sourceText: opponentQualitySourceText }
                 ))
               : null;
 
@@ -1272,6 +1287,7 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
           text: structuredResponse.rebuttal,
           mode: debateFormat,
           casePlan: opponentCasePlan,
+          sourceText: opponentQualitySourceText,
         })
       : null;
     if (opponentOffenseGuardrail) {
@@ -1282,7 +1298,9 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
     }
     const opponentQualityMetrics = useTruongTeenPrompt
       ? (opponentOffenseGuardrail?.metrics ??
-        analyzeTruongTeenOpponentOutput(structuredResponse.rebuttal, debateFormat))
+        analyzeTruongTeenOpponentOutput(structuredResponse.rebuttal, debateFormat, {
+          sourceText: opponentQualitySourceText,
+        }))
       : null;
     const aiQualityRunId =
       auth.authSource === "dev-bypass"

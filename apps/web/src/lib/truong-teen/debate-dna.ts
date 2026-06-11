@@ -1,7 +1,9 @@
 import type { AiDifficulty, PracticeLanguage, PracticeTrack } from "@/types";
 import type { RebuttalWordTarget } from "@/lib/rebuttal/debate-continuity";
 
-export const TRUONG_TEEN_PROMPT_VERSION = "truong-teen-2025-v2";
+export const TRUONG_TEEN_PROMPT_VERSION = "truong-teen-2025-v3";
+
+export type TruongTeenOpponentRoundMode = "rebuttal" | "closing";
 
 export interface TruongTeenArchetype {
   key: string;
@@ -451,27 +453,54 @@ export function getTruongTeenWordTarget(params: {
   return params.target;
 }
 
+export function buildTruongTeenRoundInstructions(params: {
+  debateFormat: TruongTeenOpponentRoundMode;
+  speechTimeSeconds?: number;
+  wordTarget: RebuttalWordTarget;
+}) {
+  const speechTimeSeconds = params.speechTimeSeconds ?? 180;
+  const longSpeech =
+    speechTimeSeconds >= 300 ||
+    params.wordTarget.label === "5-minute" ||
+    params.wordTarget.label === "7-minute";
+  const depthInstruction = longSpeech
+    ? "Because this is a 5-7 minute setting, deepen mechanism, impact comparison, comparative weighing, and crystallization; never add extra new arguments just to fill time."
+    : "Because this is a 2-3 minute setting, keep clash concise and include only the weighing needed to decide the round.";
+
+  if (params.debateFormat === "closing") {
+    return `This is a closing speech. Summarize the winning comparative framing, explain why your side wins on the key weighing, rebuild only material your side has already put into the debate, and crystallize the most important impacts. Do not introduce a new LD, a new independent argument, a new model, or a new standalone constructive claim. Do not use signposts such as "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là..." in closing. ${depthInstruction}`;
+  }
+
+  return `This is a rebuttal speech. Directly answer the opponent's main claims by exposing weak assumptions, breaking their mechanism, comparing worlds, and weighing impacts. Also introduce or rebuild at least one standalone offensive claim from your side in its own spoken paragraph so the student has independent material to rebut next. ${depthInstruction}`;
+}
+
 export function buildTruongTeenRebuttalPromptAddendum(params: {
   difficulty?: AiDifficulty;
   wordTarget: RebuttalWordTarget;
+  debateFormat?: TruongTeenOpponentRoundMode;
 }) {
   const hardSevenMinute =
     params.difficulty === "hard" && params.wordTarget.label === "7-minute";
+  const activeRoundDiscipline =
+    params.debateFormat === "closing"
+      ? "- Active round discipline: this is closing, so do not introduce any new LD/luận điểm độc lập; deepen weighing and crystallization instead."
+      : "- Active round discipline: this is rebuttal, so include one standalone, answerable offensive claim outside pure line-by-line clash.";
 
   return `\n## Trường Teen 2025 Debate DNA (${TRUONG_TEEN_PROMPT_VERSION})
 Apply these Vietnamese debate rules because this is Vietnamese debate practice:
 - Group the response into 2-3 macro clash axes instead of answering every sentence point-by-point.
 - Use natural spoken signposting and paragraph breaks, but do not put literal Markdown headings inside the "rebuttal" string.
 - Strong rebuttal flow: frame the burden, concede a harmless/minor point if useful, break the opponent's mechanism, weigh impacts, rebuild your side, and crystallize why the judge should prefer your world.
-- Do not only rebut. Surface at least one standalone, answerable claim for your side outside pure "đội bạn nói..." clash so the student has independent offense to answer next.
-- The standalone claim should be its own spoken paragraph and should begin naturally with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
-- A strong response should balance roughly 55-70% direct clash with 30-45% independent offense, rebuild, and weighing. Closing speeches should crystallize the judge question, not just list rebuttals.
+- Rebuttal rounds: do not only rebut. Surface at least one standalone, answerable claim for your side outside pure "đội bạn nói..." clash so the student has independent offense to answer next. The standalone claim should be its own spoken paragraph and should begin naturally with "Luận điểm độc lập của chúng tôi là..." or "Một luận điểm riêng của chúng tôi là...".
+- Closing rounds: do not introduce any new LD, new standalone constructive claim, or new model. Do not use "Luận điểm độc lập..." or "Một luận điểm riêng..." signposts in closing; rebuild only prior AI material, weigh, and crystallize.
+- A strong rebuttal should balance roughly 55-70% direct clash with 30-45% independent offense, rebuild, and weighing. Closing speeches should crystallize the judge question, not just list rebuttals.
+${activeRoundDiscipline}
 - Attack causal chains, actor incentives, uniqueness, contradictions, implementation limits, and opportunity costs.
 - Use Trường Teen-style Vietnamese phrases sparingly and naturally: "gánh nặng chứng minh", "cơ chế", "tính độc nhất", "chi phí cơ hội", "so sánh hai thế giới", "chốt clash".
 - Avoid translationese such as "điểm của bạn là"; prefer "đội bạn đang giả định rằng..." or "lỗ hổng nằm ở...".
 - Do not invent percentages, named studies, expert quotes, or institutional evidence. Prefer mechanism and weighing unless the transcript or corpus explicitly supplies evidence.
 - If evidence names look odd because of speech-to-text, treat normalized hints cautiously and never fabricate statistics.
-${hardSevenMinute ? "- Hard 7-minute Vietnamese mode: the rebuttal string must be 800-1200 Vietnamese words across 9-12 substantial spoken paragraphs. Do not compress this into a short answer. Use 2-3 macro clashes, with roughly 20% framing/rebuttal map, 50% mechanism attack and turn, 30% weighing/rebuild/crystallization." : ""}
+${hardSevenMinute ? "- Hard 7-minute Vietnamese mode: the rebuttal string must be 800-1200 Vietnamese words across 9-12 substantial spoken paragraphs. Do not compress this into a short answer. Use 2-3 macro clashes, with roughly 20% framing/rebuttal map, 50% mechanism attack and turn, 30% weighing/rebuild/crystallization. In closing, fill the extra time through deeper weighing and impact comparison, not by adding new LDs." : ""}
 
 Preferred rebuttal archetypes to use when relevant:
 ${TRUONG_TEEN_REBUTTAL_ARCHETYPES.map(

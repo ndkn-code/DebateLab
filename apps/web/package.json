@@ -24,7 +24,7 @@
     "test:ai-coach": "tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/metadata.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts",
     "test:debate-corpus": "tsx src/lib/corpus/config.test.ts && tsx src/lib/corpus/model.test.ts",
     "test:corpus-importer": "tsx src/lib/corpus/importer.test.ts",
-    "test:truong-teen": "tsx src/lib/truong-teen/debate-dna.test.ts",
+    "test:truong-teen": "tsx src/lib/truong-teen/debate-dna.test.ts && tsx src/lib/truong-teen/opponent-quality.test.ts",
     "test:practice-language": "tsx src/lib/practice-language.test.ts",
     "test:settings": "tsx src/lib/settings.test.ts",
     "test:topics": "tsx src/lib/topics.test.ts",

@@ -551,6 +551,14 @@ function getOpponentQualityMetadata(row: Row) {
       typeof metrics?.hasInventedEvidenceRisk === "boolean"
         ? metrics.hasInventedEvidenceRisk
         : null,
+    hasClosingNewArgumentRisk:
+      typeof metrics?.hasClosingNewArgumentRisk === "boolean"
+        ? metrics.hasClosingNewArgumentRisk
+        : null,
+    closingNewArgumentCueCount:
+      typeof metrics?.closingNewArgumentCueCount === "number"
+        ? metrics.closingNewArgumentCueCount
+        : null,
     onlyRebuttalRisk:
       metrics?.onlyRebuttalRisk === "low" ||
       metrics?.onlyRebuttalRisk === "medium" ||
@@ -1390,6 +1398,16 @@ function DetailDrawer({
                     ? "—"
                     : opponentQualityMetadata.hasInventedEvidenceRisk
                       ? "yes"
+                      : "no"
+                }
+              />
+              <MiniMetric
+                label="Closing new-arg risk"
+                value={
+                  opponentQualityMetadata.hasClosingNewArgumentRisk == null
+                    ? "—"
+                    : opponentQualityMetadata.hasClosingNewArgumentRisk
+                      ? `yes (${formatCompactNumber(opponentQualityMetadata.closingNewArgumentCueCount)})`
                       : "no"
                 }
               />

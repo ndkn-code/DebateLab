@@ -32,7 +32,12 @@ type AttemptRow = {
 
 const DEFAULT_FIXTURES = [
   {
-    label: "nam",
+    label: "nam-latest",
+    email: "baonam05032009@gmail.com",
+    attemptId: "506c27a8-809d-4663-8a17-fba67305fc5b",
+  },
+  {
+    label: "nam-original",
     email: "baonam05032009@gmail.com",
     attemptId: "e5c41194-fe78-4463-abc2-76afed7dc58a",
   },
@@ -134,31 +139,35 @@ function roundText(round: AttemptRound) {
   return round.type === "ai-rebuttal" ? round.aiResponse ?? "" : round.transcript ?? "";
 }
 
-function buildRoundInstructions(roundLabel: string) {
-  return roundLabel.toLowerCase().includes("closing")
-    ? "This is a closing speech. Summarize the winning comparative framing, explain why your side wins on the key weighing, rebuild one independent claim from your case in its own spoken paragraph, and crystallize the most important impacts. Do not just repeat earlier claims or only answer line-by-line."
-    : "This is a rebuttal speech. Directly answer the opponent's main claims by exposing weak assumptions, breaking their mechanism, comparing worlds, and weighing impacts. Also introduce or rebuild at least one standalone offensive claim from your side in its own spoken paragraph so the student has independent material to rebut next.";
-}
-
 function acceptanceForMetrics(metrics: {
   directRebuttalCueCount: number;
   standaloneClaimCount: number;
   hasWeighing: boolean;
   hasInventedEvidenceRisk?: boolean;
   hasClosingCrystallization: boolean;
-}) {
+  hasClosingNewArgumentRisk?: boolean;
+}, mode: "rebuttal" | "closing") {
+  const standaloneOffense =
+    mode === "rebuttal" ? metrics.standaloneClaimCount > 0 : true;
+  const noClosingNewArgument =
+    mode === "closing" ? !metrics.hasClosingNewArgumentRisk : true;
+  const closingCrystallization =
+    mode === "closing" ? metrics.hasClosingCrystallization : true;
+
   return {
     directClash: metrics.directRebuttalCueCount > 0,
-    standaloneOffense: metrics.standaloneClaimCount > 0,
+    standaloneOffense,
     weighing: metrics.hasWeighing,
     noInventedEvidence: !metrics.hasInventedEvidenceRisk,
-    closingCrystallization: metrics.hasClosingCrystallization,
+    closingCrystallization,
+    noClosingNewArgument,
     passed:
       metrics.directRebuttalCueCount > 0 &&
-      metrics.standaloneClaimCount > 0 &&
+      standaloneOffense &&
       metrics.hasWeighing &&
       !metrics.hasInventedEvidenceRisk &&
-      metrics.hasClosingCrystallization,
+      closingCrystallization &&
+      noClosingNewArgument,
   };
 }
 
@@ -182,6 +191,7 @@ async function main() {
     {
       buildFuzzyEvidenceHintBlock,
       buildTruongTeenRebuttalPromptAddendum,
+      buildTruongTeenRoundInstructions,
       getTruongTeenWordTarget,
       shouldUseTruongTeenPrompt,
     },
@@ -218,7 +228,10 @@ async function main() {
 
   const reports = [];
   const fixtures = [...DEFAULT_FIXTURES];
-  if (cacheProbe) fixtures.push(DEFAULT_FIXTURES[1]);
+  const cacheProbeFixture =
+    DEFAULT_FIXTURES.find((fixture) => fixture.label === "ndkn") ??
+    DEFAULT_FIXTURES[DEFAULT_FIXTURES.length - 1];
+  if (cacheProbe) fixtures.push(cacheProbeFixture);
 
   for (const fixture of fixtures) {
     const { data: profile, error: profileError } = await supabase
@@ -276,6 +289,10 @@ async function main() {
       const userTranscript = previousUserRound?.text ?? "";
       const existingText = round.aiResponse ?? "";
       const debateFormat = modeFromRoundLabel(round.label);
+      const opponentQualitySourceText = [
+        userTranscript,
+        ...replayedRounds.map((item) => item.text),
+      ].join("\n\n");
       const baseWordTarget = getRebuttalWordTarget(
         row.speech_time ?? round.duration ?? 180,
         round.label
@@ -287,7 +304,8 @@ async function main() {
       });
       const existingMetrics = analyzeTruongTeenOpponentOutput(
         existingText,
-        debateFormat
+        debateFormat,
+        { sourceText: opponentQualitySourceText }
       );
 
       let generatedResult = null;
@@ -319,9 +337,13 @@ async function main() {
           }),
         ]);
         const casePlanPromptContext =
-          formatTruongTeenOpponentCasePlanPromptBlock(casePlan);
+          formatTruongTeenOpponentCasePlanPromptBlock(casePlan, debateFormat);
         const truongTeenPromptContext = useTruongTeenPrompt
-          ? buildTruongTeenRebuttalPromptAddendum({ difficulty, wordTarget })
+          ? buildTruongTeenRebuttalPromptAddendum({
+              difficulty,
+              wordTarget,
+              debateFormat,
+            })
           : "";
         const transcriptCorpus = [
           userTranscript,
@@ -353,7 +375,11 @@ async function main() {
           languageLabel: languageConfig.label,
           responseLanguageInstruction,
           userTranscript,
-          roundInstructions: buildRoundInstructions(round.label),
+          roundInstructions: buildTruongTeenRoundInstructions({
+            debateFormat,
+            speechTimeSeconds: row.speech_time ?? round.duration ?? 180,
+            wordTarget,
+          }),
           learnerContext,
           truongTeenPromptContext,
           casePlanPromptContext,
@@ -387,6 +413,7 @@ async function main() {
           text: structured.rebuttal,
           mode: debateFormat,
           casePlan,
+          sourceText: opponentQualitySourceText,
         });
         structured = {
           ...structured,
@@ -402,7 +429,7 @@ async function main() {
           wordCount: wordCount(structured.rebuttal),
           preview: structured.rebuttal.slice(0, 1200),
           metrics: generatedMetrics,
-          acceptance: acceptanceForMetrics(generatedMetrics),
+          acceptance: acceptanceForMetrics(generatedMetrics, debateFormat),
           standaloneOffenseGuardrailInserted: offenseGuardrail.inserted,
           usage: {
             inputTokens: generation.usage?.prompt_tokens ?? null,
@@ -435,7 +462,7 @@ async function main() {
           textHash: hashText(existingText),
           wordCount: wordCount(existingText),
           metrics: existingMetrics,
-          acceptance: acceptanceForMetrics(existingMetrics),
+          acceptance: acceptanceForMetrics(existingMetrics, debateFormat),
         },
         generated: generatedResult,
       });
@@ -495,6 +522,9 @@ async function main() {
           round.generated
             ? `Generated invented evidence risk: ${round.generated.metrics.hasInventedEvidenceRisk ? "yes" : "no"}`
             : "Generated invented evidence risk: not run",
+          round.generated
+            ? `Generated closing new-argument risk: ${round.generated.metrics.hasClosingNewArgumentRisk ? "yes" : "no"}`
+            : "Generated closing new-argument risk: not run",
           round.generated
             ? `DeepSeek cache: ${round.generated.usage.cacheHitTokens ?? 0} hit / ${round.generated.usage.cacheMissTokens ?? 0} miss`
             : "DeepSeek cache: not run",

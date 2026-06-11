@@ -1,5 +1,5 @@
 export interface TruongTeenOpponentQualityMetrics {
-  version: 1;
+  version: 2;
   wordCount: number;
   paragraphCount: number;
   directRebuttalCueCount: number;
@@ -7,12 +7,14 @@ export interface TruongTeenOpponentQualityMetrics {
   weighingCueCount: number;
   crystallizationCueCount: number;
   inventedEvidenceRiskCount: number;
+  closingNewArgumentCueCount: number;
   standaloneClaimCount: number;
   rebuttalCueParagraphRatio: number;
   hasStandaloneOffense: boolean;
   hasWeighing: boolean;
   hasInventedEvidenceRisk: boolean;
   hasClosingCrystallization: boolean;
+  hasClosingNewArgumentRisk: boolean;
   onlyRebuttalRisk: "low" | "medium" | "high";
 }
 
@@ -24,6 +26,10 @@ interface CasePlanForStandaloneOffense {
     impact?: string;
     answerability?: string;
   }>;
+}
+
+interface OpponentQualityAnalysisOptions {
+  sourceText?: string;
 }
 
 export interface StandaloneOffenseGuardrailResult {
@@ -92,6 +98,14 @@ const INVENTED_EVIDENCE_RISK_PATTERNS = [
   /\btheo\s+(?:một\s+)?(?:nghiên cứu|khảo sát|báo cáo|thống kê)/i,
 ];
 
+const CLOSING_NEW_ARGUMENT_PATTERNS = [
+  /(?:đưa ra|trình bày|nêu|bổ sung)\s+(?:một\s+)?(?:luận điểm|ý)\s+độc lập/i,
+  /luận điểm\s+độc lập\s+của\s+chúng tôi\s+là/i,
+  /một\s+luận điểm\s+riêng\s+của\s+chúng tôi/i,
+  /ý\s+độc lập\s+của\s+chúng tôi/i,
+  /trước khi chốt trận,\s*luận điểm độc lập/i,
+];
+
 const CRYSTALLIZATION_CUES = [
   "chốt clash",
   "chốt lại",
@@ -119,6 +133,90 @@ function countPatternMatches(text: string, patterns: readonly RegExp[]) {
     const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
     const globalPattern = new RegExp(pattern.source, flags);
     return count + (text.match(globalPattern)?.length ?? 0);
+  }, 0);
+}
+
+function normalizeEvidenceText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const VIETNAMESE_UNITS = [
+  "khong",
+  "mot",
+  "hai",
+  "ba",
+  "bon",
+  "nam",
+  "sau",
+  "bay",
+  "tam",
+  "chin",
+] as const;
+
+function numberToVietnameseWords(value: number) {
+  if (!Number.isInteger(value) || value < 0 || value > 100) return null;
+  if (value < 10) return VIETNAMESE_UNITS[value];
+  if (value === 10) return "muoi";
+  if (value < 20) {
+    return `muoi ${value === 15 ? "lam" : VIETNAMESE_UNITS[value % 10]}`;
+  }
+  if (value === 100) return "mot tram";
+
+  const tens = Math.floor(value / 10);
+  const unit = value % 10;
+  if (unit === 0) return `${VIETNAMESE_UNITS[tens]} muoi`;
+  return `${VIETNAMESE_UNITS[tens]} muoi ${
+    unit === 1 ? "mot" : unit === 5 ? "lam" : VIETNAMESE_UNITS[unit]
+  }`;
+}
+
+function sourceSupportsEvidenceMatch(matchText: string, sourceText?: string) {
+  if (!sourceText) return false;
+
+  const normalizedSource = normalizeEvidenceText(sourceText);
+  const normalizedMatch = normalizeEvidenceText(matchText);
+  if (normalizedMatch && normalizedSource.includes(normalizedMatch)) {
+    return true;
+  }
+
+  const percentMatch = matchText.match(/\b(\d{1,3})\s*%/);
+  if (percentMatch) {
+    const numericValue = Number(percentMatch[1]);
+    const vietnameseWords = numberToVietnameseWords(numericValue);
+    return (
+      normalizedSource.includes(`${numericValue}%`) ||
+      normalizedSource.includes(`${numericValue} %`) ||
+      Boolean(
+        vietnameseWords &&
+          normalizedSource.includes(`${vietnameseWords} phan tram`)
+      )
+    );
+  }
+
+  return false;
+}
+
+function countUnsupportedEvidenceRiskMatches(
+  text: string,
+  patterns: readonly RegExp[],
+  options?: OpponentQualityAnalysisOptions
+) {
+  return patterns.reduce((count, pattern) => {
+    const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+    const globalPattern = new RegExp(pattern.source, flags);
+    const matches = Array.from(text.matchAll(globalPattern));
+    return (
+      count +
+      matches.filter(
+        (match) => !sourceSupportsEvidenceMatch(match[0], options?.sourceText)
+      ).length
+    );
   }, 0);
 }
 
@@ -159,7 +257,8 @@ function looksLikeStandaloneClaim(paragraph: string) {
 
 export function analyzeTruongTeenOpponentOutput(
   text: string,
-  mode: "rebuttal" | "closing" = "rebuttal"
+  mode: "rebuttal" | "closing" = "rebuttal",
+  options?: OpponentQualityAnalysisOptions
 ): TruongTeenOpponentQualityMetrics {
   const paragraphs = splitParagraphs(text);
   const rebuttalCueParagraphs = paragraphs.filter((paragraph) => {
@@ -171,10 +270,13 @@ export function analyzeTruongTeenOpponentOutput(
   const constructiveCueCount = countCueMatches(text, CONSTRUCTIVE_CUES);
   const weighingCueCount = countCueMatches(text, WEIGHING_CUES);
   const crystallizationCueCount = countCueMatches(text, CRYSTALLIZATION_CUES);
-  const inventedEvidenceRiskCount = countPatternMatches(
+  const inventedEvidenceRiskCount = countUnsupportedEvidenceRiskMatches(
     text,
-    INVENTED_EVIDENCE_RISK_PATTERNS
+    INVENTED_EVIDENCE_RISK_PATTERNS,
+    options
   );
+  const closingNewArgumentCueCount =
+    mode === "closing" ? countPatternMatches(text, CLOSING_NEW_ARGUMENT_PATTERNS) : 0;
   const paragraphCount = paragraphs.length;
   const rebuttalCueParagraphRatio =
     paragraphCount > 0 ? rebuttalCueParagraphs.length / paragraphCount : 0;
@@ -183,6 +285,8 @@ export function analyzeTruongTeenOpponentOutput(
   const hasInventedEvidenceRisk = inventedEvidenceRiskCount > 0;
   const hasClosingCrystallization =
     mode === "closing" ? crystallizationCueCount > 0 && hasWeighing : true;
+  const hasClosingNewArgumentRisk =
+    mode === "closing" && closingNewArgumentCueCount > 0;
   const onlyRebuttalRisk =
     !hasStandaloneOffense && rebuttalCueParagraphRatio >= 0.6
       ? "high"
@@ -191,7 +295,7 @@ export function analyzeTruongTeenOpponentOutput(
         : "low";
 
   return {
-    version: 1,
+    version: 2,
     wordCount: countWords(text),
     paragraphCount,
     directRebuttalCueCount,
@@ -199,12 +303,14 @@ export function analyzeTruongTeenOpponentOutput(
     weighingCueCount,
     crystallizationCueCount,
     inventedEvidenceRiskCount,
+    closingNewArgumentCueCount,
     standaloneClaimCount,
     rebuttalCueParagraphRatio: Number(rebuttalCueParagraphRatio.toFixed(3)),
     hasStandaloneOffense,
     hasWeighing,
     hasInventedEvidenceRisk,
     hasClosingCrystallization,
+    hasClosingNewArgumentRisk,
     onlyRebuttalRisk,
   };
 }
@@ -220,10 +326,7 @@ function buildStandaloneParagraph(params: {
   const mechanism = params.claim.mechanism?.trim();
   const impact = params.claim.impact?.trim();
   const answerability = params.claim.answerability?.trim();
-  const opener =
-    params.mode === "closing"
-      ? "Trước khi chốt trận, luận điểm độc lập của chúng tôi là"
-      : "Luận điểm độc lập của chúng tôi là";
+  const opener = "Luận điểm độc lập của chúng tôi là";
 
   return [
     `${opener}: ${label ? `${label} - ` : ""}${claim}`,
@@ -241,9 +344,15 @@ export function ensureTruongTeenStandaloneOffense(params: {
   text: string;
   mode?: "rebuttal" | "closing";
   casePlan?: CasePlanForStandaloneOffense | null;
+  sourceText?: string;
 }): StandaloneOffenseGuardrailResult {
   const mode = params.mode ?? "rebuttal";
-  const metrics = analyzeTruongTeenOpponentOutput(params.text, mode);
+  const metrics = analyzeTruongTeenOpponentOutput(params.text, mode, {
+    sourceText: params.sourceText,
+  });
+  if (mode === "closing") {
+    return { text: params.text, metrics, inserted: false };
+  }
   if (metrics.standaloneClaimCount > 0) {
     return { text: params.text, metrics, inserted: false };
   }
@@ -263,7 +372,9 @@ export function ensureTruongTeenStandaloneOffense(params: {
 
   return {
     text,
-    metrics: analyzeTruongTeenOpponentOutput(text, mode),
+    metrics: analyzeTruongTeenOpponentOutput(text, mode, {
+      sourceText: params.sourceText,
+    }),
     inserted: true,
     insertedParagraph,
   };
