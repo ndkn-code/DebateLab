@@ -34,14 +34,14 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -top-[104px] right-8 z-10 sm:right-16"
+            className="absolute -top-[86px] right-8 z-10 sm:-top-[98px] sm:right-16"
           >
             <Image
-              src="/brand/thinkfy/thinkfy-mascot-book.png"
+              src="/images/landing-v3/mascot-sitting.webp"
               alt=""
               aria-hidden="true"
-              width={400}
-              height={500}
+              width={1254}
+              height={1254}
               className="h-auto w-28 object-contain sm:w-32"
               sizes="128px"
             />

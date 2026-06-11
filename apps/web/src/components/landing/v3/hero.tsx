@@ -94,67 +94,6 @@ function SpeechBubble({
   );
 }
 
-function Podium({
-  size,
-  badge,
-  badgeColor,
-  className,
-}: {
-  size: "lg" | "sm";
-  badge?: string;
-  badgeColor?: "pro" | "con";
-  className?: string;
-}) {
-  const isLarge = size === "lg";
-  return (
-    <div className={cn("relative flex flex-col items-center", className)}>
-      {/* Podium desk */}
-      <div
-        className={cn(
-          "relative z-10 rounded-t-[20px] border shadow-token-card",
-          isLarge
-            ? "h-20 w-44 border-[#0AA3C2] bg-[linear-gradient(180deg,#27CAE6_0%,#00B8D9_70%)] sm:h-24 sm:w-52"
-            : "h-14 w-28 border-outline-variant bg-white sm:h-16 sm:w-32"
-        )}
-      >
-        {/* Mic */}
-        <div
-          className={cn(
-            "absolute left-1/2 top-0 flex -translate-x-1/2 -translate-y-full flex-col items-center",
-            isLarge ? "" : "scale-75"
-          )}
-        >
-          <span className={cn("block h-3.5 w-2.5 rounded-full", isLarge ? "bg-[#102936]" : "bg-[#657B84]")} />
-          <span className={cn("block h-5 w-[3px] rounded-full", isLarge ? "bg-[#102936]" : "bg-[#657B84]")} />
-        </div>
-        {badge ? (
-          <span
-            className={cn(
-              "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-3 py-1 text-[10px] font-extrabold tracking-[0.14em]",
-              badgeColor === "con" ? "bg-error-container text-error-dim" : "bg-primary-container text-primary-dim"
-            )}
-          >
-            {badge}
-          </span>
-        ) : (
-          <span className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/25">
-            <StarIcon className="h-5 w-5 text-white" />
-          </span>
-        )}
-      </div>
-      {/* Podium column */}
-      <div
-        className={cn(
-          "rounded-b-[14px] border-x border-b",
-          isLarge
-            ? "h-12 w-32 border-[#0AA3C2] bg-[#0FB5D4] sm:h-14 sm:w-36"
-            : "h-9 w-20 border-outline-variant bg-[#F8FDFF] sm:h-10 sm:w-24"
-        )}
-      />
-    </div>
-  );
-}
-
 export function HeroSection({
   copy,
   isLoggedIn,
@@ -270,42 +209,57 @@ export function HeroSection({
           <Sparkle className="absolute left-[38%] top-[2%]" size={12} delay={2} />
         </motion.div>
 
-        <div className="relative flex items-end justify-center gap-6 sm:gap-14 md:gap-20">
-          {/* FOR podium */}
+        <div className="relative flex items-end justify-center">
+          {/* Student debaters at the far sides (left/right crops of one square asset) */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.15, ease: EASE_OUT }}
-            className="hidden pb-1 sm:block"
+            transition={{ duration: 0.8, delay: 1.2, ease: EASE_OUT }}
+            className="absolute bottom-0 left-[2%] hidden h-[250px] w-[125px] overflow-hidden sm:block md:left-[8%] lg:left-[14%]"
           >
-            <Podium size="sm" badge={copy.hero.forLabel} badgeColor="pro" />
+            <Image
+              src="/images/landing-v3/hero-students.webp"
+              alt=""
+              aria-hidden="true"
+              width={1254}
+              height={1254}
+              priority
+              className="h-[250px] w-[250px] max-w-none object-contain"
+              sizes="250px"
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.35, ease: EASE_OUT }}
+            className="absolute bottom-0 right-[2%] hidden h-[250px] w-[125px] overflow-hidden sm:block md:right-[8%] lg:right-[14%]"
+          >
+            <Image
+              src="/images/landing-v3/hero-students.webp"
+              alt=""
+              aria-hidden="true"
+              width={1254}
+              height={1254}
+              priority
+              className="-ml-[125px] h-[250px] w-[250px] max-w-none object-contain"
+              sizes="250px"
+            />
           </motion.div>
 
-          {/* Mascot + main podium */}
-          <div className="relative z-10 flex flex-col items-center">
+          {/* Mascot at the podium */}
+          <div className="relative z-10">
             <Float distance={5} duration={4.6}>
               <Image
-                src="/brand/thinkfy/thinkfy-mascot-standing.png"
-                alt="Thinkfy mascot, a friendly water buffalo debater in a Vietnamese conical hat"
-                width={512}
-                height={654}
+                src="/images/landing-v3/mascot-podium.webp"
+                alt="Thinkfy mascot, a friendly water buffalo debater, speaking at a podium"
+                width={1254}
+                height={1254}
                 priority
-                className="relative z-10 -mb-10 h-auto w-44 object-contain drop-shadow-[0_18px_24px_rgba(16,41,54,0.18)] sm:w-56"
-                sizes="(max-width: 640px) 176px, 224px"
+                className="h-auto w-60 object-contain drop-shadow-[0_18px_24px_rgba(16,41,54,0.18)] sm:w-80"
+                sizes="(max-width: 640px) 240px, 320px"
               />
             </Float>
-            <Podium size="lg" className="relative z-20" />
           </div>
-
-          {/* AGAINST podium */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.3, ease: EASE_OUT }}
-            className="hidden pb-1 sm:block"
-          >
-            <Podium size="sm" badge={copy.hero.againstLabel} badgeColor="con" />
-          </motion.div>
         </div>
 
         {/* Stage floor */}

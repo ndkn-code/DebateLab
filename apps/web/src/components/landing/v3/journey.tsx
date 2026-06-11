@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { LandingV3Copy } from "./copy";
 import { BookIcon, MicIcon, SwordsIcon, TrophyIcon } from "./icons";
-import { Reveal, Sparkle } from "./motion-primitives";
+import { Reveal } from "./motion-primitives";
 import { Highlight } from "./ui";
 
 const VIEW_W = 1200;
@@ -22,8 +22,8 @@ const PATH_D =
   "M 50 470 C 230 480, 300 372, 450 352 C 600 332, 620 256, 770 240 C 910 226, 950 150, 1120 112";
 /** Fractions along the path where the four waypoint badges sit. */
 const WAYPOINT_T = [0.06, 0.37, 0.67, 0.97] as const;
-/** Where the mascot walks (between waypoints 2 and 3). */
-const MASCOT_RANGE: [number, number] = [0.1, 0.8];
+/** Where the mascot walks (from waypoint 1 to just before waypoint 3). */
+const MASCOT_RANGE: [number, number] = [0.08, 0.6];
 
 const WAYPOINT_ICONS = { book: BookIcon, mic: MicIcon, swords: SwordsIcon, trophy: TrophyIcon } as const;
 
@@ -31,24 +31,16 @@ type Point = { x: number; y: number };
 
 function Hills() {
   return (
-    <svg
-      viewBox="0 0 1200 200"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      className="absolute bottom-0 left-0 h-[38%] w-full"
-    >
-      <path
-        d="M0 130 C 180 70, 330 110, 520 96 C 720 80, 860 130, 1200 88 L 1200 200 L 0 200 Z"
-        fill="#E5F8FC"
+    <div aria-hidden="true" className="absolute inset-x-0 bottom-0">
+      <Image
+        src="/images/landing-v3/journey-backdrop.webp"
+        alt=""
+        width={1915}
+        height={821}
+        className="h-auto w-full object-cover [mask-image:linear-gradient(180deg,transparent_0%,black_38%)]"
+        sizes="100vw"
       />
-      <path
-        d="M0 168 C 240 120, 420 160, 640 146 C 860 132, 1000 172, 1200 140 L 1200 200 L 0 200 Z"
-        fill="#D4F2F9"
-      />
-      {/* distant karst silhouettes */}
-      <path d="M905 130 q14 -52 30 0 Z M941 132 q11 -38 24 0 Z" fill="#CDECF3" />
-      <path d="M120 122 q16 -44 32 0 Z" fill="#CDECF3" />
-    </svg>
+    </div>
   );
 }
 
@@ -82,20 +74,23 @@ function WaypointBadge({
           {label}
         </span>
       ) : null}
-      <span
-        className={cn(
-          "relative flex items-center justify-center rounded-full border-4 border-white shadow-token-card",
-          isFinal ? "h-16 w-16 bg-reward" : "h-[52px] w-[52px] bg-white"
-        )}
-      >
-        <Icon className={cn(isFinal ? "h-7 w-7 text-white" : "h-6 w-6 text-primary")} />
-        {isFinal ? (
-          <>
-            <Sparkle className="absolute -right-4 -top-3" size={16} />
-            <Sparkle className="absolute -left-5 top-1" size={12} delay={0.8} />
-          </>
-        ) : null}
-      </span>
+      {isFinal ? (
+        <span className="relative flex h-20 w-20 items-center justify-center">
+          <Image
+            src="/images/landing-v3/badge-trophy.webp"
+            alt=""
+            aria-hidden="true"
+            width={1254}
+            height={1254}
+            className="h-auto w-full object-contain drop-shadow-[0_8px_12px_rgba(199,147,0,0.3)]"
+            sizes="80px"
+          />
+        </span>
+      ) : (
+        <span className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full border-4 border-white bg-white shadow-token-card">
+          <Icon className="h-6 w-6 text-primary" />
+        </span>
+      )}
       {labelBelow ? (
         <span className="mt-2 whitespace-nowrap rounded-full border border-outline-variant bg-white px-3 py-1 text-xs font-extrabold text-on-surface shadow-token-card">
           {label}
@@ -177,11 +172,11 @@ function JourneyCanvas({ copy }: { copy: LandingV3Copy }) {
           transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
         >
           <Image
-            src="/brand/thinkfy/thinkfy-mascot-standing.png"
+            src="/images/landing-v3/mascot-walking.webp"
             alt=""
             aria-hidden="true"
-            width={256}
-            height={327}
+            width={1254}
+            height={1254}
             className="h-auto w-24 object-contain drop-shadow-[0_10px_14px_rgba(16,41,54,0.2)] lg:w-28"
             sizes="112px"
           />

@@ -82,7 +82,15 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1E0]"
               >
-                <FlameIcon className="h-7 w-7 text-[#FF9F45]" />
+                <Image
+                  src="/images/landing-v3/icon-flame.webp"
+                  alt=""
+                  aria-hidden="true"
+                  width={1254}
+                  height={1254}
+                  className="h-9 w-9 object-contain"
+                  sizes="36px"
+                />
               </motion.span>
               <div>
                 <p className="text-[1.05rem] font-extrabold text-on-surface">{streak.title}</p>
@@ -213,13 +221,13 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
             className="relative z-30 -mt-2 self-start pl-4 sm:absolute sm:-bottom-2 sm:left-8 sm:mt-0 sm:pl-0"
           >
             <Image
-              src="/brand/thinkfy/thinkfy-mascot-wave.png"
+              src="/images/landing-v3/mascot-cheer.webp"
               alt=""
               aria-hidden="true"
-              width={400}
-              height={500}
-              className="h-auto w-32 object-contain drop-shadow-[0_14px_18px_rgba(16,41,54,0.16)] sm:w-36"
-              sizes="144px"
+              width={1254}
+              height={1254}
+              className="h-auto w-36 object-contain drop-shadow-[0_14px_18px_rgba(16,41,54,0.16)] sm:w-40"
+              sizes="160px"
             />
           </motion.div>
         </div>
