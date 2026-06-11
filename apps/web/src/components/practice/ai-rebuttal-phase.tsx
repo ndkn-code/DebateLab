@@ -1,17 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
-import {
-  AlertTriangle,
-  Bot,
-  CheckCircle2,
-  Loader2,
-  MessageSquareText,
-  Pause,
-  RotateCcw,
-  Volume2,
-} from "@/components/ui/icons";
+import Image from "next/image";
+import { motion, useReducedMotion } from "framer-motion";
+import { Pause, RotateCcw } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTranslations } from "next-intl";
@@ -23,6 +15,7 @@ import {
   QuickNotesEditor,
 } from "./practice-session-ui";
 import { cn } from "@/lib/utils";
+import { localizeRoundLabel } from "./round-labels";
 import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-response";
 import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
 import type {
@@ -89,6 +82,26 @@ function getHighlightClass(type: AiHighlight["type"]) {
     case "assumption":
       return "bg-error-container text-on-surface ring-error/20";
   }
+}
+
+function ThinkingDots() {
+  return (
+    <span className="inline-flex items-center gap-1" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <motion.span
+          key={index}
+          animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+          transition={{
+            duration: 1,
+            delay: index * 0.16,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="h-2 w-2 rounded-full bg-primary"
+        />
+      ))}
+    </span>
+  );
 }
 
 function getTypewriterDelayMs(text: string, audioDurationSeconds: number | null) {
@@ -198,6 +211,7 @@ export function AiRebuttalPhase({
   showcaseError = "AI response generation failed in this fixture state.",
 }: AiRebuttalPhaseProps) {
   const t = useTranslations('dashboard.practice');
+  const reduceMotion = useReducedMotion();
   const normalizedInitialResponse = useMemo(
     () => normalizeStructuredRebuttalResponse(initialResponse, initialHighlights),
     [initialHighlights, initialResponse]
@@ -460,70 +474,47 @@ export function AiRebuttalPhase({
     onComplete(fullText, highlights);
   };
 
-  const difficultyLabel =
-    difficulty === "easy"
-      ? t("easy")
-      : difficulty === "hard"
-        ? t("hard")
-        : t("medium");
-  const displayRoundLabel =
-    roundLabel === "Opening Statement"
-      ? t("session.round_opening")
-      : roundLabel === "AI Rebuttal"
-        ? t("session.round_ai_rebuttal")
-        : roundLabel === "Counter-Rebuttal"
-          ? t("session.round_counter_rebuttal")
-          : roundLabel === "AI Closing"
-            ? t("session.round_ai_closing")
-            : roundLabel === "Closing Statement"
-              ? t("session.round_closing")
-              : roundLabel;
+  const displayRoundLabel = localizeRoundLabel(roundLabel, t);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 py-3 sm:px-5 lg:px-6">
       <div className="grid flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.55fr)]">
         <PracticePanel className="p-4">
-          <div className="flex items-start justify-between gap-4 border-b border-outline-variant/70 pb-4">
-            <div className="flex items-center gap-3">
-              <motion.div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-container"
+          <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 pb-4">
+            <div className="flex items-center gap-3.5">
+              <motion.span
+                className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-container"
                 animate={
-                  status === "loading"
-                    ? { scale: [1, 1.04, 1] }
-                    : status === "typing"
-                      ? {
-                          boxShadow: [
-                            "0 0 0 0px rgba(0,184,217,0.22)",
-                            "0 0 0 14px rgba(0,184,217,0)",
-                          ],
-                        }
-                      : {}
+                  !reduceMotion && (status === "loading" || status === "typing")
+                    ? { scale: [1, 1.05, 1] }
+                    : undefined
                 }
-                transition={
-                  status === "loading"
-                    ? { duration: 1.5, repeat: Infinity }
-                    : status === "typing"
-                      ? { duration: 1.5, repeat: Infinity }
-                      : {}
-                }
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
               >
-                {status === "loading" ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                ) : (
-                  <Bot className="h-7 w-7 text-primary" />
-                )}
-              </motion.div>
+                <Image
+                  src={
+                    status === "loading"
+                      ? "/images/mascot/mascot-thinking.webp"
+                      : "/coach/coach-pet.png"
+                  }
+                  alt=""
+                  aria-hidden="true"
+                  width={400}
+                  height={400}
+                  className="h-10 w-10 object-contain"
+                  sizes="48px"
+                />
+              </motion.span>
 
               <div>
                 <PhasePill tone="ai">{displayRoundLabel}</PhasePill>
-                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-on-surface">
-                  {status === "done" ? (
-                    <CheckCircle2 className="h-5 w-5 text-secondary" />
-                  ) : status === "error" ? (
-                    <AlertTriangle className="h-5 w-5 text-error" />
-                  ) : (
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p
+                  className={cn(
+                    "mt-1.5 text-sm font-semibold",
+                    status === "error" ? "text-error" : "text-on-surface-variant"
                   )}
+                  aria-live="polite"
+                >
                   {status === "loading"
                     ? t("session.ai_preparing")
                     : status === "typing"
@@ -531,10 +522,7 @@ export function AiRebuttalPhase({
                       : status === "done"
                         ? t("session.ai_finished")
                         : t("session.error")}
-                </div>
-                <span className="mt-2 inline-flex rounded-md bg-surface-container px-2.5 py-1.5 text-xs font-semibold capitalize text-on-surface-variant">
-                  {t("session.difficulty_label", { difficulty: difficultyLabel })}
-                </span>
+                </p>
               </div>
             </div>
 
@@ -544,25 +532,19 @@ export function AiRebuttalPhase({
                   <Button
                     variant="outline"
                     onClick={handleSkipAnimation}
-                    className="h-9 rounded-md border-outline-variant/70 bg-surface text-sm text-primary"
+                    className="h-9 rounded-full border-outline-variant/70 bg-surface text-sm text-primary"
                   >
                     {t("session.skip_animation")}
                   </Button>
                 )}
-                {ttsLoading && (
-                  <span className="inline-flex h-9 items-center gap-2 rounded-md bg-surface-container px-3 text-sm font-medium text-on-surface-variant">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('tts.generating')}
-                  </span>
-                )}
                 {ttsPlaying && (
-                  <Button variant="outline" onClick={ttsStop} className="h-9 gap-2 rounded-md border-outline-variant/70 bg-surface text-sm">
+                  <Button variant="outline" onClick={ttsStop} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
                     <Pause className="h-4 w-4" />
                     {t('tts.pause')}
                   </Button>
                 )}
                 {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
-                  <Button variant="outline" onClick={ttsReplay} className="h-9 gap-2 rounded-md border-outline-variant/70 bg-surface text-sm">
+                  <Button variant="outline" onClick={ttsReplay} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
                     <RotateCcw className="h-4 w-4" />
                     {t('tts.replay')}
                   </Button>
@@ -571,7 +553,7 @@ export function AiRebuttalPhase({
                   <Button
                     variant="outline"
                     onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }}
-                    className="h-9 gap-2 rounded-md border-error/40 bg-error-container text-sm text-error"
+                    className="h-9 gap-2 rounded-full border-error/40 bg-error-container text-sm text-error"
                   >
                     <RotateCcw className="h-4 w-4" />
                     {t("session.try_audio_again")}
@@ -581,67 +563,68 @@ export function AiRebuttalPhase({
             )}
           </div>
 
-          <div className="mt-4">
-            <div className="mb-3 flex items-center gap-2">
-              <MessageSquareText className="h-5 w-5 text-primary" />
-              <h2 className="text-base font-semibold tracking-normal text-on-surface">
-                {t("session.ai_response")}
-              </h2>
-            </div>
-            <div className="min-h-[300px] overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4">
-              {status === "loading" ? (
-                streamingText ? (
-                  <div className="min-h-[260px]">
-                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1.5 text-xs font-semibold text-primary">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {t("session.generating_round", { round: displayRoundLabel })}
-                    </div>
-                    <HighlightedResponse
-                      text={streamingText}
-                      highlights={[]}
-                      isTyping
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-[260px] items-center justify-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="h-7 w-7 animate-spin text-primary/70" />
-                      <p className="text-sm font-medium text-on-surface-variant">
-                        {t("session.generating_round", { round: displayRoundLabel })}
-                      </p>
-                    </div>
-                  </div>
-                )
-              ) : status === "error" ? (
-                <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center">
-                  <AlertTriangle className="h-8 w-8 text-error" />
-                  <p className="text-sm font-medium text-error">{error}</p>
-                </div>
-              ) : (
+          <div className="mt-4 flex min-h-[300px] flex-col rounded-xl bg-surface-container/60 p-5">
+            {status === "loading" ? (
+              streamingText ? (
                 <HighlightedResponse
-                  text={displayedText}
-                  highlights={highlights}
-                  isTyping={status === "typing"}
+                  text={streamingText}
+                  highlights={[]}
+                  isTyping
                 />
-              )}
-            </div>
-
-            {highlights.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {highlights.map((highlight, index) => (
-                  <span
-                    key={`${highlight.type}-${index}`}
-                    className={cn(
-                      "inline-flex rounded-xl px-3 py-1.5 text-xs font-semibold capitalize ring-1",
-                      getHighlightClass(highlight.type)
-                    )}
-                  >
-                    {highlight.type}
-                  </span>
-                ))}
+              ) : (
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <Image
+                      src="/images/mascot/mascot-thinking.webp"
+                      alt=""
+                      aria-hidden="true"
+                      width={1254}
+                      height={1254}
+                      className="h-auto w-24 object-contain"
+                      sizes="96px"
+                    />
+                    <ThinkingDots />
+                  </div>
+                </div>
+              )
+            ) : status === "error" ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+                <Image
+                  src="/images/mascot/mascot-oops.webp"
+                  alt=""
+                  aria-hidden="true"
+                  width={1254}
+                  height={1254}
+                  className="h-auto w-24 object-contain"
+                  sizes="96px"
+                />
+                <p className="max-w-[36ch] text-sm font-medium text-error">{error}</p>
               </div>
+            ) : (
+              <HighlightedResponse
+                text={displayedText}
+                highlights={highlights}
+                isTyping={status === "typing"}
+              />
             )}
           </div>
+
+          {highlights.length > 0 && status === "done" && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {highlights.map((highlight, index) => (
+                <span
+                  key={`${highlight.type}-${index}`}
+                  title={highlight.note}
+                  className={cn(
+                    "inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ring-1",
+                    getHighlightClass(highlight.type)
+                  )}
+                >
+                  {t(`session.highlight_${highlight.type}`)}
+                </span>
+              ))}
+            </div>
+          )}
         </PracticePanel>
 
         <div className="flex min-w-0 flex-col gap-3">
@@ -649,24 +632,8 @@ export function AiRebuttalPhase({
             value={prepNotes}
             onChange={onNotesChange}
             helper={t("session.same_notes_helper")}
-            minHeightClassName="min-h-[246px]"
+            minHeightClassName="min-h-[340px]"
           />
-
-          <PracticePanel className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/15">
-                <Volume2 className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold tracking-normal text-on-surface">
-                  {t("session.tip")}
-                </h3>
-                <p className="mt-1 text-sm font-medium leading-6 text-on-surface-variant">
-                  {t("session.ai_highlight_tip")}
-                </p>
-              </div>
-            </div>
-          </PracticePanel>
         </div>
       </div>
 

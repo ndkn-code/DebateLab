@@ -685,6 +685,8 @@ export default function SessionPage() {
               isPaused={isPaused}
               hasDetectedAudio={speech.hasDetectedAudio}
               hasReceivedSpeech={speech.hasReceivedSpeech}
+              rounds={isFullRound ? rounds : undefined}
+              currentRound={isFullRound ? currentRound : undefined}
             />
           )}
 

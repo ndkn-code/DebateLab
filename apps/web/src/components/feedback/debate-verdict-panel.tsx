@@ -1,18 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
-import {
-  Bot,
-  CheckCircle2,
-  MessageCircle,
-  Scale,
-  Sparkles,
-  Star,
-  Target,
-  Trophy,
-  UserRound,
-  UsersRound,
-} from "@/components/ui/icons";
+import { Sparkles, Target, Trophy } from "@/components/ui/icons";
 import type { DebateSession } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -20,17 +10,17 @@ interface DebateVerdictPanelProps {
   session: DebateSession;
 }
 
+/**
+ * Outcome styling uses design tokens only; the mascot pose carries the
+ * emotion (placeholder assets from the illustration system — swappable).
+ */
 function getVerdictCopy(winner: "user" | "ai" | "tie") {
   if (winner === "user") {
     return {
       eyebrowKey: "user.eyebrow",
       titleKey: "user.title",
-      chip: "bg-surface-container text-on-surface-variant ring-outline-variant",
-      iconBg: "bg-surface-container text-on-surface-variant",
-      hero: "border-outline-variant bg-[linear-gradient(135deg,#F8FDFF_0%,#F1FAF5_58%,#F3FCFE_100%)]",
-      accent: "#00B8D9",
-      softAccent: "#EAF9EF",
-      Icon: Trophy,
+      chip: "bg-success-container text-success-dim",
+      mascot: "/images/mascot/mascot-trophy.webp",
     };
   }
 
@@ -38,77 +28,52 @@ function getVerdictCopy(winner: "user" | "ai" | "tie") {
     return {
       eyebrowKey: "ai.eyebrow",
       titleKey: "ai.title",
-      chip: "bg-surface-container text-on-surface-variant ring-outline-variant",
-      iconBg: "bg-surface-container text-on-surface-variant",
-      hero: "border-outline-variant bg-[linear-gradient(135deg,#FFFDF8_0%,#FFF7E8_58%,#F3FCFE_100%)]",
-      accent: "#FFD166",
-      softAccent: "#FFF5E2",
-      Icon: Bot,
+      chip: "bg-primary-container text-primary-dim",
+      mascot: "/images/mascot/mascot-oops.webp",
     };
   }
 
   return {
     eyebrowKey: "tie.eyebrow",
     titleKey: "tie.title",
-    chip: "bg-primary-container text-on-surface-variant ring-outline-variant",
-    iconBg: "bg-primary-container text-on-surface-variant",
-    hero: "border-outline-variant bg-[linear-gradient(135deg,#FFFFFF_0%,#E5F8FC_58%,#F3FCFE_100%)]",
-    accent: "#00B8D9",
-    softAccent: "#EAF1FF",
-    Icon: Scale,
+    chip: "bg-surface-container text-on-surface-variant",
+    mascot: "/images/mascot/mascot-thinking.webp",
   };
 }
 
-const REASON_ICONS = [MessageCircle, UsersRound, Target] as const;
-
-const CONFETTI = [
-  "left-[3.5%] top-[23%] bg-surface-container",
-  "left-[2.5%] bottom-[20%] bg-surface-container",
-  "left-[11%] bottom-[12%] bg-surface-container",
-  "right-[31%] top-[18%] bg-error",
-  "right-[30%] bottom-[32%] bg-surface-container-high",
-] as const;
-
-function ConfidenceRing({
-  confidence,
-  accent,
-}: {
-  confidence: number;
-  accent: string;
-}) {
-  const percent = Math.round(confidence * 100);
-  const radius = 52;
+function ConfidenceRing({ confidence }: { confidence: number }) {
+  const percent = Math.round(Math.min(1, Math.max(0, confidence)) * 100);
+  const radius = 34;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - Math.min(100, Math.max(0, percent)) / 100);
+  const offset = circumference * (1 - percent / 100);
 
   return (
-    <div className="relative mx-auto h-[144px] w-[144px]">
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 144 144">
+    <div className="relative h-20 w-20">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80">
         <circle
-          cx="72"
-          cy="72"
+          cx="40"
+          cy="40"
           r={radius}
           fill="none"
-          stroke="#E5EDF9"
-          strokeWidth="10"
+          stroke="var(--color-surface-container-high)"
+          strokeWidth="8"
         />
         <circle
-          cx="72"
-          cy="72"
+          cx="40"
+          cy="40"
           r={radius}
           fill="none"
-          stroke={accent}
+          stroke="var(--color-primary)"
           strokeLinecap="round"
-          strokeWidth="10"
+          strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-700 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        <span className="text-4xl font-black tracking-tight text-on-surface-variant">
-          {percent}%
-        </span>
-      </div>
+      <span className="absolute inset-0 grid place-items-center text-lg font-extrabold text-on-surface">
+        {percent}%
+      </span>
     </div>
   );
 }
@@ -119,11 +84,11 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
   if (!verdict) {
     return (
-      <section className="rounded-2xl border border-outline-variant bg-white p-8 text-center shadow-token-card">
+      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-10 text-center shadow-token-card">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <Trophy className="h-5 w-5" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-on-surface">
+        <h2 className="mt-4 text-xl font-extrabold text-on-surface">
           {t("fallback.title")}
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
@@ -134,158 +99,107 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
   }
 
   const copy = getVerdictCopy(verdict.winner);
-  const Icon = copy.Icon;
-  const confidencePercent = Math.round(verdict.confidence * 100);
-  const filledStars = Math.max(1, Math.min(5, Math.round(confidencePercent / 20)));
 
   return (
-    <section className="rounded-[28px] border border-outline-variant bg-white p-5 shadow-token-card sm:p-7">
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[24px] border p-5 sm:p-7 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8",
-          copy.hero
-        )}
-      >
-        {CONFETTI.map((className) => (
-          <span
-            key={className}
-            className={cn(
-              "pointer-events-none absolute hidden h-3 w-3 rotate-45 rounded-[3px] lg:block",
-              className
-            )}
-          />
-        ))}
-
-        <div className="relative flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center lg:gap-8">
-          <div
-            className={cn(
-              "flex h-28 w-28 shrink-0 items-center justify-center rounded-full border border-white/80 shadow-token-card sm:h-32 sm:w-32",
-              copy.iconBg
-            )}
-          >
-            <Icon className="h-16 w-16" strokeWidth={2.1} />
+    // Container queries: the review shell's main column can be much narrower
+    // than the viewport, so layout decisions key off the panel's own width.
+    <div className="@container flex flex-col gap-5">
+      {/* Hero */}
+      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-10">
+        <div className="flex flex-col items-center gap-7 text-center @3xl:flex-row @3xl:items-center @3xl:gap-10 @3xl:text-left">
+          <div className="relative flex h-36 w-36 shrink-0 items-center justify-center @3xl:h-44 @3xl:w-44">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-surface-container"
+            />
+            <Image
+              src={copy.mascot}
+              alt=""
+              aria-hidden="true"
+              width={1254}
+              height={1254}
+              className="relative h-auto w-32 object-contain @3xl:w-40"
+              sizes="160px"
+            />
           </div>
 
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black ring-1",
-                  copy.chip
-                )}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {t(copy.eyebrowKey)}
-              </span>
-            </div>
-            <h2 className="mt-5 max-w-4xl text-4xl font-black leading-[1.05] tracking-normal text-on-surface-variant sm:text-5xl lg:text-[3.45rem]">
+          <div className="min-w-0 flex-1">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-3.5 py-1.5 text-[12.5px] font-extrabold",
+                copy.chip
+              )}
+            >
+              {t(copy.eyebrowKey)}
+            </span>
+            <h2 className="mt-3 text-balance text-3xl font-extrabold leading-[1.1] tracking-[-0.01em] text-on-surface @3xl:text-4xl">
               {t(copy.titleKey)}
             </h2>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-on-surface-variant">
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-on-surface @3xl:mx-0">
               {verdict.summary}
             </p>
           </div>
-        </div>
 
-        <div className="relative mt-6 rounded-[22px] border border-outline-variant bg-white/90 p-5 shadow-token-card lg:mt-0">
-          <p className="text-center text-base font-bold text-on-surface-variant">
-            {t("confidence")}
-          </p>
-          <ConfidenceRing confidence={verdict.confidence} accent="#00B8D9" />
-          <div className="mt-3 border-t border-outline-variant pt-4">
-            <div
-              aria-label={t("confidenceStars", { count: filledStars })}
-              className="flex justify-center gap-2 text-primary"
-            >
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Star
-                  key={index}
-                  className={cn(
-                    "h-6 w-6",
-                    index < filledStars
-                      ? "fill-primary text-primary"
-                      : "fill-white text-primary"
-                  )}
-                />
-              ))}
-            </div>
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <ConfidenceRing confidence={verdict.confidence} />
+            <p className="max-w-[120px] text-center text-[12px] font-bold text-on-surface-variant">
+              {t("confidence")}
+            </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_0.72fr]">
-        <div className="rounded-[24px] border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
-          <div className="flex items-center gap-3 text-2xl font-black text-on-surface-variant">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary"
-            >
-              <Scale className="h-6 w-6" />
-            </div>
+      <div className="grid gap-5 @5xl:grid-cols-[minmax(0,1fr)_0.66fr]">
+        {/* Why this decision */}
+        <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-7">
+          <h3 className="text-lg font-extrabold text-on-surface">
             {t("whyDecision")}
-          </div>
+          </h3>
 
-          <div className="relative mt-6 space-y-4 pl-12">
-            <span className="absolute bottom-8 left-5 top-8 w-px bg-surface-container-high" />
+          <ol className="mt-5 flex flex-col gap-3">
             {verdict.decidingReasons.length > 0 ? (
               verdict.decidingReasons.map((reason, index) => (
-                <div
+                <li
                   key={`${reason}-${index}`}
-                  className="relative rounded-[18px] border border-outline-variant bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FDFF_100%)] p-4 shadow-token-card sm:grid sm:grid-cols-[56px_minmax(0,1fr)] sm:items-center sm:gap-4"
+                  className="flex items-start gap-3.5 rounded-2xl bg-surface-container/60 p-4"
                 >
-                  <span className="absolute -left-[3.05rem] top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-sm font-black text-white shadow-token-primary">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-extrabold text-on-primary">
                     {index + 1}
                   </span>
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container text-primary sm:mb-0">
-                    {(() => {
-                      const ReasonIcon = REASON_ICONS[index % REASON_ICONS.length];
-                      return <ReasonIcon className="h-5 w-5" />;
-                    })()}
-                  </div>
-                  <span className="text-sm leading-6 text-on-surface-variant">
+                  <p className="text-[15px] leading-7 text-on-surface">
                     <span className="sr-only">
                       {t("reasonLabel", { number: index + 1 })}
                     </span>
                     {reason}
-                  </span>
-                </div>
+                  </p>
+                </li>
               ))
             ) : (
               <p className="text-sm leading-6 text-on-surface-variant">
                 {t("emptyReasons")}
               </p>
             )}
-          </div>
-        </div>
+          </ol>
+        </section>
 
-        <div className="rounded-[24px] border border-outline-variant bg-[linear-gradient(145deg,#FFFFFF_0%,#E5F8FC_100%)] p-5 shadow-token-card sm:p-6">
-          <div className="flex items-center gap-3 text-2xl font-black text-on-surface-variant">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
-              <Sparkles className="h-6 w-6" />
-            </div>
+        {/* Next move */}
+        <section className="flex flex-col rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-7">
+          <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-on-surface">
+            <Sparkles className="h-5 w-5 text-primary" />
             {t("nextMove")}
-          </div>
+          </h3>
 
-          <div className="mt-6 rounded-[20px] border border-outline-variant bg-white/80 p-5">
-            <div className="flex gap-5">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
-                <Target className="h-10 w-10" />
-              </div>
-              <p className="text-xl font-black leading-8 text-on-surface-variant">
-                {t("nextMovePrompt")}
-              </p>
-            </div>
-            <div className="mt-6 border-t border-outline-variant" />
-            <div className="mt-5 flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
-                <UserRound className="h-6 w-6" />
-              </div>
-              <p className="text-sm font-semibold leading-6 text-on-surface-variant">
-                {verdict.nextMove}
-              </p>
-            </div>
+          <div className="mt-5 flex flex-1 flex-col rounded-2xl bg-primary-container/50 p-5">
+            <p className="inline-flex items-start gap-3 text-[15px] font-extrabold leading-7 text-on-surface">
+              <Target className="mt-1 h-5 w-5 shrink-0 text-primary" />
+              {t("nextMovePrompt")}
+            </p>
+            <p className="mt-4 text-[15px] leading-7 text-on-surface">
+              {verdict.nextMove}
+            </p>
           </div>
-        </div>
+        </section>
       </div>
-    </section>
+    </div>
   );
 }

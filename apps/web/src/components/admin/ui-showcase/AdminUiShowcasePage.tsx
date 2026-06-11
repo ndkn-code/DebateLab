@@ -1199,6 +1199,24 @@ function ShowcasePreview({
           hasDetectedAudio
           hasReceivedSpeech
           showcaseEndConfirm={scenario.id === "speaking-end-confirm"}
+          rounds={[
+            {
+              roundNumber: 1,
+              type: "user-speech",
+              label: "Opening Statement",
+              transcript:
+                "Phones pull attention away from the hardest parts of learning, so a shared classroom rule protects every student's focus.",
+            },
+            {
+              roundNumber: 2,
+              type: "ai-rebuttal",
+              label: "AI Rebuttal",
+              aiResponse:
+                "Phones can support research and accessibility, so a classroom policy should preserve access while targeting distraction.",
+            },
+            { roundNumber: 3, type: "user-speech", label: "Counter-Rebuttal" },
+          ]}
+          currentRound={3}
         />
       );
     case "ai-rebuttal-loading":

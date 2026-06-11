@@ -1,42 +1,49 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   ClashMapBoard,
   type ClashMapItem,
 } from "@/components/feedback/clash-map-board";
 import { normalizeDebateClashLinks } from "@/lib/feedback/debate-review";
+import { localizeRoundLabel } from "@/components/practice/round-labels";
 import type { DebateSession } from "@/types";
 
 interface DebateClashMapPanelProps {
   session: DebateSession;
 }
 
-function speakerLabel(speaker: "user" | "ai") {
-  return speaker === "user" ? "You" : "AI Opponent";
-}
-
-function getRoundLabel(session: DebateSession, roundNumber: number) {
-  return (
-    session.rounds?.find((round) => round.roundNumber === roundNumber)?.label ??
-    `Round ${roundNumber}`
-  );
-}
-
 export function DebateClashMapPanel({ session }: DebateClashMapPanelProps) {
+  const t = useTranslations("sessionResult.clashMap");
+  const tPractice = useTranslations("dashboard.practice");
+
+  const speakerLabel = (speaker: "user" | "ai") =>
+    speaker === "user" ? t("you") : t("aiOpponent");
+
+  const getRoundLabel = (roundNumber: number) => {
+    const label = session.rounds?.find(
+      (round) => round.roundNumber === roundNumber
+    )?.label;
+    return label
+      ? localizeRoundLabel(label, tPractice)
+      : t("roundNumber", { number: roundNumber });
+  };
+
   const links = normalizeDebateClashLinks(session.feedback?.clashLinks);
   const items: ClashMapItem[] = links.map((link) => {
     const responseLabel = link.responseSpeaker
       ? speakerLabel(link.responseSpeaker)
-      : "No response";
-    const sourceMeta = `${getRoundLabel(session, link.sourceRoundNumber)} · Round ${
-      link.sourceRoundNumber
-    }`;
+      : t("noResponse");
+    const sourceMeta = `${getRoundLabel(link.sourceRoundNumber)} · ${t(
+      "roundNumber",
+      { number: link.sourceRoundNumber }
+    )}`;
     const responseMeta =
       link.responseRoundNumber && link.responseSpeaker
-        ? `${getRoundLabel(session, link.responseRoundNumber)} · Round ${
-            link.responseRoundNumber
-          }`
-        : "Dropped";
+        ? `${getRoundLabel(link.responseRoundNumber)} · ${t("roundNumber", {
+            number: link.responseRoundNumber,
+          })}`
+        : t("outcomes.dropped");
 
     return {
       id: link.id,
@@ -50,12 +57,12 @@ export function DebateClashMapPanel({ session }: DebateClashMapPanelProps) {
       sourceMeta,
       responseLabel,
       responseMeta,
-      judgeMeta: "AI Judge",
+      judgeMeta: t("aiJudge"),
       pairKey: `${link.sourceRoundNumber}->${link.responseRoundNumber ?? "dropped"}`,
-      pairLabel: `${getRoundLabel(session, link.sourceRoundNumber)} -> ${
+      pairLabel: `${getRoundLabel(link.sourceRoundNumber)} → ${
         link.responseRoundNumber
-          ? getRoundLabel(session, link.responseRoundNumber)
-          : "Dropped"
+          ? getRoundLabel(link.responseRoundNumber)
+          : t("outcomes.dropped")
       }`,
       sideKey: link.responseSpeaker ?? "dropped",
     };
@@ -65,12 +72,12 @@ export function DebateClashMapPanel({ session }: DebateClashMapPanelProps) {
     <ClashMapBoard
       items={items}
       sideOptions={[
-        { value: "all", label: "All sides" },
-        { value: "user", label: "Your responses" },
-        { value: "ai", label: "AI responses" },
-        { value: "dropped", label: "Dropped claims" },
+        { value: "all", label: t("sides.all") },
+        { value: "user", label: t("sides.user") },
+        { value: "ai", label: t("sides.ai") },
+        { value: "dropped", label: t("sides.dropped") },
       ]}
-      emptyMessage="Clash analysis will appear for newly analyzed full-round debates."
+      emptyMessage={t("emptyAnalysis")}
     />
   );
 }

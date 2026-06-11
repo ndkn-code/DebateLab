@@ -434,6 +434,31 @@ export function AnnotatedTranscript({
     cardRailRef.current?.scrollTo({ top: 0 });
   }, [filter, transcript]);
 
+  /** Clicking an annotation card scrolls the transcript so its highlight sits centered. */
+  function scrollToHighlight(annotationId: string) {
+    setActiveId(annotationId);
+
+    const highlight = highlightRefs.current.get(annotationId);
+    if (!highlight) return;
+
+    const pane = transcriptPaneRef.current;
+    const paneScrolls = pane && pane.scrollHeight > pane.clientHeight + 4;
+
+    if (pane && paneScrolls) {
+      const paneRect = pane.getBoundingClientRect();
+      const highlightRect = highlight.getBoundingClientRect();
+      const target =
+        pane.scrollTop +
+        (highlightRect.top - paneRect.top) -
+        pane.clientHeight / 2 +
+        highlightRect.height / 2;
+      pane.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    } else {
+      // Mobile: the pane grows with content, so scroll the page instead.
+      highlight.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
   useLayoutEffect(() => {
     const root = connectorRootRef.current;
     if (!root) return;
@@ -740,9 +765,16 @@ export function AnnotatedTranscript({
                   key={annotation.id}
                   onMouseEnter={() => setActiveId(annotation.id)}
                   onFocus={() => setActiveId(annotation.id)}
+                  onClick={() => scrollToHighlight(annotation.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      scrollToHighlight(annotation.id);
+                    }
+                  }}
                   tabIndex={0}
                   className={cn(
-                    "relative rounded-xl border bg-white p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    "relative cursor-pointer rounded-xl border bg-white p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     tone.card,
                     isActive && "shadow-token-card"
                   )}

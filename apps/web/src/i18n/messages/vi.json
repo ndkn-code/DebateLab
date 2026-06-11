@@ -952,6 +952,13 @@
       "motion": "Motion",
       "info": "Thông tin",
       "argument_anchors": "Luận điểm gợi ý",
+      "coach_brief": "Gợi ý từ coach",
+      "highlight_claim": "Luận điểm",
+      "highlight_evidence": "Dẫn chứng",
+      "highlight_impact": "Tác động",
+      "highlight_assumption": "Giả định",
+      "transcript_rounds": "Transcript",
+      "transcript_empty_round": "Lượt này chưa có nội dung.",
       "motion_default_context": "Xác định clash, chọn burden mạnh nhất và giải thích vì sao phe của bạn quan trọng hơn.",
       "motion_brief": "Brief của motion",
       "motion_scope": "Phạm vi",
@@ -2161,6 +2168,52 @@
     "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
     "cta": "Chia sẻ thử thách",
     "copied": "Đã sao chép!"
+  },
+  "clashMap": {
+    "title": "Bản đồ đối đầu",
+    "description": "Theo dõi luận điểm nào được đáp trả, bị bỏ rơi, bị lật ngược hay được cân tác động.",
+    "share": "Chia sẻ",
+    "allPairs": "Tất cả các cặp",
+    "filters": {
+      "pair": "Cặp lượt nói",
+      "side": "Bên",
+      "outcome": "Kết quả"
+    },
+    "sides": {
+      "all": "Tất cả các bên",
+      "user": "Phản hồi của bạn",
+      "ai": "Phản hồi của AI",
+      "dropped": "Luận điểm bị bỏ rơi"
+    },
+    "outcomes": {
+      "all": "Tất cả kết quả",
+      "answered": "Đã đáp trả",
+      "dropped": "Bị bỏ rơi",
+      "misanswered": "Đáp trả sai hướng",
+      "turned": "Bị lật ngược",
+      "weighed": "Đã cân tác động"
+    },
+    "headers": {
+      "claim": "Luận điểm đối thủ",
+      "response": "Phản hồi của bạn",
+      "judge": "Nhận định giám khảo"
+    },
+    "noAnswer": "Không tìm thấy phản hồi trực tiếp.",
+    "noMatches": "Không có cặp đối đầu nào khớp bộ lọc này.",
+    "selectPrompt": "Chọn một cặp đối đầu để xem trích dẫn và bước tiếp theo.",
+    "clashOf": "Đối đầu {index} / {count}",
+    "previous": "Đối đầu trước",
+    "next": "Đối đầu sau",
+    "opponentClaim": "Luận điểm đối thủ",
+    "yourResponse": "Phản hồi của bạn",
+    "judgeRead": "Nhận định giám khảo",
+    "tryThis": "Thử cách này:",
+    "you": "Bạn",
+    "aiOpponent": "Đối thủ AI",
+    "noResponse": "Không có phản hồi",
+    "aiJudge": "Giám khảo AI",
+    "roundNumber": "Lượt {number}",
+    "emptyAnalysis": "Phân tích đối đầu sẽ xuất hiện với các trận full round được phân tích mới."
   },
   "verdictPanel": {
     "user": {

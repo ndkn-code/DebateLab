@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AudioVisualizer } from "./audio-visualizer";
 import { MotionInfoPanel } from "./motion-info-panel";
+import { RoundTranscriptTabs } from "./round-transcript-tabs";
 import {
   ActionRail,
   PauseButton,
@@ -24,7 +25,7 @@ import {
   QuickNotesEditor,
 } from "./practice-session-ui";
 import { cn } from "@/lib/utils";
-import type { DebateTopic } from "@/types";
+import type { DebateRound, DebateTopic } from "@/types";
 
 interface SpeakingPhaseProps {
   topic: DebateTopic;
@@ -47,6 +48,9 @@ interface SpeakingPhaseProps {
   hasDetectedAudio?: boolean;
   hasReceivedSpeech?: boolean;
   showcaseEndConfirm?: boolean;
+  /** Full-round mode: enables the per-round transcript tabs. */
+  rounds?: DebateRound[];
+  currentRound?: number;
 }
 
 export function SpeakingPhase({
@@ -69,49 +73,20 @@ export function SpeakingPhase({
   hasDetectedAudio = false,
   hasReceivedSpeech = false,
   showcaseEndConfirm = false,
+  rounds,
+  currentRound,
 }: SpeakingPhaseProps) {
   const t = useTranslations("dashboard.practice");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showNoSpeechWarning, setShowNoSpeechWarning] = useState(false);
   const [showBriefUtility, setShowBriefUtility] = useState(false);
-  const transcriptPaneRef = useRef<HTMLDivElement>(null);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScrollTranscriptRef = useRef(true);
   const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noSpeechResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
 
-  const wordCount = transcript
-    .split(/\s+/)
-    .filter((w) => w.length > 0).length;
   const hasHeardAudio = hasDetectedAudio || hasReceivedSpeech;
   const shouldShowEndConfirm = showcaseEndConfirm || showEndConfirm;
-
-  const handleTranscriptScroll = () => {
-    const pane = transcriptPaneRef.current;
-    if (!pane) return;
-
-    const distanceFromBottom =
-      pane.scrollHeight - pane.scrollTop - pane.clientHeight;
-    shouldAutoScrollTranscriptRef.current = distanceFromBottom < 56;
-  };
-
-  useEffect(() => {
-    const pane = transcriptPaneRef.current;
-    if (!pane || !shouldAutoScrollTranscriptRef.current) return;
-
-    pane.scrollTo({
-      top: pane.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [transcript, interimTranscript]);
-
-  useEffect(() => {
-    if (isRecording && !isPaused && !transcript && !interimTranscript) {
-      shouldAutoScrollTranscriptRef.current = true;
-    }
-  }, [interimTranscript, isPaused, isRecording, transcript]);
 
   // Show "no speech detected" only when neither local audio nor transcript has arrived.
   useEffect(() => {
@@ -326,40 +301,12 @@ export function SpeakingPhase({
           />
         </div>
 
-        <PracticePanel className="flex min-h-[220px] flex-1 flex-col p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold tracking-normal text-on-surface">
-              {t("session.live_transcript")}
-            </h2>
-            <span className="text-sm font-medium text-on-surface-variant">
-              {t("session.word_count", { count: wordCount })}
-            </span>
-          </div>
-          <div
-            ref={transcriptPaneRef}
-            role="log"
-            aria-label="Live speech transcript"
-            aria-live="polite"
-            onScroll={handleTranscriptScroll}
-            className="min-h-[162px] flex-1 overflow-y-auto rounded-lg border border-outline-variant/80 bg-surface p-4"
-          >
-            {!transcript && !interimTranscript ? (
-              <p className="text-sm italic text-outline">
-                {t("session.transcript_placeholder")}
-              </p>
-            ) : (
-              <p className="font-sans text-base leading-7 text-on-surface">
-                <span>{transcript}</span>
-                {interimTranscript && (
-                  <span className="italic text-on-surface-variant">
-                    {interimTranscript}
-                  </span>
-                )}
-              </p>
-            )}
-            <div ref={transcriptEndRef} />
-          </div>
-        </PracticePanel>
+        <RoundTranscriptTabs
+          rounds={rounds}
+          currentRound={currentRound}
+          liveTranscript={transcript}
+          interimTranscript={interimTranscript}
+        />
       </div>
 
       <ActionRail className={cn("mx-auto w-fit", shouldShowEndConfirm && "invisible")}>

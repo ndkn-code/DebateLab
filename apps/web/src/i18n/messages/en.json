@@ -952,6 +952,13 @@
         "motion": "Motion",
         "info": "Info",
         "argument_anchors": "Argument anchors",
+        "coach_brief": "Coach hints",
+        "highlight_claim": "Claim",
+        "highlight_evidence": "Evidence",
+        "highlight_impact": "Impact",
+        "highlight_assumption": "Assumption",
+        "transcript_rounds": "Transcript",
+        "transcript_empty_round": "Nothing recorded for this round yet.",
         "motion_default_context": "Define the clash, choose your strongest burden, and explain why your side matters more.",
         "motion_brief": "Motion brief",
         "motion_scope": "Scope",
@@ -2161,6 +2168,52 @@
     "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
     "cta": "Share Challenge",
     "copied": "Copied!"
+  },
+  "clashMap": {
+    "title": "Clash Map",
+    "description": "Track which claims were answered, dropped, turned, or weighed.",
+    "share": "Share",
+    "allPairs": "All pairs",
+    "filters": {
+      "pair": "Speech Pair",
+      "side": "Side",
+      "outcome": "Outcome"
+    },
+    "sides": {
+      "all": "All sides",
+      "user": "Your responses",
+      "ai": "AI responses",
+      "dropped": "Dropped claims"
+    },
+    "outcomes": {
+      "all": "All outcomes",
+      "answered": "Answered",
+      "dropped": "Dropped",
+      "misanswered": "Misanswered",
+      "turned": "Turned",
+      "weighed": "Weighed"
+    },
+    "headers": {
+      "claim": "Opponent Claim",
+      "response": "Your Response",
+      "judge": "Judge Read"
+    },
+    "noAnswer": "No direct answer was found.",
+    "noMatches": "No clash links match these filters.",
+    "selectPrompt": "Select a clash to inspect the quotes and next move.",
+    "clashOf": "Clash {index} of {count}",
+    "previous": "Previous clash",
+    "next": "Next clash",
+    "opponentClaim": "Opponent claim",
+    "yourResponse": "Your response",
+    "judgeRead": "Judge read",
+    "tryThis": "Try this:",
+    "you": "You",
+    "aiOpponent": "AI Opponent",
+    "noResponse": "No response",
+    "aiJudge": "AI Judge",
+    "roundNumber": "Round {number}",
+    "emptyAnalysis": "Clash analysis will appear for newly analyzed full-round debates."
   },
   "verdictPanel": {
     "user": {

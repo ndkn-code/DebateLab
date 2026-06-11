@@ -13,6 +13,7 @@ import {
   UserRound,
   X,
 } from "@/components/ui/icons";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export type ClashMapOutcome =
@@ -48,15 +49,6 @@ interface ClashMapBoardProps {
   emptyMessage: string;
   defaultSide?: string;
 }
-
-const OUTCOME_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "all", label: "All outcomes" },
-  { value: "answered", label: "Answered" },
-  { value: "dropped", label: "Dropped" },
-  { value: "misanswered", label: "Misanswered" },
-  { value: "turned", label: "Turned" },
-  { value: "weighed", label: "Weighed" },
-];
 
 const OUTCOME_STYLES: Record<
   ClashMapOutcome,
@@ -105,26 +97,29 @@ const OUTCOME_STYLES: Record<
   },
 };
 
-const OUTCOME_LABELS: Record<ClashMapOutcome, string> = {
-  answered: "Answered",
-  dropped: "Dropped",
-  misanswered: "Misanswered",
-  turned: "Turned",
-  weighed: "Weighed",
-};
-
 function formatTag(tag: string) {
   return tag.charAt(0).toUpperCase() + tag.slice(1);
 }
 
 export function ClashMapBoard({
-  title = "Clash Map",
-  description = "Track which claims were answered, dropped, turned, or weighed.",
+  title,
+  description,
   items,
   sideOptions,
   emptyMessage,
   defaultSide = "all",
 }: ClashMapBoardProps) {
+  const t = useTranslations("sessionResult.clashMap");
+  const resolvedTitle = title ?? t("title");
+  const resolvedDescription = description ?? t("description");
+  const outcomeOptions: Array<{ value: string; label: string }> = [
+    { value: "all", label: t("outcomes.all") },
+    { value: "answered", label: t("outcomes.answered") },
+    { value: "dropped", label: t("outcomes.dropped") },
+    { value: "misanswered", label: t("outcomes.misanswered") },
+    { value: "turned", label: t("outcomes.turned") },
+    { value: "weighed", label: t("outcomes.weighed") },
+  ];
   const [pairFilter, setPairFilter] = useState("all");
   const [sideFilter, setSideFilter] = useState(defaultSide);
   const [outcomeFilter, setOutcomeFilter] = useState("all");
@@ -132,7 +127,7 @@ export function ClashMapBoard({
 
   const pairOptions = useMemo(() => {
     const seen = new Set<string>();
-    const options = [{ value: "all", label: "All pairs" }];
+    const options = [{ value: "all", label: t("allPairs") }];
 
     items.forEach((item) => {
       if (seen.has(item.pairKey)) return;
@@ -141,7 +136,7 @@ export function ClashMapBoard({
     });
 
     return options;
-  }, [items]);
+  }, [items, t]);
 
   const filteredItems = items.filter((item) => {
     if (pairFilter !== "all" && item.pairKey !== pairFilter) return false;
@@ -171,7 +166,7 @@ export function ClashMapBoard({
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <Shuffle className="h-5 w-5" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-on-surface">{title}</h2>
+        <h2 className="mt-4 text-2xl font-bold text-on-surface">{resolvedTitle}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
           {emptyMessage}
         </p>
@@ -184,17 +179,17 @@ export function ClashMapBoard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-normal text-on-surface">
-            {title}
+            {resolvedTitle}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
-            {description}
+            {resolvedDescription}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-outline-variant bg-white px-4 text-sm font-bold text-on-surface-variant">
             <Share2 className="h-4 w-4 text-primary" />
-            Share
+            {t("share")}
           </button>
           <button
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-white text-on-surface-variant"
@@ -209,24 +204,24 @@ export function ClashMapBoard({
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr]">
           <FilterSelect
             icon={<UserRound className="h-5 w-5 text-on-surface-variant" />}
-            label="Speech Pair"
+            label={t("filters.pair")}
             value={pairFilter}
             onChange={setPairFilter}
             options={pairOptions}
           />
           <FilterSelect
             icon={<Bot className="h-5 w-5 text-on-surface-variant" />}
-            label="Side"
+            label={t("filters.side")}
             value={sideFilter}
             onChange={setSideFilter}
             options={sideOptions}
           />
           <FilterSelect
             icon={<CalendarDays className="h-5 w-5 text-on-surface-variant" />}
-            label="Outcome"
+            label={t("filters.outcome")}
             value={outcomeFilter}
             onChange={setOutcomeFilter}
-            options={OUTCOME_OPTIONS}
+            options={outcomeOptions}
           />
         </div>
       </div>
@@ -234,9 +229,9 @@ export function ClashMapBoard({
       <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px]">
         <div className="overflow-hidden rounded-2xl border border-outline-variant bg-white">
           <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_32px] border-b border-outline-variant bg-background px-5 py-3 text-sm font-bold text-on-surface-variant lg:grid">
-            <div className="text-center">Opponent Claim</div>
-            <div className="text-center">Your Response</div>
-            <div className="text-center">Judge Read</div>
+            <div className="text-center">{t("headers.claim")}</div>
+            <div className="text-center">{t("headers.response")}</div>
+            <div className="text-center">{t("headers.judge")}</div>
             <div />
           </div>
 
@@ -281,13 +276,13 @@ export function ClashMapBoard({
                         accent={tone.accent}
                         label={item.responseLabel}
                         meta={item.responseMeta}
-                        quote={item.responseQuote ?? "No direct answer was found."}
+                        quote={item.responseQuote ?? t("noAnswer")}
                         muted={!item.responseQuote}
                       />
                       <RowConnector accent={tone.accent} />
                       <div className="rounded-xl border border-outline-variant bg-white p-4">
                         <span className={cn("rounded-md px-2.5 py-1 text-xs font-bold", tone.badge)}>
-                          {OUTCOME_LABELS[item.outcome]}
+                          {t(`outcomes.${item.outcome}`)}
                         </span>
                         <p className="mt-3 line-clamp-3 text-sm leading-6 text-on-surface-variant">
                           {item.judgeRead}
@@ -300,7 +295,7 @@ export function ClashMapBoard({
               })
             ) : (
               <div className="p-5 text-sm leading-6 text-on-surface-variant">
-                No clash links match these filters.
+                {t("noMatches")}
               </div>
             )}
           </div>
@@ -317,7 +312,7 @@ export function ClashMapBoard({
             />
           ) : (
             <p className="text-sm leading-6 text-on-surface-variant">
-              Select a clash to inspect the quotes and next move.
+              {t("selectPrompt")}
             </p>
           )}
         </aside>
@@ -417,20 +412,21 @@ function ClashDetail({
   onPrevious: () => void;
   onNext: () => void;
 }) {
+  const t = useTranslations("sessionResult.clashMap");
   const tone = OUTCOME_STYLES[item.outcome];
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-on-surface-variant">
-          Clash {index} of {count}
+          {t("clashOf", { index, count })}
         </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onPrevious}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant"
-            aria-label="Previous clash"
+            aria-label={t("previous")}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -438,7 +434,7 @@ function ClashDetail({
             type="button"
             onClick={onNext}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant"
-            aria-label="Next clash"
+            aria-label={t("next")}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -448,23 +444,23 @@ function ClashDetail({
 
       <div className="mt-4 space-y-4">
         <DetailSection
-          title="Opponent claim"
+          title={t("opponentClaim")}
           meta={item.sourceMeta}
           quote={item.sourceQuote}
           accent={tone.accent}
         />
         <DetailSection
-          title="Your response"
+          title={t("yourResponse")}
           meta={item.responseMeta}
-          quote={item.responseQuote ?? "No direct answer was found."}
+          quote={item.responseQuote ?? t("noAnswer")}
           accent={tone.accent}
           muted={!item.responseQuote}
         />
         <div className="rounded-xl border border-outline-variant bg-white p-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-base font-bold text-on-surface-variant">Judge read</h3>
+            <h3 className="text-base font-bold text-on-surface">{t("judgeRead")}</h3>
             <span className={cn("rounded-md px-2.5 py-1 text-xs font-bold", tone.badge)}>
-              {OUTCOME_LABELS[item.outcome]}
+              {t(`outcomes.${item.outcome}`)}
             </span>
           </div>
           <p className="mt-3 text-sm leading-6 text-on-surface-variant">
@@ -476,7 +472,7 @@ function ClashDetail({
           </p>
         </div>
         <div className="rounded-xl bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
-          <span className="font-bold text-on-surface-variant">Try this: </span>
+          <span className="font-bold text-on-surface">{t("tryThis")} </span>
           {item.suggestion}
         </div>
       </div>
@@ -499,11 +495,11 @@ function DetailSection({
 }) {
   return (
     <div className="rounded-xl border border-outline-variant bg-white p-4">
-      <h3 className="text-base font-bold text-on-surface-variant">{title}</h3>
+      <h3 className="text-base font-bold text-on-surface">{title}</h3>
       <p
         className={cn(
           "mt-3 border-l-2 pl-3 text-sm leading-6",
-          muted ? "text-on-surface-variant" : "font-semibold text-on-surface-variant"
+          muted ? "text-on-surface-variant" : "font-semibold text-on-surface"
         )}
         style={{ borderColor: accent }}
       >

@@ -178,7 +178,7 @@ function ResultList({
 }) {
   return (
     <div className="min-w-0 px-0 py-1">
-      <div className="flex items-center gap-3 text-base font-semibold text-on-surface-variant">
+      <div className="flex items-center gap-3 text-base font-semibold text-on-surface">
         <Icon className={cn("h-5 w-5", iconClassName)} />
         {title}
       </div>
@@ -476,7 +476,7 @@ export function SessionResultDashboard({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="10"
-                  className="text-on-surface-variant"
+                  className="text-surface-container-high"
                 />
                 <circle
                   cx="110"
@@ -499,7 +499,7 @@ export function SessionResultDashboard({
                 <span className="text-sm font-medium text-on-surface-variant">
                   {t("scoreLabel")}
                 </span>
-                <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-on-surface-variant">
+                <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-on-surface">
                   {displayScore}
                 </span>
                 <span className="sr-only">out of 100</span>
@@ -516,18 +516,6 @@ export function SessionResultDashboard({
                 {t(`encouragement.${bandKey}`)}
               </span>
             </div>
-            {winnerResult && (
-              <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-bold text-on-surface-variant">
-                <Trophy className="h-4 w-4 shrink-0 text-primary" />
-                <span className="min-w-0">
-                  {winnerResult.kind === "tie"
-                    ? `${t("winner.tieLabel")}: ${t("winner.tie")}`
-                    : `${t("winner.label")}: ${t(
-                        `winner.sides.${winnerResult.side}`
-                      )}`}
-                </span>
-              </div>
-            )}
           </div>
 
           <div className="relative min-w-0 py-2 pr-0 sm:pr-6">
@@ -542,10 +530,10 @@ export function SessionResultDashboard({
 
             <div className="flex flex-wrap items-start justify-between gap-4 pr-0 sm:pr-12">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight text-on-surface-variant sm:text-[1.7rem]">
+                <h1 className="text-2xl font-bold tracking-tight text-on-surface sm:text-[1.7rem]">
                   {session.topic.title}
                 </h1>
-                <p className="mt-3 max-w-4xl text-[0.95rem] leading-6 text-on-surface-variant">
+                <p className="mt-3 max-w-4xl text-base leading-8 text-on-surface">
                   {viewModel.feedback.summary}
                 </p>
                 {winnerResult && (
@@ -568,41 +556,31 @@ export function SessionResultDashboard({
               </div>
             </div>
 
-            <div className="mt-6 border-y border-outline-variant py-5">
-              <div className="grid gap-y-5 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-[#E6ECF8]">
-                {metaItems.map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="flex gap-3 xl:px-8 xl:first:pl-0">
-                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-on-surface-variant" />
-                    <div>
-                      <p className="text-sm text-on-surface-variant">{label}</p>
-                      <p className="mt-1 text-[0.96rem] font-bold leading-6 text-on-surface-variant">
-                        {value}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-on-surface-variant">
-              {timelineItems.map(({ key, value, icon: Icon }, index) => (
-                <span key={key} className="inline-flex items-center gap-2">
-                  {index > 0 && (
-                    <span className="-ml-2 mr-2 h-1 w-1 rounded-full bg-surface-container-high" />
-                  )}
+            {/* Session facts as one quiet chip row — replaces the cramped
+                divided meta grid + separate timeline line. */}
+            <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-5">
+              {metaItems.map(({ label, value, icon: Icon }) => (
+                <span
+                  key={label}
+                  className="inline-flex max-w-full items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 text-[13px] font-bold text-on-surface"
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{value}</span>
+                </span>
+              ))}
+              {timelineItems.map(({ key, value, icon: Icon }) => (
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 text-[13px] font-semibold text-on-surface-variant"
+                >
                   {key === "difficulty" ? (
-                    <>
-                      <span className="rounded-md bg-primary-container px-2 py-1 text-xs font-bold text-primary">
-                        AI
-                      </span>
-                      <span>{value}</span>
-                    </>
+                    <span className="rounded bg-primary-container px-1.5 py-0.5 text-[10px] font-extrabold text-primary-dim">
+                      AI
+                    </span>
                   ) : (
-                    <>
-                      <Icon className="h-4 w-4 text-on-surface-variant" />
-                      {value}
-                    </>
+                    <Icon className="h-4 w-4 shrink-0" />
                   )}
+                  {value}
                 </span>
               ))}
             </div>
@@ -613,21 +591,21 @@ export function SessionResultDashboard({
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
         <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-success-container text-success-dim">
               <TrendingUp className="h-9 w-9" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-on-surface-variant">
+              <p className="text-sm font-bold text-on-surface">
                 {t("insights.strongest")}
               </p>
-              <p className="mt-2 text-xl font-bold text-on-surface-variant">
+              <p className="mt-2 text-xl font-bold text-on-surface">
                 {strongestMetric ? tSkills(strongestMetric.key) : "-"}
               </p>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {viewModel.strongest.note ?? t("fallbacks.strongest")}
               </p>
               {strongestMetric && (
-                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface-variant">
+                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface">
                   {strongestMetric.score}
                   <span className="sr-only"> out of 100</span>
                 </span>
@@ -638,21 +616,21 @@ export function SessionResultDashboard({
 
         <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
           <div className="flex items-center gap-5">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-warning-container text-on-warning-container">
               <TrendingDown className="h-9 w-9" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-on-surface-variant">
+              <p className="text-sm font-bold text-on-surface">
                 {t("insights.needsWork")}
               </p>
-              <p className="mt-2 text-xl font-bold text-on-surface-variant">
+              <p className="mt-2 text-xl font-bold text-on-surface">
                 {weakestMetric ? tSkills(weakestMetric.key) : "-"}
               </p>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 {viewModel.weakest.note ?? t("fallbacks.needsWork")}
               </p>
               {weakestMetric && (
-                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface-variant">
+                <span className="mt-4 inline-flex rounded-lg bg-surface-container px-3 py-1.5 text-sm font-bold text-on-surface">
                   {weakestMetric.score}
                   <span className="sr-only"> out of 100</span>
                 </span>
@@ -670,7 +648,7 @@ export function SessionResultDashboard({
               <p className="text-sm font-bold text-primary">
                 {t("insights.nextFocus")}
               </p>
-              <p className="mt-2 text-xl font-bold text-on-surface-variant">
+              <p className="mt-2 text-xl font-bold text-on-surface">
                 {focusMetric ? tSkills(focusMetric.key) : "-"}
               </p>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
@@ -685,7 +663,7 @@ export function SessionResultDashboard({
       </div>
 
       <div className="mt-5">
-        <h2 className="text-base font-bold text-on-surface-variant">
+        <h2 className="text-base font-bold text-on-surface">
           {t("skillBreakdown")}
         </h2>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
@@ -706,7 +684,7 @@ export function SessionResultDashboard({
                         isWeakest ? "text-on-surface-variant" : "text-primary"
                       )}
                     />
-                    <span className="text-sm font-bold text-on-surface-variant">
+                    <span className="text-sm font-bold text-on-surface">
                       {tSkills(metric.key)}
                     </span>
                   </div>
@@ -744,7 +722,7 @@ export function SessionResultDashboard({
         <section className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-on-surface-variant">
+              <h2 className="text-base font-bold text-on-surface">
                 {t("scoreRationale.heading")}
               </h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-on-surface-variant">
@@ -765,11 +743,11 @@ export function SessionResultDashboard({
                 className="rounded-xl border border-outline-variant bg-surface-container p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
+                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                     <Icon className="h-4 w-4 text-primary" />
                     {t(`scoreRationale.categories.${key}`)}
                   </div>
-                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-on-surface-variant ring-1 ring-outline-variant">
+                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-on-surface ring-1 ring-outline-variant">
                     {value.score}/{value.maxScore}
                   </span>
                 </div>
@@ -804,7 +782,7 @@ export function SessionResultDashboard({
         <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-on-surface-variant">
+              <h2 className="text-base font-bold text-on-surface">
                 {t("casework.heading")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
@@ -820,7 +798,7 @@ export function SessionResultDashboard({
                   key={label}
                   className="rounded-xl border border-outline-variant bg-surface-container p-4"
                 >
-                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
+                  <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                     <Icon className="h-4 w-4 text-primary" />
                     {label}
                   </div>
@@ -874,7 +852,7 @@ export function SessionResultDashboard({
                     </div>
                   </div>
                   <p className="mt-4 rounded-lg bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
-                    <span className="font-bold text-on-surface-variant">
+                    <span className="font-bold text-on-surface">
                       {t("casework.betterVersion")}:{" "}
                     </span>
                     {argument.betterVersion}
@@ -887,7 +865,7 @@ export function SessionResultDashboard({
       )}
 
       <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
-        <h2 className="text-base font-bold text-on-surface-variant">
+        <h2 className="text-base font-bold text-on-surface">
           {t("detail.heading")}
         </h2>
         <div className="mt-4 grid gap-5 xl:grid-cols-[1fr_1fr_1.05fr] xl:divide-x xl:divide-[#E6ECF8]">
@@ -962,7 +940,7 @@ export function SessionResultDashboard({
 
         {showInlineReviewControls && showTranscript && (
           <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
-            <h3 className="text-base font-semibold text-on-surface-variant">
+            <h3 className="text-base font-semibold text-on-surface">
               {t("detail.transcript")}
             </h3>
             <AnnotatedTranscript
@@ -981,7 +959,7 @@ export function SessionResultDashboard({
 
         {showInlineReviewControls && showTimeline && viewModel.rounds.length > 0 && (
           <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
-            <h3 className="mb-4 text-base font-semibold text-on-surface-variant">
+            <h3 className="mb-4 text-base font-semibold text-on-surface">
               {t("detail.timeline")}
             </h3>
             <DebateTimeline rounds={viewModel.rounds} />

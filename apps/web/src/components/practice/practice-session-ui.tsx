@@ -172,7 +172,7 @@ export function PracticePanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-outline-variant/70 bg-surface-container-lowest shadow-token-card",
+        "rounded-[1.25rem] border border-outline-variant/70 bg-surface-container-lowest shadow-token-card",
         className
       )}
     >
