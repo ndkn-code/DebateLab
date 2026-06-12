@@ -1,7 +1,8 @@
 "use client";
 
 import type { ElementType, ReactNode } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -9,25 +10,26 @@ import {
   ArrowRight,
   Bookmark,
   BookmarkCheck,
-  CircleHelp,
-  Clock3,
-  Mic2,
+  Minus,
+  Plus,
   Scale,
-  Sparkles,
-  Zap,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { DurationControl } from "@/components/shared/duration-control";
+import { CategoryVisual } from "@/components/practice/category-visual";
+import { CREDIT_ICON_SRC } from "@/components/dashboard/dashboard-stats-panel";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
 import { deductOrbsAction } from "@/app/actions/orbs";
 import {
+  clampDurationSeconds,
+  secondsToMinutes,
+  type DurationConfig,
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
 } from "@/lib/practice-durations";
 import { useSessionStore } from "@/store/session-store";
-import { getMotionBrief } from "@/lib/motion-brief";
+import { getDisplayMotionBrief } from "@/lib/motion-brief";
+import { getTopicCategoryKey } from "@/lib/topics";
 import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
 
@@ -40,22 +42,6 @@ interface SessionConfigProps {
   onBalanceChange: (balance: number) => void;
   layout?: "desktop" | "mobile";
   showcaseMode?: boolean;
-}
-
-function FieldLabel({
-  icon: Icon,
-  label,
-}: {
-  icon: ElementType;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-[0.88rem] font-semibold text-on-surface">
-      <Icon className="h-[15px] w-[15px] text-primary" />
-      <span>{label}</span>
-      <CircleHelp className="h-[13px] w-[13px] text-on-surface-variant" />
-    </div>
-  );
 }
 
 function BeginSessionTransition({ show }: { show: boolean }) {
@@ -95,107 +81,154 @@ function BeginSessionTransition({ show }: { show: boolean }) {
   );
 }
 
-function SegmentButton({
-  active,
-  disabled = false,
-  icon: Icon,
-  children,
-  onClick,
-}: {
-  active: boolean;
+interface SegmentOption<Value extends string> {
+  value: Value;
+  label: string;
+  icon?: ElementType;
   disabled?: boolean;
-  icon: ElementType;
-  children: ReactNode;
-  onClick?: () => void;
+}
+
+function SegmentedControl<Value extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: Value;
+  options: Array<SegmentOption<Value>>;
+  onChange: (next: Value) => void;
 }) {
+  const groupId = useId();
+
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex min-h-[45px] items-center justify-center gap-2 rounded-[14px] border px-3 py-2.5 text-[0.9rem] font-medium transition-all",
-        active
-          ? "border-primary/45 bg-primary/[0.03] text-primary"
-          : "border-outline-variant bg-surface-container text-on-surface-variant",
-        !active && !disabled && "hover:border-outline-variant hover:bg-white hover:text-on-surface",
-        disabled &&
-          "cursor-not-allowed border-outline-variant bg-surface-container text-on-surface-variant"
-      )}
+    <div
+      className="grid gap-1 rounded-2xl bg-surface-container p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
-      <Icon className="h-[15px] w-[15px]" />
-      <span>{children}</span>
-    </button>
+      {options.map((option) => {
+        const isActive = option.value === value;
+        const Icon = option.icon;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            disabled={option.disabled}
+            aria-pressed={isActive}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "relative flex min-h-[42px] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 text-[13.5px] font-semibold transition-colors duration-150",
+              isActive
+                ? "text-primary"
+                : "text-on-surface-variant hover:text-on-surface",
+              option.disabled &&
+                "cursor-not-allowed opacity-45 hover:text-on-surface-variant"
+            )}
+          >
+            {isActive ? (
+              <motion.span
+                layoutId={`segment-${groupId}`}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 rounded-[12px] bg-surface-container-lowest shadow-token-card ring-1 ring-primary/25"
+              />
+            ) : null}
+            <span className="relative z-10 flex items-center gap-1.5">
+              {Icon ? <Icon className="h-[15px] w-[15px]" /> : null}
+              <span className="truncate">{option.label}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
-function ConfigSection({
-  label,
-  icon,
-  children,
-}: {
-  label: string;
-  icon: ElementType;
-  children: ReactNode;
-}) {
+function ConfigField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className="space-y-3">
-      <FieldLabel icon={icon} label={label} />
-      {children}
+    <section>
+      <p className="text-[13px] font-bold text-on-surface">{label}</p>
+      <div className="mt-2.5">{children}</div>
     </section>
   );
 }
 
-function SelectRow({
+function TimeStepper({
   label,
-  icon,
   value,
+  config,
+  unitLabel,
   onChange,
-  options,
 }: {
   label: string;
-  icon: ElementType;
-  value: string;
-  onChange: (next: string) => void;
-  options: Array<{ value: string; label: string }>;
+  value: number;
+  config: DurationConfig;
+  unitLabel: (minutes: number) => string;
+  onChange: (seconds: number) => void;
 }) {
+  const bounded = clampDurationSeconds(value, config);
+  const minutes = secondsToMinutes(bounded);
+
+  const step = (direction: 1 | -1) =>
+    onChange(clampDurationSeconds(bounded + direction * config.stepSeconds, config));
+
   return (
-    <div className="flex items-center justify-between gap-4">
-      <FieldLabel icon={icon} label={label} />
-      <div className="w-[170px] shrink-0">
-        <Select
-          value={value}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          className="h-[42px] rounded-[14px] border-outline-variant bg-white px-3.5 py-2 text-[0.9rem] text-on-surface-variant"
+    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+      <p className="text-[13px] font-bold text-on-surface">{label}</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          onClick={() => step(-1)}
+          disabled={bounded <= config.minSeconds}
+          aria-label={`− ${label}`}
+          className="flex size-9 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35"
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+          <Minus className="h-4 w-4" />
+        </motion.button>
+
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={minutes}
+            initial={{ opacity: 0, y: 7 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -7 }}
+            transition={{ duration: 0.16 }}
+            className="text-[15px] font-extrabold tabular-nums text-on-surface"
+          >
+            {unitLabel(minutes)}
+          </motion.span>
+        </AnimatePresence>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          onClick={() => step(1)}
+          disabled={bounded >= config.maxSeconds}
+          aria-label={`+ ${label}`}
+          className="flex size-9 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          <Plus className="h-4 w-4" />
+        </motion.button>
       </div>
     </div>
   );
 }
 
-function CreditPill({
-  amount,
-  label,
-}: {
-  amount: string;
-  label: string;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3 py-2 text-[0.95rem] font-semibold text-on-surface">
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warning text-white">
-        <Sparkles className="h-[11px] w-[11px]" />
-      </span>
-      <span>
-        {amount} {label}
-      </span>
-    </span>
-  );
+const DIFFICULTY_CHIP_STYLES = {
+  easy: "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]",
+  medium: "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
+  hard: "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]",
+} as const;
+
+function getDifficultyChip(difficulty: DebateTopic["difficulty"]) {
+  if (difficulty === "advanced") {
+    return { tone: "hard", labelKey: "card_hard" } as const;
+  }
+
+  if (difficulty === "intermediate") {
+    return { tone: "medium", labelKey: "card_medium" } as const;
+  }
+
+  return { tone: "easy", labelKey: "card_easy" } as const;
 }
 
 export function SessionConfig({
@@ -234,8 +267,9 @@ export function SessionConfig({
   } = useSessionStore();
 
   const orbCost = practiceTrack === "debate" ? 200 : 100;
-  const isDesktop = layout === "desktop";
-  const motionBrief = getMotionBrief(topic, locale === "vi" ? "vi" : "en");
+  const motionBrief = getDisplayMotionBrief(topic, locale === "vi" ? "vi" : "en");
+  const categoryKey = getTopicCategoryKey(topic);
+  const difficultyChip = getDifficultyChip(topic.difficulty);
 
   const handleBegin = async () => {
     if (showcaseMode) {
@@ -270,158 +304,191 @@ export function SessionConfig({
 
   return (
     <>
-      <div
-        className={cn(
-          "rounded-[22px] border border-outline-variant bg-white px-7 py-6 shadow-token-card",
-          isDesktop && "xl:sticky xl:top-6"
-        )}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[0.92rem] font-medium text-on-surface-variant">
-              {t("selected_motion")}
-            </p>
-            <h2 className="mt-3 text-[1.55rem] font-semibold leading-[1.16] text-on-surface">
-              {topic.title}
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            aria-label={isBookmarked ? t("remove_bookmark") : t("save_topic")}
-            onClick={() => onToggleBookmark(topic.id)}
-            className="shrink-0 pt-1 text-on-surface-variant transition-colors hover:text-primary"
-          >
-            {isBookmarked ? (
-              <BookmarkCheck className="h-[22px] w-[22px]" />
-            ) : (
-              <Bookmark className="h-[22px] w-[22px]" />
-            )}
-          </button>
-        </div>
-
-        <div className="mt-5 border-t border-outline-variant pt-5">
-          <div className="mb-5 rounded-xl border border-outline-variant bg-surface-container p-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-on-surface-variant">
-              <Scale className="h-4 w-4 text-primary" />
-              {t("session.motion_brief")}
-            </div>
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-              {motionBrief.scope}
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-on-surface-variant">
-              {motionBrief.modelClarification}
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            <ConfigSection label={t("practice_track")} icon={Mic2}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SegmentButton
-                  active={practiceTrack === "speaking"}
-                  icon={Mic2}
-                  onClick={() => setPracticeTrack("speaking")}
+      <div className="flex h-full min-h-0 flex-col">
+        <div
+          className={cn(
+            "relative min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-7 sm:px-8",
+            layout === "desktop" && "lg:px-9 lg:pt-9"
+          )}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={topic.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <CategoryVisual category={categoryKey} size="lg" />
+                <button
+                  type="button"
+                  aria-label={isBookmarked ? t("remove_bookmark") : t("save_topic")}
+                  onClick={() => onToggleBookmark(topic.id)}
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-90",
+                    isBookmarked
+                      ? "text-primary"
+                      : "text-on-surface-variant hover:text-primary"
+                  )}
                 >
-                  {t("speaking_practice")}
-                </SegmentButton>
-                <SegmentButton
-                  active={practiceTrack === "debate"}
-                  icon={Scale}
-                  onClick={() => setPracticeTrack("debate")}
-                >
-                  {t("debate_practice")}
-                </SegmentButton>
+                  {isBookmarked ? (
+                    <BookmarkCheck className="h-[21px] w-[21px]" />
+                  ) : (
+                    <Bookmark className="h-[21px] w-[21px]" />
+                  )}
+                </button>
               </div>
-            </ConfigSection>
 
-            <ConfigSection label={t("session_mode")} icon={Zap}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SegmentButton
-                  active={mode === "quick" || practiceTrack === "speaking"}
-                  icon={Zap}
-                  onClick={() => setMode("quick")}
+              <h2 className="mt-5 text-[1.55rem] font-bold leading-[1.2] text-on-surface sm:text-[1.7rem]">
+                {topic.title}
+              </h2>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-surface-container px-3 py-1.5 text-[12px] font-semibold leading-none text-on-surface-variant">
+                  {topic.category}
+                </span>
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-[12px] font-semibold leading-none",
+                    DIFFICULTY_CHIP_STYLES[difficultyChip.tone]
+                  )}
                 >
-                  {t("quick_practice")}
-                </SegmentButton>
-                <SegmentButton
-                  active={practiceTrack === "debate" && mode === "full"}
-                  disabled={practiceTrack === "speaking"}
-                  icon={Sparkles}
-                  onClick={
-                    practiceTrack === "debate"
-                      ? () => setMode("full")
-                      : undefined
+                  {t(difficultyChip.labelKey)}
+                </span>
+              </div>
+
+              <div className="mt-7 rounded-2xl bg-surface-container p-5">
+                <div className="flex items-center gap-2 text-[13px] font-bold text-on-surface">
+                  <Scale className="h-4 w-4 text-primary" />
+                  {t("session.motion_brief")}
+                </div>
+                <p className="mt-3 text-[14px] leading-[1.65] text-on-surface-variant">
+                  {motionBrief.scope}
+                </p>
+                <p className="mt-2.5 text-[13px] font-medium leading-[1.6] text-on-surface-variant/85">
+                  {motionBrief.modelClarification}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="mt-8 space-y-7">
+            <ConfigField label={t("practice_track")}>
+              <SegmentedControl
+                value={practiceTrack}
+                onChange={setPracticeTrack}
+                options={[
+                  { value: "speaking", label: t("speaking_practice") },
+                  { value: "debate", label: t("debate_practice") },
+                ]}
+              />
+            </ConfigField>
+
+            <ConfigField label={t("session_mode")}>
+              <SegmentedControl
+                value={practiceTrack === "speaking" ? "quick" : mode}
+                onChange={(next) => {
+                  if (practiceTrack === "debate" || next === "quick") {
+                    setMode(next);
                   }
-                >
-                  {t("full_round")}
-                </SegmentButton>
-              </div>
-            </ConfigSection>
+                }}
+                options={[
+                  { value: "quick", label: t("quick_practice") },
+                  {
+                    value: "full",
+                    label: t("full_round"),
+                    disabled: practiceTrack === "speaking",
+                  },
+                ]}
+              />
+            </ConfigField>
 
-            <SelectRow
-              label={t("ai_difficulty")}
-              icon={Sparkles}
-              value={aiDifficulty}
-              onChange={(next) => setAiDifficulty(next as typeof aiDifficulty)}
-              options={[
-                { value: "easy", label: t("easy") },
-                { value: "medium", label: t("medium") },
-                { value: "hard", label: t("hard") },
-              ]}
-            />
+            <ConfigField label={t("ai_difficulty")}>
+              <SegmentedControl
+                value={aiDifficulty}
+                onChange={setAiDifficulty}
+                options={[
+                  { value: "easy", label: t("easy") },
+                  { value: "medium", label: t("medium") },
+                  { value: "hard", label: t("hard") },
+                ]}
+              />
+            </ConfigField>
 
-            <SelectRow
-              label={t("your_side")}
-              icon={Scale}
-              value={side}
-              onChange={(next) => setSide(next as typeof side)}
-              options={[
-                { value: "random", label: t("random") },
-                { value: "proposition", label: t("side_affirmative") },
-                { value: "opposition", label: t("side_negative") },
-              ]}
-            />
+            <ConfigField label={t("your_side")}>
+              <SegmentedControl
+                value={side}
+                onChange={setSide}
+                options={[
+                  { value: "random", label: t("random") },
+                  { value: "proposition", label: t("side_affirmative") },
+                  { value: "opposition", label: t("side_negative") },
+                ]}
+              />
+            </ConfigField>
 
-            <DurationControl
-              label={t("prep_time")}
-              icon={<Clock3 className="h-4 w-4" />}
-              value={prepTime}
-              config={SOLO_PREP_DURATION}
-              onChange={setPrepTime}
-              compact
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TimeStepper
+                label={t("prep_time")}
+                value={prepTime}
+                config={SOLO_PREP_DURATION}
+                unitLabel={(minutes) => t("duration_minutes", { count: minutes })}
+                onChange={setPrepTime}
+              />
+              <TimeStepper
+                label={t("speech_time")}
+                value={speechTime}
+                config={SOLO_SPEECH_DURATION}
+                unitLabel={(minutes) => t("duration_minutes", { count: minutes })}
+                onChange={setSpeechTime}
+              />
+            </div>
 
-            <DurationControl
-              label={t("speech_time")}
-              icon={<Clock3 className="h-4 w-4" />}
-              value={speechTime}
-              config={SOLO_SPEECH_DURATION}
-              onChange={setSpeechTime}
-              compact
-            />
-
-            <div className="flex items-center justify-between gap-4">
-              <FieldLabel icon={Sparkles} label={t("ai_hints")} />
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+              <p className="text-[13px] font-bold text-on-surface">
+                {t("ai_hints")}
+              </p>
               <Switch checked={aiHints} onCheckedChange={setAiHints} />
             </div>
           </div>
         </div>
 
-        <div className="mt-6 border-t border-outline-variant pt-5">
-          <div className="flex items-center justify-between gap-4">
-            <FieldLabel icon={Sparkles} label={t("session_cost")} />
-            <CreditPill amount={String(orbCost)} label={t("credits_label")} />
+        <div className="flex shrink-0 items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-6 py-4 sm:px-8 lg:px-9">
+          <div
+            className="flex items-center gap-2"
+            aria-label={`${t("session_cost")}: ${orbCost} ${t("credits_label")}`}
+          >
+            <Image
+              src={CREDIT_ICON_SRC}
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 shrink-0 object-contain"
+              unoptimized
+              aria-hidden="true"
+            />
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={orbCost}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.16 }}
+                className="text-[1.3rem] font-extrabold leading-none tabular-nums text-on-surface"
+              >
+                {orbCost}
+              </motion.span>
+            </AnimatePresence>
           </div>
 
           <Button
             onClick={handleBegin}
             disabled={isDeducting || showBeginTransition}
-            className="mt-5 h-[50px] w-full rounded-[0.95rem] bg-primary text-[1.02rem] font-semibold text-on-primary hover:bg-primary/92"
+            className="h-12 flex-1 rounded-2xl text-[1rem] font-bold sm:max-w-[230px]"
           >
-            {isDeducting || showBeginTransition
-              ? t("starting")
-              : t("begin_session")}
-            <ArrowRight className="ml-2 h-[18px] w-[18px]" />
+            {isDeducting || showBeginTransition ? t("starting") : t("begin_session")}
+            <ArrowRight className="ml-1.5 h-[18px] w-[18px] transition-transform group-hover/button:translate-x-0.5" />
           </Button>
         </div>
       </div>

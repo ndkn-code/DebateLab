@@ -76,6 +76,50 @@ export function getMotionBrief(
   return fallbackBrief(topic, language);
 }
 
+function isTournamentSourceText(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  const folded = value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .toLowerCase();
+
+  return /truong\s*teen/.test(folded);
+}
+
+/**
+ * Brief for on-screen use: tournament-source metadata (e.g. round listings
+ * imported alongside a motion) must never surface in the product UI, so any
+ * field that carries it is swapped for the generic localized brief text.
+ */
+export function getDisplayMotionBrief(
+  topic: DebateTopic,
+  language: PracticeLanguage = "en"
+): MotionBrief {
+  const brief = getMotionBrief(topic, language);
+  const cleanTopic: DebateTopic = isTournamentSourceText(topic.context)
+    ? { ...topic, context: undefined }
+    : topic;
+  const fallback = fallbackBrief(cleanTopic, language);
+
+  return {
+    keyTerms: brief.keyTerms.filter((term) => !isTournamentSourceText(term)),
+    scope: isTournamentSourceText(brief.scope) ? fallback.scope : brief.scope,
+    propositionBurden: isTournamentSourceText(brief.propositionBurden)
+      ? fallback.propositionBurden
+      : brief.propositionBurden,
+    oppositionBurden: isTournamentSourceText(brief.oppositionBurden)
+      ? fallback.oppositionBurden
+      : brief.oppositionBurden,
+    modelClarification: isTournamentSourceText(brief.modelClarification)
+      ? fallback.modelClarification
+      : brief.modelClarification,
+  };
+}
+
 export function formatMotionBriefForPrompt(brief: MotionBrief) {
   return `## Motion Definition
 - Key terms:

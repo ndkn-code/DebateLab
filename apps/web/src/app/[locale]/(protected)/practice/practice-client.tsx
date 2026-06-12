@@ -1,17 +1,22 @@
 "use client";
 
-import type { ElementType, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import {
   ChevronDown,
   CircleHelp,
-  ListFilter,
   Scale,
+  Search,
   Shuffle,
-  Sparkles,
 } from "@/components/ui/icons";
 import {
   Dialog,
@@ -21,20 +26,35 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select } from "@/components/ui/select";
-import { CategoryTabs } from "@/components/practice/category-tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  CreditsPopover,
+  CREDIT_ICON_SRC,
+  formatDashboardNumber,
+  StatCounter,
+} from "@/components/dashboard/dashboard-stats-panel";
 import {
   buildPracticeTopicDisplays,
   type PracticeTopicDisplay,
 } from "@/components/practice/practice-topic-display";
+import {
+  PracticeFilterPopover,
+  type PracticeDifficultyFilter,
+  type PracticeSortOption,
+} from "@/components/practice/practice-filter-popover";
 import { SessionConfig } from "@/components/practice/session-config";
-import { TopicCard } from "@/components/practice/topic-card";
+import { TopicRow } from "@/components/practice/topic-row";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
   ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
+import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
 import {
   getLocalizedCategoryOptions,
   getTopicCategoryKey,
@@ -45,6 +65,7 @@ import {
   resolvePracticeTopic,
   readPracticePrefill,
 } from "@/lib/practice-prefill";
+import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 import { normalizeSettingsPreferences } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionStore } from "@/store/session-store";
@@ -53,11 +74,62 @@ import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
 import type { DebateTopic } from "@/types";
 
-type PracticeSortOption = "popular" | "newest" | "easiest" | "hardest";
+type PracticeTab = "all" | "saved";
 
-const INITIAL_VISIBLE_TOPICS = 8;
-const LOAD_MORE_STEP = 6;
+const INITIAL_VISIBLE_TOPICS = 10;
+const LOAD_MORE_STEP = 10;
 const BOOKMARK_STORAGE_KEY = "practice-bookmarks";
+const BOOKMARK_CHANGE_EVENT = "practice-bookmarks-changed";
+const EMPTY_STATE_IMAGE = "/images/empty/no-results.webp";
+
+// Bookmarks live in localStorage, exposed through useSyncExternalStore so
+// SSR and the first client render agree (no hydration mismatch) and other
+// tabs stay in sync via the native storage event.
+const EMPTY_BOOKMARKS_SNAPSHOT = "[]";
+
+function subscribeToBookmarks(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(BOOKMARK_CHANGE_EVENT, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(BOOKMARK_CHANGE_EVENT, callback);
+  };
+}
+
+function getBookmarksSnapshot() {
+  try {
+    return (
+      window.localStorage.getItem(BOOKMARK_STORAGE_KEY) ??
+      EMPTY_BOOKMARKS_SNAPSHOT
+    );
+  } catch {
+    return EMPTY_BOOKMARKS_SNAPSHOT;
+  }
+}
+
+function getBookmarksServerSnapshot() {
+  return EMPTY_BOOKMARKS_SNAPSHOT;
+}
+
+function parseBookmarks(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value) => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function foldSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .toLowerCase();
+}
 
 function sortDisplays(
   source: PracticeTopicDisplay[],
@@ -110,23 +182,6 @@ function sortDisplays(
   return sorted;
 }
 
-function TopPill({
-  icon: Icon,
-  children,
-}: {
-  icon: ElementType;
-  children: ReactNode;
-}) {
-  return (
-    <div className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-outline-variant bg-white px-3.5 py-2 text-[13px] font-semibold text-on-surface">
-      <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-white">
-        <Icon className="h-[10px] w-[10px]" />
-      </span>
-      <span className="inline-flex items-center gap-1">{children}</span>
-    </div>
-  );
-}
-
 export default function PracticePage({
   initialTopics,
 }: {
@@ -166,34 +221,29 @@ export default function PracticePage({
         : null,
     [initialPrefill, localizedTopics, practiceLanguage, t]
   );
+  const [activeTab, setActiveTab] = useState<PracticeTab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CategoryFilterKey>(
     () => (initialTopic ? getTopicCategoryKey(initialTopic) : "all")
   );
+  const [difficultyFilter, setDifficultyFilter] =
+    useState<PracticeDifficultyFilter>("all");
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
     () => initialTopic?.id ?? null
   );
   const [sortOption, setSortOption] = useState<PracticeSortOption>("popular");
-  const [savedOnly, setSavedOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_TOPICS);
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    try {
-      const stored = window.localStorage.getItem(BOOKMARK_STORAGE_KEY);
-      if (!stored) {
-        return [];
-      }
-
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed)
-        ? parsed.filter((value) => typeof value === "string")
-        : [];
-    } catch {
-      return [];
-    }
-  });
+  const [mobileConfigOpen, setMobileConfigOpen] = useState(false);
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
+  const bookmarksSnapshot = useSyncExternalStore(
+    subscribeToBookmarks,
+    getBookmarksSnapshot,
+    getBookmarksServerSnapshot
+  );
+  const bookmarkedIds = useMemo(
+    () => parseBookmarks(bookmarksSnapshot),
+    [bookmarksSnapshot]
+  );
   const [orbBalance, setOrbBalance] = useState<number | null>(null);
   const [referralCode, setReferralCode] = useState("");
   const {
@@ -220,23 +270,56 @@ export default function PracticePage({
     [allDisplays, sortOption]
   );
   const filteredDisplays = useMemo(() => {
-    const scoped =
-      activeCategory === "all"
-        ? sortedDisplays
-        : sortedDisplays.filter(
-            (display) => getTopicCategoryKey(display.topic) === activeCategory
-          );
+    const query = foldSearchText(searchQuery.trim());
 
-    if (!savedOnly) {
-      return scoped;
-    }
+    return sortedDisplays.filter((display) => {
+      if (
+        activeCategory !== "all" &&
+        getTopicCategoryKey(display.topic) !== activeCategory
+      ) {
+        return false;
+      }
 
-    return scoped.filter((display) => bookmarkedIds.includes(display.topic.id));
-  }, [activeCategory, bookmarkedIds, savedOnly, sortedDisplays]);
+      if (
+        difficultyFilter !== "all" &&
+        display.difficultyTone !== difficultyFilter
+      ) {
+        return false;
+      }
+
+      if (activeTab === "saved" && !bookmarkedIds.includes(display.topic.id)) {
+        return false;
+      }
+
+      if (
+        query &&
+        !foldSearchText(
+          `${display.topic.title} ${display.topic.category}`
+        ).includes(query)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    activeCategory,
+    activeTab,
+    bookmarkedIds,
+    difficultyFilter,
+    searchQuery,
+    sortedDisplays,
+  ]);
+  // Job-board behavior: the detail pane is never empty — fall back to the
+  // first visible motion whenever the current selection leaves the list.
   const selectedDisplay = useMemo(
     () =>
-      allDisplays.find((display) => display.topic.id === selectedTopicId) ?? null,
-    [allDisplays, selectedTopicId]
+      filteredDisplays.find(
+        (display) => display.topic.id === selectedTopicId
+      ) ??
+      filteredDisplays[0] ??
+      null,
+    [filteredDisplays, selectedTopicId]
   );
   const requiredVisibleCount = useMemo(() => {
     if (!selectedDisplay) {
@@ -260,17 +343,12 @@ export default function PracticePage({
     () => filteredDisplays.slice(0, requiredVisibleCount),
     [filteredDisplays, requiredVisibleCount]
   );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(
-      BOOKMARK_STORAGE_KEY,
-      JSON.stringify(bookmarkedIds)
-    );
-  }, [bookmarkedIds]);
+  const activeFilterCount =
+    (activeCategory !== "all" ? 1 : 0) +
+    (difficultyFilter !== "all" ? 1 : 0) +
+    (sortOption !== "popular" ? 1 : 0);
+  const hasNarrowedResults =
+    activeFilterCount > 0 || searchQuery.trim().length > 0;
 
   useEffect(() => {
     if (!initialPrefill?.practiceLanguage) {
@@ -392,6 +470,20 @@ export default function PracticePage({
     setSpeechTime,
   ]);
 
+  const openConfigOnMobile = () => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 1023.5px)").matches
+    ) {
+      setMobileConfigOpen(true);
+    }
+  };
+
+  const handleSelectTopic = (topicId: string) => {
+    setSelectedTopicId(topicId);
+    openConfigOnMobile();
+  };
+
   const handleSurprise = () => {
     if (!filteredDisplays.length) {
       return;
@@ -399,34 +491,37 @@ export default function PracticePage({
 
     const random =
       filteredDisplays[Math.floor(Math.random() * filteredDisplays.length)];
-    const randomIndex = filteredDisplays.findIndex(
-      (display) => display.topic.id === random.topic.id
-    );
 
-    setSelectedTopicId(random.topic.id);
-    setVisibleCount((current) =>
-      Math.max(
-        current,
-        Math.ceil((randomIndex + 1) / LOAD_MORE_STEP) * LOAD_MORE_STEP
-      )
-    );
+    handleSelectTopic(random.topic.id);
   };
 
-  const handleSelectTopic = (topicId: string) => {
-    setSelectedTopicId((current) => (current === topicId ? null : topicId));
+  const handleToggleBookmark = (topicId: string) => {
+    const next = bookmarkedIds.includes(topicId)
+      ? bookmarkedIds.filter((id) => id !== topicId)
+      : [...bookmarkedIds, topicId];
+
+    try {
+      window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Storage unavailable (private mode) — bookmarks won't persist.
+    }
+
+    window.dispatchEvent(new Event(BOOKMARK_CHANGE_EVENT));
   };
 
-  const handleCategorySelect = (category: CategoryFilterKey) => {
+  const handleTabChange = (tab: PracticeTab) => {
+    setActiveTab(tab);
+    setVisibleCount(INITIAL_VISIBLE_TOPICS);
+  };
+
+  const handleCategoryChange = (category: CategoryFilterKey) => {
     setActiveCategory(category);
     setVisibleCount(INITIAL_VISIBLE_TOPICS);
   };
 
-  const handleToggleBookmark = (topicId: string) => {
-    setBookmarkedIds((current) =>
-      current.includes(topicId)
-        ? current.filter((id) => id !== topicId)
-        : [...current, topicId]
-    );
+  const handleDifficultyChange = (difficulty: PracticeDifficultyFilter) => {
+    setDifficultyFilter(difficulty);
+    setVisibleCount(INITIAL_VISIBLE_TOPICS);
   };
 
   const handleSortChange = (nextSort: PracticeSortOption) => {
@@ -434,193 +529,276 @@ export default function PracticePage({
     setVisibleCount(INITIAL_VISIBLE_TOPICS);
   };
 
-  const handleToggleSavedOnly = () => {
-    setSavedOnly((current) => !current);
+  const handleResetFilters = () => {
+    setActiveCategory("all");
+    setDifficultyFilter("all");
+    setSortOption("popular");
+    setSearchQuery("");
     setVisibleCount(INITIAL_VISIBLE_TOPICS);
   };
 
+  const tabs: Array<{ key: PracticeTab; label: string; count?: number }> = [
+    { key: "all", label: t("tab_all") },
+    { key: "saved", label: t("tab_saved"), count: bookmarkedIds.length },
+  ];
+
+  const sessionPanel = selectedDisplay ? (
+    <SessionConfig
+      topic={selectedDisplay.topic}
+      isBookmarked={bookmarkedIds.includes(selectedDisplay.topic.id)}
+      onToggleBookmark={handleToggleBookmark}
+      orbBalance={orbBalance}
+      referralCode={referralCode}
+      onBalanceChange={setOrbBalance}
+      layout="desktop"
+    />
+  ) : null;
+
   return (
-    <PageTransition className="min-h-full bg-background">
-      <ProductPageShell>
-      <PageContainer size="wide" className="py-5 sm:py-6">
-      <div
-        className={cn(
-          "relative flex flex-col gap-5",
-          selectedDisplay &&
-            "xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-6"
-        )}
-      >
-        <section className="min-w-0 flex-1">
-          <ProductPageHeader title={t("page_headline")} icon={<Scale />} />
-
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
-              <CategoryTabs
-                categories={categoryOptions}
-                active={activeCategory}
-                onSelect={handleCategorySelect}
-              />
-              <button
-                type="button"
-                onClick={handleSurprise}
-                className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-outline-variant bg-white px-4 py-2 text-[14px] font-medium text-primary transition-colors hover:bg-surface-container"
-              >
-                <Shuffle className="h-[14px] w-[14px]" />
-                {t("surprise_me")}
-              </button>
-            </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
-              <TopPill icon={Sparkles}>
-                <span>{t("credits_label")}:</span>
-                <span className="text-primary">{orbBalance ?? 0}</span>
-              </TopPill>
-
-              <Dialog>
-                <DialogTrigger
-                  render={
-                    <button
-                      type="button"
-                      className="inline-flex min-h-[40px] items-center gap-2 rounded-[10px] border border-outline-variant bg-white px-3.5 py-2 text-[13px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
-                    />
-                  }
+    <PageTransition className="min-h-full bg-background lg:h-full">
+      <ProductPageShell className="lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+        <PageContainer
+          size="wide"
+          className="py-6 sm:py-8 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+        >
+          <ProductPageHeader
+            title={t("page_headline")}
+            icon={<Scale />}
+            actions={
+              <>
+                <StatCounter
+                  ariaLabel={t("credits_label")}
+                  dataTestId="practice-stats-credits"
+                  iconSrc={CREDIT_ICON_SRC}
+                  iconClassName="h-10 w-10 sm:h-11 sm:w-11"
+                  value={formatDashboardNumber(orbBalance ?? 0)}
                 >
-                  <CircleHelp className="h-[15px] w-[15px] text-on-surface-variant" />
-                  {t("how_it_works")}
-                </DialogTrigger>
-                <DialogContent className="max-w-xl rounded-[1.4rem] border border-outline-variant bg-white p-6">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold text-on-surface">
-                      {t("how_it_works_title")}
-                    </DialogTitle>
-                    <DialogDescription className="text-sm leading-6 text-on-surface-variant">
-                      {t("how_it_works_description")}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 pt-2">
-                    {[1, 2, 3].map((step) => (
-                      <div
-                        key={step}
-                        className="rounded-[1.2rem] border border-outline-variant bg-surface-container p-4"
-                      >
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
-                          {t("how_it_works_step_kicker", { step })}
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-on-surface">
-                          {t(`how_it_works_step_${step}_title`)}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                          {t(`how_it_works_step_${step}_body`)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          <div className="mt-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-[1.2rem] font-semibold leading-tight text-on-surface">
-                {t("browse_topics")}
-              </h2>
-              <span className="rounded-full bg-surface-container px-3 py-1.5 text-[13px] font-medium text-on-surface-variant">
-                {t("topic_count", { count: filteredDisplays.length })}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-[170px]">
-                <Select
-                  value={sortOption}
-                  onChange={(event) =>
-                    handleSortChange(event.currentTarget.value as PracticeSortOption)
-                  }
-                  className="h-[44px] rounded-[0.95rem] border-outline-variant bg-white px-3.5 py-2 text-[15px] text-on-surface-variant"
-                >
-                  <option value="popular">{t("sort_popular")}</option>
-                  <option value="newest">{t("sort_newest_practice")}</option>
-                  <option value="easiest">{t("sort_easiest")}</option>
-                  <option value="hardest">{t("sort_hardest")}</option>
-                </Select>
-              </div>
-
-              <button
-                type="button"
-                aria-pressed={savedOnly}
-                aria-label={t("show_saved")}
-                onClick={handleToggleSavedOnly}
-                className={cn(
-                  "flex h-[44px] w-[44px] items-center justify-center rounded-[0.95rem] border bg-white text-on-surface-variant transition-colors",
-                  savedOnly
-                    ? "border-primary/25 bg-primary/[0.04] text-primary"
-                    : "border-outline-variant hover:border-outline-variant hover:bg-surface-container"
-                )}
-              >
-                <ListFilter className="h-[17px] w-[17px]" />
-              </button>
-            </div>
-          </div>
-
-          {visibleDisplays.length ? (
-            <>
-              <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                {visibleDisplays.map((display, index) => (
-                  <TopicCard
-                    key={display.topic.id}
-                    display={display}
-                    isSelected={selectedDisplay?.topic.id === display.topic.id}
-                    isBookmarked={bookmarkedIds.includes(display.topic.id)}
-                    onSelect={handleSelectTopic}
-                    onToggleBookmark={handleToggleBookmark}
-                    index={index}
+                  <CreditsPopover
+                    formattedBalance={formatDashboardNumber(orbBalance ?? 0)}
+                    referralCode={referralCode || null}
+                    onReferralOpen={() => setReferralDialogOpen(true)}
                   />
-                ))}
-              </div>
+                </StatCounter>
 
-              {visibleCount < filteredDisplays.length ? (
-                <div className="mt-6 flex justify-center">
+                <Dialog>
+                  <DialogTrigger
+                    render={
+                      <button
+                        type="button"
+                        aria-label={t("how_it_works")}
+                        className="flex size-12 items-center justify-center rounded-full text-on-surface-variant transition-all hover:-translate-y-0.5 hover:bg-surface-container-low hover:shadow-token-card active:scale-95"
+                      />
+                    }
+                  >
+                    <CircleHelp className="h-[21px] w-[21px]" />
+                  </DialogTrigger>
+                  <DialogContent className="max-w-xl rounded-[1.4rem] border border-outline-variant bg-surface-container-lowest p-6">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-semibold text-on-surface">
+                        {t("how_it_works_title")}
+                      </DialogTitle>
+                      <DialogDescription className="text-sm leading-6 text-on-surface-variant">
+                        {t("how_it_works_description")}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 pt-2">
+                      {[1, 2, 3].map((step) => (
+                        <div
+                          key={step}
+                          className="rounded-[1.2rem] border border-outline-variant bg-surface-container p-4"
+                        >
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
+                            {t("how_it_works_step_kicker", { step })}
+                          </p>
+                          <p className="mt-2 text-base font-semibold text-on-surface">
+                            {t(`how_it_works_step_${step}_title`)}
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                            {t(`how_it_works_step_${step}_body`)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            }
+          />
+
+          <div className="mt-2 flex items-center gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-on-surface-variant" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.currentTarget.value);
+                  setVisibleCount(INITIAL_VISIBLE_TOPICS);
+                }}
+                placeholder={t("search_placeholder")}
+                className="h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest pl-11 pr-4 text-[14.5px] font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
+              />
+            </div>
+
+            <PracticeFilterPopover
+              categories={categoryOptions}
+              activeCategory={activeCategory}
+              onCategoryChange={handleCategoryChange}
+              difficulty={difficultyFilter}
+              onDifficultyChange={handleDifficultyChange}
+              sort={sortOption}
+              onSortChange={handleSortChange}
+              activeFilterCount={activeFilterCount}
+              onReset={handleResetFilters}
+            />
+          </div>
+
+          <div className="mt-6 flex items-center gap-7 border-b border-outline-variant">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => handleTabChange(tab.key)}
+                  className={cn(
+                    "relative flex items-center gap-2 pb-3 text-[14.5px] font-semibold transition-colors",
+                    isActive
+                      ? "text-on-surface"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  )}
+                >
+                  {tab.label}
+                  {tab.count ? (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-bold leading-none",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "bg-surface-container text-on-surface-variant"
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  ) : null}
+                  {isActive ? (
+                    <motion.span
+                      layoutId="practice-tab-underline"
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-primary"
+                    />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest shadow-token-card lg:min-h-0 lg:flex-1">
+            <div className="grid lg:h-full lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+              <div className="relative min-w-0 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-outline-variant">
+                <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5 sm:px-6">
+                  <p className="text-[13px] font-semibold text-on-surface-variant">
+                    {t("topic_count", { count: filteredDisplays.length })}
+                  </p>
                   <button
                     type="button"
-                    onClick={() =>
-                      setVisibleCount((current) =>
-                        Math.min(current + LOAD_MORE_STEP, filteredDisplays.length)
-                      )
-                    }
-                    className="inline-flex min-h-[42px] items-center gap-2 rounded-[0.95rem] border border-outline-variant bg-white px-6 py-2 text-[15px] font-medium text-primary transition-colors hover:bg-surface-container"
+                    onClick={handleSurprise}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
                   >
-                    {t("load_more_topics")}
-                    <ChevronDown className="h-[16px] w-[16px]" />
+                    <Shuffle className="h-[13px] w-[13px]" />
+                    {t("surprise_me")}
                   </button>
                 </div>
-              ) : null}
-            </>
-          ) : (
-            <div className="mt-8 rounded-[1.4rem] border border-dashed border-outline-variant bg-white p-8 text-center">
-              <p className="text-lg font-semibold text-on-surface">
-                {savedOnly ? t("saved_empty_title") : t("no_topics")}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                {savedOnly ? t("saved_empty_body") : t("no_topics_body")}
-              </p>
-            </div>
-          )}
-        </section>
 
-        <AnimatePresence mode="wait">
-          {selectedDisplay ? (
-            <motion.aside
-              key={selectedDisplay.topic.id}
-              initial={{ opacity: 0, x: 42 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 28 }}
-              transition={{
-                duration: 0.28,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="w-full xl:w-[380px] xl:pt-[100px]"
-            >
+                {visibleDisplays.length ? (
+                  <LayoutGroup id="practice-topic-list">
+                    <div className="divide-y divide-outline-variant/40 dark:divide-outline-variant">
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {visibleDisplays.map((display, index) => (
+                          <TopicRow
+                            key={display.topic.id}
+                            display={display}
+                            isSelected={
+                              selectedDisplay?.topic.id === display.topic.id
+                            }
+                            isBookmarked={bookmarkedIds.includes(
+                              display.topic.id
+                            )}
+                            onSelect={handleSelectTopic}
+                            onToggleBookmark={handleToggleBookmark}
+                            index={index}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    </div>
+
+                    {requiredVisibleCount < filteredDisplays.length ? (
+                      <div className="flex justify-center border-t border-outline-variant/40 px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVisibleCount(
+                              Math.min(
+                                requiredVisibleCount + LOAD_MORE_STEP,
+                                filteredDisplays.length
+                              )
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13.5px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                        >
+                          {t("load_more_topics")}
+                          <ChevronDown className="h-[15px] w-[15px]" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </LayoutGroup>
+                ) : (
+                  <div className="flex flex-col items-center px-6 py-14 text-center">
+                    <Image
+                      src={EMPTY_STATE_IMAGE}
+                      alt=""
+                      width={150}
+                      height={150}
+                      className="h-[120px] w-[120px] object-contain opacity-90"
+                      unoptimized
+                      aria-hidden="true"
+                    />
+                    <p className="mt-5 text-[15.5px] font-semibold text-on-surface">
+                      {activeTab === "saved" && !bookmarkedIds.length
+                        ? t("saved_empty_title")
+                        : t("search_empty_title")}
+                    </p>
+                    {hasNarrowedResults ? (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="mt-3 rounded-full px-4 py-2 text-[13.5px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                      >
+                        {t("filter_clear")}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden min-w-0 lg:flex lg:min-h-0 lg:flex-col">
+                {sessionPanel}
+              </div>
+            </div>
+          </div>
+        </PageContainer>
+      </ProductPageShell>
+
+      <Sheet open={mobileConfigOpen} onOpenChange={setMobileConfigOpen}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[90dvh] gap-0 rounded-t-[28px] border-t-0 p-0 lg:hidden"
+        >
+          <SheetTitle className="sr-only">{t("selected_motion")}</SheetTitle>
+          <div className="mx-auto mt-3 h-1.5 w-11 shrink-0 rounded-full bg-outline-variant" />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {selectedDisplay ? (
               <SessionConfig
                 topic={selectedDisplay.topic}
                 isBookmarked={bookmarkedIds.includes(selectedDisplay.topic.id)}
@@ -628,14 +806,19 @@ export default function PracticePage({
                 orbBalance={orbBalance}
                 referralCode={referralCode}
                 onBalanceChange={setOrbBalance}
-                layout="desktop"
+                layout="mobile"
               />
-            </motion.aside>
-          ) : null}
-        </AnimatePresence>
-      </div>
-      </PageContainer>
-      </ProductPageShell>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <ReferralCreditsDialog
+        open={referralDialogOpen}
+        onOpenChange={setReferralDialogOpen}
+        referralCode={referralCode || null}
+        inviteReward={REFERRAL_REWARD_CREDITS}
+      />
     </PageTransition>
   );
 }

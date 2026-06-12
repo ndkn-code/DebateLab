@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import type { DailyStatEntry, DashboardHomeData } from "@/lib/api/dashboard";
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-const CREDIT_ICON_SRC = "/images/rewards/credits-coin.webp";
+export const CREDIT_ICON_SRC = "/images/rewards/credits-coin.webp";
 const STREAK_ICON_SRC = "/images/rewards/streak-fire.webp";
 
 interface DashboardStatsPanelProps {
@@ -85,7 +85,7 @@ export function DashboardStatsPanel({
   );
 }
 
-function StatCounter({
+export function StatCounter({
   ariaLabel,
   dataTestId,
   iconSrc,
@@ -261,7 +261,7 @@ function StreakPopover({
   );
 }
 
-function CreditsPopover({
+export function CreditsPopover({
   formattedBalance,
   referralCode,
   onReferralOpen,
@@ -309,6 +309,6 @@ function CreditsPopover({
   );
 }
 
-function formatDashboardNumber(value: number) {
+export function formatDashboardNumber(value: number) {
   return value.toLocaleString("en-US");
 }
