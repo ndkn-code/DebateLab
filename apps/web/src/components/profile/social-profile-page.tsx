@@ -8,6 +8,8 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -29,30 +31,33 @@ import {
   Building2,
   Check,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Copy,
   Eye,
   ListChecks,
   Loader2,
-  Medal,
   MoreHorizontal,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
-  Sparkles,
-  Star,
-  Target,
-  Trophy,
   UserPlus,
   UserRoundPlus,
   UsersRound,
   X,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AchievementMedallion } from "@/components/profile/achievement-medallion";
 import { ProfileAchievementsTab } from "@/components/profile/profile-achievements-tab";
 import { ProfileActivitiesTab } from "@/components/profile/profile-activities-tab";
+import {
+  ProfileAnalyticsTab,
+  PublicProfileAnalyticsTab,
+} from "@/components/profile/profile-analytics-tab";
+import {
+  coerceLeagueTierId,
+  LEADERBOARD_LEAGUE_ASSETS,
+} from "@/lib/leaderboards/league-assets";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,28 +89,7 @@ import type {
   ProfileActivityFeedData,
   ProfileAnalyticsTabData,
 } from "@/lib/profile-social/tab-model";
-import type {
-  AnalyticsInsightCard,
-  AnalyticsPageData,
-  AnalyticsRangePreset,
-} from "@/types";
-
-type PracticeMinutesInsight = Extract<
-  AnalyticsInsightCard,
-  { key: "practice-minutes" }
->;
-type AverageScoreInsight = Extract<
-  AnalyticsInsightCard,
-  { key: "recent-average-score" }
->;
-type MixInsight = Extract<
-  AnalyticsInsightCard,
-  { key: "speaking-vs-debate" }
->;
-type StrongestFocusInsight = Extract<
-  AnalyticsInsightCard,
-  { key: "strongest-focus" }
->;
+import type { AnalyticsPageData, AnalyticsRangePreset } from "@/types";
 
 interface SocialProfilePageProps {
   publicProfile: PublicProfileData;
@@ -258,26 +242,6 @@ function localizePublicProfileData(
   };
 }
 
-function titleCase(value: string | null | undefined) {
-  if (!value) return "Novice";
-  return value
-    .split(/[_-]/g)
-    .filter(Boolean)
-    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
-    .join(" ");
-}
-
-function formatLeagueTier(
-  value: string | null | undefined,
-  t: ReturnType<typeof useTranslations<"profileSocial.analytics">>
-) {
-  const key = normalizeSystemCopyKey(value);
-  if (!key) return t("league_novice");
-  if (key === "constructive") return t("league_gold_iii");
-  if (key === "novice") return t("league_novice");
-  return titleCase(value);
-}
-
 function buildTabHref(
   baseHref: string,
   tab: ProfileSocialTab,
@@ -306,40 +270,49 @@ function buildAnalyticsRangeHref(
   return `${path}?${params.toString()}`;
 }
 
-function findInsight<T extends AnalyticsInsightCard["key"]>(
-  insights: AnalyticsInsightCard[],
-  key: T
-) {
-  return insights.find((insight) => insight.key === key) as
-    | Extract<AnalyticsInsightCard, { key: T }>
-    | undefined;
-}
+const STAT_TILE_ART = {
+  level: "/images/rewards/level-up.webp",
+  seasonXp: "/images/rewards/xp-bolt.webp",
+} as const;
 
-function ProfileMetric({
+function ProfileStatTile({
+  art,
   icon,
   value,
   label,
 }: {
-  icon: ReactNode;
+  art?: string;
+  icon?: ReactNode;
   value: ReactNode;
   label: string;
 }) {
-  const accessibilityLabel =
-    typeof value === "string" || typeof value === "number"
-      ? `${value} ${label}`
-      : label;
-
   return (
     <div
-      aria-label={accessibilityLabel}
-      className="flex min-w-[8.5rem] items-center justify-center gap-3 border-outline-variant/70 px-4 last:border-r-0 sm:border-r"
+      aria-label={`${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}`}
+      className="flex min-w-0 items-center gap-3.5 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3.5 shadow-token-card transition-transform duration-200 hover:-translate-y-0.5"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center text-primary">
-        {icon}
-      </span>
+      {art ? (
+        <Image
+          src={art}
+          alt=""
+          width={80}
+          height={80}
+          unoptimized
+          draggable={false}
+          aria-hidden="true"
+          className="size-11 shrink-0 object-contain drop-shadow-token-card"
+        />
+      ) : (
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#EFEAFE] text-[#6D4FD0] dark:bg-[#8B5CF6]/15 dark:text-[#B49AFC]">
+          {icon}
+        </span>
+      )}
       <div className="min-w-0">
-        <p className="text-[1.05rem] font-semibold leading-5 text-on-surface">
+        <p className="truncate text-[1.2rem] font-extrabold leading-6 tabular-nums text-on-surface">
           {value}
+        </p>
+        <p className="truncate text-[12px] font-semibold text-on-surface-variant">
+          {label}
         </p>
       </div>
     </div>
@@ -1133,6 +1106,12 @@ function ProfileConnectionActions({
   );
 }
 
+const FEATURED_CHIP_TONES = [
+  "bg-[#E3F3FF] text-[#1D7FD6] dark:bg-[#3B9EFF]/15 dark:text-[#6FB9FF]",
+  "bg-[#EFEAFE] text-[#6D4FD0] dark:bg-[#8B5CF6]/15 dark:text-[#B49AFC]",
+  "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
+] as const;
+
 function HeaderFeaturedAchievements({
   achievements,
 }: {
@@ -1144,16 +1123,22 @@ function HeaderFeaturedAchievements({
 
   return (
     <div className="mt-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-      {achievements.slice(0, 3).map((achievement) => (
+      {achievements.slice(0, 3).map((achievement, index) => (
         <span
           key={achievement.id}
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-outline-variant bg-white px-2.5 text-xs font-semibold text-on-surface-variant shadow-token-card"
+          className={cn(
+            "inline-flex h-9 items-center gap-2 rounded-full py-1 pl-1.5 pr-3.5 text-[13px] font-bold",
+            FEATURED_CHIP_TONES[index % FEATURED_CHIP_TONES.length]
+          )}
           title={achievement.title}
         >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-container text-[11px] text-primary-dim">
-            {achievement.icon}
-          </span>
-          <span className="max-w-[8.5rem] truncate">{achievement.title}</span>
+          <AchievementMedallion
+            achievement={achievement}
+            size="sm"
+            showFeaturedStar={false}
+            className="!size-6"
+          />
+          <span className="max-w-[9.5rem] truncate">{achievement.title}</span>
         </span>
       ))}
       <span className="sr-only">{t("featured")}</span>
@@ -1177,27 +1162,31 @@ function ProfileHeader({
 
   const handleLabel = profile.handle ? `@${profile.handle}` : t("header.no_handle");
   const seasonXp = profile.season?.seasonXp ?? 0;
-  const rankLabel = profile.season?.rank ? `#${profile.season.rank}` : t("header.unranked");
   const statusLine = profile.profileStatus ?? t("header.default_status");
+  const leagueTierId = coerceLeagueTierId(profile.season?.leagueTier);
 
   return (
-    <header className="grid gap-8 pb-9 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-      <div className="flex justify-center lg:justify-end">
-        <Avatar className="h-40 w-40 border border-outline-variant bg-surface-container shadow-token-card sm:h-48 sm:w-48 lg:h-56 lg:w-56">
-          {profile.avatarUrl ? (
-            <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
-          ) : null}
-          <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,#FFFFFF_0%,#E5F8FC_52%,#CDECF3_100%)] text-5xl font-semibold text-on-surface">
-            {getInitials(profile.displayName)}
-          </AvatarFallback>
-        </Avatar>
+    <header className="grid gap-8 pb-9 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
+      <div className="flex items-start justify-center lg:justify-end">
+        <span className="inline-flex rounded-full bg-[conic-gradient(from_140deg,#00B8D9,#8BE8F7,#FFD166,#00B8D9)] p-[4px] shadow-token-card">
+          <span className="inline-flex rounded-full bg-background p-[5px]">
+            <Avatar className="h-40 w-40 bg-surface-container sm:h-44 sm:w-44 lg:h-52 lg:w-52">
+              {profile.avatarUrl ? (
+                <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
+              ) : null}
+              <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,#FFFFFF_0%,#E5F8FC_52%,#CDECF3_100%)] text-5xl font-semibold text-[#102936]">
+                {getInitials(profile.displayName)}
+              </AvatarFallback>
+            </Avatar>
+          </span>
+        </span>
       </div>
 
       <div className="min-w-0 pt-1 text-center lg:text-left">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-on-surface-variant">{handleLabel}</p>
-            <h1 className="mt-2 text-balance text-[2.45rem] font-semibold leading-none text-on-surface sm:text-[3rem]">
+            <h1 className="mt-2 text-balance text-[2.45rem] font-extrabold leading-none text-on-surface sm:text-[3rem]">
               {profile.displayName}
             </h1>
           </div>
@@ -1211,35 +1200,36 @@ function ProfileHeader({
 
         <HeaderFeaturedAchievements achievements={featuredAchievements} />
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm text-on-surface-variant lg:justify-start">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-on-surface-variant lg:justify-start">
           {profile.organization ? (
             <span className="inline-flex items-center gap-2">
               <Building2 className="h-4.5 w-4.5 text-on-surface-variant" />
               {profile.organization.name}
             </span>
           ) : null}
-          {profile.organization ? <span className="text-on-surface-variant">.</span> : null}
           <span className="inline-flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
+            <span className="h-2 w-2 rounded-full bg-success" />
             {statusLine}
           </span>
         </div>
 
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <ProfileMetric
-            icon={<Trophy className="h-5 w-5" />}
-            value={t("header.rank_value", { rank: rankLabel })}
-            label={t("header.rank_label")}
+        <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <ProfileStatTile
+            art={LEADERBOARD_LEAGUE_ASSETS[leagueTierId]}
+            value={profile.season?.rank ? `#${profile.season.rank}` : "—"}
+            label={
+              profile.season?.rank
+                ? t("header.rank_label")
+                : t("header.unranked")
+            }
           />
-          <ProfileMetric
-            icon={<UsersRound className="h-5 w-5" />}
-            value={t("header.friends_value", {
-              count: profile.friendCounts.friends,
-            })}
+          <ProfileStatTile
+            icon={<UsersRound className="size-5" />}
+            value={formatNumber(profile.friendCounts.friends)}
             label={t("header.friends_label")}
           />
-          <ProfileMetric
-            icon={<BarChart3 className="h-5 w-5" />}
+          <ProfileStatTile
+            art={STAT_TILE_ART.level}
             value={
               profile.level != null
                 ? t("header.level_value", { level: profile.level })
@@ -1247,9 +1237,9 @@ function ProfileHeader({
             }
             label={t("header.level_label")}
           />
-          <ProfileMetric
-            icon={<Star className="h-5 w-5" />}
-            value={t("header.season_xp_value", { count: seasonXp })}
+          <ProfileStatTile
+            art={STAT_TILE_ART.seasonXp}
+            value={formatNumber(seasonXp)}
             label={t("header.season_xp_label")}
           />
         </div>
@@ -1293,7 +1283,7 @@ function ProfileTabs({
               aria-busy={isPending ? true : undefined}
               data-href={href}
               className={cn(
-                "relative inline-flex h-[3.75rem] min-w-[7.5rem] items-center justify-center gap-2 text-sm font-semibold transition-colors",
+                "relative inline-flex h-[3.75rem] min-w-[7.5rem] items-center justify-center gap-2 text-sm font-bold transition-colors",
                 isActive
                   ? "text-primary-dim"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -1302,7 +1292,11 @@ function ProfileTabs({
               {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : TAB_ICONS[tab]}
               {t(tab)}
               {isActive ? (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
+                <motion.span
+                  layoutId="profile-tab-underline"
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full bg-primary"
+                />
               ) : null}
             </button>
           );
@@ -1322,555 +1316,6 @@ function coerceShellFeaturedAchievements(
     .map(coerceProfileAchievementItem)
     .filter((achievement): achievement is ProfileAchievementItem => Boolean(achievement))
     .map((achievement) => localizeAchievementItem(achievement, t));
-}
-
-function AnalyticsRangeControl({
-  range,
-  isPending,
-  onRangeChange,
-}: {
-  range: AnalyticsRangePreset;
-  isPending?: boolean;
-  onRangeChange: (range: AnalyticsRangePreset) => void;
-}) {
-  const t = useTranslations("analyticsPage");
-  const ranges: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
-
-  return (
-    <div
-      className={cn(
-        "inline-flex h-10 rounded-lg border border-outline-variant bg-white p-1 transition-opacity duration-200",
-        isPending ? "opacity-90" : "opacity-100"
-      )}
-      aria-label={t("range_label")}
-      aria-busy={isPending ? "true" : undefined}
-    >
-      {ranges.map((item) => {
-        const active = item === range;
-        return (
-          <button
-            key={item}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onRangeChange(item)}
-            className={cn(
-              "inline-flex min-w-12 items-center justify-center rounded-md px-3 text-sm font-semibold transition-all duration-200 ease-out",
-              active
-                ? "bg-primary text-white shadow-token-primary"
-                : "text-on-surface-variant hover:bg-background hover:text-on-surface"
-            )}
-          >
-            {t(`range_${item}`)}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Card({
-  title,
-  action,
-  children,
-  className,
-}: {
-  title: string;
-  action?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={cn(
-        "min-w-0 rounded-xl border border-outline-variant bg-white p-5 shadow-token-card",
-        className
-      )}
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-on-surface">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function RadarChart({
-  data,
-}: {
-  data: AnalyticsPageData["skillSnapshot"];
-}) {
-  const t = useTranslations("analyticsPage.skills");
-  const metrics = data.metrics.slice(0, 5);
-  const center = 112;
-  const radius = 70;
-
-  function point(index: number, value: number, extra = 0) {
-    const angle = -Math.PI / 2 + (index * Math.PI * 2) / Math.max(metrics.length, 1);
-    const scaled = radius * (value / 100) + extra;
-    return {
-      x: center + Math.cos(angle) * scaled,
-      y: center + Math.sin(angle) * scaled,
-    };
-  }
-
-  const polygon = metrics
-    .map((metric, index) => {
-      const p = point(index, metric.coverage > 0 ? metric.value : 0);
-      return `${p.x},${p.y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="flex justify-center">
-      <svg viewBox="0 0 224 224" className="h-[224px] w-full max-w-[284px]" aria-hidden="true">
-        {[20, 40, 60, 80, 100].map((value) => (
-          <polygon
-            key={value}
-            points={metrics
-              .map((_, index) => {
-                const p = point(index, value);
-                return `${p.x},${p.y}`;
-              })
-              .join(" ")}
-            fill={value === 100 ? "transparent" : "rgba(0,184,217,0.035)"}
-            stroke="rgba(65,80,105,0.20)"
-            strokeWidth="1"
-          />
-        ))}
-        {metrics.map((_, index) => {
-          const p = point(index, 100);
-          return (
-            <line
-              key={index}
-              x1={center}
-              y1={center}
-              x2={p.x}
-              y2={p.y}
-              stroke="rgba(65,80,105,0.16)"
-            />
-          );
-        })}
-        <polygon
-          points={polygon}
-          fill="rgba(0,184,217,0.16)"
-          stroke="#0788A0"
-          strokeWidth="2"
-        />
-        {metrics.map((metric, index) => {
-          const labelPoint = point(index, 100, 26);
-          const anchor =
-            Math.abs(labelPoint.x - center) < 8
-              ? "middle"
-              : labelPoint.x > center
-                ? "start"
-                : "end";
-          return (
-            <g key={metric.key}>
-              <text
-                x={labelPoint.x}
-                y={labelPoint.y}
-                textAnchor={anchor}
-                dominantBaseline="central"
-              >
-                <tspan
-                  x={labelPoint.x}
-                  dy="-0.35em"
-                  className="fill-primary text-[10px] font-medium"
-                >
-                  {t(metric.key)}
-                </tspan>
-                <tspan
-                  x={labelPoint.x}
-                  dy="1.35em"
-                  className="fill-primary text-[11px] font-semibold"
-                >
-                  {Math.round(metric.value)}
-                </tspan>
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function MiniBars({ insight }: { insight: PracticeMinutesInsight | undefined }) {
-  const visibleSeries = insight?.series.slice(-7) ?? [];
-  const values =
-    visibleSeries.length > 0
-      ? visibleSeries.map((point) => point.value)
-      : [0, 0, 0, 0, 0, 0, 0];
-  const max = Math.max(...values, 1);
-
-  return (
-    <div className="mt-7 flex h-[152px] items-end gap-4 border-b border-dashed border-outline-variant px-1">
-      {values.slice(-7).map((value, index) => (
-        <div key={`${value}-${index}`} className="flex flex-1 flex-col items-center gap-2">
-          <div
-            className="w-full max-w-[18px] rounded-t-md bg-[linear-gradient(180deg,#8BE8F7_0%,#00B8D9_100%)]"
-            style={{ height: `${Math.max(16, (value / max) * 128)}px` }}
-          />
-          <span className="text-[11px] font-medium text-on-surface-variant">
-            {visibleSeries[index]?.label ?? ""}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function InlineCardLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="mt-5 flex h-10 items-center justify-between rounded-lg border border-outline-variant bg-background px-3 text-sm font-medium text-on-surface-variant transition hover:border-outline-variant hover:text-on-surface"
-    >
-      {children}
-      <ChevronRight className="h-4 w-4" />
-    </Link>
-  );
-}
-
-function SeasonPerformanceCard({ profile }: { profile: PublicProfileShell }) {
-  const t = useTranslations("profileSocial.analytics");
-  const seasonXp = profile.season?.seasonXp ?? 0;
-  const nextTarget = Math.max(1000, Math.ceil((seasonXp + 1) / 1000) * 1000);
-  const remaining = Math.max(0, nextTarget - seasonXp);
-  const progress = Math.min(100, Math.round((seasonXp / nextTarget) * 100));
-
-  return (
-    <Card title={t("season_performance")}>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-5">
-        <div>
-          <p className="text-2xl font-semibold leading-none text-primary-dim">
-            {formatNumber(seasonXp)}
-          </p>
-          <p className="mt-1 text-sm text-on-surface-variant">{t("season_xp")}</p>
-        </div>
-        <div className="h-12 w-px bg-surface-container-high" />
-        <div>
-          <p className="text-2xl font-semibold leading-none text-on-surface">
-            {profile.season?.rank ? `#${profile.season.rank}` : "-"}
-          </p>
-          <p className="mt-1 text-sm text-on-surface-variant">{t("in_your_league")}</p>
-        </div>
-      </div>
-
-      <div className="mt-7">
-        <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-          <div
-            className="h-full rounded-full bg-primary"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <p className="mt-3 text-sm text-on-surface-variant">
-          {t("xp_to_next_rank", { count: remaining })}
-        </p>
-      </div>
-
-      <div className="mt-7 flex items-center justify-between rounded-lg border border-outline-variant bg-background px-4 py-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-warning bg-surface-container text-warning">
-            <Medal className="h-6 w-6" />
-          </span>
-          <div>
-            <p className="text-xs font-medium text-on-surface-variant">{t("current_league")}</p>
-            <p className="text-base font-semibold text-on-surface">
-              {formatLeagueTier(profile.season?.leagueTier, t)}
-            </p>
-          </div>
-        </div>
-        <ChevronRight className="h-5 w-5 text-on-surface" />
-      </div>
-
-      <InlineCardLink href="/leaderboards">{t("view_leaderboard")}</InlineCardLink>
-    </Card>
-  );
-}
-
-function ProfileAnalyticsOverview({
-  analyticsData,
-  profile,
-  baseHref,
-  range,
-  isRangePending,
-  onRangeChange,
-}: {
-  analyticsData: AnalyticsPageData;
-  profile: PublicProfileShell;
-  baseHref: string;
-  range: AnalyticsRangePreset;
-  isRangePending?: boolean;
-  onRangeChange: (range: AnalyticsRangePreset) => void;
-}) {
-  const t = useTranslations("profileSocial.analytics");
-  const tAnalytics = useTranslations("analyticsPage");
-  const practiceMinutes = findInsight(
-    analyticsData.insights,
-    "practice-minutes"
-  ) as PracticeMinutesInsight | undefined;
-  const averageScore = findInsight(
-    analyticsData.insights,
-    "recent-average-score"
-  ) as AverageScoreInsight | undefined;
-  const strongestFocus = findInsight(
-    analyticsData.insights,
-    "strongest-focus"
-  ) as StrongestFocusInsight | undefined;
-  const mix = findInsight(analyticsData.insights, "speaking-vs-debate") as
-    | MixInsight
-    | undefined;
-  const totalMix = (mix?.speakingCount ?? 0) + (mix?.debateCount ?? 0);
-
-  return (
-    <div className="grid gap-5">
-      <div className="flex justify-end">
-        <AnalyticsRangeControl
-          range={range}
-          isPending={isRangePending}
-          onRangeChange={onRangeChange}
-        />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Card title={t("skill_snapshot")}>
-          <RadarChart data={analyticsData.skillSnapshot} />
-          <InlineCardLink href={buildTabHref(baseHref, "analytics", range)}>
-            {t("view_full_breakdown")}
-          </InlineCardLink>
-        </Card>
-
-        <Card title={t("weekly_practice")}>
-          <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold leading-none text-on-surface">
-              {formatNumber(practiceMinutes?.totalMinutes ?? 0)}
-            </p>
-            <p className="pb-1 text-sm text-on-surface-variant">{t("minutes")}</p>
-          </div>
-          <p
-            className={cn(
-              "mt-2 text-sm font-medium",
-              practiceMinutes?.deltaPercent != null &&
-                practiceMinutes.deltaPercent >= 0
-                ? "text-success"
-                : "text-on-surface-variant"
-            )}
-          >
-            {practiceMinutes?.deltaPercent != null
-              ? t("practice_delta", {
-                  count: Math.abs(practiceMinutes.deltaPercent),
-                })
-              : tAnalytics("cards.practice_minutes.no_delta")}
-          </p>
-          <MiniBars insight={practiceMinutes} />
-          <InlineCardLink href={buildTabHref(baseHref, "activities", range)}>
-            {t("view_practice_history")}
-          </InlineCardLink>
-        </Card>
-
-        <SeasonPerformanceCard profile={profile} />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Card title={t("practice_mix")}>
-          <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
-            <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-outline-variant">
-              <div
-                className="absolute inset-[-10px] rounded-full"
-                style={{
-                  background: `conic-gradient(#00B8D9 ${mix?.debatePercent ?? 0}%, #8BE8F7 0)`,
-                  WebkitMask:
-                    "radial-gradient(circle, transparent 52%, #000 53%)",
-                  mask: "radial-gradient(circle, transparent 52%, #000 53%)",
-                }}
-              />
-              <div className="relative text-center">
-                <p className="text-2xl font-semibold text-on-surface">
-                  {totalMix}
-                </p>
-                <p className="text-xs font-medium text-on-surface-variant">
-                  {t("sessions")}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2 text-on-surface-variant">
-                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                  {tAnalytics("cards.mix.debate")}
-                </span>
-                <span className="font-semibold text-on-surface">
-                  {mix?.debatePercent ?? 0}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2 text-on-surface-variant">
-                  <span className="h-2.5 w-2.5 rounded-full bg-primary-fixed" />
-                  {tAnalytics("cards.mix.speaking")}
-                </span>
-                <span className="font-semibold text-on-surface">
-                  {mix?.speakingPercent ?? 0}%
-                </span>
-              </div>
-            </div>
-          </div>
-          <InlineCardLink href={buildTabHref(baseHref, "activities", range)}>
-            {t("view_activity_breakdown")}
-          </InlineCardLink>
-        </Card>
-
-        <Card title={t("average_score")}>
-          <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold leading-none text-on-surface">
-              {averageScore?.averageScore != null
-                ? Math.round(averageScore.averageScore)
-                : "-"}
-            </p>
-            <p className="pb-1 text-sm text-on-surface-variant">/100</p>
-          </div>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            {averageScore?.deltaPoints != null
-              ? t("score_delta", {
-                  count: Math.abs(Math.round(averageScore.deltaPoints)),
-                })
-              : tAnalytics("cards.average_score.no_delta")}
-          </p>
-        </Card>
-
-        <Card title={t("strongest_focus")}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-outline-variant bg-background p-4">
-              <div className="flex items-center gap-3">
-                <Target className="h-5 w-5 text-success" />
-                <span className="text-sm font-medium text-on-surface-variant">
-                  {tAnalytics("cards.strongest_focus.strongest")}
-                </span>
-              </div>
-              <p className="mt-3 text-lg font-semibold text-on-surface">
-                {strongestFocus?.strongestSkill
-                  ? tAnalytics(`skills.${strongestFocus.strongestSkill}`)
-                  : "-"}
-              </p>
-            </div>
-            <div className="rounded-lg border border-outline-variant bg-background p-4">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-warning" />
-                <span className="text-sm font-medium text-on-surface-variant">
-                  {tAnalytics("cards.strongest_focus.focus_next")}
-                </span>
-              </div>
-              <p className="mt-3 text-lg font-semibold text-on-surface">
-                {strongestFocus?.focusSkill
-                  ? tAnalytics(`skills.${strongestFocus.focusSkill}`)
-                  : "-"}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function PublicAnalyticsSummary({
-  profile,
-  data,
-  range,
-  isRangePending,
-  onRangeChange,
-}: {
-  profile: PublicProfileShell;
-  data: ProfileAnalyticsTabData | null | undefined;
-  range: AnalyticsRangePreset;
-  isRangePending?: boolean;
-  onRangeChange: (range: AnalyticsRangePreset) => void;
-}) {
-  const t = useTranslations("profileSocial.analytics");
-  const tHeader = useTranslations("profileSocial.header");
-  const totalMix = (data?.speakingCount ?? 0) + (data?.debateCount ?? 0);
-
-  return (
-    <div className="grid gap-5">
-      <div className="flex justify-end">
-        <AnalyticsRangeControl
-          range={range}
-          isPending={isRangePending}
-          onRangeChange={onRangeChange}
-        />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-3">
-        <SeasonPerformanceCard profile={profile} />
-        <Card title={t("weekly_practice")}>
-          <p className="text-[2rem] font-semibold text-on-surface">
-            {formatNumber(data?.totalPracticeMinutes ?? 0)}
-          </p>
-          <p className="mt-1 text-sm text-on-surface-variant">{t("minutes")}</p>
-          <p className="mt-5 text-sm text-on-surface-variant">
-            {t("sessions_in_range", { count: data?.totalSessions ?? 0 })}
-          </p>
-        </Card>
-        <Card title={t("average_score")}>
-          <div className="flex items-end gap-2">
-            <p className="text-[2rem] font-semibold text-on-surface">
-              {data?.averageScore != null ? Math.round(data.averageScore) : "-"}
-            </p>
-            <p className="pb-1 text-sm text-on-surface-variant">/100</p>
-          </div>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            {t("sessions_analyzed", { count: data?.totalSessions ?? 0 })}
-          </p>
-        </Card>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Card title={t("practice_mix")}>
-          <p className="text-[2rem] font-semibold text-on-surface">{totalMix}</p>
-          <p className="mt-1 text-sm text-on-surface-variant">{t("sessions")}</p>
-          <div className="mt-5 grid gap-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-on-surface-variant">{t("debate_sessions")}</span>
-              <span className="font-semibold text-on-surface">
-                {data?.debateCount ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-on-surface-variant">{t("speaking_sessions")}</span>
-              <span className="font-semibold text-on-surface">
-                {data?.speakingCount ?? 0}
-              </span>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("profile_level")}>
-          <p className="text-[2rem] font-semibold text-on-surface">
-            {data?.level != null
-              ? tHeader("level_value", { level: data.level })
-              : tHeader("hidden")}
-          </p>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            {data?.lifetimeXp != null
-              ? t("lifetime_xp", { count: data.lifetimeXp })
-              : t("private_metric")}
-          </p>
-        </Card>
-        <Card title={t("friend_network")}>
-          <p className="text-[2rem] font-semibold text-on-surface">
-            {profile.friendCounts.friends}
-          </p>
-          <p className="mt-2 text-sm text-on-surface-variant">{t("friends")}</p>
-        </Card>
-      </div>
-    </div>
-  );
 }
 
 function PrivacyPanel({
@@ -1898,7 +1343,6 @@ function TabBody({
   publicAnalyticsData,
   activityFeedData,
   achievementsData,
-  baseHref,
   range,
   isRangePending,
   onRangeChange,
@@ -1909,7 +1353,6 @@ function TabBody({
   publicAnalyticsData?: ProfileAnalyticsTabData | null;
   activityFeedData?: ProfileActivityFeedData | null;
   achievementsData?: ProfileAchievementsData | null;
-  baseHref: string;
   range: AnalyticsRangePreset;
   isRangePending?: boolean;
   onRangeChange: (range: AnalyticsRangePreset) => void;
@@ -1930,10 +1373,9 @@ function TabBody({
   if (tab === "analytics") {
     if (analyticsData) {
       return (
-        <ProfileAnalyticsOverview
+        <ProfileAnalyticsTab
           analyticsData={analyticsData}
           profile={profile}
-          baseHref={baseHref}
           range={range}
           isRangePending={isRangePending}
           onRangeChange={onRangeChange}
@@ -1943,7 +1385,7 @@ function TabBody({
 
     if (visible.analytics && publicAnalyticsData?.state === "visible") {
       return (
-        <PublicAnalyticsSummary
+        <PublicProfileAnalyticsTab
           profile={profile}
           data={publicAnalyticsData}
           range={range}
@@ -2123,7 +1565,6 @@ export function SocialProfilePage({
                 publicAnalyticsData={publicAnalyticsData}
                 activityFeedData={activityFeedData}
                 achievementsData={localizedAchievementsData}
-                baseHref={baseHref}
                 range={currentRange}
                 isRangePending={isRangePending}
                 onRangeChange={handleRangeChange}

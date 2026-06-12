@@ -7,3 +7,12 @@ export const LEADERBOARD_LEAGUE_ASSETS: Record<LeagueTierId, string> = {
   whip: "/leaderboards/leagues/whip.webp",
   champion: "/leaderboards/leagues/champion.webp",
 };
+
+export function coerceLeagueTierId(
+  value: string | null | undefined
+): LeagueTierId {
+  const normalized = value?.trim().toLowerCase();
+  return normalized && normalized in LEADERBOARD_LEAGUE_ASSETS
+    ? (normalized as LeagueTierId)
+    : "novice";
+}

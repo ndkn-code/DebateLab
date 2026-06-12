@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 
 import { setProfileFeaturedAchievements } from "@/app/actions/profile-social";
@@ -9,12 +10,11 @@ import {
   CheckCircle2,
   ChevronDown,
   Lock,
-  Medal,
   ShieldCheck,
-  Sparkles,
   Star,
   X,
 } from "@/components/ui/icons";
+import { AchievementMedallion } from "@/components/profile/achievement-medallion";
 import { showToast } from "@/components/shared/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -88,40 +88,6 @@ function sortAchievements(
   });
 }
 
-function AchievementMedallion({
-  achievement,
-  size = "md",
-}: {
-  achievement: ProfileAchievementItem;
-  size?: "sm" | "md" | "lg";
-}) {
-  const unlocked = achievement.unlocked;
-  const colorClass = unlocked
-    ? achievement.isFeatured
-      ? "border-primary-fixed bg-surface-container text-primary-dim"
-      : "border-warning bg-surface-container text-on-surface-variant"
-    : "border-outline-variant bg-surface-container text-muted-foreground grayscale";
-
-  return (
-    <span
-      className={cn(
-        "relative flex shrink-0 items-center justify-center rounded-full border-2 font-semibold shadow-token-card",
-        colorClass,
-        size === "sm" && "h-12 w-12 text-lg",
-        size === "md" && "h-16 w-16 text-2xl",
-        size === "lg" && "h-20 w-20 text-3xl"
-      )}
-    >
-      {unlocked ? achievement.icon : <Lock className="h-6 w-6" />}
-      {achievement.isFeatured ? (
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
-          <Star className="h-3 w-3 fill-current" />
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
 function AchievementInfoDialog({
   achievement,
   onClose,
@@ -149,40 +115,45 @@ function AchievementInfoDialog({
       onClick={onClose}
       role="presentation"
     >
-      <section
+      <motion.section
         role="dialog"
         aria-modal="true"
         aria-labelledby="achievement-dialog-title"
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-md rounded-xl border border-outline-variant bg-white p-6 shadow-token-card"
+        initial={{ opacity: 0, scale: 0.94, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-md rounded-[24px] border border-outline-variant bg-surface-container-lowest p-7 shadow-token-card"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label={t("close")}
-          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-container text-on-surface transition hover:bg-surface-container-high"
+          className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-surface-container text-on-surface transition hover:bg-surface-container-high active:scale-90"
         >
-          <X className="h-4.5 w-4.5" />
+          <X className="size-4.5" />
         </button>
-        <div className="flex items-start gap-4">
-          <AchievementMedallion achievement={achievement} size="lg" />
-          <div className="min-w-0 flex-1 pr-8">
-            <p className="text-xs font-semibold uppercase text-on-surface-variant">
-              {getCategoryLabel(achievement.category, t)}
-            </p>
-            <h2 id="achievement-dialog-title" className="mt-1 text-xl font-semibold text-on-surface">
-              {achievement.title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-              {achievement.description}
-            </p>
-          </div>
+
+        <div className="flex flex-col items-center text-center">
+          <AchievementMedallion achievement={achievement} size="lg" className="!size-28" />
+          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+            {getCategoryLabel(achievement.category, t)}
+          </p>
+          <h2
+            id="achievement-dialog-title"
+            className="mt-1.5 text-xl font-extrabold text-on-surface"
+          >
+            {achievement.title}
+          </h2>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-on-surface-variant">
+            {achievement.description}
+          </p>
         </div>
 
-        <div className="mt-6 rounded-lg border border-outline-variant bg-background p-4">
+        <div className="mt-6 rounded-2xl bg-surface-container p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-on-surface">{t("progress")}</span>
-            <span className="font-medium text-on-surface-variant">
+            <span className="font-bold text-on-surface">{t("progress")}</span>
+            <span className="font-semibold tabular-nums text-on-surface-variant">
               {achievement.progressValue != null && achievement.progressTarget != null
                 ? `${achievement.progressValue} / ${achievement.progressTarget}`
                 : achievement.unlocked
@@ -190,7 +161,7 @@ function AchievementInfoDialog({
                   : t("incomplete")}
             </span>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-container-high">
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface-container-high">
             <div
               className="h-full rounded-full bg-primary"
               style={{ width: `${percent}%` }}
@@ -198,22 +169,25 @@ function AchievementInfoDialog({
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 text-sm text-on-surface-variant sm:grid-cols-2">
-          <div className="rounded-lg border border-outline-variant p-3">
-            <p className="text-xs font-medium text-on-surface-variant">{t("xp_reward")}</p>
-            <p className="mt-1 font-semibold text-on-surface">
+        <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <div className="rounded-2xl bg-[#FFF3DC] p-3.5 dark:bg-[#FFD166]/12">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#C98A1B] dark:text-[#FFD98A]">
+              {t("xp_reward")}
+            </p>
+            <p className="mt-1 text-[15px] font-extrabold tabular-nums text-on-surface">
               {achievement.xpReward} XP
             </p>
           </div>
-          <div className="rounded-lg border border-outline-variant p-3">
-            <p className="text-xs font-medium text-on-surface-variant">{t("title_reward")}</p>
-            <p className="mt-1 font-semibold text-on-surface">
+          <div className="rounded-2xl bg-[#E3F3FF] p-3.5 dark:bg-[#3B9EFF]/12">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#1D7FD6] dark:text-[#6FB9FF]">
+              {t("title_reward")}
+            </p>
+            <p className="mt-1 truncate text-[15px] font-extrabold text-on-surface">
               {achievement.titleReward ?? t("none")}
             </p>
           </div>
         </div>
-
-      </section>
+      </motion.section>
     </div>
   );
 }
@@ -222,15 +196,15 @@ function EmptyState({ privateState }: { privateState?: boolean }) {
   const t = useTranslations("profileSocial.achievements");
 
   return (
-    <section className="rounded-xl border border-dashed border-outline-variant bg-white px-6 py-16 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+    <section className="rounded-[24px] border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-16 text-center">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
         {privateState ? (
-          <ShieldCheck className="h-6 w-6" />
+          <ShieldCheck className="size-6" />
         ) : (
-          <Award className="h-6 w-6" />
+          <Award className="size-6" />
         )}
       </div>
-      <h2 className="mt-5 text-xl font-semibold text-on-surface">
+      <h2 className="mt-5 text-lg font-bold text-on-surface">
         {privateState ? t("private_title") : t("empty_title")}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
@@ -240,64 +214,18 @@ function EmptyState({ privateState }: { privateState?: boolean }) {
   );
 }
 
-function FeaturedRow({
-  achievements,
-  onSelect,
-}: {
-  achievements: ProfileAchievementItem[];
-  onSelect: (achievement: ProfileAchievementItem) => void;
-}) {
-  const t = useTranslations("profileSocial.achievements");
-
-  if (achievements.length === 0) return null;
-
-  return (
-    <section>
-      <div className="mb-3 flex items-center gap-2">
-        <Medal className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold text-on-surface">{t("featured")}</h2>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {achievements.map((achievement) => (
-          <article
-            key={achievement.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(achievement)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect(achievement);
-              }
-            }}
-            className="flex min-h-[6rem] cursor-pointer items-center gap-4 rounded-xl border border-primary-fixed bg-white p-4 shadow-token-card transition hover:-translate-y-0.5 hover:shadow-token-primary"
-          >
-            <AchievementMedallion achievement={achievement} />
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-on-surface">
-            {achievement.title}
-              </h3>
-              <p className="mt-1 text-xs font-medium text-on-surface-variant">
-                {getCategoryLabel(achievement.category, t)}
-              </p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function AchievementCard({
   achievement,
+  index,
   canFeature,
   featuredIds,
   maxFeatured,
   onToggleFeatured,
-      onSelect,
-      pending,
+  onSelect,
+  pending,
 }: {
   achievement: ProfileAchievementItem;
+  index: number;
   canFeature: boolean;
   featuredIds: string[];
   maxFeatured: number;
@@ -306,6 +234,7 @@ function AchievementCard({
   pending: boolean;
 }) {
   const t = useTranslations("profileSocial.achievements");
+  const prefersReducedMotion = useReducedMotion();
   const percent = getAchievementProgressPercent(achievement);
   const featured = featuredIds.includes(achievement.id);
   const featureDisabled =
@@ -314,7 +243,7 @@ function AchievementCard({
     (!featured && featuredIds.length >= maxFeatured);
 
   return (
-    <article
+    <motion.article
       role="button"
       tabIndex={0}
       onClick={() => onSelect(achievement)}
@@ -324,89 +253,88 @@ function AchievementCard({
           onSelect(achievement);
         }
       }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.26,
+        delay: Math.min(index * 0.03, 0.3),
+        ease: [0.22, 1, 0.36, 1],
+      }}
       className={cn(
-        "relative grid min-h-[176px] cursor-pointer gap-4 rounded-xl border bg-white p-4 shadow-token-card transition hover:-translate-y-0.5 hover:shadow-token-card",
-        featured ? "border-primary-fixed ring-1 ring-primary-fixed" : "border-outline-variant"
+        "relative flex cursor-pointer flex-col items-center rounded-[24px] border bg-surface-container-lowest p-6 pt-7 text-center shadow-token-card transition-transform duration-200 hover:-translate-y-1",
+        featured ? "border-primary/40" : "border-outline-variant"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <AchievementMedallion achievement={achievement} size="lg" />
-        {canFeature ? (
-          <button
-            type="button"
-            disabled={featureDisabled}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleFeatured(achievement);
-            }}
-            aria-label={
-              featured
-                ? t("unfeature_label", { title: achievement.title })
-                : t("feature_label", { title: achievement.title })
-            }
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border transition",
-              featured
-                ? "border-primary-fixed bg-surface-container text-primary-dim"
-                : "border-outline-variant bg-white text-on-surface-variant hover:bg-background hover:text-on-surface",
-              featureDisabled && "cursor-not-allowed opacity-50"
-            )}
-          >
-            <Star className={cn("h-4.5 w-4.5", featured && "fill-current")} />
-          </button>
-        ) : featured ? (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary-fixed bg-surface-container text-primary-dim">
-            <Star className="h-4.5 w-4.5 fill-current" />
-          </span>
-        ) : null}
-      </div>
-
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          {achievement.unlocked ? (
-            <CheckCircle2 className="h-4 w-4 text-success" />
-          ) : (
-            <Lock className="h-4 w-4 text-muted-foreground" />
+      {canFeature ? (
+        <button
+          type="button"
+          disabled={featureDisabled}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleFeatured(achievement);
+          }}
+          aria-label={
+            featured
+              ? t("unfeature_label", { title: achievement.title })
+              : t("feature_label", { title: achievement.title })
+          }
+          className={cn(
+            "absolute right-4 top-4 flex size-9 items-center justify-center rounded-full transition-all active:scale-90",
+            featured
+              ? "bg-reward text-on-reward shadow-token-card"
+              : "bg-surface-container text-on-surface-variant hover:text-on-surface",
+            featureDisabled && "cursor-not-allowed opacity-40"
           )}
-          <span
-            className={cn(
-              "text-xs font-semibold",
-              achievement.unlocked ? "text-success" : "text-on-surface-variant"
-            )}
-          >
-            {achievement.unlocked ? t("complete") : t("incomplete")}
-          </span>
-        </div>
-        <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-6 text-on-surface">
-          {achievement.title}
-        </h3>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          {getCategoryLabel(achievement.category, t)}
-        </p>
-      </div>
+        >
+          <Star className={cn("size-4.5", featured && "fill-current")} />
+        </button>
+      ) : featured ? (
+        <span className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-reward text-on-reward shadow-token-card">
+          <Star className="size-4.5 fill-current" />
+        </span>
+      ) : null}
 
-      <div className="mt-auto">
-        <div className="flex items-center justify-between text-xs font-medium text-on-surface-variant">
-          <span>
-            {achievement.progressValue != null && achievement.progressTarget != null
-              ? `${achievement.progressValue} / ${achievement.progressTarget}`
-              : achievement.unlocked
-                ? t("complete")
-                : t("progress")}
-          </span>
-          <span>{percent}%</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
-          <div
-            className={cn(
-              "h-full rounded-full",
-              achievement.unlocked ? "bg-primary" : "bg-primary-fixed"
-            )}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+      <AchievementMedallion
+        achievement={achievement}
+        size="lg"
+        showFeaturedStar={false}
+      />
+
+      <h3 className="mt-4 line-clamp-2 text-[15.5px] font-extrabold leading-6 text-on-surface">
+        {achievement.title}
+      </h3>
+      <p className="mt-1 text-[12px] font-semibold text-on-surface-variant">
+        {getCategoryLabel(achievement.category, t)}
+      </p>
+
+      <div className="mt-auto w-full pt-5">
+        {achievement.unlocked ? (
+          <p className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#1E9E54] dark:text-[#5DD984]">
+            <CheckCircle2 className="size-4" />
+            {t("complete")}
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between text-[11.5px] font-bold tabular-nums text-on-surface-variant">
+              <span className="inline-flex items-center gap-1">
+                <Lock className="size-3.5" />
+                {achievement.progressValue != null &&
+                achievement.progressTarget != null
+                  ? `${achievement.progressValue} / ${achievement.progressTarget}`
+                  : t("incomplete")}
+              </span>
+              <span>{percent}%</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
+              <div
+                className="h-full rounded-full bg-primary-fixed"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+          </>
+        )}
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -416,6 +344,7 @@ export function ProfileAchievementsTab({
   data: ProfileAchievementsData | null | undefined;
 }) {
   const t = useTranslations("profileSocial.achievements");
+  const prefersReducedMotion = useReducedMotion();
   const [currentData, setCurrentData] = useState<ProfileAchievementsData | null>(
     data ?? null
   );
@@ -444,6 +373,9 @@ export function ProfileAchievementsTab({
         : achievements.filter((achievement) => achievement.category === category);
     return sortAchievements(filtered, sort);
   }, [category, effectiveData?.achievements, sort]);
+  const unlockedPercent = effectiveData?.totalCount
+    ? Math.round((effectiveData.unlockedCount / effectiveData.totalCount) * 100)
+    : 0;
 
   function updateFeatured(nextIds: string[]) {
     if (!effectiveData) return;
@@ -491,28 +423,34 @@ export function ProfileAchievementsTab({
   }
 
   return (
-    <div className="grid gap-8">
-      <div>
-        <h2 className="text-xl font-semibold text-on-surface">{t("title")}</h2>
-        <p className="mt-2 text-sm text-on-surface-variant">{t("subtitle")}</p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm">
-          <span className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2 font-semibold text-on-surface">
-            <Award className="h-4 w-4 text-primary" />
-            {t("unlocked_count", {
-              count: effectiveData.unlockedCount,
-              total: effectiveData.totalCount,
-            })}
+    <div className="grid gap-6">
+      <div className="flex flex-col gap-4 rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-token-card sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="flex items-center gap-4">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+            <Award className="size-6" />
           </span>
-          {canFeature ? (
-            <span className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2 font-medium text-on-surface-variant">
-              <Sparkles className="h-4 w-4 text-primary" />
-              {t("featured_limit", { count: effectiveData.maxFeatured })}
+          <h2 className="text-lg font-extrabold text-on-surface">{t("title")}</h2>
+        </div>
+        <div className="w-full sm:max-w-[300px]">
+          <div className="flex items-center justify-between text-[13px] font-bold tabular-nums">
+            <span className="text-on-surface">
+              {t("unlocked_count", {
+                count: effectiveData.unlockedCount,
+                total: effectiveData.totalCount,
+              })}
             </span>
-          ) : null}
+            <span className="text-on-surface-variant">{unlockedPercent}%</span>
+          </div>
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-container-high">
+            <motion.div
+              initial={prefersReducedMotion ? false : { width: 0 }}
+              animate={{ width: `${unlockedPercent}%` }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full rounded-full bg-reward"
+            />
+          </div>
         </div>
       </div>
-
-      <FeaturedRow achievements={effectiveData.featured} onSelect={setSelected} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-2">
@@ -524,10 +462,10 @@ export function ProfileAchievementsTab({
                 type="button"
                 onClick={() => setCategory(item)}
                 className={cn(
-                  "inline-flex h-10 items-center rounded-lg border px-3 text-sm font-semibold transition",
+                  "inline-flex h-11 items-center rounded-full border px-4 text-sm font-bold transition-all active:scale-95",
                   active
-                    ? "border-transparent bg-primary text-white"
-                    : "border-outline-variant bg-white text-on-surface-variant hover:border-outline-variant hover:text-on-surface"
+                    ? "border-primary bg-primary text-on-primary shadow-token-primary"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface"
                 )}
               >
                 {item === "all" ? t("all") : getCategoryLabel(item, t)}
@@ -536,27 +474,28 @@ export function ProfileAchievementsTab({
           })}
         </div>
 
-        <label className="relative w-full lg:ml-auto lg:w-[220px]">
+        <label className="relative w-full lg:ml-auto lg:w-[200px]">
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as AchievementSort)}
-            className="h-10 w-full appearance-none rounded-lg border border-outline-variant bg-white pl-3 pr-9 text-sm font-semibold text-on-surface outline-none transition focus:border-primary"
+            className="h-11 w-full appearance-none rounded-full border border-outline-variant bg-surface-container-lowest pl-4 pr-10 text-sm font-bold text-on-surface outline-none transition focus:border-primary/45"
           >
             <option value="featured">{t("sort_featured")}</option>
             <option value="recent">{t("sort_recent")}</option>
             <option value="progress">{t("sort_progress")}</option>
             <option value="category">{t("sort_category")}</option>
           </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
         </label>
       </div>
 
       {visibleAchievements.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {visibleAchievements.map((achievement) => (
+          {visibleAchievements.map((achievement, index) => (
             <AchievementCard
               key={achievement.id}
               achievement={achievement}
+              index={index}
               canFeature={canFeature}
               featuredIds={featuredIds}
               maxFeatured={effectiveData.maxFeatured}
