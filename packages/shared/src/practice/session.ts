@@ -73,7 +73,10 @@ export type PracticeTranscriptionWarning =
   | "possible_stt_artifacts"
   | "fallback_transcript_used"
   | "groq_unavailable"
-  | "provider_disagreement";
+  | "provider_disagreement"
+  | "repair_skipped"
+  | "repair_uncertain"
+  | "repair_hallucination_risk";
 
 export type PracticeTranscriptionProvider =
   | "deepgram"
@@ -100,8 +103,55 @@ export interface PracticeTranscriptionNormalizationHint {
   source: "static_glossary" | "motion_context" | "provider_consensus";
 }
 
+export type PracticeTranscriptionRepairStatus =
+  | "not_attempted"
+  | "skipped"
+  | "repaired"
+  | "uncertain"
+  | "hallucination_risk"
+  | "failed";
+
+export type PracticeTranscriptionRepairMode = "shadow" | "judge";
+
+export interface PracticeTranscriptionRepairEdit {
+  raw: string;
+  repaired: string;
+  reason: string;
+  confidence: number;
+  category:
+    | "debate_keyterm"
+    | "proper_noun"
+    | "spacing"
+    | "casing"
+    | "filler"
+    | "false_start"
+    | "punctuation";
+}
+
+export interface PracticeTranscriptionUncertainSpan {
+  text: string;
+  reason: string;
+  confidence: number;
+}
+
+export interface PracticeTranscriptionRepairArtifact {
+  version: number;
+  provider: string;
+  model: string;
+  status: PracticeTranscriptionRepairStatus;
+  mode: PracticeTranscriptionRepairMode;
+  latencyMs: number;
+  rawTranscriptHash: string;
+  edits: PracticeTranscriptionRepairEdit[];
+  uncertainSpans: PracticeTranscriptionUncertainSpan[];
+  warnings: PracticeTranscriptionWarning[];
+  hallucinationRisk: number;
+  repairedAt: string;
+}
+
 export interface PracticeTranscriptionArtifact {
   transcript: string;
+  judgeTranscript?: string;
   rawTranscript?: string;
   normalizedTranscript?: string;
   confidence: number | null;
@@ -113,6 +163,7 @@ export interface PracticeTranscriptionArtifact {
   warnings: PracticeTranscriptionWarning[];
   alternatives?: PracticeTranscriptionAlternative[];
   normalizationHints?: PracticeTranscriptionNormalizationHint[];
+  repair?: PracticeTranscriptionRepairArtifact;
   audioBucket: typeof MOBILE_PRACTICE_AUDIO_BUCKET;
   audioStoragePath: string;
   durationSeconds: number;

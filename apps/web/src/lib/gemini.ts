@@ -1056,9 +1056,10 @@ function applyScoreCap(
   feedback: DebateScore,
   cap: number,
   reasons: string[],
-  params: AnalyzeDebateParams
+  params: { practiceLanguage?: PracticeLanguage }
 ) {
   if (feedback.totalScore <= cap) return false;
+  const scoreBefore = feedback.totalScore;
   const [content, structure, language, persuasion] = distributeScore(cap, [
     40,
     25,
@@ -1090,20 +1091,28 @@ function applyScoreCap(
   const vi = params.practiceLanguage === "vi";
   const readableReasons = reasons.map((reason) => {
     if (!vi) return reason;
-    if (reason === "fewer than 3 model-produced clash links") {
-      return "phản hồi ban đầu có dưới 3 liên kết va chạm do mô hình tự tạo";
-    }
-    if (reason === "fewer than 3 model-produced argument breakdowns") {
-      return "phản hồi ban đầu có dưới 3 phần bóc tách luận điểm do mô hình tự tạo";
-    }
-    if (reason === "annotation fallback was needed") {
-      return "hệ thống phải tự bổ sung một phần chú thích vì mô hình neo dẫn chứng chưa đủ chắc";
-    }
-    return reason;
+    return (
+      {
+        "fewer than 3 model-produced clash links":
+          "phản hồi ban đầu có dưới 3 liên kết va chạm do mô hình tự tạo",
+        "fewer than 3 model-produced argument breakdowns":
+          "phản hồi ban đầu có dưới 3 phần bóc tách luận điểm do mô hình tự tạo",
+        "annotation fallback was needed":
+          "hệ thống phải tự bổ sung một phần chú thích vì mô hình neo dẫn chứng chưa đủ chắc",
+        "stt uncertainty remains in judge transcript":
+          "bản chép lời vẫn có tín hiệu không chắc chắn từ STT",
+        "missing impact weighing":
+          "bài nói chưa cân tác động đủ rõ",
+        "missing clash response coverage":
+          "bài nói chưa trả lời đủ trực tiếp các trục va chạm",
+        "shallow argument coverage":
+          "phần bóc tách luận điểm còn mỏng",
+      }[reason] ?? reason
+    );
   });
   const capNote = vi
-    ? `Điểm được giới hạn vì phản hồi chiến lược ban đầu còn thiếu độ phủ: ${readableReasons.join("; ")}.`
-    : `Score capped because the initial strategic feedback lacked coverage: ${readableReasons.join("; ")}.`;
+    ? `Điểm được giới hạn mềm vì: ${readableReasons.join("; ")}.`
+    : `Score softly capped because: ${readableReasons.join("; ")}.`;
   feedback.scoreRationale = {
     overall: `${feedback.scoreRationale?.overall ?? feedback.summary} ${capNote}`.trim(),
     content: {
@@ -1136,7 +1145,114 @@ function applyScoreCap(
     },
   };
 
+  const previousCalibration = feedback.scoreCalibrationMetadata;
+  const mergedReasons = Array.from(
+    new Set([...(previousCalibration?.scoreCapReasons ?? []), ...reasons])
+  );
+  const originalScoreBefore = previousCalibration?.scoreBefore ?? scoreBefore;
+  feedback.scoreCalibrationMetadata = {
+    scoreCapApplied: true,
+    scoreBefore: originalScoreBefore,
+    scoreAfter: feedback.totalScore,
+    scoreDelta: feedback.totalScore - originalScoreBefore,
+    scoreCapReasons: mergedReasons,
+  };
+
   return true;
+}
+
+function hasImpactWeighingSignal(feedback: DebateScore) {
+  const prose = [
+    feedback.weighingFeedback,
+    feedback.clashFeedback,
+    feedback.scoreRationale?.persuasion?.rationale,
+    feedback.scoreRationale?.persuasion?.whyNotHigher,
+    ...(feedback.improvements ?? []),
+    ...(feedback.missingLayers ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const annotationSignal = (feedback.transcriptAnnotations ?? []).some(
+    (annotation) => annotation.tag === "impact" || annotation.tag === "weighing"
+  );
+  const clashSignal = (feedback.clashLinks ?? []).some(
+    (clash) => clash.outcome === "weighed" || clash.tag === "weighing"
+  );
+  return (
+    annotationSignal ||
+    clashSignal ||
+    /(impact|weigh|weighing|tác động|cân|so sánh|quy mô|xác suất|mức độ nghiêm trọng)/i.test(
+      prose
+    )
+  );
+}
+
+function hasClashResponseCoverage(feedback: DebateScore) {
+  const clashLinks = feedback.clashLinks ?? [];
+  if (clashLinks.length === 0) return false;
+  return clashLinks.some((clash) =>
+    ["answered", "turned", "weighed"].includes(clash.outcome)
+  );
+}
+
+function applyVietnameseDebateSoftCaps(
+  feedback: DebateScore,
+  params: {
+    practiceTrack?: PracticeTrack;
+    practiceLanguage?: PracticeLanguage;
+    transcription?: PracticeTranscriptionArtifact | null;
+  }
+) {
+  if (params.practiceTrack === "speaking" || params.practiceLanguage !== "vi") {
+    return;
+  }
+
+  const warnings = new Set<string>(params.transcription?.warnings ?? []);
+  const reasons: string[] = [];
+  let scoreCap = 100;
+
+  if (
+    [
+      "low_confidence",
+      "possible_stt_artifacts",
+      "fallback_transcript_used",
+      "provider_disagreement",
+      "repair_uncertain",
+      "repair_hallucination_risk",
+    ].some((warning) => warnings.has(warning))
+  ) {
+    scoreCap = Math.min(scoreCap, 76);
+    reasons.push("stt uncertainty remains in judge transcript");
+  }
+
+  if (
+    feedback.persuasion.impactfulness <= 3 ||
+    (feedback.persuasion.score <= 6 && !hasImpactWeighingSignal(feedback))
+  ) {
+    scoreCap = Math.min(scoreCap, 72);
+    reasons.push("missing impact weighing");
+  }
+
+  if (
+    feedback.content.counterArgument <= 6 &&
+    !hasClashResponseCoverage(feedback)
+  ) {
+    scoreCap = Math.min(scoreCap, 74);
+    reasons.push("missing clash response coverage");
+  }
+
+  if (
+    (feedback.argumentBreakdowns?.length ?? 0) < 2 &&
+    (feedback.transcriptAnnotations?.length ?? 0) < 2
+  ) {
+    scoreCap = Math.min(scoreCap, 74);
+    reasons.push("shallow argument coverage");
+  }
+
+  if (reasons.length > 0) {
+    applyScoreCap(feedback, scoreCap, reasons, params);
+  }
 }
 
 function completeStagedFeedbackDepth(
@@ -2014,6 +2130,7 @@ function normalizeDebateScore(
     rounds?: DebateRound[];
     isFullRound?: boolean;
     actualDuration?: number;
+    transcription?: PracticeTranscriptionArtifact | null;
   }
 ) {
   clampSectionScores(parsed);
@@ -2042,6 +2159,7 @@ function normalizeDebateScore(
   parsed.debateVerdict = normalizeDebateVerdict(parsed.debateVerdict) ?? undefined;
   parsed.clashLinks = normalizeDebateClashLinks(parsed.clashLinks);
   parsed.scoreRationale = normalizeScoreRationale(parsed.scoreRationale, parsed);
+  applyVietnameseDebateSoftCaps(parsed, params);
   return parsed;
 }
 

@@ -7,27 +7,43 @@ import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  BadgeCheck,
-  Check,
-  Copy,
-  Gift,
-  Share2,
-  UserPlus,
-} from "@/components/ui/icons";
+import { Check, Copy } from "@/components/ui/icons";
 
 const CREDIT_ICON_SRC = "/images/rewards/credits-coin.webp";
+const SHARE_ILLUSTRATION_SRC = "/images/smart-popups/share-thinkfy.webp";
 
 interface ReferralCreditsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   referralCode: string | null;
   inviteReward: number;
+}
+
+function FacebookGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor" aria-hidden="true">
+      <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.5-3.91 3.78-3.91 1.09 0 2.24.2 2.24.2v2.47H15.2c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.91h-2.33V22c4.78-.76 8.43-4.92 8.43-9.94Z" />
+    </svg>
+  );
+}
+
+function XGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+      <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z" />
+    </svg>
+  );
+}
+
+function openSharePopup(url: string) {
+  window.open(
+    url,
+    "thinkfy-share",
+    "noopener,noreferrer,width=600,height=560,left=120,top=120"
+  );
 }
 
 export function ReferralCreditsDialog({
@@ -38,6 +54,7 @@ export function ReferralCreditsDialog({
 }: ReferralCreditsDialogProps) {
   const t = useTranslations("dashboard.home.referral_dialog");
   const [copied, setCopied] = useState(false);
+  const [illustrationMissing, setIllustrationMissing] = useState(false);
 
   const referralPath = referralCode ? `/join/${referralCode}` : "";
 
@@ -82,23 +99,21 @@ export function ReferralCreditsDialog({
     window.setTimeout(() => setCopied(false), 2000);
   };
 
-  const steps = [
-    {
-      icon: Share2,
-      title: t("step_share_title"),
-      body: t("step_share_body"),
-    },
-    {
-      icon: UserPlus,
-      title: t("step_signup_title"),
-      body: t("step_signup_body"),
-    },
-    {
-      icon: BadgeCheck,
-      title: t("step_reward_title", { count: inviteReward }),
-      body: t("step_reward_body", { count: inviteReward }),
-    },
-  ];
+  const shareOnFacebook = () => {
+    if (!referralCode) return;
+    openSharePopup(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getReferralLink())}`
+    );
+  };
+
+  const shareOnX = () => {
+    if (!referralCode) return;
+    const params = new URLSearchParams({
+      text: t("share_text", { count: inviteReward }),
+      url: getReferralLink(),
+    });
+    openSharePopup(`https://twitter.com/intent/tweet?${params.toString()}`);
+  };
 
   return (
     <Dialog
@@ -111,91 +126,116 @@ export function ReferralCreditsDialog({
       <DialogContent
         data-testid="referral-credits-dialog"
         overlayClassName="bg-inverse-surface/55 backdrop-blur-sm"
-        className="max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[35rem] overflow-hidden rounded-[1.35rem] border-0 bg-surface-container-lowest p-0 shadow-2xl ring-1 ring-outline-variant/20 sm:rounded-[1.5rem]"
+        className="max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[26.5rem] overflow-hidden rounded-[28px] border-0 bg-surface-container-lowest p-0 shadow-2xl ring-1 ring-outline-variant/20"
       >
-        <div className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto p-4 sm:p-5">
-          <div className="relative overflow-hidden rounded-[1.1rem] bg-[linear-gradient(135deg,var(--color-surface-container-lowest)_0%,var(--color-surface-container-low)_58%,var(--color-reward-container)_100%)] px-5 py-6 sm:px-6">
-            <div className="relative z-10 max-w-[17rem] pr-6">
-              <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-lowest/90 px-3 py-1.5 text-sm font-bold text-on-surface shadow-token-card">
-                <Gift className="h-4 w-4 text-warning" />
-                {t("reward_label", { count: inviteReward })}
+        <div className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto px-6 pb-7 pt-9 text-center sm:px-8">
+          <div className="relative mx-auto h-[150px] w-[190px]">
+            {illustrationMissing ? (
+              <span className="flex h-full items-center justify-center">
+                <Image
+                  src={CREDIT_ICON_SRC}
+                  alt=""
+                  width={128}
+                  height={128}
+                  className="size-28 object-contain drop-shadow-lg"
+                  loading="eager"
+                  unoptimized
+                  aria-hidden="true"
+                />
               </span>
-              <DialogHeader className="mt-12 gap-1.5 sm:mt-14">
-                <DialogTitle className="text-3xl font-black leading-tight tracking-normal text-on-surface sm:text-4xl">
-                  {t("title")}
-                </DialogTitle>
-                <DialogDescription className="max-w-sm text-base leading-6 text-on-surface-variant">
-                  {t("description", { count: inviteReward })}
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="absolute right-4 top-8 flex h-32 w-32 items-center justify-center rounded-[1.35rem] bg-primary-container/70 sm:right-6 sm:h-36 sm:w-36">
+            ) : (
               <Image
-                src={CREDIT_ICON_SRC}
+                src={SHARE_ILLUSTRATION_SRC}
                 alt=""
-                width={128}
-                height={128}
-                className="h-24 w-24 rotate-6 object-contain drop-shadow-lg sm:h-28 sm:w-28"
-                loading="eager"
+                fill
+                sizes="190px"
+                className="object-contain"
+                priority
                 unoptimized
                 aria-hidden="true"
+                onError={() => setIllustrationMissing(true)}
               />
-            </div>
+            )}
           </div>
 
-          <div className="mt-5 space-y-3">
-            <p className="text-sm font-semibold text-on-surface">
-              {t("how_it_works")}
-            </p>
-            {steps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.title} className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-container-low text-primary">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-on-surface">
-                      {step.title}
-                    </p>
-                    <p className="text-sm leading-5 text-on-surface-variant">
-                      {step.body}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DialogTitle className="mt-5 text-[1.7rem] font-black leading-tight tracking-normal text-on-surface">
+            {t("title")}
+          </DialogTitle>
 
-          <div className="mt-5">
+          <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-reward-container px-4 py-2">
+            <Image
+              src={CREDIT_ICON_SRC}
+              alt=""
+              width={40}
+              height={40}
+              className="size-6 shrink-0 object-contain"
+              loading="eager"
+              unoptimized
+              aria-hidden="true"
+            />
+            <span className="text-[15px] font-extrabold tabular-nums text-[#102936]">
+              {t("reward_label", { count: inviteReward })}
+            </span>
+          </span>
+
+          <p className="mx-auto mt-3 max-w-[19rem] text-sm leading-6 text-on-surface-variant">
+            {t("description", { count: inviteReward })}
+          </p>
+
+          <div className="mt-7">
             {referralCode ? (
-              <div className="flex items-center gap-2 rounded-[1rem] bg-surface-container-low p-2">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-container-lowest text-primary">
-                  <Copy className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-on-surface">
-                  {getReferralLink()}
+              <>
+                <div className="flex items-center gap-2 rounded-2xl border border-outline-variant bg-surface-container p-1.5 pl-4">
+                  <div className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-on-surface">
+                    {getReferralLink()}
+                  </div>
+                  <Button
+                    type="button"
+                    data-testid="referral-copy-button"
+                    aria-label={copied ? t("copied") : t("copy")}
+                    onClick={copyReferralLink}
+                    className="h-10 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-bold"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="size-4" />
+                        {t("copied")}
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-4" />
+                        {t("copy_short")}
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  data-testid="referral-copy-button"
-                  aria-label={copied ? t("copied") : t("copy")}
-                  onClick={copyReferralLink}
-                  className="h-10 shrink-0 gap-2 rounded-xl bg-on-surface px-4 text-surface shadow-none hover:bg-on-surface/90"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      {t("copied")}
-                    </>
-                  ) : (
-                    t("copy_short")
-                  )}
-                </Button>
-              </div>
+
+                <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+                  {t("share_on")}
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    data-testid="referral-share-facebook"
+                    onClick={shareOnFacebook}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest text-sm font-bold text-[#1877F2] transition-all hover:border-[#1877F2]/40 hover:bg-[#1877F2]/[0.06] active:scale-[0.97]"
+                  >
+                    <FacebookGlyph />
+                    Facebook
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="referral-share-x"
+                    onClick={shareOnX}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest text-sm font-bold text-on-surface transition-all hover:border-on-surface/30 hover:bg-surface-container active:scale-[0.97]"
+                  >
+                    <XGlyph />
+                    X
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="rounded-[1rem] border border-dashed border-outline-variant/35 bg-surface-container-low px-4 py-3 text-sm leading-5 text-on-surface-variant">
+              <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container px-4 py-3 text-sm leading-5 text-on-surface-variant">
                 {t("pending_body")}
               </div>
             )}

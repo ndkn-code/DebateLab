@@ -87,7 +87,7 @@ export function SmartPopupFrame({
         data-smart-popup-frame
         portalContainer={portalContainer}
         className={cn(
-          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-4rem)] max-w-[calc(100vw-4rem)] overflow-hidden rounded-[28px] border border-outline-variant bg-white p-0 text-on-surface-variant shadow-token-card sm:w-[600px] sm:max-w-[600px]",
+          "max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-2.5rem)] max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-[28px] border-0 bg-surface-container-lowest p-0 text-on-surface-variant shadow-2xl ring-1 ring-outline-variant/20 sm:w-[480px] sm:max-w-[480px]",
           placement === "top" &&
             "top-4 translate-y-0 sm:top-[7vh] sm:max-h-[calc(100dvh-14vh)]"
         )}
@@ -96,14 +96,14 @@ export function SmartPopupFrame({
           type="button"
           data-smart-popup-close
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-white/95 text-on-surface-variant shadow-token-card transition hover:bg-surface-container hover:text-on-surface-variant"
+          className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-surface-container/80 text-on-surface-variant transition-all hover:bg-surface-container hover:text-on-surface active:scale-90"
         >
-          <X className="h-5 w-5" />
+          <X className="size-[18px]" />
           <span className="sr-only">{closeLabel}</span>
         </button>
         <div
           className={cn(
-            "max-h-[calc(100dvh-1.5rem)] overflow-y-auto px-5 pb-5 pt-7 sm:px-14 sm:pb-8 sm:pt-9",
+            "max-h-[calc(100dvh-1.5rem)] overflow-y-auto px-6 pb-7 pt-9 sm:px-8",
             placement === "top" && "sm:max-h-[calc(100dvh-14vh)]"
           )}
         >
@@ -159,16 +159,16 @@ export function SmartPopupActions({
   onSecondary,
 }: SmartPopupActionsProps) {
   return (
-    <div className="mx-auto mt-5 flex max-w-[440px] flex-col gap-3 sm:mt-6">
+    <div className="mt-7 flex flex-col gap-2">
       <Button
         type="button"
         disabled={disabled}
         data-smart-popup-primary
         onClick={onPrimary}
-        className="h-14 justify-center gap-3 rounded-[18px] bg-primary text-base font-extrabold text-white shadow-token-card hover:bg-primary-dim active:translate-y-0.5 active:shadow-token-card"
+        className="h-12 justify-center gap-2 rounded-2xl text-base font-bold"
       >
         {primaryLabel}
-        {primaryIcon ?? <ArrowRight className="h-5 w-5" />}
+        {primaryIcon ?? <ArrowRight className="size-[18px]" />}
       </Button>
       <Button
         type="button"
@@ -176,7 +176,7 @@ export function SmartPopupActions({
         disabled={disabled}
         data-smart-popup-secondary
         onClick={onSecondary}
-        className="h-11 rounded-[18px] text-sm font-extrabold text-primary hover:bg-primary-container hover:text-primary"
+        className="h-11 rounded-2xl text-sm font-bold text-primary"
       >
         {secondaryLabel}
       </Button>
@@ -184,29 +184,28 @@ export function SmartPopupActions({
   );
 }
 
+const FALLBACK_ILLUSTRATION_SRC = "/images/smart-popups/first-practice.webp";
+
 export function SmartPopupIllustration({
   src,
   alt,
-  tone = "default",
 }: {
   src: string;
   alt: string;
   tone?: "default" | "reward";
 }) {
+  const [failed, setFailed] = useState(false);
+
   return (
-    <div
-      className={cn(
-        "relative mx-auto mb-4 h-[132px] w-[172px] overflow-hidden rounded-[22px] sm:mb-5 sm:h-[150px] sm:w-[196px]",
-        tone === "reward" ? "bg-warning/10" : "bg-primary-container/70"
-      )}
-    >
+    <div className="relative mx-auto h-[170px] w-[220px] overflow-hidden rounded-[24px] sm:h-[190px] sm:w-[245px]">
       <Image
-        src={src}
+        src={failed ? FALLBACK_ILLUSTRATION_SRC : src}
         alt={alt}
         fill
-        sizes="196px"
-        className="object-contain p-1.5"
+        sizes="245px"
+        className="object-contain"
         priority
+        onError={() => setFailed(true)}
       />
     </div>
   );
@@ -230,11 +229,11 @@ export function FeatureNudgePopup({
   return (
     <div className="text-center">
       <SmartPopupIllustration src={popup.imageSrc} alt={popup.imageAlt} />
-      <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
+      <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.6rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.75rem]">
         {popup.title}
       </DialogTitle>
       {ctaError ? (
-        <div className="mx-auto mt-4 max-w-[420px] rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant">
+        <div className="mx-auto mt-4 rounded-2xl bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant">
           {ctaError}
         </div>
       ) : null}
@@ -287,12 +286,12 @@ export function SurveyPopup({
           alt={popup.imageAlt}
           tone="reward"
         />
-        <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[1.9rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.05rem]">
+        <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.5rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.6rem]">
           {popup.title}
         </DialogTitle>
       </div>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-7 space-y-5">
         {survey.questions.map((question, index) => (
           <div key={question.id} className="space-y-2">
             <div>
@@ -314,7 +313,7 @@ export function SurveyPopup({
       {submitError ? (
         <div
           data-smart-popup-error
-          className="mt-4 rounded-xl border border-outline-variant bg-surface-container px-3 py-2 text-sm font-semibold text-on-surface-variant"
+          className="mt-4 rounded-2xl bg-[#FFEAEA] px-4 py-2.5 text-sm font-semibold text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]"
         >
           {submitError}
         </div>
@@ -344,22 +343,42 @@ interface SurveyThankYouProps {
   onDone: () => void;
 }
 
+const CELEBRATION_IMAGE_SRC = "/images/rewards/win-celebration.webp";
+
 export function SurveyThankYou({
   title,
   doneLabel = "Done",
   onDone,
 }: SurveyThankYouProps) {
+  const [imageMissing, setImageMissing] = useState(false);
+
   return (
     <div className="text-center">
-      <CelebrationCluster tone="reward" />
-      <DialogTitle className="mx-auto mt-6 max-w-[520px] text-[2rem] font-extrabold leading-[1.08] tracking-normal text-on-surface sm:text-[2.125rem]">
+      {imageMissing ? (
+        <CelebrationCluster tone="reward" />
+      ) : (
+        <div className="relative mx-auto h-[160px] w-[200px]">
+          <Image
+            src={CELEBRATION_IMAGE_SRC}
+            alt=""
+            fill
+            sizes="200px"
+            className="object-contain"
+            priority
+            unoptimized
+            aria-hidden="true"
+            onError={() => setImageMissing(true)}
+          />
+        </div>
+      )}
+      <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.6rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.75rem]">
         {title}
       </DialogTitle>
       <Button
         type="button"
         data-smart-popup-primary
         onClick={onDone}
-        className="mt-6 h-14 w-full justify-center rounded-[18px] bg-primary text-base font-extrabold text-white shadow-token-card hover:bg-primary-dim"
+        className="mt-7 h-12 w-full justify-center rounded-2xl text-base font-bold"
       >
         {doneLabel}
       </Button>
@@ -672,8 +691,13 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
       const max = question.max ?? (question.type === "nps" ? 10 : 5);
       const values = Array.from({ length: max - min + 1 }, (_, index) => min + index);
       return (
-        <div className="space-y-3">
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
+        <div className="space-y-2.5">
+          <div
+            className={cn(
+              "grid gap-2",
+              values.length <= 5 ? "grid-cols-5" : "grid-cols-6"
+            )}
+          >
             {values.map((rating) => {
               const selected = value === rating;
               return (
@@ -682,10 +706,10 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
                   type="button"
                   onClick={() => setAnswer(question.id, rating)}
                   className={cn(
-                    "flex h-10 items-center justify-center rounded-lg border text-sm font-extrabold transition",
+                    "flex h-11 items-center justify-center rounded-xl border text-sm font-extrabold tabular-nums transition-all active:scale-95",
                     selected
-                      ? "border-primary bg-primary text-white shadow-sm"
-                      : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:bg-background"
+                      ? "border-primary bg-primary text-on-primary shadow-token-primary"
+                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/40 hover:text-on-surface"
                   )}
                 >
                   {rating}
@@ -726,14 +750,14 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
                   );
                 }}
                 className={cn(
-                  "flex min-h-11 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition",
+                  "flex min-h-12 items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm font-semibold transition-all active:scale-[0.98]",
                   active
-                    ? "border-primary bg-primary-container text-on-surface"
-                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed"
+                    ? "border-primary/45 bg-primary/[0.06] text-on-surface"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/40 hover:text-on-surface"
                 )}
               >
                 <span>{option.label}</span>
-                {active ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
+                {active ? <CheckCircle2 className="size-[18px] text-primary" /> : null}
               </button>
             );
           })}
@@ -746,7 +770,7 @@ export function SmartPopupHost({ paused = false }: SmartPopupHostProps) {
         value={typeof value === "string" ? value : ""}
         onChange={(event) => setAnswer(question.id, event.target.value)}
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
+        className="min-h-24 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm text-on-surface outline-none transition placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
       />
     );
   }

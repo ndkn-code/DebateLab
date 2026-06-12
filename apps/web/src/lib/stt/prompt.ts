@@ -16,6 +16,30 @@ export function createTranscriptionQualityMetadata(
     confidence: transcription.confidence,
     wordCount: transcription.wordCount,
     warnings: transcription.warnings,
+    hasJudgeTranscript: Boolean(transcription.judgeTranscript),
+    rawTranscriptPreview:
+      transcription.rawTranscript?.trim().slice(0, 1200) ??
+      transcription.transcript.trim().slice(0, 1200),
+    judgeTranscriptPreview:
+      transcription.judgeTranscript?.trim().slice(0, 1200) ?? null,
+    repair: transcription.repair
+      ? {
+          version: transcription.repair.version,
+          provider: transcription.repair.provider,
+          model: transcription.repair.model,
+          status: transcription.repair.status,
+          mode: transcription.repair.mode,
+          latencyMs: transcription.repair.latencyMs,
+          rawTranscriptHash: transcription.repair.rawTranscriptHash,
+          editCount: transcription.repair.edits.length,
+          uncertainSpanCount: transcription.repair.uncertainSpans.length,
+          warnings: transcription.repair.warnings,
+          hallucinationRisk: transcription.repair.hallucinationRisk,
+          repairedAt: transcription.repair.repairedAt,
+          edits: transcription.repair.edits.slice(0, 24),
+          uncertainSpans: transcription.repair.uncertainSpans.slice(0, 16),
+        }
+      : null,
     sttSelectedProvider: selectedAlternative?.provider ?? transcription.provider,
     sttShadowProvider: shadowAlternative?.provider ?? null,
     sttShadowRejectedReason:

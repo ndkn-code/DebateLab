@@ -6,6 +6,12 @@ import {
 import { appendDeepgramKeyterms, buildSttKeyterms } from "./keyterms";
 import { normalizeTranscriptionText } from "./normalization";
 import { buildSttJudgeGuardrailBlock } from "./prompt";
+import {
+  computeCharacterErrorRate,
+  computeTermErrorRate,
+  computeWordErrorRate,
+  evaluateTranscriptLegitimacy,
+} from "./evaluation";
 import { parsePracticeAnalysisInput } from "@/lib/practice-analysis/request";
 
 const keyterms = buildSttKeyterms({
@@ -79,6 +85,7 @@ const input = parsePracticeAnalysisInput({
   topicDifficulty: "intermediate",
   transcription: {
     transcript: normalized.normalizedTranscript,
+    judgeTranscript: "ECOWAS và AES tạo clash chính rõ hơn.",
     rawTranscript: "SCOWS và a e s",
     confidence: null,
     wordCount: normalized.wordCount,
@@ -88,6 +95,28 @@ const input = parsePracticeAnalysisInput({
     language: "vi",
     warnings: normalized.warnings,
     normalizationHints: normalized.normalizationHints,
+    repair: {
+      version: 1,
+      provider: "google",
+      model: "gemini-2.5-flash-lite",
+      status: "repaired",
+      mode: "shadow",
+      latencyMs: 1200,
+      rawTranscriptHash: "hash",
+      edits: [
+        {
+          raw: "SCOWS",
+          repaired: "ECOWAS",
+          category: "proper_noun",
+          reason: "Motion acronym supported by topic.",
+          confidence: 0.97,
+        },
+      ],
+      uncertainSpans: [],
+      warnings: [],
+      hallucinationRisk: 0,
+      repairedAt: "2026-05-25T00:00:00.000Z",
+    },
     audioBucket: "practice-audio",
     audioStoragePath: "11111111-1111-4111-8111-111111111111/test/source.webm",
     durationSeconds: 60,
@@ -96,6 +125,9 @@ const input = parsePracticeAnalysisInput({
 });
 assert.equal(input.transcription?.provider, "deepgram_groq_shadow");
 assert.equal(input.transcription?.normalizationHints?.[0]?.normalized, "ECOWAS");
+assert.equal(input.transcription?.judgeTranscript, "ECOWAS và AES tạo clash chính rõ hơn.");
+assert.equal(input.transcription?.repair?.status, "repaired");
+assert.equal(input.transcription?.repair?.edits[0]?.category, "proper_noun");
 
 const deepgramReference =
   "ECOWAS cần cân nhắc tác động lên Nigeria Ghana Mali và Burkina Faso trước khi phản biện AES trong clash chính của vòng tranh biện này";
@@ -118,5 +150,49 @@ assert.ok(
   collapsedQuality.qualityFlags.includes("groq_high_one_letter_token_ratio") ||
     collapsedQuality.qualityFlags.includes("groq_collapsed_consonant_fragments")
 );
+
+assert.equal(
+  computeWordErrorRate(
+    "ECOWAS cần impact weighing trong clash chính",
+    "ECOWAS cần impact trong clash chính"
+  ),
+  1 / 7
+);
+assert.ok(
+  computeCharacterErrorRate("ECOWAS cân tác động", "ECOWAS cân tac dong") > 0
+);
+const termMetrics = computeTermErrorRate(
+  "ECOWAS cần phản biện AES trong clash chính",
+  "ECOWAS cần phản biện trong clash chính",
+  ["ECOWAS", "AES", "clash"]
+);
+assert.equal(termMetrics.recall, 2 / 3);
+assert.equal(termMetrics.precision, 1);
+
+assert.equal(
+  evaluateTranscriptLegitimacy({
+    topic: "ECOWAS và AES",
+    side: "proposition",
+    transcript:
+      "ECOWAS cần cân tác động lên Nigeria Ghana Mali và Burkina Faso trước khi phản biện AES trong clash chính. " +
+      "Phe ủng hộ phải chứng minh cơ chế can thiệp tạo ổn định khu vực thay vì làm xung đột leo thang. " +
+      "Phe phản đối có thể nói rằng chủ quyền và chi phí quân sự khiến chính sách này không khả thi trong thực tế.",
+    durationSeconds: 60,
+    audioBacked: true,
+    audioExists: true,
+  }).legit,
+  true
+);
+const fakeTranscript = evaluateTranscriptLegitimacy({
+  topic: "",
+  side: "proposition",
+  transcript: "test test test",
+  durationSeconds: null,
+  audioBacked: true,
+  audioExists: false,
+});
+assert.equal(fakeTranscript.legit, false);
+assert.ok(fakeTranscript.reasons.includes("placeholder_text"));
+assert.ok(fakeTranscript.reasons.includes("missing_audio_object"));
 
 console.log("stt utilities passed");

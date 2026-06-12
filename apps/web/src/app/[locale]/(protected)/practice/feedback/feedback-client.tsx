@@ -113,6 +113,7 @@ async function uploadPracticeAudio(params: {
 async function finalizePracticeTranscription(params: {
   audio: NonNullable<Awaited<ReturnType<typeof uploadPracticeAudio>>>;
   practiceLanguage: "en" | "vi";
+  practiceTrack: "speaking" | "debate";
   durationSeconds: number;
   topic: string;
   side: "proposition" | "opposition";
@@ -131,6 +132,7 @@ async function finalizePracticeTranscription(params: {
       byteSize: params.audio.byteSize,
       durationSeconds: Math.max(1, params.durationSeconds),
       practiceLanguage: params.practiceLanguage,
+      practiceTrack: params.practiceTrack,
       topic: params.topic,
       side: params.side,
       motionBrief: params.motionBrief,
@@ -284,6 +286,7 @@ export default function FeedbackPage() {
         transcription = await finalizePracticeTranscription({
           audio: uploadedAudio,
           practiceLanguage,
+          practiceTrack,
           durationSeconds: actualDuration,
           topic: selectedTopic.title,
           side: resolvedSide,

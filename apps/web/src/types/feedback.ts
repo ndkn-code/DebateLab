@@ -99,6 +99,14 @@ export interface ScoreRationale {
   persuasion: ScoreRationaleCategory;
 }
 
+export interface ScoreCalibrationMetadata {
+  scoreCapApplied: boolean;
+  scoreBefore: number;
+  scoreAfter: number;
+  scoreDelta: number;
+  scoreCapReasons: string[];
+}
+
 export interface DebateScore {
   content: {
     score: number;
@@ -149,6 +157,7 @@ export interface DebateScore {
   debateVerdict?: DebateVerdict;
   clashLinks?: DebateClashLink[];
   scoreRationale?: ScoreRationale;
+  scoreCalibrationMetadata?: ScoreCalibrationMetadata;
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;

@@ -17,6 +17,9 @@ import type {
   PracticeTranscriptionArtifact,
   PracticeTranscriptionNormalizationHint,
   PracticeTranscriptionProvider,
+  PracticeTranscriptionRepairArtifact,
+  PracticeTranscriptionRepairEdit,
+  PracticeTranscriptionUncertainSpan,
   PracticeTranscriptionWarning,
 } from "@thinkfy/shared/practice";
 
@@ -173,6 +176,9 @@ const TRANSCRIPTION_WARNINGS = new Set<PracticeTranscriptionWarning>([
   "fallback_transcript_used",
   "groq_unavailable",
   "provider_disagreement",
+  "repair_skipped",
+  "repair_uncertain",
+  "repair_hallucination_risk",
 ]);
 
 function clampConfidence(value: unknown) {
@@ -227,6 +233,115 @@ function parseNormalizationHint(value: unknown): PracticeTranscriptionNormalizat
   };
 }
 
+function parseRepairEdit(value: unknown): PracticeTranscriptionRepairEdit | null {
+  if (!isPlainRecord(value)) return null;
+  const raw = typeof value.raw === "string" ? value.raw.trim().slice(0, 240) : "";
+  const repaired =
+    typeof value.repaired === "string" ? value.repaired.trim().slice(0, 240) : "";
+  const reason =
+    typeof value.reason === "string"
+      ? value.reason.trim().slice(0, 320)
+      : "Conservative STT repair.";
+  const allowedCategories: PracticeTranscriptionRepairEdit["category"][] = [
+    "debate_keyterm",
+    "proper_noun",
+    "spacing",
+    "casing",
+    "filler",
+    "false_start",
+    "punctuation",
+  ];
+  const category = allowedCategories.includes(
+    value.category as PracticeTranscriptionRepairEdit["category"]
+  )
+    ? (value.category as PracticeTranscriptionRepairEdit["category"])
+    : "punctuation";
+  if (!raw || !repaired) return null;
+  return {
+    raw,
+    repaired,
+    reason,
+    category,
+    confidence:
+      typeof value.confidence === "number" && Number.isFinite(value.confidence)
+        ? Math.max(0, Math.min(1, value.confidence))
+        : 0.5,
+  };
+}
+
+function parseUncertainSpan(value: unknown): PracticeTranscriptionUncertainSpan | null {
+  if (!isPlainRecord(value)) return null;
+  const text = typeof value.text === "string" ? value.text.trim().slice(0, 400) : "";
+  const reason =
+    typeof value.reason === "string"
+      ? value.reason.trim().slice(0, 320)
+      : "Transcript span remained uncertain.";
+  if (!text) return null;
+  return {
+    text,
+    reason,
+    confidence:
+      typeof value.confidence === "number" && Number.isFinite(value.confidence)
+        ? Math.max(0, Math.min(1, value.confidence))
+        : 0.4,
+  };
+}
+
+function parseRepairArtifact(value: unknown): PracticeTranscriptionRepairArtifact | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const statuses: PracticeTranscriptionRepairArtifact["status"][] = [
+    "not_attempted",
+    "skipped",
+    "repaired",
+    "uncertain",
+    "hallucination_risk",
+    "failed",
+  ];
+  const status = statuses.includes(value.status as PracticeTranscriptionRepairArtifact["status"])
+    ? (value.status as PracticeTranscriptionRepairArtifact["status"])
+    : "failed";
+  const warnings = Array.isArray(value.warnings)
+    ? value.warnings
+        .filter((item): item is PracticeTranscriptionWarning =>
+          typeof item === "string" && TRANSCRIPTION_WARNINGS.has(item as PracticeTranscriptionWarning)
+        )
+        .slice(0, 8)
+    : [];
+  return {
+    version:
+      typeof value.version === "number" && Number.isFinite(value.version)
+        ? Math.max(1, Math.round(value.version))
+        : 1,
+    provider: typeof value.provider === "string" ? value.provider.trim().slice(0, 80) : "unknown",
+    model: typeof value.model === "string" ? value.model.trim().slice(0, 120) : "unknown",
+    status,
+    mode: value.mode === "judge" ? "judge" : "shadow",
+    latencyMs:
+      typeof value.latencyMs === "number" && Number.isFinite(value.latencyMs)
+        ? Math.max(0, Math.round(value.latencyMs))
+        : 0,
+    rawTranscriptHash:
+      typeof value.rawTranscriptHash === "string"
+        ? value.rawTranscriptHash.trim().slice(0, 128)
+        : "",
+    edits: Array.isArray(value.edits)
+      ? value.edits.map(parseRepairEdit).filter((item): item is PracticeTranscriptionRepairEdit => item !== null).slice(0, 80)
+      : [],
+    uncertainSpans: Array.isArray(value.uncertainSpans)
+      ? value.uncertainSpans.map(parseUncertainSpan).filter((item): item is PracticeTranscriptionUncertainSpan => item !== null).slice(0, 40)
+      : [],
+    warnings,
+    hallucinationRisk:
+      typeof value.hallucinationRisk === "number" && Number.isFinite(value.hallucinationRisk)
+        ? Math.max(0, Math.min(1, value.hallucinationRisk))
+        : 0,
+    repairedAt:
+      typeof value.repairedAt === "string"
+        ? value.repairedAt.trim().slice(0, 80)
+        : new Date().toISOString(),
+  };
+}
+
 export function parseTranscriptionArtifact(value: unknown): PracticeTranscriptionArtifact | undefined {
   if (!isPlainRecord(value)) return undefined;
   const transcript = typeof value.transcript === "string" ? value.transcript.trim().slice(0, 45000) : "";
@@ -261,6 +376,10 @@ export function parseTranscriptionArtifact(value: unknown): PracticeTranscriptio
 
   return {
     transcript,
+    judgeTranscript:
+      typeof value.judgeTranscript === "string"
+        ? value.judgeTranscript.trim().slice(0, 45000)
+        : undefined,
     rawTranscript:
       typeof value.rawTranscript === "string"
         ? value.rawTranscript.trim().slice(0, 45000)
@@ -281,6 +400,7 @@ export function parseTranscriptionArtifact(value: unknown): PracticeTranscriptio
     warnings,
     alternatives,
     normalizationHints,
+    repair: parseRepairArtifact(value.repair),
     audioBucket: "practice-audio",
     audioStoragePath:
       typeof value.audioStoragePath === "string"

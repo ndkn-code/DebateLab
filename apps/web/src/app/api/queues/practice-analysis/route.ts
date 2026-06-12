@@ -10,6 +10,7 @@ import {
 } from "@/lib/practice-analysis/constants";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import { createScoreCalibrationMetadata } from "@/lib/ai/score-calibration";
 import {
   createDebateCorpusRetrievalMetadata,
   type DebateCorpusRetrievalCacheEntry,
@@ -33,6 +34,8 @@ import { getPracticeAnalysisRetryDecision } from "@/lib/practice-analysis/retry-
 import type { PracticeAnalysisQueueMessage } from "@/lib/practice-analysis/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
+import { selectTranscriptForJudging } from "@/lib/stt/repair";
+import { recordSttRepairShadowRun } from "@/lib/stt/shadow-runs";
 
 export const maxDuration = 60;
 
@@ -209,13 +212,26 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       }
       let corpusRetrievalCache =
         readCorpusRetrievalCache(job.result);
+      const judgingTranscript = selectTranscriptForJudging({
+        transcript: input.transcript,
+        transcription: input.transcription,
+        practiceLanguage: input.practiceLanguage,
+        practiceTrack: input.practiceTrack,
+      });
+      const shadowVariant =
+        input.transcription?.judgeTranscript &&
+        judgingTranscript === input.transcript
+          ? "repair_available_not_used"
+          : judgingTranscript !== input.transcript
+            ? "repair_used_for_judge"
+            : "baseline";
       const corpusRetrieval = await retrieveDebateCorpusContext({
         purpose: "judging",
         practiceLanguage: input.practiceLanguage,
         practiceTrack: input.practiceTrack,
         topic: input.topic,
         side: input.side,
-        transcript: input.transcript,
+        transcript: judgingTranscript,
         roundsText: input.rounds?.map(
           (round) => round.transcript || round.aiResponse || ""
         ),
@@ -248,6 +264,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       const feedback = await evaluatePracticeFeedback(
         {
           ...input,
+          transcript: judgingTranscript,
           corpusContext: corpusRetrieval.contextBlock,
         },
         attempt.user_id,
@@ -269,6 +286,10 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       const transcriptionMetadata = input.transcription
         ? createTranscriptionQualityMetadata(input.transcription)
         : null;
+      const scoreCalibration = createScoreCalibrationMetadata(
+        feedback,
+        aiQualityTelemetry
+      );
       const aiQualityRunId = aiQualityTelemetry
         ? await recordAiQualityRun(supabase, {
             ...aiQualityTelemetry,
@@ -302,6 +323,12 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
               transcription: transcriptionMetadata ?? undefined,
+              sttRepair: input.transcription?.repair ?? null,
+              shadowVariant,
+              scoreBefore: scoreCalibration.scoreBefore,
+              scoreAfter: scoreCalibration.scoreAfter,
+              scoreDelta: scoreCalibration.scoreDelta,
+              softCapReasons: scoreCalibration.softCapReasons,
               sttSelectedProvider:
                 transcriptionMetadata?.sttSelectedProvider ?? null,
               sttShadowProvider:
@@ -325,6 +352,36 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         aiQualityRunId,
         supabase
       );
+
+      await recordSttRepairShadowRun(supabase, {
+        userId: attempt.user_id,
+        sourceRoute: "/api/queues/practice-analysis",
+        transcription: input.transcription,
+        transcript: input.transcript,
+        feedback,
+        practiceAttemptId: attempt.id,
+        analysisJobId: job.id,
+        debateSessionId: savedSession.sessionId,
+        practiceTrack: attempt.practice_track,
+        practiceLanguage: attempt.practice_language,
+        topicTitle: attempt.topic_title,
+        side: attempt.side,
+        audioStoragePath:
+          attempt.audio_storage_path ??
+          input.audioStoragePath ??
+          input.transcription?.audioStoragePath ??
+          null,
+        scoreBefore: scoreCalibration.scoreBefore,
+        scoreAfter: scoreCalibration.scoreAfter,
+        softCapReasons: scoreCalibration.softCapReasons,
+        metrics: {
+          aiQualityRunId,
+          shadowVariant,
+          repairUsedForJudge: judgingTranscript !== input.transcript,
+          corpusRetrievalLogId: corpusRetrieval.logId,
+          queueMessageId: metadata.messageId,
+        },
+      });
 
       await markPracticeAnalysisCompleted(supabase, {
         attemptId: attempt.id,

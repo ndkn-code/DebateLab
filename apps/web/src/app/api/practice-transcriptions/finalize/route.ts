@@ -15,7 +15,7 @@ import { getSttConfig } from "@/lib/stt/config";
 import { transcribePracticeAudio } from "@/lib/stt/transcription";
 import { parseMotionBriefForStt } from "@/lib/stt/request";
 import { PRACTICE_AUDIO_BUCKET } from "@/lib/practice-analysis/constants";
-import type { PracticeLanguage } from "@/types";
+import type { PracticeLanguage, PracticeTrack } from "@/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,6 +30,7 @@ type FinalizeTranscriptionRequest = {
   byteSize: number;
   durationSeconds: number;
   practiceLanguage: PracticeLanguage;
+  practiceTrack?: PracticeTrack;
   topic?: string;
   side?: "proposition" | "opposition" | "random";
   motionBrief?: ReturnType<typeof parseMotionBriefForStt>;
@@ -81,6 +82,7 @@ function parseRequest(body: JsonRecord): FinalizeTranscriptionRequest {
       max: 7200,
     })!,
     practiceLanguage: language === "vi" ? "vi" : "en",
+    practiceTrack: body.practiceTrack === "speaking" ? "speaking" : "debate",
     topic: getString(body, "topic", { maxLength: 300 }),
     side:
       body.side === "proposition" ||
@@ -213,6 +215,7 @@ export async function POST(request: NextRequest) {
     audioBuffer: await audioBlob.arrayBuffer(),
     contentType: input.contentType,
     practiceLanguage: input.practiceLanguage,
+    practiceTrack: input.practiceTrack,
     audioBucket: input.bucket,
     audioStoragePath: input.path,
     durationSeconds: input.durationSeconds,

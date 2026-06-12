@@ -67,6 +67,16 @@ function getLocale(value: string | string[] | undefined): QaLocale {
   return locale === "vi" ? "vi" : "en";
 }
 
+const QA_STATE_IMAGES: Record<QaPopupState, string> = {
+  "weakest-skill": "/images/smart-popups/weakest-skill.webp",
+  "first-practice": "/images/smart-popups/first-practice.webp",
+  "resume-streak": "/images/smart-popups/resume-streak.webp",
+  course: "/images/smart-popups/try-courses.webp",
+  "ask-coach": "/images/smart-popups/ask-coach.webp",
+  "feedback-survey": "/images/smart-popups/feedback-survey.webp",
+  "thank-you": "/images/rewards/win-celebration.webp",
+};
+
 function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
   const vi = locale === "vi";
   const copy = {
@@ -161,7 +171,7 @@ function makePopup(state: QaPopupState, locale: QaLocale): SmartPopupPayload {
     dismissLabel: vi ? "Để sau" : "Later",
     dontShowAgainLabel: vi ? "Đừng hiện lại" : "Don't show again",
     ctaHref: copy.href,
-    imageSrc: "/images/smart-popups/popup-placeholder-v1.png",
+    imageSrc: QA_STATE_IMAGES[state],
     imageAlt: "Smart popup QA fixture",
     facts: [],
     priority: 1,

@@ -5,12 +5,13 @@ import type {
   PracticeTranscriptionArtifact,
   PracticeTranscriptionWarning,
 } from "@thinkfy/shared/practice";
-import type { MotionBrief, PracticeLanguage } from "@/types";
+import type { MotionBrief, PracticeLanguage, PracticeTrack } from "@/types";
 import { getPracticeLanguageConfig } from "@/lib/practice-language";
 import { STT_DEEPGRAM_MODEL, getSttConfig } from "./config";
 import { analyzeGroqTranscriptQuality, getSttWordCount } from "./consensus";
 import { appendDeepgramKeyterms, buildSttKeyterms } from "./keyterms";
 import { mergeWarnings, normalizeTranscriptionText } from "./normalization";
+import { repairJudgeTranscript } from "./repair";
 
 type DeepgramResponse = {
   metadata?: {
@@ -42,6 +43,7 @@ export type TranscribePracticeAudioInput = {
   audioBucket: "practice-audio";
   audioStoragePath: string;
   durationSeconds: number;
+  practiceTrack?: PracticeTrack;
   topic?: string | null;
   side?: "proposition" | "opposition" | "random" | null;
   motionBrief?: MotionBrief | null;
@@ -420,7 +422,7 @@ export async function transcribePracticeAudio(
       )
     );
 
-  return {
+  const baseTranscription: PracticeTranscriptionArtifact = {
     transcript: selectedTranscript,
     rawTranscript,
     normalizedTranscript:
@@ -440,5 +442,26 @@ export async function transcribePracticeAudio(
     audioStoragePath: input.audioStoragePath,
     durationSeconds: input.durationSeconds,
     transcribedAt: new Date().toISOString(),
+  };
+
+  const repairResult = await repairJudgeTranscript({
+    transcription: baseTranscription,
+    practiceLanguage: input.practiceLanguage,
+    practiceTrack: input.practiceTrack,
+    topic: input.topic,
+    side: input.side,
+    motionBrief: input.motionBrief,
+    prepNotes: input.prepNotes,
+    keyterms,
+  }).catch(() => null);
+
+  const repairWarnings = repairResult?.repair.warnings ?? [];
+  const judgeTranscript = repairResult?.judgeTranscript ?? undefined;
+
+  return {
+    ...baseTranscription,
+    judgeTranscript,
+    repair: repairResult?.repair,
+    warnings: mergeWarnings(baseTranscription.warnings, repairWarnings),
   };
 }

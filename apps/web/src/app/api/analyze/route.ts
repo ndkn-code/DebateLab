@@ -3,6 +3,7 @@ import { analyzeDebate } from "@/lib/gemini";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
+import { createScoreCalibrationMetadata } from "@/lib/ai/score-calibration";
 import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
@@ -22,6 +23,8 @@ import {
 } from "@/lib/practice-analysis/service";
 import { parseTranscriptionArtifact } from "@/lib/practice-analysis/request";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
+import { selectTranscriptForJudging } from "@/lib/stt/repair";
+import { recordSttRepairShadowRun } from "@/lib/stt/shadow-runs";
 import {
   getPracticeFeedbackModelProvider,
   getPracticeFeedbackModelName,
@@ -371,6 +374,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const judgingTranscript = selectTranscriptForJudging({
+      transcript,
+      transcription,
+      practiceLanguage,
+      practiceTrack: practiceTrack || "debate",
+    });
+    const shadowVariant =
+      transcription?.judgeTranscript && judgingTranscript === transcript
+        ? "repair_available_not_used"
+        : judgingTranscript !== transcript
+          ? "repair_used_for_judge"
+          : "baseline";
+
     const adminClient = tryCreateAdminClient();
     const writeClient = adminClient ?? supabase;
     let durableAnalysis:
@@ -424,7 +440,7 @@ export async function POST(req: NextRequest) {
       practiceTrack: practiceTrack || "debate",
       topic,
       side,
-      transcript,
+      transcript: judgingTranscript,
       roundsText: rounds?.map(
         (round) => round.transcript || round.aiResponse || ""
       ),
@@ -445,7 +461,7 @@ export async function POST(req: NextRequest) {
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await Promise.race([
         analyzeDebate({
-          transcript,
+          transcript: judgingTranscript,
           topic,
           side,
           speechType: speechType || "Opening Statement",
@@ -463,7 +479,11 @@ export async function POST(req: NextRequest) {
             sourceRoute: "/api/analyze",
             practiceAttemptId: durableAnalysis?.attempt.id,
             analysisJobId: durableAnalysis?.job.id,
-            metadata: { debugId: requestId },
+            metadata: {
+              debugId: requestId,
+              sttRepair: transcription?.repair ?? null,
+              shadowVariant,
+            },
           },
         }, authUser.id, (nextTelemetry) => {
           telemetry = nextTelemetry;
@@ -476,6 +496,10 @@ export async function POST(req: NextRequest) {
       const transcriptionMetadata = transcription
         ? createTranscriptionQualityMetadata(transcription)
         : null;
+      const scoreCalibration = createScoreCalibrationMetadata(
+        feedback,
+        aiQualityTelemetry
+      );
       const aiQualityRunId =
         shouldPersistAnalysis && aiQualityTelemetry
           ? await recordAiQualityRun(writeClient, {
@@ -519,6 +543,12 @@ export async function POST(req: NextRequest) {
                 annotationFallbackUsed:
                   feedback.annotationMetadata?.fallbackUsed ?? false,
                 transcription: transcriptionMetadata ?? undefined,
+                sttRepair: transcription?.repair ?? null,
+                shadowVariant,
+                scoreBefore: scoreCalibration.scoreBefore,
+                scoreAfter: scoreCalibration.scoreAfter,
+                scoreDelta: scoreCalibration.scoreDelta,
+                softCapReasons: scoreCalibration.softCapReasons,
                 sttSelectedProvider:
                   transcriptionMetadata?.sttSelectedProvider ?? null,
                 sttShadowProvider:
@@ -533,6 +563,35 @@ export async function POST(req: NextRequest) {
         aiQualityRunId,
         adminClient ?? undefined
       );
+      if (shouldPersistAnalysis) {
+        await recordSttRepairShadowRun(writeClient, {
+          userId: authUser.id,
+          sourceRoute: "/api/analyze",
+          transcription,
+          transcript,
+          feedback,
+          practiceAttemptId: durableAnalysis?.attempt.id ?? null,
+          analysisJobId: durableAnalysis?.job.id ?? null,
+          debateSessionId: null,
+          practiceTrack: practiceTrack || "debate",
+          practiceLanguage,
+          topicTitle: topic,
+          side,
+          audioStoragePath:
+            durableAnalysis?.attempt.audio_storage_path ??
+            transcription?.audioStoragePath ??
+            null,
+          scoreBefore: scoreCalibration.scoreBefore,
+          scoreAfter: scoreCalibration.scoreAfter,
+          softCapReasons: scoreCalibration.softCapReasons,
+          metrics: {
+            aiQualityRunId,
+            shadowVariant,
+            repairUsedForJudge: judgingTranscript !== transcript,
+            corpusRetrievalLogId: corpusRetrieval.logId,
+          },
+        });
+      }
       if (shouldPersistAnalysis) {
         await recordAnalyticsEvent(supabase, authUser.id, {
           eventName: "ai_feedback_completed",
