@@ -890,7 +890,7 @@ export function LeaderboardsPage({
 
           <h1
             data-testid="league-title"
-            className="mt-8 text-balance text-[32px] font-black leading-tight tracking-normal text-on-surface-variant sm:text-[40px]"
+            className="mt-8 text-balance type-heading-xl font-black text-on-surface-variant sm:type-display-sm"
           >
             {localizedLeague.name}
           </h1>

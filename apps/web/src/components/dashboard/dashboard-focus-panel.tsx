@@ -23,7 +23,7 @@ export function DashboardFocusPanel({
     >
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="type-eyebrow text-primary">
             {t("focus_eyebrow")}
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-on-surface">

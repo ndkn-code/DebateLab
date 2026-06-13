@@ -511,7 +511,7 @@ function ShowcaseToolbar({
                     <div className="mt-0.5 text-xl font-black leading-none text-on-surface">
                       {formatCount(total)}
                     </div>
-                    <div className="mt-1 truncate text-[11px] font-medium text-on-surface-variant">
+                    <div className="mt-1 truncate type-caption text-on-surface-variant">
                       {firstStatus
                         ? `${firstStatus.status}: ${formatCount(firstStatus.count)}`
                         : "No rows"}
@@ -703,7 +703,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
       <section className="mx-auto max-w-7xl rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-7">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 type-eyebrow text-primary">
               <Users className="h-3.5 w-3.5" />
               1v1 Debate
             </div>
@@ -718,15 +718,15 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[500px] xl:grid-cols-4">
             <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+              <div className="type-eyebrow text-on-surface-variant">
                 Share code
               </div>
-              <div className="mt-2 text-xl font-black tracking-[0.14em] text-on-surface">
+              <div className="mt-2 text-xl font-black text-on-surface">
                 {room.shareCode}
               </div>
             </div>
             <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+              <div className="type-eyebrow text-on-surface-variant">
                 Status
               </div>
               <div className={cn("mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold capitalize", statusTone)}>
@@ -734,7 +734,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
               </div>
             </div>
             <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+              <div className="type-eyebrow text-on-surface-variant">
                 Phase
               </div>
               <div className="mt-2 text-sm font-black capitalize text-on-surface">
@@ -742,7 +742,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
               </div>
             </div>
             <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+              <div className="type-eyebrow text-on-surface-variant">
                 Ready
               </div>
               <div className="mt-2 text-xl font-black text-on-surface">
@@ -756,7 +756,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
           <div className="rounded-[24px] border border-outline-variant/15 bg-surface-container-low p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface px-3 py-1 type-eyebrow text-primary">
                   <Scale className="h-3.5 w-3.5" />
                   {phaseLabel}
                 </div>
@@ -782,7 +782,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
                 </p>
               </div>
               <div className="rounded-[22px] border border-outline-variant/20 bg-surface px-5 py-4">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
+                <div className="type-eyebrow text-on-surface-variant">
                   {isJudging ? "Judge state" : "Timer"}
                 </div>
                 <div className="mt-2 text-4xl font-black text-on-surface">
@@ -817,7 +817,7 @@ function DuelRoomFixturePreview({ room }: { room: DebateDuelRoomView }) {
                           {participant ? getInitials(participant.displayName) : side[0]?.toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+                          <div className="type-eyebrow text-primary">
                             {side}
                           </div>
                           <div className="mt-1 text-base font-black text-on-surface">

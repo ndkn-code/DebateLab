@@ -9,6 +9,7 @@ import type { LandingLocale, LandingV3Copy } from "./copy";
 import { CheckIcon, StarIcon } from "./icons";
 import { Float, Sparkle } from "./motion-primitives";
 import { GhostButton, PrimaryButton } from "./ui";
+import { Display } from "@/components/ui/typography";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -118,17 +119,17 @@ export function HeroSection({
       className="relative overflow-hidden bg-[linear-gradient(180deg,#FFFFFF_0%,#F3FCFE_55%,#E5F8FC_100%)] px-6 pb-0 pt-32 md:px-8 md:pt-40"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
-        <h1 className="text-balance text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.03em] text-on-surface sm:text-[4.2rem] lg:text-[5rem]">
+        <Display size="xl">
           <HeadlineWords text={copy.hero.line1} />
           <br />
           <HeadlineWords text={copy.hero.line2.text} highlight={copy.hero.line2.highlight} startDelay={0.22} />
-        </h1>
+        </Display>
 
         <motion.p
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.5, ease: EASE_OUT }}
-          className="mt-7 max-w-[560px] text-pretty text-[1.08rem] leading-8 text-on-surface-variant sm:text-[1.18rem]"
+          className="mt-7 max-w-[560px] text-pretty type-body-lg text-on-surface-variant"
         >
           {copy.hero.description}
         </motion.p>
@@ -158,7 +159,7 @@ export function HeroSection({
               <span
                 key={avatar.label}
                 className={cn(
-                  "relative flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white text-[10px] font-extrabold text-white shadow-sm",
+                  "relative flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white text-xs font-extrabold text-white shadow-sm",
                   index > 0 && "-ml-2.5"
                 )}
               >

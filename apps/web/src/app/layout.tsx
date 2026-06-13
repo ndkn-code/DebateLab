@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Nunito, Be_Vietnam_Pro, Geist_Mono, Noto_Serif } from "next/font/google";
 import { ThinkfyThemeVariables } from "@/components/shared/theme-variables";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
+});
+
+const beVietnam = Be_Vietnam_Pro({
+  variable: "--font-be-vietnam",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const notoSerif = Noto_Serif({
+  variable: "--font-noto-serif",
   subsets: ["latin", "vietnamese"],
   display: "swap",
 });
@@ -71,7 +84,7 @@ export default async function RootLayout({
         <ThinkfyThemeVariables />
       </head>
       <body
-        className={`${jakarta.variable} ${geistMono.variable} bg-background font-sans antialiased`}
+        className={`${nunito.variable} ${beVietnam.variable} ${notoSerif.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
         {children}
       </body>

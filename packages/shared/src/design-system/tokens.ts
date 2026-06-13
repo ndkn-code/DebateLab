@@ -539,3 +539,56 @@ export function getThinkfyTheme(mode: ThinkfyThemeMode): ThinkfyTheme {
 export function getThinkfyWebCssVariables(mode: ThinkfyThemeMode) {
   return getThinkfyTheme(mode).webCssVariables;
 }
+
+export type ThinkfyFontRole = "display" | "sans" | "serif" | "mono";
+
+export type ThinkfyTypeStep = {
+  /** Tailwind v4 @utility class defined in apps/web/src/app/globals.css */
+  utility: string;
+  family: ThinkfyFontRole;
+  /** px */
+  size: number;
+  /** unitless */
+  lineHeight: number;
+  weight: number;
+  /** em */
+  tracking: number;
+  uppercase?: boolean;
+};
+
+/**
+ * Single source of truth for the web typography scale. The runtime values live
+ * as Tailwind v4 `@utility type-*` rules in apps/web/src/app/globals.css and as
+ * the <Display>/<Heading>/<Text>/<Eyebrow>/<Stat>/<Code> primitives in
+ * apps/web/src/components/ui/typography.tsx. This object documents them for
+ * parity with the color tokens above. See design.md §Typography.
+ */
+export const thinkfyTypography = {
+  family: {
+    display: "Nunito",
+    sans: "Be Vietnam Pro",
+    serif: "Noto Serif",
+    mono: "Geist Mono",
+  },
+  step: {
+    displayXl: { utility: "type-display-xl", family: "display", size: 72, lineHeight: 1.04, weight: 800, tracking: -0.022 },
+    displayLg: { utility: "type-display-lg", family: "display", size: 56, lineHeight: 1.06, weight: 800, tracking: -0.02 },
+    displayMd: { utility: "type-display-md", family: "display", size: 44, lineHeight: 1.08, weight: 800, tracking: -0.018 },
+    displaySm: { utility: "type-display-sm", family: "display", size: 36, lineHeight: 1.1, weight: 700, tracking: -0.015 },
+    headingXl: { utility: "type-heading-xl", family: "sans", size: 30, lineHeight: 1.2, weight: 700, tracking: -0.012 },
+    headingLg: { utility: "type-heading-lg", family: "sans", size: 24, lineHeight: 1.25, weight: 700, tracking: -0.01 },
+    headingMd: { utility: "type-heading-md", family: "sans", size: 20, lineHeight: 1.3, weight: 600, tracking: -0.006 },
+    title: { utility: "type-title", family: "sans", size: 17, lineHeight: 1.35, weight: 600, tracking: -0.003 },
+    bodyLg: { utility: "type-body-lg", family: "sans", size: 18, lineHeight: 1.6, weight: 400, tracking: 0 },
+    body: { utility: "type-body", family: "sans", size: 16, lineHeight: 1.6, weight: 400, tracking: 0 },
+    bodySm: { utility: "type-body-sm", family: "sans", size: 14, lineHeight: 1.55, weight: 400, tracking: 0 },
+    caption: { utility: "type-caption", family: "sans", size: 12, lineHeight: 1.45, weight: 500, tracking: 0.002 },
+    label: { utility: "type-label", family: "sans", size: 13, lineHeight: 1.3, weight: 600, tracking: 0 },
+    eyebrow: { utility: "type-eyebrow", family: "sans", size: 12, lineHeight: 1.2, weight: 700, tracking: 0.14, uppercase: true },
+    code: { utility: "type-code", family: "mono", size: 14, lineHeight: 1.5, weight: 400, tracking: 0 },
+    prose: { utility: "type-prose", family: "serif", size: 16, lineHeight: 1.7, weight: 400, tracking: 0 },
+  },
+} as const satisfies {
+  family: Record<ThinkfyFontRole, string>;
+  step: Record<string, ThinkfyTypeStep>;
+};

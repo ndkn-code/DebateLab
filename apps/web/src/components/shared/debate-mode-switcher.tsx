@@ -80,7 +80,7 @@ export function DebateModeSwitcher({
           "group flex min-w-0 items-center justify-between gap-2 rounded-lg border text-left font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-sidebar-muted/35",
           isSidebar
             ? "h-10 w-full border-white/10 bg-white/[0.08] px-3 text-sm text-sidebar-foreground hover:bg-white/[0.12]"
-            : "h-10 flex-1 border-white/10 bg-white/[0.08] px-2.5 text-[13px] text-sidebar-foreground hover:bg-white/[0.12]"
+            : "h-10 flex-1 border-white/10 bg-white/[0.08] px-2.5 type-caption text-sidebar-foreground hover:bg-white/[0.12]"
         )}
       >
         <span className="flex min-w-0 items-center gap-2">

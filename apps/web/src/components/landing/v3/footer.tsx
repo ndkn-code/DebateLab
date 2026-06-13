@@ -36,7 +36,7 @@ export function LandingV3Footer({
               height={226}
               className="h-10 w-auto object-contain"
             />
-            <p className="mt-5 max-w-[300px] text-[15px] leading-7 text-on-surface-variant">
+            <p className="mt-5 max-w-[300px] type-body text-on-surface-variant">
               {copy.footer.brandDescription}
             </p>
             <div className="mt-6 flex items-center gap-3">
@@ -63,7 +63,7 @@ export function LandingV3Footer({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[15px] text-on-surface-variant transition-colors hover:text-primary"
+                    className="type-body text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -74,7 +74,7 @@ export function LandingV3Footer({
 
           <div>
             <p className="text-sm font-extrabold text-on-surface">{copy.footer.newsletter.title}</p>
-            <p className="mt-5 max-w-[260px] text-[15px] leading-7 text-on-surface-variant">
+            <p className="mt-5 max-w-[260px] type-body text-on-surface-variant">
               {copy.footer.newsletter.description}
             </p>
             <form className="mt-5 flex gap-2.5">

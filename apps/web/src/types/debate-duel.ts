@@ -24,6 +24,11 @@ export type DebateDuelSideAssignmentMode = "random" | "choose";
 export type DebateDuelSpeechType = "opening" | "rebuttal";
 export type DebateDuelTopicDifficulty = "beginner" | "intermediate" | "advanced";
 export type DebateDuelKind = "custom" | "matchmaking";
+export type DebateDuelOutcomeReason =
+  | "judged"
+  | "forfeit"
+  | "abandoned"
+  | "expired";
 export type DebateDuelIntegrityStatus =
   | "clean"
   | "warned"
@@ -169,6 +174,7 @@ export interface DebateDuelRoomView {
   practiceLanguage: PracticeLanguage;
   duelKind: DebateDuelKind;
   rated: boolean;
+  aiOpponent?: boolean;
   integrityStatus: DebateDuelIntegrityStatus;
   status: DebateDuelStatus;
   currentPhase: DebateDuelPhase;
@@ -176,8 +182,16 @@ export interface DebateDuelRoomView {
   creatorSidePreference: DebateDuelSide | null;
   config: DebateDuelConfig;
   phaseStartedAt: string | null;
+  // Server-authoritative clock: deadline for the current phase + the server's
+  // current time, so clients can render an accurate countdown corrected for
+  // clock skew (offset = serverTime - clientNow). Optional for back-compat with
+  // fixture-constructed views.
+  phaseDeadline?: string | null;
+  serverTime?: string;
   startedAt: string | null;
   completedAt: string | null;
+  outcomeReason?: DebateDuelOutcomeReason | null;
+  forfeitedBy?: string | null;
   expiresAt: string;
   createdAt: string;
   creatorId: string;

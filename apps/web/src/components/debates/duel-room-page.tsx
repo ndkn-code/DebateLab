@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { DuelLobbySetupView } from "@/components/debates/duel-setup-flow";
+import { DuelIllustration } from "@/components/debates/duel-illustration";
 import { cn } from "@/lib/utils";
 import { useDebateDuelRoom } from "@/hooks/use-debate-duel-room";
 import {
@@ -65,12 +66,14 @@ function getPracticeLanguageLabel(language: "en" | "vi") {
 
 export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const router = useRouter();
-  const { data: room, error, mutate, isLoading } = useDebateDuelRoom(shareCode);
+  const { data: room, error, mutate, isLoading, onlineUserIds, isAiTurn } =
+    useDebateDuelRoom(shareCode);
   const practiceLanguage = room?.practiceLanguage ?? "en";
   const speech = useDeepgramTranscription(practiceLanguage);
   useDuelIntegrityMonitor(room ?? null);
   const [notes, setNotes] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isSubmittingSpeech, startSubmitTransition] = useTransition();
   const [isMutatingRoom, startRoomTransition] = useTransition();
@@ -116,6 +119,9 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   useEffect(() => {
     if (!room) return;
     const update = () => {
+      // Counts down against the server-authoritative phase_deadline when present
+      // (see getPhaseRemainingSeconds); the server clock + watchdog are the
+      // source of truth for actual phase enforcement.
       setRemainingSeconds(getPhaseRemainingSeconds(room));
     };
     update();
@@ -249,6 +255,11 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
     });
   };
 
+  const handleForfeit = () => {
+    setShowForfeitConfirm(false);
+    performRoomAction(`/api/debate-duels/${shareCode}/forfeit`);
+  };
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(window.location.href);
   };
@@ -256,6 +267,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const waitingLabel = useMemo(() => {
     if (!room || !phaseDescriptor) return "";
     if (room.status === "judging") return "AI judging in progress...";
+    if (isAiTurn) return "AI Sparring Partner is composing its response…";
     if (phaseDescriptor.activeSide) {
       return phaseDescriptor.activeSide === room.viewer.role
         ? "Your mic is live for this phase."
@@ -266,7 +278,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
           } is speaking now.`;
     }
     return "Prep is shared. Use your notes to tighten your case.";
-  }, [phaseDescriptor, room]);
+  }, [isAiTurn, phaseDescriptor, room]);
 
   const participantByRole = useMemo(() => {
     if (!room) {
@@ -362,11 +374,27 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-container-low text-sm font-semibold text-primary">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container-low text-sm font-semibold text-primary">
               {participant ? getInitials(participant.displayName) : side === "proposition" ? "P" : "O"}
+              {participant && (
+                <span
+                  aria-hidden
+                  title={
+                    onlineUserIds.includes(participant.userId)
+                      ? "Connected"
+                      : "Reconnecting…"
+                  }
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface",
+                    onlineUserIds.includes(participant.userId)
+                      ? "bg-success"
+                      : "bg-outline-variant"
+                  )}
+                />
+              )}
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              <div className="type-eyebrow text-primary">
                 {getSideLabel(side)}
               </div>
               <div className="mt-1 text-base font-semibold text-on-surface">
@@ -443,7 +471,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
         <section className="rounded-[32px] border border-outline-variant/15 bg-surface p-6 shadow-token-card lg:p-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 type-eyebrow text-primary">
                 <Users className="h-3.5 w-3.5" />
                 1v1 Debate
               </div>
@@ -458,11 +486,11 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
             <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px] xl:grid-cols-4">
               <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                <div className="type-eyebrow text-on-surface-variant">
                   Share code
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <span className="text-xl font-semibold tracking-[0.14em] text-on-surface">
+                  <span className="type-heading-md text-on-surface">
                     {room.shareCode}
                   </span>
                   <button
@@ -477,7 +505,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
               </div>
 
               <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                <div className="type-eyebrow text-on-surface-variant">
                   Status
                 </div>
                 <div
@@ -491,7 +519,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
               </div>
 
               <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                <div className="type-eyebrow text-on-surface-variant">
                   Format
                 </div>
                 <div className="mt-2 text-xl font-semibold text-on-surface">
@@ -503,7 +531,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
               </div>
 
               <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                <div className="type-eyebrow text-on-surface-variant">
                   Entry cost
                 </div>
                 <div className="mt-2 text-xl font-semibold text-on-surface">
@@ -520,11 +548,11 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
             <div className="rounded-[30px] border border-outline-variant/15 bg-surface-container-low p-5 lg:p-6">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 type-eyebrow text-primary">
                     <Scale className="h-3.5 w-3.5" />
                     {phaseDescriptor?.label || "Lobby"}
                   </div>
-                  <h2 className="mt-4 text-3xl font-bold text-on-surface sm:text-[2.35rem]">
+                  <h2 className="mt-4 type-heading-xl text-on-surface">
                     {isJudging
                       ? "AI is deciding the winner."
                       : phaseDescriptor?.label || "Ready the room"}
@@ -535,7 +563,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                 </div>
 
                 <div className="min-w-[240px] rounded-[26px] border border-outline-variant/15 bg-surface px-5 py-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                  <div className="type-eyebrow text-on-surface-variant">
                     {isJudging ? "Judge state" : "Round timer"}
                   </div>
                   <div className="mt-2 text-4xl font-bold tracking-tight text-on-surface">
@@ -625,7 +653,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                   </div>
 
                   <div className="rounded-[26px] border border-outline-variant/15 bg-surface p-5">
-                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+                    <div className="flex items-center gap-2 type-eyebrow text-primary">
                       <Bot className="h-4 w-4" />
                       AI judge
                     </div>
@@ -640,6 +668,13 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
               ) : isJudging ? (
                 <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
                   <div className="rounded-[26px] border border-outline-variant/15 bg-surface p-5">
+                    <div className="mb-5 flex justify-center">
+                      <DuelIllustration
+                        name="thinkfy_duel_ai_opponent_v1"
+                        alt="AI is judging"
+                        className="h-[140px] w-[200px]"
+                      />
+                    </div>
                     <div className="flex items-center gap-3">
                       <Bot className="h-5 w-5 text-primary" />
                       <div>
@@ -668,7 +703,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                   </div>
 
                   <div className="rounded-[26px] border border-outline-variant/15 bg-surface p-5">
-                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+                    <div className="flex items-center gap-2 type-eyebrow text-primary">
                       <MessageSquareText className="h-4 w-4" />
                       Local notes
                     </div>
@@ -735,10 +770,48 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                         </Button>
                       </div>
                     )}
+
+                    {room.viewer.isParticipant && (
+                      <div className="mt-5 border-t border-outline-variant/12 pt-4">
+                        {showForfeitConfirm ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-error/20 bg-error/8 px-4 py-3">
+                            <span className="text-sm text-on-surface-variant">
+                              Forfeit now? Your opponent is refunded and this counts against you.
+                            </span>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowForfeitConfirm(false)}
+                                disabled={isMutatingRoom}
+                                className="h-9 rounded-xl"
+                              >
+                                Keep debating
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={handleForfeit}
+                                disabled={isMutatingRoom}
+                                className="h-9 rounded-xl"
+                              >
+                                Forfeit
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowForfeitConfirm(true)}
+                            className="text-sm font-medium text-on-surface-variant transition hover:text-error"
+                          >
+                            Forfeit duel
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-[26px] border border-outline-variant/15 bg-surface p-5">
-                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+                    <div className="flex items-center gap-2 type-eyebrow text-primary">
                       <MessageSquareText className="h-4 w-4" />
                       Local notes
                     </div>
@@ -764,7 +837,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
             <aside className="space-y-4">
               <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+                <div className="flex items-center gap-2 type-eyebrow text-primary">
                   <Sparkles className="h-4 w-4" />
                   Round flow
                 </div>
@@ -817,7 +890,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                           </div>
                           <div
                             className={cn(
-                              "rounded-full px-2.5 py-1 text-[11px] font-medium",
+                              "rounded-full px-2.5 py-1 type-caption",
                               isActive
                                 ? "bg-primary/12 text-primary"
                                 : isComplete
@@ -839,14 +912,14 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
               </div>
 
               <div className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+                <div className="flex items-center gap-2 type-eyebrow text-primary">
                   <Users className="h-4 w-4" />
                   Room board
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-low px-4 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+                    <div className="type-eyebrow text-on-surface-variant">
                       Ready state
                     </div>
                     <div className="mt-2 text-2xl font-semibold text-on-surface">
@@ -858,7 +931,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                   </div>
 
                   <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-low px-4 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+                    <div className="type-eyebrow text-on-surface-variant">
                       Speech progress
                     </div>
                     <div className="mt-2 text-2xl font-semibold text-on-surface">

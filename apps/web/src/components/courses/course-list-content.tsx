@@ -20,6 +20,7 @@ import {
   CourseArtwork,
   resolveCourseArtworkVariant,
 } from "@/components/courses/course-artwork";
+import { Heading, Text } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type {
   CourseCategory,
@@ -94,7 +95,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
         <div className="flex min-w-0 flex-col justify-center px-6 py-6 xl:py-7">
           <div
             className={cn(
-              "inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
+              "type-eyebrow inline-flex w-fit rounded-full px-3 py-1 font-semibold",
               course.status === "in-progress"
                 ? "bg-primary-container text-primary"
                 : course.status === "completed"
@@ -105,22 +106,25 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
             {statusLabel}
           </div>
 
-          <h2 className="mt-4 text-[1.75rem] font-semibold text-on-surface-variant sm:text-[2rem]">
+          <Heading
+            level={2}
+            className="mt-4 font-semibold text-on-surface-variant sm:type-heading-xl"
+          >
             {course.title}
-          </h2>
-          <p className="mt-3 max-w-[520px] text-[15px] leading-8 text-on-surface-variant">
+          </Heading>
+          <Text className="mt-3 max-w-[520px] leading-8 text-on-surface-variant">
             {course.description || t("description_fallback")}
-          </p>
+          </Text>
 
           <div className="mt-7 flex flex-wrap items-center gap-4 xl:flex-nowrap">
-            <span className="shrink-0 text-[15px] font-semibold text-primary">
+            <span className="type-body shrink-0 font-semibold text-primary">
               {course.progressPercent}% {t("hero.complete")}
             </span>
             <Progress
               value={course.progressPercent}
               className="h-2.5 w-full max-w-[190px] min-w-[140px] bg-surface-container [&>div]:bg-primary"
             />
-            <span className="shrink-0 text-[15px] text-on-surface-variant">
+            <span className="type-body shrink-0 text-on-surface-variant">
               {course.completedLessonCount} / {course.lessonCount} {t("modules_label")}
             </span>
           </div>
@@ -133,24 +137,24 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
                 <BookOpenCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[1.45rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+                <Heading level={2} as="p" className="font-semibold text-on-surface-variant">
                   {t("hero.next_up")}
-                </p>
+                </Heading>
                 {course.nextLesson ? (
                   <>
-                    <p className="mt-2 text-[15px] leading-7 text-on-surface-variant">
+                    <Text className="mt-2 leading-7 text-on-surface-variant">
                       {course.nextLesson.title}
-                    </p>
-                    <p className="mt-1 text-[15px] text-on-surface-variant">
+                    </Text>
+                    <Text className="mt-1 text-on-surface-variant">
                       {t("estimated_minutes", {
                         minutes: course.nextLesson.durationMinutes,
                       })}
-                    </p>
+                    </Text>
                   </>
                 ) : (
-                  <p className="mt-2 text-[15px] leading-7 text-on-surface-variant">
+                  <Text className="mt-2 leading-7 text-on-surface-variant">
                     {t("hero.completed_description")}
-                  </p>
+                  </Text>
                 )}
               </div>
             </div>
@@ -176,7 +180,7 @@ function HeroActionLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-[15px] font-semibold text-white shadow-token-primary transition-colors hover:bg-surface-container-high",
+        "type-body inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 font-semibold text-white shadow-token-primary transition-colors hover:bg-surface-container-high",
         disabled && "pointer-events-none opacity-80"
       )}
     >
@@ -195,9 +199,9 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
     <section className="mt-8">
       <div className="mb-4 flex items-center gap-2.5">
         <Sparkles className="h-4 w-4 text-primary" />
-        <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+        <Heading level={2} className="font-semibold text-on-surface-variant">
           {t("recommendation.title")}
-        </h2>
+        </Heading>
       </div>
 
       <div className="overflow-hidden rounded-[20px] border border-outline-variant bg-white shadow-token-card">
@@ -210,33 +214,33 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h3 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+              <Heading level={3} className="text-on-surface-variant">
                 {course.title}
-              </h3>
-              <span className="rounded-full bg-primary-container px-3 py-1 text-[12px] font-medium text-primary">
+              </Heading>
+              <span className="type-caption rounded-full bg-primary-container px-3 py-1 text-primary">
                 {getDifficultyLabel(course.difficulty, tp)}
               </span>
             </div>
 
-            <p className="mt-2 max-w-[540px] text-[15px] leading-8 text-on-surface-variant">
+            <Text className="mt-2 max-w-[540px] leading-8 text-on-surface-variant">
               {course.description || t("description_fallback")}
-            </p>
+            </Text>
 
-            <div className="mt-4 flex flex-wrap items-center gap-6 text-[14px] text-on-surface-variant">
+            <div className="type-body-sm mt-4 flex flex-wrap items-center gap-6 text-on-surface-variant">
               <span>{t("modules_count", { count: course.moduleCount })}</span>
               <span>{getDifficultyLabel(course.difficulty, tp)}</span>
             </div>
           </div>
 
           <div className="rounded-[16px] bg-surface-container px-5 py-4">
-            <p className="text-[15px] font-medium text-on-surface-variant">
+            <Text className="font-medium text-on-surface-variant">
               {t("recommendation.why_course")}
-            </p>
+            </Text>
             <div className="mt-3 space-y-3">
               {reasons.map((reason) => (
                 <div
                   key={reason}
-                  className="flex items-start gap-2.5 text-[15px] leading-7 text-on-surface-variant"
+                  className="type-body flex items-start gap-2.5 leading-7 text-on-surface-variant"
                 >
                   <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
                   <span>{reason}</span>
@@ -249,7 +253,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Link
               href={course.isMock ? "#" : course.ctaHref}
               className={cn(
-                "inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white px-6 py-3 text-[15px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container",
+                "type-body inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white px-6 py-3 font-semibold text-on-surface-variant transition-colors hover:bg-surface-container",
                 course.isMock && "pointer-events-none"
               )}
             >
@@ -334,7 +338,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
                   type="button"
                   onClick={() => setCategory(filter.value)}
                   className={cn(
-                    "inline-flex min-h-[42px] items-center gap-2 rounded-[14px] border px-5 py-2.5 text-[15px] font-medium transition-colors",
+                    "type-body inline-flex min-h-[42px] items-center gap-2 rounded-[14px] border px-5 py-2.5 font-medium transition-colors",
                     category === filter.value
                       ? "border-primary bg-primary text-white shadow-token-primary"
                       : "border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
@@ -347,9 +351,9 @@ export function CourseListContent({ library }: CourseListContentProps) {
             })}
           </div>
 
-          <h2 className="mb-4 text-[1.6rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+          <Heading level={2} className="mb-4 font-semibold text-on-surface-variant">
             {t("status.in_progress")}
-          </h2>
+          </Heading>
 
           {gridCourses.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">

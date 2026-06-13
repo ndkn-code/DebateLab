@@ -9,6 +9,7 @@ import {
   Send,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Heading, Text } from "@/components/ui/typography";
 import { ChatBubble } from "./chat-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
@@ -51,9 +52,9 @@ function CoachEmptyState({
         priority
       />
 
-      <h1 className="mt-5 max-w-[320px] text-balance text-[1.45rem] font-semibold leading-tight text-on-surface sm:max-w-full sm:text-[1.6rem]">
+      <Heading level={2} as="h1" className="mt-5 max-w-[320px] text-balance font-semibold sm:max-w-full">
         {t("welcome_title")}
-      </h1>
+      </Heading>
 
       <div className="mt-7 w-full min-w-0 space-y-1.5">
         {coachEnvelope.starterPrompts.slice(0, 5).map((prompt) => (
@@ -63,7 +64,7 @@ function CoachEmptyState({
             disabled={isLoading}
             className="group flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-outline-variant/14 bg-surface px-3.5 py-2.5 text-left transition-colors hover:border-primary/22 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span className="min-w-0 text-[14px] font-medium leading-5 text-on-surface">
+            <span className="min-w-0 type-body-sm font-medium text-on-surface">
               {prompt}
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant/55 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -79,12 +80,12 @@ function ChatLoadError({ onRetryLoad }: { onRetryLoad?: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[360px] max-w-[420px] flex-col items-center justify-center px-4 text-center">
-      <div className="text-base font-semibold text-on-surface">
+      <Heading level={4} className="text-on-surface">
         {t("load_error_title")}
-      </div>
-      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+      </Heading>
+      <Text variant="body-sm" className="mt-2 text-on-surface-variant">
         {t("load_error_body")}
-      </p>
+      </Text>
       {onRetryLoad ? (
         <Button
           type="button"
@@ -258,7 +259,7 @@ export function ChatArea({
                 onKeyDown={handleKeyDown}
                 placeholder={t("input_placeholder")}
                 rows={1}
-                className="min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 text-[15px] text-on-surface placeholder:text-on-surface-variant/60 outline-none"
+                className="min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 type-body text-on-surface placeholder:text-on-surface-variant/60 outline-none"
                 style={{ maxHeight: 160 }}
               />
               <Button

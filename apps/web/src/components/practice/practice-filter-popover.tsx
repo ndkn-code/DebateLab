@@ -8,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Eyebrow } from "@/components/ui/typography";
 import type { CategoryFilterKey, PracticeCategoryOption } from "@/lib/topics";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +30,7 @@ interface PracticeFilterPopoverProps {
 function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
-        {label}
-      </p>
+      <Eyebrow className="text-on-surface-variant">{label}</Eyebrow>
       <div className="mt-2.5 flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -52,7 +51,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-2 text-[13px] font-medium transition-all active:scale-95",
+        "rounded-full border px-3.5 py-2 type-label font-medium transition-all active:scale-95",
         active
           ? "border-primary bg-primary text-on-primary"
           : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface"
@@ -101,7 +100,7 @@ export function PracticeFilterPopover({
             type="button"
             aria-label={t("filters")}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-2.5 rounded-2xl border bg-surface-container-lowest px-4 text-[14px] font-semibold transition-all hover:bg-surface-container active:scale-[0.97]",
+              "relative inline-flex h-12 shrink-0 items-center gap-2.5 rounded-2xl border bg-surface-container-lowest px-4 type-body-sm font-semibold transition-all hover:bg-surface-container active:scale-[0.97]",
               activeFilterCount > 0
                 ? "border-primary/40 text-primary"
                 : "border-outline-variant text-on-surface-variant"
@@ -112,7 +111,7 @@ export function PracticeFilterPopover({
         <SlidersHorizontal className="h-[17px] w-[17px]" />
         <span className="max-sm:hidden">{t("filters")}</span>
         {activeFilterCount > 0 ? (
-          <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold leading-none text-on-primary">
+          <span className="flex size-5 items-center justify-center rounded-full bg-primary type-caption font-bold leading-none text-on-primary">
             {activeFilterCount}
           </span>
         ) : null}
@@ -165,7 +164,7 @@ export function PracticeFilterPopover({
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-primary transition-opacity hover:opacity-75"
+              className="inline-flex items-center gap-2 type-label text-primary transition-opacity hover:opacity-75"
             >
               <RotateCcw className="h-[14px] w-[14px]" />
               {t("filter_clear")}

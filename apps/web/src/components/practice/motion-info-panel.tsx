@@ -10,6 +10,7 @@ import {
   Lightbulb,
 } from "@/components/ui/icons";
 import { useLocale, useTranslations } from "next-intl";
+import { Eyebrow, Heading } from "@/components/ui/typography";
 import type { DebateTopic } from "@/types";
 import { getMotionBrief } from "@/lib/motion-brief";
 import { cn } from "@/lib/utils";
@@ -39,9 +40,9 @@ function normalizeForComparison(value: string | null | undefined) {
 function CoachBriefItem({ label, text }: { label: string; text: string }) {
   return (
     <div className="rounded-xl bg-surface-container px-3.5 py-3">
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-on-surface-variant">
+      <Eyebrow className="text-on-surface-variant">
         {label}
-      </p>
+      </Eyebrow>
       <p className="mt-1 text-sm leading-6 text-on-surface">{text}</p>
     </div>
   );
@@ -93,13 +94,13 @@ export function MotionInfoPanel({
       )}
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-primary-container px-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-primary-dim">
+        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-primary-container px-2.5 type-eyebrow text-primary-dim">
           <BookOpenText className="h-3 w-3" />
           {t("session.motion")}
         </span>
         <span
           className={cn(
-            "inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold",
+            "inline-flex h-6 items-center rounded-full px-2.5 type-caption font-bold",
             side === "proposition"
               ? "bg-success-container text-success-dim"
               : "bg-error-container text-error-dim"
@@ -107,17 +108,17 @@ export function MotionInfoPanel({
         >
           {sideLabel}
         </span>
-        <span className="inline-flex h-6 items-center rounded-full bg-surface-container px-2.5 text-[11px] font-semibold text-on-surface-variant">
+        <span className="inline-flex h-6 items-center rounded-full bg-surface-container px-2.5 type-caption font-semibold text-on-surface-variant">
           {difficultyLabel}
         </span>
-        <span className="hidden h-6 min-w-0 max-w-full items-center truncate rounded-full bg-surface-container px-2.5 text-[11px] font-semibold text-on-surface-variant sm:inline-flex">
+        <span className="hidden h-6 min-w-0 max-w-full items-center truncate rounded-full bg-surface-container px-2.5 type-caption font-semibold text-on-surface-variant sm:inline-flex">
           {topic.category}
         </span>
       </div>
 
-      <h1 className="mt-3.5 text-balance text-[1.3rem] font-bold leading-snug tracking-[-0.01em] text-on-surface md:text-[1.5rem]">
+      <Heading level={2} as="h1" className="mt-3.5 text-balance">
         {topic.title}
-      </h1>
+      </Heading>
 
       <p className="mt-3 flex gap-2 text-sm leading-6 text-on-surface-variant">
         <Info className="mt-1 h-4 w-4 shrink-0 text-primary" />
@@ -130,7 +131,7 @@ export function MotionInfoPanel({
             type="button"
             onClick={() => setBriefOpen((open) => !open)}
             aria-expanded={briefOpen}
-            className="inline-flex items-center gap-1.5 rounded-full px-1 py-0.5 text-[13px] font-bold text-primary transition-colors hover:text-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="inline-flex items-center gap-1.5 rounded-full px-1 py-0.5 type-label font-bold text-primary transition-colors hover:text-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Lightbulb className="h-4 w-4" />
             {t("session.coach_brief")}
@@ -174,9 +175,9 @@ export function MotionInfoPanel({
 
                 {points.length > 0 ? (
                   <div className="pt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-on-surface-variant">
+                    <Eyebrow className="text-on-surface-variant">
                       {t("session.argument_anchors")}
-                    </p>
+                    </Eyebrow>
                     <ul className="mt-2 flex flex-col gap-1.5">
                       {points.map((point) => (
                         <li

@@ -136,7 +136,7 @@ export function OnboardingChoiceCard({
         ) : null}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[1.02rem] font-semibold leading-6 text-on-surface sm:text-lg">
+        <span className="block type-body font-semibold leading-6 text-on-surface sm:text-lg">
           {title}
         </span>
         {description ? (

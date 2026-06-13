@@ -95,7 +95,7 @@ function ClubCard({ club, qaState }: { club: AdminClubListRow; qaState: ClubQaSt
 
 function SocialBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-background px-1.5 py-0.5 text-[10px] font-bold text-on-surface-variant">
+    <span className="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-background px-1.5 py-0.5 type-caption font-bold text-on-surface-variant">
       <ExternalLink className="h-3 w-3 text-primary" />
       {label}
     </span>
@@ -105,7 +105,7 @@ function SocialBadge({ label }: { label: string }) {
 function Metric({ label, value, tone = "text-on-surface" }: { label: string; value: string | number; tone?: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase text-on-surface-variant">{label}</p>
+      <p className="type-caption font-semibold uppercase text-on-surface-variant">{label}</p>
       <p className={cn("mt-1 text-sm font-bold", tone)}>{value}</p>
     </div>
   );
@@ -121,7 +121,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Club OS</p>
+            <p className="type-eyebrow text-primary">Club OS</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface">Clubs</h1>
             <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">
               Coach/admin workflow for cohorts, assignments, attendance, reviews, and normalized performance data.

@@ -656,10 +656,10 @@ export function AnnotatedTranscript({
                   key={chunk.id}
                   className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] gap-4"
                 >
-                  <div className="pt-1 font-mono text-xs font-bold text-on-surface-variant">
+                  <div className="pt-1 type-code font-bold text-on-surface-variant">
                     {chunk.timestampLabel}
                   </div>
-                  <p className="whitespace-pre-wrap text-[0.98rem] leading-7 text-on-surface-variant">
+                  <p className="whitespace-pre-wrap type-body leading-7 text-on-surface-variant">
                     {segments.map((segment) => {
                       if (segment.type === "text") {
                         return <span key={segment.key}>{segment.text}</span>;
@@ -726,7 +726,7 @@ export function AnnotatedTranscript({
                               }
                             }}
                             className={cn(
-                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.68rem] leading-5 shadow-token-card",
+                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 type-caption leading-5 shadow-token-card",
                               tone.dot
                             )}
                           >
@@ -805,7 +805,7 @@ export function AnnotatedTranscript({
                         {getTagLabel(annotation.tag, t)}
                       </span>
                       {annotation.timestampLabel ? (
-                        <span className="font-mono text-xs font-bold text-on-surface-variant">
+                        <span className="type-code font-bold text-on-surface-variant">
                           {annotation.timestampLabel}
                         </span>
                       ) : null}

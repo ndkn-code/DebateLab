@@ -66,7 +66,7 @@ export function SkillSnapshotCard({
       <div className={compact ? "grid gap-4 p-4 2xl:grid-cols-[minmax(230px,0.9fr)_minmax(220px,0.78fr)]" : "grid gap-6 p-5 md:grid-cols-[minmax(320px,1.08fr)_minmax(280px,0.92fr)] md:gap-7 md:p-6"}>
         <div>
           <div className={compact ? "mb-2 flex items-center gap-2" : "mb-3 flex items-center gap-2"}>
-            <h2 className={compact ? "text-[1.05rem] font-semibold text-on-surface" : "text-lg font-semibold text-on-surface"}>
+            <h2 className="type-title text-on-surface">
               {t("skill_snapshot_title")}
             </h2>
             <TooltipProvider>
@@ -157,7 +157,7 @@ export function SkillSnapshotCard({
                       x={position.x}
                       y={position.y}
                       textAnchor={position.textAnchor}
-                      className="fill-primary text-[12.5px] font-medium dark:fill-on-surface-variant"
+                      className="type-caption fill-primary dark:fill-on-surface-variant"
                     >
                       {t(`skill_labels.${metric.key}`)}
                     </text>
@@ -179,12 +179,12 @@ export function SkillSnapshotCard({
                   <span
                     className={`h-2.5 w-2.5 shrink-0 rounded-full ${SKILL_UI_META[metric.key].dotClassName}`}
                   />
-                  <span className={compact ? "text-sm font-medium text-on-surface" : "text-[0.95rem] font-medium text-on-surface"}>
+                  <span className={compact ? "type-body-sm font-medium text-on-surface" : "type-body font-medium text-on-surface"}>
                     {t(`skill_labels.${metric.key}`)}
                   </span>
                 </div>
                 <p className="shrink-0 text-right">
-                  <span className={compact ? "text-[0.95rem] font-semibold text-on-surface" : "text-[1.05rem] font-semibold text-on-surface"}>
+                  <span className={compact ? "type-body font-semibold text-on-surface" : "type-body-lg font-semibold text-on-surface"}>
                     {metric.coverage > 0 ? Math.round(metric.value) : "—"}
                   </span>
                   {metric.coverage > 0 ? (

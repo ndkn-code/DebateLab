@@ -414,7 +414,7 @@ export function ScheduleTimeline({
               ))}
               {todayPercent != null && (
                 <div className="pointer-events-none absolute bottom-0 top-0 w-px bg-primary" style={{ left: `${todayPercent}%` }}>
-                  <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-on-primary shadow-sm">Today</span>
+                  <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded-md bg-primary px-2 py-1 type-caption font-bold text-on-primary shadow-sm">Today</span>
                 </div>
               )}
             </div>

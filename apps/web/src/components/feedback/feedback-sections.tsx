@@ -219,7 +219,7 @@ export function FeedbackSections({
               className="overflow-hidden"
             >
               <div className="px-4 pb-4">
-                <p className="whitespace-pre-wrap rounded-lg border border-outline-variant/10 bg-surface-container-low p-4 font-serif text-sm leading-relaxed text-on-surface">
+                <p className="whitespace-pre-wrap rounded-lg border border-outline-variant/10 bg-surface-container-low p-4 type-prose text-on-surface">
                   {transcript || "No transcript recorded."}
                 </p>
               </div>

@@ -781,7 +781,7 @@ export function AiQualityDashboard() {
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 type-eyebrow text-primary">
               <BrainCircuit className="h-3.5 w-3.5" />
               AI Quality
             </div>
@@ -965,7 +965,7 @@ export function AiQualityDashboard() {
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-outline-variant/10">
                 <thead className="bg-surface-container-low">
-                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                  <tr className="text-left type-eyebrow text-on-surface-variant">
                     <th className="px-4 py-3">Output</th>
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Model</th>
@@ -1040,7 +1040,7 @@ export function AiQualityDashboard() {
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-outline-variant/10">
                 <thead className="bg-surface-container-low">
-                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                  <tr className="text-left type-eyebrow text-on-surface-variant">
                     <th className="px-4 py-3">Provider</th>
                     <th className="px-4 py-3">Route</th>
                     <th className="px-4 py-3">Status</th>
@@ -1121,7 +1121,7 @@ function Kpi({
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+        <div className="type-eyebrow text-on-surface-variant">
           {label}
         </div>
         <Icon className="h-4 w-4 text-primary" />
@@ -1204,7 +1204,7 @@ function DetailDrawer({
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-outline-variant/20 bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <div className="type-eyebrow text-primary">
               {OUTPUT_LABELS[row.output_type]}
             </div>
             <h2 className="mt-2 text-2xl font-bold text-on-surface">
@@ -1249,7 +1249,7 @@ function DetailDrawer({
           ) : (
             <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
               <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
-                <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                   <tr>
                     <th className="px-3 py-2">Call</th>
                     <th className="px-3 py-2">Status</th>
@@ -1539,7 +1539,7 @@ function DetailDrawer({
               {transcriptionMetadata.normalizationHints.length > 0 && (
                 <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
                   <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
-                    <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                       <tr>
                         <th className="px-3 py-2">Raw</th>
                         <th className="px-3 py-2">Normalized</th>
@@ -1549,7 +1549,7 @@ function DetailDrawer({
                     <tbody className="divide-y divide-outline-variant/10">
                       {transcriptionMetadata.normalizationHints.map((hint, index) => (
                         <tr key={`${String(hint.raw)}-${index}`}>
-                          <td className="px-3 py-2 font-mono text-warning">
+                          <td className="px-3 py-2 type-code text-warning">
                             {String(hint.raw ?? "—")}
                           </td>
                           <td className="px-3 py-2 font-semibold text-secondary">
@@ -1650,7 +1650,7 @@ function DetailDrawer({
               {transcriptionMetadata.repair.edits.length > 0 && (
                 <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
                   <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
-                    <thead className="bg-surface-container-low text-left font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                       <tr>
                         <th className="px-3 py-2">Raw</th>
                         <th className="px-3 py-2">Repair</th>
@@ -1660,7 +1660,7 @@ function DetailDrawer({
                     <tbody className="divide-y divide-outline-variant/10">
                       {transcriptionMetadata.repair.edits.map((edit, index) => (
                         <tr key={`${String(edit.raw)}-${index}`}>
-                          <td className="max-w-[180px] break-words px-3 py-2 font-mono text-warning">
+                          <td className="max-w-[180px] break-words px-3 py-2 type-code text-warning">
                             {String(edit.raw ?? "—")}
                           </td>
                           <td className="max-w-[180px] break-words px-3 py-2 font-semibold text-secondary">
@@ -1890,7 +1890,7 @@ function SttRepairStatusPill({ status }: { status: SttRepairStatus }) {
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+      <div className="type-eyebrow text-on-surface-variant">
         {label}
       </div>
       <div className="mt-2 break-words text-lg font-bold text-on-surface">{value}</div>
@@ -1907,7 +1907,7 @@ function TranscriptPreview({
 }) {
   return (
     <div className="rounded-xl border border-outline-variant/15 bg-surface p-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+      <div className="type-eyebrow text-on-surface-variant">
         {title}
       </div>
       <pre className="mt-2 max-h-56 whitespace-pre-wrap break-words text-xs leading-5 text-on-surface-variant">

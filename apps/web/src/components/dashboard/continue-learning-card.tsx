@@ -64,7 +64,7 @@ export function ContinueLearningCard({
       >
         <div className="flex h-full flex-col justify-between gap-6">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <span className="type-eyebrow inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary">
               <BookOpen className="h-3.5 w-3.5" />
               {t("continue_learning")}
             </span>
@@ -102,7 +102,7 @@ export function ContinueLearningCard({
       <section className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-low p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            <p className="type-eyebrow text-primary">
               {t("continue_learning")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-on-surface">
@@ -220,7 +220,7 @@ export function ContinueLearningCard({
     <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="type-eyebrow text-primary">
             {t("continue_learning")}
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-on-surface">

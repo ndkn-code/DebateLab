@@ -15,6 +15,7 @@ import type { LandingV3Copy } from "./copy";
 import { BookIcon, MicIcon, SwordsIcon, TrophyIcon } from "./icons";
 import { Reveal } from "./motion-primitives";
 import { Highlight } from "./ui";
+import { Display, Text } from "@/components/ui/typography";
 
 const VIEW_W = 1200;
 const VIEW_H = 520;
@@ -242,12 +243,12 @@ export function JourneySection({ copy }: { copy: LandingV3Copy }) {
       <Hills />
       <div className="relative mx-auto max-w-6xl">
         <Reveal className="mx-auto max-w-[680px] text-center">
-          <h2 className="text-[2.1rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-on-surface sm:text-[2.9rem]">
+          <Display size="sm" as="h2">
             <Highlight text={copy.journey.title.text} highlight={copy.journey.title.highlight} />
-          </h2>
-          <p className="mt-5 text-[1.05rem] leading-8 text-on-surface-variant">
+          </Display>
+          <Text variant="body-lg" className="mt-5 text-on-surface-variant">
             {copy.journey.description}
-          </p>
+          </Text>
         </Reveal>
 
         <JourneyCanvas copy={copy} />

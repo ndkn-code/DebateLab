@@ -6,6 +6,7 @@ import type { LandingV3Copy } from "./copy";
 import { BoltIcon, MicIcon, TrophyIcon, UsersIcon } from "./icons";
 import { Stagger, StaggerItem } from "./motion-primitives";
 import { cn } from "@/lib/utils";
+import { Stat, Text } from "@/components/ui/typography";
 
 const ICONS = {
   mic: MicIcon,
@@ -28,14 +29,14 @@ export function ProofSection({ copy }: { copy: LandingV3Copy }) {
             return (
               <StaggerItem key={item.label} className="flex flex-col items-center gap-2 text-center">
                 <Icon className={cn("h-7 w-7", isTrophy ? "text-reward-dim" : "text-primary")} />
-                <p className="text-[2.4rem] font-extrabold leading-none tracking-[-0.03em] text-on-surface sm:text-[2.8rem]">
+                <Stat as="p" size="display-sm" className="text-on-surface">
                   {"static" in item.value ? (
                     item.value.static
                   ) : (
                     <CountUp target={item.value.target} suffix={item.value.suffix} />
                   )}
-                </p>
-                <p className="text-sm font-medium text-on-surface-variant">{item.label}</p>
+                </Stat>
+                <Text variant="body-sm" className="font-medium text-on-surface-variant">{item.label}</Text>
               </StaggerItem>
             );
           })}

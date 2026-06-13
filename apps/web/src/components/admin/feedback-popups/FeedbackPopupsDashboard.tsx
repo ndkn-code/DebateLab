@@ -558,7 +558,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
                     </Button>
                     <Link
                       href={POPUP_SHOWCASE_HREF}
-                      className="inline-flex h-7 items-center justify-center gap-1 rounded-lg border border-outline-variant bg-background px-2.5 text-[0.8rem] font-medium text-primary-dim transition hover:bg-primary-container"
+                      className="inline-flex h-7 items-center justify-center gap-1 rounded-lg border border-outline-variant bg-background px-2.5 type-caption text-primary-dim transition hover:bg-primary-container"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       UI Showcase

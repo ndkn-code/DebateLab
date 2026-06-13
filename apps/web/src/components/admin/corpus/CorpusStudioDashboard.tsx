@@ -372,7 +372,7 @@ export function CorpusStudioDashboard() {
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 type-eyebrow text-primary">
               <Lock className="h-3.5 w-3.5" />
               Corpus Studio
             </div>
@@ -527,7 +527,7 @@ function Kpi({
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+        <div className="type-eyebrow text-on-surface-variant">
           {label}
         </div>
         <Icon className="h-4 w-4 text-primary" />
@@ -717,7 +717,7 @@ function ImportPanel({
         </button>
       </div>
       <label className="mt-5 block">
-        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+        <span className="type-eyebrow text-on-surface-variant">
           File name
         </span>
         <input
@@ -727,14 +727,14 @@ function ImportPanel({
         />
       </label>
       <label className="mt-4 block">
-        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+        <span className="type-eyebrow text-on-surface-variant">
           Bundle content
         </span>
         <textarea
           value={content}
           onChange={(event) => onContentChange(event.target.value)}
           placeholder="Paste Gemini JSON output or your notes.md content with ```json fenced blocks..."
-          className="mt-2 min-h-[420px] w-full resize-y rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 font-mono text-sm leading-6 text-on-surface outline-none transition placeholder:text-on-surface-variant focus:border-primary/50"
+          className="mt-2 min-h-[420px] w-full resize-y rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 type-code text-on-surface outline-none transition placeholder:text-on-surface-variant focus:border-primary/50"
         />
       </label>
     </section>
@@ -965,7 +965,7 @@ function DataTable({
     <section className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-left text-sm">
-          <thead className="bg-surface-container-low text-xs uppercase tracking-[0.14em] text-on-surface-variant">
+          <thead className="bg-surface-container-low type-eyebrow text-on-surface-variant">
             <tr>
               {headers.map((header) => (
                 <th key={header} className="px-4 py-3 font-bold">
@@ -1132,7 +1132,7 @@ function DetailDrawer({
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-outline-variant/20 bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <div className="type-eyebrow text-primary">
               {kind}
             </div>
             <h2 className="mt-2 line-clamp-3 text-2xl font-bold text-on-surface">
@@ -1243,7 +1243,7 @@ function DetailDrawer({
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+      <div className="type-eyebrow text-on-surface-variant">
         {label}
       </div>
       <div className="mt-2 truncate text-lg font-bold text-on-surface">{value}</div>

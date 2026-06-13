@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Heading } from "@/components/ui/typography";
 import { LessonProgressCard } from "@/components/courses/lesson-progress-card";
 import { ArticleRenderer } from "./renderers/article-renderer";
 import { VideoRenderer } from "./renderers/video-renderer";
@@ -58,9 +59,9 @@ export function LessonContent({ lesson, courseSlug }: LessonContentProps) {
               ) : null}
             </div>
 
-            <h1 className="text-3xl font-bold text-on-surface sm:text-4xl">
+            <Heading level={1} className="font-bold">
               {lesson.title}
-            </h1>
+            </Heading>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-base">
               {t("lesson.subtitle", { course: lesson.course.title })}
             </p>

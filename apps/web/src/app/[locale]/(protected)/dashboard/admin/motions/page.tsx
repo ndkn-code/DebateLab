@@ -187,7 +187,7 @@ export default async function AdminMotionsPage() {
     <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 type-eyebrow text-primary">
             <FileSearch className="h-4 w-4" />
             Motion catalog
           </div>
@@ -231,7 +231,7 @@ export default async function AdminMotionsPage() {
           <Section title="Source Coverage">
             <div className="overflow-hidden rounded-[20px] border border-outline-variant/12">
               <table className="w-full text-left text-sm">
-                <thead className="bg-surface-container-low text-xs uppercase tracking-[0.14em] text-on-surface-variant">
+                <thead className="bg-surface-container-low type-eyebrow text-on-surface-variant">
                   <tr>
                     <th className="px-4 py-3">Tournament</th>
                     <th className="px-4 py-3">Occurrences</th>

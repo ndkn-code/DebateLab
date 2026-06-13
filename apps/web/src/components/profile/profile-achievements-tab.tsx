@@ -15,6 +15,7 @@ import {
   X,
 } from "@/components/ui/icons";
 import { AchievementMedallion } from "@/components/profile/achievement-medallion";
+import { Eyebrow, Heading } from "@/components/ui/typography";
 import { showToast } from "@/components/shared/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -136,15 +137,17 @@ function AchievementInfoDialog({
 
         <div className="flex flex-col items-center text-center">
           <AchievementMedallion achievement={achievement} size="lg" className="!size-28" />
-          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+          <Eyebrow className="mt-4 text-on-surface-variant">
             {getCategoryLabel(achievement.category, t)}
-          </p>
-          <h2
+          </Eyebrow>
+          <Heading
+            level={3}
+            as="h2"
             id="achievement-dialog-title"
-            className="mt-1.5 text-xl font-extrabold text-on-surface"
+            className="mt-1.5 font-extrabold"
           >
             {achievement.title}
-          </h2>
+          </Heading>
           <p className="mt-2 max-w-sm text-sm leading-6 text-on-surface-variant">
             {achievement.description}
           </p>
@@ -171,18 +174,18 @@ function AchievementInfoDialog({
 
         <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-2xl bg-[#FFF3DC] p-3.5 dark:bg-[#FFD166]/12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#C98A1B] dark:text-[#FFD98A]">
+            <Eyebrow className="text-[#C98A1B] dark:text-[#FFD98A]">
               {t("xp_reward")}
-            </p>
-            <p className="mt-1 text-[15px] font-extrabold tabular-nums text-on-surface">
+            </Eyebrow>
+            <p className="mt-1 type-body font-extrabold tabular-nums text-on-surface">
               {achievement.xpReward} XP
             </p>
           </div>
           <div className="rounded-2xl bg-[#E3F3FF] p-3.5 dark:bg-[#3B9EFF]/12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#1D7FD6] dark:text-[#6FB9FF]">
+            <Eyebrow className="text-[#1D7FD6] dark:text-[#6FB9FF]">
               {t("title_reward")}
-            </p>
-            <p className="mt-1 truncate text-[15px] font-extrabold text-on-surface">
+            </Eyebrow>
+            <p className="mt-1 truncate type-body font-extrabold text-on-surface">
               {achievement.titleReward ?? t("none")}
             </p>
           </div>
@@ -300,22 +303,22 @@ function AchievementCard({
         showFeaturedStar={false}
       />
 
-      <h3 className="mt-4 line-clamp-2 text-[15.5px] font-extrabold leading-6 text-on-surface">
+      <h3 className="mt-4 line-clamp-2 type-title font-extrabold leading-6 text-on-surface">
         {achievement.title}
       </h3>
-      <p className="mt-1 text-[12px] font-semibold text-on-surface-variant">
+      <p className="mt-1 type-caption font-semibold text-on-surface-variant">
         {getCategoryLabel(achievement.category, t)}
       </p>
 
       <div className="mt-auto w-full pt-5">
         {achievement.unlocked ? (
-          <p className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#1E9E54] dark:text-[#5DD984]">
+          <p className="inline-flex items-center gap-1.5 type-caption font-bold text-[#1E9E54] dark:text-[#5DD984]">
             <CheckCircle2 className="size-4" />
             {t("complete")}
           </p>
         ) : (
           <>
-            <div className="flex items-center justify-between text-[11.5px] font-bold tabular-nums text-on-surface-variant">
+            <div className="flex items-center justify-between type-caption font-bold tabular-nums text-on-surface-variant">
               <span className="inline-flex items-center gap-1">
                 <Lock className="size-3.5" />
                 {achievement.progressValue != null &&
@@ -432,7 +435,7 @@ export function ProfileAchievementsTab({
           <h2 className="text-lg font-extrabold text-on-surface">{t("title")}</h2>
         </div>
         <div className="w-full sm:max-w-[300px]">
-          <div className="flex items-center justify-between text-[13px] font-bold tabular-nums">
+          <div className="flex items-center justify-between type-caption font-bold tabular-nums">
             <span className="text-on-surface">
               {t("unlocked_count", {
                 count: effectiveData.unlockedCount,

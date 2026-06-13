@@ -126,13 +126,13 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
           <div className="min-w-0 flex-1">
             <span
               className={cn(
-                "inline-flex items-center rounded-full px-3.5 py-1.5 text-[12.5px] font-extrabold",
+                "inline-flex items-center rounded-full px-3.5 py-1.5 type-caption font-extrabold",
                 copy.chip
               )}
             >
               {t(copy.eyebrowKey)}
             </span>
-            <h2 className="mt-3 text-balance text-3xl font-extrabold leading-[1.1] tracking-[-0.01em] text-on-surface @3xl:text-4xl">
+            <h2 className="mt-3 text-balance type-heading-xl font-extrabold text-on-surface @3xl:text-4xl">
               {t(copy.titleKey)}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-on-surface @3xl:mx-0">
@@ -142,7 +142,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
           <div className="flex shrink-0 flex-col items-center gap-2">
             <ConfidenceRing confidence={verdict.confidence} />
-            <p className="max-w-[120px] text-center text-[12px] font-bold text-on-surface-variant">
+            <p className="max-w-[120px] text-center type-caption font-bold text-on-surface-variant">
               {t("confidence")}
             </p>
           </div>
@@ -163,10 +163,10 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
                   key={`${reason}-${index}`}
                   className="flex items-start gap-3.5 rounded-2xl bg-surface-container/60 p-4"
                 >
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-extrabold text-on-primary">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary type-caption font-extrabold text-on-primary">
                     {index + 1}
                   </span>
-                  <p className="text-[15px] leading-7 text-on-surface">
+                  <p className="type-body leading-7 text-on-surface">
                     <span className="sr-only">
                       {t("reasonLabel", { number: index + 1 })}
                     </span>
@@ -190,11 +190,11 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
           </h3>
 
           <div className="mt-5 flex flex-1 flex-col rounded-2xl bg-primary-container/50 p-5">
-            <p className="inline-flex items-start gap-3 text-[15px] font-extrabold leading-7 text-on-surface">
+            <p className="inline-flex items-start gap-3 type-body font-extrabold leading-7 text-on-surface">
               <Target className="mt-1 h-5 w-5 shrink-0 text-primary" />
               {t("nextMovePrompt")}
             </p>
-            <p className="mt-4 text-[15px] leading-7 text-on-surface">
+            <p className="mt-4 type-body leading-7 text-on-surface">
               {verdict.nextMove}
             </p>
           </div>

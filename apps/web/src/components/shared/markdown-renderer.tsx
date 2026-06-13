@@ -127,7 +127,7 @@ const markdownComponents: Components = {
 
     if (isBlockCode) {
       return (
-        <code className={cn("font-mono text-sm", className)} {...props}>
+        <code className={cn("type-code", className)} {...props}>
           {children}
         </code>
       );
@@ -136,7 +136,7 @@ const markdownComponents: Components = {
     return (
       <code
         className={cn(
-          "rounded-md bg-surface-container px-1.5 py-0.5 font-mono text-[0.9em] text-on-surface",
+          "rounded-md bg-surface-container px-1.5 py-0.5 type-code text-on-surface",
           className
         )}
         {...props}

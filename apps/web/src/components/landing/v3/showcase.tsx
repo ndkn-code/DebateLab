@@ -8,6 +8,7 @@ import type { LandingV3Copy } from "./copy";
 import { ArrowRightIcon } from "./icons";
 import { Eyebrow, Highlight } from "./ui";
 import { Reveal } from "./motion-primitives";
+import { Display } from "@/components/ui/typography";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const DIAL_RADIUS = 40;
@@ -41,11 +42,11 @@ function ScoreDial({ score, label }: { score: number; label: string }) {
           initial={{ opacity: 0, scale: 0.6 }}
           animate={inView ? { opacity: 1, scale: 1 } : undefined}
           transition={{ duration: 0.5, delay: 0.9, ease: EASE_OUT }}
-          className="text-[1.7rem] font-extrabold leading-none text-on-surface"
+          className="type-heading-lg font-extrabold text-on-surface"
         >
           {score}
         </motion.span>
-        <span className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+        <span className="mt-0.5 type-eyebrow text-on-surface-variant">
           {label}
         </span>
       </div>
@@ -56,7 +57,7 @@ function ScoreDial({ score, label }: { score: number; label: string }) {
 function Meter({ label, value, delay }: { label: string; value: number; delay: number }) {
   return (
     <div>
-      <div className="flex items-center justify-between text-[12px] font-bold">
+      <div className="flex items-center justify-between type-caption font-bold">
         <span className="text-on-surface">{label}</span>
         <span className="text-on-surface-variant">{value}</span>
       </div>
@@ -92,8 +93,8 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
           >
             {/* Panel header */}
             <div className="flex items-center justify-between gap-3 border-b border-outline-variant pb-4">
-              <p className="truncate text-[14px] font-bold text-on-surface">{panel.title}</p>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary-container px-3 py-1 text-[12px] font-extrabold text-primary-dim">
+              <p className="truncate type-body-sm font-bold text-on-surface">{panel.title}</p>
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary-container px-3 py-1 type-caption font-extrabold text-primary-dim">
                 <motion.span
                   animate={{ opacity: [1, 0.35, 1] }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
@@ -117,7 +118,7 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
                     {line.tag ? (
                       <span
                         className={cn(
-                          "mb-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide",
+                          "mb-1 inline-block rounded-md px-1.5 py-0.5 type-eyebrow",
                           line.tone === "good"
                             ? "bg-primary-container text-primary-dim"
                             : "bg-warning-container text-on-warning-container"
@@ -128,7 +129,7 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
                     ) : null}
                     <p
                       className={cn(
-                        "text-[13.5px] leading-6 text-on-surface-variant",
+                        "type-body-sm text-on-surface-variant",
                         line.tone === "good" &&
                           "rounded-lg bg-primary-container/60 box-decoration-clone px-1 text-on-surface",
                         line.tone === "fix" &&
@@ -173,7 +174,7 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
                   sizes="36px"
                 />
               </span>
-              <p className="text-[13.5px] font-bold text-primary-dim">{panel.coachNote}</p>
+              <p className="type-body-sm font-bold text-primary-dim">{panel.coachNote}</p>
             </motion.div>
           </motion.div>
         </Reveal>
@@ -182,18 +183,18 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
         <div className="order-1 lg:order-2">
           <Reveal>
             <Eyebrow>{copy.showcase.eyebrow}</Eyebrow>
-            <h2 className="mt-4 text-[2.1rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-on-surface sm:text-[2.7rem]">
+            <Display size="sm" as="h2" className="mt-4">
               <Highlight text={copy.showcase.title.text} highlight={copy.showcase.title.highlight} />
-            </h2>
+            </Display>
           </Reveal>
           <Reveal delay={0.12}>
-            <p className="mt-6 text-[1.02rem] leading-8 text-on-surface-variant">{copy.showcase.para1}</p>
-            <p className="mt-4 text-[1.02rem] leading-8 text-on-surface-variant">{copy.showcase.para2}</p>
+            <p className="mt-6 type-body text-on-surface-variant">{copy.showcase.para1}</p>
+            <p className="mt-4 type-body text-on-surface-variant">{copy.showcase.para2}</p>
           </Reveal>
           <Reveal delay={0.22}>
             <a
               href="#pricing"
-              className="group mt-7 inline-flex items-center gap-2 text-[15px] font-extrabold text-primary underline decoration-2 underline-offset-[6px] transition-colors hover:text-primary-dim"
+              className="group mt-7 inline-flex items-center gap-2 type-body font-extrabold text-primary underline decoration-2 underline-offset-[6px] transition-colors hover:text-primary-dim"
             >
               {copy.showcase.link}
               <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />

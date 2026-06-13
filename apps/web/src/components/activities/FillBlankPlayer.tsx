@@ -88,7 +88,7 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
 
       <div className="space-y-6 w-full">
         {passages.map((passage) => (
-          <div key={passage.id} className="text-lg leading-[2.5] text-on-surface rounded-2xl bg-white border border-gray-100 p-6 shadow-sm">
+          <div key={passage.id} className="text-lg leading-loose text-on-surface rounded-2xl bg-white border border-gray-100 p-6 shadow-sm">
             {renderPassage(passage)}
           </div>
         ))}

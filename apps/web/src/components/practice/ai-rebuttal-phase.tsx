@@ -616,7 +616,7 @@ export function AiRebuttalPhase({
                   key={`${highlight.type}-${index}`}
                   title={highlight.note}
                   className={cn(
-                    "inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ring-1",
+                    "inline-flex rounded-full px-2.5 py-1 type-caption font-bold ring-1",
                     getHighlightClass(highlight.type)
                   )}
                 >

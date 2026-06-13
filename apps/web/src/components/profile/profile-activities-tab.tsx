@@ -177,22 +177,22 @@ function ActivityCard({
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold leading-none",
+              "inline-flex items-center rounded-full px-2.5 py-1 type-caption font-bold leading-none",
               meta.tileClassName
             )}
           >
             {t(meta.labelKey)}
           </span>
           {item.xpEarned > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 text-[11px] font-bold leading-none text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+            <span className="inline-flex items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 type-caption font-bold leading-none text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
               +{item.xpEarned} XP
             </span>
           ) : null}
         </div>
-        <h3 className="mt-2 line-clamp-2 text-[15.5px] font-bold leading-6 text-on-surface">
+        <h3 className="mt-2 line-clamp-2 type-title font-bold leading-6 text-on-surface">
           {item.title}
         </h3>
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] font-semibold text-on-surface-variant">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 type-caption font-semibold text-on-surface-variant">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="size-4" />
             {formatActivityDate(item.createdAt, locale)}
@@ -206,7 +206,7 @@ function ActivityCard({
           {item.score != null ? (
             <span
               className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1 text-[11.5px] font-bold leading-none tabular-nums",
+                "inline-flex items-center rounded-full px-2.5 py-1 type-caption font-bold leading-none tabular-nums",
                 getScorePillClassName(item.score)
               )}
             >

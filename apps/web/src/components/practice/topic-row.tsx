@@ -82,18 +82,18 @@ export function TopicRow({
       <div className="min-w-0 flex-1">
         <h3
           className={cn(
-            "text-[15px] font-semibold leading-[1.4] text-on-surface line-clamp-2 transition-colors"
+            "type-body font-semibold text-on-surface line-clamp-2 transition-colors"
           )}
         >
           {display.topic.title}
         </h3>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] font-semibold leading-none text-on-surface-variant">
+          <span className="rounded-full bg-surface-container px-2.5 py-1 type-caption font-semibold leading-none text-on-surface-variant">
             {display.topic.category}
           </span>
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
+              "rounded-full px-2.5 py-1 type-caption font-semibold leading-none",
               DIFFICULTY_PILL_STYLES[display.difficultyTone]
             )}
           >

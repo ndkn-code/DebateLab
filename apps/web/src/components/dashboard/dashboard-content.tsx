@@ -58,7 +58,7 @@ export function DashboardContent({
       <ProductPageShell className="overflow-x-hidden">
         <PageContainer size="wide" className="flex flex-col py-4 pb-24 lg:py-5 lg:pb-28">
           <div className="flex flex-wrap items-center justify-between gap-3 text-on-surface">
-            <p className="min-w-0 text-[1.05rem] font-bold text-on-surface sm:text-[1.15rem]">
+            <p className="type-title min-w-0 font-bold text-on-surface">
               {t(getTimeGreetingKey())}, {displayName}{" "}
               <span aria-hidden="true">👋</span>
             </p>

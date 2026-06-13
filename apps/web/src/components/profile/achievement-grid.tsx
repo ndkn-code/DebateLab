@@ -96,12 +96,12 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
                       {a.description}
                     </p>
                     {a.unlocked && a.unlocked_at && (
-                      <p className="mt-1 text-[11px] text-on-surface-variant">
+                      <p className="mt-1 type-caption text-on-surface-variant">
                         {t("unlocked_date", { date: formatDate(a.unlocked_at) })}
                       </p>
                     )}
                     {a.title_reward && a.unlocked && (
-                      <p className="mt-0.5 text-[11px] font-medium text-on-surface-variant">
+                      <p className="mt-0.5 type-caption text-on-surface-variant">
                         {t("title_reward", { title: a.title_reward })}
                       </p>
                     )}

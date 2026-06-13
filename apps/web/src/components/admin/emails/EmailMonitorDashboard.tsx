@@ -162,7 +162,7 @@ export function EmailMonitorDashboard({ data }: Props) {
                   <span className="w-2 rounded-t bg-surface-container-high" style={{ height: `${Math.max(3, (point.opened / maxTrend) * 100)}%` }} />
                   <span className="w-2 rounded-t bg-error" style={{ height: `${Math.max(3, (point.failed / maxTrend) * 100)}%` }} />
                 </div>
-                <span className="text-[10px] font-semibold text-muted-foreground">{point.date.slice(5)}</span>
+                <span className="type-caption font-semibold text-muted-foreground">{point.date.slice(5)}</span>
               </div>
             ))}
           </div>
@@ -245,7 +245,7 @@ export function EmailMonitorDashboard({ data }: Props) {
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-surface-container text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              <thead className="bg-surface-container type-eyebrow text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3 font-bold">Recipient</th>
                   <th className="px-5 py-3 font-bold">Template</th>
@@ -268,7 +268,7 @@ export function EmailMonitorDashboard({ data }: Props) {
                         <p className="font-semibold text-on-surface">{message.templateKey.replaceAll("_", " ")}</p>
                         <p className="text-xs text-muted-foreground">{message.locale} · {message.category}</p>
                         {message.streakMismatch ? (
-                          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 text-[11px] font-bold text-on-surface-variant">
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-0.5 type-caption font-bold text-on-surface-variant">
                             <AlertTriangle className="h-3 w-3" />
                             Streak repaired
                           </span>

@@ -33,6 +33,7 @@ import {
 } from "@/app/actions/admin-clubs";
 import { resolveLeaderboardXpEventFlag } from "@/app/actions/leaderboards";
 import { ClubSchedulePanel } from "@/components/admin/clubs/ClubSchedulePanel";
+import { Stat } from "@/components/ui/typography";
 import { showToast } from "@/components/shared/toast";
 import { buildPracticeHref } from "@/lib/practice-prefill";
 import { cn } from "@/lib/utils";
@@ -112,10 +113,10 @@ function KpiCard({
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-[13px] font-medium leading-tight text-on-surface-variant">{label}</p>
-            <span className="flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant text-[10px] font-bold text-on-surface-variant">i</span>
+            <p className="type-caption font-medium text-on-surface-variant">{label}</p>
+            <span className="type-caption flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant font-bold text-on-surface-variant">i</span>
           </div>
-          <p className="mt-1 text-[32px] font-bold leading-none tracking-normal text-on-surface">{value}</p>
+          <Stat size="heading-xl" as="p" className="mt-1 text-on-surface">{value}</Stat>
           <p className="mt-2 text-xs font-medium text-on-surface-variant">
             <span className="mr-1 text-success">▲</span>
             {helper}
@@ -144,7 +145,7 @@ function TrendChart({ data }: { data: AdminClubDetailData["trend"] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-bold text-on-surface">Cohort Performance Trend</h2>
-          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant text-[10px] font-bold text-on-surface-variant">i</span>
+          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant type-caption font-bold text-on-surface-variant">i</span>
         </div>
         <div className="flex gap-2">
           <button className="h-9 rounded-lg border border-outline-variant bg-white px-3 text-xs font-semibold text-on-surface-variant">All Cohorts</button>
@@ -207,13 +208,13 @@ function WeakestSkills({ data }: { data: AdminClubDetailData["weakestSkills"] })
       <div className="flex items-center gap-2">
         <h2 className="text-base font-bold text-on-surface">Weakest Skills</h2>
         <p className="text-sm text-on-surface-variant">(by Avg. Score)</p>
-        <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant text-[10px] font-bold text-on-surface-variant">i</span>
+        <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full border border-outline-variant type-caption font-bold text-on-surface-variant">i</span>
       </div>
       <div className="mt-6 space-y-5">
         {rows.map((skill, index) => {
           const color = index === 0 ? "#FF6B6B" : index < 4 ? "#FFD166" : "#00B8D9";
           return (
-            <div key={skill.key} className="grid grid-cols-[136px_1fr_34px] items-center gap-3 text-[13px]">
+            <div key={skill.key} className="grid grid-cols-[136px_1fr_34px] items-center gap-3 type-caption">
               <span className="font-medium leading-tight text-on-surface">{skill.label}</span>
               <div className="h-2 rounded-full bg-surface-container">
                 <div className="h-full rounded-full" style={{ width: `${skill.value}%`, backgroundColor: color }} />
@@ -341,7 +342,7 @@ function ReviewRail({ data }: { data: AdminClubDetailData }) {
                 <p className="truncate text-xs text-on-surface-variant">{student.cohort ?? "No cohort"}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-medium text-on-surface-variant">Risk Score</p>
+                <p className="type-caption text-on-surface-variant">Risk Score</p>
                 <p className={cn("text-sm font-bold", student.riskScore > 70 ? "text-on-surface-variant" : "text-on-surface-variant")}>{student.riskScore}</p>
               </div>
             </div>
@@ -583,13 +584,13 @@ function MembersSchedulePreview({ data }: { data: AdminClubDetailData }) {
           {upcoming.map((event) => (
             <div key={event.id} className="grid grid-cols-[48px_1fr] gap-3">
               <div className="text-center">
-                <p className="text-[10px] font-bold text-on-surface-variant">{formatMonth(event.date)}</p>
+                <p className="type-caption font-bold text-on-surface-variant">{formatMonth(event.date)}</p>
                 <p className="text-2xl font-bold leading-none text-on-surface">{formatDay(event.date)}</p>
               </div>
               <div className="border-l-2 border-primary pl-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-bold text-on-surface">{event.title}</p>
-                  <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold capitalize", eventTone(event.eventType))}>
+                  <span className={cn("rounded-md border px-2 py-0.5 type-caption font-bold capitalize", eventTone(event.eventType))}>
                     {event.eventType}
                   </span>
                 </div>
@@ -945,7 +946,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
                       <div className="mt-3 rounded-lg border border-outline-variant bg-surface-container p-3">
                         <p className="text-xs font-bold uppercase text-on-surface-variant">Created code</p>
                         <div className="mt-2 flex items-center justify-between gap-2">
-                          <p className="font-mono text-lg font-black tracking-[0.12em] text-on-surface">{createdJoinCode.code}</p>
+                          <p className="font-mono text-lg font-black text-on-surface">{createdJoinCode.code}</p>
                           <button
                             type="button"
                             onClick={handleCopyJoinCode}
@@ -1074,7 +1075,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase text-on-surface-variant">{label}</p>
+      <p className="type-caption font-semibold uppercase text-on-surface-variant">{label}</p>
       <p className="mt-1 font-bold text-on-surface">{value}</p>
     </div>
   );

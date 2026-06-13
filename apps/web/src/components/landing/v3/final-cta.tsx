@@ -37,12 +37,12 @@ export function FinalCtaSection({
 
       <div className="relative mx-auto flex max-w-4xl flex-col items-center text-center">
         <Reveal>
-          <h2 className="text-balance text-[2.5rem] font-extrabold leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.6rem]">
+          <h2 className="type-display-sm text-balance text-white">
             {copy.cta.title}
           </h2>
         </Reveal>
         <Reveal delay={0.12}>
-          <p className="mt-6 max-w-[520px] text-[1.05rem] leading-8 text-white/85 sm:text-[1.12rem]">
+          <p className="mt-6 max-w-[520px] type-body-lg text-white/85">
             {copy.cta.description}
           </p>
         </Reveal>
@@ -54,7 +54,7 @@ export function FinalCtaSection({
           >
             <a
               href={landingHref(locale, isLoggedIn ? "/dashboard" : "/auth/signup")}
-              className="inline-flex h-16 items-center justify-center rounded-2xl bg-white px-10 text-[1.05rem] font-extrabold text-primary-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_0_#BFE3EC,0_22px_36px_-20px_rgba(7,46,57,0.55)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_7px_0_#BFE3EC,0_26px_40px_-20px_rgba(7,46,57,0.6)] active:translate-y-1 active:shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_0_#BFE3EC]"
+              className="inline-flex h-16 items-center justify-center rounded-2xl bg-white px-10 type-body-lg font-extrabold text-primary-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_0_#BFE3EC,0_22px_36px_-20px_rgba(7,46,57,0.55)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_7px_0_#BFE3EC,0_26px_40px_-20px_rgba(7,46,57,0.6)] active:translate-y-1 active:shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_0_#BFE3EC]"
             >
               {isLoggedIn ? copy.cta.buttonLoggedIn : copy.cta.button}
             </a>

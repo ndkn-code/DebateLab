@@ -99,7 +99,7 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
                 >
                   {entry.name}
                 </p>
-                <p className="mt-0.5 text-[11px] text-on-surface-variant">
+                <p className="type-caption mt-0.5 text-on-surface-variant">
                   {entry.minutes > 0 ? `${entry.minutes}` : "0"}
                 </p>
               </div>

@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { Heading, Text } from "@/components/ui/typography";
 import type { CoachContextEnvelope, CoachProfile } from "@/types";
 
 interface CoachInsightsRailProps {
@@ -47,16 +48,16 @@ export function CoachBrief({
   return (
     <div className="rounded-[28px] border border-outline-variant/15 bg-surface px-5 py-5 shadow-token-card sm:px-6 sm:py-6">
       <div className="max-w-3xl">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 type-eyebrow text-primary">
           <Sparkles className="h-3.5 w-3.5" />
           {t("coach.personalized_brief_badge")}
         </div>
-        <h1 className="mt-4 text-3xl font-semibold leading-tight text-on-surface sm:text-[2.15rem]">
+        <Heading level={1} className="mt-4 font-semibold">
           {t("coach.personalized_brief_title", { name: profile.displayName })}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant sm:text-[15px]">
+        </Heading>
+        <Text variant="body-sm" className="mt-3 max-w-2xl text-on-surface-variant">
           {envelope.focusSummary}
-        </p>
+        </Text>
       </div>
 
       <div className="mt-6 grid gap-3 lg:grid-cols-3">
@@ -92,7 +93,7 @@ export function CoachBrief({
       </div>
 
       <div className="mt-6">
-        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+        <div className="type-eyebrow text-on-surface-variant">
           {t("coach.ask_about_this")}
         </div>
         <div className="mt-3 flex flex-wrap gap-2.5">
@@ -122,11 +123,11 @@ function InsightStat({
 }) {
   return (
     <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-low px-4 py-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+      <div className="type-eyebrow text-on-surface-variant">
         {label}
       </div>
-      <div className="mt-2 text-xl font-semibold text-on-surface">{value}</div>
-      <p className="mt-2 text-sm leading-6 text-on-surface-variant">{description}</p>
+      <div className="mt-2 type-heading-md text-on-surface">{value}</div>
+      <Text variant="body-sm" className="mt-2 text-on-surface-variant">{description}</Text>
     </div>
   );
 }
@@ -154,12 +155,12 @@ export function CoachInsightsRail({
       <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-base font-semibold text-on-surface">
+            <div className="type-title text-on-surface">
               {t("coach.skill_snapshot_title")}
             </div>
-            <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+            <Text variant="body-sm" className="mt-1 text-on-surface-variant">
               {t("coach.skill_snapshot_subtitle")}
-            </p>
+            </Text>
           </div>
           <BarChart3 className="mt-0.5 h-4 w-4 text-primary" />
         </div>
@@ -196,10 +197,10 @@ export function CoachInsightsRail({
 
         <div className="mt-4 flex items-center justify-between rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.16em] text-on-surface-variant">
+            <div className="type-eyebrow text-on-surface-variant">
               {t("coach.overall_score")}
             </div>
-            <div className="mt-1 text-lg font-semibold text-on-surface">
+            <div className="mt-1 type-title text-on-surface">
               {profile.skillSnapshot.overallScore != null
                 ? `${Math.round(profile.skillSnapshot.overallScore)} /100`
                 : t("coach.not_enough_data")}
@@ -225,16 +226,16 @@ export function CoachInsightsRail({
       </section>
 
       <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
-        <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+        <div className="flex items-center gap-2 type-eyebrow text-primary">
           <Target className="h-4 w-4" />
           {t("coach.current_focus")}
         </div>
-        <div className="mt-3 text-base font-semibold text-on-surface">
+        <div className="mt-3 type-title text-on-surface">
           {envelope.focusTitle}
         </div>
-        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+        <Text variant="body-sm" className="mt-2 text-on-surface-variant">
           {envelope.focusSummary}
-        </p>
+        </Text>
         {envelope.selectedSession && (
           <div className="mt-3 rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
             <div className="text-sm font-semibold text-on-surface">
@@ -277,7 +278,7 @@ export function CoachInsightsRail({
       </section>
 
       <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
-        <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+        <div className="flex items-center gap-2 type-eyebrow text-primary">
           <TrendingUp className="h-4 w-4" />
           {t("coach.recommended_next_steps")}
         </div>
@@ -318,7 +319,7 @@ export function CoachInsightsRail({
       </section>
 
       <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
-        <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+        <div className="flex items-center gap-2 type-eyebrow text-primary">
           <BookOpen className="h-4 w-4" />
           {t("coach.recent_sessions")}
         </div>
@@ -360,7 +361,7 @@ export function CoachInsightsRail({
       </section>
 
       <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
-        <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
+        <div className="flex items-center gap-2 type-eyebrow text-primary">
           <CircleDashed className="h-4 w-4" />
           {t("coach.ask_about_this")}
         </div>

@@ -8,6 +8,7 @@ import type { LandingV3Copy } from "./copy";
 import { CrownIcon, FlameIcon, StarIcon } from "./icons";
 import { Reveal } from "./motion-primitives";
 import { Eyebrow, GhostButton, Highlight } from "./ui";
+import { Display, Text } from "@/components/ui/typography";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -58,14 +59,14 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
         <div>
           <Reveal>
             <Eyebrow>{copy.gamification.eyebrow}</Eyebrow>
-            <h2 className="mt-4 text-[2.1rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-on-surface sm:text-[2.7rem]">
+            <Display size="sm" as="h2" className="mt-4">
               <Highlight text={copy.gamification.title.text} highlight={copy.gamification.title.highlight} />
-            </h2>
+            </Display>
           </Reveal>
           <Reveal delay={0.12}>
-            <p className="mt-6 max-w-[440px] text-[1.02rem] leading-8 text-on-surface-variant">
+            <Text variant="body" className="mt-6 max-w-[440px] text-on-surface-variant">
               {copy.gamification.description}
-            </p>
+            </Text>
           </Reveal>
           <Reveal delay={0.22}>
             <GhostButton href="#pricing" label={copy.gamification.cta} className="mt-8" />
@@ -93,7 +94,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                 />
               </motion.span>
               <div>
-                <p className="text-[1.05rem] font-extrabold text-on-surface">{streak.title}</p>
+                <p className="type-title font-extrabold text-on-surface">{streak.title}</p>
                 <p className="text-xs font-bold text-on-surface-variant">{streak.caption}</p>
               </div>
             </div>
@@ -127,7 +128,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning-container">
                 <CrownIcon className="h-5 w-5 text-[#E3A700]" />
               </span>
-              <p className="text-[1.02rem] font-extrabold text-on-surface">{league.title}</p>
+              <p className="type-body font-extrabold text-on-surface">{league.title}</p>
             </div>
             <div className="mt-4 flex flex-col gap-2">
               {league.rows.map((row, index) => (
@@ -144,7 +145,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                 >
                   <span
                     className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold",
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full type-caption font-extrabold",
                       index === 0 ? "bg-reward text-white" : "bg-white text-on-surface-variant"
                     )}
                   >
@@ -152,13 +153,13 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                   </span>
                   <span
                     className={cn(
-                      "flex-1 truncate text-[13px] font-extrabold",
+                      "flex-1 truncate type-label font-extrabold",
                       row.you ? "text-primary-dim" : "text-on-surface"
                     )}
                   >
                     {row.name}
                   </span>
-                  <span className="text-[12px] font-bold text-on-surface-variant">{row.xp}</span>
+                  <span className="type-caption font-bold text-on-surface-variant">{row.xp}</span>
                   {row.you ? (
                     <motion.svg
                       viewBox="0 0 24 24"
@@ -183,7 +184,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
             className="relative z-10 w-[230px] sm:absolute sm:bottom-6 sm:right-12"
           >
             <div className="flex items-center justify-between">
-              <p className="text-[1.5rem] font-extrabold tracking-[-0.02em] text-primary">{xp.burst}</p>
+              <p className="type-heading-lg font-extrabold text-primary">{xp.burst}</p>
               <div className="flex gap-0.5">
                 {Array.from({ length: 3 }).map((_, index) => (
                   <motion.span
@@ -208,7 +209,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                   className="h-full rounded-full bg-reward"
                 />
               </div>
-              <p className="mt-2 text-[12px] font-extrabold text-on-surface-variant">{xp.level}</p>
+              <p className="mt-2 type-caption font-extrabold text-on-surface-variant">{xp.level}</p>
             </div>
           </GameCard>
 

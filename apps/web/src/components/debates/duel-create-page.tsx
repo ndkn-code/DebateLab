@@ -383,12 +383,12 @@ export function DuelCreatePage({
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 pr-8">
-                        <span className="rounded-full bg-primary-container px-2.5 py-[4px] text-[10px] font-semibold leading-none text-on-surface-variant">
+                        <span className="rounded-full bg-primary-container px-2.5 py-[4px] type-caption font-semibold text-on-surface-variant">
                           {shortCategoryLabel(topic.category)}
                         </span>
                         <span
                           className={cn(
-                            "rounded-full px-2.5 py-[4px] text-[10px] font-semibold leading-none",
+                            "rounded-full px-2.5 py-[4px] type-caption font-semibold",
                             difficultyTone(topic.difficulty)
                           )}
                         >
@@ -397,7 +397,7 @@ export function DuelCreatePage({
                       </div>
 
                       <div className="mt-4 flex-1">
-                        <h3 className="line-clamp-4 break-words text-[0.98rem] font-semibold leading-[1.38] text-on-surface">
+                        <h3 className="line-clamp-4 break-words type-body font-semibold text-on-surface">
                           {topic.title}
                         </h3>
                       </div>

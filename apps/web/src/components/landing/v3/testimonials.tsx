@@ -7,6 +7,7 @@ import type { LandingV3Copy } from "./copy";
 import { FlameIcon, StarIcon } from "./icons";
 import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
 import { Eyebrow, Highlight } from "./ui";
+import { Display } from "@/components/ui/typography";
 
 const AVATAR_GRADIENTS = [
   "from-[#8BE8F7] to-[#00B8D9]",
@@ -21,9 +22,9 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
       <div className="mx-auto max-w-6xl">
         <Reveal className="mx-auto max-w-[640px] text-center">
           <Eyebrow>{copy.testimonials.eyebrow}</Eyebrow>
-          <h2 className="mt-4 text-[2.1rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-on-surface sm:text-[2.9rem]">
+          <Display size="sm" as="h2" className="mt-4">
             <Highlight text={copy.testimonials.title.text} highlight={copy.testimonials.title.highlight} />
-          </h2>
+          </Display>
         </Reveal>
 
         {/* Giant speech bubble framing the wall — the page's second-read moment */}
@@ -70,8 +71,8 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
                     </div>
                     <blockquote
                       className={cn(
-                        "mt-4 leading-7 text-on-surface",
-                        index === 0 ? "text-[1.15rem] font-bold leading-8" : "text-[1rem] font-medium"
+                        "mt-4 text-on-surface",
+                        index === 0 ? "type-body-lg font-bold" : "type-body font-medium"
                       )}
                     >
                       &ldquo;{item.quote}&rdquo;
@@ -86,8 +87,8 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
                         {item.initials}
                       </span>
                       <span>
-                        <span className="block text-[15px] font-extrabold text-on-surface">{item.name}</span>
-                        <span className="block text-[13px] text-on-surface-variant">{item.role}</span>
+                        <span className="block type-body font-extrabold text-on-surface">{item.name}</span>
+                        <span className="block type-caption text-on-surface-variant">{item.role}</span>
                       </span>
                     </figcaption>
                   </motion.figure>

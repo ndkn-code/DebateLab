@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, Sparkles, Zap } from "@/components/ui/icons";
+import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry, DashboardHomeData } from "@/lib/api/dashboard";
 
@@ -163,9 +164,9 @@ export function StatCounter({
           unoptimized
           aria-hidden="true"
         />
-        <span className="truncate text-[1.35rem] font-extrabold leading-none tracking-normal text-on-surface tabular-nums sm:text-[1.45rem]">
+        <Stat size="heading-lg" className="truncate font-extrabold leading-none text-on-surface">
           {value}
-        </span>
+        </Stat>
       </PopoverTrigger>
       <PopoverContent
         align="end"
@@ -217,7 +218,7 @@ function StreakPopover({
         </div>
 
         <div className="relative mt-5 rounded-[1.35rem] bg-surface-container-lowest/90 p-4 shadow-token-card">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+          <p className="type-eyebrow mb-3 text-on-surface-variant">
             {t("stats.weekly_rhythm")}
           </p>
           <div className="grid grid-cols-7 gap-1.5">
@@ -248,7 +249,7 @@ function StreakPopover({
                       <Zap className="h-4 w-4 opacity-45" />
                     )}
                   </span>
-                  <span className="truncate text-[10px] font-bold text-on-surface-variant">
+                  <span className="type-caption truncate font-bold text-on-surface-variant">
                     {t(`days_labels.${dayKey}`)}
                   </span>
                 </div>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth/admin";
+import { canAccessDuels } from "@/lib/auth/admin";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { DuelHubPage } from "@/components/debates/duel-hub-page";
 
@@ -23,6 +23,6 @@ export default async function DebateHubRoute() {
     redirect("/auth/login");
   }
 
-  const isAdmin = user ? await isAdminUser(supabase, user.id) : true;
+  const isAdmin = user ? await canAccessDuels(supabase, user.id) : true;
   return <DuelHubPage isAdmin={isAdmin} />;
 }

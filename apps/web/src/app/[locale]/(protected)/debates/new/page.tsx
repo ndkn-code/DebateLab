@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth/admin";
+import { canAccessDuels } from "@/lib/auth/admin";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getActivePracticeTopics } from "@/lib/practice-topics/catalog";
 import { coercePracticeLanguage } from "@/lib/practice-language";
@@ -31,7 +31,7 @@ export default async function NewDebateDuelPage({
     redirect("/auth/login");
   }
 
-  if (user && !(await isAdminUser(supabase, user.id))) {
+  if (user && !(await canAccessDuels(supabase, user.id))) {
     redirect("/dashboard");
   }
 

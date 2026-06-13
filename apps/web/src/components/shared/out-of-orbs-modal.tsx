@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, Gift, Sparkles } from "@/components/ui/icons";
+import { Copy, Check, Gift } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { OrbBalance } from "./orb-balance";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
@@ -65,11 +66,18 @@ export function OutOfOrbsModal({
             onClick={(e) => e.stopPropagation()}
             className="mx-4 w-full max-w-sm rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6"
           >
-            {/* Icon */}
+            {/* Illustration */}
             <div className="mb-4 flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10">
-                <Sparkles className="h-8 w-8 text-amber-500" />
-              </div>
+              <Image
+                src="/images/rewards/thinkfy_popup_out_of_orbs_v1.webp"
+                alt=""
+                width={128}
+                height={128}
+                className="h-28 w-28 object-contain"
+                priority
+                unoptimized
+                aria-hidden="true"
+              />
             </div>
 
             {/* Title */}

@@ -13,6 +13,7 @@ import {
   Zap,
 } from "@/components/ui/icons";
 import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
+import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { DashboardHomeData } from "@/lib/api/dashboard";
 import type {
@@ -77,12 +78,12 @@ function LevelCard({ topBar }: { topBar: DashboardHomeData["topBar"] }) {
             className="h-14 w-14 object-contain"
             sizes="56px"
           />
-          <span className="absolute translate-y-[3px] text-[15px] font-extrabold text-[#8A5C00]">
+          <span className="type-body absolute translate-y-[3px] font-extrabold text-[#8A5C00]">
             {topBar.level}
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-extrabold text-on-surface">
+          <p className="type-body font-extrabold text-on-surface">
             {t("level", { level: topBar.level })}
           </p>
           <div className="mt-2 h-3 overflow-hidden rounded-full bg-surface-container-high">
@@ -94,7 +95,7 @@ function LevelCard({ topBar }: { topBar: DashboardHomeData["topBar"] }) {
               className="h-full rounded-full bg-reward"
             />
           </div>
-          <p className="mt-1.5 text-[12px] font-bold text-on-surface-variant">
+          <p className="type-caption mt-1.5 font-bold text-on-surface-variant">
             {topBar.xpCurrent} / {topBar.xpGoal} XP
           </p>
         </div>
@@ -128,7 +129,7 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
         {done ? <CheckCircle2 className="h-5 w-5" /> : quest.icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] font-extrabold text-on-surface">{quest.label}</p>
+        <p className="type-body-sm truncate font-extrabold text-on-surface">{quest.label}</p>
         <div className="relative mt-1.5 h-3.5 overflow-hidden rounded-full bg-surface-container-high">
           <motion.div
             initial={{ width: 0 }}
@@ -140,7 +141,7 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
               done ? "bg-success" : "bg-reward"
             )}
           />
-          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-on-surface/70">
+          <span className="type-caption absolute inset-0 flex items-center justify-center font-extrabold text-on-surface/70">
             {Math.min(quest.current, quest.goal)} / {quest.goal}
           </span>
         </div>
@@ -195,7 +196,7 @@ function DailyQuestsCard({
   return (
     <RailCard testId="dashboard-daily-quests">
       <div className="flex items-center justify-between">
-        <p className="text-[15px] font-extrabold text-on-surface">{t("quests_title")}</p>
+        <p className="type-body font-extrabold text-on-surface">{t("quests_title")}</p>
         <Zap className="h-[18px] w-[18px] text-reward" />
       </div>
       <div className="mt-4 flex flex-col gap-4">
@@ -233,11 +234,13 @@ function StreakRailCard({
           sizes="44px"
         />
         <div>
-          <p className="text-[1.45rem] font-extrabold leading-none text-on-surface">
-            {streak}{" "}
-            <span className="text-[14px] font-bold text-on-surface-variant">{t("days")}</span>
+          <p className="text-on-surface">
+            <Stat size="heading-lg" className="font-extrabold leading-none">
+              {streak}
+            </Stat>{" "}
+            <span className="type-body-sm font-bold text-on-surface-variant">{t("days")}</span>
           </p>
-          <p className="mt-1 text-[12px] font-bold text-on-surface-variant">
+          <p className="type-caption mt-1 font-bold text-on-surface-variant">
             {t("streak_title")}
           </p>
         </div>
@@ -261,7 +264,7 @@ function StreakRailCard({
               >
                 {active ? <CheckCircle2 className="h-4 w-4" /> : null}
               </span>
-              <span className="text-[10px] font-extrabold uppercase text-on-surface-variant">
+              <span className="type-caption font-extrabold uppercase text-on-surface-variant">
                 {initial}
               </span>
             </div>
@@ -297,10 +300,10 @@ function InviteRailCard({
           <Gift className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13.5px] font-extrabold text-on-surface">
+          <span className="type-body-sm block truncate font-extrabold text-on-surface">
             {t("invite_friend_title")}
           </span>
-          <span className="block text-[12px] font-bold text-primary">
+          <span className="type-caption block font-bold text-primary">
             {t("invite_friend_reward", { count: inviteReward })}
           </span>
         </span>

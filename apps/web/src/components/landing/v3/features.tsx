@@ -8,6 +8,7 @@ import type { LandingV3Copy } from "./copy";
 import { StarIcon } from "./icons";
 import { Eyebrow, Highlight } from "./ui";
 import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
+import { Display, Heading, Text } from "@/components/ui/typography";
 
 function BentoCard({
   title,
@@ -30,8 +31,8 @@ function BentoCard({
       )}
     >
       <div className="flex-1">{children}</div>
-      <h3 className="mt-6 text-[1.35rem] font-extrabold tracking-[-0.02em] text-on-surface">{title}</h3>
-      <p className="mt-2 text-[15px] leading-7 text-on-surface-variant">{caption}</p>
+      <Heading level={3} className="mt-6 font-extrabold">{title}</Heading>
+      <Text variant="body" className="mt-2 text-on-surface-variant">{caption}</Text>
     </motion.div>
   );
 }
@@ -82,7 +83,7 @@ function TopicsIllustration({ copy }: { copy: LandingV3Copy }) {
       <Stagger gap={0.07} delay={0.1} className="flex max-w-[88%] flex-wrap gap-2 pt-8">
         {copy.features.topics.chips.map((chip) => (
           <StaggerItem key={chip} y={10}>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-container px-3.5 py-2 text-[13px] font-bold text-on-surface transition-colors duration-200 hover:border-[#8BE8F7] hover:bg-primary-container hover:text-primary-dim">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-container px-3.5 py-2 type-label font-bold text-on-surface transition-colors duration-200 hover:border-[#8BE8F7] hover:bg-primary-container hover:text-primary-dim">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {chip}
             </span>
@@ -109,7 +110,7 @@ function LiveIllustration({ copy }: { copy: LandingV3Copy }) {
         </span>
         <span className="text-xs font-bold text-on-surface-variant">{copy.features.live.rival}</span>
       </div>
-      <span className="absolute right-7 top-7 inline-flex items-center gap-1.5 rounded-full bg-error px-2.5 py-1 text-[10px] font-extrabold tracking-[0.12em] text-white">
+      <span className="absolute right-7 top-7 inline-flex items-center gap-1.5 rounded-full bg-error px-2.5 py-1 type-caption font-extrabold tracking-widest text-white">
         <motion.span
           animate={{ opacity: [1, 0.3, 1] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -138,7 +139,7 @@ function AnalyticsIllustration({ copy }: { copy: LandingV3Copy }) {
                 className={cn("w-7 rounded-t-lg sm:w-8", isLast ? "bg-reward" : "bg-primary")}
               />
             </div>
-            <span className="text-[10px] font-bold text-on-surface-variant">
+            <span className="type-caption font-bold text-on-surface-variant">
               {copy.features.analytics.weeks[index]}
             </span>
           </div>
@@ -155,14 +156,14 @@ export function FeaturesSection({ copy }: { copy: LandingV3Copy }) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <Reveal>
             <Eyebrow>{copy.features.eyebrow}</Eyebrow>
-            <h2 className="mt-4 max-w-[560px] text-[2.1rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-on-surface sm:text-[2.9rem]">
+            <Display size="sm" as="h2" className="mt-4 max-w-[560px]">
               <Highlight text={copy.features.title.text} highlight={copy.features.title.highlight} />
-            </h2>
+            </Display>
           </Reveal>
           <Reveal delay={0.15}>
-            <p className="max-w-[320px] text-[15px] leading-7 text-on-surface-variant lg:pb-2 lg:text-right">
+            <Text variant="body" className="max-w-[320px] text-on-surface-variant lg:pb-2 lg:text-right">
               {copy.features.aside}
-            </p>
+            </Text>
           </Reveal>
         </div>
 

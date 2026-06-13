@@ -277,12 +277,12 @@ export function PracticeTimerDial({
       <div className="relative text-center">
         <div
           className={cn(
-            "font-mono font-bold leading-none tracking-normal text-on-surface",
             size === "sm"
-              ? "text-[2.4rem]"
+              ? "type-display-sm"
               : size === "md"
-                ? "text-[2.75rem]"
-                : "text-[3.1rem]"
+                ? "type-display-md"
+                : "type-display-lg",
+            "font-mono font-bold leading-none tracking-normal tabular-nums text-on-surface"
           )}
         >
           {formatPracticeTime(timeLeft)}

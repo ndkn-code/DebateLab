@@ -814,7 +814,7 @@ function AttendanceGrid({ data }: { data: AdminClassDetailData }) {
             {data.attendanceGrid.sessions.map((session) => (
               <th key={session.id} className="px-3 py-2 text-center">
                 <div>{new Date(`${session.sessionDate}T00:00:00`).toLocaleDateString("en", { month: "short", day: "numeric" })}</div>
-                <div className="max-w-24 truncate text-[10px] font-normal normal-case">{session.courseTitle}</div>
+                <div className="max-w-24 truncate type-caption font-normal normal-case">{session.courseTitle}</div>
               </th>
             ))}
           </tr>

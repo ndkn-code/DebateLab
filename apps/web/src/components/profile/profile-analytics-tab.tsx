@@ -19,6 +19,7 @@ import {
   LEADERBOARD_LEAGUE_ASSETS,
 } from "@/lib/leaderboards/league-assets";
 import { getLocalizedLeagueName } from "@/lib/leaderboards/replay";
+import { Eyebrow, Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { ProfileAnalyticsTabData } from "@/lib/profile-social/tab-model";
 import type { PublicProfileShell } from "@/lib/profile-social/model";
@@ -89,7 +90,7 @@ export function AnalyticsRangeControl({
             aria-pressed={active}
             onClick={() => onRangeChange(item)}
             className={cn(
-              "relative inline-flex h-9 min-w-[4.25rem] items-center justify-center rounded-full px-4 text-[13.5px] font-semibold transition-colors",
+              "relative inline-flex h-9 min-w-[4.25rem] items-center justify-center rounded-full px-4 type-body-sm font-semibold transition-colors",
               active
                 ? "text-on-primary"
                 : "text-on-surface-variant hover:text-on-surface"
@@ -133,7 +134,7 @@ function BentoTile({
       {title || action ? (
         <div className="mb-5 flex items-center justify-between gap-3">
           {title ? (
-            <h2 className="text-[15px] font-bold text-on-surface">{title}</h2>
+            <h2 className="type-body font-bold text-on-surface">{title}</h2>
           ) : null}
           {action}
         </div>
@@ -293,7 +294,7 @@ function SkillRadarHero({
               textAnchor="middle"
               dominantBaseline="central"
               fill="var(--color-on-surface)"
-              className="text-[22px] font-extrabold"
+              className="type-heading-lg font-extrabold"
             >
               {overall}
             </text>
@@ -326,7 +327,7 @@ function SkillRadarHero({
                 <tspan
                   x={labelPoint.x}
                   dy="-0.4em"
-                  className={cn("text-[11px] font-semibold", tone.label)}
+                  className={cn("type-caption font-semibold", tone.label)}
                 >
                   {t(`skills.${metric.key}`)}
                 </tspan>
@@ -334,7 +335,7 @@ function SkillRadarHero({
                   x={labelPoint.x}
                   dy="1.4em"
                   fill="var(--color-on-surface)"
-                  className="text-[13px] font-extrabold"
+                  className="type-caption font-extrabold"
                 >
                   {Math.round(metric.value)}
                 </tspan>
@@ -346,30 +347,30 @@ function SkillRadarHero({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <div className="rounded-2xl bg-[#E5F6EC] p-4 dark:bg-[#34C759]/12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#1E9E54] dark:text-[#5DD984]">
+          <Eyebrow className="text-[#1E9E54] dark:text-[#5DD984]">
             {t("cards.strongest_focus.strongest")}
-          </p>
+          </Eyebrow>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <p className="text-[1.15rem] font-extrabold text-on-surface">
+            <p className="type-title font-extrabold text-on-surface">
               {strongestSkill ? t(`skills.${strongestSkill}`) : "-"}
             </p>
-            <p className="text-[1.05rem] font-extrabold tabular-nums text-[#1E9E54] dark:text-[#5DD984]">
+            <Stat size="title" className="font-extrabold text-[#1E9E54] dark:text-[#5DD984]">
               {skillScore(strongestSkill) ?? ""}
-            </p>
+            </Stat>
           </div>
         </div>
 
         <div className="rounded-2xl bg-[#FFF3DC] p-4 dark:bg-[#FFD166]/12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#C98A1B] dark:text-[#FFD98A]">
+          <Eyebrow className="text-[#C98A1B] dark:text-[#FFD98A]">
             {t("cards.strongest_focus.focus_next")}
-          </p>
+          </Eyebrow>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <p className="text-[1.15rem] font-extrabold text-on-surface">
+            <p className="type-title font-extrabold text-on-surface">
               {focusSkill ? t(`skills.${focusSkill}`) : "-"}
             </p>
-            <p className="text-[1.05rem] font-extrabold tabular-nums text-[#C98A1B] dark:text-[#FFD98A]">
+            <Stat size="title" className="font-extrabold text-[#C98A1B] dark:text-[#FFD98A]">
               {skillScore(focusSkill) ?? ""}
-            </p>
+            </Stat>
           </div>
         </div>
       </div>
@@ -391,7 +392,7 @@ function DeltaPill({
     <span
       aria-label={label}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold tabular-nums",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 type-caption font-bold tabular-nums",
         positive
           ? "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]"
           : "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]"
@@ -443,7 +444,7 @@ function WeeklyBars({ insight }: { insight: PracticeMinutesInsight | undefined }
                 : "bg-[#00B8D9]/25 dark:bg-[#00B8D9]/35"
             )}
           />
-          <span className="text-[11px] font-semibold text-on-surface-variant">
+          <span className="type-caption font-semibold text-on-surface-variant">
             {visibleSeries[index]?.label ?? ""}
           </span>
         </div>
@@ -498,10 +499,10 @@ function ScoreGauge({ score }: { score: number | null }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-[1.7rem] font-extrabold leading-none tabular-nums text-on-surface">
+        <Stat size="heading-lg" as="p" className="font-extrabold leading-none text-on-surface">
           {score != null ? Math.round(score) : "-"}
-        </p>
-        <p className="mt-0.5 text-[11px] font-semibold text-on-surface-variant">
+        </Stat>
+        <p className="mt-0.5 type-caption font-semibold text-on-surface-variant">
           /100
         </p>
       </div>
@@ -552,10 +553,10 @@ function MixDonut({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-[1.45rem] font-extrabold leading-none tabular-nums text-on-surface">
+        <Stat size="heading-lg" as="p" className="font-extrabold leading-none text-on-surface">
           {total}
-        </p>
-        <p className="mt-0.5 text-[11px] font-semibold text-on-surface-variant">
+        </Stat>
+        <p className="mt-0.5 type-caption font-semibold text-on-surface-variant">
           {sessionsLabel}
         </p>
       </div>
@@ -575,20 +576,20 @@ function MixLegend({
   return (
     <div className="grid w-full gap-2.5">
       <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-container px-3.5 py-2.5">
-        <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold text-on-surface">
+        <span className="inline-flex min-w-0 items-center gap-2 type-caption font-semibold text-on-surface">
           <Scale className="size-4 shrink-0 text-[#00B8D9]" />
           <span className="truncate">{tAnalytics("cards.mix.debate")}</span>
         </span>
-        <span className="text-[14px] font-extrabold tabular-nums text-on-surface">
+        <span className="type-body-sm font-extrabold tabular-nums text-on-surface">
           {debatePercent}%
         </span>
       </div>
       <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-container px-3.5 py-2.5">
-        <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold text-on-surface">
+        <span className="inline-flex min-w-0 items-center gap-2 type-caption font-semibold text-on-surface">
           <Mic2 className="size-4 shrink-0 text-[#56CBE0]" />
           <span className="truncate">{tAnalytics("cards.mix.speaking")}</span>
         </span>
-        <span className="text-[14px] font-extrabold tabular-nums text-on-surface">
+        <span className="type-body-sm font-extrabold tabular-nums text-on-surface">
           {speakingPercent}%
         </span>
       </div>
@@ -631,15 +632,15 @@ function SeasonTile({
             className="size-20 shrink-0 object-contain drop-shadow-token-card transition-transform duration-300 group-hover:scale-105 sm:size-24"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-[1.3rem] font-extrabold leading-tight text-on-surface">
+            <p className="type-heading-md font-extrabold leading-tight text-on-surface">
               {leagueName}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-surface-container px-3 py-1.5 text-[12.5px] font-bold tabular-nums text-on-surface">
+              <span className="rounded-full bg-surface-container px-3 py-1.5 type-caption font-bold tabular-nums text-on-surface">
                 {formatNumber(seasonXp)} {t("season_xp")}
               </span>
               {profile.season?.rank ? (
-                <span className="rounded-full bg-[#FFF3DC] px-3 py-1.5 text-[12.5px] font-bold tabular-nums text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+                <span className="rounded-full bg-[#FFF3DC] px-3 py-1.5 type-caption font-bold tabular-nums text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
                   #{profile.season.rank}
                 </span>
               ) : null}
@@ -657,7 +658,7 @@ function SeasonTile({
               className="h-full rounded-full bg-primary"
             />
           </div>
-          <p className="mt-2.5 text-[13px] font-semibold text-on-surface-variant">
+          <p className="mt-2.5 type-caption font-semibold text-on-surface-variant">
             {t("xp_to_next_rank", { count: remaining })}
           </p>
         </div>
@@ -730,10 +731,10 @@ export function ProfileAnalyticsTab({
             }
           >
             <div className="flex items-baseline gap-2">
-              <p className="text-[2.3rem] font-extrabold leading-none tabular-nums text-on-surface">
+              <Stat size="heading-xl" as="p" className="font-extrabold leading-none text-on-surface">
                 {formatNumber(practiceMinutes?.totalMinutes ?? 0)}
-              </p>
-              <p className="text-[14px] font-semibold text-on-surface-variant">
+              </Stat>
+              <p className="type-body-sm font-semibold text-on-surface-variant">
                 {t("minutes")}
               </p>
             </div>
@@ -746,7 +747,7 @@ export function ProfileAnalyticsTab({
               {averageScore?.deltaPoints != null ? (
                 <p
                   className={cn(
-                    "text-[13.5px] font-semibold leading-6",
+                    "type-body-sm font-semibold leading-6",
                     averageScore.deltaPoints >= 0
                       ? "text-[#1E9E54] dark:text-[#5DD984]"
                       : "text-[#D6494E] dark:text-[#FF9398]"
@@ -821,14 +822,14 @@ export function PublicProfileAnalyticsTab({
 
         <BentoTile title={t("weekly_practice")} className="xl:col-span-5">
           <div className="flex items-baseline gap-2">
-            <p className="text-[2.3rem] font-extrabold leading-none tabular-nums text-on-surface">
+            <Stat size="heading-xl" as="p" className="font-extrabold leading-none text-on-surface">
               {formatNumber(data?.totalPracticeMinutes ?? 0)}
-            </p>
-            <p className="text-[14px] font-semibold text-on-surface-variant">
+            </Stat>
+            <p className="type-body-sm font-semibold text-on-surface-variant">
               {t("minutes")}
             </p>
           </div>
-          <p className="mt-4 text-[13.5px] font-semibold text-on-surface-variant">
+          <p className="mt-4 type-body-sm font-semibold text-on-surface-variant">
             {t("sessions_in_range", { count: data?.totalSessions ?? 0 })}
           </p>
         </BentoTile>
@@ -867,12 +868,12 @@ export function PublicProfileAnalyticsTab({
               className="size-16 shrink-0 object-contain drop-shadow-token-card"
             />
             <div className="min-w-0">
-              <p className="text-[1.5rem] font-extrabold leading-tight text-on-surface">
+              <p className="type-heading-lg font-extrabold leading-tight text-on-surface">
                 {data?.level != null
                   ? tHeader("level_value", { level: data.level })
                   : tHeader("hidden")}
               </p>
-              <p className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-on-surface-variant">
+              <p className="mt-1 inline-flex items-center gap-1.5 type-caption font-semibold text-on-surface-variant">
                 <UsersRound className="size-4" />
                 {t("friends")}: {profile.friendCounts.friends}
               </p>

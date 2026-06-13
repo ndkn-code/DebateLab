@@ -31,7 +31,7 @@ export function ResultActionButton({
     <Button
       variant={variant}
       className={cn(
-        "min-h-[48px] rounded-2xl border px-5 text-[0.94rem] font-bold transition active:translate-y-[2px] active:shadow-token-card",
+        "min-h-[48px] rounded-2xl border px-5 type-body font-bold transition active:translate-y-[2px] active:shadow-token-card",
         toneClassNames[tone],
         className
       )}

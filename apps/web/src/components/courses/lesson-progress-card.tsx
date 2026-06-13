@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { BookOpen, CheckCircle2, Layers3 } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Heading } from "@/components/ui/typography";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface LessonProgressCardProps {
@@ -17,12 +18,12 @@ export function LessonProgressCard({ lesson }: LessonProgressCardProps) {
     <Card className="rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-lowest py-0 soft-shadow">
       <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          <div className="type-eyebrow flex items-center gap-2 font-semibold text-primary">
             <Layers3 className="h-4 w-4" />
             {t("lesson.this_module")}
           </div>
           <div>
-            <p className="text-base font-semibold text-on-surface">{lesson.module.title}</p>
+            <Heading level={4} as="p">{lesson.module.title}</Heading>
             <p className="mt-1 text-sm text-on-surface-variant">
               {t("lesson.module_position", {
                 current: lesson.moduleLessonIndex,
@@ -48,13 +49,13 @@ export function LessonProgressCard({ lesson }: LessonProgressCardProps) {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          <div className="type-eyebrow flex items-center gap-2 font-semibold text-primary">
             <BookOpen className="h-4 w-4" />
             {t("lesson.course_progress")}
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-base font-semibold text-on-surface">{lesson.course.title}</p>
+              <Heading level={4} as="p">{lesson.course.title}</Heading>
               <p className="mt-1 text-sm text-on-surface-variant">
                 {t("lesson.lessons_completed", {
                   completed: lesson.courseCompletedLessons,

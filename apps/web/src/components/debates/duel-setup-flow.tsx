@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/icons";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { DuelIllustration } from "@/components/debates/duel-illustration";
 import { cn } from "@/lib/utils";
 import { DUEL_ENTRY_COST } from "@/lib/debate-duels/shared";
 import type {
@@ -233,10 +234,10 @@ function DuelPreviewTimeline({
               <div className="-ml-1 h-px flex-1 bg-outline-variant/35" />
             )}
           </div>
-          <div className="mt-3 text-[11px] font-semibold leading-tight text-on-surface">
+          <div className="mt-3 type-caption font-semibold text-on-surface">
             {label}
           </div>
-          <div className="mt-1 text-[11px] text-on-surface-variant">
+          <div className="mt-1 type-caption text-on-surface-variant">
             {formatMinutes(seconds)}
           </div>
         </div>
@@ -282,7 +283,7 @@ function SeatCard({
             {side === "proposition" ? "P" : "O"}
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+            <div className="type-eyebrow text-primary">
               {participant && !sideLocked ? "Your seat" : getSideLabel(side)}
             </div>
             <div className="mt-1 text-base font-semibold text-on-surface">
@@ -487,7 +488,7 @@ export function DuelLobbySetupView({
                 <div className="rounded-[24px] border border-outline-variant/12 bg-surface-container-low p-5">
                   <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px] lg:items-center">
                     <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                      <div className="type-eyebrow text-primary">
                         {room.topicCategory}
                       </div>
                       <h2 className="mt-2 text-2xl font-bold text-on-surface">
@@ -591,12 +592,14 @@ export function DuelLobbySetupView({
                 >
                   <div className="rounded-[24px] border border-outline-variant/12 bg-surface-container-low p-5">
                     {isMatchmaking ? (
-                      <div className="grid gap-5 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center">
-                        <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-primary/10 text-primary">
-                          <Users className="h-9 w-9" />
-                        </div>
+                      <div className="grid gap-5 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
+                        <DuelIllustration
+                          name="thinkfy_duel_matchmaking_v2"
+                          alt="Opponent matched"
+                          className="mx-auto h-28 w-28"
+                        />
                         <div>
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                          <div className="type-eyebrow text-primary">
                             Hidden skill match
                           </div>
                           <h2 className="mt-3 text-2xl font-bold text-on-surface">
@@ -614,11 +617,11 @@ export function DuelLobbySetupView({
                     ) : (
                       <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-center">
                       <div>
-                        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                        <div className="type-eyebrow text-primary">
                           Share room code
                         </div>
                         <div className="mt-4 flex items-center gap-3">
-                          <div className="text-5xl font-bold tracking-[0.14em] text-on-surface">
+                          <div className="text-5xl font-bold text-on-surface">
                             {room.shareCode}
                           </div>
                           <button
@@ -655,7 +658,7 @@ export function DuelLobbySetupView({
                   <div className="rounded-[24px] border border-outline-variant/12 bg-surface p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                        <div className="type-eyebrow text-primary">
                           Readiness checklist
                         </div>
                         <div className="mt-4 space-y-3 text-sm">
@@ -721,7 +724,7 @@ export function DuelLobbySetupView({
                         <ShieldCheck className="h-7 w-7" />
                       </div>
                       <div>
-                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+                        <div className="type-eyebrow text-primary">
                           {room.topicCategory}
                         </div>
                         <h2 className="mt-2 text-xl font-bold text-on-surface">
@@ -856,7 +859,7 @@ export function DuelLobbySetupView({
                 </div>
                 <div className="rounded-2xl border border-outline-variant/12 bg-surface px-4 py-3 text-center">
                   <div className="text-xs text-on-surface-variant">Share code</div>
-                  <div className="mt-1 font-bold tracking-[0.12em] text-on-surface">
+                  <div className="mt-1 font-bold text-on-surface">
                     {room.shareCode}
                   </div>
                 </div>
@@ -890,7 +893,7 @@ export function DuelLobbySetupView({
             </div>
 
             <div className="rounded-[22px] border border-outline-variant/12 bg-surface-container-low p-4">
-              <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-primary">
+              <div className="flex items-center gap-2 type-eyebrow text-primary">
                 <Bot className="h-4 w-4" />
                 AI Judge preview
               </div>

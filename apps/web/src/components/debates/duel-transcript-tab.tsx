@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, FileText } from "@/components/ui/icons";
+import { Heading } from "@/components/ui/typography";
 import type { DebateDuelRoomView, DebateDuelSpeech } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -30,9 +31,9 @@ export function DuelTranscriptTab({ room }: DuelTranscriptTabProps) {
     <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-normal text-on-surface">
+          <Heading level={2}>
             Debate Transcript
-          </h2>
+          </Heading>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
             Full-round transcript review is ready for duel speeches. Quote-level
             duel annotations can layer into this tab next.
@@ -55,7 +56,7 @@ export function DuelTranscriptTab({ room }: DuelTranscriptTabProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-[0.08em]",
+                      "rounded-md px-2.5 py-1 type-caption font-bold uppercase",
                       speech.side === "proposition"
                         ? "bg-surface-container text-on-surface-variant"
                         : "bg-primary-container text-on-surface-variant"

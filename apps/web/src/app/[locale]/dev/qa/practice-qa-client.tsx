@@ -95,7 +95,7 @@ export function DevPracticeQaPage() {
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8">
         <div className="rounded-lg border border-outline-variant bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+          <p className="type-eyebrow text-primary">
             Localhost QA
           </p>
           <h1 className="mt-2 text-2xl font-bold text-on-surface">

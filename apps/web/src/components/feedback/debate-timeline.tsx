@@ -71,11 +71,11 @@ export function DebateTimeline({ rounds }: DebateTimelineProps) {
                     <span className="text-sm font-medium text-on-surface">
                       {t("round", { round: round.roundNumber })}: {round.label}
                     </span>
-                    <span className="text-[11px] text-outline-variant">
+                    <span className="type-caption text-outline-variant">
                       {isUser ? t("you") : t("ai")}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-on-surface-variant">
+                  <div className="flex items-center gap-3 type-caption text-on-surface-variant">
                     <span>{t("words", { count: wordCount })}</span>
                     {round.duration && (
                       <span className="flex items-center gap-0.5">

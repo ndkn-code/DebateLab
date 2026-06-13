@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Swords } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
@@ -10,6 +9,7 @@ import {
   ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
+import { DuelIllustration } from "@/components/debates/duel-illustration";
 import { cn } from "@/lib/utils";
 
 interface DuelHubPageProps {
@@ -21,37 +21,36 @@ function ModeCard({
   description,
   href,
   disabled,
-  image,
+  illustration,
   unavailableLabel,
 }: {
   title: string;
   description: string;
   href: string;
   disabled: boolean;
-  image: string;
+  illustration: string;
   unavailableLabel: string;
 }) {
   const content = (
     <div
       className={cn(
-        "group relative min-h-[360px] overflow-hidden rounded-[30px] border bg-surface p-6 text-left shadow-token-card transition-all",
+        "group relative flex min-h-[380px] flex-col overflow-hidden rounded-[30px] border bg-surface p-6 text-left shadow-token-card transition-all",
         disabled
           ? "cursor-not-allowed border-outline-variant/15 opacity-75"
-          : "border-outline-variant/15 hover:-translate-y-1 hover:shadow-token-card"
+          : "border-outline-variant/15 hover:-translate-y-1"
       )}
     >
-      <Image
-        src={image}
-        width={220}
-        height={180}
-        alt=""
-        priority
-        className="mx-auto mt-8 h-40 w-full object-contain transition-transform group-hover:scale-[1.03]"
-      />
+      <div className="flex flex-1 items-center justify-center rounded-[24px] bg-surface-container-low">
+        <DuelIllustration
+          name={illustration}
+          alt={title}
+          className="h-44 w-full max-w-[260px] transition-transform group-hover:scale-[1.03]"
+        />
+      </div>
 
-      <div className="mt-6">
+      <div className="mt-5">
         <h2 className="text-2xl font-bold text-on-surface">{title}</h2>
-        <p className="mt-3 min-h-[72px] text-sm leading-6 text-on-surface-variant">
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
           {description}
         </p>
       </div>
@@ -87,8 +86,17 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
         <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
           <ProductPageHeader title={t("title")} icon={<Swords />} />
 
-          <div className="max-w-3xl rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface-variant shadow-token-card sm:p-5">
-            {t("subtitle")}
+          <div className="mt-2 overflow-hidden rounded-[30px] border border-outline-variant/15 bg-surface p-6 shadow-token-card sm:p-8">
+            <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_240px]">
+              <p className="max-w-xl text-base leading-7 text-on-surface-variant">
+                {t("subtitle")}
+              </p>
+              <DuelIllustration
+                name="thinkfy_duel_hero_v1"
+                alt={t("title")}
+                className="mx-auto h-[170px] w-full max-w-[240px]"
+              />
+            </div>
           </div>
 
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -97,7 +105,7 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
               description={t("match.description")}
               href="/debates/matchmaking"
               disabled={!isAdmin}
-              image="/images/debates/duel-preview.png"
+              illustration="thinkfy_duel_matchmaking_v1"
               unavailableLabel={t("unavailable")}
             />
             <ModeCard
@@ -105,7 +113,7 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
               description={t("friend.description")}
               href="/debates/new"
               disabled={!isAdmin}
-              image="/images/debates/trophy.png"
+              illustration="thinkfy_duel_hero_v2"
               unavailableLabel={t("unavailable")}
             />
           </div>

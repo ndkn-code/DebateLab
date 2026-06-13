@@ -104,7 +104,7 @@ export function CommitmentStep({
                     <Flame className="h-5 w-5 text-on-surface-variant/40" />
                   </div>
                 )}
-                <span className="text-[10px] font-medium text-on-surface-variant/75">
+                <span className="type-caption text-on-surface-variant/75">
                   {day}
                 </span>
               </div>

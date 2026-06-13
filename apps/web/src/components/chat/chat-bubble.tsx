@@ -426,12 +426,12 @@ function CoachOpeningBlueprint({
               <OpeningBlueprintIcon className="h-[19px] w-[19px]" />
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              <div className="type-eyebrow text-primary">
                 Opening Blueprint
               </div>
             </div>
           </div>
-          <div className="rounded-full border border-primary/14 bg-white px-2.5 py-1 text-[11px] font-semibold text-primary">
+          <div className="rounded-full border border-primary/14 bg-white px-2.5 py-1 type-caption font-semibold text-primary">
             {steps.length} {steps.length === 1 ? "part" : "parts"}
           </div>
         </div>
@@ -474,7 +474,7 @@ function CoachOpeningBlueprint({
                   <PenLine className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+                  <div className="type-eyebrow text-primary">
                     Try This Template
                   </div>
                   {templateBlock.body && (
@@ -501,7 +501,7 @@ function CoachOpeningBlueprint({
           <div className="grid gap-3 sm:grid-cols-2">
             {tipBlock && (
               <div className="rounded-xl border border-warning/32 bg-surface-container p-3">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-warning">
+                <div className="flex items-center gap-2 type-eyebrow text-warning">
                   <Lightbulb className="h-4 w-4" />
                   Coach Tip
                 </div>
@@ -518,7 +518,7 @@ function CoachOpeningBlueprint({
 
             {mistakeBlock && (
               <div className="rounded-xl border border-error/24 bg-surface-container p-3">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-error">
+                <div className="flex items-center gap-2 type-eyebrow text-error">
                   <CircleAlert className="h-4 w-4" />
                   Watch Out
                 </div>
@@ -543,7 +543,7 @@ function CoachOpeningBlueprint({
               <BookOpen className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+              <div className="type-eyebrow text-primary">
                 Example Opening
               </div>
               {exampleBlock.body && (
@@ -573,7 +573,7 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
       <div className="flex items-start gap-2.5">
         <Icon className={cn("mt-1 h-3.5 w-3.5 shrink-0", style.iconClassName)} />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <div className="type-eyebrow text-on-surface-variant">
             {style.label}
           </div>
           {block.title ? (
@@ -617,7 +617,7 @@ function CoachFollowUpQuestion({
     (questionText.includes("motion") || questionText.includes("side"));
 
   return (
-    <div className="mt-4 max-w-[720px] text-[15px] leading-7 text-on-surface-variant">
+    <div className="mt-4 max-w-[720px] type-body text-on-surface-variant">
       {block.title && <MiniMarkdown>{block.title}</MiniMarkdown>}
       {block.body && <MiniMarkdown className="mt-1">{block.body}</MiniMarkdown>}
       {canDraftMotionDetails && onDraftMessage && (
@@ -697,14 +697,14 @@ function CoachVisualExplainerCard({
             className="text-center"
           >
             {!titleIsFormula ? (
-              <h3 className="text-lg font-semibold leading-7 tracking-[-0.01em] text-on-surface sm:text-xl">
+              <h3 className="type-heading-md text-on-surface">
                 {visual.title}
               </h3>
             ) : null}
             {visual.subtitle ? (
               <p
                 className={cn(
-                  "mx-auto max-w-[560px] text-sm leading-6 text-on-surface-variant",
+                  "mx-auto max-w-[560px] type-body-sm text-on-surface-variant",
                   titleIsFormula ? "mt-0" : "mt-1"
                 )}
               >
@@ -731,7 +731,7 @@ function CoachVisualExplainerCard({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay, duration: 0.32, ease: "easeOut" }}
-                  className="relative inline-flex px-1 pb-2 text-2xl font-semibold leading-tight tracking-[-0.015em] text-on-surface sm:text-3xl"
+                  className="relative inline-flex px-1 pb-2 text-2xl font-semibold leading-tight text-on-surface sm:text-3xl"
                 >
                   {step.label}
                   <motion.span
@@ -774,7 +774,7 @@ function CoachVisualExplainerCard({
               duration: 0.35,
               ease: "easeOut",
             }}
-            className="mx-auto mt-8 max-w-[620px] text-[15px] leading-8 text-on-surface-variant sm:text-base"
+            className="mx-auto mt-8 max-w-[620px] type-body text-on-surface-variant"
           >
             {explanation}
           </motion.p>
@@ -790,7 +790,7 @@ function CoachVisualExplainerCard({
               duration: 0.32,
               ease: "easeOut",
             }}
-            className="mt-6 border-t border-outline-variant pt-4 text-[15px] leading-7 text-on-surface"
+            className="mt-6 border-t border-outline-variant pt-4 type-body text-on-surface"
           >
             <span className="font-semibold">Takeaway: </span>
             <span className="text-on-surface-variant">{visual.takeaway}</span>
@@ -997,7 +997,7 @@ function AssistantMessage({
           <motion.div
             layout
             transition={{ duration: 0.16, ease: "easeOut" }}
-            className="max-w-[760px] px-0 py-1 text-[15px] sm:text-base"
+            className="max-w-[760px] px-0 py-1 type-body"
           >
             <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -1013,7 +1013,7 @@ function AssistantMessage({
         {metadata ? (
           <div className="max-w-[880px]">
             {metadataSummary && (
-              <div className="mb-3 max-w-[780px] px-0 text-[15px] leading-7 text-on-surface-variant">
+              <div className="mb-3 max-w-[780px] px-0 type-body text-on-surface-variant">
                 <MiniMarkdown>{metadataSummary}</MiniMarkdown>
               </div>
             )}

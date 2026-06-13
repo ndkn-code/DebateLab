@@ -47,6 +47,7 @@ import {
   X,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Display, Stat } from "@/components/ui/typography";
 import { AchievementMedallion } from "@/components/profile/achievement-medallion";
 import { ProfileAchievementsTab } from "@/components/profile/profile-achievements-tab";
 import { ProfileActivitiesTab } from "@/components/profile/profile-activities-tab";
@@ -308,10 +309,10 @@ function ProfileStatTile({
         </span>
       )}
       <div className="min-w-0">
-        <p className="truncate text-[1.2rem] font-extrabold leading-6 tabular-nums text-on-surface">
+        <Stat size="heading-md" as="p" className="truncate font-extrabold leading-6 text-on-surface">
           {value}
-        </p>
-        <p className="truncate text-[12px] font-semibold text-on-surface-variant">
+        </Stat>
+        <p className="truncate type-caption font-semibold text-on-surface-variant">
           {label}
         </p>
       </div>
@@ -715,7 +716,7 @@ function FindFriendsDrawer({
             >
               <span>{tab.label}</span>
               {tab.count > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-surface-container px-1.5 text-[11px] leading-5 text-primary-dim">
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-surface-container px-1.5 type-caption leading-5 text-primary-dim">
                   {tab.count}
                 </span>
               ) : null}
@@ -762,7 +763,7 @@ function FindFriendsDrawer({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("friend_code_label")}</p>
-                    <p className="mt-1 font-mono text-lg font-semibold tracking-[0.08em] text-on-surface">
+                    <p className="mt-1 type-code font-semibold text-on-surface">
                       {center?.friendCode.code ?? t("loading")}
                     </p>
                   </div>
@@ -1127,7 +1128,7 @@ function HeaderFeaturedAchievements({
         <span
           key={achievement.id}
           className={cn(
-            "inline-flex h-9 items-center gap-2 rounded-full py-1 pl-1.5 pr-3.5 text-[13px] font-bold",
+            "inline-flex h-9 items-center gap-2 rounded-full py-1 pl-1.5 pr-3.5 type-caption font-bold",
             FEATURED_CHIP_TONES[index % FEATURED_CHIP_TONES.length]
           )}
           title={achievement.title}
@@ -1186,9 +1187,9 @@ function ProfileHeader({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-on-surface-variant">{handleLabel}</p>
-            <h1 className="mt-2 text-balance text-[2.45rem] font-extrabold leading-none text-on-surface sm:text-[3rem]">
+            <Display size="lg" as="h1" className="mt-2 text-balance leading-none">
               {profile.displayName}
-            </h1>
+            </Display>
           </div>
 
           <ProfileConnectionActions

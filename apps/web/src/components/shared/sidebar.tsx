@@ -37,7 +37,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { LEADERBOARDS_ENABLED, STUDENT_COURSES_ENABLED } from "@/lib/features";
+import {
+  DUEL_ENABLED,
+  LEADERBOARDS_ENABLED,
+  STUDENT_COURSES_ENABLED,
+} from "@/lib/features";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
 import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
@@ -88,6 +92,7 @@ function NavContent({
   const tc = useTranslations('common');
   const ts = useTranslations('dashboard.home');
   const isAdmin = profile?.role === "admin";
+  const canDuel = DUEL_ENABLED || isAdmin;
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
   const initials = displayName
@@ -167,7 +172,7 @@ function NavContent({
           const Icon = item.icon;
           const label = item.key === "analytics" ? t("profile") : t(item.key);
           const isUnavailable =
-            item.status === "coming-soon" || !href || (item.key === "duel" && !isAdmin);
+            item.status === "coming-soon" || !href || (item.key === "duel" && !canDuel);
           const content = (
             <>
               <Icon className="h-5 w-5 shrink-0" />
@@ -175,7 +180,7 @@ function NavContent({
                 <>
                   <span className="truncate">{label}</span>
                   {isUnavailable ? (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-muted/75">
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 type-caption font-semibold uppercase text-sidebar-muted/75">
                       <Lock className="h-3 w-3" />
                       {ts("coming_soon")}
                     </span>
@@ -293,6 +298,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
   const tc = useTranslations('common');
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isAdmin = profile?.role === "admin";
+  const canDuel = DUEL_ENABLED || isAdmin;
   const dashboardNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
@@ -303,8 +309,8 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
     },
     {
       key: "duel",
-      href: isAdmin ? "/debates" : undefined,
-      status: isAdmin ? "live" : "coming-soon",
+      href: canDuel ? "/debates" : undefined,
+      status: canDuel ? "live" : "coming-soon",
     },
     ...(STUDENT_COURSES_ENABLED
       ? ([

@@ -47,7 +47,7 @@ function CardShell({
       className="flex min-w-0 flex-col rounded-[2rem] border border-outline-variant bg-surface p-5 shadow-token-card dark:border-outline-variant/70 sm:p-6"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="inline-flex items-center gap-2 text-[1.02rem] font-extrabold text-on-surface">
+        <h2 className="type-title inline-flex items-center gap-2 font-extrabold text-on-surface">
           <span className="text-primary">{icon}</span>
           {title}
         </h2>
@@ -82,13 +82,13 @@ export function NextMovesCard({ items }: { items: DashboardTodayPlanItem[] }) {
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[11px] font-extrabold uppercase tracking-wide text-primary">
+                <span className="type-eyebrow block truncate text-primary">
                   {getPlanReason(item, t)}
                 </span>
-                <span className="mt-0.5 block truncate text-[14px] font-extrabold text-on-surface">
+                <span className="type-body-sm mt-0.5 block truncate font-extrabold text-on-surface">
                   {getPlanTitle(item, t)}
                 </span>
-                <span className="block truncate text-[12px] font-semibold text-on-surface-variant">
+                <span className="type-caption block truncate font-semibold text-on-surface-variant">
                   {t("next_move_meta", { duration: item.durationMinutes, context })}
                 </span>
               </span>
@@ -123,7 +123,7 @@ export function RecentActivityCard({
       action={
         <Link
           href="/history"
-          className="text-[13px] font-extrabold text-primary transition-colors hover:text-primary-dim"
+          className="type-label font-extrabold text-primary transition-colors hover:text-primary-dim"
         >
           {t("view_all")}
         </Link>
@@ -141,13 +141,13 @@ export function RecentActivityCard({
             className="h-auto w-20 object-contain opacity-90"
             sizes="80px"
           />
-          <p className="text-[14px] font-extrabold text-on-surface">{t("first_debate")}</p>
-          <p className="max-w-[24ch] text-[13px] text-on-surface-variant">
+          <p className="type-body-sm font-extrabold text-on-surface">{t("first_debate")}</p>
+          <p className="type-caption max-w-[24ch] text-on-surface-variant">
             {t("practice_get_feedback")}
           </p>
           <Link
             href="/practice"
-            className="btn-3d-primary mt-1 inline-flex h-11 items-center rounded-xl bg-primary px-5 text-[13.5px] font-extrabold text-on-primary hover:bg-primary-dim"
+            className="btn-3d-primary type-body-sm mt-1 inline-flex h-11 items-center rounded-xl bg-primary px-5 font-extrabold text-on-primary hover:bg-primary-dim"
           >
             {t("start_new_practice")}
           </Link>
@@ -162,17 +162,17 @@ export function RecentActivityCard({
             <div className="group flex items-center gap-3 rounded-[1.25rem] border border-outline-variant bg-surface-container-low px-3.5 py-3 transition-all hover:-translate-y-0.5 hover:border-primary-fixed hover:shadow-token-card dark:border-outline-variant/60">
               <span
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold",
+                  "type-label flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-extrabold",
                   scoreTone(item.scoreOutOf100)
                 )}
               >
                 {item.scoreOutOf100 != null ? Math.round(item.scoreOutOf100) : "—"}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-extrabold text-on-surface">
+                <span className="type-body-sm block truncate font-extrabold text-on-surface">
                   {item.title}
                 </span>
-                <span className="block truncate text-[12px] font-semibold text-on-surface-variant">
+                <span className="type-caption block truncate font-semibold text-on-surface-variant">
                   {date} · {item.subtitle}
                 </span>
               </span>

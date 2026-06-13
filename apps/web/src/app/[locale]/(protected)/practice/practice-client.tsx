@@ -48,6 +48,7 @@ import {
 } from "@/components/practice/practice-filter-popover";
 import { SessionConfig } from "@/components/practice/session-config";
 import { TopicRow } from "@/components/practice/topic-row";
+import { Eyebrow, Text } from "@/components/ui/typography";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
@@ -607,9 +608,9 @@ export default function PracticePage({
                           key={step}
                           className="rounded-[1.2rem] border border-outline-variant bg-surface-container p-4"
                         >
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
+                          <Eyebrow className="text-primary/75">
                             {t("how_it_works_step_kicker", { step })}
-                          </p>
+                          </Eyebrow>
                           <p className="mt-2 text-base font-semibold text-on-surface">
                             {t(`how_it_works_step_${step}_title`)}
                           </p>
@@ -636,7 +637,7 @@ export default function PracticePage({
                   setVisibleCount(INITIAL_VISIBLE_TOPICS);
                 }}
                 placeholder={t("search_placeholder")}
-                className="h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest pl-11 pr-4 text-[14.5px] font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
+                className="h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest pl-11 pr-4 type-body-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
               />
             </div>
 
@@ -663,7 +664,7 @@ export default function PracticePage({
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
                   className={cn(
-                    "relative flex items-center gap-2 pb-3 text-[14.5px] font-semibold transition-colors",
+                    "relative flex items-center gap-2 pb-3 type-body-sm font-semibold transition-colors",
                     isActive
                       ? "text-on-surface"
                       : "text-on-surface-variant hover:text-on-surface"
@@ -673,7 +674,7 @@ export default function PracticePage({
                   {tab.count ? (
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-[11px] font-bold leading-none",
+                        "rounded-full px-2 py-0.5 type-caption font-bold leading-none",
                         isActive
                           ? "bg-primary/10 text-primary"
                           : "bg-surface-container text-on-surface-variant"
@@ -698,13 +699,13 @@ export default function PracticePage({
             <div className="grid lg:h-full lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
               <div className="relative min-w-0 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-outline-variant">
                 <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5 sm:px-6">
-                  <p className="text-[13px] font-semibold text-on-surface-variant">
+                  <Text variant="label" as="p" className="text-on-surface-variant">
                     {t("topic_count", { count: filteredDisplays.length })}
-                  </p>
+                  </Text>
                   <button
                     type="button"
                     onClick={handleSurprise}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 type-label text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
                   >
                     <Shuffle className="h-[13px] w-[13px]" />
                     {t("surprise_me")}
@@ -745,7 +746,7 @@ export default function PracticePage({
                               )
                             )
                           }
-                          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13.5px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 type-body-sm font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
                         >
                           {t("load_more_topics")}
                           <ChevronDown className="h-[15px] w-[15px]" />
@@ -764,16 +765,16 @@ export default function PracticePage({
                       unoptimized
                       aria-hidden="true"
                     />
-                    <p className="mt-5 text-[15.5px] font-semibold text-on-surface">
+                    <Text variant="body" as="p" className="mt-5 font-semibold text-on-surface">
                       {activeTab === "saved" && !bookmarkedIds.length
                         ? t("saved_empty_title")
                         : t("search_empty_title")}
-                    </p>
+                    </Text>
                     {hasNarrowedResults ? (
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        className="mt-3 rounded-full px-4 py-2 text-[13.5px] font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                        className="mt-3 rounded-full px-4 py-2 type-body-sm font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
                       >
                         {t("filter_clear")}
                       </button>

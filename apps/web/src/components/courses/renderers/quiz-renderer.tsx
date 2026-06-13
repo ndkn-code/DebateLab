@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { ArrowRight, CheckCircle2, XCircle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Eyebrow, Heading } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import { markLessonCompleteAction } from "@/app/actions/enrollment";
 import type { LessonWithContext } from "@/lib/api/courses";
@@ -104,7 +105,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
         >
           {hasSessionAnswers ? `${score}%` : <CheckCircle2 className="h-8 w-8" />}
         </div>
-        <h3 className="mt-5 text-2xl font-semibold text-on-surface">
+        <Heading level={2} as="h3" className="mt-5 font-semibold">
           {!hasSessionAnswers
             ? t("reader.quiz_completed")
             : score >= 75
@@ -112,7 +113,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
               : score >= 40
                 ? t("reader.quiz_result_good")
                 : t("reader.quiz_result_retry")}
-        </h3>
+        </Heading>
         <p className="mt-2 text-sm text-on-surface-variant">
           {hasSessionAnswers
             ? t("reader.quiz_result_summary", {
@@ -137,9 +138,9 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
     <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-token-panel sm:p-8">
       <div className="flex flex-col gap-4 border-b border-outline-variant/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <Eyebrow className="font-semibold text-primary">
             {t("reader.quiz_kicker")}
-          </p>
+          </Eyebrow>
           <p className="mt-2 text-sm text-on-surface-variant">
             {t("reader.quiz_question_progress", {
               current: currentIdx + 1,
@@ -165,9 +166,9 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
       </div>
 
       <div className="mt-6">
-        <h3 className="text-xl font-semibold leading-8 text-on-surface">
+        <Heading level={3} as="h3" className="leading-8">
           {current.question_text}
-        </h3>
+        </Heading>
 
         <div className="mt-6 space-y-3">
           {(current.options ?? []).map((option, index) => {

@@ -92,6 +92,14 @@ export function getCurrentPhaseDuration(room: DebateDuelRoomView) {
 }
 
 export function getPhaseRemainingSeconds(room: DebateDuelRoomView, now = Date.now()) {
+  // Prefer the DB-authoritative phase deadline. Pass a skew-corrected `now`
+  // (Date.now() + serverOffsetMs) so the countdown matches the server clock.
+  if (room.phaseDeadline) {
+    return Math.max(
+      0,
+      Math.round((new Date(room.phaseDeadline).getTime() - now) / 1000)
+    );
+  }
   if (!room.phaseStartedAt) return getCurrentPhaseDuration(room);
   const duration = getCurrentPhaseDuration(room);
   const elapsed = Math.floor((now - new Date(room.phaseStartedAt).getTime()) / 1000);

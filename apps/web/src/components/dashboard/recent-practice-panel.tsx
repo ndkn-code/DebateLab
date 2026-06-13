@@ -90,12 +90,12 @@ export function RecentPracticePanel({
                   </p>
 
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                    <Badge variant="outline" className="type-caption px-1.5 py-0">
                       {session.practice_track === "speaking"
                         ? tHistory("speaking")
                         : tHistory("debate")}
                     </Badge>
-                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                    <Badge variant="outline" className="type-caption px-1.5 py-0">
                       {session.practice_track === "speaking"
                         ? tHistory("single_speech")
                         : session.mode === "full"
@@ -103,13 +103,13 @@ export function RecentPracticePanel({
                           : tHistory("quick")}
                     </Badge>
                     {session.overall_band ? (
-                      <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                      <Badge variant="outline" className="type-caption px-1.5 py-0">
                         {session.overall_band}
                       </Badge>
                     ) : null}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-on-surface-variant">
+                  <div className="type-caption mt-3 flex items-center justify-between text-on-surface-variant">
                     <span>{formatDate(session.created_at)}</span>
                     <span className="inline-flex items-center gap-1">
                       <Clock3 className="h-3 w-3" />

@@ -232,7 +232,7 @@ function KpiCard({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-xs font-medium text-on-surface-variant">{label}</p>
-            <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
+            <span className="type-caption h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-on-surface-variant">
               i
             </span>
           </div>
@@ -278,7 +278,7 @@ function DesktopHeader({
             <div className="flex h-9 w-[360px] items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-on-surface-variant shadow-sm">
               <Search className="h-4 w-4" />
               <span className="truncate text-sm">Search users, content, and more...</span>
-              <kbd className="ml-auto rounded-md border border-outline-variant bg-surface-container px-1.5 py-0.5 text-[11px] text-on-surface-variant">
+              <kbd className="type-caption ml-auto rounded-md border border-outline-variant bg-surface-container px-1.5 py-0.5 text-on-surface-variant">
                 ⌘ K
               </kbd>
             </div>
@@ -408,7 +408,7 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
 function SummaryMeta({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="hidden min-w-0 md:block">
-      <p className="text-[11px] font-semibold text-on-surface-variant">{label}</p>
+      <p className="type-caption font-semibold text-on-surface-variant">{label}</p>
       <div className="mt-2 text-xs text-on-surface-variant">{children}</div>
     </div>
   );
@@ -478,7 +478,7 @@ function InsightRail({
           <div key={insight.id} className={cn("rounded-lg border p-4", insightToneClasses(insight.tone))}>
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-bold">{insight.title}</p>
-              <span className="rounded-md bg-white/70 px-2 py-0.5 text-[11px] font-semibold capitalize">
+              <span className="type-caption rounded-md bg-white/70 px-2 py-0.5 font-semibold capitalize">
                 {insight.priority}
               </span>
             </div>
@@ -559,7 +559,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                   stroke="#e6edf7"
                   strokeDasharray="4 4"
                 />
-                <text x={paddingX - 10} y={y + 4} textAnchor="end" className="fill-primary text-[10px]">
+                <text x={paddingX - 10} y={y + 4} textAnchor="end" className="type-caption fill-primary">
                   {Math.round((tick / 100) * combinedMax)}
                 </text>
               </g>
@@ -576,7 +576,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                 x={x}
                 y={chartHeight - 4}
                 textAnchor="middle"
-                className="fill-primary text-[10px]"
+                className="type-caption fill-primary"
               >
                 {point.label}
               </text>
@@ -634,14 +634,14 @@ function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Course Progress</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
+          <span className="type-caption h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-on-surface-variant">
             i
           </span>
         </div>
         <MoreHorizontal className="h-4 w-4 text-on-surface-variant" />
       </div>
       <div className="mt-4 hidden overflow-hidden rounded-lg border border-outline-variant md:block">
-        <div className="grid grid-cols-[minmax(180px,1fr)_110px_70px_110px] bg-surface-container px-3 py-2 text-[11px] font-semibold text-on-surface-variant">
+        <div className="grid grid-cols-[minmax(180px,1fr)_110px_70px_110px] bg-surface-container px-3 py-2 type-caption font-semibold text-on-surface-variant">
           <span>Course</span>
           <span>Progress</span>
           <span>Score</span>
@@ -734,7 +734,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Skill Snapshot</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
+          <span className="type-caption h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-on-surface-variant">
             i
           </span>
         </div>
@@ -769,7 +769,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
                       y={label.y}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-primary text-[10px]"
+                      className="type-caption fill-primary"
                     >
                       {metric.skill}
                     </text>
@@ -785,16 +785,16 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
           </div>
           <div className="grid gap-2">
             <div className="rounded-lg border border-outline-variant bg-surface-container p-3">
-              <p className="text-[11px] font-semibold text-on-surface-variant">Overall Skill Score</p>
+              <p className="type-caption font-semibold text-on-surface-variant">Overall Skill Score</p>
               <p className="mt-1 text-2xl font-bold text-on-surface-variant">{overall ?? "-"}%</p>
-              <p className="mt-1 text-[11px] text-emerald-600">↑ 6% vs last 30 days</p>
+              <p className="mt-1 type-caption text-emerald-600">↑ 6% vs last 30 days</p>
             </div>
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-              <p className="text-[11px] font-semibold text-on-surface-variant">Top Strength</p>
+              <p className="type-caption font-semibold text-on-surface-variant">Top Strength</p>
               <p className="mt-1 text-sm font-bold text-on-surface-variant">{strongest}</p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-[11px] font-semibold text-on-surface-variant">Top Opportunity</p>
+              <p className="type-caption font-semibold text-on-surface-variant">Top Opportunity</p>
               <p className="mt-1 text-sm font-bold text-on-surface-variant">{weakest}</p>
             </div>
           </div>
@@ -814,7 +814,7 @@ function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
+          <span className="type-caption h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-on-surface-variant">
             i
           </span>
         </div>
@@ -895,7 +895,7 @@ function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Raw Events</h3>
-          <span className="h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-[9px] leading-[12px] text-on-surface-variant">
+          <span className="type-caption h-3.5 w-3.5 rounded-full border border-outline-variant text-center text-on-surface-variant">
             i
           </span>
         </div>
@@ -913,7 +913,7 @@ function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
       <div className="mt-4 overflow-hidden rounded-lg border border-outline-variant">
         <div className="overflow-x-auto">
           <div className="min-w-[760px] divide-y divide-[#e6edf7]">
-            <div className="grid grid-cols-[160px_160px_150px_minmax(180px,1fr)_34px] bg-surface-container px-4 py-2 text-[11px] font-semibold text-on-surface-variant">
+            <div className="grid grid-cols-[160px_160px_150px_minmax(180px,1fr)_34px] bg-surface-container px-4 py-2 type-caption font-semibold text-on-surface-variant">
               <span>Time</span>
               <span>Event Name</span>
               <span>Category</span>

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Eyebrow, Heading } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { CourseWithModules } from "@/lib/api/courses";
 import type { CoursePathItem, CoursePathSection } from "@/types";
@@ -193,12 +194,12 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
           <div className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <Eyebrow className="font-semibold text-primary">
                   {t("detail.module")}
-                </p>
-                <h3 className="mt-2 text-xl font-semibold text-on-surface">
+                </Eyebrow>
+                <Heading level={3} as="h3" className="mt-2 font-semibold">
                   {section.title}
-                </h3>
+                </Heading>
                 {section.description ? (
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
                     {section.description}
@@ -291,7 +292,7 @@ function PathNode({ item, index }: { item: CoursePathItem; index: number }) {
             ) : null}
           </div>
 
-          <h4 className="mt-3 text-base font-semibold text-on-surface">{item.title}</h4>
+          <Heading level={4} as="h4" className="mt-3">{item.title}</Heading>
           {item.description ? (
             <p className="mt-2 text-sm leading-6 text-on-surface-variant">
               {item.description}

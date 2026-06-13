@@ -17,6 +17,10 @@ import {
   getNextDuelPhase,
 } from "@/lib/debate-duels/shared";
 import {
+  ensureAiOpponentUser,
+  generateDuelAiSpeech,
+} from "@/lib/debate-duels/ai-opponent";
+import {
   DEFAULT_PRACTICE_LANGUAGE,
   coercePracticeLanguage,
 } from "@/lib/practice-language";
@@ -62,6 +66,10 @@ type DuelRow = {
   status: DebateDuelRoomView["status"];
   current_phase: DebateDuelPhase;
   phase_started_at: string | null;
+  phase_deadline?: string | null;
+  outcome_reason?: string | null;
+  forfeited_by?: string | null;
+  ai_opponent?: boolean;
   started_at: string | null;
   completed_at: string | null;
   expires_at: string;
@@ -181,7 +189,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: duel, error: duelError } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
     )
     .eq("share_code", normalizedCode)
     .maybeSingle();
@@ -329,8 +337,14 @@ function toRoomView(params: {
       entryCost: duel.entry_cost,
     },
     phaseStartedAt: duel.phase_started_at,
+    phaseDeadline: duel.phase_deadline ?? null,
+    serverTime: new Date().toISOString(),
     startedAt: duel.started_at,
     completedAt: duel.completed_at,
+    outcomeReason:
+      (duel.outcome_reason as DebateDuelRoomView["outcomeReason"]) ?? null,
+    forfeitedBy: duel.forfeited_by ?? null,
+    aiOpponent: duel.ai_opponent ?? false,
     expiresAt: duel.expires_at,
     createdAt: duel.created_at,
     creatorId: duel.creator_id,
@@ -359,12 +373,28 @@ function toRoomView(params: {
   } satisfies DebateDuelRoomView;
 }
 
+type DuelDbClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Finalize-path Supabase client. Prefers the service-role admin client so a duel
+ * can be judged with NO cookie/session — the pg_net watchdog handoff and the
+ * shadow tests both call in without an auth.uid() — and falls back to the
+ * request-scoped cookie client when no service key is configured.
+ */
+async function getDuelWriteClient(): Promise<DuelDbClient> {
+  const admin = tryCreateAdminClient();
+  if (admin) {
+    return admin as unknown as DuelDbClient;
+  }
+  return createClient();
+}
+
 async function getDuelById(duelId: string) {
-  const supabase = await createClient();
+  const supabase = await getDuelWriteClient();
   const { data, error } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
     )
     .eq("id", duelId)
     .single();
@@ -881,6 +911,20 @@ export async function recordDebateDuelIntegrityEvent(input: {
 }
 
 async function processDebateDuelRating(duelId: string) {
+  // Service-role callers (pg_net handoff, shadow tests) have no auth.uid(), so
+  // they must use the gate-free *_internal variant; cookie callers go through
+  // the auth-checked public wrapper. Both are idempotent (rating_processed_at).
+  const admin = tryCreateAdminClient();
+  if (admin) {
+    const { error } = await admin.rpc("process_debate_duel_rating_internal", {
+      p_duel_id: duelId,
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("process_debate_duel_rating", {
     p_duel_id: duelId,
@@ -892,7 +936,7 @@ async function processDebateDuelRating(duelId: string) {
 }
 
 async function finalizeDuelAnalytics(duelId: string, totalSeconds: number) {
-  const supabase = await createClient();
+  const supabase = await getDuelWriteClient();
   const durationMinutes = Math.max(1, Math.round(totalSeconds / 60));
   const { error } = await supabase.rpc("finalize_debate_duel_stats", {
     p_duel_id: duelId,
@@ -910,7 +954,44 @@ async function judgeAndFinalizeDebateDuel(
   speeches: DebateDuelSpeech[],
   participants: DebateDuelParticipant[]
 ) {
-  const supabase = await createClient();
+  const supabase = await getDuelWriteClient();
+
+  // Idempotency: if this duel was already judged (retry after a partial
+  // failure, or a second concurrent /judge trigger), don't re-call the model.
+  // Ensure the terminal side-effects ran (all idempotent) and return.
+  const { data: existingJudgment } = await supabase
+    .from("debate_duel_judgments")
+    .select("verdict")
+    .eq("duel_id", duelId)
+    .maybeSingle();
+  if (existingJudgment?.verdict) {
+    const totalSeconds = speeches.reduce(
+      (sum, speech) => sum + speech.durationSeconds,
+      0
+    );
+    await supabase
+      .from("debate_duels")
+      .update({
+        status: "completed",
+        current_phase: "completed",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", duelId)
+      .neq("status", "completed");
+    try {
+      await finalizeDuelAnalytics(duelId, Math.max(totalSeconds, 1));
+    } catch {
+      // idempotent — safe to ignore on the retry path
+    }
+    try {
+      await processDebateDuelRating(duelId);
+    } catch {
+      // idempotent — safe to ignore on the retry path
+    }
+    return existingJudgment.verdict as DebateDuelJudgment;
+  }
+
   const duel = await getDuelById(duelId);
 
   const orderedSpeeches = [...speeches].sort(
@@ -923,7 +1004,8 @@ async function judgeAndFinalizeDebateDuel(
       .map((participant) => [participant.role as DebateDuelSide, participant])
   );
 
-  const writeClient = tryCreateAdminClient() ?? supabase;
+  // supabase is already service-role-preferring (getDuelWriteClient).
+  const writeClient = supabase;
   const judgeStartedAt = Date.now();
   let telemetry: AiQualityTelemetry | null = null;
   let judgment: DebateDuelJudgment;
@@ -1057,7 +1139,15 @@ async function judgeAndFinalizeDebateDuel(
     duel.prep_time_seconds + Math.max(30, Math.min(duel.prep_time_seconds, 60))
   );
 
-  await finalizeDuelAnalytics(duelId, totalSeconds);
+  // Non-fatal: a stats/XP hiccup must never block the duel from reaching
+  // `completed` with its judgment (mirrors the rating call below).
+  try {
+    await finalizeDuelAnalytics(duelId, totalSeconds);
+  } catch (analyticsError) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("Duel analytics finalization failed:", analyticsError);
+    }
+  }
 
   const { error: duelError } = await supabase
     .from("debate_duels")
@@ -1173,7 +1263,7 @@ export async function submitDebateDuelSpeech(params: {
     throw new Error("This is not your active round");
   }
 
-  const { error: speechError } = await supabase
+  const { data: insertedSpeech, error: speechError } = await supabase
     .from("debate_duel_speeches")
     .upsert(
       {
@@ -1188,11 +1278,19 @@ export async function submitDebateDuelSpeech(params: {
         metadata: params.metadata ?? {},
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "duel_id,round_number" }
-    );
+      { onConflict: "duel_id,round_number", ignoreDuplicates: true }
+    )
+    .select("id");
 
   if (speechError) {
     throw new Error(speechError.message);
+  }
+
+  // A speech already exists for this round (resubmit / retry / watchdog
+  // placeholder). Treat as an idempotent no-op so a second submission can never
+  // overwrite the first speech or double-advance the phase.
+  if (!insertedSpeech || insertedSpeech.length === 0) {
+    return (await getDebateDuelRoom(params.shareCode, params.userId)) ?? room;
   }
 
   if (room.duelKind === "matchmaking") {
@@ -1274,6 +1372,226 @@ export async function getDebateDuelResult(
   return room;
 }
 
+export async function forfeitDebateDuelRoom(shareCode: string, userId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("forfeit_debate_duel", {
+    p_share_code: normalizeShareCode(shareCode),
+    p_actor_user_id: userId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return getDebateDuelRoom(shareCode, userId);
+}
+
+/**
+ * Idempotently finalize a duel that is sitting in the `judging` phase. Callable
+ * by any participant (e.g. when their client observes `status: "judging"` but
+ * the original speech-submit request that should have judged it died), and — in
+ * a later phase — by the watchdog via an internal trigger. Safe to call
+ * repeatedly: it no-ops once a judgment exists.
+ */
+export async function judgeDebateDuelRoom(shareCode: string, userId: string) {
+  const room = await getDebateDuelRoom(shareCode, userId);
+  if (!room || !room.viewer.isParticipant) {
+    throw new Error("DUEL_PARTICIPANT_REQUIRED");
+  }
+  if (room.status === "completed" && room.judgment) {
+    return room;
+  }
+  if (room.status !== "judging") {
+    throw new Error("DUEL_NOT_READY_FOR_JUDGING");
+  }
+
+  await judgeAndFinalizeDebateDuel(
+    room.id,
+    [...room.speeches].sort((left, right) => left.roundNumber - right.roundNumber),
+    room.participants
+  );
+
+  return getDebateDuelRoom(shareCode, userId);
+}
+
+/**
+ * No-cookie finalize used by the pg_net watchdog handoff (and shadow tests):
+ * judges a duel parked in `judging` when BOTH players have disconnected, so it
+ * never needs a live client to poke `/judge`. Service-role only and idempotent
+ * (no-ops once completed). Mirrors judgeDebateDuelRoom without the participant
+ * gate, loading rows via the admin client so RLS can't hide a duel with no
+ * auth.uid() in context.
+ */
+export async function judgeDebateDuelRoomInternal(shareCode: string) {
+  const admin = tryCreateAdminClient();
+  if (!admin) {
+    throw new Error("DUEL_INTERNAL_ADMIN_REQUIRED");
+  }
+
+  const normalizedCode = normalizeShareCode(shareCode);
+  const { data: duel, error: duelError } = await admin
+    .from("debate_duels")
+    .select("id, status")
+    .eq("share_code", normalizedCode)
+    .maybeSingle();
+
+  if (duelError) {
+    throw new Error(duelError.message);
+  }
+  if (!duel) {
+    throw new Error("DUEL_NOT_FOUND");
+  }
+  if (duel.status === "completed") {
+    return { duelId: duel.id, finalized: false, reason: "already_completed" };
+  }
+  if (duel.status !== "judging") {
+    throw new Error("DUEL_NOT_READY_FOR_JUDGING");
+  }
+
+  const { data: participantRows, error: participantError } = await admin
+    .from("debate_duel_participants")
+    .select(
+      "id, duel_id, user_id, role, display_name_snapshot, avatar_url_snapshot, joined_at, ready_at, credits_charged_at, completed_at"
+    )
+    .eq("duel_id", duel.id)
+    .order("joined_at", { ascending: true });
+  if (participantError) {
+    throw new Error(participantError.message);
+  }
+
+  const { data: speechRows, error: speechError } = await admin
+    .from("debate_duel_speeches")
+    .select(
+      "id, duel_id, participant_id, round_number, speech_type, side, transcript, audio_storage_path, duration_seconds, metadata, created_at"
+    )
+    .eq("duel_id", duel.id)
+    .order("round_number", { ascending: true });
+  if (speechError) {
+    throw new Error(speechError.message);
+  }
+
+  const participants: DebateDuelParticipant[] = (participantRows ?? []).map(
+    (participant) => ({
+      id: participant.id,
+      userId: participant.user_id,
+      displayName: participant.display_name_snapshot || "Debater",
+      avatarUrl: participant.avatar_url_snapshot ?? null,
+      role: participant.role,
+      joinedAt: participant.joined_at,
+      readyAt: participant.ready_at,
+      creditsChargedAt: participant.credits_charged_at,
+      completedAt: participant.completed_at,
+    })
+  );
+  const speeches = ((speechRows ?? []) as DuelSpeechRow[]).map(mapSpeech);
+
+  await judgeAndFinalizeDebateDuel(duel.id, speeches, participants);
+
+  return { duelId: duel.id, finalized: true };
+}
+
+/**
+ * Backfill a matchmaking ticket with an AI duel when no human is available.
+ * Human = proposition (charged 200), AI = opposition (free). The duel starts
+ * in_progress immediately and is unrated (ai_opponent), so the shadow ELO never
+ * sees it.
+ */
+export async function createDebateDuelAiBackfill(
+  userId: string,
+  input: EnterDebateDuelMatchmakingInput
+) {
+  const aiUserId = await ensureAiOpponentUser();
+  const supabase = await createClient();
+  const { data: shareCode, error } = await supabase.rpc("create_ai_backfill_duel", {
+    p_human_user_id: userId,
+    p_ai_user_id: aiUserId,
+    p_practice_topic_key: input.topicKey ?? null,
+    p_topic_title: input.topicTitle,
+    p_topic_category: input.topicCategory,
+    p_topic_category_key: input.topicCategoryKey ?? input.topicCategory,
+    p_topic_difficulty: input.topicDifficulty,
+    p_topic_description: input.topicDescription ?? "",
+    p_practice_language: coercePracticeLanguage(input.practiceLanguage),
+    p_prep_time_seconds: input.prepTimeSeconds,
+    p_opening_time_seconds: input.openingTimeSeconds,
+    p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
+  });
+
+  if (error || !shareCode) {
+    throw new Error(error?.message || "Failed to create AI duel.");
+  }
+
+  return getDebateDuelRoom(String(shareCode), userId);
+}
+
+/**
+ * Generate + submit the AI opponent's speech for the current round. The AI is
+ * always opposition, so it speaks at round 2 (opening) and round 4 (rebuttal).
+ * Idempotent: a no-op if it isn't the AI's turn or the speech already exists.
+ * Triggered by the human's client when it observes the AI's phase (mirrors the
+ * client-side auto-judge backstop).
+ */
+export async function aiTurnDebateDuel(shareCode: string, userId: string) {
+  const room = await getDebateDuelRoom(shareCode, userId);
+  if (!room || !room.viewer.isParticipant) {
+    throw new Error("DUEL_PARTICIPANT_REQUIRED");
+  }
+  if (!room.aiOpponent) {
+    throw new Error("NOT_AI_DUEL");
+  }
+  if (room.status !== "in_progress") {
+    return room;
+  }
+
+  const roundNumber =
+    room.currentPhase === "opposition-opening"
+      ? 2
+      : room.currentPhase === "opposition-rebuttal"
+        ? 4
+        : null;
+  if (roundNumber === null) {
+    return room; // not the AI's turn yet
+  }
+  if (room.speeches.some((speech) => speech.roundNumber === roundNumber)) {
+    return room; // already submitted (idempotent)
+  }
+
+  const speechType = roundNumber === 2 ? "opening" : "rebuttal";
+  const targetSeconds =
+    speechType === "opening"
+      ? room.config.openingTimeSeconds
+      : room.config.rebuttalTimeSeconds;
+
+  const { transcript } = await generateDuelAiSpeech({
+    motion: room.topicTitle,
+    aiSide: "opposition",
+    speechType,
+    practiceLanguage: room.practiceLanguage,
+    priorSpeeches: [...room.speeches]
+      .sort((left, right) => left.roundNumber - right.roundNumber)
+      .map((speech) => ({
+        side: speech.side,
+        speechType: speech.speechType,
+        transcript: speech.transcript,
+      })),
+    targetSeconds,
+    userId: room.creatorId,
+  });
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_ai_duel_speech", {
+    p_duel_id: room.id,
+    p_round_number: roundNumber,
+    p_transcript: transcript,
+    p_duration_seconds: targetSeconds,
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return getDebateDuelRoom(shareCode, userId);
+}
+
 export async function getDebateDuelHistory(
   userId: string,
   practiceLanguageInput?: PracticeLanguage | string | null
@@ -1298,7 +1616,7 @@ export async function getDebateDuelHistory(
   let duelQuery = supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, started_at, completed_at, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
     )
     .in("id", duelIds)
     .eq("status", "completed");

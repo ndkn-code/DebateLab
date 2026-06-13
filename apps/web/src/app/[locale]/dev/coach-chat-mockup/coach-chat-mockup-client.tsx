@@ -237,7 +237,7 @@ export function CoachChatMockupClient() {
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-token-primary">
                 <Shield className="h-5 w-5" />
               </div>
-              <div className="text-xl font-semibold tracking-[-0.01em] text-on-surface">
+              <div className="type-heading-md text-on-surface">
                 Thinkfy
               </div>
             </div>
@@ -357,7 +357,7 @@ export function CoachChatMockupClient() {
                   }}
                   placeholder="Ask your AI Coach anything..."
                   rows={1}
-                  className="min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 text-[15px] text-on-surface placeholder:text-on-surface-variant/60 outline-none"
+                  className="min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 type-body text-on-surface placeholder:text-on-surface-variant/60 outline-none"
                 />
                 <button
                   onClick={() => sendMockMessage()}

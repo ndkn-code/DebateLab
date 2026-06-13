@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { Flame, BarChart3, Clock, BookOpen, Sparkles } from "@/components/ui/icons";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Heading } from "@/components/ui/typography";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import fireAnimation from "../../../public/lottie/fire.json";
 import type { ProfileData } from "./profile-content";
@@ -89,9 +90,9 @@ export function UserCard({ profile, onTitleChange }: UserCardProps) {
 
         {/* Name, title, XP */}
         <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-bold text-on-surface">
+          <Heading level={2} as="h1">
             {profile.display_name ?? "Debater"}
-          </h1>
+          </Heading>
           {profile.selected_title && (
             <p className="mt-0.5 flex items-center justify-center gap-1 text-sm font-medium text-primary sm:justify-start">
               <Sparkles className="h-3.5 w-3.5" />

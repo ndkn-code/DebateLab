@@ -110,13 +110,13 @@ function GoalRing({ goal }: { goal: DashboardGoalSummary }) {
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-on-surface">
+        <span className="type-label absolute inset-0 flex items-center justify-center font-extrabold text-on-surface">
           {Math.round(Math.min(goal.progressPercent, 100))}%
         </span>
       </div>
       <div className="min-w-0">
         <p className="text-sm font-extrabold text-on-surface">{t("weekly_goal")}</p>
-        <p className="text-[13px] font-semibold text-on-surface-variant">
+        <p className="type-label text-on-surface-variant">
           {t("weekly_goal_progress", {
             practiced: goal.practicedMinutes,
             goal: goal.goalMinutes,
@@ -152,12 +152,12 @@ export function TrainingPath({
         <div>
           <h2
             id="dashboard-training-map-heading"
-            className="inline-flex items-center gap-2 text-[1.05rem] font-extrabold text-on-surface"
+            className="type-title inline-flex items-center gap-2 font-extrabold text-on-surface"
           >
             <GitBranch className="h-[18px] w-[18px] text-primary" />
             {t("training_map")}
           </h2>
-          <p className="mt-0.5 text-[13px] text-on-surface-variant">
+          <p className="type-caption mt-0.5 text-on-surface-variant">
             {t("training_map_subtitle")}
           </p>
         </div>
@@ -228,7 +228,7 @@ export function TrainingPath({
                 <motion.span
                   animate={{ y: [0, -5, 0] }}
                   transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -top-[44px] whitespace-nowrap rounded-full bg-reward px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-on-reward shadow-token-card after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-x-[6px] after:border-t-[7px] after:border-x-transparent after:border-t-reward"
+                  className="type-eyebrow absolute -top-[44px] whitespace-nowrap rounded-full bg-reward px-3.5 py-1 text-on-reward shadow-token-card after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-x-[6px] after:border-t-[7px] after:border-x-transparent after:border-t-reward"
                 >
                   {t("next_checkpoint")}
                 </motion.span>
@@ -244,12 +244,12 @@ export function TrainingPath({
                 <Icon className="h-6 w-6" />
               </div>
 
-              <p className="mt-2 text-[13px] font-extrabold text-on-surface">
+              <p className="type-label mt-2 font-extrabold text-on-surface">
                 {t(`skill_labels.${key}`)}
               </p>
               <span
                 className={cn(
-                  "mt-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold",
+                  "type-caption mt-1 rounded-full px-2.5 py-0.5 font-extrabold",
                   styles.chip
                 )}
               >
@@ -287,14 +287,14 @@ export function TrainingPath({
                 <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-[13px] font-extrabold text-on-surface">
+                <p className="type-label truncate font-extrabold text-on-surface">
                   {t(`skill_labels.${key}`)}
                 </p>
-                <p className="text-[12px] font-bold text-on-surface-variant">
+                <p className="type-caption font-bold text-on-surface-variant">
                   {formatScore(metric)} / 100
                 </p>
                 {highlighted ? (
-                  <p className="text-[11px] font-extrabold text-reward-dim">
+                  <p className="type-caption font-extrabold text-reward-dim">
                     {t("next_checkpoint")}
                   </p>
                 ) : null}

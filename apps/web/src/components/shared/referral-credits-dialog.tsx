@@ -10,10 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/typography";
 import { Check, Copy } from "@/components/ui/icons";
 
 const CREDIT_ICON_SRC = "/images/rewards/credits-coin.webp";
-const SHARE_ILLUSTRATION_SRC = "/images/smart-popups/share-thinkfy.webp";
+const SHARE_ILLUSTRATION_SRC = "/images/smart-popups/thinkfy_popup_referral_v1.webp";
 
 interface ReferralCreditsDialogProps {
   open: boolean;
@@ -157,7 +158,7 @@ export function ReferralCreditsDialog({
             )}
           </div>
 
-          <DialogTitle className="mt-5 text-[1.7rem] font-black leading-tight tracking-normal text-on-surface">
+          <DialogTitle className="mt-5 type-heading-lg font-black text-on-surface">
             {t("title")}
           </DialogTitle>
 
@@ -172,7 +173,7 @@ export function ReferralCreditsDialog({
               unoptimized
               aria-hidden="true"
             />
-            <span className="text-[15px] font-extrabold tabular-nums text-[#102936]">
+            <span className="type-body font-extrabold tabular-nums text-on-surface">
               {t("reward_label", { count: inviteReward })}
             </span>
           </span>
@@ -209,9 +210,9 @@ export function ReferralCreditsDialog({
                   </Button>
                 </div>
 
-                <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+                <Eyebrow className="mt-6 text-on-surface-variant">
                   {t("share_on")}
-                </p>
+                </Eyebrow>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <button
                     type="button"

@@ -473,7 +473,7 @@ export function EmailTemplateEditor() {
                 </span>
                 <span
                   className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase",
+                    "rounded-full border px-2 py-0.5 type-caption font-extrabold uppercase",
                     state.hasOverride
                       ? "border-secondary/20 bg-secondary-container text-secondary-dim"
                       : "border-outline-variant/60 bg-surface-container-lowest text-muted-foreground"
@@ -497,7 +497,7 @@ export function EmailTemplateEditor() {
               </h2>
               <span
                 className={cn(
-                  "rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase",
+                  "rounded-full border px-2 py-0.5 type-caption font-extrabold uppercase",
                   localeState.hasOverride
                     ? "border-secondary/20 bg-secondary-container text-secondary-dim"
                     : "border-outline-variant/60 bg-surface-container text-muted-foreground"

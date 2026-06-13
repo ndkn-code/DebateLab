@@ -51,6 +51,30 @@ const tokenClassPattern =
 const legacyPrimaryPattern =
   /#(?:4D86F7|3E78EC|A9C6FB|11845F|20C997|0E7A58|075C45|A8F0D7)|rgba\(\s*(?:77\s*,\s*134\s*,\s*247|62\s*,\s*120\s*,\s*236|169\s*,\s*198\s*,\s*251|17\s*,\s*132\s*,\s*95|32\s*,\s*201\s*,\s*151|14\s*,\s*122\s*,\s*88|7\s*,\s*92\s*,\s*69)\b|(?:bg|text|border|ring|from|to|via|fill|stroke)-(?:blue|indigo|violet|purple)-[0-9]{2,3}(?:\/[0-9]{1,3})?/gi;
 
+// Typography guard: flag ad-hoc type values that should go through the
+// `type-*` utilities / <Heading>/<Text>/… primitives. Tighter allowlist than
+// color — component folders are NOT exempt, since they are what we migrate.
+const typographyApprovedFragments = [
+  "packages/shared/src/design-system/",
+  "apps/web/src/app/globals.css",
+  "apps/web/src/components/ui/typography.tsx",
+  "apps/web/src/lib/email/templates.tsx",
+  "apps/web/src/app/email/unsubscribe/route.ts",
+  "apps/web/src/lib/settings.ts",
+];
+
+// arbitrary font-size / tracking / leading / weight in class strings, plus
+// hardcoded font-family declarations. Color `text-[#..]` is excluded (the size
+// alternative requires a digit / length: / calc start).
+const typographyPattern =
+  /\btext-\[(?:[0-9]|length:|calc)[^\]]*\]|\b(?:tracking|leading)-\[[^\]]+\]|\bfont-\[[^\]]+\]|font-family\s*:|fontFamily\s*:/g;
+
+function isTypographyApproved(file: string) {
+  const normalized = file.split(path.sep).join("/");
+  if (!normalized.includes("apps/web/src")) return true; // web-only guard
+  return typographyApprovedFragments.some((fragment) => normalized.includes(fragment));
+}
+
 type Violation = {
   file: string;
   line: number;
@@ -83,6 +107,8 @@ const files = scanRoots
   .filter((file) => scannedExtensions.has(path.extname(file)))
   .filter((file) => !isApproved(path.relative(repoRoot, file)));
 
+// Sanctioned brand colors that have no palette token (social-share buttons etc.).
+const brandColorAllowlist = ["1877F2"]; // Facebook brand blue
 const violations: Violation[] = [];
 const legacyViolations: Violation[] = [];
 
@@ -110,6 +136,7 @@ for (const file of files) {
   const lines = source.split(/\r?\n/);
   lines.forEach((text, index) => {
     for (const match of text.matchAll(tokenClassPattern)) {
+      if (brandColorAllowlist.some((hex) => match[0].toUpperCase().includes(hex))) continue;
       violations.push({
         file: path.relative(repoRoot, file),
         line: index + 1,
@@ -118,6 +145,45 @@ for (const file of files) {
       });
     }
   });
+}
+
+const typographyViolations: Violation[] = [];
+for (const file of allScannedFiles) {
+  if (isTypographyApproved(path.relative(repoRoot, file))) continue;
+  const source = readFileSync(file, "utf8");
+  const lines = source.split(/\r?\n/);
+  lines.forEach((text, index) => {
+    for (const match of text.matchAll(typographyPattern)) {
+      typographyViolations.push({
+        file: path.relative(repoRoot, file),
+        line: index + 1,
+        match: match[0],
+        text: text.trim(),
+      });
+    }
+  });
+}
+
+// Report-only while the migration is in flight. Flip to process.exit(1) once
+// the long tail clears (see design.md §Typography).
+const TYPOGRAPHY_GUARD_HARD_FAIL = true;
+if (typographyViolations.length > 0) {
+  console.warn(
+    `\n[typography · ${TYPOGRAPHY_GUARD_HARD_FAIL ? "error" : "report-only"}] ${typographyViolations.length} ad-hoc type values outside the type system (arbitrary text-[…]/tracking-[…]/leading-[…]/font-[…] or hardcoded font-family).`,
+  );
+  for (const violation of typographyViolations.slice(0, 40)) {
+    console.warn(`  ${violation.file}:${violation.line} ${violation.match}`);
+  }
+  if (typographyViolations.length > 40) {
+    console.warn(`  ...and ${typographyViolations.length - 40} more.`);
+  }
+  if (TYPOGRAPHY_GUARD_HARD_FAIL) {
+    console.error(`Design-system audit found ${typographyViolations.length} ad-hoc typography values.`);
+    process.exit(1);
+  }
+  console.warn("");
+} else {
+  console.log("Typography audit passed: no ad-hoc type values outside the type system.");
 }
 
 if (legacyViolations.length > 0) {

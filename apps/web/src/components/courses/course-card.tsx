@@ -5,6 +5,7 @@ import {
   BarChart3,
   Layers3,
 } from "@/components/ui/icons";
+import { Heading, Text } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import {
   CourseArtwork,
@@ -64,7 +65,7 @@ function ProgressRing({ progress }: { progress: number }) {
           strokeDashoffset={offset}
         />
       </svg>
-      <span className="absolute text-[11px] font-semibold text-on-surface-variant">
+      <span className="type-caption absolute font-semibold text-on-surface-variant">
         {progress}%
       </span>
     </div>
@@ -113,7 +114,7 @@ export function CourseCard({
 
         <div
           className={cn(
-            "absolute left-3 top-3 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] shadow-token-card",
+            "type-eyebrow absolute left-3 top-3 inline-flex rounded-full px-3 py-1 font-semibold shadow-token-card",
             STATUS_BADGE_STYLES[course.status]
           )}
         >
@@ -128,15 +129,15 @@ export function CourseCard({
       </div>
 
       <div className="flex flex-1 flex-col px-4 pb-4 pt-4">
-        <h3 className="text-[1.18rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+        <Heading level={4} as="h3" className="text-on-surface-variant">
           {course.title}
-        </h3>
-        <p className="mt-2 line-clamp-2 text-[15px] leading-8 text-on-surface-variant">
+        </Heading>
+        <Text className="mt-2 line-clamp-2 leading-8 text-on-surface-variant">
           {course.description || descriptionFallbackLabel}
-        </p>
+        </Text>
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <div className="flex flex-wrap items-center gap-4 text-[13px] text-on-surface-variant">
+          <div className="type-caption flex flex-wrap items-center gap-4 text-on-surface-variant">
             <span className="inline-flex items-center gap-1.5">
               <Layers3 className="h-3.5 w-3.5 text-on-surface-variant" />
               {modulesCountLabel}
@@ -149,7 +150,7 @@ export function CourseCard({
 
           <span
             className={cn(
-              "inline-flex shrink-0 rounded-[10px] px-4 py-2 text-[13px] font-semibold shadow-token-primary",
+              "type-label inline-flex shrink-0 rounded-[10px] px-4 py-2 shadow-token-primary",
               actionClasses
             )}
           >

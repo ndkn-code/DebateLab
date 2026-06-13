@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/icons";
 import type { LucideIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Eyebrow, Heading, Stat } from "@/components/ui/typography";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import {
@@ -185,7 +186,7 @@ function ResultList({
       {items.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
           {items.map((item) => (
-            <li key={item} className="flex gap-3 text-[0.92rem] leading-6 text-on-surface-variant">
+            <li key={item} className="flex gap-3 type-body-sm leading-6 text-on-surface-variant">
               <span className={cn("mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full", dotClassName)} />
               <span>{item}</span>
             </li>
@@ -499,9 +500,9 @@ export function SessionResultDashboard({
                 <span className="text-sm font-medium text-on-surface-variant">
                   {t("scoreLabel")}
                 </span>
-                <span className="mt-1 text-[4rem] font-bold leading-none tracking-tight text-on-surface">
+                <Stat size="display-md" className="mt-1 font-bold text-on-surface">
                   {displayScore}
-                </span>
+                </Stat>
                 <span className="sr-only">out of 100</span>
               </div>
             </div>
@@ -530,9 +531,9 @@ export function SessionResultDashboard({
 
             <div className="flex flex-wrap items-start justify-between gap-4 pr-0 sm:pr-12">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight text-on-surface sm:text-[1.7rem]">
+                <Heading as="h1" level={2}>
                   {session.topic.title}
-                </h1>
+                </Heading>
                 <p className="mt-3 max-w-4xl text-base leading-8 text-on-surface">
                   {viewModel.feedback.summary}
                 </p>
@@ -562,7 +563,7 @@ export function SessionResultDashboard({
               {metaItems.map(({ label, value, icon: Icon }) => (
                 <span
                   key={label}
-                  className="inline-flex max-w-full items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 text-[13px] font-bold text-on-surface"
+                  className="inline-flex max-w-full items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 type-caption font-bold text-on-surface"
                 >
                   <Icon className="h-4 w-4 shrink-0 text-primary" />
                   <span className="truncate">{value}</span>
@@ -571,10 +572,10 @@ export function SessionResultDashboard({
               {timelineItems.map(({ key, value, icon: Icon }) => (
                 <span
                   key={key}
-                  className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 text-[13px] font-semibold text-on-surface-variant"
+                  className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 type-caption font-semibold text-on-surface-variant"
                 >
                   {key === "difficulty" ? (
-                    <span className="rounded bg-primary-container px-1.5 py-0.5 text-[10px] font-extrabold text-primary-dim">
+                    <span className="rounded bg-primary-container px-1.5 py-0.5 type-caption font-extrabold text-primary-dim">
                       AI
                     </span>
                   ) : (
@@ -756,17 +757,17 @@ export function SessionResultDashboard({
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                    <Eyebrow className="text-on-surface-variant">
                       {t("scoreRationale.whyNotHigher")}
-                    </p>
+                    </Eyebrow>
                     <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                       {value.whyNotHigher}
                     </p>
                   </div>
                   <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                    <Eyebrow className="text-on-surface-variant">
                       {t("scoreRationale.nextStep")}
-                    </p>
+                    </Eyebrow>
                     <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                       {value.nextStep}
                     </p>
@@ -835,17 +836,17 @@ export function SessionResultDashboard({
                   </p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <Eyebrow className="text-on-surface-variant">
                         {t("casework.worked")}
-                      </p>
+                      </Eyebrow>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {argument.whatWorked}
                       </p>
                     </div>
                     <div className="rounded-lg bg-surface-container p-3 ring-1 ring-outline-variant">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <Eyebrow className="text-on-surface-variant">
                         {t("casework.missing")}
-                      </p>
+                      </Eyebrow>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {argument.missingLayer}
                       </p>

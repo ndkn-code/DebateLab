@@ -60,7 +60,7 @@ export function StreakCard({
           )}
         >
           <div className={cn("min-w-0", compact ? "flex-1" : "max-w-xl")}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 backdrop-blur-sm dark:border-warning/25 dark:bg-warning-container/60 dark:text-warning">
+            <span className="type-eyebrow inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-white/80 px-3 py-1 text-amber-700 backdrop-blur-sm dark:border-warning/25 dark:bg-warning-container/60 dark:text-warning">
               <Sparkles className="h-3.5 w-3.5" />
               {t("streak_title")}
             </span>
@@ -134,7 +134,7 @@ export function StreakCard({
               compact ? "p-3" : "p-4"
             )}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+            <div className="type-eyebrow flex items-center gap-2 text-amber-700">
               <Trophy className="h-4 w-4" />
               {t("best_run")}
             </div>
@@ -152,7 +152,7 @@ export function StreakCard({
               compact ? "p-3" : "p-4"
             )}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            <div className="type-eyebrow flex items-center gap-2 text-primary">
               <Zap className="h-4 w-4" />
               {t("week_activity")}
             </div>
@@ -211,7 +211,7 @@ export function StreakCard({
                   </div>
                   <span
                     className={cn(
-                      compact ? "text-[10px] font-medium leading-none" : "text-xs font-medium",
+                      compact ? "type-caption leading-none" : "type-caption",
                       isToday ? "text-on-surface" : "text-on-surface-variant"
                     )}
                   >

@@ -145,7 +145,7 @@ export function RoundTranscriptTabs({
                   })
                 }
                 className={cn(
-                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-bold transition-all",
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 type-caption font-bold transition-all",
                   isActive
                     ? "bg-surface text-on-surface shadow-token-card"
                     : "text-on-surface-variant hover:text-on-surface"

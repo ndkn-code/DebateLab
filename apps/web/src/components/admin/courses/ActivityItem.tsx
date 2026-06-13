@@ -61,7 +61,7 @@ export function ActivityItem({ activity }: Props) {
       <Icon className="h-4 w-4 text-on-surface-variant shrink-0" />
       <span className="flex-1 text-sm text-on-surface truncate">{activity.title}</span>
       {activity.phase && (
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${PHASE_COLORS[activity.phase]}`}>
+        <span className={`type-caption font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${PHASE_COLORS[activity.phase]}`}>
           {activity.phase}
         </span>
       )}

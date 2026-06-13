@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitDebateDuelSpeech } from "@/lib/api/debate-duels";
-import { isAdminUser } from "@/lib/auth/admin";
+import { canAccessDuels } from "@/lib/auth/admin";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
@@ -25,7 +25,7 @@ export async function POST(
     }
 
     const { supabase, user } = auth;
-    if (!(await isAdminUser(supabase, user.id))) {
+    if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
         { status: 403 }

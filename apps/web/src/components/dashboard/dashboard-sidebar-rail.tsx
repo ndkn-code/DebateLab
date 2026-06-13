@@ -143,7 +143,7 @@ export function DashboardSidebarRail({
               {isUnavailable ? (
                 <span
                   className={cn(
-                    "ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                    "type-caption ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold uppercase",
                     "bg-white/[0.08] text-sidebar-muted/75"
                   )}
                 >

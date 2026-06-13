@@ -229,7 +229,7 @@ export function FeatureNudgePopup({
   return (
     <div className="text-center">
       <SmartPopupIllustration src={popup.imageSrc} alt={popup.imageAlt} />
-      <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.6rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.75rem]">
+      <DialogTitle className="mx-auto mt-5 max-w-[360px] type-heading-lg font-extrabold text-on-surface">
         {popup.title}
       </DialogTitle>
       {ctaError ? (
@@ -286,7 +286,7 @@ export function SurveyPopup({
           alt={popup.imageAlt}
           tone="reward"
         />
-        <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.5rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.6rem]">
+        <DialogTitle className="mx-auto mt-5 max-w-[360px] type-heading-lg font-extrabold text-on-surface">
           {popup.title}
         </DialogTitle>
       </div>
@@ -313,7 +313,7 @@ export function SurveyPopup({
       {submitError ? (
         <div
           data-smart-popup-error
-          className="mt-4 rounded-2xl bg-[#FFEAEA] px-4 py-2.5 text-sm font-semibold text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]"
+          className="mt-4 rounded-2xl bg-error-container px-4 py-2.5 text-sm font-semibold text-on-error-container"
         >
           {submitError}
         </div>
@@ -371,7 +371,7 @@ export function SurveyThankYou({
           />
         </div>
       )}
-      <DialogTitle className="mx-auto mt-5 max-w-[360px] text-[1.6rem] font-extrabold leading-[1.18] tracking-normal text-on-surface sm:text-[1.75rem]">
+      <DialogTitle className="mx-auto mt-5 max-w-[360px] type-heading-lg font-extrabold text-on-surface">
         {title}
       </DialogTitle>
       <Button

@@ -185,7 +185,7 @@ export function CoursePlayerView({
                     </div>
                   )}
                       <span className="flex-1 text-sm text-on-surface">{act.title}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PHASE_COLORS[act.phase]}`}>
+                      <span className={`type-caption font-semibold px-1.5 py-0.5 rounded-md ${PHASE_COLORS[act.phase]}`}>
                         {act.phase}
                       </span>
                       <span className="text-xs text-on-surface-variant">{act.duration_minutes}m</span>

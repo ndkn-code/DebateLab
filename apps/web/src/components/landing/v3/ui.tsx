@@ -27,9 +27,7 @@ export function Highlight({
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn("text-[13px] font-extrabold uppercase tracking-[0.18em] text-primary", className)}>
-      {children}
-    </p>
+    <p className={cn("type-eyebrow text-primary", className)}>{children}</p>
   );
 }
 
@@ -48,7 +46,7 @@ export function PrimaryButton({
     <a
       href={href}
       className={cn(
-        "btn-3d-primary inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-8 text-[15px] font-bold text-on-primary hover:bg-primary-dim",
+        "btn-3d-primary inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-8 text-base font-bold text-on-primary hover:bg-primary-dim",
         className
       )}
     >
@@ -71,7 +69,7 @@ export function GhostButton({
     <a
       href={href}
       className={cn(
-        "inline-flex h-14 items-center justify-center rounded-2xl border border-outline-variant bg-white px-8 text-[15px] font-bold text-primary-dim shadow-token-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-token-primary",
+        "inline-flex h-14 items-center justify-center rounded-2xl border border-outline-variant bg-white px-8 text-base font-bold text-primary-dim shadow-token-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-token-primary",
         className
       )}
     >

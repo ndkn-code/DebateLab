@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Heading, Text } from "@/components/ui/typography";
 import { CategoryVisual } from "@/components/practice/category-visual";
 import { CREDIT_ICON_SRC } from "@/components/dashboard/dashboard-stats-panel";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
@@ -116,7 +117,7 @@ function SegmentedControl<Value extends string>({
             aria-pressed={isActive}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative flex min-h-[42px] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 text-[13.5px] font-semibold transition-colors duration-150",
+              "relative flex min-h-[42px] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 type-body-sm font-semibold transition-colors duration-150",
               isActive
                 ? "text-primary"
                 : "text-on-surface-variant hover:text-on-surface",
@@ -145,7 +146,9 @@ function SegmentedControl<Value extends string>({
 function ConfigField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <section>
-      <p className="text-[13px] font-bold text-on-surface">{label}</p>
+      <Text variant="label" as="p" className="font-bold text-on-surface">
+        {label}
+      </Text>
       <div className="mt-2.5">{children}</div>
     </section>
   );
@@ -172,7 +175,9 @@ function TimeStepper({
 
   return (
     <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-      <p className="text-[13px] font-bold text-on-surface">{label}</p>
+      <Text variant="label" as="p" className="font-bold text-on-surface">
+        {label}
+      </Text>
       <div className="mt-3 flex items-center justify-between gap-2">
         <motion.button
           type="button"
@@ -192,7 +197,7 @@ function TimeStepper({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -7 }}
             transition={{ duration: 0.16 }}
-            className="text-[15px] font-extrabold tabular-nums text-on-surface"
+            className="type-body font-extrabold tabular-nums text-on-surface"
           >
             {unitLabel(minutes)}
           </motion.span>
@@ -340,17 +345,17 @@ export function SessionConfig({
                 </button>
               </div>
 
-              <h2 className="mt-5 text-[1.55rem] font-bold leading-[1.2] text-on-surface sm:text-[1.7rem]">
+              <Heading level={2} className="mt-5">
                 {topic.title}
-              </h2>
+              </Heading>
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-surface-container px-3 py-1.5 text-[12px] font-semibold leading-none text-on-surface-variant">
+                <span className="rounded-full bg-surface-container px-3 py-1.5 type-caption font-semibold leading-none text-on-surface-variant">
                   {topic.category}
                 </span>
                 <span
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[12px] font-semibold leading-none",
+                    "rounded-full px-3 py-1.5 type-caption font-semibold leading-none",
                     DIFFICULTY_CHIP_STYLES[difficultyChip.tone]
                   )}
                 >
@@ -359,16 +364,16 @@ export function SessionConfig({
               </div>
 
               <div className="mt-7 rounded-2xl bg-surface-container p-5">
-                <div className="flex items-center gap-2 text-[13px] font-bold text-on-surface">
+                <div className="flex items-center gap-2 type-label font-bold text-on-surface">
                   <Scale className="h-4 w-4 text-primary" />
                   {t("session.motion_brief")}
                 </div>
-                <p className="mt-3 text-[14px] leading-[1.65] text-on-surface-variant">
+                <Text variant="body-sm" className="mt-3 text-on-surface-variant">
                   {motionBrief.scope}
-                </p>
-                <p className="mt-2.5 text-[13px] font-medium leading-[1.6] text-on-surface-variant/85">
+                </Text>
+                <Text variant="caption" className="mt-2.5 text-on-surface-variant/85">
                   {motionBrief.modelClarification}
-                </p>
+                </Text>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -446,9 +451,9 @@ export function SessionConfig({
             </div>
 
             <div className="flex items-center justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-              <p className="text-[13px] font-bold text-on-surface">
+              <Text variant="label" as="p" className="font-bold text-on-surface">
                 {t("ai_hints")}
-              </p>
+              </Text>
               <Switch checked={aiHints} onCheckedChange={setAiHints} />
             </div>
           </div>
@@ -475,7 +480,7 @@ export function SessionConfig({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.16 }}
-                className="text-[1.3rem] font-extrabold leading-none tabular-nums text-on-surface"
+                className="type-heading-lg font-extrabold leading-none tabular-nums text-on-surface"
               >
                 {orbCost}
               </motion.span>
@@ -485,7 +490,7 @@ export function SessionConfig({
           <Button
             onClick={handleBegin}
             disabled={isDeducting || showBeginTransition}
-            className="h-12 flex-1 rounded-2xl text-[1rem] font-bold sm:max-w-[230px]"
+            className="h-12 flex-1 rounded-2xl type-body font-bold sm:max-w-[230px]"
           >
             {isDeducting || showBeginTransition ? t("starting") : t("begin_session")}
             <ArrowRight className="ml-1.5 h-[18px] w-[18px] transition-transform group-hover/button:translate-x-0.5" />

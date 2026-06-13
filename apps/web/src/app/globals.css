@@ -8,8 +8,10 @@
 @theme inline {
   --color-background: #F3FCFE;
   --color-foreground: #102936;
-  --font-sans: var(--font-jakarta);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-nunito), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  --font-serif: var(--font-noto-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --color-primary: #00B8D9;
   --color-primary-dim: #0788A0;
@@ -113,6 +115,130 @@
   --radius-2xl: 2rem;
   --radius-3xl: 2.5rem;
   --radius-4xl: 3rem;
+}
+
+/* ───────── Typography scale (see design.md · §Typography) ─────────
+   display → Nunito · heading/title/body/label/eyebrow/caption → Be Vietnam Pro
+   code → Geist Mono · prose → Noto Serif.
+   Families reference the next/font vars directly (the @theme-inline --font-*
+   tokens are not emitted as runtime custom properties). Color is intentionally
+   excluded so these compose with the existing color-token system. */
+@utility type-display-xl {
+  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-size: clamp(2.75rem, 1.6rem + 4.8vw, 4.5rem);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+@utility type-display-lg {
+  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-size: clamp(2.25rem, 1.3rem + 4vw, 3.5rem);
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+@utility type-display-md {
+  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-size: clamp(1.875rem, 1.2rem + 2.9vw, 2.75rem);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+@utility type-display-sm {
+  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-size: clamp(1.625rem, 1.2rem + 1.8vw, 2.25rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+@utility type-heading-xl {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1.875rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+@utility type-heading-lg {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+@utility type-heading-md {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+}
+@utility type-title {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.003em;
+}
+@utility type-body {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-body-lg {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-body-sm {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-caption {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+}
+@utility type-label {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility type-eyebrow {
+  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@utility type-code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-ligatures: none;
+}
+@utility type-prose {
+  font-family: var(--font-noto-serif), ui-serif, Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 @layer base {
@@ -437,6 +563,9 @@
   .dark .text-error,
   .dark .text-destructive {
     color: var(--color-error) !important;
+  }
+  .dark .text-on-error-container {
+    color: var(--color-on-error-container) !important;
   }
   .dark .text-primary-foreground,
   .dark .text-on-primary {

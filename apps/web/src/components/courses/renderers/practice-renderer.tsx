@@ -19,6 +19,7 @@ import {
   type PracticeMode,
   type PracticeSide,
 } from "@/lib/practice-prefill";
+import { Eyebrow, Heading } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { LessonWithContext } from "@/lib/api/courses";
 import type { AiDifficulty, PracticeTrack } from "@/types";
@@ -96,9 +97,9 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Mic2 className="h-6 w-6" />
             </div>
-            <h3 className="mt-4 text-2xl font-semibold text-on-surface">
+            <Heading level={2} as="h3" className="mt-4 font-semibold">
               {config.topicTitle || t("practice.title_fallback")}
-            </h3>
+            </Heading>
             <p className="mt-3 text-sm leading-7 text-on-surface-variant">
               {config.description ??
                 t("reader.practice_description_fallback")}
@@ -111,9 +112,9 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
                 <Compass className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <Eyebrow className="font-semibold text-primary">
                   {t("reader.practice_setup_title")}
-                </p>
+                </Eyebrow>
                 <p className="text-sm text-on-surface-variant">
                   {t("reader.practice_setup_description")}
                 </p>
@@ -181,12 +182,12 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              <Eyebrow className="font-semibold text-primary">
                 {t("practice.focus_area")}
-              </p>
-              <h4 className="mt-2 text-lg font-semibold text-on-surface">
+              </Eyebrow>
+              <Heading level={4} className="mt-2">
                 {config.topicTitle}
-              </h4>
+              </Heading>
               {config.description ? (
                 <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                   {config.description}
@@ -304,9 +305,9 @@ function SummaryStat({
 }) {
   return (
     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-on-surface-variant">
+      <Eyebrow className="font-medium text-on-surface-variant">
         {label}
-      </p>
+      </Eyebrow>
       <p className="mt-2 text-sm font-semibold text-on-surface">{value}</p>
     </div>
   );

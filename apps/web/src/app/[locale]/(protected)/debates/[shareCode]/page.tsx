@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth/admin";
+import { canAccessDuels } from "@/lib/auth/admin";
 import { DuelRoomPage } from "@/components/debates/duel-room-page";
 
 export const metadata = {
@@ -21,7 +21,7 @@ export default async function DebateDuelRoomPage({
     redirect("/auth/login");
   }
 
-  if (!(await isAdminUser(supabase, user.id))) {
+  if (!(await canAccessDuels(supabase, user.id))) {
     redirect("/dashboard");
   }
 

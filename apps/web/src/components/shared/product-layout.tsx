@@ -80,7 +80,7 @@ export function ProductPageHeader({
             {icon}
           </span>
         ) : null}
-        <h1 className="text-balance text-[24px] font-semibold leading-none tracking-normal text-on-surface sm:text-[28px] md:text-[32px]">
+        <h1 className="text-balance type-heading-lg font-semibold text-on-surface md:type-heading-xl">
           {title}
         </h1>
       </div>

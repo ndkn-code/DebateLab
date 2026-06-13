@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/auth/admin";
+import { canAccessDuels } from "@/lib/auth/admin";
 import {
   requireRequestAuth,
   type RequestAuthSuccess,
@@ -91,7 +91,7 @@ async function getAdminUser(request: NextRequest): Promise<{
     return { auth: null, error: auth.errorResponse };
   }
 
-  if (!(await isAdminUser(auth.supabase, auth.user.id))) {
+  if (!(await canAccessDuels(auth.supabase, auth.user.id))) {
     return {
       auth: null,
       error: NextResponse.json(

@@ -68,7 +68,7 @@ export function PracticeLaunchpad({
                   {t(`launchpad_options.${option.key}.title`)}
                 </h3>
                 {option.key === "debate_full" ? (
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="type-caption">
                     {t("launchpad_full_cost")}
                   </Badge>
                 ) : null}
@@ -97,7 +97,7 @@ export function PracticeLaunchpad({
     <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-6 soft-shadow sm:p-7">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          <span className="type-eyebrow inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             {t("launchpad_eyebrow")}
           </span>

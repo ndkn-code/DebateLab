@@ -21,6 +21,17 @@ function getRolloutStage(value: string | undefined): LeaderboardRolloutStage {
 
 export const STUDENT_COURSES_ENABLED: boolean = false;
 
+// 1v1 Duel ("debate-duel") launch switch. Default off → only admins can reach
+// the feature (so the team keeps shadow-testing in production). Set
+// NEXT_PUBLIC_DUEL_ENABLED=true (or DUEL_ENABLED=true) to launch it for
+// everyone — no code change to the gate needed.
+const duelEnabledValue =
+  process.env.NEXT_PUBLIC_DUEL_ENABLED ?? process.env.DUEL_ENABLED;
+
+export const DUEL_ENABLED: boolean = duelEnabledValue
+  ? isEnabled(duelEnabledValue)
+  : false;
+
 const leaderboardEnabledValue =
   process.env.NEXT_PUBLIC_LEADERBOARDS_ENABLED ?? process.env.LEADERBOARDS_ENABLED;
 

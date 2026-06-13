@@ -92,7 +92,7 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-bold text-on-surface">{event.title}</p>
-                  <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 text-[10px] font-bold capitalize text-on-surface-variant">
+                  <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 type-caption font-bold capitalize text-on-surface-variant">
                     {event.eventType}
                   </span>
                 </div>

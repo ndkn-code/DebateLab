@@ -1531,7 +1531,7 @@ export function SettingsContent({
                           placeholder="ABCD-1234"
                           className={cn(
                             INPUT_CLASSNAME,
-                            "font-bold tracking-[0.12em] placeholder:tracking-normal"
+                            "font-bold tracking-widest placeholder:tracking-normal"
                           )}
                         />
                         <Button

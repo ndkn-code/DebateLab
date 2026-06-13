@@ -1072,13 +1072,13 @@ export function SeasonReplayDialog({
                     />
                     <div className="min-w-0 text-center">
 	                      <p
-	                        className="text-[11px] font-black uppercase tracking-normal text-on-surface-variant"
+	                        className="type-caption font-black uppercase text-on-surface-variant"
 	                      >
 	                        {leagueEyebrow}
 	                      </p>
                       <h2
                         data-testid="season-replay-league-title"
-                        className="mt-1 truncate text-[28px] font-black leading-tight tracking-normal text-on-surface-variant sm:text-[36px]"
+                        className="mt-1 truncate type-heading-lg font-black text-on-surface-variant sm:type-heading-xl"
                       >
                         {currentStep === "result" ? nextLeague.name : title}
                       </h2>
@@ -1225,7 +1225,7 @@ export function SeasonReplayDialog({
                       </span>
                       <span
                         className={cn(
-                          "truncate text-left text-[11px] font-black uppercase",
+                          "truncate text-left type-caption font-black uppercase",
                           active
                             ? isDark
                               ? "text-white"

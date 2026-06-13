@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { claimClubInvitation } from "@/app/actions/admin-clubs";
+import { Eyebrow } from "@/components/ui/typography";
 
 export const metadata = { title: "Join Club" };
 
@@ -33,7 +34,7 @@ export default async function JoinClubInvitationPage({
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <section className="w-full max-w-md rounded-lg border border-outline-variant bg-white p-6 text-center shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Thinkfy Club</p>
+        <Eyebrow className="text-primary">Thinkfy Club</Eyebrow>
         <h1 className="mt-3 text-2xl font-bold text-on-surface">Invitation not accepted</h1>
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">{message}</p>
       </section>

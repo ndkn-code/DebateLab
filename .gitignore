@@ -43,3 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local/generated artifacts — not versioned
+# (design-artifacts holds 100MB+ PNG masters; qa-artifacts + tmp are regenerated)
+/tmp/
+/qa-artifacts/
+/design-artifacts/

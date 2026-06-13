@@ -3,6 +3,7 @@ import type { LandingCopy, LandingLocale } from "./copy";
 import { landingHref } from "./links";
 import { LogoMark } from "./logo-mark";
 import { cn } from "@/lib/utils";
+import { Display, Eyebrow, Stat } from "@/components/ui/typography";
 
 interface LandingContentProps {
   copy: LandingCopy;
@@ -236,7 +237,7 @@ function SocialProof({
           <div
             key={avatar.label}
             className={cn(
-              "relative flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-white text-[10px] font-bold text-white shadow-sm",
+              "relative flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-white type-caption font-bold text-white shadow-sm",
               index > 0 && "-ml-2.5"
             )}
           >
@@ -291,13 +292,13 @@ export function LandingContent({
       <section className="px-6 pb-10 pt-4 md:px-8 md:pb-14">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
           <div className="order-2 w-full min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-[560px] lg:order-1">
-            <h1 className="mt-5 break-words text-[3rem] font-bold leading-[0.98] text-on-surface sm:text-[4rem] lg:mt-[4.25rem]">
+            <Display className="mt-5 break-words lg:mt-[4.25rem]">
               {copy.hero.line1}
               <br />
               <span className="text-primary">{copy.hero.line2}</span>
-            </h1>
+            </Display>
 
-            <p className="mt-7 w-full max-w-[320px] text-[1.05rem] leading-7 text-on-surface-variant sm:max-w-[500px] sm:text-[1.15rem] sm:leading-8">
+            <p className="mt-7 w-full max-w-[320px] type-body-lg text-on-surface-variant sm:max-w-[500px]">
               {copy.hero.description}
             </p>
 
@@ -353,9 +354,9 @@ export function LandingContent({
                   <StatIcon type={item.icon} />
                 </div>
                 <div>
-                  <p className="text-[2rem] font-bold tracking-[-0.03em] text-on-surface">
+                  <Stat as="p" size="heading-xl" className="text-on-surface">
                     {item.value}
-                  </p>
+                  </Stat>
                   <p className="text-sm text-on-surface-variant">{item.label}</p>
                 </div>
               </div>
@@ -367,12 +368,12 @@ export function LandingContent({
       <section id="features" className="px-6 py-10 md:px-8 md:py-14">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
+            <Eyebrow className="text-primary">
               {copy.features.eyebrow}
-            </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
+            </Eyebrow>
+            <Display size="sm" as="h2" className="mt-4">
               {copy.features.title}
-            </h2>
+            </Display>
           </div>
 
           <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -384,7 +385,7 @@ export function LandingContent({
                 <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-surface-container">
                   <FeatureIcon type={item.icon} />
                 </div>
-                <h3 className="mt-6 text-[1.55rem] font-semibold tracking-[-0.03em] text-on-surface">
+                <h3 className="mt-6 type-heading-lg font-semibold text-on-surface">
                   {item.title}
                 </h3>
                 <p className="mt-3 text-base leading-7 text-on-surface-variant">
@@ -399,12 +400,12 @@ export function LandingContent({
       <section id="how-it-works" className="px-6 py-18 md:px-8 md:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
+            <Eyebrow className="text-primary">
               {copy.steps.eyebrow}
-            </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
+            </Eyebrow>
+            <Display size="sm" as="h2" className="mt-4">
               {copy.steps.title}
-            </h2>
+            </Display>
           </div>
 
           <div className="relative mt-16 grid gap-12 lg:grid-cols-3 lg:gap-8">
@@ -418,7 +419,7 @@ export function LandingContent({
                 <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-outline-variant bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_100%)] shadow-token-card">
                   <StepIcon type={item.icon} />
                 </div>
-                <h3 className="mt-7 text-[1.6rem] font-semibold tracking-[-0.03em] text-on-surface">
+                <h3 className="mt-7 type-heading-lg font-semibold text-on-surface">
                   {item.title}
                 </h3>
                 <p className="mx-auto mt-3 max-w-[320px] text-base leading-7 text-on-surface-variant">
@@ -433,12 +434,12 @@ export function LandingContent({
       <section className="px-6 py-14 md:px-8 md:py-18">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-[760px] text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">
+            <Eyebrow className="text-primary">
               {copy.testimonials.eyebrow}
-            </p>
-            <h2 className="mt-4 text-[2.2rem] font-bold leading-[1.22] tracking-[-0.04em] text-on-surface sm:text-[3.2rem]">
+            </Eyebrow>
+            <Display size="sm" as="h2" className="mt-4">
               {copy.testimonials.title}
-            </h2>
+            </Display>
           </div>
 
           <div className="mt-16 grid gap-5 lg:grid-cols-3">
@@ -456,7 +457,7 @@ export function LandingContent({
                   ))}
                 </div>
 
-                <p className="mt-6 min-h-[136px] text-[1.02rem] leading-8 text-on-surface-variant">
+                <p className="mt-6 min-h-[136px] type-body text-on-surface-variant">
                   &ldquo;{item.quote}&rdquo;
                 </p>
 
@@ -487,10 +488,10 @@ export function LandingContent({
           <div className="overflow-hidden rounded-[34px] border border-outline-variant bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_100%)] px-8 py-10 shadow-token-card md:px-12 md:py-12">
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_476px]">
               <div className="max-w-[560px]">
-                <h2 className="text-[2.4rem] font-bold leading-[1.15] tracking-[-0.04em] text-on-surface sm:text-[3rem]">
+                <Display size="md" as="h2">
                   {copy.cta.title}
-                </h2>
-                <p className="mt-5 text-[1.05rem] leading-8 text-on-surface-variant">
+                </Display>
+                <p className="mt-5 type-body-lg text-on-surface-variant">
                   {copy.cta.description}
                 </p>
                 <div className="mt-8">
@@ -532,7 +533,7 @@ export function LandingContent({
               <LogoMark
                 size="md"
               />
-              <p className="mt-5 max-w-[300px] text-[0.98rem] leading-7 text-on-surface-variant">
+              <p className="mt-5 max-w-[300px] type-body text-on-surface-variant">
                 {copy.footer.brandDescription}
               </p>
               <div className="mt-6 flex items-center gap-3 text-on-surface-variant">
@@ -557,7 +558,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
+                    className="type-body text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -574,7 +575,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
+                    className="type-body text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -591,7 +592,7 @@ export function LandingContent({
                   <a
                     key={link.label}
                     href={landingHref(locale, link.href)}
-                    className="text-[0.98rem] text-on-surface-variant transition-colors hover:text-primary"
+                    className="type-body text-on-surface-variant transition-colors hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -603,7 +604,7 @@ export function LandingContent({
               <p className="text-sm font-bold text-on-surface">
                 {copy.footer.newsletter.title}
               </p>
-              <p className="mt-5 max-w-[260px] text-[0.98rem] leading-7 text-on-surface-variant">
+              <p className="mt-5 max-w-[260px] type-body text-on-surface-variant">
                 {copy.footer.newsletter.description}
               </p>
               <form className="mt-5 flex gap-3">

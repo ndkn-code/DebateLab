@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { ListChecks, PlayCircle } from "@/components/ui/icons";
+import { Eyebrow } from "@/components/ui/typography";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface VideoRendererProps {
@@ -69,9 +70,9 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[1.75rem] border border-outline-variant/15 bg-white p-5 shadow-token-card">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <Eyebrow className="font-semibold text-primary">
             {t("reader.video_why_matters")}
-          </p>
+          </Eyebrow>
           <p className="mt-3 text-sm leading-7 text-on-surface-variant">
             {content.description ??
               t("reader.video_why_matters_fallback")}
@@ -84,9 +85,9 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
               <ListChecks className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              <Eyebrow className="font-semibold text-primary">
                 {t("reader.video_watch_for")}
-              </p>
+              </Eyebrow>
               {notes.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {notes.map((note) => (

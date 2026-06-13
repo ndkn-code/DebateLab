@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Heading, Text } from "@/components/ui/typography";
 import { ArticleRenderer } from "@/components/courses/renderers/article-renderer";
 import { PracticeRenderer } from "@/components/courses/renderers/practice-renderer";
 import { QuizRenderer } from "@/components/courses/renderers/quiz-renderer";
@@ -139,12 +140,12 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     ) : null}
                   </div>
 
-                  <h1 className="mt-3 text-[2rem] font-semibold text-on-surface-variant sm:text-[2.25rem]">
+                  <Heading level={1} className="mt-3 font-semibold text-on-surface-variant">
                     {course.title}
-                  </h1>
-                  <p className="mt-3 max-w-3xl text-[15px] leading-8 text-on-surface-variant">
+                  </Heading>
+                  <Text className="mt-3 max-w-3xl leading-8 text-on-surface-variant">
                     {course.description || t("description_fallback")}
-                  </p>
+                  </Text>
 
                   <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
                     <span className="inline-flex items-center gap-2">
@@ -196,17 +197,21 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               <section className="mt-7 overflow-hidden rounded-[30px] border border-outline-variant bg-white shadow-token-card">
                 <div className="grid gap-8 border-b border-outline-variant p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_250px]">
                   <div className="min-w-0">
-                    <div className="inline-flex rounded-full bg-primary-container px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+                    <div className="type-eyebrow inline-flex rounded-full bg-primary-container px-3 py-1 font-semibold text-on-surface-variant">
                       {t("reader.lesson_kicker", {
                         lesson: currentItem?.lessonNumber ?? 1,
                       })}
                     </div>
-                    <h2 className="mt-4 text-[1.9rem] font-semibold text-on-surface-variant sm:text-[2.2rem]">
+                    <Heading
+                      level={1}
+                      as="h2"
+                      className="mt-4 font-semibold text-on-surface-variant"
+                    >
                       {selectedLesson.title}
-                    </h2>
-                    <p className="mt-3 max-w-3xl text-[15px] leading-8 text-on-surface-variant">
+                    </Heading>
+                    <Text className="mt-3 max-w-3xl leading-8 text-on-surface-variant">
                       {lessonSummary}
-                    </p>
+                    </Text>
 
                     <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
                       <span className="inline-flex items-center gap-2">
@@ -255,21 +260,21 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               </section>
             ) : (
               <div className="mt-7 rounded-[30px] border border-outline-variant bg-white p-8 shadow-token-card">
-                <h2 className="text-2xl font-semibold text-on-surface-variant">
+                <Heading level={2} className="font-semibold text-on-surface-variant">
                   {t("reader.empty_title")}
-                </h2>
-                <p className="mt-3 max-w-2xl text-[15px] leading-8 text-on-surface-variant">
+                </Heading>
+                <Text className="mt-3 max-w-2xl leading-8 text-on-surface-variant">
                   {t("reader.empty_state")}
-                </p>
+                </Text>
               </div>
             )}
           </div>
 
           <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
             <section className="rounded-[26px] border border-outline-variant bg-white p-5 shadow-token-card 2xl:mt-[118px]">
-              <p className="text-[1.45rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+              <Heading level={2} as="p" className="font-semibold text-on-surface-variant">
                 {course.isPreview ? t("reader.preview_title") : t("reader.whats_next")}
-              </p>
+              </Heading>
 
               {course.isPreview ? (
                 <>
@@ -315,9 +320,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                           total: course.lessonItems.length,
                         })}
                       </p>
-                      <h3 className="mt-1 text-[1.1rem] font-semibold leading-7 text-on-surface-variant">
+                      <Heading level={4} as="h3" className="mt-1 leading-7 text-on-surface-variant">
                         {course.nextLesson.title}
-                      </h3>
+                      </Heading>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {course.nextLesson.summary ?? course.nextLesson.moduleTitle}
                       </p>
@@ -357,9 +362,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
             </section>
 
             <section className="rounded-[26px] border border-outline-variant bg-white p-5 shadow-token-card">
-              <p className="text-xl font-semibold tracking-[-0.03em] text-on-surface-variant">
+              <Heading level={3} as="p" className="text-on-surface-variant">
                 {t("reader.lesson_outline")}
-              </p>
+              </Heading>
               <div className="mt-4 space-y-1.5">
                 {course.lessonItems.map((item) => (
                   <LessonOutlineItem key={item.id} item={item} />
@@ -373,9 +378,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[1.25rem] font-semibold tracking-[-0.03em] text-on-surface-variant">
+                  <Heading level={3} as="p" className="text-on-surface-variant">
                     {t("reader.need_help")}
-                  </p>
+                  </Heading>
                   <p className="mt-2 text-sm leading-7 text-on-surface-variant">
                     {t("reader.need_help_description")}
                   </p>
@@ -458,7 +463,7 @@ function LessonStepperItem({
       </span>
       <p
         className={cn(
-          "mt-1 w-[130px] text-[15px] leading-7",
+          "type-body mt-1 w-[130px] leading-7",
           item.current ? "font-semibold text-on-surface-variant" : "font-medium text-on-surface-variant"
         )}
       >

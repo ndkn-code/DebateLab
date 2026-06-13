@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Clock3, Star, Target } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { DashboardRecommendedDrill } from "@/lib/api/dashboard";
 import {
   getPlanCtaLabel,
@@ -39,7 +38,7 @@ function MetaChip({
   tone?: "default" | "gold";
 }) {
   return (
-    <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-outline-variant bg-surface px-3.5 text-[13px] font-bold text-on-surface shadow-token-card dark:border-outline-variant/70">
+    <span className="type-label inline-flex min-h-9 items-center gap-2 rounded-full border border-outline-variant bg-surface px-3.5 font-bold text-on-surface shadow-token-card dark:border-outline-variant/70">
       <span className={tone === "gold" ? "text-reward-dim" : "text-primary"}>{icon}</span>
       {label}
     </span>
@@ -47,10 +46,8 @@ function MetaChip({
 }
 
 export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) {
-  const locale = useLocale();
   const t = useTranslations("dashboard.home");
   const reduceMotion = useReducedMotion();
-  const isVietnamese = locale === "vi";
   const illustration = DRILL_ILLUSTRATIONS[drill.key] ?? DRILL_ILLUSTRATIONS["start-debate"];
 
   const targetLabel = drill.skillKey
@@ -74,24 +71,19 @@ export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) 
     >
       <div className="grid items-center gap-2 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6">
         <div className="relative z-10 min-w-0">
-          <span className="inline-flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.16em] text-primary">
+          <span className="type-eyebrow inline-flex items-center gap-2 text-primary">
             <Target className="h-4 w-4" />
             {t("daily_focus")}
           </span>
 
           <h1
             data-testid="dashboard-daily-focus-title"
-            className={cn(
-              "mt-3 max-w-[18ch] font-extrabold tracking-[-0.02em] text-on-surface",
-              isVietnamese
-                ? "text-[1.9rem] leading-[1.12] sm:text-[2.3rem]"
-                : "text-[2.1rem] leading-[1.05] sm:text-[2.6rem]"
-            )}
+            className="type-heading-xl mt-3 max-w-[18ch] font-extrabold text-on-surface"
           >
             {getPlanTitle(drill, t)}
           </h1>
 
-          <p className="mt-3 max-w-[46ch] text-[15px] leading-7 text-on-surface-variant">
+          <p className="type-body mt-3 max-w-[46ch] leading-7 text-on-surface-variant">
             {getPlanDescription(drill, t)}
           </p>
 

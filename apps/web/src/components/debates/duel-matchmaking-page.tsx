@@ -1,12 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useLocale } from "next-intl";
 import useSWR from "swr";
 import {
   ArrowLeft,
   ArrowRight,
+  Bot,
   Clock3,
   Loader2,
   Radar,
@@ -42,6 +50,7 @@ import {
   formatDifficulty,
   formatMinutes,
 } from "./duel-setup-flow";
+import { DuelIllustration } from "@/components/debates/duel-illustration";
 
 type TicketResponse = {
   ticket: DebateDuelMatchmakingTicket | null;
@@ -59,6 +68,11 @@ const languageLabels: Record<PracticeLanguage, string> = {
   en: "English",
   vi: "Vietnamese",
 };
+
+// Offer / auto-start an AI sparring partner after the queue runs this long with
+// no human match (queue tickets last 600s, so elapsed = 600 - remaining).
+const AI_BACKFILL_OFFER_SECONDS = 12;
+const AI_BACKFILL_AUTO_SECONDS = 35;
 
 async function fetchTicket(url: string) {
   const response = await fetch(url, { credentials: "include" });
@@ -144,6 +158,7 @@ export function DuelMatchmakingPage({
   const activeTicket = polledTicket ?? localTicket;
   const isSearching = activeTicket?.status === "queued";
   const isMatched = activeTicket?.status === "matched" && !!activeTicket.shareCode;
+  const queueElapsed = Math.max(0, 600 - queueRemaining);
 
   const previewTopic = useMemo(() => {
     return (
@@ -202,6 +217,59 @@ export function DuelMatchmakingPage({
     }, 900);
     return () => window.clearTimeout(timeout);
   }, [activeTicket?.shareCode, isMatched, router, showcaseMode]);
+
+  // AI backfill: no human within the wait window -> match against the AI debater.
+  const aiBackfillTriggeredRef = useRef(false);
+  const triggerAiBackfill = useCallback(() => {
+    if (showcaseMode || !previewTopic || aiBackfillTriggeredRef.current) return;
+    aiBackfillTriggeredRef.current = true;
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/debate-duels/matchmaking/ai-backfill", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topicCategory: previewTopic.category,
+            topicCategoryKey: effectiveTopicCategoryKey,
+            topicKey: previewTopic.topicKey,
+            topicTitle: previewTopic.title,
+            topicDescription: previewTopic.context ?? "",
+            topicDifficulty,
+            practiceLanguage,
+            prepTimeSeconds,
+            openingTimeSeconds,
+            rebuttalTimeSeconds,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload?.shareCode) {
+          aiBackfillTriggeredRef.current = false;
+          setActionError(payload?.error || "Could not start an AI duel.");
+          return;
+        }
+        router.replace(`/debates/${payload.shareCode}`);
+      } catch {
+        aiBackfillTriggeredRef.current = false;
+        setActionError("Could not start an AI duel.");
+      }
+    });
+  }, [
+    showcaseMode,
+    previewTopic,
+    effectiveTopicCategoryKey,
+    topicDifficulty,
+    practiceLanguage,
+    prepTimeSeconds,
+    openingTimeSeconds,
+    rebuttalTimeSeconds,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!showcaseMode && isSearching && queueElapsed >= AI_BACKFILL_AUTO_SECONDS) {
+      triggerAiBackfill();
+    }
+  }, [showcaseMode, isSearching, queueElapsed, triggerAiBackfill]);
 
   const enterQueue = () => {
     setActionError(null);
@@ -335,7 +403,7 @@ export function DuelMatchmakingPage({
               <div className="min-h-[560px] rounded-[28px] border border-outline-variant/12 bg-surface-container-low p-6">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-center">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 type-eyebrow text-primary">
                       <Sparkles className="h-3.5 w-3.5" />
                       {isMatched ? "Match found" : "Searching"}
                     </div>
@@ -351,13 +419,17 @@ export function DuelMatchmakingPage({
                     </p>
                   </div>
                   <div className="rounded-[26px] border border-outline-variant/12 bg-surface p-5 text-center">
-                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      {isMatched ? (
+                    {isMatched ? (
+                      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Users className="h-11 w-11" />
-                      ) : (
-                        <Loader2 className="h-11 w-11 animate-spin" />
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <DuelIllustration
+                        name="thinkfy_duel_matchmaking_v1"
+                        alt="Searching for an opponent"
+                        className="mx-auto h-28 w-28"
+                      />
+                    )}
                     <div className="mt-4 text-3xl font-bold text-on-surface">
                       {isMatched ? "Ready" : formatQueueTimer(queueRemaining)}
                     </div>
@@ -381,7 +453,7 @@ export function DuelMatchmakingPage({
                       key={label}
                       className="rounded-[22px] border border-outline-variant/12 bg-surface px-4 py-4"
                     >
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
+                      <div className="type-eyebrow text-on-surface-variant">
                         {label}
                       </div>
                       <div className="mt-2 text-sm font-semibold text-on-surface">
@@ -416,6 +488,18 @@ export function DuelMatchmakingPage({
                     {!isMatched && <Loader2 className="h-4 w-4 animate-spin" />}
                   </Button>
                 </div>
+
+                {isSearching && queueElapsed >= AI_BACKFILL_OFFER_SECONDS && (
+                  <button
+                    type="button"
+                    onClick={triggerAiBackfill}
+                    disabled={pending}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-60"
+                  >
+                    <Bot className="h-4 w-4" />
+                    No humans yet — practice against an AI sparring partner
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-8">

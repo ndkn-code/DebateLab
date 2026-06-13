@@ -10,6 +10,7 @@ import {
   PenTool,
 } from "@/components/ui/icons";
 import { MarkdownRenderer } from "@/components/shared/markdown-renderer";
+import { Heading } from "@/components/ui/typography";
 import type { LessonWithContext } from "@/lib/api/courses";
 
 interface ArticleRendererProps {
@@ -54,9 +55,9 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
             <Lightbulb className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
+            <Heading level={4} as="p" className="text-on-surface-variant">
               {t("reader.article_key_idea")}
-            </p>
+            </Heading>
             <p className="mt-2 text-sm leading-7 text-on-surface-variant">
               {summary || t("reader.article_summary_fallback")}
             </p>
@@ -70,9 +71,9 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
             <MessageCircle className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
+            <Heading level={4} as="p" className="text-on-surface-variant">
               {t("reader.article_example")}
-            </p>
+            </Heading>
             <div className="mt-2 space-y-1.5 text-sm leading-7 text-on-surface-variant">
               {exampleRows.map((row) => (
                 <p key={`${row.label}-${row.text}`}>
@@ -107,9 +108,9 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
               <PenTool className="h-5 w-5" />
             </div>
-            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
+            <Heading level={4} as="p" className="text-on-surface-variant">
               {t("reader.article_try_this")}
-            </p>
+            </Heading>
           </div>
           <ChevronDown className="h-4 w-4 text-on-surface-variant transition-transform group-open:rotate-180" />
         </summary>
@@ -121,9 +122,9 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
       <details className="group overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
           <div>
-            <p className="text-[1.05rem] font-semibold text-on-surface-variant">
+            <Heading level={4} as="p" className="text-on-surface-variant">
               {t("reader.article_full_notes")}
-            </p>
+            </Heading>
             <p className="mt-1 text-sm leading-7 text-on-surface-variant">
               {t("reader.article_full_notes_description")}
             </p>

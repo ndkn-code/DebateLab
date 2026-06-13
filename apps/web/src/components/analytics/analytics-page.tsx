@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LottieAnimation } from "@/components/ui/lottie-animation";
 import { Progress } from "@/components/ui/progress";
+import { Heading, Stat, Text } from "@/components/ui/typography";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
   PageContainer,
@@ -432,7 +433,7 @@ function MiniBarChart({
               }}
             />
             {labels[index] ? (
-              <div className="mt-2 text-center text-[11px] font-medium text-on-surface-variant/90">
+              <div className="mt-2 text-center type-caption text-on-surface-variant/90">
                 {labels[index]}
               </div>
             ) : null}
@@ -509,7 +510,7 @@ function MiniLineChart({
               <text
                 x="3"
                 y={y + 3}
-                className="fill-primary text-[8.6px] font-medium"
+                className="fill-primary type-caption"
               >
                 {tick}
               </text>
@@ -579,7 +580,7 @@ function MiniLineChart({
                   x={tooltipX + 24}
                   y={tooltipY + 14.5}
                   textAnchor="middle"
-                  className="fill-white text-[9px] font-semibold"
+                  className="fill-white type-caption font-semibold"
                 >
                   {point.value}/100
                 </text>
@@ -628,9 +629,9 @@ function DonutRing({
         />
       </svg>
       <div className="absolute text-center">
-        <div className="text-[1.5rem] font-semibold leading-none text-on-surface">
+        <Stat size="heading-lg" as="div" className="font-semibold text-on-surface">
           {clamped}%
-        </div>
+        </Stat>
         <div className="mt-0.5 text-xs text-on-surface-variant">{label}</div>
       </div>
     </div>
@@ -722,12 +723,12 @@ function HeroStat({
         {icon}
       </div>
       <div className="min-w-0">
-        <div className="whitespace-nowrap text-[1.35rem] font-semibold leading-none text-on-surface">
+        <Stat size="heading-md" as="div" className="whitespace-nowrap text-on-surface">
           {value}
-        </div>
-        <div className="mt-1 whitespace-nowrap text-[0.9rem] leading-tight text-on-surface-variant">
+        </Stat>
+        <Text variant="body-sm" as="div" className="mt-1 whitespace-nowrap text-on-surface-variant">
           {label}
-        </div>
+        </Text>
       </div>
     </div>
   );
@@ -747,9 +748,9 @@ function AnalyticsSkillSnapshotCard({
     <section className="min-w-0 overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-token-card lg:p-6 lg:pb-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-on-surface">
+          <Heading level={4} as="h2">
             {t("skill_snapshot_title")}
-          </h2>
+          </Heading>
         </div>
         <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           {t("confidence", { count: confidence })}
@@ -758,10 +759,10 @@ function AnalyticsSkillSnapshotCard({
 
       {sourceSessions === 0 ? (
         <div className="mt-5 flex h-[250px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-5 text-center">
-          <p className="text-sm font-medium text-on-surface">{t("empty_title")}</p>
-          <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+          <Text variant="body-sm" className="font-medium text-on-surface">{t("empty_title")}</Text>
+          <Text variant="body-sm" className="mt-2 max-w-md text-on-surface-variant">
             {t("empty_body")}
-          </p>
+          </Text>
         </div>
       ) : (
         <div className="mt-4 grid min-w-0 gap-5 xl:grid-cols-[minmax(300px,1.08fr)_minmax(270px,0.92fr)]">
@@ -827,7 +828,7 @@ function AnalyticsSkillSnapshotCard({
                     x={position.x}
                     y={position.y}
                     textAnchor={position.textAnchor}
-                    className="fill-primary text-[13.5px] font-medium"
+                    className="fill-primary type-body-sm font-medium"
                   >
                     {t(`skills.${metric.key}`)}
                   </text>
@@ -848,14 +849,14 @@ function AnalyticsSkillSnapshotCard({
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: SKILL_UI_META[metric.key].accentHex }}
                     />
-                    <span className="text-[0.97rem] font-medium text-on-surface">
+                    <span className="type-body font-medium text-on-surface">
                       {t(`skills.${metric.key}`)}
                     </span>
                   </div>
                   <p className="shrink-0 text-right">
-                    <span className="text-[1.06rem] font-semibold text-on-surface">
+                    <Stat size="title" className="text-on-surface">
                       {metric.coverage > 0 ? Math.round(metric.value) : "—"}
-                    </span>
+                    </Stat>
                     {metric.coverage > 0 ? (
                       <span className="ml-1 text-sm text-on-surface-variant">/100</span>
                     ) : null}
@@ -871,9 +872,9 @@ function AnalyticsSkillSnapshotCard({
                 </span>
                 <p className="inline-flex shrink-0 items-center gap-1.5 text-right">
                   <Star className="h-4.5 w-4.5 fill-primary text-primary" />
-                  <span className="text-[1.35rem] font-semibold leading-none text-primary">
+                  <Stat size="heading-md" className="text-primary">
                     {overallScore != null ? Math.round(overallScore) : "—"}
-                  </span>
+                  </Stat>
                   <span className="ml-1 text-sm text-on-surface-variant">/100</span>
                 </p>
               </div>
@@ -882,7 +883,7 @@ function AnalyticsSkillSnapshotCard({
 
           <div className="flex items-center gap-3 rounded-[1.15rem] bg-surface-container-low px-4 py-3 xl:col-span-2 xl:-mt-4">
             <Star className="h-4.5 w-4.5 shrink-0 fill-primary text-primary" />
-            <p className="min-w-0 text-sm leading-5 text-on-surface-variant">{note}</p>
+            <Text variant="body-sm" className="min-w-0 text-on-surface-variant">{note}</Text>
           </div>
         </div>
       )}
@@ -922,7 +923,7 @@ function RecentSessionCard({
       </div>
 
       <div className="min-w-0">
-        <h3 className="line-clamp-1 text-base font-semibold leading-6 text-on-surface">
+        <h3 className="line-clamp-1 type-body font-semibold text-on-surface">
           {session.topicTitle}
         </h3>
         <div className="mt-2 flex flex-wrap items-center gap-2.5">
@@ -1096,17 +1097,17 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   {data.hero.avatarUrl ? (
                     <AvatarImage src={data.hero.avatarUrl} alt={data.hero.displayName} />
                   ) : null}
-                  <AvatarFallback className="bg-[linear-gradient(180deg,#E5F8FC_0%,#DCEAFF_100%)] text-[1.75rem] font-semibold text-primary">
+                  <AvatarFallback className="bg-[linear-gradient(180deg,#E5F8FC_0%,#DCEAFF_100%)] type-heading-lg font-semibold text-primary">
                     {getInitials(data.hero.displayName)}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="mt-5 min-w-0 md:mt-0">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-[1.75rem] font-semibold leading-tight text-on-surface md:text-[2rem]">
+                    <Heading level={1} as="h2" className="font-semibold">
                       {data.hero.displayName}
-                    </h2>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-[0.95rem] font-medium text-primary">
+                    </Heading>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 type-body font-medium text-primary">
                       {data.hero.title ?? t("default_title")}
                     </span>
                   </div>
@@ -1117,9 +1118,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                     <span>{t("xp_total", { count: data.hero.xp })}</span>
                   </div>
 
-                  <p className="mt-4 max-w-[42rem] break-words text-base leading-7 text-on-surface-variant">
+                  <Text variant="body" className="mt-4 max-w-[42rem] break-words text-on-surface-variant">
                     {data.hero.statusLine}
-                  </p>
+                  </Text>
 
                   <div className="mt-6">
                     <div className="mb-2 flex items-center justify-between text-sm">
@@ -1172,7 +1173,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
           <div className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4">
             <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
-                <h3 className="text-[0.98rem] font-semibold text-on-surface">
+                <h3 className="type-body font-semibold text-on-surface">
                   {t("cards.practice_minutes.title")}
                 </h3>
               </div>
@@ -1182,9 +1183,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
               <div className="mt-5 flex flex-1 items-end justify-between gap-5">
                 <div className="min-w-0 flex-1 self-start">
                   <div className="flex items-end gap-2">
-                    <div className="text-4xl font-semibold text-on-surface">
+                    <Stat size="heading-xl" as="div" className="text-on-surface">
                       {practiceMinutesDisplay.totalMinutes}
-                    </div>
+                    </Stat>
                     <div className="pb-1 text-sm text-on-surface-variant">
                       {t("cards.practice_minutes.unit")}
                     </div>
@@ -1219,7 +1220,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
 
             <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
-                <h3 className="text-[0.98rem] font-semibold text-on-surface">
+                <h3 className="type-body font-semibold text-on-surface">
                   {t("cards.mix.title")}
                 </h3>
               </div>
@@ -1260,7 +1261,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
 
             <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
-                <h3 className="text-[0.98rem] font-semibold text-on-surface">
+                <h3 className="type-body font-semibold text-on-surface">
                   {t("cards.average_score.title")}
                 </h3>
               </div>
@@ -1268,11 +1269,11 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                 {t("cards.average_score.scope")}
               </p>
               <div className="mt-4 flex items-end gap-2">
-                <div className="text-4xl font-semibold text-on-surface">
+                <Stat size="heading-xl" as="div" className="text-on-surface">
                   {averageScoreDisplay.averageScore != null
                     ? Math.round(averageScoreDisplay.averageScore)
                     : "—"}
-                </div>
+                </Stat>
                 <div className="pb-1 text-sm text-on-surface-variant">/100</div>
               </div>
               <p
@@ -1301,7 +1302,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
 
             <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
               <div className="flex items-center justify-between">
-                <h3 className="text-[0.98rem] font-semibold text-on-surface">
+                <h3 className="type-body font-semibold text-on-surface">
                   {t("cards.strongest_focus.title")}
                 </h3>
               </div>
@@ -1319,7 +1320,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                         <div className="text-sm text-on-surface-variant">
                           {t("cards.strongest_focus.strongest")}
                         </div>
-                        <div className="mt-0.5 truncate text-[1.05rem] font-semibold text-on-surface">
+                        <div className="mt-0.5 truncate type-title text-on-surface">
                           {strongestFocusCard.strongestSkill
                             ? t(`skills.${strongestFocusCard.strongestSkill}`)
                             : t("empty_title")}
@@ -1327,9 +1328,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                       </div>
                     </div>
                     <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
-                      <span className="text-2xl font-semibold leading-none">
+                      <Stat size="heading-lg" className="font-semibold">
                         {strongestFocusCard.strongestScore ?? "—"}
-                      </span>
+                      </Stat>
                       {strongestFocusCard.strongestScore != null ? (
                         <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
                           /100
@@ -1348,7 +1349,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                         <div className="text-sm text-on-surface-variant">
                           {t("cards.strongest_focus.focus_next")}
                         </div>
-                        <div className="mt-0.5 truncate text-[1.05rem] font-semibold text-on-surface">
+                        <div className="mt-0.5 truncate type-title text-on-surface">
                           {strongestFocusCard.focusSkill
                             ? t(`skills.${strongestFocusCard.focusSkill}`)
                             : t("empty_title")}
@@ -1356,9 +1357,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                       </div>
                     </div>
                     <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
-                      <span className="text-2xl font-semibold leading-none">
+                      <Stat size="heading-lg" className="font-semibold">
                         {strongestFocusCard.focusScore ?? "—"}
-                      </span>
+                      </Stat>
                       {strongestFocusCard.focusScore != null ? (
                         <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
                           /100
@@ -1374,9 +1375,9 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
           <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-on-surface">
+                <Heading level={4} as="h3">
                   {t("recent_sessions_title")}
-                </h3>
+                </Heading>
               </div>
               <Link href="/profile?tab=activities" className="text-sm font-medium text-primary hover:underline">
                 {t("view_all")}
@@ -1399,12 +1400,12 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <CheckCircle2 className="h-6 w-6" />
                   </div>
-                  <h4 className="mt-4 text-xl font-semibold text-on-surface">
+                  <h4 className="mt-4 type-heading-md text-on-surface">
                     {t("empty_title")}
                   </h4>
-                  <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-on-surface-variant">
+                  <Text variant="body-sm" className="mx-auto mt-2 max-w-xl text-on-surface-variant">
                     {t("empty_body")}
-                  </p>
+                  </Text>
                   <Link href="/practice" className="mt-5 inline-flex">
                     <Button className="h-11 rounded-2xl px-5">
                       {t("start_practicing")}

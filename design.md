@@ -147,6 +147,57 @@ Use for:
 - inactive controls
 - unavailable states
 
+## Typography
+
+Typography is tokenized the same way color is: a fixed set of families and a semantic
+scale, applied through utilities and primitives — never ad-hoc `text-[…]`/`tracking-[…]`.
+
+### Font families
+All four are open-source and cover Vietnamese (including stacked tone + dot-below marks
+like `Ậ Ự Ợ Ệ Ộ`). We do **not** use Apple's SF fonts — they are licensed for Apple
+platforms only.
+
+- **Display — Nunito.** Rounded, friendly headline face for marketing/brand moments (the Duolingo "characterful display" role).
+- **Body / UI — Be Vietnam Pro.** Clean neo-grotesque designed by Vietnamese designers; the global default and the workhorse for all product UI.
+- **Serif — Noto Serif.** Editorial/long-form reading (transcripts). Chosen over Lora, which has a Google Fonts bug that breaks Vietnamese dot-below stacks.
+- **Mono — Geist Mono.** Codes, transcripts, timestamps, ids.
+
+Loaded once via `next/font` in `apps/web/src/app/layout.tsx` (`--font-nunito`,
+`--font-be-vietnam`, `--font-noto-serif`, `--font-geist-mono`) and mapped to
+`--font-display/sans/serif/mono` in `globals.css`.
+
+### Scale
+Defined as Tailwind v4 `@utility type-*` rules in `apps/web/src/app/globals.css`
+(documented in `packages/shared` as `thinkfyTypography`). Each step bundles
+family + size + line-height + weight + tracking. Color is intentionally separate —
+compose with the color tokens (e.g. `type-heading-lg text-on-surface`).
+
+| Step | Family | Size | Weight | Use |
+|---|---|---|---|---|
+| `type-display-xl/lg/md/sm` | Nunito | fluid (clamp) → 72 / 56 / 44 / 36 max | 800/700 | hero & marketing headlines |
+| `type-heading-xl` | Be Vietnam Pro | 30 | 700 | page title (h1) |
+| `type-heading-lg` | Be Vietnam Pro | 24 | 700 | section (h2) |
+| `type-heading-md` | Be Vietnam Pro | 20 | 600 | sub-section (h3) |
+| `type-title` | Be Vietnam Pro | 17 | 600 | card title (h4) |
+| `type-body-lg` / `type-body` / `type-body-sm` | Be Vietnam Pro | 18 / 16 / 14 | 400 | lead / paragraphs / dense copy |
+| `type-caption` | Be Vietnam Pro | 12 | 500 | meta, helper text |
+| `type-label` | Be Vietnam Pro | 13 | 600 | form labels |
+| `type-eyebrow` | Be Vietnam Pro | 12 | 700 | uppercase kicker |
+| `type-code` | Geist Mono | 14 | 400 | codes, timestamps |
+| `type-prose` | Noto Serif | 16 | 400 | transcripts, long-form |
+
+### Primitives
+`apps/web/src/components/ui/typography.tsx` — `<Display>`, `<Heading level={1..4}>`,
+`<Eyebrow>`, `<Text variant>`, `<Stat>`, `<Code>`. Prefer a **primitive** for semantic
+elements (headings, eyebrows, stat numbers, code, prose); use a bare **`type-*` utility**
+for inline/leaf nodes where a component is overkill. All accept `className` (merged via
+`cn()`) and an `as` element override.
+
+### Rule
+No arbitrary `text-[…]`, `tracking-[…]`, `leading-[…]`, `font-[…]`, or hardcoded
+`font-family` in app code (emails are exempt — they need web-safe fonts). Enforced by the
+typography pass in `scripts/design-system-audit.ts`, mirroring the color guard.
+
 ## Component Guidance
 
 ## Icon System
