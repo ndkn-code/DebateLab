@@ -151,7 +151,6 @@ export function ReferralCreditsDialog({
                 sizes="190px"
                 className="object-contain"
                 priority
-                unoptimized
                 aria-hidden="true"
                 onError={() => setIllustrationMissing(true)}
               />
