@@ -29,6 +29,10 @@ import type {
   SmartPopupSurface,
   SmartPopupUserTraits,
 } from "@/lib/smart-popups/types";
+import {
+  computeEffectiveStreakState,
+  type StreakActivityEvent,
+} from "@/lib/streaks/model";
 import type { DebateScore } from "@/types/feedback";
 
 const DEFAULT_SURFACE: SmartPopupSurface = "dashboard";
@@ -43,6 +47,7 @@ type ProfileRow = {
   onboarding_completed?: boolean | null;
   total_sessions_completed?: number | null;
   streak_current?: number | null;
+  streak_last_active_date?: string | null;
   preferences?: unknown;
 };
 
@@ -324,14 +329,15 @@ async function fetchUserState(supabase: SupabaseClient, userId: string) {
 async function fetchUserTraits(
   supabase: SupabaseClient,
   userId: string,
-  now: Date
+  now: Date,
+  timezone?: string | null
 ): Promise<SmartPopupUserTraits> {
-  const [profileRes, sessionsRes, enrollmentsRes, analyticsRes] =
+  const [profileRes, sessionsRes, enrollmentsRes, analyticsRes, activityRes] =
     await Promise.all([
       supabase
         .from("profiles")
         .select(
-          "id, role, created_at, onboarding_completed, total_sessions_completed, streak_current, preferences"
+          "id, role, created_at, onboarding_completed, total_sessions_completed, streak_current, streak_last_active_date, preferences"
         )
         .eq("id", userId)
         .single(),
@@ -353,12 +359,19 @@ async function fetchUserTraits(
         .eq("user_id", userId)
         .order("occurred_at", { ascending: false })
         .limit(100),
+      supabase
+        .from("activity_log")
+        .select("activity_type, reference_type, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
 
   if (profileRes.error) throw new Error(profileRes.error.message);
   if (sessionsRes.error) throw new Error(sessionsRes.error.message);
   if (enrollmentsRes.error) throw new Error(enrollmentsRes.error.message);
   if (analyticsRes.error) throw new Error(analyticsRes.error.message);
+  if (activityRes.error) throw new Error(activityRes.error.message);
 
   const profile = profileRes.data as ProfileRow;
   const sessions = ((sessionsRes.data ?? []) as SessionRow[]).map((session) => ({
@@ -369,6 +382,12 @@ async function fetchUserTraits(
   }));
   const enrollments = (enrollmentsRes.data ?? []) as EnrollmentRow[];
   const analyticsEvents = (analyticsRes.data ?? []) as AnalyticsRow[];
+  const streakState = computeEffectiveStreakState({
+    profile,
+    activities: (activityRes.data ?? []) as StreakActivityEvent[],
+    timezone,
+    now,
+  });
   const preferences = isRecord(profile.preferences) ? profile.preferences : {};
   const snapshot = computeSkillSnapshot(sessions);
   const lastPracticeAt = sessions[0]?.created_at ?? null;
@@ -412,7 +431,7 @@ async function fetchUserTraits(
     totalSessionsCompleted,
     daysSinceSignup: getDaysBetween(profile.created_at, now) ?? 0,
     daysSinceLastPractice: getDaysBetween(lastPracticeAt, now),
-    currentStreak: asNumber(profile.streak_current, 0),
+    currentStreak: streakState.current,
     courseProgressCount: getCourseProgressCount(enrollments),
     coachEventCount: getCoachEventCount(analyticsEvents),
     weakestSkill: snapshot.weakestSkill,
@@ -688,6 +707,7 @@ export async function getNextSmartPopup(input: {
   surface?: string | null;
   route?: string | null;
   commit?: boolean;
+  timezone?: string | null;
   now?: Date;
 }): Promise<{ popup: SmartPopupPayload | null; segment: SmartPopupSegment | null }> {
   if (!isSmartPopupEnabled()) {
@@ -700,7 +720,7 @@ export async function getNextSmartPopup(input: {
   const [campaigns, userState, traits, popupEvents] = await Promise.all([
     fetchCampaigns(input.supabase, surface),
     fetchUserState(input.supabase, input.userId),
-    fetchUserTraits(input.supabase, input.userId, now),
+    fetchUserTraits(input.supabase, input.userId, now, input.timezone),
     fetchPopupEvents(input.supabase, input.userId, now),
   ]);
   const campaignState = normalizeCampaignState(userState?.campaign_state);

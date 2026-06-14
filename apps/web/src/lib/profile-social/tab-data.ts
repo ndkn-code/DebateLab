@@ -16,6 +16,10 @@ import {
   type ProfileActivityFeedData,
   type ProfileAnalyticsTabData,
 } from "@/lib/profile-social/tab-model";
+import {
+  computeEffectiveStreakState,
+  type StreakActivityEvent,
+} from "@/lib/streaks/model";
 import type { AnalyticsRangePreset, PracticeLanguage } from "@/types";
 
 type RpcResult = {
@@ -497,11 +501,11 @@ async function getSelfFallbackAchievementsData(
   userId: string
 ): Promise<ProfileAchievementsData> {
   const client = queryClient(supabase);
-  const [profileRes, achievementsRes, unlockedRes, scoresRes, coursesRes] =
+  const [profileRes, achievementsRes, unlockedRes, scoresRes, coursesRes, activityRes] =
     await Promise.all([
       client
         .from("profiles")
-        .select("total_sessions_completed, streak_current, streak_longest, total_practice_minutes, level")
+        .select("total_sessions_completed, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, level")
         .eq("id", userId)
         .single(),
       client.from("achievements").select("*").order("sort_order"),
@@ -519,6 +523,12 @@ async function getSelfFallbackAchievementsData(
         .select("id")
         .eq("user_id", userId)
         .eq("status", "completed"),
+      client
+        .from("activity_log")
+        .select("activity_type, reference_type, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
 
   const profile = (profileRes.data ?? {}) as Record<string, unknown>;
@@ -532,6 +542,10 @@ async function getSelfFallbackAchievementsData(
     .map((row) => (typeof row.total_score === "number" ? row.total_score : 0));
   const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
   const completedCourses = Array.isArray(coursesRes.data) ? coursesRes.data.length : 0;
+  const effectiveStreak = computeEffectiveStreakState({
+    profile,
+    activities: (activityRes.data ?? []) as StreakActivityEvent[],
+  });
 
   function progressValue(conditionType: string) {
     if (conditionType === "score_above") return maxScore;
@@ -543,7 +557,7 @@ async function getSelfFallbackAchievementsData(
     }
     if (conditionType === "streak_days") {
       return Math.max(
-        typeof profile.streak_current === "number" ? profile.streak_current : 0,
+        effectiveStreak.current,
         typeof profile.streak_longest === "number" ? profile.streak_longest : 0
       );
     }

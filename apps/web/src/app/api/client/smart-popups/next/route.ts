@@ -82,6 +82,10 @@ export async function GET(request: NextRequest) {
       locale: searchParams.get("locale"),
       surface: searchParams.get("surface"),
       route: searchParams.get("route"),
+      timezone:
+        searchParams.get("timezone") ??
+        request.cookies.get("thinkfy_timezone")?.value ??
+        null,
       commit: false,
     });
 
@@ -107,6 +111,7 @@ export async function POST(request: NextRequest) {
   let locale: string | null = null;
   let surface: string | null = null;
   let route: string | null = null;
+  let timezone: string | null = null;
   try {
     const auth = await requireRequestAuth(request, { allowDevBypass: false });
 
@@ -122,6 +127,10 @@ export async function POST(request: NextRequest) {
     locale = getString(body, "locale", { maxLength: 8 }) ?? null;
     surface = getString(body, "surface", { maxLength: 32 }) ?? null;
     route = getString(body, "route", { maxLength: 500 }) ?? null;
+    timezone =
+      getString(body, "timezone", { maxLength: 100 }) ??
+      request.cookies.get("thinkfy_timezone")?.value ??
+      null;
     const admin = createAdminClient();
     const result = await getNextSmartPopup({
       supabase: admin,
@@ -129,6 +138,7 @@ export async function POST(request: NextRequest) {
       locale,
       surface,
       route,
+      timezone,
       commit: true,
     });
 

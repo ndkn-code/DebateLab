@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   DASHBOARD_SKILL_ORDER,
@@ -10,6 +11,7 @@ import {
 import type { DebateScore, PracticeTrack } from "@/types/feedback";
 
 import { buildWeeklyGoalSummary, selectDashboardImprovementSkill } from "./dashboard";
+import { computeEffectiveStreakState, dateKeyInTimezone } from "@/lib/streaks/model";
 
 function stat(minutes: number): DailyStatEntry {
   return {
@@ -257,6 +259,65 @@ function daysAgo(days: number) {
   assert.equal(behindGoal?.key, "logic");
   assert.equal(metGoal?.key, "logic");
   assert.ok((behindGoal?.score ?? 0) > (metGoal?.score ?? 0));
+}
+
+{
+  const stale = computeEffectiveStreakState({
+    profile: {
+      streak_current: 2,
+      streak_last_active_date: "2026-05-26",
+    },
+    activities: [],
+    timezone: "America/New_York",
+    now: new Date("2026-06-13T18:00:00.000Z"),
+  });
+
+  assert.equal(stale.current, 0);
+}
+
+{
+  const active = computeEffectiveStreakState({
+    profile: {
+      streak_current: 2,
+      streak_last_active_date: "2026-06-12",
+    },
+    activities: [
+      {
+        activity_type: "debate_completed",
+        reference_type: "debate_session",
+        created_at: "2026-06-11T14:00:00.000Z",
+      },
+      {
+        activity_type: "duel_completed",
+        reference_type: "debate_duel",
+        created_at: "2026-06-12T14:00:00.000Z",
+      },
+    ],
+    timezone: "America/New_York",
+    now: new Date("2026-06-13T18:00:00.000Z"),
+  });
+
+  assert.equal(active.current, 2);
+  assert.equal(active.atRiskToday, true);
+}
+
+{
+  const timestamp = "2026-06-13T03:30:00.000Z";
+  assert.equal(dateKeyInTimezone(timestamp, "America/New_York"), "2026-06-12");
+  assert.equal(dateKeyInTimezone(timestamp, "Asia/Ho_Chi_Minh"), "2026-06-13");
+}
+
+{
+  const mobileRoute = readFileSync("src/app/api/mobile/dashboard/route.ts", "utf8");
+  const mobileTodayScreen = readFileSync(
+    "../../apps/mobile/src/screens/today-screen.tsx",
+    "utf8"
+  );
+
+  assert.match(mobileRoute, /searchParams\.get\("timezone"\)/);
+  assert.match(mobileRoute, /getDashboardData\(auth\.user\.id, auth\.supabase, \{ timezone \}\)/);
+  assert.match(mobileTodayScreen, /resolvedOptions\(\)\.timeZone/);
+  assert.match(mobileTodayScreen, /\/api\/mobile\/dashboard\?timezone=/);
 }
 
 assert.deepEqual(DASHBOARD_SKILL_ORDER, [

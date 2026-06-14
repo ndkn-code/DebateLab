@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
@@ -12,7 +13,7 @@ export const metadata = {
 };
 
 async function DashboardPayload() {
-  const supabase = await createClient();
+  const [supabase, cookieStore] = await Promise.all([createClient(), cookies()]);
 
   const {
     data: { user },
@@ -26,7 +27,8 @@ async function DashboardPayload() {
   }
 
   const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
-  const data = await getDashboardData(activeUserId);
+  const timezone = cookieStore.get("thinkfy_timezone")?.value;
+  const data = await getDashboardData(activeUserId, supabase, { timezone });
 
   // Get preferences for welcome banner check
   const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);

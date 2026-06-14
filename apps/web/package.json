@@ -32,7 +32,7 @@
     "test:smart-popups": "tsx src/lib/smart-popups/rules.test.ts",
     "test:smart-popup-admin": "tsx src/lib/smart-popups/admin.test.ts",
     "test:smart-popup-surveys": "tsx src/lib/smart-popups/survey.test.ts",
-    "test:dashboard": "tsx src/lib/api/dashboard.test.ts",
+    "test:dashboard": "tsx src/lib/streaks/model.test.ts && tsx src/lib/api/dashboard.test.ts",
     "test:skill-snapshot": "tsx src/lib/analytics/skill-snapshot.test.ts",
     "test:xp": "tsx src/lib/xp/model.test.ts",
     "test:leaderboards": "tsx src/lib/leaderboards/model.test.ts && tsx src/lib/organizations/model.test.ts",

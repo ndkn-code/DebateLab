@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   const auth = await requireRequestAuth(request);
   if (!auth.ok) return auth.errorResponse;
 
-  const data = await getDashboardData(auth.user.id, auth.supabase);
+  const timezone = request.nextUrl.searchParams.get("timezone");
+  const data = await getDashboardData(auth.user.id, auth.supabase, { timezone });
 
   return NextResponse.json({
     ok: true,

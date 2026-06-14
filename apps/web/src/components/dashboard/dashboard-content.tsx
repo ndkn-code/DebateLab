@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PageTransition } from "@/components/shared/page-motion";
 import {
@@ -18,6 +19,9 @@ import {
 } from "@/components/dashboard/activity-cards";
 import type { DashboardHomeData } from "@/lib/api/dashboard";
 import { getTimeGreetingKey } from "./plan-copy";
+
+const DASHBOARD_TIMEZONE_COOKIE = "thinkfy_timezone";
+const DASHBOARD_TIMEZONE_MAX_AGE = 60 * 60 * 24 * 365;
 
 interface DashboardContentProps {
   data: DashboardHomeData;
@@ -41,6 +45,25 @@ function useDashboardScrollLock() {
   }, []);
 }
 
+function useDashboardTimezoneCookie() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!timezone) return;
+
+    const encodedTimezone = encodeURIComponent(timezone);
+    const hasCookie = document.cookie
+      .split("; ")
+      .some((entry) => entry === `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}`);
+
+    if (hasCookie) return;
+
+    document.cookie = `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}; Max-Age=${DASHBOARD_TIMEZONE_MAX_AGE}; Path=/; SameSite=Lax`;
+    router.refresh();
+  }, [router]);
+}
+
 export function DashboardContent({
   data,
   displayName,
@@ -48,6 +71,7 @@ export function DashboardContent({
   showWelcome,
 }: DashboardContentProps) {
   useDashboardScrollLock();
+  useDashboardTimezoneCookie();
 
   const t = useTranslations("dashboard.home");
   const checkpoint =

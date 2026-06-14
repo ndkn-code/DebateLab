@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  computeEffectiveStreakState,
+  type StreakActivityEvent,
+} from "@/lib/streaks/model";
 import type { Profile } from "@/types/database";
 
 interface AchievementRow {
@@ -63,7 +67,7 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(30),
+        .limit(500),
     ]);
 
   const unlockedMap = new Map<string, string>();
@@ -113,8 +117,19 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
     total_sessions: 0,
   };
 
+  const profile = (profileRes.data as Profile) ?? null;
+  const effectiveStreak = computeEffectiveStreakState({
+    profile: profile ?? {},
+    activities: rawActivity as StreakActivityEvent[],
+  });
+
   return {
-    profile: (profileRes.data as Profile) ?? null,
+    profile: profile
+      ? {
+          ...profile,
+          streak_current: effectiveStreak.current,
+        }
+      : null,
     achievements,
     skills: (skillsRes.data as SkillBreakdown) ?? defaultSkills,
     activity: rawActivity

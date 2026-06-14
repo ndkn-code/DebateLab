@@ -218,8 +218,13 @@ export function TodayScreen() {
 
     setStatus({ state: "loading" });
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const dashboardPath = timezone
+      ? `/api/mobile/dashboard?timezone=${encodeURIComponent(timezone)}`
+      : "/api/mobile/dashboard";
+
     apiClient
-      .requestJson<MobileDashboardResponse>("/api/mobile/dashboard")
+      .requestJson<MobileDashboardResponse>(dashboardPath)
       .then((response) => {
         if (!isMounted) return;
         setStatus({

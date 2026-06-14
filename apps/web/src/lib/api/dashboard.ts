@@ -25,6 +25,12 @@ import {
 } from "@/lib/analytics/skill-snapshot";
 import { LEADERBOARDS_ENABLED, STUDENT_COURSES_ENABLED } from "@/lib/features";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
+import {
+  DEFAULT_STREAK_TIMEZONE,
+  computeEffectiveStreakState,
+  normalizeStreakTimezone,
+  type StreakActivityEvent,
+} from "@/lib/streaks/model";
 
 export type {
   DailyStatEntry,
@@ -42,7 +48,6 @@ export type {
   RecentSession,
 } from "@thinkfy/shared/dashboard";
 
-const USER_TIMEZONE = "America/New_York";
 const STRONG_BANDS = new Set(["Competent", "Proficient", "Expert"]);
 const DAYS_IN_WEEK = 7;
 const RECOMMENDED_SKILL_TARGET = 75;
@@ -98,6 +103,11 @@ type DashboardRpcPayload = {
   stats?: unknown;
 };
 
+type DashboardDataOptions = {
+  timezone?: string | null;
+  now?: Date;
+};
+
 export type DashboardImprovementPriority = {
   key: DashboardSkillKey;
   score: number;
@@ -124,28 +134,27 @@ async function getDashboardPayloadFromRpc(
   return data as DashboardRpcPayload;
 }
 
-function getDateFormatter() {
+function getDateFormatter(timezone = DEFAULT_STREAK_TIMEZONE) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: USER_TIMEZONE,
+    timeZone: normalizeStreakTimezone(timezone),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
 }
 
-function formatDateInZone(date: Date) {
-  return getDateFormatter().format(date);
+function formatDateInZone(date: Date, timezone = DEFAULT_STREAK_TIMEZONE) {
+  return getDateFormatter(timezone).format(date);
 }
 
-function getTodayDateString() {
-  return formatDateInZone(new Date());
+function getTodayDateString(now = new Date(), timezone = DEFAULT_STREAK_TIMEZONE) {
+  return formatDateInZone(now, timezone);
 }
 
-function getCurrentWeekDates() {
+function getCurrentWeekDates(now = new Date(), timezone = DEFAULT_STREAK_TIMEZONE) {
   const dates: string[] = [];
-  const now = new Date();
   const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: USER_TIMEZONE,
+    timeZone: normalizeStreakTimezone(timezone),
     weekday: "short",
   }).format(now);
   const weekdayIndexMap: Record<string, number> = {
@@ -163,20 +172,23 @@ function getCurrentWeekDates() {
   for (let index = 0; index < DAYS_IN_WEEK; index += 1) {
     const current = new Date(now);
     current.setDate(now.getDate() + mondayOffset + index);
-    dates.push(formatDateInZone(current));
+    dates.push(formatDateInZone(current, timezone));
   }
 
   return dates;
 }
 
-function getTrailingDates(totalDays: number) {
+function getTrailingDates(
+  totalDays: number,
+  now = new Date(),
+  timezone = DEFAULT_STREAK_TIMEZONE
+) {
   const dates: string[] = [];
-  const now = new Date();
 
   for (let index = totalDays - 1; index >= 0; index -= 1) {
     const current = new Date(now);
     current.setDate(now.getDate() - index);
-    dates.push(formatDateInZone(current));
+    dates.push(formatDateInZone(current, timezone));
   }
 
   return dates;
@@ -744,13 +756,16 @@ function buildDashboardPlan(
 
 export async function getDashboardData(
   userId: string,
-  authenticatedClient?: SupabaseClient
+  authenticatedClient?: SupabaseClient,
+  options: DashboardDataOptions = {}
 ): Promise<DashboardHomeData> {
   const supabase = authenticatedClient ?? (await createClient());
-  const weekDates = getCurrentWeekDates();
-  const trailing14Dates = getTrailingDates(14);
-  const today = getTodayDateString();
-  const skillSnapshotStartDate = new Date();
+  const now = options.now ?? new Date();
+  const timezone = normalizeStreakTimezone(options.timezone);
+  const weekDates = getCurrentWeekDates(now, timezone);
+  const trailing14Dates = getTrailingDates(14, now, timezone);
+  const today = getTodayDateString(now, timezone);
+  const skillSnapshotStartDate = new Date(now);
   skillSnapshotStartDate.setDate(skillSnapshotStartDate.getDate() - 29);
   skillSnapshotStartDate.setHours(0, 0, 0, 0);
   const skillSnapshotStartIso = skillSnapshotStartDate.toISOString();
@@ -800,9 +815,24 @@ export async function getDashboardData(
           .lte("date", trailing14Dates[trailing14Dates.length - 1])
           .order("date"),
       ]);
+  const streakActivitiesRes = await supabase
+    .from("activity_log")
+    .select("activity_type, reference_type, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(500);
 
   const profile = (rpcPayload?.profile ??
     fallbackPayload?.[0].data) as Profile | null;
+  const streakActivities = streakActivitiesRes.error
+    ? undefined
+    : ((streakActivitiesRes.data ?? []) as StreakActivityEvent[]);
+  const effectiveStreak = computeEffectiveStreakState({
+    profile: profile ?? {},
+    activities: streakActivities,
+    timezone,
+    now,
+  });
   const isAdmin = profile?.role === "admin";
   const enrollmentRows = rpcPayload
     ? asArray(rpcPayload.enrollments)
@@ -979,7 +1009,7 @@ export async function getDashboardData(
     profile,
     nav,
     topBar: {
-      currentStreak: profile?.streak_current ?? 0,
+      currentStreak: effectiveStreak.current,
       orbBalance: profile?.orb_balance ?? 0,
       level: profile?.level ?? 1,
       xpCurrent: profile?.xp ?? 0,
