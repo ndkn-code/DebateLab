@@ -16,6 +16,7 @@ import type {
 import {
   getDuelJudgeProvider,
   getPracticeFeedbackProvider,
+  getPracticeJudgeFallbackProvider,
   getProviderLabel,
 } from "@/lib/ai/provider-selection";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
@@ -367,12 +368,49 @@ function shouldUseStagedFullRoundJudge(params: AnalyzeDebateParams) {
   );
 }
 
+function shouldFallbackPracticeJudgeToDeepSeek(error: unknown) {
+  if (getPracticeJudgeFallbackProvider() !== "deepseek") {
+    return false;
+  }
+
+  const kind = classifyGeminiError(error);
+  if (
+    kind === "rate_limit" ||
+    kind === "service_unavailable" ||
+    kind === "access_denied"
+  ) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /timeout|timed out|network|fetch failed|socket|connection|econnreset/i.test(
+      message
+    ) ||
+    /invalid response structure from gemini|gemini returned malformed json|could not find json in gemini output/i.test(
+      message
+    )
+  );
+}
+
 function getStagedFullRoundJudgeModelName() {
   return (
     process.env.GEMINI_FULL_ROUND_JUDGE_MODEL ||
     process.env.GEMINI_FLASH_LITE_MODEL ||
     "gemini-3.1-flash-lite"
   );
+}
+
+function getPracticeDeepSeekTimeoutMs(fallbackFromGemini: boolean) {
+  const configured = Number(
+    fallbackFromGemini
+      ? process.env.PRACTICE_DEEPSEEK_FALLBACK_TIMEOUT_MS
+      : process.env.PRACTICE_DEEPSEEK_TIMEOUT_MS
+  );
+  if (Number.isFinite(configured) && configured >= 5_000) {
+    return Math.min(configured, 60_000);
+  }
+  return fallbackFromGemini ? 45_000 : 30_000;
 }
 
 async function emitAiTelemetry(
@@ -429,29 +467,24 @@ export async function analyzeDebate(
     return analyzeFullRoundDebateWithStagedGemini(params, userId, onTelemetry);
   }
 
-  const provider = getPracticeFeedbackProvider(params.practiceTrack ?? "debate");
-  let fallbackFromDeepSeek = false;
+  try {
+    return await analyzeDebateWithGemini(params, userId, onTelemetry);
+  } catch (error) {
+    if (!shouldFallbackPracticeJudgeToDeepSeek(error)) {
+      throw error;
+    }
 
-  if (provider === "deepseek") {
-    try {
-      return await analyzeDebateWithDeepSeek(params, userId, onTelemetry);
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          process.env.DEEPSEEK_ANALYSIS_FALLBACK === "gemini"
-            ? "DeepSeek analysis failed; falling back to Gemini:"
-            : "DeepSeek analysis failed:",
-          error instanceof Error ? error.message : error
-        );
-      }
-      if (process.env.DEEPSEEK_ANALYSIS_FALLBACK !== "gemini") {
-        throw error;
-      }
-      fallbackFromDeepSeek = true;
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Gemini practice judge failed; falling back to DeepSeek:",
+        error instanceof Error ? error.message : error
+      );
     }
   }
 
-  return analyzeDebateWithGemini(params, userId, onTelemetry, fallbackFromDeepSeek);
+  return analyzeDebateWithDeepSeek(params, userId, onTelemetry, {
+    fallbackFromGemini: true,
+  });
 }
 
 function parseJsonObject<T>(text: string, sourceLabel: string): T {
@@ -1748,7 +1781,10 @@ Hard rules:
 async function analyzeDebateWithDeepSeek(
   params: AnalyzeDebateParams,
   userId?: string,
-  onTelemetry?: AiTelemetryCallback
+  onTelemetry?: AiTelemetryCallback,
+  options: {
+    fallbackFromGemini?: boolean;
+  } = {}
 ): Promise<DebateScore> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
   const verdictDraft: Record<string, unknown> | null = null;
@@ -1761,6 +1797,9 @@ async function analyzeDebateWithDeepSeek(
   );
   const maxTokens =
     params.practiceTrack !== "speaking" && params.isFullRound ? 7000 : 4096;
+  const timeoutMs = getPracticeDeepSeekTimeoutMs(
+    options.fallbackFromGemini ?? false
+  );
   const thinking = { type: "disabled" } as const;
   const generateText = async (nextPrompt: string) => {
     const retryResult = await createDeepSeekChatCompletion({
@@ -1773,13 +1812,15 @@ async function analyzeDebateWithDeepSeek(
       responseFormat: "json_object",
       maxTokens: Math.min(maxTokens, 4096),
       userId,
-      timeoutMs: 30000,
+      timeoutMs,
       sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
       outputType: "practice_judging",
       practiceAttemptId: params.providerAudit?.practiceAttemptId,
       analysisJobId: params.providerAudit?.analysisJobId,
       metadata: {
         phase: "json_regeneration_or_repair",
+        fallbackFromGemini: options.fallbackFromGemini ?? false,
+        timeoutMs,
         ...(params.providerAudit?.metadata ?? {}),
       },
     });
@@ -1799,7 +1840,7 @@ async function analyzeDebateWithDeepSeek(
       responseFormat: "json_object",
       maxTokens,
       userId,
-      timeoutMs: 30000,
+      timeoutMs,
       sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
       outputType: "practice_judging",
       practiceAttemptId: params.providerAudit?.practiceAttemptId,
@@ -1807,6 +1848,8 @@ async function analyzeDebateWithDeepSeek(
       metadata: {
         phase: "primary",
         isFullRound: params.isFullRound ?? false,
+        fallbackFromGemini: options.fallbackFromGemini ?? false,
+        timeoutMs,
         ...(params.providerAudit?.metadata ?? {}),
       },
     });
@@ -1826,7 +1869,7 @@ async function analyzeDebateWithDeepSeek(
         responseFormat: "json_object",
         maxTokens,
         userId,
-        timeoutMs: 30000,
+        timeoutMs,
         sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
         outputType: "practice_judging",
         practiceAttemptId: params.providerAudit?.practiceAttemptId,
@@ -1834,6 +1877,8 @@ async function analyzeDebateWithDeepSeek(
         metadata: {
           phase: "empty_response_internal_retry",
           isFullRound: params.isFullRound ?? false,
+          fallbackFromGemini: options.fallbackFromGemini ?? false,
+          timeoutMs,
           ...(params.providerAudit?.metadata ?? {}),
         },
       });
@@ -1868,13 +1913,17 @@ async function analyzeDebateWithDeepSeek(
   }
   await emitAiTelemetry(onTelemetry, {
     provider: getProviderLabel("deepseek"),
-    requestedProvider: getProviderLabel("deepseek"),
+    requestedProvider: getProviderLabel(
+      options.fallbackFromGemini ? "gemini" : "deepseek"
+    ),
     model: result.model,
     latencyMs: latency,
+    fallbackUsed: options.fallbackFromGemini ?? false,
     providerRequestIds,
     metadata: {
       deepSeekPromptPrefixHash: promptPrefixHash,
       deepSeekInternalRetryUsed: internalRetryUsed,
+      fallbackFromGemini: options.fallbackFromGemini ?? false,
     },
     usage: {
       inputTokens: result.usage?.prompt_tokens,

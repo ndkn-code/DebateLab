@@ -1,6 +1,7 @@
 import type { PracticeTrack } from "@/types";
 
 export type AiProvider = "gemini" | "deepseek";
+export type PracticeJudgeFallbackProvider = "deepseek" | "none";
 
 function normalizeProvider(value: string | undefined, fallback: AiProvider): AiProvider {
   const normalized = value?.trim().toLowerCase();
@@ -9,19 +10,35 @@ function normalizeProvider(value: string | undefined, fallback: AiProvider): AiP
     : fallback;
 }
 
-export function getRebuttalProvider() {
+export function getRebuttalProvider(): AiProvider {
   return normalizeProvider(process.env.DEBATE_AI_REBUTTAL_PROVIDER, "gemini");
 }
 
-export function getPracticeFeedbackProvider(track: PracticeTrack = "debate") {
-  if (track === "speaking") {
-    return normalizeProvider(process.env.SPEAKING_AI_FEEDBACK_PROVIDER, "gemini");
-  }
-
-  return normalizeProvider(process.env.DEBATE_AI_FEEDBACK_PROVIDER, "gemini");
+export function getPracticeFeedbackProvider(
+  track: PracticeTrack = "debate"
+): AiProvider {
+  void track;
+  return "gemini";
 }
 
-export function getDuelJudgeProvider() {
+export function getPracticeJudgeFallbackProvider(): PracticeJudgeFallbackProvider {
+  const normalized = process.env.PRACTICE_JUDGE_FALLBACK_PROVIDER
+    ?.trim()
+    .toLowerCase();
+
+  if (
+    normalized === "none" ||
+    normalized === "off" ||
+    normalized === "false" ||
+    normalized === "disabled"
+  ) {
+    return "none";
+  }
+
+  return "deepseek";
+}
+
+export function getDuelJudgeProvider(): AiProvider {
   return normalizeProvider(process.env.DEBATE_DUEL_JUDGE_PROVIDER, "gemini");
 }
 

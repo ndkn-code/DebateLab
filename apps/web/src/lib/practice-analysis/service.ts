@@ -68,7 +68,10 @@ export function practiceAttemptRowToInput(
 export async function createPracticeAnalysisRecords(
   supabase: SupabaseClient,
   userId: string,
-  input: PracticeAnalysisInput
+  input: PracticeAnalysisInput,
+  options: {
+    debugId?: string | null;
+  } = {}
 ) {
   const attemptId = input.attemptId ?? crypto.randomUUID();
   const jobId = crypto.randomUUID();
@@ -132,6 +135,7 @@ export async function createPracticeAnalysisRecords(
     prompt_hash: promptManifest.promptHash,
     model_provider: getPracticeFeedbackModelProvider(input.practiceTrack),
     model_name: getPracticeFeedbackModelName(input.practiceTrack),
+    result: options.debugId ? { debugId: options.debugId } : null,
     updated_at: now,
   };
 

@@ -115,6 +115,21 @@ function createUserId(value: string | undefined) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 512);
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function readDeepSeekJson(response: Response): Promise<DeepSeekResponse> {
+  try {
+    return (await response.json()) as DeepSeekResponse;
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    return {};
+  }
+}
+
 export async function createDeepSeekChatCompletion(
   options: DeepSeekChatOptions
 ): Promise<DeepSeekChatResult> {
@@ -203,7 +218,7 @@ export async function createDeepSeekChatCompletion(
     });
     responseStatus = response.status;
 
-    payload = (await response.json().catch(() => ({}))) as DeepSeekResponse;
+    payload = await readDeepSeekJson(response);
 
     if (!response.ok) {
       const message =
@@ -251,7 +266,7 @@ export async function createDeepSeekChatCompletion(
       providerRequestId,
     };
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (isAbortError(error)) {
       await recordRequest({
         status: "error",
         errorCode: "TIMEOUT",
@@ -369,7 +384,7 @@ export async function createDeepSeekStreamingChatCompletion(
     responseStatus = response.status;
 
     if (!response.ok || !response.body) {
-      const payload = (await response.json().catch(() => ({}))) as DeepSeekResponse;
+      const payload = await readDeepSeekJson(response);
       modelName = payload.model || modelName;
       const message =
         payload.error?.message ||
@@ -472,7 +487,7 @@ export async function createDeepSeekStreamingChatCompletion(
       firstTokenLatencyMs,
     };
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (isAbortError(error)) {
       await recordRequest({
         status: "error",
         errorCode: "TIMEOUT",

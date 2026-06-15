@@ -23,6 +23,11 @@ import {
   clearLocalPracticeSessionDraft,
   deletePracticeSessionDraft,
 } from "@/lib/practice-session-drafts";
+import { getPracticeDebugId } from "@/lib/practice-debug-id";
+import {
+  STUDENT_FEEDBACK_FAILURE_MESSAGE,
+  getStudentFeedbackErrorMessage,
+} from "@/lib/practice-feedback-errors";
 import { createClient } from "@/lib/supabase/client";
 import { qualifyReferralAction, getReferralCodeAction } from "@/app/actions/referrals";
 import type { DebateSession } from "@/types";
@@ -32,7 +37,6 @@ import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 const ANALYSIS_SUBMIT_TIMEOUT_MS = 90000;
 const ANALYSIS_POLL_INTERVAL_MS = 2000;
 const ANALYSIS_POLL_TIMEOUT_MS = 180000;
-const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -52,21 +56,6 @@ interface AnalysisJobResponse {
   legacySessionId: string | null;
   aiQualityRunId: string | null;
   error: string | null;
-}
-
-function createAnalyzeDebugId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `analyze-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function getPracticeDebugId() {
-  const stored = window.sessionStorage.getItem(PRACTICE_DEBUG_ID_STORAGE_KEY);
-  if (stored) return stored;
-  const debugId = createAnalyzeDebugId();
-  window.sessionStorage.setItem(PRACTICE_DEBUG_ID_STORAGE_KEY, debugId);
-  return debugId;
 }
 
 function logAnalyzeDebug(
@@ -245,7 +234,7 @@ export default function FeedbackPage() {
             ? "Opening Statement"
             : "Quick Debate Practice";
 
-    const debugId = getPracticeDebugId();
+    const debugId = getPracticeDebugId("analyze");
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
       logAnalyzeDebug(debugId, "client_timeout", {
@@ -397,9 +386,11 @@ export default function FeedbackPage() {
         });
         if (job.status === "completed" && job.feedback) break;
         if (job.status === "failed" || job.status === "cancelled") {
-          throw new Error(
-            job.error || "Analysis failed. Your transcript is saved, so please try again."
-          );
+          logAnalyzeDebug(debugId, "job_failed", {
+            jobId: createdJob.jobId,
+            rawError: job.error,
+          });
+          throw new Error(STUDENT_FEEDBACK_FAILURE_MESSAGE);
         }
       }
 
@@ -450,11 +441,7 @@ export default function FeedbackPage() {
         message: err instanceof Error ? err.message : String(err),
         name: err instanceof Error ? err.name : undefined,
       });
-      setError(
-        err instanceof DOMException && err.name === "AbortError"
-          ? "Analysis is taking longer than expected. Your transcript is safe, so please try again in a moment."
-          : err instanceof Error ? err.message : "Failed to analyze speech"
-      );
+      setError(getStudentFeedbackErrorMessage(err));
     } finally {
       window.clearTimeout(timeoutId);
       setLoading(false);

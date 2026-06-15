@@ -169,6 +169,8 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
 
     try {
       const input = practiceAttemptRowToInput(attempt);
+      const debugId =
+        typeof job.result?.debugId === "string" ? job.result.debugId : null;
       input.providerAudit = {
         sourceRoute: "/api/queues/practice-analysis",
         practiceAttemptId: attempt.id,
@@ -179,6 +181,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           dbDeliveryCountBeforeClaim: job.delivery_count,
           effectiveDeliveryCount: retryDecision.deliveryCount,
           retryDecision: retryDecision.reason,
+          debugId,
         },
       };
       let stagedGeminiCache = readStagedGeminiCache(job.result);
@@ -322,6 +325,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
               isFullRound: input.isFullRound,
               roundCount: input.rounds?.length ?? 0,
               queueMessageId: metadata.messageId,
+              debugId,
               transcription: transcriptionMetadata ?? undefined,
               sttRepair: input.transcription?.repair ?? null,
               shadowVariant,
@@ -376,6 +380,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         softCapReasons: scoreCalibration.softCapReasons,
         metrics: {
           aiQualityRunId,
+          debugId,
           shadowVariant,
           repairUsedForJudge: judgingTranscript !== input.transcript,
           corpusRetrievalLogId: corpusRetrieval.logId,
@@ -392,6 +397,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         legacySessionId: savedSession.sessionId,
         aiQualityRunId,
         resultMetadata: {
+          ...(debugId ? { debugId } : {}),
           ...(corpusRetrievalCache ? { corpusRetrievalCache } : {}),
           ...(stagedGeminiCache ? { stagedGeminiCache } : {}),
         },
@@ -412,6 +418,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           model: modelName,
           practice_attempt_id: attempt.id,
           analysis_job_id: job.id,
+          debug_id: debugId,
           queue_message_id: metadata.messageId,
           corpus_rag_enabled: corpusRetrieval.enabled,
           retrieved_corpus_count: corpusRetrieval.items.length,
@@ -450,6 +457,10 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         analysisJobId: job.id,
         metadata: {
           queueMessageId: metadata.messageId,
+          debugId:
+            typeof job.result?.debugId === "string"
+              ? job.result.debugId
+              : null,
           deliveryCount: metadata.deliveryCount,
           transcription: attempt.attempt_snapshot.analysisParams.transcription
             ? createTranscriptionQualityMetadata(

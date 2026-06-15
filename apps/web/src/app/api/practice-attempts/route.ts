@@ -21,6 +21,12 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 20;
 
+function readDebugId(req: NextRequest) {
+  const debugId = req.headers.get("X-Debug-Id")?.trim();
+  if (!debugId) return null;
+  return debugId.replace(/[^a-zA-Z0-9_.:-]/g, "").slice(0, 160) || null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireRequestAuth(req);
@@ -30,6 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { supabase, user: authUser } = auth;
+    const debugId = readDebugId(req);
     if (shouldConsumeUserRateLimit(auth)) {
       const rateLimit = await consumeRateLimit(supabase, {
         scope: "practice_analysis",
@@ -67,6 +74,23 @@ export async function POST(req: NextRequest) {
       input
     );
     if (existing) {
+      if (debugId) {
+        try {
+          await writeClient
+            .from("analysis_jobs")
+            .update({
+              result: {
+                ...(existing.job.result ?? {}),
+                debugId,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.job.id)
+            .eq("user_id", authUser.id);
+        } catch {
+          // Debug id persistence is best-effort for reused jobs.
+        }
+      }
       let queueMessageId = existing.job.queue_message_id;
       if (existing.job.status === "queued" && !queueMessageId) {
         try {
@@ -96,6 +120,7 @@ export async function POST(req: NextRequest) {
           practice_language: input.practiceLanguage,
           practice_attempt_id: existing.attempt.id,
           analysis_job_id: existing.job.id,
+          debug_id: debugId,
         },
       });
 
@@ -115,7 +140,8 @@ export async function POST(req: NextRequest) {
     const { attempt, job, idempotencyKey } = await createPracticeAnalysisRecords(
       writeClient,
       authUser.id,
-      input
+      input,
+      { debugId }
     );
 
     await recordAnalyticsEvent(writeClient, authUser.id, {
@@ -132,6 +158,7 @@ export async function POST(req: NextRequest) {
         stt_warnings: input.transcription?.warnings,
         practice_attempt_id: attempt.id,
         analysis_job_id: job.id,
+        debug_id: debugId,
       },
     });
 

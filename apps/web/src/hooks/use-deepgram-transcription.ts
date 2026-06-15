@@ -8,17 +8,13 @@ import {
 import type { PracticeLanguage } from "@/types";
 import type { SttContextInput } from "@/lib/stt/keyterms";
 import { appendDeepgramKeyterms, buildSttKeyterms } from "@/lib/stt/keyterms";
+import {
+  createPracticeDebugId,
+  setPracticeDebugId,
+} from "@/lib/practice-debug-id";
 
-const PRACTICE_DEBUG_ID_STORAGE_KEY = "practiceSpeechDebugId";
 const AUDIO_INPUT_LEVEL_THRESHOLD = 0.012;
 const EMPTY_STT_CONTEXT: SttContextInput = {};
-
-function createDebugId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `speech-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 function logSpeechDebug(
   debugId: string,
@@ -138,7 +134,7 @@ export function useDeepgramTranscription(
   const reconnectCountRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const debugIdRef = useRef<string>(createDebugId());
+  const debugIdRef = useRef<string>(createPracticeDebugId("speech"));
   const hasDetectedAudioRef = useRef(false);
   const hasReceivedInterimRef = useRef(false);
   const hasReceivedFinalRef = useRef(false);
@@ -458,9 +454,9 @@ export function useDeepgramTranscription(
     async (micStream: MediaStream) => {
       if (typeof window === "undefined") return;
 
-      const debugId = createDebugId();
+      const debugId = createPracticeDebugId("speech");
       debugIdRef.current = debugId;
-      window.sessionStorage.setItem(PRACTICE_DEBUG_ID_STORAGE_KEY, debugId);
+      setPracticeDebugId(debugId);
       logSpeechDebug(debugId, "speech_start_requested", {
         trackCount: micStream.getAudioTracks().length,
         trackState: micStream.getAudioTracks()[0]?.readyState ?? "missing",
