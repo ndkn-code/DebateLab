@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// Resolve from this file (repo root is five levels up) so the test passes
+// regardless of cwd — the npm script runs it with cwd = apps/web. tsx executes
+// test files as CommonJS, so __dirname is the portable choice here.
 const migration = readFileSync(
-  join(process.cwd(), "supabase/migrations/018_speed_read_models_and_web_vitals.sql"),
+  join(
+    __dirname,
+    "../../../../../supabase/migrations/018_speed_read_models_and_web_vitals.sql"
+  ),
   "utf8"
 );
 
