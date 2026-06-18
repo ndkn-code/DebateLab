@@ -1,0 +1,60 @@
+# WS-0.1 Quality-bar CI. Gates the Definition of Done (masterplan §2) on every PR.
+#
+# `main` stays FROZEN (live debate app); IELTS work integrates on the long-lived
+# `ielts` branch. To make these checks BLOCK merges, enable branch protection on
+# `ielts` (Settings → Branches → require the "Quality bar" status check +
+# "Require branches to be up to date"). That repo setting is the one step CI
+# cannot self-apply.
+#
+# Note: the coverage step uses Node's `--experimental-test-coverage`. It is
+# EXPERIMENTAL — a future Node major could rename or change those flags; if
+# coverage breaks after a Node bump, see scripts/ci/run-critical-coverage.ts.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ielts, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality bar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (web)
+        run: npm run typecheck:web
+
+      - name: Typecheck (shared)
+        run: npm run typecheck:shared
+
+      - name: Lint (web)
+        run: npm run lint:web
+
+      - name: Design-system audit
+        run: npm run audit:design-system
+
+      - name: Quality-bar static checks (RLS · inline-query · score columns)
+        run: npm run ci:checks
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Critical-path coverage (scoring · payments)
+        run: npm run test:coverage:critical
+
+      - name: Quality-gate self-test
+        run: npm run selftest
