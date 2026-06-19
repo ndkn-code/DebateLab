@@ -71,9 +71,12 @@ const viSpeakingPrompt = buildAnalysisPrompt({
   actualDuration: 90,
   practiceTrack: "speaking",
   practiceLanguage: "vi",
+  prepNotes: "Mục tiêu: nói rõ lý do luyện mỗi ngày và ví dụ về sự tự tin.",
 });
 assert.match(viSpeakingPrompt, /Vietnamese diacritics/);
 assert.match(viSpeakingPrompt, /Return all user-facing prose values in Vietnamese/);
+assert.match(viSpeakingPrompt, /Prep Notes/);
+assert.match(viSpeakingPrompt, /Mục tiêu/);
 
 const viDuelPrompt = buildDuelJudgmentPrompt({
   motion: "Có nên cấm điện thoại trong lớp học?",

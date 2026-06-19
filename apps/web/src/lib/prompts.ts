@@ -13,6 +13,7 @@ import {
   shouldUseTruongTeenPrompt,
 } from "@/lib/truong-teen/debate-dna";
 import { buildSttJudgeGuardrailBlock } from "@/lib/stt/prompt";
+import { truncateNotesForPrompt } from "@/lib/practice-notes";
 import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
 import type {
   DebateMemory,
@@ -38,6 +39,7 @@ interface AnalysisPromptParams {
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
   transcription?: PracticeTranscriptionArtifact | null;
+  prepNotes?: string | null;
 }
 
 function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
@@ -90,6 +92,29 @@ ${text}`;
 - Penalize shallow one-liners, unexplained assumptions, and missing impact weighing`;
 }
 
+function buildPrepNotesContext(prepNotes?: string | null): string {
+  const notes = truncateNotesForPrompt(prepNotes);
+
+  if (!notes) {
+    return `\n## Prep Notes
+No prep notes were saved for this session.
+
+Note-taking feedback rule:
+- Set noteTakingFeedback to null. Do not invent feedback about notes.`;
+  }
+
+  return `\n## Prep Notes
+The student wrote these notes before or during the session:
+"""
+${notes}
+"""
+
+Note-taking feedback rule:
+- Compare these notes against the transcript and explain what helped, what was missing, and what note template the student should try next.
+- Do not grade spelling, grammar, or formatting in the notes. Judge whether the notes helped the student build clearer arguments, structure, examples, clash, and delivery.
+- If the practice language is Vietnamese, write note-taking feedback in natural Vietnamese.`;
+}
+
 function speakingJsonSchema(): string {
   return `{
   "content": {
@@ -123,6 +148,29 @@ function speakingJsonSchema(): string {
   "strengths": ["<specific speaking strength 1>", "<specific speaking strength 2>", "<specific speaking strength 3>"],
   "improvements": ["<specific speaking improvement 1>", "<specific speaking improvement 2>", "<specific speaking improvement 3>"],
   "sampleArguments": ["<a clearer supporting point they could have added 1>", "<a clearer supporting point 2>", "<a clearer supporting point 3>"],
+  "noteTakingFeedback": null | {
+    "summary": "<1-2 sentence assessment of how the saved notes helped or failed to guide the speech>",
+    "whatHelped": ["<note choice that helped the speech>", "<note choice that helped the structure>"],
+    "missedOpportunities": ["<specific idea, example, transition, or listener cue the notes should have captured>"],
+    "nextSessionTemplate": ["<short note-taking line or checklist item to copy next time>", "<short note-taking line or checklist item>"]
+  },
+  "improvementPlan": [
+    {
+      "title": "<short beginner-friendly drill name>",
+      "whyItMatters": "<why this drill improves the next speech>",
+      "howToPractice": "<specific action the student can do in the next session>",
+      "shadowExample": "<a concrete sentence or mini-template the student can shadow>",
+      "timeBoxSeconds": <number, optional>
+    }
+  ],
+  "shadowExamples": [
+    {
+      "label": "<short label>",
+      "before": "<optional weak version from or inspired by the transcript>",
+      "after": "<stronger sentence the student can shadow>",
+      "why": "<why the stronger version works>"
+    }
+  ],
   "transcriptAnnotations": [
     {
       "quote": "<exact contiguous quote copied from the student transcript, 5-25 words, no ellipses>",
@@ -206,6 +254,29 @@ function debateJsonSchema(): string {
   "strengths": ["<specific debate strength 1>", "<specific debate strength 2>", "<specific debate strength 3>"],
   "improvements": ["<specific debate improvement 1>", "<specific debate improvement 2>", "<specific debate improvement 3>"],
   "sampleArguments": ["<stronger rebuilt argument 1>", "<stronger rebuilt argument 2>", "<stronger rebuilt argument 3>"],
+  "noteTakingFeedback": null | {
+    "summary": "<1-2 sentence assessment of how the saved notes helped or failed to guide the debate>",
+    "whatHelped": ["<note choice that became a spoken argument or useful structure>", "<note choice that helped clash/weighing>"],
+    "missedOpportunities": ["<specific burden, mechanism, example, clash, or weighing idea the notes should have captured>"],
+    "nextSessionTemplate": ["<short debate note template line to copy next time>", "<short debate note template line>"]
+  },
+  "improvementPlan": [
+    {
+      "title": "<short beginner-friendly drill name>",
+      "whyItMatters": "<why this drill improves the next debate>",
+      "howToPractice": "<specific action the student can do in the next session>",
+      "shadowExample": "<a concrete sentence or mini-template the student can shadow>",
+      "timeBoxSeconds": <number, optional>
+    }
+  ],
+  "shadowExamples": [
+    {
+      "label": "<short label>",
+      "before": "<optional weak version from or inspired by the transcript>",
+      "after": "<stronger sentence the student can shadow>",
+      "why": "<why the stronger version works>"
+    }
+  ],
   "caseSummary": "<1-2 sentence description of the student's overall case line and how coherent it is>",
   "stanceFeedback": "<1-2 sentence evaluation of whether the student's stance is clear, stable, and defensible>",
   "argumentBreakdowns": [
@@ -273,10 +344,12 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
     actualDuration,
     practiceLanguage,
     transcription,
+    prepNotes,
   } = params;
   const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
   const sttGuardrailContext = buildSttJudgeGuardrailBlock(transcription);
+  const prepNotesContext = buildPrepNotesContext(prepNotes);
 
   return `You are an expert public speaking coach for Vietnamese high school students practicing ${languageConfig.aiName}. Analyze this speech and provide supportive but honest feedback.
 
@@ -289,6 +362,7 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
 
 ${languageInstructions}
 ${sttGuardrailContext}
+${prepNotesContext}
 
 ## Transcript
 """
@@ -328,6 +402,9 @@ Focus on speaking quality, not competitive debate strategy.
 - Each annotation must explain where the issue or strength appears and how to fix or reuse it
 - Prefer comments on opening clarity, support for claims, organization, and delivery moments the student can actually find in their transcript
 - If a quote cannot be copied exactly from the transcript, choose a shorter exact quote instead of paraphrasing
+- Always include 2-3 improvementPlan items with beginner-friendly drills and concrete shadowExample sentences
+- Always include 2-3 shadowExamples that the student can copy, speak aloud, and adapt in the next session
+- If Prep Notes are present, fill noteTakingFeedback by comparing the notes to the transcript; if no Prep Notes are present, set noteTakingFeedback to null
 
 Return a JSON object with this exact structure:
 ${speakingJsonSchema()}
@@ -350,6 +427,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     debateMemory,
     corpusContext,
     transcription,
+    prepNotes,
   } = params;
 
   const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
@@ -394,6 +472,7 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     ? `- Full/long-round coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns, ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations, and ${depthTarget.minClashLinks}-${depthTarget.maxClashLinks} clashLinks.`
     : `- Quick/short coverage: include ${depthTarget.minArgumentBreakdowns}-${depthTarget.maxArgumentBreakdowns} argumentBreakdowns and ${depthTarget.minAnnotations}-${depthTarget.maxAnnotations} transcriptAnnotations; keep clashLinks as [] unless this is a full round.`;
   const sttGuardrailContext = buildSttJudgeGuardrailBlock(transcription);
+  const prepNotesContext = buildPrepNotesContext(prepNotes);
 
   return `You are an expert debate coach and judge for Vietnamese high school students practicing ${languageConfig.aiName} debate. Analyze this debate speech and provide rigorous, debate-specific feedback.
 
@@ -409,6 +488,7 @@ ${debateMemoryContext}
 ${roundsContext}
 ${languageInstructions}
 ${sttGuardrailContext}
+${prepNotesContext}
 ${truongTeenJudgingContext}
 ${corpusContext ?? ""}
 
@@ -480,6 +560,9 @@ ${coverageInstruction}
 - For full rounds, comment on consistency across rounds, not just isolated moments
 - Keep overallFeedback focused on speech quality and coaching priorities; put win/loss/tie outcome language only in debateVerdict
 - Always include scoreRationale. It must make the scoring methodology understandable across Content 40, Structure 25, Language 25, and Persuasion 10, with a whyNotHigher and one nextStep per category
+- Always include 2-3 improvementPlan items with beginner-friendly drills, specific howToPractice instructions, and concrete shadowExample sentences
+- Always include 2-3 shadowExamples that show a weaker phrasing and a stronger phrasing the student can imitate
+- If Prep Notes are present, fill noteTakingFeedback by comparing the notes to the transcript and rounds; if no Prep Notes are present, set noteTakingFeedback to null
 - For non-full debate sessions, set debateVerdict to null and clashLinks to []
 - Each annotation must connect the quote to a debate layer: stance, mechanism, evidence, logic, clash, weighing, impact, structure, or delivery
 - Each annotation feedback must explain why the quoted moment matters to a judge, and each suggestion must give a specific rewrite or next strategic move

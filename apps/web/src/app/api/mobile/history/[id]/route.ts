@@ -21,6 +21,7 @@ type DebateSessionDetailRow = {
   speech_time: number | null;
   duration_seconds: number | null;
   transcript: string | null;
+  prep_notes: string | null;
   feedback: DebateScore | null;
   total_score: number | null;
   overall_band: string | null;
@@ -44,6 +45,7 @@ function toDetail(row: DebateSessionDetailRow): MobilePracticeHistoryDetail {
     speechTime: row.speech_time ?? 0,
     durationSeconds: row.duration_seconds ?? 0,
     transcript: row.transcript ?? "",
+    prepNotes: row.prep_notes ?? null,
     feedback: row.feedback,
     totalScore: row.total_score ?? row.feedback?.totalScore ?? null,
     overallBand: row.overall_band ?? row.feedback?.overallBand ?? null,
@@ -78,7 +80,7 @@ export async function GET(
   const { data, error } = await readClient
     .from("debate_sessions")
     .select(
-      "id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, duration_seconds, transcript, feedback, total_score, overall_band, ai_difficulty, rounds, created_at"
+      "id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, duration_seconds, transcript, prep_notes, feedback, total_score, overall_band, ai_difficulty, rounds, created_at"
     )
     .eq("id", id)
     .eq("user_id", auth.user.id)

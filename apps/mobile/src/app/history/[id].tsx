@@ -49,6 +49,22 @@ function getFeedbackScoreRows(
   ];
 }
 
+function notesToPlainText(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(div|p|li)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function createPreviewDetail(id: string): MobilePracticeHistoryDetail {
   return {
     id,
@@ -62,6 +78,8 @@ function createPreviewDetail(id: string): MobilePracticeHistoryDetail {
     prepTime: 180,
     speechTime: 180,
     durationSeconds: 126,
+    prepNotes:
+      "Clash: attention protection vs flexible phone use.\nExample: notification breaks explanation.\nNeed: compare school-wide rule vs teacher discretion.",
     transcript:
       "I believe homework should not be fully abolished, but it should become shorter and more targeted. Practice helps students remember class material, but too much homework replaces rest and activities.",
     totalScore: 81,
@@ -105,6 +123,36 @@ function createPreviewDetail(id: string): MobilePracticeHistoryDetail {
       improvements: ["Add concrete evidence", "Weigh your impact earlier"],
       sampleArguments: [
         "Targeted homework gives students practice without taking away rest, clubs, and family time.",
+      ],
+      noteTakingFeedback: {
+        summary:
+          "Your notes identified the central clash, but they needed one stronger comparison sentence.",
+        whatHelped: ["The attention clash became the spine of the speech."],
+        missedOpportunities: ["Add one concrete example before the timer starts."],
+        nextSessionTemplate: [
+          "Clash:",
+          "Best example:",
+          "Why my world is better:",
+        ],
+      },
+      improvementPlan: [
+        {
+          title: "One comparison close",
+          whyItMatters: "It tells the judge why your side wins.",
+          howToPractice:
+            "End with one sentence comparing your impact against the other side.",
+          shadowExample:
+            "Even if phones help research sometimes, protected class focus matters more because it affects every lesson.",
+          timeBoxSeconds: 120,
+        },
+      ],
+      shadowExamples: [
+        {
+          label: "Impact weighing",
+          after:
+            "A small convenience for research is less important than daily lost attention across the whole class.",
+          why: "It compares scale and frequency in one sentence.",
+        },
       ],
       practiceTrack: "debate",
       practiceLanguage: "en",
@@ -263,6 +311,7 @@ export default function HistoryDetailRoute() {
   const item = status.item;
   const feedback = item.feedback;
   const annotations = feedback?.transcriptAnnotations ?? [];
+  const prepNotes = notesToPlainText(item.prepNotes);
 
   return (
     <Screen
@@ -333,6 +382,48 @@ export default function HistoryDetailRoute() {
               <AppText color={colors.muted} variant="caption">
                 {link.suggestion}
               </AppText>
+            </View>
+          ))}
+        </Surface>
+      ) : null}
+
+      {prepNotes ? (
+        <Surface>
+          <SectionHeader title="Prep notes" />
+          <AppText color={colors.muted} style={styles.transcript} variant="body">
+            {prepNotes}
+          </AppText>
+          {feedback?.noteTakingFeedback?.summary ? (
+            <View style={[styles.cardBlock, { borderTopColor: colors.outlineVariant }]}>
+              <AppText variant="bodyStrong">Note coaching</AppText>
+              <AppText color={colors.muted} variant="caption">
+                {feedback.noteTakingFeedback.summary}
+              </AppText>
+            </View>
+          ) : null}
+        </Surface>
+      ) : null}
+
+      {feedback?.improvementPlan?.length ? (
+        <Surface>
+          <SectionHeader title="Next practice plan" />
+          {feedback.improvementPlan.slice(0, 3).map((step) => (
+            <View
+              key={step.title}
+              style={[styles.cardBlock, { borderTopColor: colors.outlineVariant }]}
+            >
+              <View style={styles.badgeRow}>
+                <Badge tone="neutral">{step.timeBoxSeconds ? `${Math.round(step.timeBoxSeconds / 60)}m` : "Drill"}</Badge>
+              </View>
+              <AppText variant="bodyStrong">{step.title}</AppText>
+              <AppText color={colors.muted} variant="caption">
+                {step.howToPractice}
+              </AppText>
+              {step.shadowExample ? (
+                <AppText color={colors.primary} variant="caption">
+                  {step.shadowExample}
+                </AppText>
+              ) : null}
             </View>
           ))}
         </Surface>

@@ -3,6 +3,9 @@ import type {
   DebateArgumentBreakdown,
   DebateClashLink,
   DebateScore,
+  NoteTakingFeedback,
+  PracticeActionStep,
+  ShadowExample,
   TranscriptAnnotation,
 } from "@/types/feedback";
 import type {
@@ -41,6 +44,7 @@ import {
   isFeedbackBelowDepthTarget,
   normalizeScoreRationale,
 } from "./feedback/depth";
+import { truncateNotesForPrompt } from "./practice-notes";
 import { needsVietnameseProseRepair } from "./feedback/language-repair";
 import {
   classifyGeminiError,
@@ -77,6 +81,7 @@ type DeepSeekAnalysisPromptParams = {
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
   transcription?: PracticeTranscriptionArtifact | null;
+  prepNotes?: string | null;
 };
 
 function buildDeepSeekAnalysisPromptPrefix(
@@ -128,6 +133,9 @@ ${truongTeenJudgingContext}
   "strengths": ["3 specific strengths"],
   "improvements": ["3 specific improvements"],
   "sampleArguments": ["2 improved argument examples"],
+  "noteTakingFeedback": null | {"summary": "how notes helped", "whatHelped": ["2 specifics"], "missedOpportunities": ["1-3 missed note targets"], "nextSessionTemplate": ["2-4 note template lines"]},
+  "improvementPlan": [{"title": "beginner drill", "whyItMatters": "why", "howToPractice": "specific next action", "shadowExample": "sentence to shadow", "timeBoxSeconds": 90}],
+  "shadowExamples": [{"label": "short label", "before": "optional weak version", "after": "stronger sentence to shadow", "why": "why it works"}],
   "practiceTrack": "debate",
   "practiceLanguage": "${params.practiceLanguage ?? "en"}",
   "caseSummary": "student case in one sentence",
@@ -157,6 +165,8 @@ ${truongTeenJudgingContext}
 }
 
 For full rounds, include at least 3 argumentBreakdowns, 4 transcriptAnnotations, and 3 clashLinks.
+Always include 2-3 beginner-friendly improvementPlan items and 2-3 shadowExamples.
+If Prep Notes are provided in the dynamic context, fill noteTakingFeedback by comparing notes to the transcript. If no notes are provided, set noteTakingFeedback to null.
 Annotation rules:
 - transcriptAnnotations.quote must be an exact short quote from the supplied transcript.
 - Never use the motion title, greetings, filler, or a generic opening as an annotation quote.
@@ -207,6 +217,10 @@ Active clashes: ${params.debateMemory.activeClashes.join("; ") || "none"}
 Dropped claims: ${params.debateMemory.droppedClaims.join("; ") || "none"}`
     : "No debate memory provided.";
   const sttGuardrail = buildSttJudgeGuardrailBlock(params.transcription);
+  const prepNotes = truncateNotesForPrompt(params.prepNotes);
+  const prepNotesContext = prepNotes
+    ? `Prep Notes:\n${prepNotes}`
+    : "Prep Notes: none saved. Set noteTakingFeedback to null.";
 
   return `## Dynamic Debate Context
 Motion: ${params.topic}
@@ -215,6 +229,7 @@ Speech type: ${params.speechType}
 Full round: ${Boolean(params.isFullRound)}
 Time setting: ${params.timeLimit} minutes
 Actual duration: ${params.actualDuration} seconds
+${prepNotesContext}
 ${sttGuardrail}
 ${params.corpusContext ?? ""}
 
@@ -281,6 +296,7 @@ type AnalyzeDebateParams = {
   debateMemory?: DebateMemory | null;
   corpusContext?: string;
   transcription?: PracticeTranscriptionArtifact | null;
+  prepNotes?: string | null;
   providerAudit?: {
     sourceRoute?: string;
     practiceAttemptId?: string;
@@ -814,6 +830,8 @@ Important:
 - Include 3-5 argumentBreakdowns and 3-5 clashLinks.
 - Set transcriptAnnotations to [] in this stage. A separate quote-anchoring stage will fill them.
 - Keep scores strict and internally consistent. totalScore must equal the four category scores.
+- Include noteTakingFeedback when prep notes are present; otherwise set it to null.
+- Include 2-3 beginner-friendly improvementPlan items and 2-3 shadowExamples.
 - Preserve Vietnamese user-facing prose when practiceLanguage is vi.
 
 Return this JSON shape only:
@@ -830,6 +848,9 @@ Return this JSON shape only:
   "strengths": ["3 specific strengths"],
   "improvements": ["3 specific improvements"],
   "sampleArguments": ["2-3 stronger argument examples"],
+  "noteTakingFeedback": null | {"summary": "how notes helped", "whatHelped": ["2 specifics"], "missedOpportunities": ["1-3 missed note targets"], "nextSessionTemplate": ["2-4 note template lines"]},
+  "improvementPlan": [{"title": "beginner drill", "whyItMatters": "why", "howToPractice": "specific next action", "shadowExample": "sentence to shadow", "timeBoxSeconds": 90}],
+  "shadowExamples": [{"label": "short label", "before": "optional weak version", "after": "stronger sentence to shadow", "why": "why it works"}],
   "caseSummary": "student case in one sentence",
   "stanceFeedback": "burden and stance feedback",
   "argumentBreakdowns": [
@@ -1454,6 +1475,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
 
   let annotationPayload: StagedAnnotationPayload = { transcriptAnnotations: [] };
   let annotationStageError: string | null = null;
+  let languageRepairStageError: string | null = null;
   try {
     const annotationPrompt = buildStagedAnnotationPrompt(
       params,
@@ -1490,6 +1512,49 @@ async function analyzeFullRoundDebateWithStagedGemini(
 
   const depthCompletion = completeStagedFeedbackDepth(parsed, speechMap, params);
   parsed = depthCompletion.feedback;
+
+  if (params.practiceLanguage === "vi" && needsVietnameseProseRepair(parsed)) {
+    try {
+      const languageRepairPrompt = `${buildStagedFullRoundBaseContext(params, {
+        includeCorpus: true,
+        includeTruongTeenRubric: true,
+        includeSttGuardrail: true,
+      })}
+
+## Previous JSON With Language Violation
+${JSON.stringify(parsed)}
+
+## Vietnamese Repair Instruction
+The previous JSON used English in user-facing prose even though the practice language is Vietnamese. Return the full JSON schema again.
+
+Hard rules:
+- Keep every schema key and enum literal in English exactly as specified.
+- Keep numeric scores, round numbers, winner, confidence, tags, severities, speakers, outcomes, and ids unchanged unless a score is outside its allowed range.
+- Keep exact transcript quote fields unchanged: quote, sourceQuote, and responseQuote must remain exact copied text.
+- Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, noteTakingFeedback, improvementPlan, shadowExamples, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
+- JSON only.`;
+      stagePromptHashes.language_repair = createHash("sha256")
+        .update(languageRepairPrompt)
+        .digest("hex");
+      const languageRepairStage = await generateGeminiStage({
+        modelName,
+        stage: "language_repair",
+        prompt: languageRepairPrompt,
+        maxOutputTokens: 8192,
+        temperature: 0.15,
+        keySeed: `${userId ?? "anonymous"}:${params.topic}:language_repair`,
+        audit: stageAudit,
+      });
+      stages.push(languageRepairStage);
+      parsed = normalizeDebateScore(
+        parseGeminiFeedback(languageRepairStage.text),
+        params
+      );
+    } catch (error) {
+      languageRepairStageError =
+        error instanceof Error ? error.message : String(error);
+    }
+  }
 
   const summary = summarizeGeminiStages(stages);
   if (userId) {
@@ -1531,6 +1596,7 @@ async function analyzeFullRoundDebateWithStagedGemini(
       geminiKeyPoolSize: getGeminiKeyCountForTelemetry(),
       judgeStagePromptHashes: stagePromptHashes,
       annotationStageError,
+      languageRepairStageError,
       depthCompletion: depthCompletion.metadata,
     },
     usage: {
@@ -1556,7 +1622,7 @@ async function analyzeDebateWithGemini(
       responseMimeType: "application/json",
       temperature: 0.3,
       maxOutputTokens:
-        params.practiceTrack !== "speaking" && params.isFullRound ? 12000 : 4096,
+        params.practiceTrack !== "speaking" && params.isFullRound ? 12000 : 6144,
     },
   });
 
@@ -1733,7 +1799,7 @@ Hard rules:
 - Keep every schema key and enum literal in English exactly as specified.
 - Keep numeric scores, round numbers, winner, confidence, tags, severities, speakers, outcomes, and ids unchanged unless a score is outside its allowed range.
 - Keep exact transcript quote fields unchanged: quote, sourceQuote, and responseQuote must remain exact copied text.
-- Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
+- Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, noteTakingFeedback, improvementPlan, shadowExamples, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
 - JSON only.`;
     const languageRepairStartTime = Date.now();
     const languageRepairResult = await model.generateContent(languageRepairPrompt);
@@ -1796,7 +1862,7 @@ async function analyzeDebateWithDeepSeek(
     verdictDraft
   );
   const maxTokens =
-    params.practiceTrack !== "speaking" && params.isFullRound ? 7000 : 4096;
+    params.practiceTrack !== "speaking" && params.isFullRound ? 7000 : 5000;
   const timeoutMs = getPracticeDeepSeekTimeoutMs(
     options.fallbackFromGemini ?? false
   );
@@ -1810,7 +1876,7 @@ async function analyzeDebateWithDeepSeek(
       ],
       thinking: { type: "disabled" },
       responseFormat: "json_object",
-      maxTokens: Math.min(maxTokens, 4096),
+      maxTokens,
       userId,
       timeoutMs,
       sourceRoute: params.providerAudit?.sourceRoute ?? "/api/analyze",
@@ -2003,7 +2069,7 @@ Hard rules:
 - Keep every schema key and enum literal in English exactly as specified.
 - Keep numeric scores, round numbers, winner, confidence, tags, severities, speakers, outcomes, and ids unchanged unless a score is outside its allowed range.
 - Keep exact transcript quote fields unchanged: quote, sourceQuote, and responseQuote must remain exact copied text.
-- Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
+- Rewrite every user-facing explanation in natural Vietnamese: summary, strengths, improvements, sampleArguments, noteTakingFeedback, improvementPlan, shadowExamples, case feedback, argumentBreakdowns text, missingLayers, weighingFeedback, clashFeedback, strongerRebuilds, detailedFeedback, debateVerdict prose, clashLinks judgeRead/suggestion, transcriptAnnotations feedback/suggestion, and scoreRationale prose.
 - JSON only.`;
     parsed = normalizeDebateScore(
       await parseDeepSeekFeedbackWithRetry(
@@ -2132,6 +2198,294 @@ function clampNumber(value: unknown, min: number, max: number, fallback = min) {
     : fallback;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cleanString(value: unknown, maxLength = 600) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function cleanStringArray(value: unknown, maxItems: number, maxLength = 500) {
+  return Array.isArray(value)
+    ? value
+        .map((item) => cleanString(item, maxLength))
+        .filter(Boolean)
+        .slice(0, maxItems)
+    : [];
+}
+
+function normalizeNoteTakingFeedback(
+  value: unknown,
+  hasPrepNotes: boolean
+): NoteTakingFeedback | null {
+  if (!hasPrepNotes || !isPlainRecord(value)) return null;
+
+  const summary = cleanString(value.summary, 700);
+  const whatHelped = cleanStringArray(value.whatHelped, 4);
+  const missedOpportunities = cleanStringArray(value.missedOpportunities, 4);
+  const nextSessionTemplate = cleanStringArray(value.nextSessionTemplate, 5);
+
+  if (
+    !summary &&
+    whatHelped.length === 0 &&
+    missedOpportunities.length === 0 &&
+    nextSessionTemplate.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    summary,
+    whatHelped,
+    missedOpportunities,
+    nextSessionTemplate,
+  };
+}
+
+function normalizePracticeActionSteps(value: unknown): PracticeActionStep[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!isPlainRecord(item)) return null;
+      const title = cleanString(item.title, 120);
+      const whyItMatters = cleanString(item.whyItMatters, 500);
+      const howToPractice = cleanString(item.howToPractice, 700);
+      const shadowExample = cleanString(item.shadowExample, 700);
+      const timeBoxSeconds =
+        typeof item.timeBoxSeconds === "number" && Number.isFinite(item.timeBoxSeconds)
+          ? Math.max(15, Math.min(900, Math.round(item.timeBoxSeconds)))
+          : undefined;
+
+      if (!title || !whyItMatters || !howToPractice) return null;
+
+      return {
+        title,
+        whyItMatters,
+        howToPractice,
+        ...(shadowExample ? { shadowExample } : {}),
+        ...(timeBoxSeconds ? { timeBoxSeconds } : {}),
+      } satisfies PracticeActionStep;
+    })
+    .filter((item): item is PracticeActionStep => Boolean(item))
+    .slice(0, 3);
+}
+
+function normalizeShadowExamples(value: unknown): ShadowExample[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!isPlainRecord(item)) return null;
+      const label = cleanString(item.label, 120);
+      const before = cleanString(item.before, 700);
+      const after = cleanString(item.after, 900);
+      const why = cleanString(item.why, 700);
+
+      if (!label || !after || !why) return null;
+
+      return {
+        label,
+        ...(before ? { before } : {}),
+        after,
+        why,
+      } satisfies ShadowExample;
+    })
+    .filter((item): item is ShadowExample => Boolean(item))
+    .slice(0, 3);
+}
+
+function createFallbackNoteTakingFeedback(
+  feedback: DebateScore,
+  params: {
+    practiceTrack?: PracticeTrack;
+    practiceLanguage?: PracticeLanguage;
+  }
+): NoteTakingFeedback {
+  const vi = params.practiceLanguage === "vi";
+  const speaking = params.practiceTrack === "speaking";
+  const missed =
+    feedback.improvements?.[0] ??
+    feedback.missingLayers?.[0] ??
+    feedback.scoreRationale?.content?.nextStep ??
+    (vi
+      ? "Ghi lại một ý cần chứng minh rõ hơn trước khi nói."
+      : "Capture one idea that needs clearer proof before speaking.");
+
+  if (vi) {
+    return {
+      summary: speaking
+        ? "Ghi chú đã tạo điểm tựa cho bài nói, nhưng lần tới nên viết sẵn một câu ví dụ hoặc câu kết luận để dễ triển khai hơn."
+        : "Ghi chú đã tạo điểm tựa cho lập luận, nhưng lần tới nên viết sẵn cơ chế, ví dụ và câu so sánh tác động để dễ đưa vào bài nói.",
+      whatHelped: [
+        speaking
+          ? "Ghi chú giúp giữ trọng tâm chính của bài nói."
+          : "Ghi chú giúp xác định trục lập luận chính trước khi vào bài.",
+      ],
+      missedOpportunities: [missed],
+      nextSessionTemplate: speaking
+        ? [
+            "Ý chính: ___",
+            "Ví dụ cụ thể: ___",
+            "Câu kết: điều này quan trọng vì ___.",
+          ]
+        : [
+            "Trục clash: phe mình chứng minh ___, phe kia nói ___.",
+            "Cơ chế: ___ dẫn đến ___ vì ___.",
+            "Cân tác động: ___ quan trọng hơn ___ vì ___.",
+          ],
+    };
+  }
+
+  return {
+    summary: speaking
+      ? "The notes gave the speech a starting point, but the next version should include one ready-to-say example or closing sentence."
+      : "The notes gave the case a starting point, but the next version should capture mechanism, example, and weighing before the speech starts.",
+    whatHelped: [
+      speaking
+        ? "The notes helped keep the main speaking goal visible."
+        : "The notes helped identify the main argument or clash before speaking.",
+    ],
+    missedOpportunities: [missed],
+    nextSessionTemplate: speaking
+      ? [
+          "Main idea: ___",
+          "Specific example: ___",
+          "Closing line: this matters because ___.",
+        ]
+      : [
+          "Clash: my side proves ___; their side says ___.",
+          "Mechanism: ___ causes ___ because ___.",
+          "Weighing: ___ matters more than ___ because ___.",
+        ],
+  };
+}
+
+function ensureNoteTakingFeedback(
+  existing: NoteTakingFeedback | null,
+  fallback: NoteTakingFeedback
+) {
+  if (!existing) return fallback;
+
+  return {
+    summary: existing.summary || fallback.summary,
+    whatHelped:
+      existing.whatHelped.length > 0
+        ? existing.whatHelped
+        : fallback.whatHelped,
+    missedOpportunities:
+      existing.missedOpportunities.length > 0
+        ? existing.missedOpportunities
+        : fallback.missedOpportunities,
+    nextSessionTemplate:
+      existing.nextSessionTemplate.length >= 2
+        ? existing.nextSessionTemplate
+        : Array.from(
+            new Set([
+              ...existing.nextSessionTemplate,
+              ...fallback.nextSessionTemplate,
+            ])
+          ).slice(0, 5),
+  };
+}
+
+function ensurePracticeActionSteps(
+  existing: PracticeActionStep[],
+  feedback: DebateScore,
+  params: {
+    practiceTrack?: PracticeTrack;
+    practiceLanguage?: PracticeLanguage;
+  }
+) {
+  const vi = params.practiceLanguage === "vi";
+  const speaking = params.practiceTrack === "speaking";
+  const steps = [...existing];
+  const sourceItems = [
+    feedback.scoreRationale?.content?.nextStep,
+    feedback.scoreRationale?.structure?.nextStep,
+    feedback.scoreRationale?.persuasion?.nextStep,
+    ...(feedback.missingLayers ?? []),
+    ...(feedback.improvements ?? []),
+  ]
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item));
+  const uniqueItems = Array.from(new Set(sourceItems));
+
+  for (const item of uniqueItems) {
+    if (steps.length >= 2) break;
+    steps.push({
+      title: vi
+        ? speaking
+          ? `Bài tập nói ${steps.length + 1}`
+          : `Bài tập tranh biện ${steps.length + 1}`
+        : speaking
+          ? `Speaking drill ${steps.length + 1}`
+          : `Debate drill ${steps.length + 1}`,
+      whyItMatters: vi
+        ? speaking
+          ? "Bài tập này biến phản hồi thành một thói quen nói có thể lặp lại."
+          : "Bài tập này biến phản hồi thành một thói quen tranh biện có thể lặp lại."
+        : speaking
+          ? "This turns feedback into one repeatable speaking habit."
+          : "This turns feedback into one repeatable debating habit.",
+      howToPractice: item,
+      shadowExample:
+        feedback.strongerRebuilds?.[steps.length] ??
+        feedback.sampleArguments?.[steps.length] ??
+        undefined,
+      timeBoxSeconds: 120,
+    });
+  }
+
+  return steps.slice(0, 3);
+}
+
+function ensureShadowExamples(
+  existing: ShadowExample[],
+  feedback: DebateScore,
+  params: {
+    practiceTrack?: PracticeTrack;
+    practiceLanguage?: PracticeLanguage;
+  }
+) {
+  const vi = params.practiceLanguage === "vi";
+  const speaking = params.practiceTrack === "speaking";
+  const examples = [...existing];
+  const sourceItems = [
+    ...(feedback.strongerRebuilds ?? []),
+    ...(feedback.sampleArguments ?? []),
+    feedback.scoreRationale?.content?.nextStep,
+    feedback.scoreRationale?.persuasion?.nextStep,
+  ]
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item));
+  const uniqueItems = Array.from(new Set(sourceItems));
+
+  for (const item of uniqueItems) {
+    if (examples.length >= 2) break;
+    examples.push({
+      label: vi
+        ? speaking
+          ? `Câu luyện theo ${examples.length + 1}`
+          : `Mẫu lập luận ${examples.length + 1}`
+        : speaking
+          ? `Shadow line ${examples.length + 1}`
+          : `Shadow argument ${examples.length + 1}`,
+      after: item,
+      why: vi
+        ? speaking
+          ? "Câu này cho bạn một cấu trúc rõ hơn để đọc thành tiếng và biến đổi trong lượt nói sau."
+          : "Mẫu này cho bạn một khung rõ hơn để bắt chước khi xây luận điểm, cơ chế và tác động."
+        : speaking
+          ? "It gives you a clearer sentence shape to speak aloud and adapt."
+          : "It gives you a clearer claim, mechanism, and impact shape to imitate.",
+    });
+  }
+
+  return examples.slice(0, 3);
+}
+
 function clampSectionScores(parsed: DebateScore) {
   parsed.content.claimClarity = clampNumber(parsed.content.claimClarity, 0, 10);
   parsed.content.evidenceSupport = clampNumber(parsed.content.evidenceSupport, 0, 10);
@@ -2180,6 +2534,7 @@ function normalizeDebateScore(
     isFullRound?: boolean;
     actualDuration?: number;
     transcription?: PracticeTranscriptionArtifact | null;
+    prepNotes?: string | null;
   }
 ) {
   clampSectionScores(parsed);
@@ -2208,6 +2563,27 @@ function normalizeDebateScore(
   parsed.debateVerdict = normalizeDebateVerdict(parsed.debateVerdict) ?? undefined;
   parsed.clashLinks = normalizeDebateClashLinks(parsed.clashLinks);
   parsed.scoreRationale = normalizeScoreRationale(parsed.scoreRationale, parsed);
+  const hasPrepNotes = truncateNotesForPrompt(params.prepNotes).length > 0;
+  const normalizedNoteFeedback = normalizeNoteTakingFeedback(
+    parsed.noteTakingFeedback,
+    hasPrepNotes
+  );
+  parsed.noteTakingFeedback = hasPrepNotes
+    ? ensureNoteTakingFeedback(
+        normalizedNoteFeedback,
+        createFallbackNoteTakingFeedback(parsed, params)
+      )
+    : null;
+  parsed.improvementPlan = ensurePracticeActionSteps(
+    normalizePracticeActionSteps(parsed.improvementPlan),
+    parsed,
+    params
+  );
+  parsed.shadowExamples = ensureShadowExamples(
+    normalizeShadowExamples(parsed.shadowExamples),
+    parsed,
+    params
+  );
   applyVietnameseDebateSoftCaps(parsed, params);
   return parsed;
 }
