@@ -74,6 +74,7 @@ export interface Course {
   short_description: string | null;
   thumbnail_url: string | null;
   category: string;
+  subject: "debate" | "ielts";
   difficulty: "beginner" | "intermediate" | "advanced";
   estimated_hours: number;
   is_published: boolean;

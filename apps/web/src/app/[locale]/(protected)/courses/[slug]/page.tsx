@@ -2,7 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCourseBySlug, getCourseReaderBySlug } from "@/lib/api/courses";
 import { CourseDetailContent } from "@/components/courses/course-detail-content";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { areStudentCoursesEnabled } from "@/lib/features";
+import { getActiveSubject } from "@/lib/subject/server";
 
 export async function generateMetadata({
   params,
@@ -41,7 +42,8 @@ export default async function CourseDetailPage({
 
   if (!profile) redirect("/dashboard");
 
-  if (!STUDENT_COURSES_ENABLED) {
+  const subject = await getActiveSubject();
+  if (!areStudentCoursesEnabled(subject)) {
     redirect(profile.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
   }
 

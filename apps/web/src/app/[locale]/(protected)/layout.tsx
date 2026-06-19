@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
+import { getActiveSubject } from "@/lib/subject/server";
 import { LocalizedAppProviders } from "../localized-app-providers";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
@@ -48,6 +49,7 @@ export default async function ProtectedLayout({
 }) {
   const { locale } = await params;
   const leaderboardLanguage = coerceLeaderboardLanguage(locale);
+  const activeSubject = await getActiveSubject();
   const supabase = await createClient();
 
   const {
@@ -66,6 +68,7 @@ export default async function ProtectedLayout({
             profile={DEV_ADMIN_PROFILE}
             userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
             userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
+            activeSubject={activeSubject}
             seasonReplayEnabled={false}
           >
             {children}
@@ -96,6 +99,7 @@ export default async function ProtectedLayout({
             profile={DEV_ADMIN_PROFILE}
             userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
             userId={user.id}
+            activeSubject={activeSubject}
             seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
             seasonReplayOutcome={seasonReplayOutcome}
           >
@@ -114,6 +118,7 @@ export default async function ProtectedLayout({
         profile={profile as Profile | null}
         userEmail={user.email ?? null}
         userId={user.id}
+        activeSubject={activeSubject}
         seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
         seasonReplayOutcome={seasonReplayOutcome}
       >

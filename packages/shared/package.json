@@ -27,6 +27,10 @@
     "./design-system": {
       "types": "./src/design-system/index.ts",
       "default": "./src/design-system/index.ts"
+    },
+    "./subject": {
+      "types": "./src/subject/index.ts",
+      "default": "./src/subject/index.ts"
     }
   },
   "scripts": {

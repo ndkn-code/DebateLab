@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { areStudentCoursesEnabled } from "@/lib/features";
+import { getActiveSubject } from "@/lib/subject/server";
 
 export async function generateMetadata({
   params,
@@ -16,7 +17,8 @@ export default async function LessonPage({
   params: Promise<{ locale: string; slug: string; lessonSlug: string }>;
 }) {
   const { locale, slug, lessonSlug } = await params;
-  if (!STUDENT_COURSES_ENABLED) {
+  const subject = await getActiveSubject();
+  if (!areStudentCoursesEnabled(subject)) {
     redirect(`/${locale}/dashboard`);
   }
 

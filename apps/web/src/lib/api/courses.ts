@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_SUBJECT, coerceSubject, type Subject } from "@thinkfy/shared/subject";
 import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import {
   canAccessCourse,
@@ -527,7 +528,8 @@ export async function getCourses(userId?: string) {
 }
 
 export async function getCourseLibraryData(
-  userId: string
+  userId: string,
+  subject: Subject = DEFAULT_SUBJECT
 ): Promise<CourseLibraryData> {
   const supabase = await createClient();
 
@@ -550,9 +552,12 @@ export async function getCourseLibraryData(
     return { items: [], featuredCourse: null, recommendedCourse: null };
   }
 
-  const courses = (coursesRes.data ?? []).map((course) =>
-    normalizeCourseRecord(course as Course)
-  );
+  const courses = (coursesRes.data ?? [])
+    .map((course) => normalizeCourseRecord(course as Course))
+    // Scope the library to the active subject. `coerceSubject` treats a missing
+    // `subject` (e.g. an RPC payload predating the column) as `debate`, so the
+    // debate library is byte-identical and IELTS resolves to an empty surface.
+    .filter((course) => coerceSubject(course.subject) === subject);
   const courseAccessMap = await getCourseAccessMapFromRecords(
     supabase,
     userId,

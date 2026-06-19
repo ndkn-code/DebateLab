@@ -40,16 +40,17 @@ import { createClient } from "@/lib/supabase/client";
 import {
   DUEL_ENABLED,
   LEADERBOARDS_ENABLED,
-  STUDENT_COURSES_ENABLED,
+  areStudentCoursesEnabled,
 } from "@/lib/features";
 import type { Profile } from "@/types/database";
 import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
-import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
+import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
+import type { Subject } from "@/lib/subject";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
 const NAV_ITEMS = [
@@ -69,6 +70,7 @@ const NAV_ITEMS = [
 interface SidebarProps {
   profile: Profile | null;
   userEmail: string | null;
+  activeSubject: Subject;
 }
 
 function NavContent({
@@ -78,6 +80,7 @@ function NavContent({
   onSignOut,
   onNavClick,
   currentLocale,
+  currentSubject,
 }: {
   collapsed: boolean;
   profile: SidebarProps["profile"];
@@ -85,6 +88,7 @@ function NavContent({
   onSignOut: () => void;
   onNavClick?: () => void;
   currentLocale: AppLocale;
+  currentSubject: Subject;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -120,9 +124,10 @@ function NavContent({
 
       {!collapsed ? (
         <div className="px-2 pt-3">
-          <DebateModeSwitcher
+          <ModeSwitcher
             variant="sidebar"
             currentLocale={currentLocale}
+            currentSubject={currentSubject}
           />
         </div>
       ) : null}
@@ -290,7 +295,7 @@ function NavContent({
   );
 }
 
-export function Sidebar({ profile, userEmail }: SidebarProps) {
+export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -312,7 +317,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
       href: canDuel ? "/debates" : undefined,
       status: canDuel ? "live" : "coming-soon",
     },
-    ...(STUDENT_COURSES_ENABLED
+    ...(areStudentCoursesEnabled(activeSubject)
       ? ([
           {
             key: "courses",
@@ -345,6 +350,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           profile={profile}
           userEmail={userEmail}
           currentLocale={currentLocale}
+          activeSubject={activeSubject}
         />
       ) : (
         <aside
@@ -359,6 +365,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
             userEmail={userEmail}
             onSignOut={handleSignOut}
             currentLocale={currentLocale}
+            currentSubject={activeSubject}
           />
           {/* Collapse toggle */}
           <button
@@ -396,6 +403,7 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
               userEmail={userEmail}
               onSignOut={handleSignOut}
               currentLocale={currentLocale}
+              currentSubject={activeSubject}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}
@@ -403,7 +411,11 @@ export function Sidebar({ profile, userEmail }: SidebarProps) {
           </SheetContent>
         </Sheet>
         <LogoMark size="icon" markOnly variant="dark" />
-        <DebateModeSwitcher variant="mobile" currentLocale={currentLocale} />
+        <ModeSwitcher
+          variant="mobile"
+          currentLocale={currentLocale}
+          currentSubject={activeSubject}
+        />
         <ThemeToggle variant="mobile" className="ml-auto" />
         <div className="shrink-0">
           <Avatar size="sm">

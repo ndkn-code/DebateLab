@@ -2,6 +2,7 @@ import type {
   LeaderboardDataSource,
   LeaderboardRolloutStage,
 } from "@/lib/leaderboards/types";
+import type { Subject } from "@thinkfy/shared/subject";
 
 function isEnabled(value: string | undefined) {
   return value === "1" || value?.toLowerCase() === "true";
@@ -20,6 +21,19 @@ function getRolloutStage(value: string | undefined): LeaderboardRolloutStage {
 }
 
 export const STUDENT_COURSES_ENABLED: boolean = false;
+
+/**
+ * Subject-scoped enablement for the Duolingo-style activity/course engine
+ * (WS-0.2). The engine stays flagged OFF for debate (`STUDENT_COURSES_ENABLED`
+ * is unchanged) but ON for the IELTS track, so selecting IELTS reaches the
+ * (currently empty) engine surface while debate behavior is byte-identical.
+ *
+ * Engine-purity (masterplan §2.7): this is a per-subject feature gate, never
+ * exam logic inside the engine itself.
+ */
+export function areStudentCoursesEnabled(subject: Subject): boolean {
+  return subject === "ielts" ? true : STUDENT_COURSES_ENABLED;
+}
 
 // 1v1 Duel ("debate-duel") launch switch. Default off → only admins can reach
 // the feature (so the team keeps shadow-testing in production). Set

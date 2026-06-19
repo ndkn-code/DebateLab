@@ -27,6 +27,7 @@
     "test:corpus-importer": "tsx src/lib/corpus/importer.test.ts",
     "test:truong-teen": "tsx src/lib/truong-teen/debate-dna.test.ts && tsx src/lib/truong-teen/opponent-quality.test.ts",
     "test:practice-language": "tsx src/lib/practice-language.test.ts",
+    "test:subject": "tsx ../../packages/shared/src/subject/subject.test.ts",
     "test:settings": "tsx src/lib/settings.test.ts",
     "test:topics": "tsx src/lib/topics.test.ts",
     "test:tts-voices": "tsx src/lib/tts-voices.test.ts",

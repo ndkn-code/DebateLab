@@ -23,7 +23,8 @@ import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,
 } from "@/lib/analytics/skill-snapshot";
-import { LEADERBOARDS_ENABLED, STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { LEADERBOARDS_ENABLED, areStudentCoursesEnabled } from "@/lib/features";
+import { coerceSubject, type Subject } from "@thinkfy/shared/subject";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 import {
   DEFAULT_STREAK_TIMEZONE,
@@ -106,6 +107,7 @@ type DashboardRpcPayload = {
 type DashboardDataOptions = {
   timezone?: string | null;
   now?: Date;
+  subject?: Subject;
 };
 
 export type DashboardImprovementPriority = {
@@ -760,6 +762,7 @@ export async function getDashboardData(
   options: DashboardDataOptions = {}
 ): Promise<DashboardHomeData> {
   const supabase = authenticatedClient ?? (await createClient());
+  const subject = coerceSubject(options.subject);
   const now = options.now ?? new Date();
   const timezone = normalizeStreakTimezone(options.timezone);
   const weekDates = getCurrentWeekDates(now, timezone);
@@ -925,7 +928,17 @@ export async function getDashboardData(
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
   const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
 
-  const featuredEnrollment = STUDENT_COURSES_ENABLED ? enrollments[0] : null;
+  // Scope the "continue learning" card to the active subject. Debate keeps the
+  // engine gated off (null, unchanged); IELTS has no content yet, so this stays
+  // null until WS-1.x. `coerceSubject` treats a missing course subject as debate.
+  const featuredEnrollment = areStudentCoursesEnabled(subject)
+    ? (enrollments.find(
+        (enrollment) =>
+          coerceSubject(
+            (enrollment.courses as { subject?: string | null } | null)?.subject
+          ) === subject
+      ) ?? null)
+    : null;
   const courseContinuation =
     featuredEnrollment
       ? {
@@ -950,7 +963,7 @@ export async function getDashboardData(
       href: isAdmin ? "/debates" : undefined,
       status: isAdmin ? "live" : "coming-soon",
     },
-    ...(STUDENT_COURSES_ENABLED
+    ...(areStudentCoursesEnabled(subject)
       ? ([
           {
             key: "courses",
@@ -976,7 +989,7 @@ export async function getDashboardData(
       status: "live",
       descriptionKey: "action_debate_desc",
     },
-    ...(STUDENT_COURSES_ENABLED
+    ...(areStudentCoursesEnabled(subject)
       ? ([
           {
             key: "course",

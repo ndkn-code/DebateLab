@@ -14,12 +14,15 @@ import {
 } from "@/lib/leaderboards/replay";
 import type { LeaderboardSeasonOutcome } from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
+import { DEFAULT_SUBJECT, type Subject } from "@thinkfy/shared/subject";
 
 interface ProtectedShellProps {
   children: React.ReactNode;
   profile: Profile | null;
   userEmail: string | null;
   userId: string;
+  /** Active content subject; defaults to debate so dev/QA shells need not pass it. */
+  activeSubject?: Subject;
   seasonReplayEnabled?: boolean;
   seasonReplayOutcome?: LeaderboardSeasonOutcome | null;
   seasonReplayReducedMotionOverride?: boolean;
@@ -145,6 +148,7 @@ export function ProtectedShell({
   profile,
   userEmail,
   userId,
+  activeSubject = DEFAULT_SUBJECT,
   seasonReplayEnabled = false,
   seasonReplayOutcome = null,
   seasonReplayReducedMotionOverride,
@@ -238,7 +242,11 @@ export function ProtectedShell({
 
   return (
     <div className="fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden overscroll-none bg-background md:flex-row">
-      <Sidebar profile={profile} userEmail={userEmail} />
+      <Sidebar
+        profile={profile}
+        userEmail={userEmail}
+        activeSubject={activeSubject}
+      />
       <main
         ref={mainScrollRef}
         className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-none"

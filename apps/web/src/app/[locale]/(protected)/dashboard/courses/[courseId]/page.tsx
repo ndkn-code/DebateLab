@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { CoursePlayerView } from "@/components/activities/CoursePlayerView";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { areStudentCoursesEnabled } from "@/lib/features";
+import { getActiveSubject } from "@/lib/subject/server";
 
 export default async function CourseDetailPage({
   params,
@@ -27,7 +28,8 @@ export default async function CourseDetailPage({
   if (!profile) redirect("/dashboard");
   const isAdmin = profile.role === "admin";
 
-  if (!STUDENT_COURSES_ENABLED && !isAdmin) {
+  const subject = await getActiveSubject();
+  if (!areStudentCoursesEnabled(subject) && !isAdmin) {
     redirect("/dashboard");
   }
 

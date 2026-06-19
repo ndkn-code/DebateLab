@@ -5,7 +5,8 @@ import { getCourseLibraryData } from "@/lib/api/courses";
 import { CourseListContent } from "@/components/courses/course-list-content";
 import { ensureDevelopmentLibraryCourses } from "@/lib/seed/ensure-development-library-courses";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
-import { STUDENT_COURSES_ENABLED } from "@/lib/features";
+import { areStudentCoursesEnabled } from "@/lib/features";
+import { getActiveSubject } from "@/lib/subject/server";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
@@ -25,8 +26,9 @@ async function CoursesPayload() {
   if (!user && !devAuthBypassUser) redirect("/auth/login");
 
   const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
+  const subject = await getActiveSubject();
 
-  if (!STUDENT_COURSES_ENABLED) {
+  if (!areStudentCoursesEnabled(subject)) {
     const { data: profile } = user
       ? await supabase
           .from("profiles")
@@ -38,8 +40,11 @@ async function CoursesPayload() {
     redirect(profile?.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
   }
 
-  await ensureDevelopmentLibraryCourses(activeUserId);
-  const library = await getCourseLibraryData(activeUserId);
+  // Dev seed content is debate-only; never seed it into the IELTS surface.
+  if (subject === "debate") {
+    await ensureDevelopmentLibraryCourses(activeUserId);
+  }
+  const library = await getCourseLibraryData(activeUserId, subject);
 
   return <CourseListContent library={library} />;
 }

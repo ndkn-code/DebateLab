@@ -19,7 +19,7 @@ import {
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
-import { DebateModeSwitcher } from "@/components/shared/debate-mode-switcher";
+import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { cn } from "@/lib/utils";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
@@ -27,6 +27,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
 import type { Profile } from "@/types/database";
 import type { AppLocale } from "@/lib/locale-switch";
+import type { Subject } from "@/lib/subject";
 
 const NAV_ICONS = {
   dashboard: Home,
@@ -47,6 +48,7 @@ interface DashboardSidebarRailProps {
   profile: Profile | null;
   userEmail: string | null;
   currentLocale: AppLocale;
+  activeSubject: Subject;
 }
 
 export function DashboardSidebarRail({
@@ -57,6 +59,7 @@ export function DashboardSidebarRail({
   profile,
   userEmail,
   currentLocale,
+  activeSubject,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
@@ -120,9 +123,10 @@ export function DashboardSidebarRail({
       </div>
 
       <div className="px-2 pt-3">
-        <DebateModeSwitcher
+        <ModeSwitcher
           variant="sidebar"
           currentLocale={currentLocale}
+          currentSubject={activeSubject}
         />
       </div>
 

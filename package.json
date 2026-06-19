@@ -54,6 +54,7 @@
     "test:corpus-importer": "npm run test:corpus-importer -w @thinkfy/web",
     "test:truong-teen": "npm run test:truong-teen -w @thinkfy/web",
     "test:practice-language": "npm run test:practice-language -w @thinkfy/web",
+    "test:subject": "npm run test:subject -w @thinkfy/web",
     "test:settings": "npm run test:settings -w @thinkfy/web",
     "test:topics": "npm run test:topics -w @thinkfy/web",
     "test:tts-voices": "npm run test:tts-voices -w @thinkfy/web",

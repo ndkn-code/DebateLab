@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
+import { SUBJECT_COOKIE_NAME, coerceSubject } from "@/lib/subject";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
@@ -28,7 +29,8 @@ async function DashboardPayload() {
 
   const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
   const timezone = cookieStore.get("thinkfy_timezone")?.value;
-  const data = await getDashboardData(activeUserId, supabase, { timezone });
+  const subject = coerceSubject(cookieStore.get(SUBJECT_COOKIE_NAME)?.value);
+  const data = await getDashboardData(activeUserId, supabase, { timezone, subject });
 
   // Get preferences for welcome banner check
   const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);
