@@ -96,3 +96,48 @@ Unit/integration tests run in CI via `npm test`. `src/lib/scoring/**` and
 coverage (lines ≥90%, functions ≥90%, branches ≥80%), source-mapped through
 tsx, no extra dependency. A scoring/payments module without a sibling
 `*.test.ts` also fails the gate ("missing test" cannot merge).
+
+## 8. The IELTS question bank: one canonical table (`ielts_questions`)
+
+`ielts_questions` is THE canonical question bank for the IELTS vertical. Every
+surface references questions **by id** — timed Assess-mode mocks
+(`ielts_question_responses.question_id`, `writing_responses.question_id`,
+`speaking_responses.question_id`) and future Learn-mode drills alike. One bank,
+many surfaces.
+
+- **Never re-encode questions inline.** Do not copy IELTS items into
+  `activities.content` (the debate engine's inline JSON) or any other table. An
+  IELTS activity may *point at* `ielts_questions` by id, but the prompt, options,
+  visual, and answer key live only in `ielts_questions` / `ielts_question_keys`.
+- **Never expose answer keys to learners.** Correct answers, accept-variants,
+  explanations, and the Band-9 model answer live in `ielts_question_keys`, which
+  has **no learner-readable RLS policy**; grading reads it with the service-role
+  client, server-side only.
+- **One canonical create path.** Author an item through the single
+  `lib/api/ielts` create function — `parseInput` (Zod) then a single insert that
+  writes the question and its key row together (one transaction / RPC). No inline
+  inserts; no divergent second path.
+- **Progress & XP union both attempt substrates.** A learner's IELTS
+  progress / XP / streak is the union of `activity_attempts` (Learn-mode
+  micro-activities) **and** `ielts_attempts` (Assess-mode mocks). Never assume a
+  single attempts table when aggregating IELTS progress.
+
+## 9. Evolving the IELTS enums
+
+The IELTS taxonomy uses **native Postgres enums** (`ielts_skill`,
+`ielts_question_type`, `ielts_module`, …) — a deliberate deviation from the
+repo's text+CHECK convention, because native enums surface real string-unions in
+the generated `Database` type (genuine "typed end-to-end"). The value-sets are
+closed and stable, so this is cheap to live with. To change one:
+
+- **Add a value** in a *new* migration:
+  `alter type public.ielts_question_type add value if not exists 'new_type';`
+  `ALTER TYPE … ADD VALUE` cannot be used in the **same** transaction that then
+  references the new value, and Supabase wraps each migration in a transaction —
+  so add the value in its own migration and reference it only in a *later* one.
+- **Rename / remove a value** — there is no `DROP VALUE`; renaming requires
+  recreating the type (new type → swap columns → drop old). Avoid it; prefer
+  additive evolution and deprecate in-app.
+- After any enum change, **regenerate types** (`npm run db:types`) and keep the
+  Zod enum tuples in `lib/api/ielts/schema.ts` + the authoring spec (§4) + the
+  WS-1.2 renderer registry in sync.
