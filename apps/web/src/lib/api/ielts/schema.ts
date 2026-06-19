@@ -1,0 +1,94 @@
+/**
+ * IELTS data-model boundary schemas (WS-0.3).
+ *
+ * Pure module: Zod schemas + payload mappers, no Supabase import at runtime
+ * (the generated row types are `import type` only, erased at runtime). This is
+ * what the smoke test exercises without a database. The actual DB calls live in
+ * the sibling repository modules and use the typed client factories.
+ *
+ * The enum tuples below are the single source of truth for boundary validation
+ * and mirror the native PG enums created in
+ * supabase/migrations/20260618205215_ielts_data_model.sql (and, post-regen,
+ * Constants.public.Enums.*). See docs/ielts/data-access.md §9 on enum evolution.
+ */
+import { z } from "zod";
+import type { TablesInsert } from "@/types/supabase";
+
+export const IELTS_SKILLS = ["listening", "reading", "writing", "speaking"] as const;
+export const IELTS_MODULES = ["academic", "general_training"] as const;
+export const IELTS_TEST_KINDS = ["full_mock", "skill_set", "drill"] as const;
+export const IELTS_CONTENT_STATUSES = [
+  "draft",
+  "in_qa",
+  "approved",
+  "published",
+  "archived",
+] as const;
+
+/**
+ * The complete IELTS question-type taxonomy (mirrors the `ielts_question_type`
+ * native enum). `ielts_questions` is the canonical bank — see
+ * docs/ielts/data-access.md §8.
+ */
+export const IELTS_QUESTION_TYPES = [
+  "mcq_single",
+  "mcq_multi",
+  "true_false_notgiven",
+  "yes_no_notgiven",
+  "matching_headings",
+  "matching_information",
+  "matching_features",
+  "sentence_completion",
+  "summary_completion",
+  "note_table_form_flowchart_completion",
+  "short_answer",
+  "diagram_label",
+  "map_plan_label",
+  "writing_task1_academic",
+  "writing_task1_general",
+  "writing_task2_essay",
+  "speaking_part1",
+  "speaking_part2_cuecard",
+  "speaking_part3",
+] as const;
+export const IELTS_QUESTION_TYPE_COUNT = IELTS_QUESTION_TYPES.length;
+
+/** Create-input for an `ielts_tests` row (the canonical container entity). */
+export const CreateIeltsTestSchema = z
+  .object({
+    slug: z
+      .string()
+      .min(1)
+      .max(120)
+      .regex(/^[a-z0-9-]+$/, "slug must be kebab-case (a-z, 0-9, -)"),
+    title: z.string().min(1).max(200),
+    kind: z.enum(IELTS_TEST_KINDS).default("full_mock"),
+    module: z.enum(IELTS_MODULES).default("academic"),
+    skill: z.enum(IELTS_SKILLS).nullish(),
+    status: z.enum(IELTS_CONTENT_STATUSES).default("draft"),
+    timeLimitSeconds: z.number().int().positive().nullish(),
+    description: z.string().max(2000).nullish(),
+  })
+  // Mirrors the DB CHECK (kind <> 'full_mock' or skill is null).
+  .refine((v) => v.kind !== "full_mock" || v.skill == null, {
+    message: "full_mock tests must not set a skill",
+    path: ["skill"],
+  });
+
+export type CreateIeltsTestInput = z.infer<typeof CreateIeltsTestSchema>;
+
+/** Map validated input to the typed `ielts_tests` insert row. */
+export function toIeltsTestInsert(
+  input: CreateIeltsTestInput,
+): TablesInsert<"ielts_tests"> {
+  return {
+    slug: input.slug,
+    title: input.title,
+    kind: input.kind,
+    module: input.module,
+    skill: input.skill ?? null,
+    status: input.status,
+    time_limit_seconds: input.timeLimitSeconds ?? null,
+    description: input.description ?? null,
+  };
+}
