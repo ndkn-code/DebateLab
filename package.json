@@ -15,6 +15,7 @@
     "test:design-system": "tsx scripts/design-system-tokens.test.ts",
     "test": "tsx scripts/ci/run-all-tests.ts",
     "test:scoring": "npm run test:scoring -w @thinkfy/web",
+    "test:payments": "npm run test:payments -w @thinkfy/web",
     "test:coverage:critical": "npm run test:coverage:critical -w @thinkfy/web",
     "ci:checks": "tsx scripts/ci/run-checks.ts",
     "selftest": "tsx scripts/ci/selftest.ts",

@@ -865,6 +865,177 @@ export type Database = {
           },
         ]
       }
+      attempt_band_scores: {
+        Row: {
+          attempt_id: string
+          band_conversion_id: string | null
+          computed_at: string | null
+          created_at: string
+          id: string
+          listening_band: number | null
+          listening_raw: number | null
+          overall_band: number | null
+          reading_band: number | null
+          reading_raw: number | null
+          speaking_band: number | null
+          updated_at: string
+          user_id: string
+          writing_band: number | null
+        }
+        Insert: {
+          attempt_id: string
+          band_conversion_id?: string | null
+          computed_at?: string | null
+          created_at?: string
+          id?: string
+          listening_band?: number | null
+          listening_raw?: number | null
+          overall_band?: number | null
+          reading_band?: number | null
+          reading_raw?: number | null
+          speaking_band?: number | null
+          updated_at?: string
+          user_id: string
+          writing_band?: number | null
+        }
+        Update: {
+          attempt_id?: string
+          band_conversion_id?: string | null
+          computed_at?: string | null
+          created_at?: string
+          id?: string
+          listening_band?: number | null
+          listening_raw?: number | null
+          overall_band?: number | null
+          reading_band?: number | null
+          reading_raw?: number | null
+          speaking_band?: number | null
+          updated_at?: string
+          user_id?: string
+          writing_band?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_band_scores_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: true
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_band_scores_band_conversion_id_fkey"
+            columns: ["band_conversion_id"]
+            isOneToOne: false
+            referencedRelation: "band_conversions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_band_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audio_assets: {
+        Row: {
+          accent: Database["public"]["Enums"]["ielts_accent"]
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          kind: string
+          metadata: Json
+          script: string | null
+          status: Database["public"]["Enums"]["ielts_audio_status"]
+          storage_path: string | null
+          test_id: string | null
+          tts_provider: string | null
+          updated_at: string
+          version: number
+          voice: string | null
+        }
+        Insert: {
+          accent?: Database["public"]["Enums"]["ielts_accent"]
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          script?: string | null
+          status?: Database["public"]["Enums"]["ielts_audio_status"]
+          storage_path?: string | null
+          test_id?: string | null
+          tts_provider?: string | null
+          updated_at?: string
+          version?: number
+          voice?: string | null
+        }
+        Update: {
+          accent?: Database["public"]["Enums"]["ielts_accent"]
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          script?: string | null
+          status?: Database["public"]["Enums"]["ielts_audio_status"]
+          storage_path?: string | null
+          test_id?: string | null
+          tts_provider?: string | null
+          updated_at?: string
+          version?: number
+          voice?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_assets_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      band_conversions: {
+        Row: {
+          band: number
+          conversion_key: string
+          created_at: string
+          id: string
+          module: Database["public"]["Enums"]["ielts_module"] | null
+          raw_max: number
+          raw_min: number
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          band: number
+          conversion_key?: string
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["ielts_module"] | null
+          raw_max: number
+          raw_min: number
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          band?: number
+          conversion_key?: string
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["ielts_module"] | null
+          raw_max?: number
+          raw_min?: number
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           context_id: string | null
@@ -3946,6 +4117,479 @@ export type Database = {
           },
         ]
       }
+      ielts_attempt_sections: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          deadline_at: string | null
+          id: string
+          label: string | null
+          listening_section_id: string | null
+          passage_id: string | null
+          section_order: number
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          started_at: string | null
+          submitted_at: string | null
+          time_limit_seconds: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          deadline_at?: string | null
+          id?: string
+          label?: string | null
+          listening_section_id?: string | null
+          passage_id?: string | null
+          section_order?: number
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          started_at?: string | null
+          submitted_at?: string | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          deadline_at?: string | null
+          id?: string
+          label?: string | null
+          listening_section_id?: string | null
+          passage_id?: string | null
+          section_order?: number
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          started_at?: string | null
+          submitted_at?: string | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_attempt_sections_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_sections_listening_section_id_fkey"
+            columns: ["listening_section_id"]
+            isOneToOne: false
+            referencedRelation: "listening_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_sections_passage_id_fkey"
+            columns: ["passage_id"]
+            isOneToOne: false
+            referencedRelation: "passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_sections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_attempts: {
+        Row: {
+          activity_attempt_id: string | null
+          assignment_id: string | null
+          attempt_number: number
+          class_id: string | null
+          club_id: string | null
+          completed_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json
+          module: Database["public"]["Enums"]["ielts_module"]
+          started_at: string
+          status: Database["public"]["Enums"]["ielts_attempt_status"]
+          submitted_at: string | null
+          test_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_attempt_id?: string | null
+          assignment_id?: string | null
+          attempt_number?: number
+          class_id?: string | null
+          club_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["ielts_attempt_status"]
+          submitted_at?: string | null
+          test_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_attempt_id?: string | null
+          assignment_id?: string | null
+          attempt_number?: number
+          class_id?: string | null
+          club_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["ielts_attempt_status"]
+          submitted_at?: string | null
+          test_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_attempts_activity_attempt_id_fkey"
+            columns: ["activity_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "activity_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_assignment_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "club_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "admin_class_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_question_keys: {
+        Row: {
+          accept_variants: Json
+          correct_answer: Json
+          created_at: string
+          examiner_notes: Json
+          explanation_en: string | null
+          explanation_vi: string | null
+          model_answer: string | null
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          accept_variants?: Json
+          correct_answer?: Json
+          created_at?: string
+          examiner_notes?: Json
+          explanation_en?: string | null
+          explanation_vi?: string | null
+          model_answer?: string | null
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          accept_variants?: Json
+          correct_answer?: Json
+          created_at?: string
+          examiner_notes?: Json
+          explanation_en?: string | null
+          explanation_vi?: string | null
+          model_answer?: string | null
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_question_keys_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: true
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_question_responses: {
+        Row: {
+          attempt_id: string
+          awarded_points: number | null
+          created_at: string
+          graded_at: string | null
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          response: Json
+          section_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          awarded_points?: number | null
+          created_at?: string
+          graded_at?: string | null
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          response?: Json
+          section_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          awarded_points?: number | null
+          created_at?: string
+          graded_at?: string | null
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          response?: Json
+          section_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_question_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_question_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_question_responses_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempt_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_question_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_questions: {
+        Row: {
+          created_at: string
+          group_instructions: string | null
+          group_key: string | null
+          id: string
+          listening_section_id: string | null
+          max_points: number
+          metadata: Json
+          options: Json
+          order_index: number
+          passage_id: string | null
+          prompt: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          test_id: string
+          updated_at: string
+          visual: Json | null
+          word_limit: number | null
+        }
+        Insert: {
+          created_at?: string
+          group_instructions?: string | null
+          group_key?: string | null
+          id?: string
+          listening_section_id?: string | null
+          max_points?: number
+          metadata?: Json
+          options?: Json
+          order_index?: number
+          passage_id?: string | null
+          prompt: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          test_id: string
+          updated_at?: string
+          visual?: Json | null
+          word_limit?: number | null
+        }
+        Update: {
+          created_at?: string
+          group_instructions?: string | null
+          group_key?: string | null
+          id?: string
+          listening_section_id?: string | null
+          max_points?: number
+          metadata?: Json
+          options?: Json
+          order_index?: number
+          passage_id?: string | null
+          prompt?: string
+          question_type?: Database["public"]["Enums"]["ielts_question_type"]
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          test_id?: string
+          updated_at?: string
+          visual?: Json | null
+          word_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_questions_listening_section_id_fkey"
+            columns: ["listening_section_id"]
+            isOneToOne: false
+            referencedRelation: "listening_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_questions_passage_id_fkey"
+            columns: ["passage_id"]
+            isOneToOne: false
+            referencedRelation: "passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_tests: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          kind: Database["public"]["Enums"]["ielts_test_kind"]
+          metadata: Json
+          module: Database["public"]["Enums"]["ielts_module"]
+          published_at: string | null
+          qa_reviewer_id: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"] | null
+          slug: string
+          status: Database["public"]["Enums"]["ielts_content_status"]
+          time_limit_seconds: number | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["ielts_test_kind"]
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          published_at?: string | null
+          qa_reviewer_id?: string | null
+          skill?: Database["public"]["Enums"]["ielts_skill"] | null
+          slug: string
+          status?: Database["public"]["Enums"]["ielts_content_status"]
+          time_limit_seconds?: number | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["ielts_test_kind"]
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          published_at?: string | null
+          qa_reviewer_id?: string | null
+          skill?: Database["public"]["Enums"]["ielts_skill"] | null
+          slug?: string
+          status?: Database["public"]["Enums"]["ielts_content_status"]
+          time_limit_seconds?: number | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_tests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_tests_qa_reviewer_id_fkey"
+            columns: ["qa_reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaderboard_admin_audit_log: {
         Row: {
           actor_user_id: string | null
@@ -4528,6 +5172,66 @@ export type Database = {
           },
         ]
       }
+      listening_sections: {
+        Row: {
+          accent: Database["public"]["Enums"]["ielts_accent"]
+          audio_asset_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          order_index: number
+          script: string
+          section_number: number
+          speakers: Json
+          test_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent?: Database["public"]["Enums"]["ielts_accent"]
+          audio_asset_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          order_index?: number
+          script: string
+          section_number: number
+          speakers?: Json
+          test_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent?: Database["public"]["Enums"]["ielts_accent"]
+          audio_asset_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          order_index?: number
+          script?: string
+          section_number?: number
+          speakers?: Json
+          test_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listening_sections_audio_asset_id_fkey"
+            columns: ["audio_asset_id"]
+            isOneToOne: false
+            referencedRelation: "audio_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listening_sections_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orb_transactions: {
         Row: {
           amount: number
@@ -4559,6 +5263,172 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "orb_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passages: {
+        Row: {
+          body: string
+          created_at: string
+          genre: string | null
+          id: string
+          metadata: Json
+          order_index: number
+          test_id: string
+          title: string
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          genre?: string | null
+          id?: string
+          metadata?: Json
+          order_index?: number
+          test_id: string
+          title: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          genre?: string | null
+          id?: string
+          metadata?: Json
+          order_index?: number
+          test_id?: string
+          title?: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passages_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number | null
+          billing_cycle: string | null
+          created_at: string
+          currency: string
+          id: string
+          idempotency_key: string
+          kind: string
+          metadata: Json
+          plan_type: string | null
+          processed: boolean
+          provider: string
+          provider_ref: string | null
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          idempotency_key: string
+          kind?: string
+          metadata?: Json
+          plan_type?: string | null
+          processed?: boolean
+          provider: string
+          provider_ref?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          metadata?: Json
+          plan_type?: string | null
+          processed?: boolean
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_webhook_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          received_at: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider: string
+          received_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          received_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_webhook_events_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -5611,6 +6481,53 @@ export type Database = {
           },
         ]
       }
+      revenuecat_customer_mappings: {
+        Row: {
+          aliases: Json
+          app_user_id: string
+          canonical_user_id: string | null
+          created_at: string
+          first_seen_at: string
+          id: string
+          is_anonymous: boolean
+          last_seen_at: string
+          metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          aliases?: Json
+          app_user_id: string
+          canonical_user_id?: string | null
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          is_anonymous?: boolean
+          last_seen_at?: string
+          metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          aliases?: Json
+          app_user_id?: string
+          canonical_user_id?: string | null
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          is_anonymous?: boolean
+          last_seen_at?: string
+          metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenuecat_customer_mappings_canonical_user_id_fkey"
+            columns: ["canonical_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smart_popup_campaigns: {
         Row: {
           campaign_type: string
@@ -5970,6 +6887,125 @@ export type Database = {
           },
         ]
       }
+      speaking_responses: {
+        Row: {
+          attempt_id: string
+          audio_storage_path: string | null
+          created_at: string
+          feedback: Json
+          feedback_language: string
+          fluency_coherence_band: number | null
+          grammar_band: number | null
+          id: string
+          lexical_resource_band: number | null
+          model_name: string | null
+          model_provider: string | null
+          part_number: number | null
+          phoneme_report: Json
+          prompt_bundle_key: string | null
+          prompt_bundle_version: number | null
+          pronunciation_band: number | null
+          question_id: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_note: string | null
+          scored_at: string | null
+          speaking_band: number | null
+          status: Database["public"]["Enums"]["ielts_response_status"]
+          stt_provider: string | null
+          transcript: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          audio_storage_path?: string | null
+          created_at?: string
+          feedback?: Json
+          feedback_language?: string
+          fluency_coherence_band?: number | null
+          grammar_band?: number | null
+          id?: string
+          lexical_resource_band?: number | null
+          model_name?: string | null
+          model_provider?: string | null
+          part_number?: number | null
+          phoneme_report?: Json
+          prompt_bundle_key?: string | null
+          prompt_bundle_version?: number | null
+          pronunciation_band?: number | null
+          question_id: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          scored_at?: string | null
+          speaking_band?: number | null
+          status?: Database["public"]["Enums"]["ielts_response_status"]
+          stt_provider?: string | null
+          transcript?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          audio_storage_path?: string | null
+          created_at?: string
+          feedback?: Json
+          feedback_language?: string
+          fluency_coherence_band?: number | null
+          grammar_band?: number | null
+          id?: string
+          lexical_resource_band?: number | null
+          model_name?: string | null
+          model_provider?: string | null
+          part_number?: number | null
+          phoneme_report?: Json
+          prompt_bundle_key?: string | null
+          prompt_bundle_version?: number | null
+          pronunciation_band?: number | null
+          question_id?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          scored_at?: string | null
+          speaking_band?: number | null
+          status?: Database["public"]["Enums"]["ielts_response_status"]
+          stt_provider?: string | null
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaking_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaking_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaking_responses_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaking_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stt_repair_shadow_runs: {
         Row: {
           admin_notes: string | null
@@ -6125,15 +7161,22 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          amount_paid: number | null
+          billing_cycle: string | null
           cancel_at_period_end: boolean
           cancelled_at: string | null
           created_at: string
+          currency: string | null
           current_period_end: string | null
           current_period_start: string | null
           ended_at: string | null
           id: string
+          last_webhook_event_at: string | null
           metadata: Json
           plan_type: string
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
           status: string
           trial_end_date: string | null
           trial_start_date: string | null
@@ -6141,15 +7184,22 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount_paid?: number | null
+          billing_cycle?: string | null
           cancel_at_period_end?: boolean
           cancelled_at?: string | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           ended_at?: string | null
           id?: string
+          last_webhook_event_at?: string | null
           metadata?: Json
           plan_type?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           trial_end_date?: string | null
           trial_start_date?: string | null
@@ -6157,15 +7207,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount_paid?: number | null
+          billing_cycle?: string | null
           cancel_at_period_end?: boolean
           cancelled_at?: string | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           ended_at?: string | null
           id?: string
+          last_webhook_event_at?: string | null
           metadata?: Json
           plan_type?: string
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           trial_end_date?: string | null
           trial_start_date?: string | null
@@ -6412,6 +7469,125 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      writing_responses: {
+        Row: {
+          attempt_id: string
+          coherence_cohesion_band: number | null
+          created_at: string
+          essay: string
+          feedback_language: string
+          grammar_band: number | null
+          id: string
+          inline_corrections: Json
+          lexical_resource_band: number | null
+          model_answer: string | null
+          model_name: string | null
+          model_provider: string | null
+          paragraph_feedback: Json
+          prompt_bundle_key: string | null
+          prompt_bundle_version: number | null
+          question_id: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_note: string | null
+          scored_at: string | null
+          status: Database["public"]["Enums"]["ielts_response_status"]
+          task_band: number | null
+          task_number: number
+          task_response_band: number | null
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          attempt_id: string
+          coherence_cohesion_band?: number | null
+          created_at?: string
+          essay?: string
+          feedback_language?: string
+          grammar_band?: number | null
+          id?: string
+          inline_corrections?: Json
+          lexical_resource_band?: number | null
+          model_answer?: string | null
+          model_name?: string | null
+          model_provider?: string | null
+          paragraph_feedback?: Json
+          prompt_bundle_key?: string | null
+          prompt_bundle_version?: number | null
+          question_id: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          scored_at?: string | null
+          status?: Database["public"]["Enums"]["ielts_response_status"]
+          task_band?: number | null
+          task_number?: number
+          task_response_band?: number | null
+          updated_at?: string
+          user_id: string
+          word_count?: number
+        }
+        Update: {
+          attempt_id?: string
+          coherence_cohesion_band?: number | null
+          created_at?: string
+          essay?: string
+          feedback_language?: string
+          grammar_band?: number | null
+          id?: string
+          inline_corrections?: Json
+          lexical_resource_band?: number | null
+          model_answer?: string | null
+          model_name?: string | null
+          model_provider?: string | null
+          paragraph_feedback?: Json
+          prompt_bundle_key?: string | null
+          prompt_bundle_version?: number | null
+          question_id?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          scored_at?: string | null
+          status?: Database["public"]["Enums"]["ielts_response_status"]
+          task_band?: number | null
+          task_number?: number
+          task_response_band?: number | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "writing_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "writing_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "writing_responses_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "writing_responses_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -6916,6 +8092,25 @@ export type Database = {
         Returns: number
       }
       advance_overdue_debate_duels: { Args: never; Returns: number }
+      apply_subscription_from_webhook: {
+        Args: {
+          p_amount_paid: number
+          p_billing_cycle: string
+          p_cancel_at_period_end: boolean
+          p_currency: string
+          p_current_period_end: string
+          p_current_period_start: string
+          p_event_at: string
+          p_plan_type: string
+          p_provider: string
+          p_provider_customer_id: string
+          p_provider_subscription_id: string
+          p_status: string
+          p_trial_end_date: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       award_xp_event: {
         Args: {
           p_activity_type?: string
@@ -6971,6 +8166,21 @@ export type Database = {
           message: string
           status: string
         }[]
+      }
+      claim_payment_transaction: {
+        Args: {
+          p_amount: number
+          p_billing_cycle: string
+          p_currency: string
+          p_idempotency_key: string
+          p_kind: string
+          p_metadata: Json
+          p_plan_type: string
+          p_provider: string
+          p_provider_ref: string
+          p_user_id: string
+        }
+        Returns: string
       }
       close_leaderboard_season: {
         Args: { p_leaderboard_language?: string; p_season_id: string }
@@ -7037,6 +8247,16 @@ export type Database = {
       }
       finalize_debate_duel_stats: {
         Args: { p_duel_id: string; p_duration_minutes: number; p_xp: number }
+        Returns: undefined
+      }
+      finalize_payment_transaction: {
+        Args: {
+          p_idempotency_key: string
+          p_provider: string
+          p_provider_ref: string
+          p_status: string
+          p_subscription_id: string
+        }
         Returns: undefined
       }
       flag_leaderboard_xp_event: {
@@ -7131,6 +8351,21 @@ export type Database = {
         Args: { p_amount?: number; p_response_id: string; p_user_id: string }
         Returns: number
       }
+      increment_feature_usage: {
+        Args: {
+          p_amount: number
+          p_feature: string
+          p_limit: number
+          p_period_end: string
+          p_period_start: string
+          p_user_id: string
+        }
+        Returns: {
+          allowed: boolean
+          limit_count: number
+          used_count: number
+        }[]
+      }
       increment_xp: {
         Args: { amount: number; user_id: string }
         Returns: undefined
@@ -7138,6 +8373,15 @@ export type Database = {
       join_debate_duel: {
         Args: { p_actor_user_id: string; p_share_code: string }
         Returns: string
+      }
+      mark_payment_webhook_event: {
+        Args: {
+          p_error: string
+          p_event_id: string
+          p_provider: string
+          p_status: string
+        }
+        Returns: undefined
       }
       match_debate_corpus_items: {
         Args: {
@@ -7188,6 +8432,16 @@ export type Database = {
         Args: { p_course_id: string; p_user_id: string }
         Returns: undefined
       }
+      record_payment_webhook_event: {
+        Args: {
+          p_event_id: string
+          p_event_type: string
+          p_payload: Json
+          p_provider: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       refresh_leaderboard_org_totals: {
         Args: { p_leaderboard_language?: string; p_season_id: string }
         Returns: {
@@ -7199,6 +8453,10 @@ export type Database = {
         Returns: {
           assigned_count: number
         }[]
+      }
+      release_payment_transaction: {
+        Args: { p_idempotency_key: string; p_provider: string }
+        Returns: undefined
       }
       remove_profile_connection: {
         Args: { p_target_user_id: string }
@@ -7307,7 +8565,50 @@ export type Database = {
           }
     }
     Enums: {
-      [_ in never]: never
+      ielts_accent: "uk" | "us" | "aus" | "other"
+      ielts_attempt_status:
+        | "in_progress"
+        | "submitted"
+        | "scoring"
+        | "completed"
+        | "expired"
+        | "abandoned"
+      ielts_audio_status: "pending" | "generating" | "ready" | "failed"
+      ielts_content_status:
+        | "draft"
+        | "in_qa"
+        | "approved"
+        | "published"
+        | "archived"
+      ielts_module: "academic" | "general_training"
+      ielts_question_type:
+        | "mcq_single"
+        | "mcq_multi"
+        | "true_false_notgiven"
+        | "yes_no_notgiven"
+        | "matching_headings"
+        | "matching_information"
+        | "matching_features"
+        | "sentence_completion"
+        | "summary_completion"
+        | "note_table_form_flowchart_completion"
+        | "short_answer"
+        | "diagram_label"
+        | "map_plan_label"
+        | "writing_task1_academic"
+        | "writing_task1_general"
+        | "writing_task2_essay"
+        | "speaking_part1"
+        | "speaking_part2_cuecard"
+        | "speaking_part3"
+      ielts_response_status:
+        | "pending"
+        | "scoring"
+        | "scored"
+        | "failed"
+        | "overridden"
+      ielts_skill: "listening" | "reading" | "writing" | "speaking"
+      ielts_test_kind: "full_mock" | "skill_set" | "drill"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7434,7 +8735,55 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ielts_accent: ["uk", "us", "aus", "other"],
+      ielts_attempt_status: [
+        "in_progress",
+        "submitted",
+        "scoring",
+        "completed",
+        "expired",
+        "abandoned",
+      ],
+      ielts_audio_status: ["pending", "generating", "ready", "failed"],
+      ielts_content_status: [
+        "draft",
+        "in_qa",
+        "approved",
+        "published",
+        "archived",
+      ],
+      ielts_module: ["academic", "general_training"],
+      ielts_question_type: [
+        "mcq_single",
+        "mcq_multi",
+        "true_false_notgiven",
+        "yes_no_notgiven",
+        "matching_headings",
+        "matching_information",
+        "matching_features",
+        "sentence_completion",
+        "summary_completion",
+        "note_table_form_flowchart_completion",
+        "short_answer",
+        "diagram_label",
+        "map_plan_label",
+        "writing_task1_academic",
+        "writing_task1_general",
+        "writing_task2_essay",
+        "speaking_part1",
+        "speaking_part2_cuecard",
+        "speaking_part3",
+      ],
+      ielts_response_status: [
+        "pending",
+        "scoring",
+        "scored",
+        "failed",
+        "overridden",
+      ],
+      ielts_skill: ["listening", "reading", "writing", "speaking"],
+      ielts_test_kind: ["full_mock", "skill_set", "drill"],
+    },
   },
 } as const
-
