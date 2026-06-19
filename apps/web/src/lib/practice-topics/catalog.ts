@@ -10,6 +10,7 @@ import {
 } from "@/lib/topics";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { formatMotionTitleForDisplay } from "@/lib/practice-topics/motion-title";
 import type { DebateTopic, PracticeLanguage } from "@/types";
 
 type SourceKind = "legacy" | "calico" | "truong_teen";
@@ -177,7 +178,10 @@ function mapCatalogRow(
     id: row.topic_key,
     topicKey: row.topic_key,
     categoryKey,
-    title: row.title,
+    title: formatMotionTitleForDisplay(row.title, {
+      language,
+      sourceKind: row.source_kind,
+    }),
     category: getCategoryLabel(categoryKey, language),
     difficulty: row.difficulty,
     context: row.context ?? undefined,

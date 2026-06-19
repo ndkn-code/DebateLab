@@ -15,6 +15,7 @@ import {
   resolvePracticeTopic,
 } from "./practice-prefill";
 import { normalizeSettingsPreferences } from "./settings";
+import { formatMotionTitleForDisplay } from "./practice-topics/motion-title";
 import { buildPracticeTopicDisplays } from "@/components/practice/practice-topic-display";
 
 const englishTopics = getLocalizedTopics("en");
@@ -121,6 +122,51 @@ assert.deepEqual(
   ["tt-motion", "high-confidence-topic", "standard-topic"]
 );
 assert.equal(prioritizedDisplays[0].priorityBadges[0]?.label, "Trường Teen");
+
+assert.equal(
+  formatMotionTitleForDisplay("Nên bỏ kỳ thi tốt nghiệp trung học phổ thông", {
+    language: "vi",
+    sourceKind: "truong_teen",
+  }),
+  "Chúng tôi ủng hộ việc bỏ kỳ thi tốt nghiệp trung học phổ thông."
+);
+assert.equal(
+  formatMotionTitleForDisplay(
+    "Truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm",
+    {
+      language: "vi",
+      sourceKind: "truong_teen",
+    }
+  ),
+  "Chúng tôi tin rằng truyền thông nên ngừng ca ngợi các cá nhân có thành công đến sớm."
+);
+assert.equal(
+  formatMotionTitleForDisplay(
+    "Các cuộc thi mang tính cạnh tranh dành cho học sinh cần được chấm dứt",
+    {
+      language: "vi",
+      sourceKind: "truong_teen",
+    }
+  ),
+  "Chúng tôi ủng hộ việc chấm dứt các cuộc thi mang tính cạnh tranh dành cho học sinh."
+);
+assert.equal(
+  formatMotionTitleForDisplay(
+    "Sáng tác văn học nên là nội dung bắt buộc trong môn ngữ văn",
+    {
+      language: "vi",
+      sourceKind: "truong_teen",
+    }
+  ),
+  "Chúng tôi tin rằng sáng tác văn học nên là nội dung bắt buộc trong môn Ngữ văn."
+);
+assert.equal(
+  formatMotionTitleForDisplay("Chúng tôi ủng hộ việc cấm điện thoại.", {
+    language: "vi",
+    sourceKind: "calico",
+  }),
+  "Chúng tôi ủng hộ việc cấm điện thoại."
+);
 
 assert.equal(
   findPracticeTopicByTitle("Smartphones should be banned in schools", "vi")

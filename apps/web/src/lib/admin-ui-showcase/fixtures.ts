@@ -65,6 +65,8 @@ export const showcaseAnnotatedSession: DebateSession = {
   mode: "quick",
   prepTime: 420,
   speechTime: 420,
+  prepNotes:
+    "<strong>Clash:</strong> attention protection vs flexible educational phone use.<br><br><ul><li>Need example: notification breaks teacher explanation.</li><li>Weigh school-wide rule against teacher discretion.</li></ul>",
   transcript: showcaseTranscript,
   duration: 388,
   feedback: {
@@ -156,6 +158,60 @@ export const showcaseAnnotatedSession: DebateSession = {
       "A school-wide ban creates predictable norms, which reduces enforcement conflict and preserves class time.",
       "The fairest policy protects students who struggle with impulse control instead of assuming everyone can self-regulate.",
       "Limited classroom time means even small distractions compound into lost learning across a term.",
+    ],
+    noteTakingFeedback: {
+      summary:
+        "Your notes correctly identified the main clash, but they needed one ready-to-say weighing sentence before the speech started.",
+      whatHelped: [
+        "The attention-versus-flexibility clash became the spine of the speech.",
+        "The reminder about teacher discretion surfaced in the argument diagnosis.",
+      ],
+      missedOpportunities: [
+        "Capture one concrete classroom example before moving to the second claim.",
+        "Write the comparison sentence in full so it can become your closing.",
+      ],
+      nextSessionTemplate: [
+        "Clash: my world protects ___; their world risks ___.",
+        "Best example: ___ happens to ___, causing ___.",
+        "Weighing close: ___ matters more than ___ because ___.",
+      ],
+    },
+    improvementPlan: [
+      {
+        title: "Write one complete mechanism",
+        whyItMatters:
+          "A beginner-friendly mechanism helps the judge see how the harm actually happens.",
+        howToPractice:
+          "Before speaking, write trigger -> behavior change -> harm -> impact for your first argument.",
+        shadowExample:
+          "When a notification appears, attention breaks, the teacher loses time resetting the class, and repeated resets reduce learning for everyone.",
+        timeBoxSeconds: 120,
+      },
+      {
+        title: "Add a comparison close",
+        whyItMatters:
+          "The result needs to tell the judge why your side beats the alternative.",
+        howToPractice:
+          "End with one sentence comparing your impact against the best opposition benefit.",
+        shadowExample:
+          "Protected class attention matters more than occasional phone convenience because it affects every student in every lesson.",
+        timeBoxSeconds: 90,
+      },
+    ],
+    shadowExamples: [
+      {
+        label: "Mechanism sentence",
+        before: "Phones distract students from deep learning.",
+        after:
+          "Phones distract students because one notification breaks concentration, forces the teacher to reset the room, and turns limited class time into lost learning.",
+        why: "It turns a broad claim into a causal chain the judge can follow.",
+      },
+      {
+        label: "Weighing sentence",
+        after:
+          "Even if phones help research sometimes, a consistent offline classroom rule protects more students more often than flexible use does.",
+        why: "It compares both worlds instead of only restating the ban.",
+      },
     ],
     caseSummary:
       "The case argues that phone bans protect attention and fairness, but the policy mechanism needs more depth.",
@@ -263,6 +319,9 @@ export const showcaseLegacySession: DebateSession = {
         argumentBreakdowns: [],
         missingLayers: [],
         strongerRebuilds: [],
+        noteTakingFeedback: undefined,
+        improvementPlan: undefined,
+        shadowExamples: undefined,
         caseSummary: undefined,
         stanceFeedback: undefined,
         weighingFeedback: undefined,

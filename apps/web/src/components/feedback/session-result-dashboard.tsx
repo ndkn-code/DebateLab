@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft,
+  BookOpenText,
   Bookmark,
   Bot,
   CalendarDays,
@@ -12,8 +13,11 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   Clock3,
+  Dumbbell,
   FileText,
+  Lightbulb,
   MessageCircle,
   Mic2,
   MoreVertical,
@@ -140,6 +144,15 @@ function formatDurationLabel(
   return t("hoursMinutes", { hours, minutes });
 }
 
+function formatTimeBoxLabel(
+  seconds: number | undefined,
+  t: ReturnType<typeof useTranslations<"sessionResult.coaching">>
+) {
+  if (!seconds) return null;
+  if (seconds < 60) return t("seconds", { count: seconds });
+  return t("minutes", { count: Math.round(seconds / 60) });
+}
+
 function getTrackLabel(
   session: DebateSession,
   t: ReturnType<typeof useTranslations<"sessionResult.tracks">>
@@ -216,6 +229,7 @@ export function SessionResultDashboard({
   const tDuration = useTranslations("sessionResult.duration");
   const tTracks = useTranslations("sessionResult.tracks");
   const tModes = useTranslations("sessionResult.modes");
+  const tCoaching = useTranslations("sessionResult.coaching");
   const locale = useLocale();
   const [displayScore, setDisplayScore] = useState(0);
   const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
@@ -324,6 +338,11 @@ export function SessionResultDashboard({
   const hasCasework =
     viewModel.practiceTrack === "debate" &&
     (caseworkItems.length > 0 || argumentBreakdowns.length > 0);
+  const hasNoteReview = Boolean(viewModel.prepNotes);
+  const hasImprovementPlan = viewModel.improvementPlan.length > 0;
+  const hasShadowExamples = viewModel.shadowExamples.length > 0;
+  const hasLearningReview =
+    hasNoteReview || hasImprovementPlan || hasShadowExamples;
 
   const handleShare = async () => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -662,6 +681,185 @@ export function SessionResultDashboard({
           </div>
         </div>
       </div>
+
+      {hasLearningReview && (
+        <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          {viewModel.prepNotes && (
+            <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-base font-bold text-on-surface">
+                    <BookOpenText className="h-5 w-5 text-primary" />
+                    {tCoaching("notes.heading")}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                    {tCoaching("notes.meta", {
+                      count: viewModel.prepNotes.wordCount,
+                    })}
+                  </p>
+                </div>
+                <span className="rounded-xl bg-surface-container px-3 py-2 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
+                  {tCoaching("notes.saved")}
+                </span>
+              </div>
+
+              <div
+                className="mt-4 max-h-[280px] min-h-[120px] overflow-y-auto rounded-xl border border-outline-variant bg-surface-container p-4 text-sm leading-7 text-on-surface-variant [overflow-wrap:anywhere] [&_a]:font-semibold [&_a]:text-primary [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-on-surface [&_ul]:list-disc"
+                dangerouslySetInnerHTML={{ __html: viewModel.prepNotes.html }}
+              />
+
+              {viewModel.feedback.noteTakingFeedback && (
+                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                  <div className="rounded-xl bg-success-container/40 p-4 ring-1 ring-outline-variant">
+                    <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+                      <CheckCircle2 className="h-4 w-4 text-success-dim" />
+                      {tCoaching("notes.whatHelped")}
+                    </div>
+                    <ul className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
+                      {viewModel.feedback.noteTakingFeedback.whatHelped.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-success-dim" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl bg-warning-container/35 p-4 ring-1 ring-outline-variant">
+                    <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+                      <Target className="h-4 w-4 text-on-warning-container" />
+                      {tCoaching("notes.missed")}
+                    </div>
+                    <ul className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
+                      {viewModel.feedback.noteTakingFeedback.missedOpportunities.map(
+                        (item) => (
+                          <li key={item} className="flex gap-2">
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
+                            <span>{item}</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl bg-surface-container p-4 ring-1 ring-outline-variant">
+                    <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+                      <Lightbulb className="h-4 w-4 text-primary" />
+                      {tCoaching("notes.nextTemplate")}
+                    </div>
+                    <ul className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
+                      {viewModel.feedback.noteTakingFeedback.nextSessionTemplate.map(
+                        (item) => (
+                          <li key={item} className="flex gap-2">
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                            <span>{item}</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6",
+              !viewModel.prepNotes && "xl:col-span-2"
+            )}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-base font-bold text-on-surface">
+                  <Dumbbell className="h-5 w-5 text-primary" />
+                  {tCoaching("plan.heading")}
+                </div>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-on-surface-variant">
+                  {viewModel.feedback.noteTakingFeedback?.summary ??
+                    tCoaching("plan.subheading")}
+                </p>
+              </div>
+            </div>
+
+            {hasImprovementPlan && (
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                {viewModel.improvementPlan.map((step, index) => {
+                  const timeBox = formatTimeBoxLabel(
+                    step.timeBoxSeconds,
+                    tCoaching
+                  );
+                  return (
+                    <article
+                      key={`${step.title}-${index}`}
+                      className="rounded-xl border border-outline-variant bg-surface-container p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-container text-sm font-extrabold text-primary">
+                          {index + 1}
+                        </div>
+                        {timeBox && (
+                          <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
+                            {timeBox}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="mt-3 text-sm font-bold leading-6 text-on-surface">
+                        {step.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                        {step.whyItMatters}
+                      </p>
+                      <p className="mt-3 rounded-lg bg-white p-3 text-sm leading-6 text-on-surface-variant ring-1 ring-outline-variant">
+                        {step.howToPractice}
+                      </p>
+                      {step.shadowExample && (
+                        <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+                          <span className="font-bold text-on-surface">
+                            {tCoaching("plan.shadow")}{" "}
+                          </span>
+                          {step.shadowExample}
+                        </p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            {hasShadowExamples && (
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {viewModel.shadowExamples.map((example, index) => (
+                  <article
+                    key={`${example.label}-${index}`}
+                    className="rounded-xl border border-outline-variant bg-white p-4"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                      <ClipboardList className="h-4 w-4" />
+                      {example.label}
+                    </div>
+                    {example.before && (
+                      <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+                        <span className="font-bold text-on-surface">
+                          {tCoaching("shadow.before")}{" "}
+                        </span>
+                        {example.before}
+                      </p>
+                    )}
+                    <p className="mt-3 rounded-lg bg-primary-container p-3 text-sm leading-6 text-primary">
+                      <span className="font-bold">
+                        {tCoaching("shadow.after")}{" "}
+                      </span>
+                      {example.after}
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-on-surface-variant">
+                      {example.why}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="mt-5">
         <h2 className="text-base font-bold text-on-surface">

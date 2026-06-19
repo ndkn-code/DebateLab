@@ -77,6 +77,7 @@ export interface PracticeAttemptSnapshot {
     motionBrief?: MotionBrief;
     debateMemory?: DebateMemory | null;
     transcription?: PracticeTranscriptionArtifact;
+    prepNotes: string;
   };
   session: {
     mode: "quick" | "full";
@@ -164,6 +165,7 @@ export interface MobilePracticeHistoryDetail
   prepTime: number;
   speechTime: number;
   transcript: string;
+  prepNotes: string | null;
   feedback: DebateScore | null;
   modelName: string | null;
   aiDifficulty: AiDifficulty | null;

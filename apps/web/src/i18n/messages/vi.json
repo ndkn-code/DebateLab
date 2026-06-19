@@ -2085,6 +2085,27 @@
         "persuasion": "Thuyết phục"
       }
     },
+    "coaching": {
+      "seconds": "{count} giây",
+      "minutes": "{count} phút",
+      "notes": {
+        "heading": "Ghi chú của bạn",
+        "meta": "{count} từ được lưu từ phiên này",
+        "saved": "Đã lưu",
+        "whatHelped": "Điểm đã hỗ trợ bài nói",
+        "missed": "Lần tới cần bắt thêm",
+        "nextTemplate": "Khung ghi chú lần tới"
+      },
+      "plan": {
+        "heading": "Kế hoạch luyện tiếp theo",
+        "subheading": "Dùng các bài tập này làm checklist đầu tiên cho lượt luyện kế tiếp.",
+        "shadow": "Luyện theo:"
+      },
+      "shadow": {
+        "before": "Trước:",
+        "after": "Thử nói:"
+      }
+    },
     "casework": {
       "heading": "Chẩn đoán bài tranh biện",
       "subheading": "Phần này tập trung vào chất lượng lập luận, lớp lập luận còn thiếu, đối đầu lập luận và cách xây lại luận điểm mạnh hơn.",

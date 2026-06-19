@@ -20,24 +20,32 @@ assert.equal(firstSnapshot.schemaVersion, 1);
 assert.equal(firstSnapshot.analysisParams.practiceTrack, "debate");
 assert.equal(firstSnapshot.session.topicCategory, "Education");
 assert.equal(firstSnapshot.analysisParams.debateMemory ?? null, null);
+assert.equal(firstSnapshot.analysisParams.prepNotes, "Focus on classroom attention.");
 
 const baseHash = createPracticeInputHash(englishDebateInput);
 const changedHash = createPracticeInputHash({
   ...englishDebateInput,
   transcript: `${englishDebateInput.transcript} One more sentence changes the immutable input.`,
 });
+const changedNotesHash = createPracticeInputHash({
+  ...englishDebateInput,
+  prepNotes: "Focus on attention, teacher discretion, and weighing.",
+});
 assert.equal(baseHash.length, 64);
 assert.notEqual(baseHash, changedHash);
+assert.notEqual(baseHash, changedNotesHash);
 
 const debateManifest = getPracticeFeedbackPromptManifest(englishDebateInput);
 assert.equal(debateManifest.promptBundleKey, "practice_feedback");
-assert.equal(debateManifest.promptBundleVersion, 6);
+assert.equal(debateManifest.promptBundleVersion, 7);
 assert.equal(debateManifest.rubricKey, "debate_v1");
 assert.equal(debateManifest.evaluatorKey, "debate_feedback_v1");
 assert.equal(debateManifest.promptHash.length, 64);
 assert.ok(debateManifest.prompt.includes("Schools should ban phones"));
 assert.ok(debateManifest.prompt.includes("Motion Definition"));
 assert.ok(debateManifest.prompt.includes("scoreRationale"));
+assert.ok(debateManifest.prompt.includes("Prep Notes"));
+assert.ok(debateManifest.prompt.includes("Focus on classroom attention."));
 
 const speakingManifest = getPracticeFeedbackPromptManifest(vietnameseSpeakingInput);
 assert.equal(speakingManifest.rubricKey, "speaking_v1");

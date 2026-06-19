@@ -107,6 +107,28 @@ export interface ScoreCalibrationMetadata {
   scoreCapReasons: string[];
 }
 
+export interface NoteTakingFeedback {
+  summary: string;
+  whatHelped: string[];
+  missedOpportunities: string[];
+  nextSessionTemplate: string[];
+}
+
+export interface PracticeActionStep {
+  title: string;
+  whyItMatters: string;
+  howToPractice: string;
+  shadowExample?: string;
+  timeBoxSeconds?: number;
+}
+
+export interface ShadowExample {
+  label: string;
+  before?: string;
+  after: string;
+  why: string;
+}
+
 export interface DebateScore {
   content: {
     score: number;
@@ -158,6 +180,9 @@ export interface DebateScore {
   clashLinks?: DebateClashLink[];
   scoreRationale?: ScoreRationale;
   scoreCalibrationMetadata?: ScoreCalibrationMetadata;
+  noteTakingFeedback?: NoteTakingFeedback | null;
+  improvementPlan?: PracticeActionStep[];
+  shadowExamples?: ShadowExample[];
   detailedFeedback: {
     contentFeedback: string;
     structureFeedback: string;
