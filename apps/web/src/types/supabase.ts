@@ -7481,6 +7481,7 @@ export type Database = {
           attempt_id: string
           coherence_cohesion_band: number | null
           created_at: string
+          criteria_feedback: Json
           essay: string
           feedback_language: string
           grammar_band: number | null
@@ -7510,6 +7511,7 @@ export type Database = {
           attempt_id: string
           coherence_cohesion_band?: number | null
           created_at?: string
+          criteria_feedback?: Json
           essay?: string
           feedback_language?: string
           grammar_band?: number | null
@@ -7539,6 +7541,7 @@ export type Database = {
           attempt_id?: string
           coherence_cohesion_band?: number | null
           created_at?: string
+          criteria_feedback?: Json
           essay?: string
           feedback_language?: string
           grammar_band?: number | null

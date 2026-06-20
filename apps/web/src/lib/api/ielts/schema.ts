@@ -92,3 +92,64 @@ export function toIeltsTestInsert(
     description: input.description ?? null,
   };
 }
+
+export const IELTS_FEEDBACK_LANGUAGES = ["en", "vi"] as const;
+export type IeltsFeedbackLanguage = (typeof IELTS_FEEDBACK_LANGUAGES)[number];
+
+/** The writing task types in the question taxonomy (one essay per task). */
+export const IELTS_WRITING_QUESTION_TYPES = [
+  "writing_task1_academic",
+  "writing_task1_general",
+  "writing_task2_essay",
+] as const;
+
+/** Task number a writing question type maps to (Task 2 counts double). */
+export function writingTaskNumberForQuestionType(
+  questionType: string,
+): 1 | 2 {
+  return questionType === "writing_task2_essay" ? 2 : 1;
+}
+
+/** IELTS counts words as whitespace-separated tokens. */
+export function countEssayWords(essay: string): number {
+  return essay.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Create-input for a learner's Writing submission (WS-3.1). */
+export const CreateWritingResponseSchema = z.object({
+  attemptId: z.string().uuid(),
+  questionId: z.string().uuid(),
+  essay: z.string().min(1).max(20_000),
+  feedbackLanguage: z.enum(IELTS_FEEDBACK_LANGUAGES).default("en"),
+});
+export type CreateWritingResponseInput = z.infer<
+  typeof CreateWritingResponseSchema
+>;
+
+/** Map a validated Writing submission to the typed `writing_responses` insert. */
+export function toWritingResponseInsert(params: {
+  input: CreateWritingResponseInput;
+  userId: string;
+  taskNumber: 1 | 2;
+}): TablesInsert<"writing_responses"> {
+  return {
+    attempt_id: params.input.attemptId,
+    question_id: params.input.questionId,
+    user_id: params.userId,
+    task_number: params.taskNumber,
+    essay: params.input.essay,
+    word_count: countEssayWords(params.input.essay),
+    feedback_language: params.input.feedbackLanguage,
+    status: "pending",
+    // A (re)submission clears any prior AI score so the response re-scores clean.
+    task_response_band: null,
+    coherence_cohesion_band: null,
+    lexical_resource_band: null,
+    grammar_band: null,
+    task_band: null,
+    inline_corrections: [],
+    paragraph_feedback: [],
+    model_answer: null,
+    scored_at: null,
+  };
+}
