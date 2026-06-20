@@ -2768,5 +2768,16 @@
     "empty_title": "Trang phân tích đang chờ dữ liệu",
   "empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc tranh biện để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
     "start_practicing": "Bắt đầu luyện tập"
+  },
+  "ielts": {
+    "player": {
+      "wordLimitHint": "Viết không quá {count} từ cho mỗi chỗ trống.",
+      "chooseCount": "Chọn {count} đáp án.",
+      "pointsAwarded": "Đúng {awarded}/{max}",
+      "matchSelect": "Chọn…",
+      "blankLabel": "Đáp án cho chỗ trống {id}",
+      "blankPlaceholder": "Nhập câu trả lời",
+      "notAutoGraded": "Dạng câu hỏi này được chấm bởi giám khảo AI, không chấm tự động."
+    }
   }
 }
