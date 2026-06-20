@@ -16,6 +16,7 @@
     "test:ielts-mock": "tsx src/lib/ielts/mock-blueprint.test.ts && tsx src/lib/ielts/section-timing.test.ts && tsx src/lib/scoring/ielts/answer-normalize.test.ts && tsx src/lib/scoring/ielts/objective-scoring.test.ts && tsx src/lib/scoring/ielts/band-conversion.test.ts && tsx src/lib/scoring/ielts/grade-objective.test.ts && tsx src/lib/scoring/ielts/overall-band.test.ts",
     "test:ielts-listening-audio": "tsx src/lib/ielts/listening-audio/script-parser.test.ts && tsx src/lib/ielts/listening-audio/voice-map.test.ts && tsx src/lib/ielts/listening-audio/plan.test.ts && tsx src/lib/ielts/listening-audio/audio-buffer.test.ts && tsx src/lib/ielts/listening-audio/storage-paths.test.ts && tsx src/lib/ielts/listening-audio/synthesize.test.ts",
     "test:ielts-results": "tsx src/lib/ielts/results/band-summary.test.ts && tsx src/lib/ielts/results/objective-review.test.ts && tsx src/lib/ielts/results/skill-feedback.test.ts && tsx src/lib/ielts/results/view-model.test.ts",
+    "test:ielts-capture": "tsx src/lib/ielts/audio/wav-encoder.test.ts && tsx src/lib/ielts/pronunciation/audio-format.test.ts && tsx src/lib/ielts/capture/capture-format.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",

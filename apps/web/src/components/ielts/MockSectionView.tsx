@@ -18,7 +18,67 @@ import type { MockStructure } from "@/lib/api/ielts/mock-repository";
 import { SectionTimer } from "./SectionTimer";
 import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
 import { QuestionHost } from "./QuestionHost";
-import { buildSectionParts } from "./mock-parts";
+import { buildSectionParts, type MockPart } from "./mock-parts";
+
+/** Passage / listening stimulus column; renders nothing for Writing/Speaking. */
+function SectionStimulus({ part }: { part: MockPart }) {
+  if (part.audio.length === 0 && part.body === null) return null;
+  return (
+    <div className="flex flex-col gap-4">
+      {part.audio.length > 0 ? <ListeningAudioPlayer tracks={part.audio} /> : null}
+      {part.body !== null ? (
+        <article className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-3xl border border-outline-variant bg-surface-container p-5 text-sm leading-relaxed text-on-surface">
+          <h3 className="mb-2 text-base font-bold">{part.title}</h3>
+          {part.body}
+        </article>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One navigable part: Reading/Listening pair a stimulus with the questions;
+ * Writing/Speaking tasks have no stimulus, so their capture surfaces span the
+ * full width.
+ */
+function SectionPart({
+  part,
+  attemptId,
+  numberOffset,
+  disabled,
+  responses,
+  onAnswer,
+}: {
+  part: MockPart;
+  attemptId: string;
+  numberOffset: number;
+  disabled: boolean;
+  responses: IeltsResponseMap;
+  onAnswer: (questionId: string, value: unknown) => void;
+}) {
+  const hasStimulus = part.audio.length > 0 || part.body !== null;
+  return (
+    <div className={hasStimulus ? "grid gap-5 lg:grid-cols-2" : "flex flex-col gap-3"}>
+      <SectionStimulus part={part} />
+      <div className="flex flex-col gap-3">
+        {part.questions.map((question, index) => (
+          <QuestionHost
+            key={question.id}
+            question={question}
+            number={numberOffset + index + 1}
+            value={responses[question.id]}
+            disabled={disabled}
+            onChange={(value) => onAnswer(question.id, value)}
+            context={{ attemptId }}
+          />
+        ))}
+        {part.questions.length === 0 ? (
+          <p className="text-sm text-on-surface-variant">No questions in this part.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   section: Tables<"ielts_attempt_sections">;
@@ -138,32 +198,14 @@ export function MockSectionView({
       ) : null}
 
       {part ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            {part.audio.length > 0 ? <ListeningAudioPlayer tracks={part.audio} /> : null}
-            {part.body !== null ? (
-              <article className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-3xl border border-outline-variant bg-surface-container p-5 text-sm leading-relaxed text-on-surface">
-                <h3 className="mb-2 text-base font-bold">{part.title}</h3>
-                {part.body}
-              </article>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-3">
-            {part.questions.map((question, index) => (
-              <QuestionHost
-                key={question.id}
-                question={question}
-                number={numberOffset + index + 1}
-                value={responses[question.id]}
-                disabled={disabled}
-                onChange={(value) => onAnswer(question.id, value)}
-              />
-            ))}
-            {part.questions.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">No questions in this part.</p>
-            ) : null}
-          </div>
-        </div>
+        <SectionPart
+          part={part}
+          attemptId={section.attempt_id}
+          numberOffset={numberOffset}
+          disabled={disabled}
+          responses={responses}
+          onAnswer={onAnswer}
+        />
       ) : (
         <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
       )}

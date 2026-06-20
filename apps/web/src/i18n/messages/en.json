@@ -2778,7 +2778,50 @@
       "matchSelect": "Select…",
       "blankLabel": "Answer for blank {id}",
       "blankPlaceholder": "Type your answer",
-      "notAutoGraded": "This question type is scored by the AI examiner, not auto-graded."
+      "notAutoGraded": "This question type is scored by the AI examiner, not auto-graded.",
+      "writing": {
+        "intro": "Write your response below, then submit it for AI band scoring.",
+        "placeholder": "Type your response here…",
+        "wordCount": "{count, plural, one {# word} other {# words}}",
+        "recommendedMin": "aim for {count}+ words",
+        "submit": "Submit for scoring",
+        "resubmit": "Re-submit",
+        "submitting": "Submitting…",
+        "scoring": "Scoring your response…",
+        "scoringHint": "This usually takes under a minute — you can keep working.",
+        "failed": "Scoring failed. Please try again.",
+        "limitReached": "You've reached your monthly AI scoring limit.",
+        "taskBand": "Task band",
+        "modelAnswer": "Band 9 model answer"
+      },
+      "speaking": {
+        "intro": "Record your spoken answer, then submit it for AI band scoring.",
+        "record": "Record answer",
+        "stop": "Stop",
+        "rerecord": "Record again",
+        "recording": "Recording",
+        "processing": "Preparing audio…",
+        "yourRecording": "Your recording",
+        "submit": "Submit for scoring",
+        "submitting": "Uploading…",
+        "scoring": "Scoring your response…",
+        "scoringHint": "Transcribing and marking — this can take a minute.",
+        "failed": "Scoring failed. Please try again.",
+        "limitReached": "You've reached your monthly AI scoring limit.",
+        "micDenied": "We need microphone access to record your answer.",
+        "noSpeech": "No audio captured — try recording again.",
+        "speakingBand": "Speaking band",
+        "transcript": "Transcript",
+        "pronunciationDetail": "Phoneme-level pronunciation detail captured."
+      },
+      "bands": {
+        "taskResponse": "Task Response",
+        "coherenceCohesion": "Coherence & Cohesion",
+        "lexicalResource": "Lexical Resource",
+        "grammaticalRangeAccuracy": "Grammatical Range & Accuracy",
+        "fluencyCoherence": "Fluency & Coherence",
+        "pronunciation": "Pronunciation"
+      }
     }
   }
 }

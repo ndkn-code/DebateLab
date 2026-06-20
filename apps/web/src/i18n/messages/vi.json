@@ -2778,7 +2778,50 @@
       "matchSelect": "Chọn…",
       "blankLabel": "Đáp án cho chỗ trống {id}",
       "blankPlaceholder": "Nhập câu trả lời",
-      "notAutoGraded": "Dạng câu hỏi này được chấm bởi giám khảo AI, không chấm tự động."
+      "notAutoGraded": "Dạng câu hỏi này được chấm bởi giám khảo AI, không chấm tự động.",
+      "writing": {
+        "intro": "Viết bài làm của bạn bên dưới, sau đó gửi để AI chấm điểm band.",
+        "placeholder": "Nhập bài viết của bạn tại đây…",
+        "wordCount": "{count} từ",
+        "recommendedMin": "nên viết từ {count} từ trở lên",
+        "submit": "Gửi chấm điểm",
+        "resubmit": "Gửi lại",
+        "submitting": "Đang gửi…",
+        "scoring": "Đang chấm bài của bạn…",
+        "scoringHint": "Thường mất chưa đến một phút — bạn có thể tiếp tục làm bài.",
+        "failed": "Chấm điểm thất bại. Vui lòng thử lại.",
+        "limitReached": "Bạn đã đạt giới hạn chấm điểm AI trong tháng này.",
+        "taskBand": "Band bài viết",
+        "modelAnswer": "Bài mẫu band 9"
+      },
+      "speaking": {
+        "intro": "Ghi âm câu trả lời nói của bạn, sau đó gửi để AI chấm điểm band.",
+        "record": "Ghi âm câu trả lời",
+        "stop": "Dừng",
+        "rerecord": "Ghi âm lại",
+        "recording": "Đang ghi âm",
+        "processing": "Đang xử lý âm thanh…",
+        "yourRecording": "Bản ghi âm của bạn",
+        "submit": "Gửi chấm điểm",
+        "submitting": "Đang tải lên…",
+        "scoring": "Đang chấm bài của bạn…",
+        "scoringHint": "Đang chuyển lời nói thành văn bản và chấm điểm — có thể mất một phút.",
+        "failed": "Chấm điểm thất bại. Vui lòng thử lại.",
+        "limitReached": "Bạn đã đạt giới hạn chấm điểm AI trong tháng này.",
+        "micDenied": "Chúng tôi cần quyền truy cập micro để ghi âm câu trả lời của bạn.",
+        "noSpeech": "Không ghi được âm thanh — hãy thử ghi âm lại.",
+        "speakingBand": "Band nói",
+        "transcript": "Bản ghi lời nói",
+        "pronunciationDetail": "Đã ghi nhận chi tiết phát âm ở cấp độ âm vị."
+      },
+      "bands": {
+        "taskResponse": "Giải quyết yêu cầu đề bài",
+        "coherenceCohesion": "Tính mạch lạc & liên kết",
+        "lexicalResource": "Vốn từ vựng",
+        "grammaticalRangeAccuracy": "Độ đa dạng & chính xác ngữ pháp",
+        "fluencyCoherence": "Độ trôi chảy & mạch lạc",
+        "pronunciation": "Phát âm"
+      }
     }
   }
 }
