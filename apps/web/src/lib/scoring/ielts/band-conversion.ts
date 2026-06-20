@@ -51,6 +51,30 @@ export function rawToBand(
   return best.band;
 }
 
+/**
+ * The full conversion table that *applies* to a skill+module, for the results
+ * raw→band breakdown. Uses the same precedence as {@link rawToBand}: among the
+ * rows that match the skill (and are module-compatible), keep only the
+ * most-specific group (test-specific key + module-specific beats default /
+ * agnostic) so the displayed table is exactly the one a raw score was graded
+ * against. Sorted by band descending (9 → 0, the conventional table order).
+ */
+export function selectConversionTable(
+  rows: readonly BandConversionRow[],
+  skill: IeltsSkill,
+  module: IeltsModule | null,
+): BandConversionRow[] {
+  const matches = rows.filter(
+    (row) => row.skill === skill && (row.module === null || row.module === module),
+  );
+  if (matches.length === 0) return [];
+  let maxSpec = -1;
+  for (const row of matches) maxSpec = Math.max(maxSpec, specificity(row));
+  return matches
+    .filter((row) => specificity(row) === maxSpec)
+    .sort((a, b) => b.band - a.band);
+}
+
 export interface ObjectiveRawScores {
   listening: number | null;
   reading: number | null;

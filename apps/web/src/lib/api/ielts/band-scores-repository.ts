@@ -2,6 +2,7 @@ import "server-only";
 
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { writingOverallBand } from "@/lib/scoring/ielts-writing/band-math";
+import { recomputeAttemptOverallBand } from "./overall-band-repository";
 
 /**
  * Roll a scored attempt's Task 1 + Task 2 bands into the per-attempt
@@ -45,5 +46,8 @@ export async function recomputeAttemptWritingBand(
   if (error) {
     throw new Error(`recomputeAttemptWritingBand failed: ${error.message}`);
   }
+
+  // Fold the new Writing band into the cross-skill overall (WS-2.2).
+  await recomputeAttemptOverallBand(admin, attemptId, userId);
   return writingBand;
 }
