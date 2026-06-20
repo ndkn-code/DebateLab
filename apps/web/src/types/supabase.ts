@@ -4365,6 +4365,54 @@ export type Database = {
           },
         ]
       }
+      ielts_content_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          snapshot: Json
+          status: Database["public"]["Enums"]["ielts_content_status"]
+          test_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          snapshot: Json
+          status: Database["public"]["Enums"]["ielts_content_status"]
+          test_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          snapshot?: Json
+          status?: Database["public"]["Enums"]["ielts_content_status"]
+          test_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_content_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_content_versions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_question_responses: {
         Row: {
           attempt_id: string
@@ -8082,6 +8130,92 @@ export type Database = {
       }
     }
     Functions: {
+      create_ielts_question_with_key: {
+        Args: {
+          p_accept_variants?: Json
+          p_correct_answer?: Json
+          p_examiner_notes?: Json
+          p_explanation_en?: string
+          p_explanation_vi?: string
+          p_group_instructions?: string
+          p_group_key?: string
+          p_listening_section_id?: string
+          p_max_points?: number
+          p_metadata?: Json
+          p_model_answer?: string
+          p_options?: Json
+          p_order_index?: number
+          p_passage_id?: string
+          p_prompt: string
+          p_question_type: Database["public"]["Enums"]["ielts_question_type"]
+          p_skill: Database["public"]["Enums"]["ielts_skill"]
+          p_test_id: string
+          p_visual?: Json
+          p_word_limit?: number
+        }
+        Returns: {
+          created_at: string
+          group_instructions: string | null
+          group_key: string | null
+          id: string
+          listening_section_id: string | null
+          max_points: number
+          metadata: Json
+          options: Json
+          order_index: number
+          passage_id: string | null
+          prompt: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          test_id: string
+          updated_at: string
+          visual: Json | null
+          word_limit: number | null
+        }
+      }
+      update_ielts_question_with_key: {
+        Args: {
+          p_accept_variants?: Json
+          p_correct_answer?: Json
+          p_examiner_notes?: Json
+          p_explanation_en?: string
+          p_explanation_vi?: string
+          p_group_instructions?: string
+          p_group_key?: string
+          p_listening_section_id?: string
+          p_max_points?: number
+          p_metadata?: Json
+          p_model_answer?: string
+          p_options?: Json
+          p_order_index?: number
+          p_passage_id?: string
+          p_prompt: string
+          p_question_id: string
+          p_question_type: Database["public"]["Enums"]["ielts_question_type"]
+          p_skill: Database["public"]["Enums"]["ielts_skill"]
+          p_visual?: Json
+          p_word_limit?: number
+        }
+        Returns: {
+          created_at: string
+          group_instructions: string | null
+          group_key: string | null
+          id: string
+          listening_section_id: string | null
+          max_points: number
+          metadata: Json
+          options: Json
+          order_index: number
+          passage_id: string | null
+          prompt: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          test_id: string
+          updated_at: string
+          visual: Json | null
+          word_limit: number | null
+        }
+      }
       adjust_orb_balance: {
         Args: {
           p_amount: number

@@ -12,7 +12,7 @@
  * Constants.public.Enums.*). See docs/ielts/data-access.md §9 on enum evolution.
  */
 import { z } from "zod";
-import type { TablesInsert } from "@/types/supabase";
+import type { TablesInsert, TablesUpdate } from "@/types/supabase";
 
 export const IELTS_SKILLS = ["listening", "reading", "writing", "speaking"] as const;
 export const IELTS_MODULES = ["academic", "general_training"] as const;
@@ -24,6 +24,7 @@ export const IELTS_CONTENT_STATUSES = [
   "published",
   "archived",
 ] as const;
+export const IELTS_ACCENTS = ["uk", "us", "aus", "other"] as const;
 
 /**
  * The complete IELTS question-type taxonomy (mirrors the `ielts_question_type`
@@ -91,4 +92,41 @@ export function toIeltsTestInsert(
     time_limit_seconds: input.timeLimitSeconds ?? null,
     description: input.description ?? null,
   };
+}
+
+/**
+ * Update-input for an `ielts_tests` row. Status + version are NOT editable here —
+ * they move through the dedicated workflow (see workflow.ts / the publish action).
+ * slug is immutable once created (it's referenced by import + URLs).
+ */
+export const UpdateIeltsTestSchema = z
+  .object({
+    title: z.string().min(1).max(200).optional(),
+    kind: z.enum(IELTS_TEST_KINDS).optional(),
+    module: z.enum(IELTS_MODULES).optional(),
+    skill: z.enum(IELTS_SKILLS).nullish(),
+    timeLimitSeconds: z.number().int().positive().nullish(),
+    description: z.string().max(2000).nullish(),
+  })
+  .refine((v) => v.kind !== "full_mock" || v.skill == null, {
+    message: "full_mock tests must not set a skill",
+    path: ["skill"],
+  });
+
+export type UpdateIeltsTestInput = z.infer<typeof UpdateIeltsTestSchema>;
+
+/** Map a validated update to a typed `ielts_tests` patch (omits untouched keys). */
+export function toIeltsTestUpdate(
+  input: UpdateIeltsTestInput,
+): TablesUpdate<"ielts_tests"> {
+  const patch: TablesUpdate<"ielts_tests"> = {};
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.kind !== undefined) patch.kind = input.kind;
+  if (input.module !== undefined) patch.module = input.module;
+  if (input.skill !== undefined) patch.skill = input.skill ?? null;
+  if (input.timeLimitSeconds !== undefined) {
+    patch.time_limit_seconds = input.timeLimitSeconds ?? null;
+  }
+  if (input.description !== undefined) patch.description = input.description ?? null;
+  return patch;
 }

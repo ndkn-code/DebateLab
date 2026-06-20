@@ -18,6 +18,7 @@
     "test:ielts-data-model": "npm run test:ielts-data-model -w @thinkfy/web",
     "test:ielts-scoring": "npm run test:ielts-scoring -w @thinkfy/web",
     "test:ielts-questions": "npm run test:ielts-questions -w @thinkfy/web",
+    "test:ielts-authoring": "npm run test:ielts-authoring -w @thinkfy/web",
     "test:payments": "npm run test:payments -w @thinkfy/web",
     "test:coverage:critical": "npm run test:coverage:critical -w @thinkfy/web",
     "ci:checks": "tsx scripts/ci/run-checks.ts",
