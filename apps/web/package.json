@@ -49,9 +49,10 @@
     "test:support-reports": "tsx src/lib/support/tally-url.test.ts && tsx src/lib/support/tally-webhook.test.ts",
     "generate:tts-samples": "tsx ../../scripts/generate-tts-voice-samples.ts",
     "test:email-templates": "tsx src/lib/email/template-overrides.test.ts",
-    "test:scoring": "tsx src/lib/scoring/round-half-band.test.ts && tsx src/lib/scoring/ielts-writing/band-math.test.ts && tsx src/lib/scoring/ielts-writing/result-schema.test.ts && tsx src/lib/scoring/ielts-writing/normalize.test.ts",
+    "test:scoring": "tsx src/lib/scoring/round-half-band.test.ts && tsx src/lib/scoring/ielts-writing/band-math.test.ts && tsx src/lib/scoring/ielts-writing/result-schema.test.ts && tsx src/lib/scoring/ielts-writing/normalize.test.ts && tsx src/lib/scoring/ielts-speaking/band-math.test.ts && tsx src/lib/scoring/ielts-speaking/result-schema.test.ts && tsx src/lib/scoring/ielts-speaking/normalize.test.ts",
     "test:ielts-writing-scorer": "tsx src/lib/ielts/writing-scorer/status.test.ts && tsx src/lib/ielts/writing-scorer/json.test.ts && tsx src/lib/ielts/writing-scorer/prompt.test.ts",
     "test:ielts-pronunciation": "tsx src/lib/scoring/ielts-pronunciation/phoneme-report.test.ts && tsx src/lib/scoring/ielts-pronunciation/azure-assessment.test.ts && tsx src/lib/scoring/ielts-pronunciation/pronunciation-band.test.ts && tsx src/lib/ielts/pronunciation/config.test.ts && tsx src/lib/ielts/pronunciation/request.test.ts && tsx src/lib/ielts/pronunciation/service.test.ts",
+    "test:ielts-speaking-scorer": "tsx src/lib/ielts/speaking-scorer/status.test.ts && tsx src/lib/ielts/speaking-scorer/prompt.test.ts && tsx src/lib/ielts/speaking-scorer/phoneme-contract.test.ts",
     "test:payments": "node --import tsx --test 'src/lib/payments/**/*.test.ts'",
     "test:coverage:critical": "tsx ../../scripts/ci/run-critical-coverage.ts"
   },

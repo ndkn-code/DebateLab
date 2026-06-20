@@ -8,10 +8,13 @@ import assert from "node:assert/strict";
 import { parseInput } from "@/lib/api/boundary";
 import {
   CreateIeltsTestSchema,
+  CreateSpeakingResponseSchema,
   CreateWritingResponseSchema,
   IELTS_QUESTION_TYPE_COUNT,
   countEssayWords,
+  speakingPartNumberForQuestionType,
   toIeltsTestInsert,
+  toSpeakingResponseInsert,
   toWritingResponseInsert,
   writingTaskNumberForQuestionType,
 } from "./schema";
@@ -110,6 +113,52 @@ assert.throws(() =>
     attemptId: "11111111-1111-4111-8111-111111111111",
     questionId: "22222222-2222-4222-8222-222222222222",
     essay: "",
+  }),
+);
+
+// --- WS-3.2 speaking-response submission boundary ----------------------------
+// part number derives from the question type
+assert.equal(speakingPartNumberForQuestionType("speaking_part1"), 1);
+assert.equal(speakingPartNumberForQuestionType("speaking_part2_cuecard"), 2);
+assert.equal(speakingPartNumberForQuestionType("speaking_part3"), 3);
+
+// valid submission parses + maps to a typed, pending insert that clears state
+{
+  const input = parseInput(CreateSpeakingResponseSchema, {
+    attemptId: "11111111-1111-4111-8111-111111111111",
+    questionId: "22222222-2222-4222-8222-222222222222",
+    audioStoragePath: "ielts/u-1/part2.webm",
+    durationSeconds: 92,
+  });
+  assert.equal(input.feedbackLanguage, "en"); // default
+  assert.equal(input.durationSeconds, 92);
+  const row = toSpeakingResponseInsert({ input, userId: "u-1", partNumber: 2 });
+  assert.equal(row.status, "pending");
+  assert.equal(row.part_number, 2);
+  assert.equal(row.audio_storage_path, "ielts/u-1/part2.webm");
+  assert.equal(row.transcript, "");
+  assert.equal(row.speaking_band, null);
+  assert.equal(row.pronunciation_band, null);
+  assert.deepEqual(row.feedback, {});
+  assert.deepEqual(row.phoneme_report, {});
+  assert.equal(row.user_id, "u-1");
+}
+
+// invalid: missing audio storage path is rejected
+assert.throws(() =>
+  parseInput(CreateSpeakingResponseSchema, {
+    attemptId: "11111111-1111-4111-8111-111111111111",
+    questionId: "22222222-2222-4222-8222-222222222222",
+    audioStoragePath: "",
+  }),
+);
+
+// invalid: non-uuid attempt id is rejected
+assert.throws(() =>
+  parseInput(CreateSpeakingResponseSchema, {
+    attemptId: "nope",
+    questionId: "22222222-2222-4222-8222-222222222222",
+    audioStoragePath: "a.webm",
   }),
 );
 

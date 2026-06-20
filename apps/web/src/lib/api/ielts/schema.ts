@@ -191,3 +191,61 @@ export function toWritingResponseInsert(params: {
     scored_at: null,
   };
 }
+
+/** The speaking part types in the question taxonomy (one part each). */
+export const IELTS_SPEAKING_QUESTION_TYPES = [
+  "speaking_part1",
+  "speaking_part2_cuecard",
+  "speaking_part3",
+] as const;
+
+/** Part number (1/2/3) a speaking question type maps to. */
+export function speakingPartNumberForQuestionType(
+  questionType: string,
+): 1 | 2 | 3 {
+  if (questionType === "speaking_part2_cuecard") return 2;
+  if (questionType === "speaking_part3") return 3;
+  return 1;
+}
+
+/** Create-input for a learner's Speaking submission (WS-3.2). */
+export const CreateSpeakingResponseSchema = z.object({
+  attemptId: z.string().uuid(),
+  questionId: z.string().uuid(),
+  /** Storage path of the uploaded audio recording (capture is out of scope). */
+  audioStoragePath: z.string().min(1).max(1024),
+  /** Audio duration in seconds, when the recorder reported it. */
+  durationSeconds: z.number().positive().max(3600).optional(),
+  feedbackLanguage: z.enum(IELTS_FEEDBACK_LANGUAGES).default("en"),
+});
+export type CreateSpeakingResponseInput = z.infer<
+  typeof CreateSpeakingResponseSchema
+>;
+
+/** Map a validated Speaking submission to the typed `speaking_responses` insert. */
+export function toSpeakingResponseInsert(params: {
+  input: CreateSpeakingResponseInput;
+  userId: string;
+  partNumber: 1 | 2 | 3;
+}): TablesInsert<"speaking_responses"> {
+  return {
+    attempt_id: params.input.attemptId,
+    question_id: params.input.questionId,
+    user_id: params.userId,
+    part_number: params.partNumber,
+    audio_storage_path: params.input.audioStoragePath,
+    feedback_language: params.input.feedbackLanguage,
+    status: "pending",
+    // A (re)submission clears any prior AI score + phoneme report so the
+    // response re-scores clean against the freshly uploaded audio.
+    transcript: "",
+    fluency_coherence_band: null,
+    lexical_resource_band: null,
+    grammar_band: null,
+    pronunciation_band: null,
+    speaking_band: null,
+    feedback: {},
+    phoneme_report: {},
+    scored_at: null,
+  };
+}

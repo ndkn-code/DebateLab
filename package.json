@@ -22,6 +22,7 @@
     "test:ielts-mock": "npm run test:ielts-mock -w @thinkfy/web",
     "test:ielts-listening-audio": "npm run test:ielts-listening-audio -w @thinkfy/web",
     "test:ielts-pronunciation": "npm run test:ielts-pronunciation -w @thinkfy/web",
+    "test:ielts-speaking-scorer": "npm run test:ielts-speaking-scorer -w @thinkfy/web",
     "test:payments": "npm run test:payments -w @thinkfy/web",
     "test:coverage:critical": "npm run test:coverage:critical -w @thinkfy/web",
     "ci:checks": "tsx scripts/ci/run-checks.ts",
