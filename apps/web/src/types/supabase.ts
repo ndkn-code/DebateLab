@@ -4126,6 +4126,8 @@ export type Database = {
           label: string | null
           listening_section_id: string | null
           passage_id: string | null
+          paused_at: string | null
+          paused_seconds: number
           section_order: number
           skill: Database["public"]["Enums"]["ielts_skill"]
           started_at: string | null
@@ -4142,6 +4144,8 @@ export type Database = {
           label?: string | null
           listening_section_id?: string | null
           passage_id?: string | null
+          paused_at?: string | null
+          paused_seconds?: number
           section_order?: number
           skill: Database["public"]["Enums"]["ielts_skill"]
           started_at?: string | null
@@ -4158,6 +4162,8 @@ export type Database = {
           label?: string | null
           listening_section_id?: string | null
           passage_id?: string | null
+          paused_at?: string | null
+          paused_seconds?: number
           section_order?: number
           skill?: Database["public"]["Enums"]["ielts_skill"]
           started_at?: string | null
@@ -8350,6 +8356,26 @@ export type Database = {
       grant_feedback_popup_reward: {
         Args: { p_amount?: number; p_response_id: string; p_user_id: string }
         Returns: number
+      }
+      ielts_pause_attempt_section: {
+        Args: { p_section_id: string }
+        Returns: undefined
+      }
+      ielts_record_question_response: {
+        Args: { p_question_id: string; p_response: Json; p_section_id: string }
+        Returns: string
+      }
+      ielts_resume_attempt_section: {
+        Args: { p_section_id: string }
+        Returns: string
+      }
+      ielts_start_attempt_section: {
+        Args: { p_section_id: string }
+        Returns: string
+      }
+      ielts_submit_attempt_section: {
+        Args: { p_section_id: string }
+        Returns: string
       }
       increment_feature_usage: {
         Args: {

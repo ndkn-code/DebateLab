@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
     "test:ielts-data-model": "tsx src/lib/api/ielts/schema.test.ts",
+    "test:ielts-mock": "tsx src/lib/ielts/mock-blueprint.test.ts && tsx src/lib/ielts/section-timing.test.ts && tsx src/lib/scoring/ielts/answer-normalize.test.ts && tsx src/lib/scoring/ielts/objective-scoring.test.ts && tsx src/lib/scoring/ielts/band-conversion.test.ts && tsx src/lib/scoring/ielts/grade-objective.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
