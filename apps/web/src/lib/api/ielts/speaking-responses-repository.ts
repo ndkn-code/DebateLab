@@ -157,6 +157,8 @@ export async function persistSpeakingScore(
     score: NormalizedSpeakingScore;
     providerLabel: string;
     modelName: string;
+    /** WS-3.3 phoneme report (jsonb). Augments Pronunciation; never the band itself. */
+    phonemeReport?: Json;
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -173,6 +175,9 @@ export async function persistSpeakingScore(
       pronunciation_band: score.criteriaBands.pronunciation,
       speaking_band: score.speakingBand,
       feedback: toJson(buildSpeakingFeedback(score)),
+      ...(params.phonemeReport !== undefined
+        ? { phoneme_report: params.phonemeReport }
+        : {}),
       model_provider: params.providerLabel,
       model_name: params.modelName,
       prompt_bundle_key: IELTS_SPEAKING_SCORER_BUNDLE_KEY,

@@ -1,32 +1,40 @@
 import assert from "node:assert/strict";
+import { parsePhonemeReport } from "@/lib/scoring/ielts-pronunciation/phoneme-report";
 import { extractPronunciationSignal } from "./phoneme-contract";
 
-// --- empty / unusable inputs -> null ----------------------------------------
+// --- empty / unusable inputs -> null (parsePhonemeReport falls back to EMPTY) ---
 assert.equal(extractPronunciationSignal(null), null);
 assert.equal(extractPronunciationSignal(undefined), null);
-assert.equal(extractPronunciationSignal({}), null); // the schema default
+assert.equal(extractPronunciationSignal({}), null); // the bare jsonb default (status "empty")
 assert.equal(extractPronunciationSignal([1, 2, 3]), null); // array, not a report
 assert.equal(extractPronunciationSignal("nope"), null);
-// object with only non-numeric scores + no words -> null
+// The legacy FLAT shape no longer validates as a scored report -> null.
 assert.equal(
-  extractPronunciationSignal({ pronunciationScore: "high", words: 5 }),
+  extractPronunciationSignal({ pronunciationScore: 78, accuracyScore: 82 }),
+  null,
+);
+// status "scored" but overall null -> no usable aggregate -> null.
+assert.equal(
+  extractPronunciationSignal({ status: "scored", overall: null, words: [] }),
   null,
 );
 
-// --- full Azure-shaped report -----------------------------------------------
+// --- full Azure-shaped (WS-3.3 canonical) report ----------------------------
 const full = extractPronunciationSignal({
-  pronunciationScore: 78,
-  accuracyScore: 82,
-  fluencyScore: 75,
-  completenessScore: 100,
-  prosodyScore: 68,
+  status: "scored",
+  overall: {
+    pronunciation: 78,
+    accuracy: 82,
+    fluency: 75,
+    completeness: 100,
+    prosody: 68,
+  },
   words: [
-    { word: "hello", accuracyScore: 95, errorType: "None" },
-    { word: "th-thing", accuracyScore: 40, errorType: "Mispronunciation" },
-    { word: "quiet", accuracyScore: 55, errorType: "None" }, // low accuracy -> flagged
-    { word: "the", accuracyScore: 90, errorType: "Omission" }, // error type -> flagged
-    { word: "  ", accuracyScore: 10, errorType: "Mispronunciation" }, // blank -> skipped
-    { notAWord: true },
+    { word: "hello", accuracy: 95, errorType: "None", phonemes: [] },
+    { word: "th-thing", accuracy: 40, errorType: "Mispronunciation", phonemes: [] },
+    { word: "quiet", accuracy: 55, errorType: "None", phonemes: [] }, // low accuracy -> flagged
+    { word: "the", accuracy: 90, errorType: "Omission", phonemes: [] }, // error type -> flagged
+    { word: "  ", accuracy: 10, errorType: "Mispronunciation", phonemes: [] }, // blank -> skipped
   ],
 });
 assert.ok(full);
@@ -37,37 +45,35 @@ assert.equal(full?.completenessScore, 100);
 assert.equal(full?.prosodyScore, 68);
 assert.deepEqual(full?.mispronouncedWords, ["th-thing", "quiet", "the"]);
 
-// --- scores only (no words array) -> signal with empty flagged list ---------
-const scoresOnly = extractPronunciationSignal({ pronunciationScore: 60 });
-assert.ok(scoresOnly);
-assert.equal(scoresOnly?.pronunciationScore, 60);
-assert.equal(scoresOnly?.accuracyScore, null);
-assert.deepEqual(scoresOnly?.mispronouncedWords, []);
-
-// --- words only (no aggregate scores) -> signal -----------------------------
-const wordsOnly = extractPronunciationSignal({
-  words: [{ word: "specific", accuracyScore: 30, errorType: "Mispronunciation" }],
+// --- prosody may be null ----------------------------------------------------
+const noProsody = extractPronunciationSignal({
+  status: "scored",
+  overall: { pronunciation: 60, accuracy: 60, fluency: 60, completeness: 60, prosody: null },
+  words: [],
 });
-assert.ok(wordsOnly);
-assert.equal(wordsOnly?.pronunciationScore, null);
-assert.deepEqual(wordsOnly?.mispronouncedWords, ["specific"]);
-
-// --- non-finite numeric scores are dropped ----------------------------------
-const infScore = extractPronunciationSignal({
-  pronunciationScore: Number.POSITIVE_INFINITY,
-  words: [{ word: "ok", accuracyScore: 20, errorType: "Mispronunciation" }],
-});
-assert.equal(infScore?.pronunciationScore, null);
-assert.deepEqual(infScore?.mispronouncedWords, ["ok"]);
+assert.ok(noProsody);
+assert.equal(noProsody?.prosodyScore, null);
+assert.deepEqual(noProsody?.mispronouncedWords, []);
 
 // --- flagged-word cap (25) --------------------------------------------------
 const many = extractPronunciationSignal({
+  status: "scored",
+  overall: { pronunciation: 50, accuracy: 50, fluency: 50, completeness: 50, prosody: null },
   words: Array.from({ length: 40 }, (_, i) => ({
     word: `w${i}`,
-    accuracyScore: 10,
+    accuracy: 10,
     errorType: "Mispronunciation",
+    phonemes: [],
   })),
 });
 assert.equal(many?.mispronouncedWords.length, 25);
+
+// --- an already-parsed PhonemeReport passes through (idempotent) ------------
+const parsed = parsePhonemeReport({
+  status: "scored",
+  overall: { pronunciation: 70, accuracy: 70, fluency: 70, completeness: 70, prosody: 70 },
+  words: [],
+});
+assert.equal(extractPronunciationSignal(parsed)?.pronunciationScore, 70);
 
 console.log("ielts/speaking-scorer/phoneme-contract tests passed");

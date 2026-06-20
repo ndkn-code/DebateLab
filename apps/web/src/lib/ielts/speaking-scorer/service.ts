@@ -12,6 +12,7 @@ import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/supabase";
 import { normalizeSpeakingScore } from "@/lib/scoring/ielts-speaking/normalize";
 import { transcribePracticeAudio } from "@/lib/stt/transcription";
+import { assessPronunciation } from "@/lib/ielts/pronunciation";
 import { loadSpeakingExemplars } from "@/lib/corpus/ielts-speaking-exemplars";
 import { recomputeAttemptSpeakingBand } from "@/lib/api/ielts/band-scores-repository";
 import {
@@ -194,6 +195,18 @@ export async function runIeltsSpeakingScoringJob(
       practiceTrack: "speaking",
     });
 
+    // WS-3.3: generate the phoneme report from the audio + transcript. Env-gated
+    // and never throws — without Azure creds it returns an EMPTY report, so the
+    // Pronunciation criterion gracefully falls back to transcript-only judgement.
+    const pronunciation = await assessPronunciation({
+      audio: audioBuffer,
+      audioContentType: contentType,
+      referenceText: transcription.transcript,
+      userId: response.user_id,
+      speakingResponseId: response.id,
+      practiceAttemptId: response.attempt_id,
+    });
+
     const grounding = await loadSpeakingExemplars(admin, {
       questionId: question.id,
       questionType: question.question_type,
@@ -209,7 +222,7 @@ export async function runIeltsSpeakingScoringJob(
       sttWarnings: transcription.warnings,
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
-      pronunciation: extractPronunciationSignal(response.phoneme_report),
+      pronunciation: extractPronunciationSignal(pronunciation.report),
     });
     const result = await runSpeakingModel({
       prompt,
@@ -222,6 +235,7 @@ export async function runIeltsSpeakingScoringJob(
       score: normalizeSpeakingScore(result.output),
       providerLabel: result.providerLabel,
       modelName: result.modelName,
+      phonemeReport: pronunciation.report as unknown as Json,
     });
     await recomputeAttemptSpeakingBand(
       admin,
