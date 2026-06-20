@@ -14,8 +14,11 @@
  *    (service-role) and never returned.
  */
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import type { Json } from "@/types/supabase";
+import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { generateListeningSectionAudio } from "@/lib/ielts/listening-audio/generate";
 import { gradeQuestionResponse } from "@/lib/api/ielts/grading-repository";
 import type { IeltsVerdict } from "@/lib/ielts/question-types/types";
 import { createBandConversion } from "@/lib/api/ielts/band-conversions-repository";
@@ -186,6 +189,31 @@ export async function deleteListeningSectionAction(sectionId: string, testId: st
   await deleteListeningSection(sectionId, supabase);
   await logIelts(supabase, adminId, "delete_ielts_listening_section", "ielts_listening_section", sectionId);
   revalidateTest(testId);
+}
+
+const GenerateListeningAudioSchema = z.object({
+  sectionId: z.string().uuid(),
+  testId: z.string().uuid().optional(),
+  force: z.boolean().optional(),
+});
+
+/**
+ * Generate (or regenerate) a Listening section's multi-accent audio (WS-1.3):
+ * synthesize the authored script, store one MP3, link it, and drive the asset
+ * status. Synthesis + storage run under the service-role client inside the
+ * generator; this action only gates on admin and logs the outcome.
+ */
+export async function generateListeningAudioAction(rawInput: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const { sectionId, testId, force } = parseInput(GenerateListeningAudioSchema, rawInput);
+  const result = await generateListeningSectionAudio(sectionId, { force });
+  await logIelts(supabase, adminId, "generate_ielts_listening_audio", "ielts_listening_section", sectionId, {
+    status: result.status,
+    skipped: result.skipped,
+    version: result.version,
+  });
+  revalidateTest(testId);
+  return result;
 }
 
 // --- Questions ------------------------------------------------------------

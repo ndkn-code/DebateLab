@@ -10,12 +10,74 @@ import { Plus, Trash2 } from "@/components/ui/icons";
 import {
   createListeningSectionAction,
   deleteListeningSectionAction,
+  generateListeningAudioAction,
   updateListeningSectionAction,
 } from "@/app/actions/ielts";
 import { parseSpeakers } from "@/lib/api/ielts/import/cells";
 import { IELTS_ACCENTS } from "@/lib/api/ielts/schema";
 import type { ListeningSection } from "@/lib/api/ielts/listening-repository";
+import type { ListeningAudioSummary } from "@/lib/api/ielts/audio-repository";
 import { Field, TextArea } from "./ielts-ui";
+
+type AudioStatus = ListeningAudioSummary["status"] | "none";
+
+const AUDIO_STATUS_LABEL: Record<AudioStatus, { text: string; className: string }> = {
+  ready: { text: "Ready", className: "text-primary" },
+  failed: { text: "Failed", className: "text-destructive" },
+  generating: { text: "Generating…", className: "text-on-surface-variant" },
+  pending: { text: "Pending", className: "text-on-surface-variant" },
+  none: { text: "Not generated", className: "text-on-surface-variant" },
+};
+
+/** Per-section TTS generation trigger + status + player (WS-1.3). */
+function AudioControls({
+  testId,
+  section,
+  initial,
+}: {
+  testId: string;
+  section: ListeningSection;
+  initial?: ListeningAudioSummary;
+}) {
+  const [status, setStatus] = useState<AudioStatus>(
+    initial?.status ?? (section.audio_asset_id ? "pending" : "none"),
+  );
+  const [url, setUrl] = useState<string | null>(initial?.url ?? null);
+  const [busy, setBusy] = useState(false);
+
+  async function generate() {
+    setBusy(true);
+    setStatus("generating");
+    try {
+      const result = await generateListeningAudioAction({ sectionId: section.id, testId });
+      setStatus(result.status);
+      setUrl(result.url);
+      toast.success(result.skipped ? "Audio already up to date" : "Audio generated");
+    } catch (error) {
+      setStatus("failed");
+      toast.error(error instanceof Error ? error.message : "Generation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const label = AUDIO_STATUS_LABEL[status];
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t border-outline-variant/30 pt-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="type-caption text-on-surface-variant">
+          Audio: <span className={label.className}>{label.text}</span>
+        </p>
+        <Button variant="outline" size="sm" onClick={generate} disabled={busy}>
+          {busy ? "Generating…" : status === "ready" ? "Regenerate" : "Generate audio"}
+        </Button>
+      </div>
+      {url && status === "ready" ? (
+        <audio controls preload="none" src={url} className="h-9 w-full" />
+      ) : null}
+    </div>
+  );
+}
 
 function speakersToText(value: unknown): string {
   if (!Array.isArray(value)) return "";
@@ -112,9 +174,11 @@ function SectionForm({
 export function ListeningPanel({
   testId,
   sections,
+  audioBySection,
 }: {
   testId: string;
   sections: ListeningSection[];
+  audioBySection?: Record<string, ListeningAudioSummary>;
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -152,23 +216,26 @@ export function ListeningPanel({
           ) : (
             <div
               key={section.id}
-              className="flex items-start justify-between gap-3 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4"
+              className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4"
             >
-              <div className="min-w-0">
-                <p className="type-title text-on-surface">
-                  Section {section.section_number}
-                  {section.title ? ` — ${section.title}` : ""}
-                </p>
-                <p className="type-caption text-on-surface-variant">{section.accent.toUpperCase()}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="type-title text-on-surface">
+                    Section {section.section_number}
+                    {section.title ? ` — ${section.title}` : ""}
+                  </p>
+                  <p className="type-caption text-on-surface-variant">{section.accent.toUpperCase()}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setEditingId(section.id)}>
+                    Edit
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => remove(section)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setEditingId(section.id)}>
-                  Edit
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => remove(section)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
+              <AudioControls testId={testId} section={section} initial={audioBySection?.[section.id]} />
             </div>
           ),
         )}

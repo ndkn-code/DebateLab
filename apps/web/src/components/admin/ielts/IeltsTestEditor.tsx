@@ -195,7 +195,11 @@ export function IeltsTestEditor({
       {tab === "settings" ? <SettingsForm tree={tree} /> : null}
       {tab === "passages" ? <PassagePanel testId={test.id} passages={tree.passages} /> : null}
       {tab === "listening" ? (
-        <ListeningPanel testId={test.id} sections={tree.listeningSections} />
+        <ListeningPanel
+          testId={test.id}
+          sections={tree.listeningSections}
+          audioBySection={tree.audioBySection}
+        />
       ) : null}
       {tab === "questions" ? (
         <QuestionPanel
