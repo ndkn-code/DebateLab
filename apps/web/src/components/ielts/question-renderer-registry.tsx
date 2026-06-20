@@ -16,11 +16,21 @@ import type {
   IeltsQuestionView,
 } from "@/lib/ielts/question-contract";
 
+/**
+ * Player context a registered task surface may need beyond the question itself —
+ * e.g. the live attempt id the Writing/Speaking surfaces submit against (WS-5.2).
+ * Optional so objective renderers (and isolated previews) ignore it.
+ */
+export interface IeltsRendererContext {
+  attemptId: string;
+}
+
 export interface IeltsRendererProps {
   question: IeltsQuestionView;
   value: unknown;
   disabled: boolean;
   onChange: (value: unknown) => void;
+  context?: IeltsRendererContext;
 }
 
 export type IeltsQuestionRenderer = (props: IeltsRendererProps) => ReactElement | null;

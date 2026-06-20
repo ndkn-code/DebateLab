@@ -21,6 +21,10 @@ export {
   type AzureSpeechConfig,
 } from "./config";
 export {
+  AZURE_PRONUNCIATION_WAV_CONTENT_TYPE,
+  azurePronunciationContentType,
+} from "./audio-format";
+export {
   AZURE_PRONUNCIATION_MODEL,
   AZURE_PRONUNCIATION_PROVIDER,
   DEFAULT_PRONUNCIATION_LOCALE,

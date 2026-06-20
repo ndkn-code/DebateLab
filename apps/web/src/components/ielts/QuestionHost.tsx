@@ -6,7 +6,14 @@
  * renderer through the typed contract.
  */
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
-import { getIeltsQuestionRenderer } from "./question-renderer-registry";
+import {
+  getIeltsQuestionRenderer,
+  type IeltsRendererContext,
+} from "./question-renderer-registry";
+import { ensureIeltsTaskRenderersRegistered } from "./questions/register-task-renderers";
+
+// Register the Writing/Speaking capture surfaces before any renderer is resolved.
+ensureIeltsTaskRenderersRegistered();
 
 export function QuestionHost({
   question,
@@ -14,12 +21,14 @@ export function QuestionHost({
   value,
   disabled,
   onChange,
+  context,
 }: {
   question: IeltsQuestionView;
   number: number;
   value: unknown;
   disabled: boolean;
   onChange: (value: unknown) => void;
+  context?: IeltsRendererContext;
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
   return (
@@ -37,7 +46,7 @@ export function QuestionHost({
         </p>
       ) : null}
       <div className="pl-10">
-        {renderQuestion({ question, value, disabled, onChange })}
+        {renderQuestion({ question, value, disabled, onChange, context })}
       </div>
     </div>
   );
