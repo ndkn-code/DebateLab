@@ -69,6 +69,7 @@ interface AnalyzeRequest {
   motionBrief?: MotionBrief;
   debateMemory?: DebateMemory;
   transcription?: PracticeTranscriptionArtifact;
+  prepNotes?: string;
 }
 
 function createAnalyzeRequestId() {
@@ -210,6 +211,9 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     max: 7200,
     defaultValue: 0,
   })!;
+  const prepNotes = getString(body, "prepNotes", {
+    maxLength: 12000,
+  });
   const practiceTrack = getEnum(
     body,
     "practiceTrack",
@@ -246,6 +250,7 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     motionBrief: parseMotionBrief(body.motionBrief),
     debateMemory: parseDebateMemory(body.debateMemory),
     transcription: parseTranscriptionArtifact(body.transcription),
+    prepNotes,
   };
 }
 
@@ -320,6 +325,7 @@ export async function POST(req: NextRequest) {
       motionBrief,
       debateMemory,
       transcription,
+      prepNotes,
     } =
       body;
 
@@ -410,6 +416,7 @@ export async function POST(req: NextRequest) {
         motionBrief,
         debateMemory,
         transcription,
+        prepNotes,
         mode:
           practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
             ? "full"
@@ -474,6 +481,7 @@ export async function POST(req: NextRequest) {
           motionBrief,
           debateMemory,
           transcription,
+          prepNotes,
           corpusContext: corpusRetrieval.contextBlock,
           providerAudit: {
             sourceRoute: "/api/analyze",

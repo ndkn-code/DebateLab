@@ -2086,6 +2086,27 @@
         "persuasion": "Persuasion"
       }
     },
+    "coaching": {
+      "seconds": "{count}s",
+      "minutes": "{count} min",
+      "notes": {
+        "heading": "Your notes",
+        "meta": "{count} words saved from this session",
+        "saved": "Saved",
+        "whatHelped": "What helped",
+        "missed": "What to catch next time",
+        "nextTemplate": "Next note template"
+      },
+      "plan": {
+        "heading": "Next practice plan",
+        "subheading": "Use these drills as the first checklist for your next round.",
+        "shadow": "Shadow:"
+      },
+      "shadow": {
+        "before": "Before:",
+        "after": "Try:"
+      }
+    },
     "casework": {
       "heading": "Debate Case Diagnosis",
       "subheading": "These notes focus on argument quality, missing reasoning layers, clash, and stronger rebuilds.",

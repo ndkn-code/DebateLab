@@ -3,6 +3,7 @@ import {
   PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
   getRubricKeyForPracticeTrack,
 } from "./constants";
+import { truncateNotesForPrompt } from "@/lib/practice-notes";
 import type {
   PracticeAnalysisInput,
   PracticeAttemptSnapshot,
@@ -54,6 +55,7 @@ export function buildPracticeAttemptSnapshot(
       motionBrief: input.motionBrief,
       debateMemory: input.debateMemory ?? null,
       transcription: input.transcription,
+      prepNotes: truncateNotesForPrompt(input.prepNotes),
     },
     session: {
       mode: input.mode,
@@ -87,6 +89,7 @@ export function createPracticeInputHash(input: PracticeAnalysisInput) {
     motionBrief: input.motionBrief ?? null,
     debateMemory: input.debateMemory ?? null,
     transcription: input.transcription ?? null,
+    prepNotes: truncateNotesForPrompt(input.prepNotes),
     promptBundleVersion: PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
     rubricKey: getRubricKeyForPracticeTrack(input.practiceTrack),
   });

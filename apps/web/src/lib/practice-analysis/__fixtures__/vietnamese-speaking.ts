@@ -15,6 +15,7 @@ export const vietnameseSpeakingInput: PracticeAnalysisInput = {
   mode: "quick",
   prepTime: 60,
   speechTime: 120,
+  prepNotes: "Mở bài: thói quen nhỏ. Ví dụ: luyện đều giúp tự tin hơn.",
   topicCategory: "Speaking",
   topicCategoryKey: "speaking",
   topicDifficulty: "beginner",

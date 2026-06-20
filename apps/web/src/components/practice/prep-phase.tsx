@@ -11,14 +11,16 @@ import {
 } from "@/components/ui/icons";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  MAX_NOTES_LENGTH,
-  appendPlainTextBlockToRichNotes,
   PhasePill,
   PracticePanel,
   PracticeTimerDial,
   PrimaryActionButton,
   QuickNotesEditor,
 } from "./practice-session-ui";
+import {
+  MAX_NOTES_LENGTH,
+  appendPlainTextBlockToRichNotes,
+} from "@/lib/practice-notes";
 import { MotionInfoPanel } from "./motion-info-panel";
 import {
   buildPrepStarterBlock,
