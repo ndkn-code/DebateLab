@@ -13,6 +13,7 @@
     "test:ielts-scoring": "tsx src/lib/scoring/ielts/text-normalize.test.ts && tsx src/lib/scoring/ielts/build-key.test.ts && tsx src/lib/scoring/ielts/grade-blank.test.ts && tsx src/lib/scoring/ielts/grade-question.test.ts",
     "test:ielts-questions": "tsx src/lib/ielts/question-types/contract.test.ts",
     "test:ielts-authoring": "tsx src/lib/api/ielts/normalize.test.ts && tsx src/lib/api/ielts/question-schema.test.ts && tsx src/lib/api/ielts/content-schema.test.ts && tsx src/lib/api/ielts/workflow.test.ts && tsx src/lib/api/ielts/snapshot.test.ts && tsx src/lib/api/ielts/import/import.test.ts",
+    "test:ielts-mock": "tsx src/lib/ielts/mock-blueprint.test.ts && tsx src/lib/ielts/section-timing.test.ts && tsx src/lib/scoring/ielts/answer-normalize.test.ts && tsx src/lib/scoring/ielts/objective-scoring.test.ts && tsx src/lib/scoring/ielts/band-conversion.test.ts && tsx src/lib/scoring/ielts/grade-objective.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
