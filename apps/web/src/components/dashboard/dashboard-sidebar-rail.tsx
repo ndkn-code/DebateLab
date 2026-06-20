@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   BookOpen,
   ChevronRight,
+  ClipboardList,
   Clock3,
   GraduationCap,
   Home,
@@ -41,6 +42,7 @@ const NAV_ICONS = {
   analytics: UserRound,
   ielts_home: GraduationCap,
   ielts_library: BookOpen,
+  ielts_assigned: ClipboardList,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -112,6 +114,9 @@ export function DashboardSidebarRail({
 
     if (item.key === "ielts_library") {
       return pathname.startsWith("/ielts/tests");
+    }
+    if (item.key === "ielts_assigned") {
+      return pathname.startsWith("/ielts/assigned");
     }
 
     return pathname === item.href;

@@ -298,7 +298,8 @@
       "bookmarks": "Bookmarks",
       "analytics": "Profile",
       "ielts_home": "IELTS Home",
-      "ielts_library": "Test Library"
+      "ielts_library": "Test Library",
+      "ielts_assigned": "Assigned"
     },
     "ielts": {
       "eyebrow": "IELTS",

@@ -20,6 +20,7 @@ import {
   Trophy,
   GraduationCap,
   BookOpen,
+  ClipboardList,
 } from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -81,6 +82,7 @@ const NAV_ITEMS: readonly SidebarNavItem[] = [
 const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/ielts", key: "ielts_home", icon: GraduationCap, status: "live" },
   { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
+  { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ];
 
@@ -88,6 +90,7 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
 const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { key: "ielts_home", href: "/ielts", status: "live" },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
+  { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
 ];
 
