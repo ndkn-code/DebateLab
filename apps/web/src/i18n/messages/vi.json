@@ -2853,6 +2853,66 @@
         "fluencyCoherence": "Độ trôi chảy & mạch lạc",
         "pronunciation": "Phát âm"
       }
+    },
+    "assignments": {
+      "teacher": {
+        "title": "Đề thi thử IELTS được giao",
+        "subtitle": "Giao một đề thi thử đã xuất bản cho lớp và theo dõi điểm band.",
+        "backToClub": "Quay lại không gian câu lạc bộ",
+        "assignHeading": "Giao đề thi thử",
+        "classLabel": "Lớp",
+        "classPlaceholder": "Chọn một lớp",
+        "testLabel": "Đề thi thử",
+        "testPlaceholder": "Chọn đề thi thử đã xuất bản",
+        "dueLabel": "Hạn nộp (không bắt buộc)",
+        "assignButton": "Giao đề",
+        "assigning": "Đang giao…",
+        "noClasses": "Hãy tạo một lớp trong câu lạc bộ này trước khi giao đề.",
+        "noTests": "Chưa có đề thi thử nào được xuất bản.",
+        "listHeading": "Đề đã giao",
+        "empty": "Chưa giao đề thi thử IELTS nào.",
+        "viewResults": "Xem kết quả",
+        "archive": "Lưu trữ",
+        "archiving": "Đang lưu trữ…",
+        "noDue": "Không có hạn nộp",
+        "statusActive": "Đang mở",
+        "statusArchived": "Đã lưu trữ",
+        "assignError": "Không thể giao đề. Vui lòng thử lại."
+      },
+      "results": {
+        "backToAssignments": "Quay lại danh sách đề",
+        "summaryTotal": "Học viên",
+        "summaryCompleted": "Hoàn thành",
+        "summarySubmitted": "Đã nộp",
+        "summaryInProgress": "Đang làm",
+        "summaryNotStarted": "Chưa bắt đầu",
+        "summaryAverage": "Band trung bình",
+        "student": "Học viên",
+        "overall": "Tổng",
+        "listening": "Nghe",
+        "reading": "Đọc",
+        "writing": "Viết",
+        "speaking": "Nói",
+        "statusColumn": "Trạng thái",
+        "emptyRoster": "Chưa có học viên nào trong lớp này."
+      },
+      "learner": {
+        "title": "Bài thi được giao",
+        "subtitle": "Các đề thi thử IELTS giáo viên đã giao cho bạn.",
+        "empty": "Hiện bạn chưa có bài thi nào được giao.",
+        "due": "Hạn {date}",
+        "noDue": "Không có hạn nộp",
+        "start": "Bắt đầu",
+        "resume": "Tiếp tục",
+        "viewResults": "Xem kết quả",
+        "band": "Band {band}"
+      },
+      "state": {
+        "not_started": "Chưa bắt đầu",
+        "in_progress": "Đang làm",
+        "submitted": "Đã nộp",
+        "completed": "Hoàn thành"
+      }
     }
   }
 }

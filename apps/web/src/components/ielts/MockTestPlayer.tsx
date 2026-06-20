@@ -23,6 +23,7 @@ import {
   submitMockAttempt,
   submitSection,
 } from "@/app/actions/ielts/mock";
+import { startAssignedMockAttempt } from "@/app/actions/ielts/assignments";
 import { MockSectionView } from "./MockSectionView";
 
 type Phase = "intro" | "running" | "done";
@@ -32,7 +33,14 @@ function bandText(band: number | null): string {
   return band === null ? "—" : band.toFixed(1);
 }
 
-export function MockTestPlayer({ structure }: { structure: MockStructure }) {
+export function MockTestPlayer({
+  structure,
+  assignmentId,
+}: {
+  structure: MockStructure;
+  /** When present, the sitting is stamped to this class assignment (WS-5.3). */
+  assignmentId?: string;
+}) {
   const params = useParams<{ locale: string }>();
   const [phase, setPhase] = useState<Phase>("intro");
   const [state, setState] = useState<AttemptState | null>(null);
@@ -90,7 +98,9 @@ export function MockTestPlayer({ structure }: { structure: MockStructure }) {
 
   const handleStart = () =>
     run(async () => {
-      const started = await startMockAttempt({ testId: structure.test.id });
+      const started = assignmentId
+        ? await startAssignedMockAttempt({ assignmentId })
+        : await startMockAttempt({ testId: structure.test.id });
       hydrate(started);
       setActiveIndex(0);
       setPhase("running");

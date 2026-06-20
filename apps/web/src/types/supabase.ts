@@ -1684,6 +1684,7 @@ export type Database = {
           description: string | null
           due_at: string | null
           id: string
+          ielts_test_id: string | null
           metadata: Json
           required_attempts: number
           rubric_key: string
@@ -1704,6 +1705,7 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           id?: string
+          ielts_test_id?: string | null
           metadata?: Json
           required_attempts?: number
           rubric_key?: string
@@ -1724,6 +1726,7 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           id?: string
+          ielts_test_id?: string | null
           metadata?: Json
           required_attempts?: number
           rubric_key?: string
@@ -1768,6 +1771,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_assignments_ielts_test_id_fkey"
+            columns: ["ielts_test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
             referencedColumns: ["id"]
           },
         ]

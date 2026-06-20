@@ -2853,6 +2853,66 @@
         "fluencyCoherence": "Fluency & Coherence",
         "pronunciation": "Pronunciation"
       }
+    },
+    "assignments": {
+      "teacher": {
+        "title": "IELTS mock assignments",
+        "subtitle": "Assign a published mock to a class and track band results.",
+        "backToClub": "Back to club workspace",
+        "assignHeading": "Assign a mock",
+        "classLabel": "Class",
+        "classPlaceholder": "Select a class",
+        "testLabel": "Mock test",
+        "testPlaceholder": "Select a published mock",
+        "dueLabel": "Due date (optional)",
+        "assignButton": "Assign mock",
+        "assigning": "Assigning…",
+        "noClasses": "Create a class in this club first to assign a mock.",
+        "noTests": "No published mocks are available yet.",
+        "listHeading": "Assigned mocks",
+        "empty": "No IELTS mocks assigned yet.",
+        "viewResults": "View results",
+        "archive": "Archive",
+        "archiving": "Archiving…",
+        "noDue": "No due date",
+        "statusActive": "Active",
+        "statusArchived": "Archived",
+        "assignError": "Could not assign the mock. Please try again."
+      },
+      "results": {
+        "backToAssignments": "Back to assignments",
+        "summaryTotal": "Students",
+        "summaryCompleted": "Completed",
+        "summarySubmitted": "Submitted",
+        "summaryInProgress": "In progress",
+        "summaryNotStarted": "Not started",
+        "summaryAverage": "Average band",
+        "student": "Student",
+        "overall": "Overall",
+        "listening": "Listening",
+        "reading": "Reading",
+        "writing": "Writing",
+        "speaking": "Speaking",
+        "statusColumn": "Status",
+        "emptyRoster": "No students are enrolled in this class yet."
+      },
+      "learner": {
+        "title": "Assigned tests",
+        "subtitle": "IELTS mocks your teachers have assigned.",
+        "empty": "You have no assigned tests right now.",
+        "due": "Due {date}",
+        "noDue": "No due date",
+        "start": "Start",
+        "resume": "Continue",
+        "viewResults": "View results",
+        "band": "Band {band}"
+      },
+      "state": {
+        "not_started": "Not started",
+        "in_progress": "In progress",
+        "submitted": "Submitted",
+        "completed": "Completed"
+      }
     }
   }
 }
