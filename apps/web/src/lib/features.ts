@@ -23,6 +23,29 @@ function getRolloutStage(value: string | undefined): LeaderboardRolloutStage {
 export const STUDENT_COURSES_ENABLED: boolean = false;
 
 /**
+ * IELTS launch switch (WS-5.1). Gates the entire IELTS learner shell — the
+ * `/ielts` home + test library, the IELTS nav set, and the IELTS option in the
+ * subject switcher. Default OFF so debate is byte-identical until the track is
+ * launched; flip `NEXT_PUBLIC_IELTS_ENABLED=true` (or `IELTS_ENABLED=true`) to
+ * turn it on for everyone — no code change to the gate needed.
+ *
+ * Engine-purity (masterplan §2.7): a per-track launch gate, never exam logic
+ * inside the core engine. `getActiveSubject()` (lib/subject/server.ts) honours
+ * this flag so a stale `ielts` cookie cannot activate the track while it is off.
+ */
+const ieltsEnabledValue =
+  process.env.NEXT_PUBLIC_IELTS_ENABLED ?? process.env.IELTS_ENABLED;
+
+export const IELTS_ENABLED: boolean = ieltsEnabledValue
+  ? isEnabled(ieltsEnabledValue)
+  : false;
+
+/** Subjects a learner may switch to, given the launch flags. */
+export function availableSubjects(): Subject[] {
+  return IELTS_ENABLED ? ["debate", "ielts"] : ["debate"];
+}
+
+/**
  * Subject-scoped enablement for the Duolingo-style activity/course engine
  * (WS-0.2). The engine stays flagged OFF for debate (`STUDENT_COURSES_ENABLED`
  * is unchanged) but ON for the IELTS track, so selecting IELTS reaches the

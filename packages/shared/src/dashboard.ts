@@ -8,7 +8,11 @@ export type DashboardNavKey =
   | "courses"
   | "coach"
   | "history"
-  | "analytics";
+  | "analytics"
+  // IELTS learner shell (WS-5.1) — only surfaced when the active subject is
+  // `ielts`; debate nav never includes these.
+  | "ielts_home"
+  | "ielts_library";
 
 export type DashboardActionKey = "speaking" | "debate" | "course" | "coach";
 

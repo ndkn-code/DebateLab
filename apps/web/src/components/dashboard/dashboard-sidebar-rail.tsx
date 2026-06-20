@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronRight,
   Clock3,
+  GraduationCap,
   Home,
   Lock,
   Scale,
@@ -38,6 +39,8 @@ const NAV_ICONS = {
   coach: Sparkles,
   history: Clock3,
   analytics: UserRound,
+  ielts_home: GraduationCap,
+  ielts_library: BookOpen,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -101,6 +104,14 @@ export function DashboardSidebarRail({
 
     if (item.key === "analytics") {
       return pathname.startsWith("/profile");
+    }
+
+    if (item.key === "ielts_home") {
+      return pathname === "/ielts";
+    }
+
+    if (item.key === "ielts_library") {
+      return pathname.startsWith("/ielts/tests");
     }
 
     return pathname === item.href;
