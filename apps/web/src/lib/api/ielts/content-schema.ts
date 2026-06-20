@@ -5,7 +5,7 @@
  * question-schema.ts. Pure module (Zod + type-only imports).
  */
 import { z } from "zod";
-import type { TablesInsert, TablesUpdate } from "@/types/supabase";
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import { IELTS_ACCENTS, IELTS_MODULES } from "./schema";
 import { JsonSchema } from "./json";
 
@@ -149,4 +149,125 @@ export function toBandConversionInsert(
     raw_min: input.rawMin,
     raw_max: input.rawMax,
   };
+}
+
+// --- Band-conversion TABLE (the WS-2.2 admin "edit a table" path) ----------
+// A "table" is the full set of band→raw rows for one (conversion_key, skill,
+// module). The admin surface replaces it atomically; the seeded 'default' is the
+// fallback the grader uses when a test names no `band_conversion_key`.
+
+export type BandConversionSkill = "listening" | "reading";
+export type BandConversionModuleKey = (typeof IELTS_MODULES)[number];
+
+const BandConversionRowSchema = z
+  .object({
+    band: z
+      .number()
+      .min(0)
+      .max(9)
+      .refine((v) => Number.isInteger(v * 2), {
+        message: "band must be a whole or half number (e.g. 6 or 6.5)",
+      }),
+    rawMin: z.number().int().min(0).max(40),
+    rawMax: z.number().int().min(0).max(40),
+  })
+  .refine((v) => v.rawMax >= v.rawMin, {
+    message: "rawMax must be >= rawMin",
+    path: ["rawMax"],
+  });
+
+export const ReplaceBandConversionTableSchema = z
+  .object({
+    conversionKey: z.string().min(1).max(120),
+    skill: z.enum(["listening", "reading"]),
+    module: z.enum(IELTS_MODULES).nullish(),
+    rows: z.array(BandConversionRowSchema).min(1).max(60),
+  })
+  .superRefine((v, ctx) => {
+    // Listening is module-independent; Reading splits Academic vs GT (DB shape).
+    if (v.skill === "listening" && v.module != null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "listening tables are module-independent — leave module empty",
+        path: ["module"],
+      });
+    }
+    if (v.skill === "reading" && v.module == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "reading tables require a module (academic or general_training)",
+        path: ["module"],
+      });
+    }
+    const bands = v.rows.map((r) => r.band);
+    if (new Set(bands).size !== bands.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "each band may appear only once in a table",
+        path: ["rows"],
+      });
+    }
+  });
+export type ReplaceBandConversionTableInput = z.infer<
+  typeof ReplaceBandConversionTableSchema
+>;
+
+export const DeleteBandConversionTableSchema = z.object({
+  conversionKey: z.string().min(1).max(120),
+  skill: z.enum(["listening", "reading"]),
+  module: z.enum(IELTS_MODULES).nullish(),
+});
+export type DeleteBandConversionTableInput = z.infer<
+  typeof DeleteBandConversionTableSchema
+>;
+
+export function toBandConversionRows(
+  input: ReplaceBandConversionTableInput,
+): TablesInsert<"band_conversions">[] {
+  return input.rows.map((row) => ({
+    conversion_key: input.conversionKey,
+    skill: input.skill,
+    module: input.module ?? null,
+    band: row.band,
+    raw_min: row.rawMin,
+    raw_max: row.rawMax,
+  }));
+}
+
+export interface BandConversionTableGroup {
+  conversionKey: string;
+  skill: BandConversionSkill;
+  module: BandConversionModuleKey | null;
+  rows: { band: number; rawMin: number; rawMax: number }[];
+}
+
+/** Group flat band_conversions rows into per-(key, skill, module) tables (pure). */
+export function groupBandConversionTables(
+  rows: Pick<Tables<"band_conversions">, "conversion_key" | "skill" | "module" | "band" | "raw_min" | "raw_max">[],
+): BandConversionTableGroup[] {
+  const groups = new Map<string, BandConversionTableGroup>();
+  for (const row of rows) {
+    if (row.skill !== "listening" && row.skill !== "reading") continue;
+    const key = `${row.conversion_key}::${row.skill}::${row.module ?? ""}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        conversionKey: row.conversion_key,
+        skill: row.skill,
+        module: (row.module as BandConversionModuleKey | null) ?? null,
+        rows: [],
+      };
+      groups.set(key, group);
+    }
+    group.rows.push({ band: row.band, rawMin: row.raw_min, rawMax: row.raw_max });
+  }
+  const tables = [...groups.values()];
+  for (const group of tables) group.rows.sort((a, b) => b.band - a.band);
+  tables.sort(
+    (a, b) =>
+      a.conversionKey.localeCompare(b.conversionKey) ||
+      a.skill.localeCompare(b.skill) ||
+      (a.module ?? "").localeCompare(b.module ?? ""),
+  );
+  return tables;
 }

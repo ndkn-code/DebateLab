@@ -129,11 +129,19 @@ export function IeltsTestsClient({ tests }: { tests: IeltsTest[] }) {
             Author tests, passages, listening scripts, questions, and bulk-import the template.
           </p>
         </div>
-        {!creating ? (
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> New test
-          </Button>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/dashboard/admin/ielts/band-conversions"
+            className="rounded-full px-4 py-2 type-label text-on-surface-variant transition-colors hover:bg-surface-container"
+          >
+            Band conversions
+          </Link>
+          {!creating ? (
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" /> New test
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {creating ? <CreateTestForm onCancel={() => setCreating(false)} /> : null}

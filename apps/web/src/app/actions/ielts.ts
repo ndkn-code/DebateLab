@@ -21,7 +21,13 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import { generateListeningSectionAudio } from "@/lib/ielts/listening-audio/generate";
 import { gradeQuestionResponse } from "@/lib/api/ielts/grading-repository";
 import type { IeltsVerdict } from "@/lib/ielts/question-types/types";
-import { createBandConversion } from "@/lib/api/ielts/band-conversions-repository";
+import {
+  createBandConversion,
+  deleteBandConversionTable,
+  replaceBandConversionTable,
+} from "@/lib/api/ielts/band-conversions-repository";
+import { parseInput } from "@/lib/api/boundary";
+import { DeleteBandConversionTableSchema } from "@/lib/api/ielts/content-schema";
 import {
   createListeningSection,
   deleteListeningSection,
@@ -251,4 +257,43 @@ export async function createBandConversionAction(input: unknown) {
   await logIelts(supabase, adminId, "create_ielts_band_conversion", "ielts_band_conversion", row.id);
   revalidateTest();
   return row;
+}
+
+function revalidateBandConversions(): void {
+  revalidatePath("/dashboard/admin/ielts/band-conversions");
+}
+
+/** Replace an entire (conversion_key, skill, module) band table (WS-2.2). */
+export async function replaceBandConversionTableAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const rows = await replaceBandConversionTable(input, supabase);
+  await logIelts(
+    supabase,
+    adminId,
+    "replace_ielts_band_conversion_table",
+    "ielts_band_conversion",
+    null,
+    { count: rows.length },
+  );
+  revalidateBandConversions();
+  return rows;
+}
+
+/** Delete an entire (conversion_key, skill, module) band table (WS-2.2). */
+export async function deleteBandConversionTableAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const parsed = parseInput(DeleteBandConversionTableSchema, input);
+  await deleteBandConversionTable(
+    { conversionKey: parsed.conversionKey, skill: parsed.skill, module: parsed.module ?? null },
+    supabase,
+  );
+  await logIelts(
+    supabase,
+    adminId,
+    "delete_ielts_band_conversion_table",
+    "ielts_band_conversion",
+    null,
+    { conversionKey: parsed.conversionKey, skill: parsed.skill },
+  );
+  revalidateBandConversions();
 }

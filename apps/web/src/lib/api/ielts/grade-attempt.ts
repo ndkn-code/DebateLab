@@ -18,6 +18,7 @@ import type {
   IeltsModule,
 } from "@/lib/scoring/ielts/band-conversion";
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
+import { recomputeAttemptOverallBand } from "./overall-band-repository";
 
 type AdminClient = ReturnType<typeof createTypedAdminClient>;
 
@@ -154,13 +155,16 @@ async function persist(
       reading_raw: grade.readingRaw,
       listening_band: grade.bands.listeningBand,
       reading_band: grade.bands.readingBand,
-      overall_band: grade.bands.overallBand,
       computed_at: nowIso,
       updated_at: nowIso,
     },
     { onConflict: "attempt_id" },
   );
   if (bandError) throw new Error(`grade(band upsert): ${bandError.message}`);
+
+  // The cross-skill overall is owned by the results layer (WS-2.2): recompute it
+  // from all four skill bands so it stays correct as Writing/Speaking land.
+  await recomputeAttemptOverallBand(admin, attempt.id, attempt.user_id);
 
   const { error: attemptError } = await admin
     .from("ielts_attempts")

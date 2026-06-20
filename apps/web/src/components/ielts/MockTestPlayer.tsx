@@ -8,6 +8,8 @@
  * minimal here (full review is WS-2.2).
  */
 import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
@@ -31,6 +33,7 @@ function bandText(band: number | null): string {
 }
 
 export function MockTestPlayer({ structure }: { structure: MockStructure }) {
+  const params = useParams<{ locale: string }>();
   const [phase, setPhase] = useState<Phase>("intro");
   const [state, setState] = useState<AttemptState | null>(null);
   const [responses, setResponses] = useState<IeltsResponseMap>({});
@@ -158,7 +161,10 @@ export function MockTestPlayer({ structure }: { structure: MockStructure }) {
   }
 
   if (phase === "done" && grade) {
-    return <BandSummary grade={grade} />;
+    const resultsHref = attemptId
+      ? `/${params.locale}/ielts/attempts/${attemptId}/results`
+      : null;
+    return <BandSummary grade={grade} resultsHref={resultsHref} />;
   }
 
   return (
@@ -245,7 +251,13 @@ function IntroCard({
   );
 }
 
-function BandSummary({ grade }: { grade: AttemptGrade }) {
+function BandSummary({
+  grade,
+  resultsHref,
+}: {
+  grade: AttemptGrade;
+  resultsHref: string | null;
+}) {
   const rows: Array<[string, number | null, number | null]> = [
     ["Listening", grade.listeningRaw, grade.bands.listeningBand],
     ["Reading", grade.readingRaw, grade.bands.readingBand],
@@ -271,9 +283,17 @@ function BandSummary({ grade }: { grade: AttemptGrade }) {
           </div>
         ))}
       </div>
+      {resultsHref ? (
+        <Link
+          href={resultsHref}
+          className={`${PILL} bg-primary text-center text-on-primary`}
+        >
+          See full results &amp; review
+        </Link>
+      ) : null}
       <p className="text-center text-xs text-on-surface-variant">
-        Writing &amp; Speaking are scored separately. Full review arrives in the
-        results experience.
+        Writing &amp; Speaking are scored separately and appear in your full
+        results as they finish.
       </p>
     </div>
   );

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   computeObjectiveBands,
   rawToBand,
+  selectConversionTable,
   type BandConversionRow,
 } from "./band-conversion";
 
@@ -82,5 +83,36 @@ assert.deepEqual(
   computeObjectiveBands(rows, "academic", { listening: 25, reading: null }),
   { listeningBand: null, readingBand: null, overallBand: null },
 );
+
+// ---- selectConversionTable: the table that applies, for the breakdown ------
+// Listening: the module-agnostic table, sorted band-desc.
+assert.deepEqual(
+  selectConversionTable(rows, "listening", null).map((r) => r.band),
+  [9.0, 7.0, 5.0],
+);
+// Reading splits by module — only the requested module's rows come back.
+assert.deepEqual(
+  selectConversionTable(rows, "reading", "academic").map((r) => [r.raw_min, r.raw_max]),
+  [
+    [30, 32],
+    [15, 18],
+  ],
+);
+assert.deepEqual(
+  selectConversionTable(rows, "reading", "general_training").map((r) => r.band),
+  [7.0, 5.0],
+);
+// A test-specific key wins the whole table over `default`.
+assert.deepEqual(
+  selectConversionTable(withTestKey, "reading", "academic").map((r) => [r.conversion_key, r.band]),
+  [["cam-19-test-1", 8.0]],
+);
+// Module-specific beats agnostic for the same skill/raw window.
+assert.deepEqual(
+  selectConversionTable(mixedModule, "reading", "academic").map((r) => r.band),
+  [7.0],
+);
+// No matching rows -> empty.
+assert.deepEqual(selectConversionTable(rows, "reading", null), []);
 
 console.log("scoring/ielts/band-conversion tests passed");
