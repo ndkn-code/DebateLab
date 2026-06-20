@@ -2,6 +2,7 @@ import "server-only";
 
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { writingOverallBand } from "@/lib/scoring/ielts-writing/band-math";
+import { attemptSpeakingBand } from "@/lib/scoring/ielts-speaking/band-math";
 
 /**
  * Roll a scored attempt's Task 1 + Task 2 bands into the per-attempt
@@ -46,4 +47,45 @@ export async function recomputeAttemptWritingBand(
     throw new Error(`recomputeAttemptWritingBand failed: ${error.message}`);
   }
   return writingBand;
+}
+
+/**
+ * Roll a scored attempt's per-part Speaking bands into the per-attempt
+ * `attempt_band_scores.speaking_band` (WS-3.2) — the mean of the scored parts,
+ * half-band rounded (a full Speaking test spans Parts 1/2/3). Only the
+ * `speaking_band` is written here; cross-skill `overall_band` is owned by the
+ * results layer (WS-2.2).
+ */
+export async function recomputeAttemptSpeakingBand(
+  admin: TypedAdminClient,
+  attemptId: string,
+  userId: string,
+): Promise<number | null> {
+  const { data: rows } = await admin
+    .from("speaking_responses")
+    .select("speaking_band")
+    .eq("attempt_id", attemptId)
+    .in("status", ["scored", "overridden"]);
+
+  const partBands = (rows ?? [])
+    .map((row) => row.speaking_band)
+    .filter((band): band is number => band != null);
+
+  const speakingBand = attemptSpeakingBand(partBands);
+  if (speakingBand == null) return null;
+
+  const now = new Date().toISOString();
+  const { error } = await admin.from("attempt_band_scores").upsert(
+    {
+      attempt_id: attemptId,
+      user_id: userId,
+      speaking_band: speakingBand,
+      updated_at: now,
+    },
+    { onConflict: "attempt_id" },
+  );
+  if (error) {
+    throw new Error(`recomputeAttemptSpeakingBand failed: ${error.message}`);
+  }
+  return speakingBand;
 }
