@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  GraduationCap,
   LayoutGrid,
   Layers3,
   Mail,
@@ -35,6 +36,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/emails", key: "emails" as const, icon: Mail },
   { href: "/dashboard/admin/feedback-popups", key: "feedbackPopups" as const, icon: MessageSquareText },
   { href: "/dashboard/admin/courses", key: "courses" as const, icon: BookOpen },
+  { href: "/dashboard/admin/ielts", key: "ielts" as const, icon: GraduationCap },
   { href: "/dashboard/admin/duels", key: "duels" as const, icon: Swords },
   { href: "/dashboard/admin/motions", key: "motions" as const, icon: FileText },
 ] as const;
