@@ -45,6 +45,7 @@
     "generate:tts-samples": "tsx ../../scripts/generate-tts-voice-samples.ts",
     "test:email-templates": "tsx src/lib/email/template-overrides.test.ts",
     "test:scoring": "tsx src/lib/scoring/round-half-band.test.ts",
+    "test:payments": "node --import tsx --test 'src/lib/payments/**/*.test.ts'",
     "test:coverage:critical": "tsx ../../scripts/ci/run-critical-coverage.ts"
   },
   "dependencies": {
@@ -86,6 +87,7 @@
     "resend": "^6.12.3",
     "rrule": "^2.8.1",
     "sonner": "^2.0.7",
+    "stripe": "^22.2.2",
     "svix": "^1.93.0",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
