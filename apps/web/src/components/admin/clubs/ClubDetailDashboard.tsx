@@ -1050,7 +1050,20 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             {!data.cohorts.length && <EmptyPanel label="No cohorts yet." />}
           </div>
         )}
-        {activeTab === "Assignments" && <div className="mt-5"><AssignmentTable assignments={data.assignments} clubId={data.club.id} /></div>}
+        {activeTab === "Assignments" && (
+          <div className="mt-5 flex flex-col gap-4">
+            <div className="flex justify-end">
+              <Link
+                href={`/dashboard/clubs/${data.club.id}/ielts`}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                IELTS mock assignments
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <AssignmentTable assignments={data.assignments} clubId={data.club.id} />
+          </div>
+        )}
         {activeTab === "Performance" && <div className="mt-5"><AttemptsList attempts={data.attempts} /></div>}
         {activeTab === "Attendance" && (
           <div className="mt-5 grid gap-4 lg:grid-cols-3">

@@ -17,14 +17,25 @@ export interface CreatedAttempt {
   sections: Tables<"ielts_attempt_sections">[];
 }
 
+/**
+ * Optional Club OS context stamped on an attempt when it is started from a
+ * teacher assignment (WS-5.3). Omitted for self-serve sittings (all null).
+ */
+export interface AttemptOrgContext {
+  clubId: string | null;
+  classId: string | null;
+  assignmentId: string | null;
+}
+
 /** Create an attempt and its timed sections from a blueprint (service-role). */
 export async function createAttemptWithSections(params: {
   userId: string;
   test: Pick<Tables<"ielts_tests">, "id" | "module">;
   blueprint: SectionBlueprint[];
+  org?: AttemptOrgContext;
 }): Promise<CreatedAttempt> {
   const admin = createTypedAdminClient();
-  const { userId, test, blueprint } = params;
+  const { userId, test, blueprint, org } = params;
 
   const { count } = await admin
     .from("ielts_attempts")
@@ -40,6 +51,9 @@ export async function createAttemptWithSections(params: {
       module: test.module,
       status: "in_progress",
       attempt_number: (count ?? 0) + 1,
+      club_id: org?.clubId ?? null,
+      class_id: org?.classId ?? null,
+      assignment_id: org?.assignmentId ?? null,
     })
     .select()
     .single();
