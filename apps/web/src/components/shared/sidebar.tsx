@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -18,6 +18,8 @@ import {
   Scale,
   Swords,
   Trophy,
+  GraduationCap,
+  BookOpen,
 } from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -53,7 +55,14 @@ import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
 import type { Subject } from "@/lib/subject";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 
-const NAV_ITEMS = [
+type SidebarNavItem = {
+  href?: string;
+  key: string;
+  icon: ComponentType<{ className?: string }>;
+  status: "live" | "coming-soon";
+};
+
+const NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard, status: "live" },
   { href: "/practice", key: "practice", icon: Scale, status: "live" },
   {
@@ -65,7 +74,22 @@ const NAV_ITEMS = [
   { href: "/debates", key: "duel", icon: Swords, status: "live" },
   { href: "/chat", key: "chat", icon: MessageCircle, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
-] as const;
+];
+
+// IELTS learner nav (WS-5.1) — used for the mobile sheet + legacy aside when the
+// active subject is `ielts`. Debate nav stays byte-identical (`NAV_ITEMS`).
+const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
+  { href: "/ielts", key: "ielts_home", icon: GraduationCap, status: "live" },
+  { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
+  { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
+];
+
+// IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
+const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
+  { key: "ielts_home", href: "/ielts", status: "live" },
+  { key: "ielts_library", href: "/ielts/tests", status: "live" },
+  { key: "analytics", href: "/profile", status: "live" },
+];
 
 interface SidebarProps {
   profile: Profile | null;
@@ -105,6 +129,7 @@ function NavContent({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const navItems = currentSubject === "ielts" ? IELTS_NAV_ITEMS : NAV_ITEMS;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -166,13 +191,14 @@ function NavContent({
             {!collapsed ? <span className="truncate">{t("switchToAdmin")}</span> : null}
           </Link>
         ) : null}
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const href = item.href;
+          const isExactRoot = href === "/dashboard" || href === "/ielts";
           const isActive = href
             ? pathname === href ||
               (item.key === "duel"
                 ? pathname.startsWith("/debates")
-                : href !== "/dashboard" && pathname.startsWith(href))
+                : !isExactRoot && pathname.startsWith(href))
             : false;
           const Icon = item.icon;
           const label = item.key === "analytics" ? t("profile") : t(item.key);
@@ -304,7 +330,7 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isAdmin = profile?.role === "admin";
   const canDuel = DUEL_ENABLED || isAdmin;
-  const dashboardNavItems: DashboardNavItem[] = [
+  const debateNavItems: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
     { key: "practice", href: "/practice", status: "live" },
     {
@@ -329,6 +355,8 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
   ];
+  const dashboardNavItems: DashboardNavItem[] =
+    activeSubject === "ielts" ? IELTS_DASHBOARD_NAV_ITEMS : debateNavItems;
 
   const handleSignOut = async () => {
     const supabase = createClient();

@@ -23,12 +23,11 @@ import {
   type AppLocale,
 } from "@/lib/locale-switch";
 import {
-  SUBJECTS,
   coerceSubject,
   getSubjectConfig,
   type Subject,
 } from "@/lib/subject";
-import { areStudentCoursesEnabled } from "@/lib/features";
+import { availableSubjects } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 interface ModeSwitcherProps {
@@ -66,6 +65,9 @@ export function ModeSwitcher({
 
   const resolvedLocale = coerceAppLocale(currentLocale);
   const resolvedSubject = coerceSubject(currentSubject);
+  // Subjects the learner may switch to. When IELTS is not launched this is just
+  // `["debate"]`, so the subject group is hidden and debate is unchanged.
+  const subjects = availableSubjects();
   const subjectConfig = getSubjectConfig(resolvedSubject);
   const subjectLabel =
     resolvedLocale === "vi" ? subjectConfig.labelVi : subjectConfig.label;
@@ -84,11 +86,9 @@ export function ModeSwitcher({
       void (async () => {
         try {
           await saveSubjectPreference(nextSubject);
-          // Land on the subject's primary surface: the engine (courses) when it
-          // is enabled for that subject (IELTS), else the debate home.
-          router.push(
-            areStudentCoursesEnabled(nextSubject) ? "/courses" : "/dashboard"
-          );
+          // Land on the subject's primary surface: the IELTS learner home for
+          // IELTS, the debate dashboard otherwise.
+          router.push(nextSubject === "ielts" ? "/ielts" : "/dashboard");
           router.refresh();
         } catch {
           showToast(t("switch_subject_error"), "error");
@@ -156,32 +156,36 @@ export function ModeSwitcher({
         sideOffset={8}
         className="w-(--anchor-width) min-w-[210px] rounded-xl border border-outline-variant bg-white p-1.5 text-on-surface shadow-token-card"
       >
-        <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
-          {t("subject")}
-        </DropdownMenuLabel>
-        {SUBJECTS.map((subject) => {
-          const isSelected = subject === resolvedSubject;
+        {subjects.length > 1 ? (
+          <>
+            <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+              {t("subject")}
+            </DropdownMenuLabel>
+            {subjects.map((subject) => {
+              const isSelected = subject === resolvedSubject;
 
-          return (
-            <DropdownMenuItem
-              key={subject}
-              onClick={() => handleSelectSubject(subject)}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
-                isSelected
-                  ? "bg-surface-container-low text-on-surface"
-                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-              )}
-            >
-              <span className="truncate">{subjectLabelFor(subject)}</span>
-              {isSelected ? (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              ) : null}
-            </DropdownMenuItem>
-          );
-        })}
+              return (
+                <DropdownMenuItem
+                  key={subject}
+                  onClick={() => handleSelectSubject(subject)}
+                  className={cn(
+                    "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
+                    isSelected
+                      ? "bg-surface-container-low text-on-surface"
+                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                  )}
+                >
+                  <span className="truncate">{subjectLabelFor(subject)}</span>
+                  {isSelected ? (
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
+                  ) : null}
+                </DropdownMenuItem>
+              );
+            })}
 
-        <DropdownMenuSeparator className="bg-outline-variant" />
+            <DropdownMenuSeparator className="bg-outline-variant" />
+          </>
+        ) : null}
 
         <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
           {t("language")}
