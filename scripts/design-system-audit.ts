@@ -46,8 +46,11 @@ const approvedPathFragments = [
 const approvedExtensions = new Set([".svg"]);
 const scannedExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".css", ".svg"]);
 
+// The bare `#hex` alternative carries a `(?<!&)` lookbehind so HTML numeric
+// entities (e.g. `&#039;` from string-escaping helpers) are not mistaken for a
+// 3-digit color literal — CSS hex colors are never preceded by `&`.
 const tokenClassPattern =
-  /(?:bg|text|border|ring|from|to|via|shadow|fill|stroke)-\[#(?:[0-9a-fA-F]{3,8})(?![0-9A-Za-z_-])\]|(?:bg|text|border|ring|from|to|via|fill|stroke)-\[rgba\([^\]]+\)\]|#[0-9a-fA-F]{3,8}(?![0-9A-Za-z_-])|rgba\([^)]*\d[^)]*\)/g;
+  /(?:bg|text|border|ring|from|to|via|shadow|fill|stroke)-\[#(?:[0-9a-fA-F]{3,8})(?![0-9A-Za-z_-])\]|(?:bg|text|border|ring|from|to|via|fill|stroke)-\[rgba\([^\]]+\)\]|(?<!&)#[0-9a-fA-F]{3,8}(?![0-9A-Za-z_-])|rgba\([^)]*\d[^)]*\)/g;
 const legacyPrimaryPattern =
   /#(?:4D86F7|3E78EC|A9C6FB|11845F|20C997|0E7A58|075C45|A8F0D7)|rgba\(\s*(?:77\s*,\s*134\s*,\s*247|62\s*,\s*120\s*,\s*236|169\s*,\s*198\s*,\s*251|17\s*,\s*132\s*,\s*95|32\s*,\s*201\s*,\s*151|14\s*,\s*122\s*,\s*88|7\s*,\s*92\s*,\s*69)\b|(?:bg|text|border|ring|from|to|via|fill|stroke)-(?:blue|indigo|violet|purple)-[0-9]{2,3}(?:\/[0-9]{1,3})?/gi;
 

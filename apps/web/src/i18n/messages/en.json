@@ -2768,5 +2768,16 @@
     "empty_title": "Your analytics are warming up",
     "empty_body": "Finish a few speaking or debate sessions and this page will start showing your progress, strongest skills, and next focus.",
     "start_practicing": "Start practicing"
+  },
+  "ielts": {
+    "player": {
+      "wordLimitHint": "Write no more than {count} word(s) per blank.",
+      "chooseCount": "Choose {count} answer(s).",
+      "pointsAwarded": "{awarded} of {max} correct",
+      "matchSelect": "Select…",
+      "blankLabel": "Answer for blank {id}",
+      "blankPlaceholder": "Type your answer",
+      "notAutoGraded": "This question type is scored by the AI examiner, not auto-graded."
+    }
   }
 }

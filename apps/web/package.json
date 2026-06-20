@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
     "test:ielts-data-model": "tsx src/lib/api/ielts/schema.test.ts",
+    "test:ielts-scoring": "tsx src/lib/scoring/ielts/text-normalize.test.ts && tsx src/lib/scoring/ielts/build-key.test.ts && tsx src/lib/scoring/ielts/grade-blank.test.ts && tsx src/lib/scoring/ielts/grade-question.test.ts",
+    "test:ielts-questions": "tsx src/lib/ielts/question-types/contract.test.ts",
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
