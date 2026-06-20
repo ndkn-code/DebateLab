@@ -5,6 +5,10 @@
  */
 import type { Tables } from "@/types/supabase";
 import { resolveIeltsClient, type IeltsDbClient } from "./client";
+import {
+  getListeningAudioSummaries,
+  type ListeningAudioSummary,
+} from "./audio-repository";
 
 export type QuestionKey = Tables<"ielts_question_keys">;
 export type QuestionWithKey = Tables<"ielts_questions"> & { key: QuestionKey | null };
@@ -14,6 +18,8 @@ export interface IeltsTestTree {
   passages: Tables<"passages">[];
   listeningSections: Tables<"listening_sections">[];
   questions: QuestionWithKey[];
+  /** Per-section generated-audio status + playable URL (WS-1.3). */
+  audioBySection?: Record<string, ListeningAudioSummary>;
 }
 
 async function loadKeysByQuestion(
@@ -64,5 +70,6 @@ export async function getIeltsTestTree(
     passages: passagesRes.data ?? [],
     listeningSections: sectionsRes.data ?? [],
     questions: questions.map((q) => ({ ...q, key: keysById.get(q.id) ?? null })),
+    audioBySection: await getListeningAudioSummaries(testId, supabase),
   };
 }
