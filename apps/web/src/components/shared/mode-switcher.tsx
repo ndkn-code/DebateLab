@@ -9,6 +9,7 @@ import { saveSubjectPreference } from "@/app/actions/subject";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -169,59 +170,63 @@ export function ModeSwitcher({
       >
         {subjects.length > 1 ? (
           <>
-            <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
-              {t("subject")}
-            </DropdownMenuLabel>
-            {subjects.map((subject) => {
-              const isSelected = subject === resolvedSubject;
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+                {t("subject")}
+              </DropdownMenuLabel>
+              {subjects.map((subject) => {
+                const isSelected = subject === resolvedSubject;
 
-              return (
-                <DropdownMenuItem
-                  key={subject}
-                  onClick={() => handleSelectSubject(subject)}
-                  className={cn(
-                    "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
-                    isSelected
-                      ? "bg-surface-container-low text-on-surface"
-                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-                  )}
-                >
-                  <span className="truncate">{subjectLabelFor(subject)}</span>
-                  {isSelected ? (
-                    <Check className="h-4 w-4 shrink-0 text-primary" />
-                  ) : null}
-                </DropdownMenuItem>
-              );
-            })}
+                return (
+                  <DropdownMenuItem
+                    key={subject}
+                    onClick={() => handleSelectSubject(subject)}
+                    className={cn(
+                      "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
+                      isSelected
+                        ? "bg-surface-container-low text-on-surface"
+                        : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                    )}
+                  >
+                    <span className="truncate">{subjectLabelFor(subject)}</span>
+                    {isSelected ? (
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                    ) : null}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuGroup>
 
             <DropdownMenuSeparator className="bg-outline-variant" />
           </>
         ) : null}
 
-        <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
-          {t("language")}
-        </DropdownMenuLabel>
-        {LOCALE_OPTIONS.map((locale) => {
-          const isSelected = locale === resolvedLocale;
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+            {t("language")}
+          </DropdownMenuLabel>
+          {LOCALE_OPTIONS.map((locale) => {
+            const isSelected = locale === resolvedLocale;
 
-          return (
-            <DropdownMenuItem
-              key={locale}
-              onClick={() => handleSelectLocale(locale)}
-              className={cn(
-                "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
-                isSelected
-                  ? "bg-surface-container-low text-on-surface"
-                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-              )}
-            >
-              <span className="truncate">{LOCALE_LABELS[locale]}</span>
-              {isSelected ? (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              ) : null}
-            </DropdownMenuItem>
-          );
-        })}
+            return (
+              <DropdownMenuItem
+                key={locale}
+                onClick={() => handleSelectLocale(locale)}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
+                  isSelected
+                    ? "bg-surface-container-low text-on-surface"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                )}
+              >
+                <span className="truncate">{LOCALE_LABELS[locale]}</span>
+                {isSelected ? (
+                  <Check className="h-4 w-4 shrink-0 text-primary" />
+                ) : null}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
