@@ -2384,6 +2384,7 @@ export type Database = {
           short_description: string | null
           slug: string
           sort_order: number
+          subject: string
           tags: string[] | null
           thumbnail_url: string | null
           title: string
@@ -2405,6 +2406,7 @@ export type Database = {
           short_description?: string | null
           slug: string
           sort_order?: number
+          subject?: string
           tags?: string[] | null
           thumbnail_url?: string | null
           title: string
@@ -2426,6 +2428,7 @@ export type Database = {
           short_description?: string | null
           slug?: string
           sort_order?: number
+          subject?: string
           tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
@@ -4581,6 +4584,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ielts_subskills: {
+        Row: {
+          created_at: string
+          description_en: string | null
+          description_vi: string | null
+          id: string
+          is_active: boolean
+          key: string
+          kind: string
+          label_en: string
+          label_vi: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_en?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          kind: string
+          label_en: string
+          label_vi: string
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_en?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          kind?: string
+          label_en?: string
+          label_vi?: string
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       ielts_tests: {
         Row: {
