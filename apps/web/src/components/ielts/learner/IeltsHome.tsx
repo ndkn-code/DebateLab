@@ -57,7 +57,7 @@ export function IeltsHome({
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Link
-                    href="/ielts/onboarding"
+                    href={hasPrediction ? "/ielts/study-plan" : "/ielts/onboarding"}
                     className={cn(buttonVariants({ variant: "primary" }))}
                   >
                     {hasPrediction ? t("cta_view_plan") : t("cta_start_diagnostic")}
