@@ -4666,56 +4666,287 @@ export type Database = {
           },
         ]
       }
-      ielts_subskills: {
+      ielts_review_events: {
         Row: {
+          activity_attempt_id: string | null
           created_at: string
-          description_en: string | null
-          description_vi: string | null
           id: string
-          is_active: boolean
-          key: string
-          kind: string
-          label_en: string
-          label_vi: string
-          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
-          skill: Database["public"]["Enums"]["ielts_skill"]
-          sort_order: number
-          tags: string[]
-          updated_at: string
+          is_correct: boolean | null
+          metadata: Json
+          next_difficulty: number
+          next_due_at: string
+          next_ease_factor: number
+          next_interval_days: number
+          next_lapses: number
+          next_repetitions: number
+          next_retrievability: number
+          next_stability: number
+          next_state: string
+          plan_item_id: string | null
+          previous_difficulty: number
+          previous_due_at: string
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_lapses: number
+          previous_repetitions: number
+          previous_retrievability: number
+          previous_stability: number
+          previous_state: string
+          quality_grade: number
+          rating: Database["public"]["Enums"]["ielts_review_rating"]
+          response_ms: number | null
+          review_item_id: string
+          user_id: string
         }
         Insert: {
+          activity_attempt_id?: string | null
           created_at?: string
-          description_en?: string | null
-          description_vi?: string | null
           id?: string
-          is_active?: boolean
-          key: string
-          kind: string
-          label_en: string
-          label_vi: string
-          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
-          skill: Database["public"]["Enums"]["ielts_skill"]
-          sort_order?: number
-          tags?: string[]
-          updated_at?: string
+          is_correct?: boolean | null
+          metadata?: Json
+          next_difficulty: number
+          next_due_at: string
+          next_ease_factor: number
+          next_interval_days: number
+          next_lapses: number
+          next_repetitions: number
+          next_retrievability: number
+          next_stability: number
+          next_state: string
+          plan_item_id?: string | null
+          previous_difficulty: number
+          previous_due_at: string
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_lapses: number
+          previous_repetitions: number
+          previous_retrievability: number
+          previous_stability: number
+          previous_state: string
+          quality_grade: number
+          rating: Database["public"]["Enums"]["ielts_review_rating"]
+          response_ms?: number | null
+          review_item_id: string
+          user_id: string
         }
         Update: {
+          activity_attempt_id?: string | null
           created_at?: string
-          description_en?: string | null
-          description_vi?: string | null
           id?: string
-          is_active?: boolean
-          key?: string
-          kind?: string
-          label_en?: string
-          label_vi?: string
-          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
-          skill?: Database["public"]["Enums"]["ielts_skill"]
-          sort_order?: number
-          tags?: string[]
-          updated_at?: string
+          is_correct?: boolean | null
+          metadata?: Json
+          next_difficulty?: number
+          next_due_at?: string
+          next_ease_factor?: number
+          next_interval_days?: number
+          next_lapses?: number
+          next_repetitions?: number
+          next_retrievability?: number
+          next_stability?: number
+          next_state?: string
+          plan_item_id?: string | null
+          previous_difficulty?: number
+          previous_due_at?: string
+          previous_ease_factor?: number
+          previous_interval_days?: number
+          previous_lapses?: number
+          previous_repetitions?: number
+          previous_retrievability?: number
+          previous_stability?: number
+          previous_state?: string
+          quality_grade?: number
+          rating?: Database["public"]["Enums"]["ielts_review_rating"]
+          response_ms?: number | null
+          review_item_id?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ielts_review_events_activity_attempt_id_fkey"
+            columns: ["activity_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "activity_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_events_review_item_id_fkey"
+            columns: ["review_item_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_review_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_review_items: {
+        Row: {
+          activity_attempt_id: string | null
+          activity_id: string | null
+          algorithm: Database["public"]["Enums"]["ielts_review_algorithm"]
+          answer_en: string | null
+          answer_vi: string | null
+          atom_payload: Json
+          created_at: string
+          difficulty: number
+          due_at: string
+          ease_factor: number
+          focus_area: string
+          id: string
+          interval_days: number
+          lapses: number
+          last_reviewed_at: string | null
+          mastered_at: string | null
+          metadata: Json
+          prompt_en: string
+          prompt_vi: string
+          question_id: string | null
+          question_response_id: string | null
+          repetitions: number
+          retrievability: number
+          review_kind: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_id: string | null
+          source_key: string
+          source_type: string
+          speaking_response_id: string | null
+          stability: number
+          state: string
+          suspended_until: string | null
+          updated_at: string
+          user_id: string
+          writing_response_id: string | null
+        }
+        Insert: {
+          activity_attempt_id?: string | null
+          activity_id?: string | null
+          algorithm?: Database["public"]["Enums"]["ielts_review_algorithm"]
+          answer_en?: string | null
+          answer_vi?: string | null
+          atom_payload?: Json
+          created_at?: string
+          difficulty?: number
+          due_at?: string
+          ease_factor?: number
+          focus_area: string
+          id?: string
+          interval_days?: number
+          lapses?: number
+          last_reviewed_at?: string | null
+          mastered_at?: string | null
+          metadata?: Json
+          prompt_en: string
+          prompt_vi: string
+          question_id?: string | null
+          question_response_id?: string | null
+          repetitions?: number
+          retrievability?: number
+          review_kind: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_id?: string | null
+          source_key: string
+          source_type: string
+          speaking_response_id?: string | null
+          stability?: number
+          state?: string
+          suspended_until?: string | null
+          updated_at?: string
+          user_id: string
+          writing_response_id?: string | null
+        }
+        Update: {
+          activity_attempt_id?: string | null
+          activity_id?: string | null
+          algorithm?: Database["public"]["Enums"]["ielts_review_algorithm"]
+          answer_en?: string | null
+          answer_vi?: string | null
+          atom_payload?: Json
+          created_at?: string
+          difficulty?: number
+          due_at?: string
+          ease_factor?: number
+          focus_area?: string
+          id?: string
+          interval_days?: number
+          lapses?: number
+          last_reviewed_at?: string | null
+          mastered_at?: string | null
+          metadata?: Json
+          prompt_en?: string
+          prompt_vi?: string
+          question_id?: string | null
+          question_response_id?: string | null
+          repetitions?: number
+          retrievability?: number
+          review_kind?: string
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_id?: string | null
+          source_key?: string
+          source_type?: string
+          speaking_response_id?: string | null
+          stability?: number
+          state?: string
+          suspended_until?: string | null
+          updated_at?: string
+          user_id?: string
+          writing_response_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_review_items_activity_attempt_id_fkey"
+            columns: ["activity_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "activity_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_question_response_id_fkey"
+            columns: ["question_response_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_question_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_speaking_response_id_fkey"
+            columns: ["speaking_response_id"]
+            isOneToOne: false
+            referencedRelation: "speaking_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_review_items_writing_response_id_fkey"
+            columns: ["writing_response_id"]
+            isOneToOne: false
+            referencedRelation: "writing_responses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ielts_skill_states: {
         Row: {
@@ -4788,6 +5019,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ielts_subskills: {
+        Row: {
+          created_at: string
+          description_en: string | null
+          description_vi: string | null
+          id: string
+          is_active: boolean
+          key: string
+          kind: string
+          label_en: string
+          label_vi: string
+          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_en?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          kind: string
+          label_en: string
+          label_vi: string
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_en?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          kind?: string
+          label_en?: string
+          label_vi?: string
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       ielts_tests: {
         Row: {
@@ -8399,6 +8681,65 @@ export type Database = {
           word_limit: number | null
         }
       }
+      record_ielts_review_rating: {
+        Args: {
+          p_activity_attempt_id?: string | null
+          p_is_correct?: boolean | null
+          p_metadata?: Json
+          p_next_difficulty: number
+          p_next_due_at: string
+          p_next_ease_factor: number
+          p_next_interval_days: number
+          p_next_lapses: number
+          p_next_repetitions: number
+          p_next_retrievability: number
+          p_next_stability: number
+          p_next_state: string
+          p_plan_item_id?: string | null
+          p_quality_grade: number
+          p_rating: Database["public"]["Enums"]["ielts_review_rating"]
+          p_response_ms?: number | null
+          p_review_item_id: string
+          p_reviewed_at?: string
+        }
+        Returns: {
+          activity_attempt_id: string | null
+          activity_id: string | null
+          algorithm: Database["public"]["Enums"]["ielts_review_algorithm"]
+          answer_en: string | null
+          answer_vi: string | null
+          atom_payload: Json
+          created_at: string
+          difficulty: number
+          due_at: string
+          ease_factor: number
+          focus_area: string
+          id: string
+          interval_days: number
+          lapses: number
+          last_reviewed_at: string | null
+          mastered_at: string | null
+          metadata: Json
+          prompt_en: string
+          prompt_vi: string
+          question_id: string | null
+          question_response_id: string | null
+          repetitions: number
+          retrievability: number
+          review_kind: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_id: string | null
+          source_key: string
+          source_type: string
+          speaking_response_id: string | null
+          stability: number
+          state: string
+          suspended_until: string | null
+          updated_at: string
+          user_id: string
+          writing_response_id: string | null
+        }
+      }
       update_ielts_question_with_key: {
         Args: {
           p_accept_variants?: Json
@@ -8998,6 +9339,8 @@ export type Database = {
         | "scored"
         | "failed"
         | "overridden"
+      ielts_review_algorithm: "sm2_v1" | "fsrs_v1"
+      ielts_review_rating: "again" | "hard" | "good" | "easy"
       ielts_skill: "listening" | "reading" | "writing" | "speaking"
       ielts_test_kind: "full_mock" | "skill_set" | "drill"
     }
@@ -9185,6 +9528,8 @@ export const Constants = {
         "failed",
         "overridden",
       ],
+      ielts_review_algorithm: ["sm2_v1", "fsrs_v1"],
+      ielts_review_rating: ["again", "hard", "good", "easy"],
       ielts_skill: ["listening", "reading", "writing", "speaking"],
       ielts_test_kind: ["full_mock", "skill_set", "drill"],
     },
