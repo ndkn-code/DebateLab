@@ -18,6 +18,7 @@ import {
 import { DragOrderPlayer } from "./DragOrderPlayer";
 import { FillBlankPlayer } from "./FillBlankPlayer";
 import { FlashcardPlayer } from "./FlashcardPlayer";
+import { IeltsTextMicroActivityPlayer } from "./IeltsTextMicroActivityPlayer";
 import { LessonPlayer } from "./LessonPlayer";
 import { MatchingPlayer } from "./MatchingPlayer";
 import { QuizPlayer } from "./QuizPlayer";
@@ -133,3 +134,6 @@ registerActivityPlayer("fill_blank", FillBlankRegistryPlayer);
 registerActivityPlayer("drag_order", DragOrderRegistryPlayer);
 registerActivityPlayer("flashcard", FlashcardRegistryPlayer);
 registerActivityPlayer("lesson", LessonRegistryPlayer);
+registerActivityPlayer("ielts_vocab_collocation", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_paraphrase_transform", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_gap_fill", IeltsTextMicroActivityPlayer);

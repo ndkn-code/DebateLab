@@ -2,10 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { updateActivity } from "@/app/actions/courses";
 import { validateActivityContent } from "@/lib/activity/validators";
+import { isIeltsFirstTextActivityType } from "@/lib/ielts/learn/text-activities";
 import type { Activity, ActivityPhase, ActivityContent } from "@/lib/types/admin";
 import { LessonBuilder } from "./builders/LessonBuilder";
 import { QuizBuilder } from "./builders/QuizBuilder";
@@ -56,6 +56,15 @@ export function InlineActivityEditor({ activity, onClose }: Props) {
       case "fill_blank": return <FillBlankBuilder {...props} />;
       case "drag_order": return <DragOrderBuilder {...props} />;
       case "flashcard": return <FlashcardBuilder {...props} />;
+      default:
+        if (isIeltsFirstTextActivityType(activity.activity_type)) {
+          return (
+            <div className="rounded-lg border border-outline-variant bg-surface px-3 py-2 type-body-sm text-on-surface-variant">
+              IELTS Learn activities are authored from source questions and subskill tags.
+            </div>
+          );
+        }
+        return null;
     }
   };
 

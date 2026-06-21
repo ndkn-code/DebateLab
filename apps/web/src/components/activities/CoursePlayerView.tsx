@@ -6,9 +6,9 @@ import { useRouter } from "@/i18n/navigation";
 import { ArrowLeft, BookOpen, Eye, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Lock, Unlock, Crown, Check } from "@/components/ui/icons";
 import { enrollInCourse } from "@/app/actions/enrollment";
 import { cn } from "@/lib/utils";
-import type { ActivityType, ActivityPhase } from "@/lib/types/admin";
+import type { ActivityType, ActivityPhase, CoreActivityType } from "@/lib/types/admin";
 
-const TYPE_ICONS: Record<ActivityType, typeof BookOpen> = {
+const TYPE_ICONS: Record<CoreActivityType, typeof BookOpen> = {
   lesson: BookOpen, quiz: HelpCircle, matching: Link2,
   fill_blank: PenLine, drag_order: ArrowUpDown, flashcard: Layers,
 };
@@ -158,7 +158,7 @@ export function CoursePlayerView({
               <div className="divide-y divide-outline-variant/5">
                 {mod.activities.map((act) => {
                   const isCompleted = completed.has(act.id);
-                  const Icon = TYPE_ICONS[act.activity_type];
+                  const Icon = TYPE_ICONS[act.activity_type as CoreActivityType] ?? BookOpen;
 
                   return (
                     <Link

@@ -6,10 +6,10 @@ import { useTranslations } from "next-intl";
 import { Plus, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { createActivity } from "@/app/actions/courses";
-import type { ActivityType } from "@/lib/types/admin";
+import type { CoreActivityType } from "@/lib/types/admin";
 import { getDefaultContent, getDefaultPhase } from "@/lib/activity/registry";
 
-const ACTIVITY_TYPES: { type: ActivityType; icon: typeof BookOpen; labelKey: string }[] = [
+const ACTIVITY_TYPES: { type: CoreActivityType; icon: typeof BookOpen; labelKey: string }[] = [
   { type: "lesson", icon: BookOpen, labelKey: "lesson" },
   { type: "quiz", icon: HelpCircle, labelKey: "quiz" },
   { type: "matching", icon: Link2, labelKey: "matching" },
@@ -28,7 +28,7 @@ export function AddActivityButton({ moduleId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const handleSelect = async (type: ActivityType) => {
+  const handleSelect = async (type: CoreActivityType) => {
     setOpen(false);
     try {
       const phase = getDefaultPhase(type);

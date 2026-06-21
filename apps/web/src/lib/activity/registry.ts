@@ -3,6 +3,7 @@ import type {
   ActivityContent,
   ActivityPhase,
   ActivityType,
+  CoreActivityType,
   DragOrderContent,
   FillBlankContent,
   FlashcardContent,
@@ -10,6 +11,11 @@ import type {
   MatchingContent,
   QuizContent,
 } from "@/lib/types/admin";
+import {
+  defaultIeltsTextActivityContent,
+  scoreIeltsTextActivityPreview,
+  validateIeltsTextActivityContent,
+} from "@/lib/ielts/learn/text-activities";
 
 export type ActivityResponses = Record<string, unknown>;
 
@@ -65,7 +71,7 @@ type ActivityContentByType = {
 };
 
 type CoreActivityDefinitionMap = {
-  [Type in ActivityType]: ActivityDefinition<Type, ActivityContentByType[Type]>;
+  [Type in CoreActivityType]: ActivityDefinition<Type, ActivityContentByType[Type]>;
 };
 
 export function defineActivityDefinition<TType extends string, TContent>(
@@ -338,6 +344,42 @@ export const CORE_ACTIVITY_DEFINITIONS = {
   }),
 } satisfies CoreActivityDefinitionMap;
 
+export const IELTS_TEXT_ACTIVITY_DEFINITIONS = {
+  ielts_vocab_collocation: defineActivityDefinition({
+    type: "ielts_vocab_collocation",
+    defaultPhase: "practice",
+    defaultDuration: 4,
+    defaultContent: () =>
+      defaultIeltsTextActivityContent("ielts_vocab_collocation"),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+  ielts_paraphrase_transform: defineActivityDefinition({
+    type: "ielts_paraphrase_transform",
+    defaultPhase: "practice",
+    defaultDuration: 4,
+    defaultContent: () =>
+      defaultIeltsTextActivityContent("ielts_paraphrase_transform"),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+  ielts_gap_fill: defineActivityDefinition({
+    type: "ielts_gap_fill",
+    defaultPhase: "practice",
+    defaultDuration: 6,
+    defaultContent: () => ({
+      ...defaultIeltsTextActivityContent("ielts_gap_fill"),
+      instruction: {
+        en: "Complete the IELTS gap using the source question rules.",
+        vi: "Hoàn thành chỗ trống IELTS theo quy tắc của câu hỏi gốc.",
+      },
+      rendererTags: ["completion", "gap_fill"],
+    }),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+};
+
 const ACTIVITY_REGISTRY = createActivityRegistry();
 
 ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.quiz);
@@ -346,6 +388,9 @@ ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.fill_blank);
 ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.drag_order);
 ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.flashcard);
 ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.lesson);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_vocab_collocation);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_paraphrase_transform);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_gap_fill);
 
 export function registerActivityDefinition<TType extends string, TContent>(
   definition: ActivityDefinition<TType, TContent>,

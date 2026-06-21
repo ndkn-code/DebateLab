@@ -1,6 +1,12 @@
 // Admin Panel Types — Phase 1
 
-export type ActivityType = 'quiz' | 'matching' | 'fill_blank' | 'drag_order' | 'flashcard' | 'lesson';
+import type {
+  IeltsFirstTextActivityType,
+  IeltsTextActivityContent,
+} from "@/lib/ielts/learn/text-activities";
+
+export type CoreActivityType = 'quiz' | 'matching' | 'fill_blank' | 'drag_order' | 'flashcard' | 'lesson';
+export type ActivityType = CoreActivityType | IeltsFirstTextActivityType;
 export type ActivityPhase = 'learn' | 'practice' | 'apply';
 export type CourseVisibility = 'public' | 'premium' | 'class_restricted';
 export type ModuleAccessLevel = 'free' | 'locked' | 'premium';
@@ -58,13 +64,15 @@ export interface Activity {
 }
 
 // Activity content types
-export type ActivityContent =
+export type CoreActivityContent =
   | QuizContent
   | MatchingContent
   | FillBlankContent
   | DragOrderContent
   | FlashcardContent
   | LessonContent;
+
+export type ActivityContent = CoreActivityContent | IeltsTextActivityContent;
 
 export interface QuizContent {
   questions: {
