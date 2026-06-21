@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
   DUEL_ENABLED,
+  IELTS_ENABLED,
   LEADERBOARDS_ENABLED,
   areStudentCoursesEnabled,
 } from "@/lib/features";
@@ -159,6 +160,7 @@ function NavContent({
             variant="sidebar"
             currentLocale={currentLocale}
             currentSubject={currentSubject}
+            ieltsAvailable={IELTS_ENABLED || isAdmin}
           />
         </div>
       ) : null}
@@ -449,6 +451,7 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
           variant="mobile"
           currentLocale={currentLocale}
           currentSubject={activeSubject}
+          ieltsAvailable={IELTS_ENABLED || isAdmin}
         />
         <ThemeToggle variant="mobile" className="ml-auto" />
         <div className="shrink-0">

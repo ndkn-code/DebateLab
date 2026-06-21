@@ -1,18 +1,19 @@
 import { notFound } from "next/navigation";
-import { IELTS_ENABLED } from "@/lib/features";
+import { isIeltsAccessible } from "@/lib/ielts/access";
 
 /**
  * Launch gate for the entire `/ielts/**` learner subtree (WS-5.1) — home, test
- * library, the mock player and results. While `IELTS_ENABLED` is off the whole
- * surface 404s, so debate is byte-identical and a direct mock URL stays hidden
- * until the track is flipped on.
+ * library, the mock player and results. The surface 404s unless IELTS is
+ * launched (`IELTS_ENABLED`) or the viewer is an admin (pre-launch preview in
+ * production), so debate is byte-identical and a direct mock URL stays hidden
+ * for everyone else until the track is flipped on.
  */
-export default function IeltsLayout({
+export default async function IeltsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (!IELTS_ENABLED) {
+  if (!(await isIeltsAccessible())) {
     notFound();
   }
 

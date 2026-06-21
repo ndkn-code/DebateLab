@@ -34,6 +34,13 @@ interface ModeSwitcherProps {
   variant: "sidebar" | "mobile";
   currentLocale: AppLocale;
   currentSubject: Subject;
+  /**
+   * Whether to offer the IELTS subject. Defaults to the launch flag; the
+   * sidebar passes `IELTS_ENABLED || isAdmin` so admins can preview IELTS in
+   * production before launch. UI affordance only — the server gates
+   * (`getActiveSubject` + the `/ielts` layout) enforce real access.
+   */
+  ieltsAvailable?: boolean;
 }
 
 const LOCALE_OPTIONS: AppLocale[] = ["vi", "en"];
@@ -56,6 +63,7 @@ export function ModeSwitcher({
   variant,
   currentLocale,
   currentSubject,
+  ieltsAvailable,
 }: ModeSwitcherProps) {
   const t = useTranslations("dashboard.nav");
   const router = useRouter();
@@ -66,8 +74,11 @@ export function ModeSwitcher({
   const resolvedLocale = coerceAppLocale(currentLocale);
   const resolvedSubject = coerceSubject(currentSubject);
   // Subjects the learner may switch to. When IELTS is not launched this is just
-  // `["debate"]`, so the subject group is hidden and debate is unchanged.
-  const subjects = availableSubjects();
+  // `["debate"]`, so the subject group is hidden and debate is unchanged — but
+  // an admin (`ieltsAvailable`) gets the IELTS option for production preview.
+  const subjects: Subject[] = ieltsAvailable
+    ? ["debate", "ielts"]
+    : availableSubjects();
   const subjectConfig = getSubjectConfig(resolvedSubject);
   const subjectLabel =
     resolvedLocale === "vi" ? subjectConfig.labelVi : subjectConfig.label;

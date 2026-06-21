@@ -7,24 +7,13 @@ import {
   findQuickDiagnosticTest,
   saveIeltsStudyPlanGoal,
 } from "@/lib/api/ielts/study-plan-repository";
-import { IELTS_ENABLED } from "@/lib/features";
+import { requireIeltsUserId } from "@/lib/ielts/access";
 import {
   IeltsOnboardingGoalInputSchema,
 } from "@/lib/ielts/onboarding/model";
-import { createTypedServerClient } from "@/lib/supabase/server";
-
-async function requireIeltsUser(): Promise<string> {
-  if (!IELTS_ENABLED) throw new Error("IELTS is not available.");
-  const supabase = await createTypedServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  return user.id;
-}
 
 export async function saveIeltsOnboardingGoalAction(raw: unknown) {
-  const userId = await requireIeltsUser();
+  const userId = await requireIeltsUserId();
   const goal = parseInput(IeltsOnboardingGoalInputSchema, raw);
   const plan = await saveIeltsStudyPlanGoal({ userId, goal });
   const diagnosticTest = await findQuickDiagnosticTest();
@@ -38,7 +27,7 @@ export async function saveIeltsOnboardingGoalAction(raw: unknown) {
 }
 
 export async function generateIeltsOnboardingPlanAction() {
-  const userId = await requireIeltsUser();
+  const userId = await requireIeltsUserId();
   const result = await generateAndPersistIeltsStudyPlanForUser({ userId });
   revalidatePath("/ielts");
   revalidatePath("/ielts/onboarding");

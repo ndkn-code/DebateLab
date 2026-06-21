@@ -5,7 +5,7 @@ import { getActiveSubject } from "@/lib/subject/server";
 import { LocalizedAppProviders } from "../localized-app-providers";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
-import { LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
+import { IELTS_ENABLED, LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
 import { getLeaderboardPageData } from "@/lib/leaderboards/data";
 import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
 import type {
@@ -49,7 +49,6 @@ export default async function ProtectedLayout({
 }) {
   const { locale } = await params;
   const leaderboardLanguage = coerceLeaderboardLanguage(locale);
-  const activeSubject = await getActiveSubject();
   const supabase = await createClient();
 
   const {
@@ -62,6 +61,8 @@ export default async function ProtectedLayout({
 
   if (!user) {
     if (devAdminBypass || devAuthBypassUser) {
+      // Dev bypass renders the admin profile, so the IELTS track is reachable.
+      const activeSubject = await getActiveSubject({ ieltsAccessible: true });
       return (
         <LocalizedAppProviders>
           <ProtectedShell
@@ -93,6 +94,7 @@ export default async function ProtectedLayout({
   // Redirect to onboarding if profile missing or not completed
   if (!profile || !profile.onboarding_completed) {
     if (devAdminBypass) {
+      const activeSubject = await getActiveSubject({ ieltsAccessible: true });
       return (
         <LocalizedAppProviders>
           <ProtectedShell
@@ -111,6 +113,12 @@ export default async function ProtectedLayout({
 
     redirect("/onboarding");
   }
+
+  // Admins can opt into the IELTS track in production before the flag flips on;
+  // for everyone else this stays `IELTS_ENABLED`, so debate is byte-identical.
+  const activeSubject = await getActiveSubject({
+    ieltsAccessible: IELTS_ENABLED || profile?.role === "admin",
+  });
 
   return (
     <LocalizedAppProviders>

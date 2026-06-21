@@ -14,9 +14,18 @@ import { SUBJECT_COOKIE_NAME } from "./index";
  * the active subject is forced to `debate` regardless of the cookie, so a stale
  * `ielts` preference cannot light up the (gated) IELTS nav/surface. This makes
  * the whole app debate-identical when the flag is off, in one place.
+ *
+ * Admin preview: callers that have already loaded the viewer's role (the
+ * protected layout) pass `ieltsAccessible: true` so admins can opt into the
+ * IELTS track in production before launch — without this resolver adding an
+ * auth round-trip to every protected request. Defaults to the flag, so call
+ * sites that don't know the role stay debate-identical while the flag is off.
  */
-export async function getActiveSubject(): Promise<Subject> {
-  if (!IELTS_ENABLED) return DEFAULT_SUBJECT;
+export async function getActiveSubject(opts?: {
+  ieltsAccessible?: boolean;
+}): Promise<Subject> {
+  const accessible = opts?.ieltsAccessible ?? IELTS_ENABLED;
+  if (!accessible) return DEFAULT_SUBJECT;
   const cookieStore = await cookies();
   return coerceSubject(cookieStore.get(SUBJECT_COOKIE_NAME)?.value);
 }

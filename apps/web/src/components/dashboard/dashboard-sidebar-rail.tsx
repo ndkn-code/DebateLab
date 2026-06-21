@@ -24,6 +24,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { cn } from "@/lib/utils";
+import { IELTS_ENABLED } from "@/lib/features";
 import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -149,6 +150,7 @@ export function DashboardSidebarRail({
           variant="sidebar"
           currentLocale={currentLocale}
           currentSubject={activeSubject}
+          ieltsAvailable={IELTS_ENABLED || isAdmin}
         />
       </div>
 
