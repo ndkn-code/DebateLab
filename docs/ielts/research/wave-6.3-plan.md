@@ -17,9 +17,44 @@ the exam-fidelity details that make a prep app feel real. This wave plans those 
 Quality bar unchanged: 8 CI gates, debate byte-identical, engine-purity (no exam logic in the
 core engine), diagnostic-first (never show a band without evidence), bilingual EN/VI.
 
+## Product model — B2C practice vs B2B courses (decided 2026-06-21)
+
+Founder + co-founder split the product into two tiers:
+
+- **B2C (non-enrolled) = pure prep app.** The planner schedules PRACTICE ONLY: each weakness routes
+  to an item-bank **skill drill** (a `skill_set`/`drill` test assembled from `ielts_questions` by
+  subskill) + full/section **mocks** + spaced **review** + AI **writing/speaking**. NO course
+  recommendations. `/ielts/learn` + the Learn nav/tile are HIDDEN, replaced by a soft upsell.
+- **B2B (enrolled in a club/class) = full experience**, including the courses/Learn path.
+
+This reframes the workstreams below: the **B2C practice engine (Workstream 0) is now the top
+priority**, and the Duolingo-style micro-drill activity types (Workstream A) are **B2B course
+content**, not B2C practice.
+
 ---
 
-## Workstream A — Learn-mode activity types
+## Workstream 0 — B2C/B2B realignment [TOP PRIORITY]
+
+The planner today recommends courses to everyone (`lib/ielts/study-plan/items.ts`
+`itemKindForPriority` emits `learn_activity` whenever a weakness has a `recommendedAtom`). Realign:
+
+1. **Enrollment signal** — `isEnrolledStudent(userId)` (server-only) = membership in a club/class
+   (reuse the WS-5.3 B2B structures). One source of truth, a mirror of `lib/ielts/access.ts`.
+2. **Enrollment-aware planner** — for non-enrolled users `itemKindForPriority` must never emit
+   `learn_activity`; route weaknesses to practice (skill drill / mock / review / W-S). Enrolled
+   users keep course activities. The atom-sourcing that feeds `recommendedAtom` becomes
+   enrollment-scoped.
+3. **Skill-drill generator** — assemble a `skill_set`/`drill` `ielts_test` from `ielts_questions`
+   matching the weak subskill, so the B2C planner has real targeted practice to route to (richer
+   than the current `mini_mock` fallback). Pure + tested; reuses the objective-grading +
+   band-conversion paths.
+4. **Gate the Learn surface** — `/ielts/learn`, the `ielts_learn` nav key, and the home Learn tile
+   become enrollment-gated; non-enrolled users see a soft "Guided courses available at our centers"
+   upsell instead.
+
+---
+
+## Workstream A — Learn-mode activity types (B2B course content)
 
 Today there are **3 text types** (`ielts_vocab_collocation`, `ielts_paraphrase_transform`,
 `ielts_gap_fill`) registered over `ielts_questions` via `lib/ielts/learn/text-activities.ts`,
@@ -102,12 +137,14 @@ self-validating* predictor, not a guess.
 
 ## Sequencing → cards
 
-- **6.3a (parallel now):** reading + writing text activity types (A, no new infra); listening
-  audio wiring (C1); Azure enablement + verify (C2).
-- **6.3b:** prediction validation harness (B1–B3 + B5) on synthetic fixtures — startable now.
+- **6.3a (top priority, now):** B2C/B2B realignment — enrollment signal + enrollment-aware planner
+  + skill-drill generator + Learn gating/upsell (Workstream 0). Aligns the product with the
+  B2C-practice / B2B-courses decision before anything else reaches real users.
+- **6.3b (parallel):** prediction validation harness (B1–B3 + B5) on synthetic fixtures; listening
+  audio wiring (C1); Azure enablement (C2).
 - **6.3c:** results deep-dive + explanations/model answers (C3); review surface (C4).
-- **6.3d:** listening + speaking activity types (A, after C1/C2); prediction admin dashboard (B4);
-  gamification (C5); renderer audit (C6).
+- **6.3d:** B2B course activity types (A, after C1/C2 for listening/speaking); prediction admin
+  dashboard (B4); gamification (C5); renderer audit (C6).
 
 Each card: typed + tested, behind the IELTS gate, debate untouched, 8 gates green, splice
 `supabase.ts` if it adds tables (CLI has no token), bilingual strings at parity.
