@@ -21,6 +21,7 @@
     "test:ielts-authoring": "npm run test:ielts-authoring -w @thinkfy/web",
     "test:ielts-mock": "npm run test:ielts-mock -w @thinkfy/web",
     "test:ielts-listening-audio": "npm run test:ielts-listening-audio -w @thinkfy/web",
+    "test:ielts-review": "npm run test:ielts-review -w @thinkfy/web",
     "test:ielts-pronunciation": "npm run test:ielts-pronunciation -w @thinkfy/web",
     "test:ielts-speaking-scorer": "npm run test:ielts-speaking-scorer -w @thinkfy/web",
     "test:ielts-results": "npm run test:ielts-results -w @thinkfy/web",
