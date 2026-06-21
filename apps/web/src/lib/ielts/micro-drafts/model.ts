@@ -2,10 +2,16 @@ import type { TablesInsert } from "@/types/supabase";
 import type { Json } from "@/types/supabase";
 import type { IeltsLearnAtom, IeltsSkill } from "@/lib/ielts/adaptive/contracts";
 import {
+  IeltsTextActivityContentSchema,
+  defaultIeltsTextActivitySubskill,
+} from "@/lib/ielts/learn/text-activities";
+import {
   IELTS_MICRO_DRAFT_PROMPT_VERSION,
+  IeltsMicroDraftPublicContentSchema,
   assertContentMatchesAnswerKey,
   type GeneratedMicroDraft,
   type IeltsMicroDraftActivityType,
+  type IeltsMicroDraftPublicContent,
   type MicroDraftSubskillOption,
 } from "./schema";
 
@@ -103,6 +109,28 @@ export function fallbackSubskillKey(params: {
       "writing:collocation_precision",
       "speaking:lexical_resource",
       `${source.skill}:lexical_resource`,
+    ],
+    ielts_tfng_reasoning: [
+      "reading:true_false_notgiven",
+      `${source.skill}:true_false_notgiven`,
+      "reading:yes_no_notgiven",
+      "reading:paraphrase_recognition",
+    ],
+    ielts_scan_detail: [
+      "reading:scan_specific_detail",
+      "reading:matching_information",
+      "reading:short_answer",
+      `${source.skill}:${source.questionType}`,
+    ],
+    ielts_sentence_transform: [
+      "writing:paraphrase_transform",
+      "reading:paraphrase_recognition",
+      `${source.skill}:paraphrase_transform`,
+    ],
+    ielts_cohesion_linker: [
+      "writing:coherence_cohesion",
+      "writing:grammar_range_accuracy",
+      `${source.skill}:coherence_cohesion`,
     ],
   };
 
@@ -225,6 +253,53 @@ export function readEstimatedMinutes(content: Json): number {
     : 4;
 }
 
+function readLocalizedInstruction(
+  content: IeltsMicroDraftPublicContent,
+): { en: string; vi: string } {
+  return content.instruction;
+}
+
+function buildPublishedActivityContent(params: {
+  activityType: IeltsMicroDraftActivityType;
+  draftContent: Json;
+  sourceQuestionId: string | null;
+  subskillKey: string | null;
+}): Json {
+  if (!params.sourceQuestionId) {
+    throw new Error("Published IELTS micro-items require a source question.");
+  }
+  const publicContent = IeltsMicroDraftPublicContentSchema.parse(params.draftContent);
+  const subskillKey =
+    params.subskillKey ?? defaultIeltsTextActivitySubskill(params.activityType);
+  const maybeRationale =
+    publicContent.type === "ielts_tfng_reasoning"
+      ? { rationalePrompt: publicContent.rationalePrompt }
+      : {};
+
+  return toJson(
+    IeltsTextActivityContentSchema.parse({
+      activityType: params.activityType,
+      version: 1,
+      module: "academic",
+      instruction: readLocalizedInstruction(publicContent),
+      sources: [
+        {
+          questionId: params.sourceQuestionId,
+          subskillKey,
+          labelEn: publicContent.title.en,
+          labelVi: publicContent.title.vi,
+        },
+      ],
+      rendererTags: [
+        params.activityType,
+        subskillKey,
+        publicContent.type === "ielts_tfng_reasoning" ? "rationale" : null,
+      ].filter(Boolean),
+      ...maybeRationale,
+    }),
+  );
+}
+
 export function buildPublishedActivityInsert({
   draftId,
   draft,
@@ -244,7 +319,12 @@ export function buildPublishedActivityInsert({
     phase: "practice",
     order_index: orderIndex,
     duration_minutes: estimatedMinutes,
-    content: draft.draft_content,
+    content: buildPublishedActivityContent({
+      activityType,
+      draftContent: draft.draft_content,
+      sourceQuestionId: draft.source_question_id,
+      subskillKey: draft.subskill_key,
+    }),
     metadata: toJson({
       subject: "ielts",
       source: "ielts_micro_item_draft",

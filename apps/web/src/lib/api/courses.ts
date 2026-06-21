@@ -11,6 +11,10 @@ import {
   createXpIdempotencyKey,
 } from "@/lib/xp/model";
 import { awardXpEvent } from "@/lib/xp/server";
+import {
+  normalizeCourseCategory,
+  type CourseCategory,
+} from "@/lib/courses/category";
 import type {
   Course,
   CourseModule,
@@ -85,8 +89,9 @@ export interface CourseReaderData extends CourseWithModules {
   isPreview: boolean;
 }
 
-export type CourseCategory = "debate" | "public-speaking";
 export type CourseLibraryStatus = "in-progress" | "not-started" | "completed";
+export { normalizeCourseCategory };
+export type { CourseCategory };
 
 export interface CourseLibraryNextLesson {
   title: string;
@@ -273,11 +278,6 @@ const DEVELOPMENT_RECOMMENDED_COURSE_SLUG = "rebuttals-that-win-arguments";
 
 function clampPercent(value: number) {
   return Math.min(Math.max(Math.round(value), 0), 100);
-}
-
-export function normalizeCourseCategory(category: string | null | undefined): CourseCategory {
-  const normalized = (category ?? "debate").trim().toLowerCase().replace(/_/g, "-");
-  return normalized === "public-speaking" ? "public-speaking" : "debate";
 }
 
 function normalizeCourseRecord<T extends Course>(course: T): T {
@@ -561,7 +561,11 @@ export async function getCourseLibraryData(
   const courseAccessMap = await getCourseAccessMapFromRecords(
     supabase,
     userId,
-    courses.map((course) => ({ id: course.id, visibility: course.visibility }))
+    courses.map((course) => ({
+      id: course.id,
+      visibility: course.visibility,
+      subject: course.subject,
+    }))
   );
   const accessibleCourses = courses.filter((course) =>
     courseAccessMap.get(course.id)

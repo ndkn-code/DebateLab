@@ -6,6 +6,7 @@ import {
   planItemLaunchHref,
   selectTodayPlanItems,
   toIeltsTodayItemView,
+  withDueReviewTodayEntry,
   type IeltsPlanItemRow,
 } from "./today";
 
@@ -130,6 +131,13 @@ function makeItem(overrides: Partial<IeltsPlanItemRow> = {}): IeltsPlanItemRow {
     "unresolved mock falls back to the library",
   );
   assert.equal(
+    planItemLaunchHref(
+      makeItem({ kind: "skill_drill", ielts_test_id: "test-9" }),
+      ctx,
+    ),
+    "/ielts/mock/academic-mock-1",
+  );
+  assert.equal(
     planItemLaunchHref(makeItem({ kind: "teacher_assignment" }), ctx),
     "/ielts/assigned",
   );
@@ -139,7 +147,7 @@ function makeItem(overrides: Partial<IeltsPlanItemRow> = {}): IeltsPlanItemRow {
   );
   assert.equal(
     planItemLaunchHref(makeItem({ kind: "review" }), ctx),
-    "/ielts/study-plan",
+    "/ielts/review",
   );
   assert.equal(
     planItemLaunchHref(
@@ -153,6 +161,37 @@ function makeItem(overrides: Partial<IeltsPlanItemRow> = {}): IeltsPlanItemRow {
     "/ielts/study-plan",
     "a submission without a test falls back to the plan",
   );
+}
+
+// withDueReviewTodayEntry: due SRS cards become the first Today nudge --------
+{
+  const list = buildIeltsTodayList(
+    [
+      makeItem({ id: "practice-1", kind: "skill_drill", ielts_test_id: "t1" }),
+      makeItem({ id: "review-plan-item", kind: "review" }),
+    ],
+    { today: TODAY, testSlugById: new Map([["t1", "mock-slug"]]), limit: 4 },
+  );
+  const withReviews = withDueReviewTodayEntry(list, {
+    count: 3,
+    earliestDueAt: "2026-06-20T08:00:00.000Z",
+    skill: "reading",
+    today: TODAY,
+  });
+
+  assert.equal(withReviews.items[0].id, "ielts-review-due");
+  assert.equal(withReviews.items[0].kind, "review");
+  assert.equal(withReviews.items[0].titleEn, "Reviews due");
+  assert.equal(withReviews.items[0].rationaleEn, "3 spaced-review cards are ready now.");
+  assert.equal(withReviews.items[0].estimatedMinutes, 15);
+  assert.equal(withReviews.items[0].isOverdue, true);
+  assert.equal(withReviews.items[0].launchHref, "/ielts/review");
+  assert.equal(
+    withReviews.items.some((item) => item.id === "review-plan-item"),
+    false,
+    "synthetic due-review entry replaces visible plan review duplicates",
+  );
+  assert.equal(withReviews.dueCount, 3);
 }
 
 // toIeltsTodayItemView: title from metadata, overdue flag, launch ----------

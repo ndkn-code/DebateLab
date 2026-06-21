@@ -10,6 +10,7 @@
  */
 import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 import type { IeltsBandPrediction } from "@/lib/ielts/adaptive/contracts";
 import { DEFAULT_IELTS_TARGET_BAND } from "@/lib/ielts/adaptive/contracts";
 import {
@@ -20,14 +21,24 @@ import {
 import { loadIeltsBandPrediction } from "./band-prediction-repository";
 import {
   buildIeltsTodayList,
+  withDueReviewTodayEntry,
   type IeltsTodayItemView,
 } from "@/lib/ielts/home/today";
 import {
   buildIeltsHomePlanSummary,
   type IeltsHomePlanSummary,
 } from "@/lib/ielts/home/plan-summary";
+import {
+  buildIeltsHomeRetentionView,
+  todayIsoForIeltsRetention,
+  type IeltsHomeRetentionView,
+  type IeltsRetentionDailyStatRow,
+  type IeltsRetentionProfileRow,
+} from "@/lib/ielts/home/retention";
+import type { StreakActivityEvent } from "@/lib/streaks/model";
 import type { IeltsDbClient } from "./client";
-import { getPublishedIeltsTests } from "./tests-repository";
+import { getPublishedIeltsTests, isGeneratedIeltsSkillDrill } from "./tests-repository";
+import { listDueIeltsReviewItems, type IeltsReviewItem } from "./review-repository";
 import {
   summarizeAttempts,
   type AttemptBandRow,
@@ -39,6 +50,21 @@ import { toTestCard, type IeltsTestCard } from "@/lib/ielts/learner/library";
 
 const RECENT_ATTEMPTS_LIMIT = 6;
 const HOME_FEATURED_LIMIT = 3;
+
+type ActiveIeltsHomePlan = Awaited<ReturnType<typeof loadActiveIeltsStudyPlan>>;
+type PublishedIeltsTest = Awaited<ReturnType<typeof getPublishedIeltsTests>>[number];
+
+interface IeltsHomeReadBundle {
+  recentAttempts: IeltsAttemptSummary[];
+  published: PublishedIeltsTest[];
+  diagnosticTest: IeltsDiagnosticTestSummary | null;
+  prediction: IeltsBandPrediction;
+  enrolled: boolean;
+  retentionProfile: IeltsRetentionProfileRow | null;
+  retentionActivities: StreakActivityEvent[] | undefined;
+  todayStat: IeltsRetentionDailyStatRow | null;
+  dueReviews: IeltsReviewItem[];
+}
 
 export interface IeltsHomeData {
   recentAttempts: IeltsAttemptSummary[];
@@ -53,8 +79,14 @@ export interface IeltsHomeData {
   today: IeltsTodayItemView[];
   /** Actionable items scheduled for today or earlier. */
   todayDueCount: number;
+  /** Live spaced-review cards due now. */
+  reviewsDueCount: number;
   /** Actionable items hidden behind the Today cap (drives "more in your plan"). */
   todayOverflowCount: number;
+  /** Shared retention mechanics rendered on the IELTS home. */
+  retention: IeltsHomeRetentionView;
+  /** Whether the learner can access teaching-center IELTS course content. */
+  isEnrolledStudent: boolean;
 }
 
 export interface IeltsLibraryData {
@@ -114,6 +146,172 @@ export async function getIeltsLibraryData(): Promise<IeltsLibraryData> {
   return { tests: tests.map(toTestCard) };
 }
 
+async function loadIeltsRetentionProfile(
+  userId: string,
+  client: IeltsDbClient,
+): Promise<IeltsRetentionProfileRow | null> {
+  const { data, error } = await client
+    .from("profiles")
+    .select("streak_current, streak_longest, streak_last_active_date, xp, level")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`loadIeltsRetentionProfile: ${error.message}`);
+  return data;
+}
+
+async function loadIeltsRetentionActivityLog(
+  userId: string,
+  client: IeltsDbClient,
+): Promise<StreakActivityEvent[] | undefined> {
+  const { data, error } = await client
+    .from("activity_log")
+    .select("activity_type, reference_type, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) return undefined;
+  return (data ?? []) as StreakActivityEvent[];
+}
+
+async function loadIeltsTodayStat(
+  userId: string,
+  today: string,
+  client: IeltsDbClient,
+): Promise<IeltsRetentionDailyStatRow | null> {
+  const { data, error } = await client
+    .from("daily_stats")
+    .select("date, minutes_studied, practice_minutes, xp_earned, sessions_completed")
+    .eq("user_id", userId)
+    .eq("date", today)
+    .maybeSingle();
+  if (error) throw new Error(`loadIeltsTodayStat: ${error.message}`);
+  return data;
+}
+
+async function loadIeltsHomeReadBundle(params: {
+  userId: string;
+  client: IeltsDbClient;
+  targetBand: number;
+  today: string;
+  now: Date;
+}): Promise<IeltsHomeReadBundle> {
+  const [
+    recentAttempts,
+    published,
+    diagnosticTest,
+    prediction,
+    enrolled,
+    retentionProfile,
+    retentionActivities,
+    todayStat,
+    dueReviews,
+  ] = await Promise.all([
+    listRecentIeltsAttempts({ userId: params.userId, client: params.client }),
+    getPublishedIeltsTests(params.client, { includeGenerated: true }),
+    findQuickDiagnosticTest(params.client),
+    loadIeltsBandPrediction(params.userId, {
+      targetBand: params.targetBand,
+      client: params.client,
+    }),
+    isEnrolledStudent(params.userId, params.client),
+    loadIeltsRetentionProfile(params.userId, params.client),
+    loadIeltsRetentionActivityLog(params.userId, params.client),
+    loadIeltsTodayStat(params.userId, params.today, params.client),
+    listDueIeltsReviewItems(
+      { userId: params.userId, dueAt: params.now, limit: 200 },
+      params.client,
+    ),
+  ]);
+
+  return {
+    recentAttempts,
+    published,
+    diagnosticTest,
+    prediction,
+    enrolled,
+    retentionProfile,
+    retentionActivities,
+    todayStat,
+    dueReviews,
+  };
+}
+
+function buildTestSlugById(
+  published: readonly PublishedIeltsTest[],
+  diagnosticTest: IeltsDiagnosticTestSummary | null,
+): Map<string, string> {
+  const testSlugById = new Map<string, string>(
+    published.map((test) => [test.id, test.slug]),
+  );
+  if (diagnosticTest) testSlugById.set(diagnosticTest.id, diagnosticTest.slug);
+  return testSlugById;
+}
+
+function buildTodayAndRetention(params: {
+  activePlan: ActiveIeltsHomePlan;
+  reads: IeltsHomeReadBundle;
+  today: string;
+  now: Date;
+  testSlugById: ReadonlyMap<string, string>;
+}): Pick<IeltsHomeData, "today" | "todayDueCount" | "todayOverflowCount" | "retention"> {
+  const plan = params.activePlan?.plan ?? null;
+  const planItems = params.activePlan?.items ?? [];
+  const planTodayList = buildIeltsTodayList(planItems, {
+    today: params.today,
+    testSlugById: params.testSlugById,
+  });
+  const todayList = withDueReviewTodayEntry(planTodayList, {
+    count: params.reads.dueReviews.length,
+    earliestDueAt: params.reads.dueReviews[0]?.due_at ?? null,
+    skill: params.reads.dueReviews[0]?.skill ?? "reading",
+    today: params.today,
+  });
+
+  return {
+    today: todayList.items,
+    todayDueCount: todayList.dueCount,
+    todayOverflowCount: todayList.overflowCount,
+    retention: buildIeltsHomeRetentionView({
+      profile: params.reads.retentionProfile,
+      plan,
+      planItems,
+      todayStat: params.reads.todayStat,
+      reviewsDue: params.reads.dueReviews,
+      todayItems: todayList.items,
+      todayDueCount: todayList.dueCount,
+      todayOverflowCount: todayList.overflowCount,
+      activities: params.reads.retentionActivities,
+      now: params.now,
+    }),
+  };
+}
+
+function buildIeltsHomeDataResponse(params: {
+  activePlan: ActiveIeltsHomePlan;
+  reads: IeltsHomeReadBundle;
+  catalogTests: PublishedIeltsTest[];
+  today: string;
+  todayAndRetention: ReturnType<typeof buildTodayAndRetention>;
+}): IeltsHomeData {
+  const plan = params.activePlan?.plan ?? null;
+
+  return {
+    recentAttempts: params.reads.recentAttempts,
+    featuredTests: params.catalogTests.slice(0, HOME_FEATURED_LIMIT).map(toTestCard),
+    publishedCount: params.catalogTests.length,
+    diagnosticTest: params.reads.diagnosticTest,
+    prediction: params.reads.prediction,
+    hasGoal: Boolean(params.activePlan),
+    planSummary: buildIeltsHomePlanSummary({ plan, today: params.today }),
+    today: params.todayAndRetention.today,
+    todayDueCount: params.todayAndRetention.todayDueCount,
+    reviewsDueCount: params.reads.dueReviews.length,
+    todayOverflowCount: params.todayAndRetention.todayOverflowCount,
+    retention: params.todayAndRetention.retention,
+    isEnrolledStudent: params.reads.enrolled,
+  };
+}
+
 /**
  * Home payload: the adaptive dashboard (WS-6.2.1). Composes the predicted band,
  * the prioritized "Today" tasks from the active plan, recent sittings, and a
@@ -128,37 +326,28 @@ export async function getIeltsHomeData(
   const supabase = client ?? (await createTypedServerClient());
   const activePlan = await loadActiveIeltsStudyPlan(userId, supabase);
   const targetBand = activePlan?.plan.target_overall_band ?? DEFAULT_IELTS_TARGET_BAND;
-  const [recentAttempts, published, diagnosticTest, prediction] = await Promise.all([
-    listRecentIeltsAttempts({ userId, client: supabase }),
-    getPublishedIeltsTests(supabase),
-    findQuickDiagnosticTest(supabase),
-    loadIeltsBandPrediction(userId, { targetBand, client: supabase }),
-  ]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const testSlugById = new Map<string, string>(
-    published.map((test) => [test.id, test.slug]),
-  );
-  if (diagnosticTest) testSlugById.set(diagnosticTest.id, diagnosticTest.slug);
-
-  const todayList = buildIeltsTodayList(activePlan?.items ?? [], {
+  const now = new Date();
+  const today = todayIsoForIeltsRetention(now, activePlan?.plan.timezone);
+  const reads = await loadIeltsHomeReadBundle({
+    userId,
+    client: supabase,
+    targetBand,
     today,
-    testSlugById,
+    now,
   });
-
-  return {
-    recentAttempts,
-    featuredTests: published.slice(0, HOME_FEATURED_LIMIT).map(toTestCard),
-    publishedCount: published.length,
-    diagnosticTest,
-    prediction,
-    hasGoal: Boolean(activePlan),
-    planSummary: buildIeltsHomePlanSummary({
-      plan: activePlan?.plan ?? null,
-      today,
-    }),
-    today: todayList.items,
-    todayDueCount: todayList.dueCount,
-    todayOverflowCount: todayList.overflowCount,
-  };
+  const catalogTests = reads.published.filter((test) => !isGeneratedIeltsSkillDrill(test));
+  const todayAndRetention = buildTodayAndRetention({
+    activePlan,
+    reads,
+    today,
+    now,
+    testSlugById: buildTestSlugById(reads.published, reads.diagnosticTest),
+  });
+  return buildIeltsHomeDataResponse({
+    activePlan,
+    reads,
+    catalogTests,
+    today,
+    todayAndRetention,
+  });
 }

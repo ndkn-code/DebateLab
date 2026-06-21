@@ -109,7 +109,7 @@ export function MockSectionView({
   const [timerStatus, setTimerStatus] = useState<SectionRuntimeStatus>("not_started");
 
   const parts = useMemo(
-    () => buildSectionParts(structure, section.skill),
+    () => buildSectionParts(structure, section.skill, process.env.NEXT_PUBLIC_SUPABASE_URL),
     [structure, section.skill],
   );
   const part = parts[Math.min(activePart, Math.max(0, parts.length - 1))];

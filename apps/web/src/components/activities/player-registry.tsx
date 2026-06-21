@@ -137,3 +137,7 @@ registerActivityPlayer("lesson", LessonRegistryPlayer);
 registerActivityPlayer("ielts_vocab_collocation", IeltsTextMicroActivityPlayer);
 registerActivityPlayer("ielts_paraphrase_transform", IeltsTextMicroActivityPlayer);
 registerActivityPlayer("ielts_gap_fill", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_tfng_reasoning", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_scan_detail", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_sentence_transform", IeltsTextMicroActivityPlayer);
+registerActivityPlayer("ielts_cohesion_linker", IeltsTextMicroActivityPlayer);

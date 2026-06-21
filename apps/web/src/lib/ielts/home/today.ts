@@ -38,6 +38,7 @@ export const IELTS_ROUTES = {
   tests: "/ielts/tests",
   assigned: "/ielts/assigned",
   learn: "/ielts/learn",
+  review: "/ielts/review",
   studyPlan: "/ielts/study-plan",
   onboarding: "/ielts/onboarding",
 } as const;
@@ -140,7 +141,7 @@ export function selectTodayPlanItems(
  * Resolve where a plan item's CTA launches. Mock-shaped items launch into the
  * mock player when their test slug resolves; teacher assignments into the
  * assigned-tests surface; Learn atoms into the Learn path; reviews into the
- * study-plan review queue. Falls back to the library / plan when a pointer can't
+ * daily Review surface. Falls back to the library / plan when a pointer can't
  * be resolved so the CTA is never dead.
  */
 export function planItemLaunchHref(
@@ -154,6 +155,7 @@ export function planItemLaunchHref(
   switch (item.kind) {
     case "full_mock":
     case "mini_mock":
+    case "skill_drill":
       return mockHref ? IELTS_ROUTES.mock(mockHref) : IELTS_ROUTES.tests;
     case "writing_submission":
     case "speaking_submission":
@@ -163,7 +165,7 @@ export function planItemLaunchHref(
     case "learn_activity":
       return IELTS_ROUTES.learn;
     case "review":
-      return IELTS_ROUTES.studyPlan;
+      return IELTS_ROUTES.review;
     default:
       return IELTS_ROUTES.studyPlan;
   }
@@ -231,5 +233,60 @@ export function buildIeltsTodayList(
     totalActionable: selection.totalActionable,
     dueCount: selection.dueCount,
     overflowCount: selection.overflowCount,
+  };
+}
+
+export interface IeltsDueReviewTodayEntry {
+  count: number;
+  earliestDueAt: string | null;
+  skill: IeltsSkill;
+  today: string;
+}
+
+function reviewDueRationale(count: number): { en: string; vi: string } {
+  return count === 1
+    ? {
+        en: "1 spaced-review card is ready now.",
+        vi: "1 thẻ ôn giãn cách đang đến hạn.",
+      }
+    : {
+        en: `${count} spaced-review cards are ready now.`,
+        vi: `${count} thẻ ôn giãn cách đang đến hạn.`,
+      };
+}
+
+export function withDueReviewTodayEntry(
+  list: IeltsTodayList,
+  input: IeltsDueReviewTodayEntry,
+): IeltsTodayList {
+  if (input.count <= 0) return list;
+
+  const rationale = reviewDueRationale(input.count);
+  const reviewEntry: IeltsTodayItemView = {
+    id: "ielts-review-due",
+    skill: input.skill,
+    kind: "review",
+    status: "available",
+    focusArea: "spaced_review",
+    estimatedMinutes: Math.min(30, Math.max(5, input.count * 5)),
+    priorityScore: 100,
+    scheduledDate: input.today,
+    isOverdue: Boolean(input.earliestDueAt && input.earliestDueAt.slice(0, 10) < input.today),
+    titleEn: "Reviews due",
+    titleVi: "Mục ôn tập đến hạn",
+    rationaleEn: rationale.en,
+    rationaleVi: rationale.vi,
+    launchHref: IELTS_ROUTES.review,
+  };
+  const withoutVisibleReviews = list.items.filter((item) => item.kind !== "review");
+  const candidates = [reviewEntry, ...withoutVisibleReviews];
+  const items = candidates.slice(0, DEFAULT_TODAY_LIMIT);
+
+  return {
+    ...list,
+    items,
+    dueCount: Math.max(list.dueCount, input.count),
+    totalActionable: Math.max(list.totalActionable, withoutVisibleReviews.length + 1),
+    overflowCount: Math.max(list.overflowCount, candidates.length - items.length),
   };
 }

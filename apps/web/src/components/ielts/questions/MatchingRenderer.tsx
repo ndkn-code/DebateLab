@@ -45,42 +45,54 @@ export function MatchingRenderer({
           const chosen = getStringValue(value, item.id);
           const itemVerdict = verdict?.blanks[item.id];
           return (
-            <div key={item.id} className="flex items-center gap-3">
-              {item.label ? (
-                <Text variant="body-sm" className="w-6 shrink-0 font-bold text-on-surface-variant">
-                  {item.label}
+            <div
+              key={item.id}
+              className="grid gap-3 rounded-2xl border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center"
+            >
+              <div className="flex min-w-0 gap-3">
+                {item.label ? (
+                  <Text
+                    variant="body-sm"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-container font-bold text-on-surface-variant"
+                  >
+                    {item.label}
+                  </Text>
+                ) : null}
+                <Text variant="body" className="min-w-0 flex-1 text-on-surface">
+                  {item.text}
                 </Text>
-              ) : null}
-              <Text variant="body" className="flex-1 text-on-surface">
-                {item.text}
-              </Text>
-              <select
-                aria-label={item.text}
-                disabled={locked}
-                value={chosen}
-                onChange={(event) => onChange(setValue(value, item.id, event.target.value))}
-                className={cn(
-                  "h-10 w-40 shrink-0 rounded-xl border-2 border-outline-variant bg-surface px-3 text-sm text-on-surface",
-                  "focus:border-primary focus:outline-none disabled:cursor-default",
-                )}
-              >
-                <option value="">{t("matchSelect")}</option>
-                {question.options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {itemVerdict ? (
-                <span
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label={item.text}
+                  disabled={locked}
+                  value={chosen}
+                  onChange={(event) => onChange(setValue(value, item.id, event.target.value))}
                   className={cn(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full",
-                    itemVerdict.correct ? "bg-success text-on-success" : "bg-error text-on-error",
+                    "h-11 min-w-0 flex-1 rounded-xl border-2 border-outline-variant bg-surface px-3 text-sm text-on-surface",
+                    "focus:border-primary focus:outline-none disabled:cursor-default",
                   )}
                 >
-                  {itemVerdict.correct ? <Check className="size-4" /> : <X className="size-4" />}
-                </span>
-              ) : null}
+                  <option value="">{t("matchSelect")}</option>
+                  {question.options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {itemVerdict ? (
+                  <span
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full",
+                      itemVerdict.correct
+                        ? "bg-success text-on-success"
+                        : "bg-error text-on-error",
+                    )}
+                  >
+                    {itemVerdict.correct ? <Check className="size-4" /> : <X className="size-4" />}
+                  </span>
+                ) : null}
+              </div>
             </div>
           );
         })}

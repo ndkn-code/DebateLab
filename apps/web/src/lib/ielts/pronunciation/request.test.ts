@@ -69,4 +69,34 @@ const gb = buildAssessmentRequest({
 assert.ok(gb.url.includes("https://eastus.stt.speech.microsoft.com"));
 assert.ok(gb.url.includes("language=en-GB"));
 
+// --- endpoint-based resources are accepted too -----------------------------
+const endpointBase = buildAssessmentRequest({
+  config: {
+    apiKey: "k",
+    endpoint: "https://thinkfy-speech.cognitiveservices.azure.com",
+  },
+  audio,
+  audioContentType: "audio/wav",
+  params: { referenceText: "x", locale: "en-AU" },
+});
+assert.equal(
+  endpointBase.url,
+  "https://thinkfy-speech.cognitiveservices.azure.com/stt/speech/recognition/conversation/cognitiveservices/v1?language=en-AU&format=detailed",
+);
+
+const endpointFull = buildAssessmentRequest({
+  config: {
+    apiKey: "k",
+    endpoint:
+      "https://thinkfy-speech.cognitiveservices.azure.com/stt/speech/recognition/conversation/cognitiveservices/v1",
+  },
+  audio,
+  audioContentType: "audio/wav",
+  params: { referenceText: "x", locale: "en-IN" },
+});
+assert.equal(
+  endpointFull.url,
+  "https://thinkfy-speech.cognitiveservices.azure.com/stt/speech/recognition/conversation/cognitiveservices/v1?language=en-IN&format=detailed",
+);
+
 console.log("ielts/pronunciation/request tests passed");

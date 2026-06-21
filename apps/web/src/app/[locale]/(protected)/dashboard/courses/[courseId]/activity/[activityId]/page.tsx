@@ -5,6 +5,7 @@ import { canAccessModuleRecord, getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { areStudentCoursesEnabled } from "@/lib/features";
 import { getActiveSubject } from "@/lib/subject/server";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 export default async function ActivityPlayerPage({
   params,
@@ -31,6 +32,13 @@ export default async function ActivityPlayerPage({
   const subject = await getActiveSubject();
   if (!areStudentCoursesEnabled(subject) && !isAdmin) {
     redirect("/dashboard");
+  }
+  if (
+    subject === "ielts" &&
+    !(previewMode && isAdmin) &&
+    !(await isEnrolledStudent(user.id))
+  ) {
+    redirect("/ielts");
   }
 
   const { data: course } = await supabase

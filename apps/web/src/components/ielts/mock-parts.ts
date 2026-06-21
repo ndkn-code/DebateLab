@@ -9,6 +9,7 @@ import type {
   IeltsQuestionView,
   IeltsSkill,
 } from "@/lib/ielts/question-contract";
+import { publicListeningAudioUrl } from "@/lib/ielts/listening-audio/storage-paths";
 import type { ListeningAudioTrack } from "./ListeningAudioPlayer";
 
 export interface MockPart {
@@ -36,16 +37,25 @@ function readingParts(structure: MockStructure): MockPart[] {
   }));
 }
 
-function listeningParts(structure: MockStructure): MockPart[] {
+function listeningParts(
+  structure: MockStructure,
+  supabaseUrl: string | undefined,
+): MockPart[] {
   const audioById = new Map(structure.audioAssets.map((asset) => [asset.id, asset]));
   return structure.listeningSections.map((listening) => {
     const asset = listening.audio_asset_id
       ? audioById.get(listening.audio_asset_id)
       : undefined;
+    // Play only a READY asset, and resolve its bucket path to a public,
+    // cache-busted URL — `storage_path` alone is bucket-relative (not playable).
+    const src =
+      asset && asset.status === "ready"
+        ? publicListeningAudioUrl(supabaseUrl, asset.storage_path, asset.version)
+        : null;
     const track: ListeningAudioTrack = {
       id: listening.id,
       label: listening.title ?? `Section ${listening.section_number}`,
-      src: asset?.storage_path ?? null,
+      src,
     };
     return {
       id: listening.id,
@@ -76,16 +86,21 @@ function unlinkedPart(
   };
 }
 
-/** Ordered, navigable parts for the given skill section. */
+/**
+ * Ordered, navigable parts for the given skill section. `supabaseUrl`
+ * (`NEXT_PUBLIC_SUPABASE_URL`) resolves Listening audio storage paths to public
+ * URLs; pass it from the caller so this stays pure + testable.
+ */
 export function buildSectionParts(
   structure: MockStructure,
   skill: IeltsSkill,
+  supabaseUrl?: string,
 ): MockPart[] {
   const parts =
     skill === "reading"
       ? readingParts(structure)
       : skill === "listening"
-        ? listeningParts(structure)
+        ? listeningParts(structure, supabaseUrl)
         : [];
   const used = new Set(parts.flatMap((part) => part.questions.map((q) => q.id)));
   const trailing = unlinkedPart(structure, skill, used);

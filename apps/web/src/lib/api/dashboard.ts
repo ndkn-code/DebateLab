@@ -18,7 +18,7 @@ import {
 } from "@thinkfy/shared/dashboard";
 import type { Profile } from "@/types/database";
 import type { DebateScore, PracticeTrack } from "@/types/feedback";
-import { normalizeCourseCategory } from "@/lib/api/courses";
+import { normalizeCourseCategory } from "@/lib/courses/category";
 import {
   computeSkillSnapshot as computeSharedSkillSnapshot,
   roundToTenth,

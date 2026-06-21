@@ -10,27 +10,22 @@
  * grader, never shipped to the client.
  */
 import type { Enums } from "@/types/supabase";
+import type {
+  IeltsQuestionView as ObjectiveQuestionView,
+} from "@/lib/ielts/question-types";
 
 export type IeltsQuestionType = Enums<"ielts_question_type">;
 export type IeltsSkill = Enums<"ielts_skill">;
 
-/** Non-secret question fields a renderer needs to present + capture an answer. */
-export interface IeltsQuestionView {
-  id: string;
-  skill: IeltsSkill;
-  questionType: IeltsQuestionType;
+/**
+ * Non-secret question fields a renderer needs to present + capture an answer.
+ * The objective renderer surface owns the typed prompt/options/items/visual
+ * shape; the mock player adds placement fields for section/part navigation.
+ */
+export interface IeltsQuestionView extends ObjectiveQuestionView {
   orderIndex: number;
   /** Items that share a stem (e.g. a matching set / summary) group by this key. */
   groupKey: string | null;
-  groupInstructions: string | null;
-  prompt: string;
-  /** Choices / candidate headings / features / bank labels (non-secret JSON). */
-  options: unknown;
-  maxPoints: number;
-  /** "NO MORE THAN N WORDS" cap for completion/short-answer items. */
-  wordLimit: number | null;
-  /** Diagram / map / chart data (lesson-chunk shape) for label items. */
-  visual: unknown;
   passageId: string | null;
   listeningSectionId: string | null;
 }

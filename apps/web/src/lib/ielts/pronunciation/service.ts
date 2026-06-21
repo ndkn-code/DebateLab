@@ -67,6 +67,7 @@ export interface AssessPronunciationDeps {
   getConfig: () => AzureSpeechConfig | null;
   recordRequest: (input: AiProviderRequestInput) => Promise<string | null>;
   now: () => number;
+  logger: Pick<Console, "info" | "warn">;
 }
 
 const defaultDeps: AssessPronunciationDeps = {
@@ -74,6 +75,7 @@ const defaultDeps: AssessPronunciationDeps = {
   getConfig: getAzureSpeechConfig,
   recordRequest: (input) => recordAiProviderRequest(input),
   now: () => Date.now(),
+  logger: console,
 };
 
 interface LogArgs {
@@ -124,7 +126,26 @@ async function safeText(response: Response): Promise<string> {
   }
 }
 
-function skip(reason: SkipReason): AssessPronunciationOutcome {
+function logSkip(
+  logger: AssessPronunciationDeps["logger"],
+  reason: SkipReason,
+  input: AssessPronunciationInput,
+): void {
+  logger.info("IELTS pronunciation assessment skipped", {
+    reason,
+    speakingResponseId: input.speakingResponseId ?? null,
+    practiceAttemptId: input.practiceAttemptId ?? null,
+    audioBytes: input.audio?.byteLength ?? 0,
+    hasReferenceText: input.referenceText.trim().length > 0,
+  });
+}
+
+function skip(
+  reason: SkipReason,
+  input: AssessPronunciationInput,
+  logger: AssessPronunciationDeps["logger"],
+): AssessPronunciationOutcome {
+  logSkip(logger, reason, input);
   return { status: "skipped", reason, report: EMPTY_PHONEME_REPORT };
 }
 
@@ -137,16 +158,18 @@ export async function assessPronunciation(
   input: AssessPronunciationInput,
   deps: Partial<AssessPronunciationDeps> = {},
 ): Promise<AssessPronunciationOutcome> {
-  const { fetchImpl, getConfig, recordRequest, now } = {
+  const { fetchImpl, getConfig, recordRequest, now, logger } = {
     ...defaultDeps,
     ...deps,
   };
 
   const config = getConfig();
-  if (!config) return skip("not_configured");
-  if (!input.audio || input.audio.byteLength === 0) return skip("missing_audio");
+  if (!config) return skip("not_configured", input, logger);
+  if (!input.audio || input.audio.byteLength === 0) {
+    return skip("missing_audio", input, logger);
+  }
   const referenceText = input.referenceText.trim();
-  if (!referenceText) return skip("missing_reference");
+  if (!referenceText) return skip("missing_reference", input, logger);
 
   const locale = input.locale ?? DEFAULT_PRONUNCIATION_LOCALE;
   const request = buildAssessmentRequest({
@@ -224,6 +247,11 @@ export async function assessPronunciation(
     );
     return { status: "ok", report, pronunciationBand, providerRequestId };
   } catch (error) {
+    logger.warn("IELTS pronunciation assessment request failed", {
+      speakingResponseId: input.speakingResponseId ?? null,
+      practiceAttemptId: input.practiceAttemptId ?? null,
+      error: error instanceof Error ? error.message : String(error),
+    });
     await recordRequest(
       buildLog({
         input,

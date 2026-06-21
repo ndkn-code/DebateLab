@@ -18,6 +18,7 @@ import type {
   IeltsModule,
 } from "@/lib/scoring/ielts/band-conversion";
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
+import { parseQuestionView } from "@/lib/ielts/question-types";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
 import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
 import { maybeReplanAfterEvidence } from "./replan-hook";
@@ -63,7 +64,9 @@ async function loadAndGrade(
   const [questionRes, responseRes, bandRes] = await Promise.all([
     admin
       .from("ielts_questions")
-      .select("id, skill, question_type, max_points, word_limit")
+      .select(
+        "id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata",
+      )
       .eq("test_id", attempt.test_id)
       .in("skill", OBJECTIVE_SKILLS),
     admin
@@ -80,13 +83,19 @@ async function loadAndGrade(
   if (responseRes.error) throw new Error(`grade(responses): ${responseRes.error.message}`);
   if (bandRes.error) throw new Error(`grade(bands): ${bandRes.error.message}`);
 
-  const questions: GradableQuestion[] = (questionRes.data ?? []).map((q) => ({
-    id: q.id,
-    skill: q.skill,
-    questionType: q.question_type,
-    maxPoints: q.max_points,
-    wordLimit: q.word_limit,
-  }));
+  const questions: GradableQuestion[] = (questionRes.data ?? []).map((q) => {
+    const view = parseQuestionView(q);
+    return {
+      id: q.id,
+      skill: q.skill,
+      questionType: q.question_type,
+      maxPoints: q.max_points,
+      wordLimit: q.word_limit,
+      family: view.family,
+      hasOptionBank: view.options.length > 0,
+      selectCount: view.selectCount,
+    };
+  });
 
   const responseRows = responseRes.data ?? [];
   const questionIds = questions.map((q) => q.id);

@@ -6,13 +6,14 @@ import { loadIeltsTextActivityView } from "@/app/actions/ielts-learn-activities"
 import type { ActivityPlayerProps } from "@/lib/activity/registry";
 import {
   IeltsTextActivityContentSchema,
+  isIeltsTextChoiceActivity,
   type IeltsTextActivityContent,
   IeltsTextActivityQuestionView,
   IeltsTextActivityView,
 } from "@/lib/ielts/learn/text-activities";
 
 function isChoiceActivity(content: IeltsTextActivityContent): boolean {
-  return content.activityType !== "ielts_gap_fill";
+  return isIeltsTextChoiceActivity(content.activityType);
 }
 
 function sourceLabel(
@@ -113,6 +114,29 @@ function GapQuestion({
   );
 }
 
+function RationaleQuestion({
+  prompt,
+  value,
+  onChange,
+}: {
+  prompt: { en: string; vi: string };
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className="type-label text-on-surface">{prompt.en}</span>
+      <span className="type-caption text-on-surface-variant">{prompt.vi}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-24 w-full resize-y rounded-lg border border-outline-variant bg-surface px-3 py-2 type-body-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary"
+        placeholder="Short reason"
+      />
+    </label>
+  );
+}
+
 function hasAnswer(
   question: IeltsTextActivityQuestionView,
   answers: Record<string, string>,
@@ -132,6 +156,7 @@ export function IeltsTextMicroActivityPlayer({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [rationales, setRationales] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let active = true;
@@ -178,6 +203,10 @@ export function IeltsTextMicroActivityPlayer({
       answers: questions.map((question) => ({
         questionId: question.questionId,
         value: answers[question.questionId] ?? "",
+        rationale:
+          activityContent.activityType === "ielts_tfng_reasoning"
+            ? rationales[question.questionId] ?? ""
+            : undefined,
       })),
     });
   };
@@ -236,6 +265,19 @@ export function IeltsTextMicroActivityPlayer({
                   }
                 />
               )}
+              {activityContent.activityType === "ielts_tfng_reasoning" &&
+              view?.rationalePrompt ? (
+                <RationaleQuestion
+                  prompt={view.rationalePrompt}
+                  value={rationales[question.questionId] ?? ""}
+                  onChange={(value) =>
+                    setRationales((current) => ({
+                      ...current,
+                      [question.questionId]: value,
+                    }))
+                  }
+                />
+              ) : null}
             </article>
           ))}
         </div>

@@ -1,11 +1,12 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import type { IeltsDbClient } from "@/lib/api/ielts/client";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 type DevAuthBypassUser = Awaited<ReturnType<typeof getDevAuthBypassUserFromServerContext>>;
 
@@ -44,10 +45,13 @@ export async function resolveIeltsLearnContext(): Promise<IeltsLearnContext> {
 
   const userId = user?.id ?? devAuthBypassUser?.id;
   if (!userId) redirect("/auth/login");
+  const bypassClient = devAuthBypassUser ? createTypedAdminClient() : undefined;
+  const enrolled = await isEnrolledStudent(userId, bypassClient ?? supabase);
+  if (!enrolled) notFound();
 
   return {
     userId,
     displayName: pickDisplayName(user, devAuthBypassUser),
-    client: devAuthBypassUser ? createTypedAdminClient() : undefined,
+    client: bypassClient,
   };
 }

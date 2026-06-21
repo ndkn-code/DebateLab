@@ -16,14 +16,39 @@ function key(correct_answer: unknown, accept_variants: unknown = []): ObjectiveK
   return { correct_answer, accept_variants };
 }
 
+function q(overrides: Partial<GradableQuestion> & Pick<GradableQuestion, "id">): GradableQuestion {
+  return {
+    skill: "reading",
+    questionType: "mcq_single",
+    maxPoints: 1,
+    wordLimit: null,
+    family: "single_select",
+    hasOptionBank: false,
+    selectCount: null,
+    ...overrides,
+  };
+}
+
 // ---- reading-only attempt: mixed correct/wrong/unanswered + multi ----------
 const readingQs: GradableQuestion[] = [
-  { id: "q1", skill: "reading", questionType: "mcq_single", maxPoints: 1, wordLimit: null },
-  { id: "q2", skill: "reading", questionType: "true_false_notgiven", maxPoints: 1, wordLimit: null },
-  { id: "q3", skill: "reading", questionType: "short_answer", maxPoints: 1, wordLimit: null },
-  { id: "q4", skill: "reading", questionType: "mcq_multi", maxPoints: 2, wordLimit: null },
+  q({ id: "q1", hasOptionBank: true }),
+  q({ id: "q2", questionType: "true_false_notgiven" }),
+  q({ id: "q3", questionType: "short_answer", family: "completion" }),
+  q({
+    id: "q4",
+    questionType: "mcq_multi",
+    maxPoints: 2,
+    family: "multi_select",
+    hasOptionBank: true,
+    selectCount: 2,
+  }),
   // A Writing prompt in scope must be ignored by objective grading.
-  { id: "wq", skill: "writing", questionType: "writing_task2_essay", maxPoints: 1, wordLimit: null },
+  q({
+    id: "wq",
+    skill: "writing",
+    questionType: "writing_task2_essay",
+    family: "completion",
+  }),
 ];
 const readingKeys = new Map<string, ObjectiveKey>([
   ["q1", key("a")],
@@ -66,8 +91,8 @@ assert.equal(a.graded.find((g) => g.questionId === "q3"), undefined);
 // ---- listening + reading both present --------------------------------------
 const both = gradeObjectiveAttempt({
   questions: [
-    { id: "l1", skill: "listening", questionType: "mcq_single", maxPoints: 1, wordLimit: null },
-    { id: "r1", skill: "reading", questionType: "mcq_single", maxPoints: 1, wordLimit: null },
+    q({ id: "l1", skill: "listening", hasOptionBank: true }),
+    q({ id: "r1", hasOptionBank: true }),
   ],
   keys: new Map([
     ["l1", key("a")],
@@ -88,7 +113,7 @@ assert.equal(both.bands.overallBand, 0.5); // mean(1.0, 0.0) = 0.5
 
 // ---- a question with no key falls back to "incorrect" ----------------------
 const noKey = gradeObjectiveAttempt({
-  questions: [{ id: "x1", skill: "reading", questionType: "mcq_single", maxPoints: 1, wordLimit: null }],
+  questions: [q({ id: "x1", hasOptionBank: true })],
   keys: new Map(),
   responses: new Map<string, unknown>([["x1", "a"]]),
   module: "academic",
@@ -99,11 +124,14 @@ assert.deepEqual(noKey.graded, [{ questionId: "x1", isCorrect: false, awardedPoi
 
 // ---- raw clamps at 40 even with many multi-point questions -----------------
 const manyQs: GradableQuestion[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `m${i}`,
-  skill: "reading" as const,
-  questionType: "mcq_multi" as const,
-  maxPoints: 2,
-  wordLimit: null,
+  ...q({
+    id: `m${i}`,
+    questionType: "mcq_multi",
+    maxPoints: 2,
+    family: "multi_select",
+    hasOptionBank: true,
+    selectCount: 2,
+  }),
 }));
 const manyKeys = new Map(manyQs.map((q) => [q.id, key(["a", "b"])]));
 const manyResponses = new Map<string, unknown>(manyQs.map((q) => [q.id, ["a", "b"]]));
@@ -115,5 +143,53 @@ const clamped = gradeObjectiveAttempt({
   bandRows,
 });
 assert.equal(clamped.readingRaw, 40); // 25 × 2 = 50 → clamped to 40
+
+// ---- multi-blank renderer envelopes grade through attempt rollup -----------
+const rich = gradeObjectiveAttempt({
+  questions: [
+    q({
+      id: "mh",
+      questionType: "matching_headings",
+      maxPoints: 2,
+      family: "matching",
+      hasOptionBank: true,
+    }),
+    q({
+      id: "tbl",
+      questionType: "note_table_form_flowchart_completion",
+      maxPoints: 2,
+      family: "completion",
+      wordLimit: 2,
+    }),
+    q({
+      id: "map",
+      questionType: "map_plan_label",
+      maxPoints: 2,
+      family: "labeling",
+      hasOptionBank: true,
+    }),
+  ],
+  keys: new Map([
+    ["mh", key({ h1: "i", h2: "iii" })],
+    ["tbl", key({ g1: "solar panel", g2: "battery" }, { g1: ["solar panels"] })],
+    ["map", key({ p1: "A", p2: "C" })],
+  ]),
+  responses: new Map<string, unknown>([
+    ["mh", { values: { h1: "i", h2: "ii" } }], // partial matching credit
+    ["tbl", { values: { g1: "Solar Panels", g2: "battery" } }], // variant + exact
+    ["map", { values: { p1: "A", p2: "C" } }],
+  ]),
+  module: "academic",
+  bandRows,
+});
+assert.equal(rich.readingRaw, 5);
+assert.deepEqual(
+  rich.graded.map((g) => [g.questionId, g.isCorrect, g.awardedPoints]).sort(),
+  [
+    ["map", true, 2],
+    ["mh", false, 1],
+    ["tbl", true, 2],
+  ],
+);
 
 console.log("scoring/ielts/grade-objective tests passed");

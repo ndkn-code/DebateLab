@@ -1,0 +1,136 @@
+{
+  "Id": "8f0d7c8a1d61496a8a8c6f6e5b7a0001",
+  "RecognitionStatus": "Success",
+  "Offset": 900000,
+  "Duration": 31800000,
+  "DisplayText": "A good answer uses clear examples.",
+  "NBest": [
+    {
+      "Confidence": 0.91,
+      "Lexical": "a good answer uses clear examples",
+      "ITN": "a good answer uses clear examples",
+      "MaskedITN": "a good answer uses clear examples",
+      "Display": "A good answer uses clear examples.",
+      "PronunciationAssessment": {
+        "AccuracyScore": 82.6,
+        "FluencyScore": 78.2,
+        "CompletenessScore": 100.0,
+        "PronScore": 86.4,
+        "ProsodyScore": 74.5
+      },
+      "Words": [
+        {
+          "Word": "a",
+          "Offset": 900000,
+          "Duration": 1200000,
+          "PronunciationAssessment": {
+            "AccuracyScore": 96.0,
+            "ErrorType": "None"
+          },
+          "Syllables": [
+            {
+              "Syllable": "ah",
+              "PronunciationAssessment": { "AccuracyScore": 96.0 },
+              "Offset": 900000,
+              "Duration": 1200000
+            }
+          ],
+          "Phonemes": [
+            {
+              "Phoneme": "ə",
+              "PronunciationAssessment": { "AccuracyScore": 96.0 },
+              "Offset": 900000,
+              "Duration": 1200000
+            }
+          ]
+        },
+        {
+          "Word": "good",
+          "Offset": 2200000,
+          "Duration": 2800000,
+          "PronunciationAssessment": {
+            "AccuracyScore": 91.0,
+            "ErrorType": "None"
+          },
+          "Syllables": [
+            {
+              "Syllable": "gud",
+              "PronunciationAssessment": { "AccuracyScore": 91.0 },
+              "Offset": 2200000,
+              "Duration": 2800000
+            }
+          ],
+          "Phonemes": [
+            {
+              "Phoneme": "ɡ",
+              "PronunciationAssessment": { "AccuracyScore": 95.0 },
+              "Offset": 2200000,
+              "Duration": 900000
+            },
+            {
+              "Phoneme": "ʊ",
+              "PronunciationAssessment": { "AccuracyScore": 88.0 },
+              "Offset": 3100000,
+              "Duration": 1100000
+            },
+            {
+              "Phoneme": "d",
+              "PronunciationAssessment": { "AccuracyScore": 90.0 },
+              "Offset": 4200000,
+              "Duration": 800000
+            }
+          ]
+        },
+        {
+          "Word": "answer",
+          "Offset": 5400000,
+          "Duration": 4700000,
+          "PronunciationAssessment": {
+            "AccuracyScore": 62.0,
+            "ErrorType": "Mispronunciation"
+          },
+          "Syllables": [
+            {
+              "Syllable": "an",
+              "PronunciationAssessment": { "AccuracyScore": 58.0 },
+              "Offset": 5400000,
+              "Duration": 1900000
+            },
+            {
+              "Syllable": "ser",
+              "PronunciationAssessment": { "AccuracyScore": 66.0 },
+              "Offset": 7300000,
+              "Duration": 2800000
+            }
+          ],
+          "Phonemes": [
+            {
+              "Phoneme": "æ",
+              "PronunciationAssessment": { "AccuracyScore": 57.0 },
+              "Offset": 5400000,
+              "Duration": 900000
+            },
+            {
+              "Phoneme": "n",
+              "PronunciationAssessment": { "AccuracyScore": 70.0 },
+              "Offset": 6300000,
+              "Duration": 1000000
+            },
+            {
+              "Phoneme": "s",
+              "PronunciationAssessment": { "AccuracyScore": 65.0 },
+              "Offset": 7300000,
+              "Duration": 900000
+            },
+            {
+              "Phoneme": "ɚ",
+              "PronunciationAssessment": { "AccuracyScore": 56.0 },
+              "Offset": 8200000,
+              "Duration": 1900000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

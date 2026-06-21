@@ -22,6 +22,7 @@ export default async function ClubIeltsAssignmentsPage({
         classes={data.classes}
         tests={data.tests}
         assignments={data.assignments}
+        classStudyPlans={data.classStudyPlans}
       />
     </main>
   );

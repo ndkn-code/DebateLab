@@ -10,6 +10,10 @@
 import { z } from "zod";
 import { roundToHalfBand } from "@/lib/scoring/round-half-band";
 import { writingOverallBand } from "@/lib/scoring/ielts-writing/band-math";
+import {
+  isScoredPhonemeReport,
+  parsePhonemeReport,
+} from "@/lib/scoring/ielts-pronunciation/phoneme-report";
 import { isTerminalWritingStatus } from "@/lib/ielts/writing-scorer/status";
 import type {
   CriterionScore,
@@ -17,9 +21,11 @@ import type {
   ResultsParagraphFeedback,
   ResultsSpeakingPart,
   ResultsWritingTask,
+  SpeakingPronunciationHeatmap,
   SkillResultStatus,
   SpeakingPartResult,
   SpeakingResult,
+  WritingEssayParagraph,
   WritingResult,
   WritingTaskResult,
 } from "./types";
@@ -104,8 +110,43 @@ function toParagraphFeedback(raw: unknown): ResultsParagraphFeedback[] {
   return ParagraphFeedbackSchema.parse(raw ?? []);
 }
 
+function splitEssayParagraphs(essay: string): string[] {
+  const trimmed = essay.trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split(/\n\s*\n/g)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function matchesParagraph(value: number | null, index: number, total: number): boolean {
+  if (value === null) return false;
+  if (value >= 1 && value <= total) return value === index + 1;
+  if (value >= 0 && value < total) return value === index;
+  return false;
+}
+
+function buildEssayParagraphs(
+  essay: string,
+  corrections: ResultsInlineCorrection[],
+  paragraphFeedback: ResultsParagraphFeedback[],
+): WritingEssayParagraph[] {
+  const paragraphs = splitEssayParagraphs(essay);
+  const total = paragraphs.length;
+  return paragraphs.map((text, index) => ({
+    paragraph: index + 1,
+    text,
+    feedback:
+      paragraphFeedback.find((item) => matchesParagraph(item.paragraph, index, total)) ??
+      null,
+    corrections: corrections.filter((item) => matchesParagraph(item.paragraph, index, total)),
+  }));
+}
+
 function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
   const feedback = CriteriaFeedbackSchema.parse(task.criteriaFeedback ?? {});
+  const inlineCorrections = toInlineCorrections(task.inlineCorrections);
+  const paragraphFeedback = toParagraphFeedback(task.paragraphFeedback);
   const criteria: CriterionScore[] = WRITING_CRITERIA.map((entry) => ({
     key: entry.key,
     label: entry.label,
@@ -114,15 +155,18 @@ function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
   }));
   return {
     questionId: task.questionId,
+    prompt: task.prompt,
     taskNumber: task.taskNumber,
     status: task.status,
+    essay: task.essay,
     wordCount: task.wordCount,
     taskBand: task.taskBand,
     criteria,
     summary: feedback.summary?.trim() || null,
     vietnameseSummary: feedback.vietnameseSummary?.trim() || null,
-    inlineCorrections: toInlineCorrections(task.inlineCorrections),
-    paragraphFeedback: toParagraphFeedback(task.paragraphFeedback),
+    inlineCorrections,
+    paragraphFeedback,
+    essayParagraphs: buildEssayParagraphs(task.essay, inlineCorrections, paragraphFeedback),
     modelAnswer: task.modelAnswer,
     feedbackLanguage: task.feedbackLanguage,
   };
@@ -146,6 +190,33 @@ export function buildWritingResult(
   };
 }
 
+function heatmapLevel(accuracy: number) {
+  if (accuracy >= 85) return "strong";
+  if (accuracy >= 70) return "watch";
+  return "focus";
+}
+
+function toPronunciationHeatmap(raw: unknown): SpeakingPronunciationHeatmap | null {
+  const report = parsePhonemeReport(raw);
+  if (!isScoredPhonemeReport(report) || report.words.length === 0) return null;
+  return {
+    provider: report.provider,
+    locale: report.locale,
+    overall: report.overall,
+    words: report.words.map((word) => ({
+      word: word.word,
+      accuracy: word.accuracy,
+      errorType: word.errorType,
+      level: heatmapLevel(word.accuracy),
+      phonemes: word.phonemes.map((phoneme) => ({
+        phoneme: phoneme.phoneme,
+        accuracy: phoneme.accuracy,
+        level: heatmapLevel(phoneme.accuracy),
+      })),
+    })),
+  };
+}
+
 function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
   const feedback = SpeakingFeedbackSchema.parse(part.feedback ?? {});
   const criteria: CriterionScore[] = SPEAKING_CRITERIA.map((entry) => ({
@@ -156,12 +227,15 @@ function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
   }));
   return {
     questionId: part.questionId,
+    prompt: part.prompt,
     partNumber: part.partNumber,
     status: part.status,
     transcript: part.transcript,
     band: part.speakingBand,
     criteria,
     summary: feedback.summary?.trim() || null,
+    modelAnswer: part.modelAnswer,
+    pronunciationHeatmap: toPronunciationHeatmap(part.phonemeReport),
   };
 }
 

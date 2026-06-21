@@ -12,7 +12,7 @@ import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
 import { toQuestionView } from "./mock-schema";
 
 const QUESTION_COLUMNS =
-  "id, skill, question_type, order_index, group_key, group_instructions, prompt, options, max_points, word_limit, visual, passage_id, listening_section_id";
+  "id, skill, question_type, order_index, group_key, group_instructions, prompt, options, max_points, word_limit, visual, metadata, passage_id, listening_section_id";
 
 export interface MockStructure {
   test: Tables<"ielts_tests">;

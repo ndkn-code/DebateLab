@@ -5,6 +5,7 @@ import {
   getUserEntitlement,
   isBetaAllAccessEnabled,
 } from "@/lib/entitlements";
+import { isEnrolledStudent, type IeltsEnrollmentClient } from "@/lib/ielts/enrollment";
 
 export async function canAccessCourse(supabase: SupabaseClient, userId: string, courseId: string): Promise<boolean> {
   const accessMap = await getCourseAccessMap(supabase, userId, [courseId]);
@@ -22,7 +23,7 @@ export async function getCourseAccessMap(
 
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, visibility")
+    .select("id, visibility, subject")
     .in("id", uniqueCourseIds);
 
   return getCourseAccessMapFromRecords(supabase, userId, courses ?? []);
@@ -31,7 +32,11 @@ export async function getCourseAccessMap(
 export async function getCourseAccessMapFromRecords(
   supabase: SupabaseClient,
   userId: string,
-  courses: Array<{ id: string; visibility?: CourseVisibility | string | null }>
+  courses: Array<{
+    id: string;
+    visibility?: CourseVisibility | string | null;
+    subject?: string | null;
+  }>
 ): Promise<Map<string, boolean>> {
   const accessMap = new Map(courses.map((course) => [course.id, false]));
   if (courses.length === 0) return accessMap;
@@ -47,6 +52,10 @@ export async function getCourseAccessMapFromRecords(
 
   let directAccessIds = new Set<string>();
   let classAccessIds = new Set<string>();
+  const hasIeltsCourses = courses.some((course) => course.subject === "ielts");
+  const hasIeltsEnrollment = hasIeltsCourses
+    ? await isEnrolledStudent(userId, supabase as IeltsEnrollmentClient)
+    : false;
 
   if (restrictedCourseIds.length > 0) {
     const [rulesRes, membershipsRes] = await Promise.all([
@@ -85,6 +94,11 @@ export async function getCourseAccessMapFromRecords(
 
   for (const course of courses ?? []) {
     const courseId = course.id as string;
+    if (course.subject === "ielts" && profile?.role !== "admin" && !hasIeltsEnrollment) {
+      accessMap.set(courseId, false);
+      continue;
+    }
+
     accessMap.set(
       courseId,
       canAccessCourseRecord({

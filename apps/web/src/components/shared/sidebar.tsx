@@ -63,6 +63,7 @@ type SidebarNavItem = {
   key: string;
   icon: ComponentType<{ className?: string }>;
   status: "live" | "coming-soon";
+  requiresEnrollment?: boolean;
 };
 
 const NAV_ITEMS: readonly SidebarNavItem[] = [
@@ -83,7 +84,13 @@ const NAV_ITEMS: readonly SidebarNavItem[] = [
 // active subject is `ielts`. Debate nav stays byte-identical (`NAV_ITEMS`).
 const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/ielts", key: "ielts_home", icon: GraduationCap, status: "live" },
-  { href: "/ielts/learn", key: "ielts_learn", icon: Compass, status: "live" },
+  {
+    href: "/ielts/learn",
+    key: "ielts_learn",
+    icon: Compass,
+    status: "live",
+    requiresEnrollment: true,
+  },
   { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
   { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
@@ -92,16 +99,31 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
 // IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
 const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { key: "ielts_home", href: "/ielts", status: "live" },
-  { key: "ielts_learn", href: "/ielts/learn", status: "live" },
+  {
+    key: "ielts_learn",
+    href: "/ielts/learn",
+    status: "live",
+    requiresEnrollment: true,
+  },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
 ];
 
+function enrollmentVisible<T extends { requiresEnrollment?: boolean }>(
+  items: readonly T[],
+  isEnrolledIeltsStudent: boolean,
+): T[] {
+  return items.filter(
+    (item) => !item.requiresEnrollment || isEnrolledIeltsStudent,
+  );
+}
+
 interface SidebarProps {
   profile: Profile | null;
   userEmail: string | null;
   activeSubject: Subject;
+  isEnrolledIeltsStudent?: boolean;
 }
 
 function NavContent({
@@ -112,6 +134,7 @@ function NavContent({
   onNavClick,
   currentLocale,
   currentSubject,
+  isEnrolledIeltsStudent,
 }: {
   collapsed: boolean;
   profile: SidebarProps["profile"];
@@ -120,6 +143,7 @@ function NavContent({
   onNavClick?: () => void;
   currentLocale: AppLocale;
   currentSubject: Subject;
+  isEnrolledIeltsStudent: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -136,7 +160,10 @@ function NavContent({
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const navItems = currentSubject === "ielts" ? IELTS_NAV_ITEMS : NAV_ITEMS;
+  const navItems =
+    currentSubject === "ielts"
+      ? enrollmentVisible(IELTS_NAV_ITEMS, isEnrolledIeltsStudent)
+      : NAV_ITEMS;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -329,7 +356,12 @@ function NavContent({
   );
 }
 
-export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
+export function Sidebar({
+  profile,
+  userEmail,
+  activeSubject,
+  isEnrolledIeltsStudent = false,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -364,7 +396,9 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
     { key: "analytics", href: "/profile", status: "live" },
   ];
   const dashboardNavItems: DashboardNavItem[] =
-    activeSubject === "ielts" ? IELTS_DASHBOARD_NAV_ITEMS : debateNavItems;
+    activeSubject === "ielts"
+      ? enrollmentVisible(IELTS_DASHBOARD_NAV_ITEMS, isEnrolledIeltsStudent)
+      : debateNavItems;
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -402,6 +436,7 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
             onSignOut={handleSignOut}
             currentLocale={currentLocale}
             currentSubject={activeSubject}
+            isEnrolledIeltsStudent={isEnrolledIeltsStudent}
           />
           {/* Collapse toggle */}
           <button
@@ -440,6 +475,7 @@ export function Sidebar({ profile, userEmail, activeSubject }: SidebarProps) {
               onSignOut={handleSignOut}
               currentLocale={currentLocale}
               currentSubject={activeSubject}
+              isEnrolledIeltsStudent={isEnrolledIeltsStudent}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}

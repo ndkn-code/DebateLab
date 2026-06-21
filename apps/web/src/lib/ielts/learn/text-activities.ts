@@ -15,6 +15,10 @@ export const IELTS_FIRST_TEXT_ACTIVITY_TYPES = [
   "ielts_vocab_collocation",
   "ielts_paraphrase_transform",
   "ielts_gap_fill",
+  "ielts_tfng_reasoning",
+  "ielts_scan_detail",
+  "ielts_sentence_transform",
+  "ielts_cohesion_linker",
 ] as const satisfies readonly IeltsLearnActivityType[];
 
 export type IeltsFirstTextActivityType =
@@ -40,7 +44,7 @@ export const IeltsTextActivitySourceSchema = z
   })
   .strict();
 
-export const IeltsTextActivityContentSchema = z
+const BaseIeltsTextActivityContentSchema = z
   .object({
     activityType: IeltsFirstTextActivityTypeSchema,
     version: z.literal(1).default(1),
@@ -49,12 +53,59 @@ export const IeltsTextActivityContentSchema = z
     sources: z.array(IeltsTextActivitySourceSchema).min(1).max(8),
     rendererTags: z.array(z.string().min(1).max(80)).max(12).default([]),
   })
-  .strict()
+  .strict();
+
+export const IeltsVocabCollocationActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_vocab_collocation"),
+  }).strict();
+
+export const IeltsParaphraseTransformActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_paraphrase_transform"),
+  }).strict();
+
+export const IeltsGapFillActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_gap_fill"),
+  }).strict();
+
+export const IeltsTfngReasoningActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_tfng_reasoning"),
+    rationalePrompt: BilingualTextSchema.default({
+      en: "Write one short reason from the passage for your choice.",
+      vi: "Viết một lý do ngắn từ bài đọc cho lựa chọn của bạn.",
+    }),
+  }).strict();
+
+export const IeltsScanDetailActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_scan_detail"),
+  }).strict();
+
+export const IeltsSentenceTransformActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_sentence_transform"),
+  }).strict();
+
+export const IeltsCohesionLinkerActivityContentSchema =
+  BaseIeltsTextActivityContentSchema.extend({
+    activityType: z.literal("ielts_cohesion_linker"),
+  }).strict();
+
+export const IeltsTextActivityContentSchema = z
+  .discriminatedUnion("activityType", [
+    IeltsVocabCollocationActivityContentSchema,
+    IeltsParaphraseTransformActivityContentSchema,
+    IeltsGapFillActivityContentSchema,
+    IeltsTfngReasoningActivityContentSchema,
+    IeltsScanDetailActivityContentSchema,
+    IeltsSentenceTransformActivityContentSchema,
+    IeltsCohesionLinkerActivityContentSchema,
+  ])
   .superRefine((content, ctx) => {
-    if (
-      content.activityType !== "ielts_gap_fill" &&
-      content.sources.length !== 1
-    ) {
+    if (!canUseMultipleSources(content.activityType) && content.sources.length !== 1) {
       ctx.addIssue({
         code: "custom",
         path: ["sources"],
@@ -104,6 +155,10 @@ export type IeltsTextActivityView = {
   activityType: IeltsFirstTextActivityType;
   module: IeltsTextActivityContent["module"];
   instruction: IeltsTextActivityContent["instruction"];
+  rationalePrompt?: Extract<
+    IeltsTextActivityContent,
+    { activityType: "ielts_tfng_reasoning" }
+  >["rationalePrompt"];
   questions: IeltsTextActivityQuestionView[];
 };
 
@@ -169,6 +224,50 @@ export function isIeltsFirstTextActivityType(
   );
 }
 
+export function canUseMultipleSources(
+  activityType: IeltsFirstTextActivityType,
+): boolean {
+  return (
+    activityType === "ielts_gap_fill" ||
+    activityType === "ielts_scan_detail" ||
+    activityType === "ielts_cohesion_linker"
+  );
+}
+
+export function isIeltsTextChoiceActivity(
+  activityType: IeltsFirstTextActivityType,
+): boolean {
+  return (
+    activityType === "ielts_vocab_collocation" ||
+    activityType === "ielts_paraphrase_transform" ||
+    activityType === "ielts_tfng_reasoning"
+  );
+}
+
+export function ieltsTextActivityEstimatedMinutes(
+  activityType: IeltsFirstTextActivityType,
+): number {
+  if (activityType === "ielts_gap_fill") return 6;
+  if (activityType === "ielts_scan_detail") return 5;
+  if (activityType === "ielts_cohesion_linker") return 5;
+  return 4;
+}
+
+export function defaultIeltsTextActivitySubskill(
+  activityType: IeltsFirstTextActivityType,
+): IeltsTextActivitySource["subskillKey"] {
+  const defaults: Record<IeltsFirstTextActivityType, IeltsTextActivitySource["subskillKey"]> = {
+    ielts_vocab_collocation: "writing:collocation_precision",
+    ielts_paraphrase_transform: "reading:paraphrase_recognition",
+    ielts_gap_fill: "reading:sentence_completion",
+    ielts_tfng_reasoning: "reading:true_false_notgiven",
+    ielts_scan_detail: "reading:scan_specific_detail",
+    ielts_sentence_transform: "writing:paraphrase_transform",
+    ielts_cohesion_linker: "writing:coherence_cohesion",
+  };
+  return defaults[activityType];
+}
+
 export function scoreIeltsTextActivityPreview(
   content: unknown,
 ): ScoreResult {
@@ -184,7 +283,7 @@ export function toIeltsLearnAtom(content: IeltsTextActivityContent): IeltsLearnA
     activityType: content.activityType,
     skill,
     focusArea: content.sources[0]?.labelEn ?? firstSubskill,
-    estimatedMinutes: content.activityType === "ielts_gap_fill" ? 6 : 4,
+    estimatedMinutes: ieltsTextActivityEstimatedMinutes(content.activityType),
     questionIds: content.sources.map((source) => source.questionId),
     rendererTags: content.rendererTags,
     scoringMode: "objective",
@@ -195,7 +294,7 @@ export function defaultIeltsTextActivityContent(
   activityType: IeltsFirstTextActivityType,
   module: IeltsModule = "academic",
 ): IeltsTextActivityContent {
-  return {
+  return IeltsTextActivityContentSchema.parse({
     activityType,
     version: 1,
     module,
@@ -206,9 +305,9 @@ export function defaultIeltsTextActivityContent(
     sources: [
       {
         questionId: "00000000-0000-4000-8000-000000000201",
-        subskillKey: "reading:paraphrase_recognition",
+        subskillKey: defaultIeltsTextActivitySubskill(activityType),
       },
     ],
     rendererTags: [activityType],
-  };
+  });
 }

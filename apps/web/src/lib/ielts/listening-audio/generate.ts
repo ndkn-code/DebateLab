@@ -22,6 +22,7 @@ import {
   getSectionWithAudio,
   markAudioFailed,
   markAudioGenerating,
+  markAudioQueued,
   type AudioAsset,
   type IeltsAudioStatus,
 } from "@/lib/api/ielts/audio-repository";
@@ -31,6 +32,11 @@ import {
 } from "./storage-paths";
 import { buildListeningAudioPlan, type ListeningAudioPlan } from "./plan";
 import { synthesizeListeningPlan, type TurnSynthesizer } from "./synthesize";
+import {
+  detectTtsProviderAvailability,
+  isMissingProviderConfigError,
+  missingProvidersForPlan,
+} from "./provider-availability";
 
 type StorageClient = ReturnType<typeof createTypedAdminClient>["storage"];
 
@@ -50,6 +56,14 @@ export interface GenerateListeningAudioResult {
   version: number;
   /** True when an unchanged script short-circuited synthesis. */
   skipped: boolean;
+  /**
+   * True when synthesis was deferred because a required TTS provider has no
+   * credentials (e.g. AUS needs a Google key). The asset stays `pending`; a
+   * later run picks it up. This is the "skip/queue gracefully, never throw" path.
+   */
+  queued: boolean;
+  /** Providers that blocked synthesis when `queued`; empty otherwise. */
+  missingProviders: string[];
 }
 
 async function ensureBucket(storage: StorageClient): Promise<void> {
@@ -127,6 +141,29 @@ export async function generateListeningSectionAudio(
       url: publicListeningAudioUrl(supabaseUrl, asset.storage_path, asset.version),
       version: asset.version,
       skipped: true,
+      queued: false,
+      missingProviders: [],
+    };
+  }
+
+  // Gate on credentials BEFORE synthesizing: a plan that needs an unconfigured
+  // provider (e.g. AUS → Google, an env gap) is queued, not run into a failure.
+  // This avoids wasted provider calls and partial audio for mixed-accent
+  // sections, and is the "skip/queue gracefully, never throw" contract.
+  const missingProviders = missingProvidersForPlan(
+    plan.providers,
+    detectTtsProviderAvailability(),
+  );
+  if (missingProviders.length > 0) {
+    await markAudioQueued(asset.id, missingProviders, admin);
+    return {
+      assetId: asset.id,
+      status: "pending",
+      url: null,
+      version: asset.version,
+      skipped: false,
+      queued: true,
+      missingProviders,
     };
   }
 
@@ -155,8 +192,25 @@ export async function generateListeningSectionAudio(
       url: publicListeningAudioUrl(supabaseUrl, storagePath, version),
       version,
       skipped: false,
+      queued: false,
+      missingProviders: [],
     };
   } catch (error) {
+    // A missing-credentials error that slipped past the pre-check (e.g. a key
+    // present in env but unreadable) is queued, not failed — honoring "never
+    // throw" for the unconfigured-provider case.
+    if (isMissingProviderConfigError(error)) {
+      await markAudioQueued(asset.id, plan.providers, admin);
+      return {
+        assetId: asset.id,
+        status: "pending",
+        url: null,
+        version: asset.version,
+        skipped: false,
+        queued: true,
+        missingProviders: plan.providers,
+      };
+    }
     const message = error instanceof Error ? error.message : "unknown error";
     await markAudioFailed(asset.id, message, admin);
     throw error;

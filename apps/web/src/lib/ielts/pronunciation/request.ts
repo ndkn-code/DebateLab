@@ -8,6 +8,7 @@
  */
 import type { AzureSpeechConfig } from "./config";
 import {
+  AZURE_RESOURCE_STT_RECOGNIZE_PATH,
   AZURE_STT_RECOGNIZE_PATH,
   DEFAULT_PRONUNCIATION_LOCALE,
 } from "./constants";
@@ -49,15 +50,27 @@ export interface AzureRequest {
   body: ArrayBuffer | Uint8Array;
 }
 
+function recognitionEndpoint(config: AzureSpeechConfig): string {
+  if (config.endpoint) {
+    const endpoint = config.endpoint.replace(/\/+$/, "");
+    if (endpoint.endsWith(AZURE_RESOURCE_STT_RECOGNIZE_PATH)) return endpoint;
+    if (endpoint.endsWith(AZURE_STT_RECOGNIZE_PATH)) return endpoint;
+    return `${endpoint}${AZURE_RESOURCE_STT_RECOGNIZE_PATH}`;
+  }
+  if (!config.region) {
+    throw new Error("Azure Speech config requires a region or endpoint.");
+  }
+  return `https://${config.region}.stt.speech.microsoft.com${AZURE_STT_RECOGNIZE_PATH}`;
+}
+
 /** Build the full Azure pronunciation-assessment request (URL + headers + body). */
 export function buildAssessmentRequest(input: AzureRequestInput): AzureRequest {
   const locale = input.params.locale ?? DEFAULT_PRONUNCIATION_LOCALE;
-  const url =
-    `https://${input.config.region}.stt.speech.microsoft.com` +
-    `${AZURE_STT_RECOGNIZE_PATH}` +
-    `?language=${encodeURIComponent(locale)}&format=detailed`;
+  const url = new URL(recognitionEndpoint(input.config));
+  url.searchParams.set("language", locale);
+  url.searchParams.set("format", "detailed");
   return {
-    url,
+    url: url.toString(),
     headers: {
       "Ocp-Apim-Subscription-Key": input.config.apiKey,
       "Content-Type": input.audioContentType,

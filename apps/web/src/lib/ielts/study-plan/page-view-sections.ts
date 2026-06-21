@@ -274,12 +274,17 @@ export function buildReassessment(
   todayIso: string,
 ): IeltsStudyPlanPageView["reassessment"] {
   const mocks = items
-    .filter((item) => item.kind === "mini_mock" || item.kind === "full_mock")
+    .filter(
+      (item) =>
+        item.kind === "skill_drill" ||
+        item.kind === "mini_mock" ||
+        item.kind === "full_mock",
+    )
     .map((item): IeltsStudyPlanReassessmentMockView => {
       const view = toItemView(item);
       return {
         id: view.id,
-        kind: item.kind as "mini_mock" | "full_mock",
+        kind: item.kind as "skill_drill" | "mini_mock" | "full_mock",
         skill: view.skill,
         scheduledDate: view.scheduledDate,
         titleEn: view.titleEn,

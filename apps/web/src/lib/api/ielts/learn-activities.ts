@@ -13,6 +13,7 @@ import {
   type IeltsTextActivityFeedbackItem,
   type IeltsTextActivityView,
 } from "@/lib/ielts/learn/text-activities";
+import { getFixedOptions } from "@/lib/ielts/question-types";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { scoreObjectiveAnswer } from "@/lib/scoring/ielts/objective-scoring";
 import {
@@ -62,7 +63,15 @@ export type IeltsTextActivityScoreResult = {
   }>;
 };
 
-function normalizeOptions(options: Json): Array<{ value: string; label: string }> {
+function normalizeOptions(
+  options: Json,
+  questionType: QuestionRow["question_type"],
+): Array<{ value: string; label: string }> {
+  const fixed = getFixedOptions(questionType).map((option) => ({
+    value: option.id,
+    label: option.label ? `${option.label} - ${option.text}` : option.text,
+  }));
+  if (fixed.length > 0) return fixed;
   if (!Array.isArray(options)) return [];
   return options.map((option, index) => {
     if (typeof option === "string") return { value: option, label: option };
@@ -82,6 +91,10 @@ function toView(content: IeltsTextActivityContent, rows: QuestionRow[]): IeltsTe
     activityType: content.activityType,
     module: content.module,
     instruction: content.instruction,
+    rationalePrompt:
+      content.activityType === "ielts_tfng_reasoning"
+        ? content.rationalePrompt
+        : undefined,
     questions: content.sources.flatMap((source) => {
       const question = rowById.get(source.questionId);
       if (!question) return [];
@@ -92,7 +105,7 @@ function toView(content: IeltsTextActivityContent, rows: QuestionRow[]): IeltsTe
           questionType: question.question_type,
           prompt: question.prompt,
           groupInstructions: question.group_instructions,
-          options: normalizeOptions(question.options),
+          options: normalizeOptions(question.options, question.question_type),
           wordLimit: question.word_limit,
         },
       ];
@@ -135,6 +148,34 @@ function scoreChoiceFromKey(key: KeyRow, response: unknown): {
   ].map(normalizeChoice);
   const correct = picked !== null && accepted.includes(normalizeChoice(picked));
   return { correct, awardedPoints: correct ? 1 : 0, maxPoints: 1 };
+}
+
+function scoreObjectiveFromKey(
+  question: QuestionRow,
+  key: KeyRow,
+  response: unknown,
+): {
+  correct: boolean;
+  awardedPoints: number;
+  maxPoints: number;
+} {
+  const objective = scoreObjectiveAnswer(
+    {
+      question_type: question.question_type,
+      max_points: question.max_points,
+      word_limit: question.word_limit,
+    },
+    {
+      correct_answer: key.correct_answer,
+      accept_variants: key.accept_variants,
+    },
+    response,
+  );
+  return {
+    correct: objective.isCorrect,
+    awardedPoints: objective.awardedPoints,
+    maxPoints: objective.maxPoints,
+  };
 }
 
 function fallbackFeedback(correct: boolean): { en: string; vi: string } {
@@ -218,27 +259,10 @@ export async function scoreIeltsTextActivity(params: {
       source.questionId,
     );
     const verdict =
-      params.activityType === "ielts_gap_fill"
-        ? (() => {
-            const objective = scoreObjectiveAnswer(
-              {
-                question_type: question.question_type,
-                max_points: question.max_points,
-                word_limit: question.word_limit,
-              },
-              {
-                correct_answer: key.correct_answer,
-                accept_variants: key.accept_variants,
-              },
-              response,
-            );
-            return {
-              correct: objective.isCorrect,
-              awardedPoints: objective.awardedPoints,
-              maxPoints: objective.maxPoints,
-            };
-          })()
-        : scoreChoiceFromKey(key, response);
+      params.activityType === "ielts_vocab_collocation" ||
+      params.activityType === "ielts_paraphrase_transform"
+        ? scoreChoiceFromKey(key, response)
+        : scoreObjectiveFromKey(question, key, response);
     const feedback = itemFeedback(key, verdict.correct);
 
     feedbackItems.push({

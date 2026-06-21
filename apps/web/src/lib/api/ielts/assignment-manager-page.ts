@@ -6,8 +6,10 @@
  */
 import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import type { IeltsClassStudyPlanSurfaceView } from "@/lib/ielts/study-plan/class-view";
 import { requireClubManager } from "./assignment-access";
 import { listClubIeltsAssignments, type IeltsMockAssignmentRow } from "./assignments-repository";
+import { loadIeltsClassStudyPlanForManager } from "./class-study-plan-repository";
 import { getPublishedIeltsTests } from "./tests-repository";
 
 export interface AssignableClass {
@@ -29,6 +31,7 @@ export interface IeltsAssignmentsAdminPage {
   classes: AssignableClass[];
   tests: AssignableTest[];
   assignments: IeltsMockAssignmentRow[];
+  classStudyPlans: IeltsClassStudyPlanSurfaceView;
 }
 
 export async function loadIeltsAssignmentsAdminPage(
@@ -63,11 +66,16 @@ export async function loadIeltsAssignmentsAdminPage(
   if (classesRes.error) {
     throw new Error(`loadIeltsAssignmentsAdminPage classes: ${classesRes.error.message}`);
   }
+  const classes = (classesRes.data ?? []).map((row) => ({ id: row.id, title: row.title }));
+  const classStudyPlans = await loadIeltsClassStudyPlanForManager(clubId, {
+    classes,
+    client: supabase,
+  });
 
   return {
     clubId,
     clubName: club.name,
-    classes: (classesRes.data ?? []).map((row) => ({ id: row.id, title: row.title })),
+    classes,
     tests: tests.map((test) => ({
       id: test.id,
       title: test.title,
@@ -76,5 +84,6 @@ export async function loadIeltsAssignmentsAdminPage(
       kind: test.kind,
     })),
     assignments,
+    classStudyPlans,
   };
 }

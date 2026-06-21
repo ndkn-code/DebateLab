@@ -9,8 +9,10 @@ import type { ResultsSpeakingPart, ResultsWritingTask } from "./types";
 function writingTask(p: Partial<ResultsWritingTask>): ResultsWritingTask {
   return {
     questionId: "w",
+    prompt: "Discuss both views.",
     taskNumber: 2,
     status: "scored",
+    essay: "This essay is mostly clear.\n\nIt has one error.",
     wordCount: 260,
     taskResponseBand: 7,
     coherenceCohesionBand: 6.5,
@@ -63,6 +65,9 @@ assert.equal(task1.vietnameseSummary, "Tổng quan tốt.");
 assert.equal(task1.inlineCorrections.length, 1);
 assert.equal(task1.inlineCorrections[0].errorType, "grammar");
 assert.equal(task1.paragraphFeedback[0].strengths[0], "clear");
+assert.equal(task1.essayParagraphs.length, 2);
+assert.equal(task1.essayParagraphs[0].feedback?.comment, "Clear intro");
+assert.equal(task1.essayParagraphs[0].corrections[0].suggestion, "are");
 assert.equal(task1.modelAnswer, "Band 9 rewrite.");
 
 // ---- Writing in progress: empty envelope degrades to nulls -----------------
@@ -91,9 +96,10 @@ assert.equal(buildWritingResult([]), null);
 function speakingPart(p: Partial<ResultsSpeakingPart>): ResultsSpeakingPart {
   return {
     questionId: "s",
+    prompt: "Where do you live?",
     partNumber: 1,
     status: "scored",
-    transcript: "…",
+    transcript: "I live in a quiet apartment.",
     fluencyCoherenceBand: 7,
     lexicalResourceBand: 7,
     grammarBand: 6.5,
@@ -101,11 +107,46 @@ function speakingPart(p: Partial<ResultsSpeakingPart>): ResultsSpeakingPart {
     speakingBand: 7,
     feedback: {},
     feedbackLanguage: "en",
+    modelAnswer: null,
+    phonemeReport: {},
     ...p,
   };
 }
 const speaking = buildSpeakingResult([
-  speakingPart({ questionId: "s1", partNumber: 1, speakingBand: 7, feedback: { summary: "Fluent." } }),
+  speakingPart({
+    questionId: "s1",
+    partNumber: 1,
+    speakingBand: 7,
+    feedback: { summary: "Fluent." },
+    modelAnswer: "Band 9 spoken sample.",
+    phonemeReport: {
+      schemaVersion: 1,
+      status: "scored",
+      provider: "azure",
+      model: "pronunciation-assessment",
+      locale: "en-US",
+      referenceText: "I live in a quiet apartment.",
+      recognizedText: "I live in a quiet apartment.",
+      overall: {
+        accuracy: 88,
+        fluency: 82,
+        completeness: 100,
+        prosody: null,
+        pronunciation: 87,
+      },
+      words: [
+        {
+          word: "quiet",
+          accuracy: 68,
+          errorType: "Mispronunciation",
+          phonemes: [
+            { phoneme: "k", accuracy: 90 },
+            { phoneme: "aɪ", accuracy: 61 },
+          ],
+        },
+      ],
+    },
+  }),
   speakingPart({ questionId: "s2", partNumber: 2, speakingBand: 6 }),
 ]);
 assert.ok(speaking);
@@ -114,6 +155,10 @@ assert.equal(speaking.parts.length, 2);
 assert.deepEqual(speaking.parts.map((part) => part.partNumber), [1, 2]);
 assert.equal(speaking.parts[0].criteria[3].key, "pronunciation");
 assert.equal(speaking.parts[0].summary, "Fluent.");
+assert.equal(speaking.parts[0].modelAnswer, "Band 9 spoken sample.");
+assert.equal(speaking.parts[0].pronunciationHeatmap?.words[0].level, "focus");
+assert.equal(speaking.parts[0].pronunciationHeatmap?.words[0].phonemes[0].level, "strong");
+assert.equal(speaking.parts[1].pronunciationHeatmap, null);
 assert.equal(buildSpeakingResult([]), null);
 
 // ---- feedbackSkillStatus ---------------------------------------------------

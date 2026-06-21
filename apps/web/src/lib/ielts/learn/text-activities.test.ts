@@ -5,9 +5,13 @@ import {
 } from "@/lib/ielts/adaptive/contracts";
 import {
   IELTS_FIRST_TEXT_ACTIVITY_TYPES,
+  IeltsTfngReasoningActivityContentSchema,
   IeltsTextActivityContentSchema,
+  defaultIeltsTextActivityContent,
+  defaultIeltsTextActivitySubskill,
   getIeltsTextResponseForQuestion,
   isIeltsFirstTextActivityType,
+  ieltsTextActivityEstimatedMinutes,
   scoreIeltsTextActivityPreview,
   toIeltsLearnAtom,
 } from "./text-activities";
@@ -40,6 +44,29 @@ const content = IeltsTextActivityContentSchema.parse({
 }
 
 {
+  const expectedSubskills = {
+    ielts_tfng_reasoning: "reading:true_false_notgiven",
+    ielts_scan_detail: "reading:scan_specific_detail",
+    ielts_sentence_transform: "writing:paraphrase_transform",
+    ielts_cohesion_linker: "writing:coherence_cohesion",
+  } as const;
+
+  for (const [activityType, subskillKey] of Object.entries(expectedSubskills)) {
+    const parsed = IeltsTextActivityContentSchema.parse(
+      defaultIeltsTextActivityContent(activityType as keyof typeof expectedSubskills),
+    );
+    assert.equal(parsed.activityType, activityType);
+    assert.equal(parsed.sources[0].subskillKey, subskillKey);
+    assert.equal(defaultIeltsTextActivitySubskill(parsed.activityType), subskillKey);
+    assert.equal(toIeltsLearnAtom(parsed).skill, subskillKey.split(":")[0]);
+    assert.equal(
+      toIeltsLearnAtom(parsed).estimatedMinutes,
+      ieltsTextActivityEstimatedMinutes(parsed.activityType),
+    );
+  }
+}
+
+{
   assert.equal(content.module, "academic");
   assert.equal(content.version, 1);
   assert.equal(content.sources[0].subskillKey, "reading:paraphrase_recognition");
@@ -66,6 +93,38 @@ assert.throws(() =>
     ],
   }),
 );
+
+{
+  const scan = IeltsTextActivityContentSchema.parse({
+    activityType: "ielts_scan_detail",
+    instruction: { en: "Scan for details.", vi: "Đọc quét tìm chi tiết." },
+    sources: [
+      {
+        questionId: QUESTION_ID,
+        subskillKey: "reading:scan_specific_detail",
+      },
+      {
+        questionId: "00000000-0000-4000-8000-000000000202",
+        subskillKey: "reading:scan_specific_detail",
+      },
+    ],
+  });
+  assert.equal(scoreIeltsTextActivityPreview(scan).maxScore, 2);
+}
+
+{
+  const tfng = IeltsTfngReasoningActivityContentSchema.parse({
+    activityType: "ielts_tfng_reasoning",
+    instruction: { en: "Verify the claim.", vi: "Kiểm chứng nhận định." },
+    sources: [
+      {
+        questionId: QUESTION_ID,
+        subskillKey: "reading:true_false_notgiven",
+      },
+    ],
+  });
+  assert.equal(tfng.rationalePrompt.en.includes("reason"), true);
+}
 
 {
   const response = getIeltsTextResponseForQuestion(

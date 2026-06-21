@@ -19,6 +19,7 @@ import type { Json } from "@/types/supabase";
 import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { generateListeningSectionAudio } from "@/lib/ielts/listening-audio/generate";
+import { backfillListeningSectionAudio } from "@/lib/ielts/listening-audio/backfill";
 import { gradeQuestionResponse } from "@/lib/api/ielts/grading-repository";
 import type { IeltsVerdict } from "@/lib/ielts/question-types/types";
 import {
@@ -221,10 +222,46 @@ export async function generateListeningAudioAction(rawInput: unknown) {
   await logIelts(supabase, adminId, "generate_ielts_listening_audio", "ielts_listening_section", sectionId, {
     status: result.status,
     skipped: result.skipped,
+    queued: result.queued,
     version: result.version,
   });
   revalidateTest(testId);
   return result;
+}
+
+const BackfillListeningAudioSchema = z.object({
+  testId: z.string().uuid().optional(),
+  force: z.boolean().optional(),
+});
+
+/**
+ * Backfill audio for every Listening section that needs it (WS-1.3): the demo
+ * mock and any other already-authored sections shipped script-only. Generates
+ * the missing audio, skips unchanged ready sections, and queues sections whose
+ * accent needs an unconfigured provider (AUS → Google) instead of failing. One
+ * test when `testId` is given, else all. Returns a per-outcome summary.
+ */
+export async function backfillListeningAudioAction(rawInput: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const { testId, force } = parseInput(BackfillListeningAudioSchema, rawInput);
+  const summary = await backfillListeningSectionAudio({ testId: testId ?? null, force });
+  await logIelts(
+    supabase,
+    adminId,
+    "backfill_ielts_listening_audio",
+    "ielts_test",
+    testId ?? null,
+    {
+      total: summary.total,
+      generated: summary.generated,
+      skipped: summary.skipped,
+      queued: summary.queued,
+      failed: summary.failed,
+      missingProviders: summary.missingProviders,
+    },
+  );
+  revalidateTest(testId);
+  return summary;
 }
 
 // --- Questions ------------------------------------------------------------

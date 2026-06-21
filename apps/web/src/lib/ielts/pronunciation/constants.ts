@@ -28,3 +28,7 @@ export type SupportedPronunciationLocale =
 /** Azure short-audio REST recognition path (mirrors the TTS host pattern). */
 export const AZURE_STT_RECOGNIZE_PATH =
   "/speech/recognition/conversation/cognitiveservices/v1";
+
+/** Resource endpoint path from current Azure docs (`*.cognitiveservices.azure.com`). */
+export const AZURE_RESOURCE_STT_RECOGNIZE_PATH =
+  `/stt${AZURE_STT_RECOGNIZE_PATH}`;

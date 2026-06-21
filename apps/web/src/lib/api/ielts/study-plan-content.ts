@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  IELTS_FIRST_TEXT_ACTIVITY_TYPES,
   IeltsTextActivityContentSchema,
   toIeltsLearnAtom,
 } from "@/lib/ielts/learn/text-activities";
@@ -21,6 +22,8 @@ export interface IeltsDiagnosticTestSummary {
   slug: string;
   title: string;
   module: IeltsTestRow["module"];
+  writingTask2QuestionId: string | null;
+  speakingPart2QuestionId: string | null;
 }
 
 export interface AvailableIeltsLearnAtom {
@@ -49,6 +52,13 @@ function hasQuickDiagnosticShape(
   );
 }
 
+function questionIdForType(
+  rows: Array<{ id: string; question_type: string }>,
+  questionType: string,
+): string | null {
+  return rows.find((row) => row.question_type === questionType)?.id ?? null;
+}
+
 export function ieltsLearnAtomKey(atom: AvailableIeltsLearnAtom["atom"]): string {
   return [
     atom.activityType,
@@ -75,16 +85,23 @@ export async function findQuickDiagnosticTest(
 
   const { data: questions, error: questionError } = await supabase
     .from("ielts_questions")
-    .select("test_id, skill, question_type")
+    .select("id, test_id, skill, question_type")
     .in("test_id", candidates.map((test) => test.id));
   if (questionError) {
     throw new Error(`findQuickDiagnosticTest(questions): ${questionError.message}`);
   }
 
-  const questionsByTest = new Map<string, Array<{ skill: string; question_type: string }>>();
+  const questionsByTest = new Map<
+    string,
+    Array<{ id: string; skill: string; question_type: string }>
+  >();
   for (const question of questions ?? []) {
     const rows = questionsByTest.get(question.test_id) ?? [];
-    rows.push({ skill: question.skill, question_type: question.question_type });
+    rows.push({
+      id: question.id,
+      skill: question.skill,
+      question_type: question.question_type,
+    });
     questionsByTest.set(question.test_id, rows);
   }
 
@@ -106,7 +123,20 @@ export async function findQuickDiagnosticTest(
     })[0];
 
   return test
-    ? { id: test.id, slug: test.slug, title: test.title, module: test.module }
+    ? {
+        id: test.id,
+        slug: test.slug,
+        title: test.title,
+        module: test.module,
+        writingTask2QuestionId: questionIdForType(
+          questionsByTest.get(test.id) ?? [],
+          "writing_task2_essay",
+        ),
+        speakingPart2QuestionId: questionIdForType(
+          questionsByTest.get(test.id) ?? [],
+          "speaking_part2_cuecard",
+        ),
+      }
     : null;
 }
 
@@ -117,11 +147,7 @@ export async function listAvailableIeltsLearnAtoms(
   const { data, error } = await supabase
     .from("activities")
     .select("id, activity_type, content, duration_minutes, is_archived")
-    .in("activity_type", [
-      "ielts_vocab_collocation",
-      "ielts_paraphrase_transform",
-      "ielts_gap_fill",
-    ])
+    .in("activity_type", [...IELTS_FIRST_TEXT_ACTIVITY_TYPES])
     .or("is_archived.is.null,is_archived.eq.false")
     .limit(LEARN_ATOM_LIMIT);
   if (error) throw new Error(`listAvailableIeltsLearnAtoms: ${error.message}`);

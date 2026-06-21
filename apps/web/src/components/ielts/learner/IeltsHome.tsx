@@ -17,6 +17,7 @@ import { IeltsEmptyState } from "./EmptyState";
 import { PredictedBandCard } from "./PredictedBandCard";
 import { TodayList } from "./TodayList";
 import { IeltsEntryTiles } from "./IeltsEntryTiles";
+import { IeltsRetentionPanel } from "./IeltsRetentionPanel";
 
 /**
  * IELTS learner home — the adaptive dashboard (WS-6.2.1). The surface a student
@@ -55,6 +56,8 @@ export function IeltsHome({
             </h1>
           </header>
 
+          <IeltsRetentionPanel retention={data.retention} />
+
           <PredictedBandCard
             view={predictionView}
             planSummary={data.planSummary}
@@ -69,7 +72,10 @@ export function IeltsHome({
             totalMinutes={totalMinutes}
           />
 
-          <IeltsEntryTiles />
+          <IeltsEntryTiles
+            isEnrolled={data.isEnrolledStudent}
+            reviewsDueCount={data.reviewsDueCount}
+          />
 
           {hasAttempts ? (
             <section className="flex flex-col gap-3">

@@ -16,8 +16,12 @@ export {
   type SkipReason,
 } from "./service";
 export {
+  azureSpeechEnvSchema,
   getAzureSpeechConfig,
   isAzurePronunciationConfigured,
+  validateAzureSpeechEnv,
+  type AzureSpeechEnv,
+  type AzureSpeechEnvValidation,
   type AzureSpeechConfig,
 } from "./config";
 export {

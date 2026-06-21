@@ -36,12 +36,18 @@ export interface ResultsObjectiveQuestion {
   acceptVariants: unknown;
   explanationEn: string | null;
   explanationVi: string | null;
+  /** Optional Reading passage / Listening transcript text for source-context review. */
+  source?: ObjectiveSourceInput | null;
+  /** Optional author-key metadata used to locate the answer span, never rendered raw. */
+  sourceHints?: unknown[];
 }
 
 export interface ResultsWritingTask {
   questionId: string;
+  prompt: string | null;
   taskNumber: number;
   status: WritingResponseStatus;
+  essay: string;
   wordCount: number;
   taskResponseBand: number | null;
   coherenceCohesionBand: number | null;
@@ -57,6 +63,7 @@ export interface ResultsWritingTask {
 
 export interface ResultsSpeakingPart {
   questionId: string;
+  prompt: string | null;
   partNumber: number | null;
   status: WritingResponseStatus;
   transcript: string;
@@ -67,6 +74,8 @@ export interface ResultsSpeakingPart {
   speakingBand: number | null;
   feedback: unknown;
   feedbackLanguage: string;
+  modelAnswer: string | null;
+  phonemeReport: unknown;
 }
 
 export interface AttemptResultsInput {
@@ -128,6 +137,25 @@ export interface SkillBandBreakdown {
   rows: BandBreakdownRow[];
 }
 
+export interface ObjectiveSourceInput {
+  kind: ObjectiveSkillKey;
+  title: string | null;
+  text: string;
+}
+
+export interface ResultsTextSegment {
+  text: string;
+  highlighted: boolean;
+}
+
+export interface ObjectiveSourceContext {
+  kind: ObjectiveSkillKey;
+  label: string;
+  title: string | null;
+  segments: ResultsTextSegment[];
+  answerLocation: string | null;
+}
+
 export interface ObjectiveReviewItem {
   questionId: string;
   number: number;
@@ -142,6 +170,7 @@ export interface ObjectiveReviewItem {
   maxPoints: number;
   explanationEn: string | null;
   explanationVi: string | null;
+  sourceContext: ObjectiveSourceContext | null;
 }
 
 export interface ObjectiveReviewSection {
@@ -175,10 +204,19 @@ export interface ResultsParagraphFeedback {
   improvements: string[];
 }
 
+export interface WritingEssayParagraph {
+  paragraph: number;
+  text: string;
+  feedback: ResultsParagraphFeedback | null;
+  corrections: ResultsInlineCorrection[];
+}
+
 export interface WritingTaskResult {
   questionId: string;
+  prompt: string | null;
   taskNumber: number;
   status: WritingResponseStatus;
+  essay: string;
   wordCount: number;
   taskBand: number | null;
   criteria: CriterionScore[];
@@ -186,6 +224,7 @@ export interface WritingTaskResult {
   vietnameseSummary: string | null;
   inlineCorrections: ResultsInlineCorrection[];
   paragraphFeedback: ResultsParagraphFeedback[];
+  essayParagraphs: WritingEssayParagraph[];
   modelAnswer: string | null;
   feedbackLanguage: string;
 }
@@ -199,12 +238,15 @@ export interface WritingResult {
 
 export interface SpeakingPartResult {
   questionId: string;
+  prompt: string | null;
   partNumber: number | null;
   status: WritingResponseStatus;
   transcript: string;
   band: number | null;
   criteria: CriterionScore[];
   summary: string | null;
+  modelAnswer: string | null;
+  pronunciationHeatmap: SpeakingPronunciationHeatmap | null;
 }
 
 export interface SpeakingResult {
@@ -212,6 +254,35 @@ export interface SpeakingResult {
   isComplete: boolean;
   anyPending: boolean;
   parts: SpeakingPartResult[];
+}
+
+export type PronunciationHeatmapLevel = "strong" | "watch" | "focus";
+
+export interface SpeakingPronunciationHeatmapPhoneme {
+  phoneme: string;
+  accuracy: number;
+  level: PronunciationHeatmapLevel;
+}
+
+export interface SpeakingPronunciationHeatmapWord {
+  word: string;
+  accuracy: number;
+  errorType: string;
+  level: PronunciationHeatmapLevel;
+  phonemes: SpeakingPronunciationHeatmapPhoneme[];
+}
+
+export interface SpeakingPronunciationHeatmap {
+  provider: string;
+  locale: string;
+  overall: {
+    accuracy: number;
+    fluency: number;
+    completeness: number;
+    prosody: number | null;
+    pronunciation: number;
+  } | null;
+  words: SpeakingPronunciationHeatmapWord[];
 }
 
 export interface AttemptResultsViewModel {

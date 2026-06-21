@@ -5,6 +5,7 @@ import { getUserEntitlement } from "@/lib/entitlements";
 import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { areStudentCoursesEnabled } from "@/lib/features";
 import { getActiveSubject } from "@/lib/subject/server";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 export default async function CourseDetailPage({
   params,
@@ -35,6 +36,13 @@ export default async function CourseDetailPage({
 
   if (previewMode && !isAdmin) {
     redirect("/dashboard");
+  }
+  if (
+    subject === "ielts" &&
+    !(previewMode && isAdmin) &&
+    !(await isEnrolledStudent(user.id))
+  ) {
+    redirect("/ielts");
   }
 
   let courseQuery = supabase

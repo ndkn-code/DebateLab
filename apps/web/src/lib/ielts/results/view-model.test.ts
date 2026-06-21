@@ -51,8 +51,10 @@ const input: AttemptResultsInput = {
   writingTasks: [
     {
       questionId: "w2",
+      prompt: null,
       taskNumber: 2,
       status: "scored",
+      essay: "This essay develops a clear position with relevant examples.",
       wordCount: 270,
       taskResponseBand: 7,
       coherenceCohesionBand: 7,

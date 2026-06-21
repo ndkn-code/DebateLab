@@ -7,6 +7,7 @@
 import { z } from "zod";
 import type { Tables } from "@/types/supabase";
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
+import { parseQuestionView } from "@/lib/ielts/question-types";
 
 export const StartMockAttemptSchema = z.object({
   testId: z.string().uuid(),
@@ -53,24 +54,30 @@ export type QuestionRow = Pick<
   | "max_points"
   | "word_limit"
   | "visual"
+  | "metadata"
   | "passage_id"
   | "listening_section_id"
 >;
 
 /** Map an `ielts_questions` row to the non-secret learner-facing view. */
 export function toQuestionView(row: QuestionRow): IeltsQuestionView {
-  return {
+  const view = parseQuestionView({
     id: row.id,
+    question_type: row.question_type,
     skill: row.skill,
-    questionType: row.question_type,
+    prompt: row.prompt,
+    group_instructions: row.group_instructions,
+    word_limit: row.word_limit,
+    max_points: row.max_points,
+    options: row.options,
+    visual: row.visual,
+    metadata: row.metadata,
+  });
+
+  return {
+    ...view,
     orderIndex: row.order_index,
     groupKey: row.group_key,
-    groupInstructions: row.group_instructions,
-    prompt: row.prompt,
-    options: row.options,
-    maxPoints: row.max_points,
-    wordLimit: row.word_limit,
-    visual: row.visual,
     passageId: row.passage_id,
     listeningSectionId: row.listening_section_id,
   };

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   azurePronunciationResponseSchema,
   mapAzureAssessmentToReport,
@@ -180,5 +181,25 @@ assert.equal(noStatus.status, "scored");
 
 // --- exported schema parses a sample ----------------------------------------
 assert.equal(azurePronunciationResponseSchema.safeParse(azureResponse()).success, true);
+
+// --- recorded Azure detailed response fixture -------------------------------
+const fixture = JSON.parse(
+  readFileSync(
+    new URL("__fixtures__/azure-pronunciation-response.json", import.meta.url),
+    "utf8",
+  ),
+) as unknown;
+assert.equal(azurePronunciationResponseSchema.safeParse(fixture).success, true);
+const fixtureReport = mapAzureAssessmentToReport(fixture, {
+  ...OPTIONS,
+  referenceText: "A good answer uses clear examples.",
+});
+assert.equal(fixtureReport.status, "scored");
+assert.equal(fixtureReport.recognizedText, "A good answer uses clear examples.");
+assert.equal(fixtureReport.overall?.pronunciation, 86);
+assert.equal(fixtureReport.overall?.accuracy, 83);
+assert.equal(fixtureReport.words[1]?.word, "good");
+assert.equal(fixtureReport.words[1]?.phonemes[0]?.phoneme, "ɡ");
+assert.equal(fixtureReport.words[2]?.errorType, "Mispronunciation");
 
 console.log("scoring/ielts-pronunciation/azure-assessment tests passed");

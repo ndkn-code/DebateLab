@@ -179,7 +179,7 @@ export interface IeltsStudyPlanReviewView {
 
 export interface IeltsStudyPlanReassessmentMockView {
   id: string;
-  kind: Extract<IeltsPlanAtomKind, "mini_mock" | "full_mock">;
+  kind: Extract<IeltsPlanAtomKind, "skill_drill" | "mini_mock" | "full_mock">;
   skill: IeltsSkill;
   scheduledDate: string;
   titleEn: string;

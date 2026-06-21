@@ -12,7 +12,9 @@ import {
   summarizePrediction,
   type IeltsGeneratedStudyPlan,
   type IeltsGeneratedStudyPlanItem,
+  type IeltsReviewSeed,
 } from "@/lib/ielts/study-plan";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 import {
   IELTS_ONBOARDING_HORIZON_DAYS,
   defaultIeltsOnboardingGoal,
@@ -32,6 +34,9 @@ import {
   type AvailableIeltsLearnAtom,
   type IeltsDiagnosticTestSummary,
 } from "./study-plan-content";
+import { materializeSkillDrillsForItems } from "./skill-drill-repository";
+import { toPlanItemInsert } from "./study-plan-item-inserts";
+import { listDueIeltsReviewItems, type IeltsReviewItem } from "./review-repository";
 
 export {
   findQuickDiagnosticTest,
@@ -61,6 +66,17 @@ export interface PersistedIeltsStudyPlanResult {
 
 export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+export function reviewSeedFromRow(row: IeltsReviewItem): IeltsReviewSeed {
+  return {
+    reviewItemId: row.id,
+    skill: row.skill,
+    focusArea: row.focus_area,
+    dueAt: row.due_at,
+    estimatedMinutes: 5,
+    priorityScore: 1,
+  };
 }
 
 function skillTarget(
@@ -186,71 +202,6 @@ export function predictionJson(
   } satisfies Json;
 }
 
-function itemReferencePatch(params: {
-  item: IeltsGeneratedStudyPlanItem;
-  learnActivityByKey: Map<string, string>;
-  diagnosticTest: IeltsDiagnosticTestSummary | null;
-}): Partial<TablesInsert<"ielts_study_plan_items">> | null {
-  const { item } = params;
-  if (item.reference.type === "learn_atom") {
-    const activityId = params.learnActivityByKey.get(
-      ieltsLearnAtomKey(item.reference.atom),
-    );
-    return activityId ? { activity_id: activityId } : null;
-  }
-  if (item.reference.type === "mock") {
-    const testId = item.reference.testId ?? params.diagnosticTest?.id ?? null;
-    return testId ? { ielts_test_id: testId } : null;
-  }
-  if (item.reference.type === "question") {
-    return item.reference.questionId ? { ielts_question_id: item.reference.questionId } : null;
-  }
-  if (item.reference.type === "review_item") {
-    return { review_item_id: item.reference.reviewItemId };
-  }
-  return { assignment_id: item.reference.assignmentId };
-}
-
-export function toPlanItemInsert(params: {
-  planId: string;
-  userId: string;
-  item: IeltsGeneratedStudyPlanItem;
-  sourcePredictionId: string | null;
-  learnActivityByKey: Map<string, string>;
-  diagnosticTest: IeltsDiagnosticTestSummary | null;
-}): TablesInsert<"ielts_study_plan_items"> | null {
-  const pointer = itemReferencePatch({
-    item: params.item,
-    learnActivityByKey: params.learnActivityByKey,
-    diagnosticTest: params.diagnosticTest,
-  });
-  if (!pointer) return null;
-
-  return {
-    plan_id: params.planId,
-    user_id: params.userId,
-    kind: params.item.kind,
-    status: params.item.status,
-    scheduled_date: params.item.scheduledDate,
-    available_at: params.item.status === "available" ? new Date().toISOString() : null,
-    skill: params.item.skill,
-    focus_area: params.item.focusArea,
-    estimated_minutes: params.item.estimatedMinutes,
-    priority_score: params.item.priorityScore,
-    source_prediction_snapshot_id: params.sourcePredictionId,
-    source_weakness_keys: params.item.sourceWeaknessKeys,
-    rationale_en: params.item.rationaleEn,
-    rationale_vi: params.item.rationaleVi,
-    metadata: {
-      ...params.item.metadata,
-      tempId: params.item.tempId,
-      titleEn: params.item.titleEn,
-      titleVi: params.item.titleVi,
-    } as Json,
-    ...pointer,
-  };
-}
-
 async function replacePlanItems(params: {
   client: IeltsDbClient;
   planId: string;
@@ -263,6 +214,11 @@ async function replacePlanItems(params: {
   const learnActivityByKey = new Map(
     params.learnAtoms.map((entry) => [ieltsLearnAtomKey(entry.atom), entry.activityId]),
   );
+  const skillDrillTestByKey = await materializeSkillDrillsForItems({
+    client: params.client,
+    userId: params.userId,
+    items: params.items,
+  });
   const mapped = params.items.map((item) => ({
     item,
     insert: toPlanItemInsert({
@@ -271,6 +227,7 @@ async function replacePlanItems(params: {
       item,
       learnActivityByKey,
       diagnosticTest: params.diagnosticTest,
+      skillDrillTestByKey,
       sourcePredictionId: params.sourcePredictionId,
     }),
   }));
@@ -316,6 +273,7 @@ export async function generateAndPersistIeltsStudyPlanForUser(params: {
   userId: string;
   goal?: IeltsGoalModel;
   client?: IeltsDbClient;
+  isEnrolled?: boolean;
 }): Promise<PersistedIeltsStudyPlanResult> {
   const admin = params.client ?? createTypedAdminClient();
   const active = await loadActiveIeltsStudyPlan(params.userId, admin);
@@ -338,15 +296,20 @@ export async function generateAndPersistIeltsStudyPlanForUser(params: {
       client: params.client,
     }),
   );
-  const [learnAtoms, diagnosticTest] = await Promise.all([
-    listAvailableIeltsLearnAtoms(admin),
+  const isEnrolled =
+    params.isEnrolled ?? (await isEnrolledStudent(params.userId, admin));
+  const [learnAtoms, diagnosticTest, dueReviews] = await Promise.all([
+    isEnrolled ? listAvailableIeltsLearnAtoms(admin) : Promise.resolve([]),
     findQuickDiagnosticTest(admin),
+    listDueIeltsReviewItems({ userId: params.userId, dueAt: new Date(), limit: 50 }, admin),
   ]);
   const generatedPlan = generateIeltsStudyPlan({
     goal,
     prediction,
+    isEnrolled,
     weaknesses: prediction.weaknesses,
     learnAtoms: learnAtoms.map((entry) => entry.atom),
+    dueReviews: dueReviews.map(reviewSeedFromRow),
     startDate: todayIso(),
     horizonDays: IELTS_ONBOARDING_HORIZON_DAYS,
   });

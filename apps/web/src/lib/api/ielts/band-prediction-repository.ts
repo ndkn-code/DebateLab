@@ -29,13 +29,19 @@ const DEFAULT_MODULE: IeltsModule = "academic";
 const EVIDENCE_LIMIT = 600;
 const STATE_LIMIT = 120;
 
-const EVIDENCE_COLUMNS =
+/**
+ * Selection list + row mapping for `ielts_adaptive_evidence`. Exported so the
+ * prediction-quality backtest (Wave 6.3 Workstream B) replays the served
+ * `weighted-recency-v1` model on EVIDENCE MAPPED IDENTICALLY to this read path —
+ * same source/coverage/reliability weighting — instead of a divergent copy.
+ */
+export const EVIDENCE_COLUMNS =
   "id, skill, module, subskill_key, question_type, criterion, evidence_type, evidence_value, band_estimate, raw_score, confidence, source_table, source_id, reason_en, reason_vi, created_at";
 const STATE_COLUMNS =
   "id, skill, module, subskill_key, question_type, criterion, mastery_score, band_estimate, confidence, weakness_weight, evidence_count, last_evidence_at";
 const SUBSKILL_COLUMNS = "key, label_en, label_vi, question_type";
 
-type EvidenceRow = Pick<
+export type EvidenceRow = Pick<
   Tables<"ielts_adaptive_evidence">,
   | "id"
   | "skill"
@@ -69,7 +75,7 @@ type SkillStateRow = Pick<
   | "evidence_count"
   | "last_evidence_at"
 >;
-type SubskillRow = Pick<
+export type SubskillRow = Pick<
   Tables<"ielts_subskills">,
   "key" | "label_en" | "label_vi" | "question_type"
 >;
@@ -134,7 +140,7 @@ function sourceFor(row: EvidenceRow): IeltsBandEvidenceSource {
     : SOURCE_BY_TYPE[row.evidence_type];
 }
 
-function mapEvidence(
+export function mapEvidence(
   row: EvidenceRow,
   labels: ReadonlyMap<string, SubskillRow>,
 ): IeltsPredictionObservation {

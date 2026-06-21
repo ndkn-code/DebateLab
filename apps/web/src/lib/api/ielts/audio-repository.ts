@@ -146,11 +146,106 @@ export async function markAudioFailed(
   if (error) throw new Error(`markAudioFailed failed: ${error.message}`);
 }
 
+/**
+ * Mark an asset queued: it stays `pending` (no synthesis ran) because a required
+ * TTS provider has no credentials (e.g. AUS needs a Google key — env gap). The
+ * reason is recorded in metadata so the authoring UI can explain the wait, and
+ * a later backfill — once creds land — picks it up. Reuses `pending` because the
+ * `ielts_audio_status` enum has no distinct "queued" value.
+ */
+export async function markAudioQueued(
+  assetId: string,
+  missingProviders: string[],
+  client?: IeltsDbClient,
+): Promise<void> {
+  const supabase = await resolveIeltsClient(client);
+  const { error } = await supabase
+    .from("audio_assets")
+    .update({
+      status: "pending",
+      metadata: { queued: true, missingProviders },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", assetId);
+  if (error) throw new Error(`markAudioQueued failed: ${error.message}`);
+}
+
+export interface SectionAudioTarget {
+  id: string;
+  testId: string;
+}
+
+/**
+ * Listening sections that still need audio: those with no linked asset, or whose
+ * asset is not yet `ready` (pending/queued/generating/failed). With
+ * `includeReady`, returns every section (a forced full regeneration). Scoped to
+ * one test, or all tests when `testId` is null. Drives the WS-1.3 backfill.
+ */
+export async function listSectionsNeedingAudio(
+  testId: string | null,
+  client?: IeltsDbClient,
+  options: { includeReady?: boolean } = {},
+): Promise<SectionAudioTarget[]> {
+  const supabase = await resolveIeltsClient(client);
+  let query = supabase
+    .from("listening_sections")
+    .select("id, test_id, audio_asset_id");
+  if (testId) query = query.eq("test_id", testId);
+  const { data: sections, error } = await query.order("section_number");
+  if (error) throw new Error(`listSectionsNeedingAudio failed: ${error.message}`);
+
+  const rows = sections ?? [];
+  if (options.includeReady) {
+    return rows.map((s) => ({ id: s.id, testId: s.test_id }));
+  }
+
+  const assetIds = rows
+    .map((s) => s.audio_asset_id)
+    .filter((id): id is string => Boolean(id));
+  const readyAssetIds = new Set<string>();
+  if (assetIds.length > 0) {
+    const { data: assets, error: assetsError } = await supabase
+      .from("audio_assets")
+      .select("id, status")
+      .in("id", assetIds)
+      .eq("status", "ready");
+    if (assetsError) {
+      throw new Error(`listSectionsNeedingAudio (assets) failed: ${assetsError.message}`);
+    }
+    for (const asset of assets ?? []) readyAssetIds.add(asset.id);
+  }
+
+  return rows
+    .filter((s) => !s.audio_asset_id || !readyAssetIds.has(s.audio_asset_id))
+    .map((s) => ({ id: s.id, testId: s.test_id }));
+}
+
 export interface ListeningAudioSummary {
   status: IeltsAudioStatus;
   url: string | null;
   version: number;
   updatedAt: string;
+  /** `pending` because a TTS provider lacks credentials, not yet attempted. */
+  queued: boolean;
+  /** Providers blocking synthesis (e.g. `["google"]` for AUS without a key). */
+  missingProviders: string[];
+}
+
+/** Read the queued provenance recorded by {@link markAudioQueued}. */
+function readQueuedMetadata(metadata: Json | null): {
+  queued: boolean;
+  missingProviders: string[];
+} {
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    const record = metadata as Record<string, unknown>;
+    if (record.queued === true) {
+      const providers = Array.isArray(record.missingProviders)
+        ? record.missingProviders.filter((p): p is string => typeof p === "string")
+        : [];
+      return { queued: true, missingProviders: providers };
+    }
+  }
+  return { queued: false, missingProviders: [] };
 }
 
 /** Per-section audio status + playable URL, for the authoring UI. */
@@ -175,7 +270,7 @@ export async function getListeningAudioSummaries(
 
   const { data: assets, error: assetsError } = await supabase
     .from("audio_assets")
-    .select("id, status, version, storage_path, updated_at")
+    .select("id, status, version, storage_path, updated_at, metadata")
     .in("id", [...byAsset.keys()]);
   if (assetsError) throw new Error(`getListeningAudioSummaries (assets) failed: ${assetsError.message}`);
 
@@ -184,6 +279,7 @@ export async function getListeningAudioSummaries(
   for (const asset of assets ?? []) {
     const sectionId = byAsset.get(asset.id);
     if (!sectionId) continue;
+    const { queued, missingProviders } = readQueuedMetadata(asset.metadata);
     summaries[sectionId] = {
       status: asset.status,
       url:
@@ -192,6 +288,8 @@ export async function getListeningAudioSummaries(
           : null,
       version: asset.version,
       updatedAt: asset.updated_at,
+      queued,
+      missingProviders,
     };
   }
   return summaries;

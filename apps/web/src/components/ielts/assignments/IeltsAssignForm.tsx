@@ -54,6 +54,7 @@ export function IeltsAssignForm({
 
   return (
     <form
+      id="ielts-assign-form"
       onSubmit={onSubmit}
       className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-token-card"
     >

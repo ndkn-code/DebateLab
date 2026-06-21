@@ -378,6 +378,66 @@ export const IELTS_TEXT_ACTIVITY_DEFINITIONS = {
     validate: validateIeltsTextActivityContent,
     score: scoreIeltsTextActivityPreview,
   }),
+  ielts_tfng_reasoning: defineActivityDefinition({
+    type: "ielts_tfng_reasoning",
+    defaultPhase: "practice",
+    defaultDuration: 4,
+    defaultContent: () => ({
+      ...defaultIeltsTextActivityContent("ielts_tfng_reasoning"),
+      instruction: {
+        en: "Choose True, False, or Not Given, then justify it from the passage.",
+        vi: "Chọn Đúng, Sai hoặc Không có thông tin, rồi nêu lý do từ bài đọc.",
+      },
+      rendererTags: ["tfng", "reasoning", "reading"],
+    }),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+  ielts_scan_detail: defineActivityDefinition({
+    type: "ielts_scan_detail",
+    defaultPhase: "practice",
+    defaultDuration: 5,
+    defaultContent: () => ({
+      ...defaultIeltsTextActivityContent("ielts_scan_detail"),
+      instruction: {
+        en: "Scan the source quickly and answer the detail question.",
+        vi: "Đọc quét nguồn thật nhanh và trả lời câu hỏi chi tiết.",
+      },
+      rendererTags: ["scan", "detail", "reading"],
+    }),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+  ielts_sentence_transform: defineActivityDefinition({
+    type: "ielts_sentence_transform",
+    defaultPhase: "practice",
+    defaultDuration: 4,
+    defaultContent: () => ({
+      ...defaultIeltsTextActivityContent("ielts_sentence_transform"),
+      instruction: {
+        en: "Transform the sentence without changing the meaning.",
+        vi: "Chuyển đổi câu mà không làm đổi nghĩa.",
+      },
+      rendererTags: ["sentence_transform", "writing"],
+    }),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
+  ielts_cohesion_linker: defineActivityDefinition({
+    type: "ielts_cohesion_linker",
+    defaultPhase: "practice",
+    defaultDuration: 5,
+    defaultContent: () => ({
+      ...defaultIeltsTextActivityContent("ielts_cohesion_linker"),
+      instruction: {
+        en: "Choose or type the linker that makes the writing cohesive.",
+        vi: "Chọn hoặc nhập từ nối giúp bài viết liên kết mạch lạc.",
+      },
+      rendererTags: ["cohesion", "linker", "writing"],
+    }),
+    validate: validateIeltsTextActivityContent,
+    score: scoreIeltsTextActivityPreview,
+  }),
 };
 
 const ACTIVITY_REGISTRY = createActivityRegistry();
@@ -391,6 +451,10 @@ ACTIVITY_REGISTRY.register(CORE_ACTIVITY_DEFINITIONS.lesson);
 ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_vocab_collocation);
 ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_paraphrase_transform);
 ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_gap_fill);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_tfng_reasoning);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_scan_detail);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_sentence_transform);
+ACTIVITY_REGISTRY.register(IELTS_TEXT_ACTIVITY_DEFINITIONS.ielts_cohesion_linker);
 
 export function registerActivityDefinition<TType extends string, TContent>(
   definition: ActivityDefinition<TType, TContent>,

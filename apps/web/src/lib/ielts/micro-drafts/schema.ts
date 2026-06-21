@@ -11,6 +11,10 @@ export const IELTS_MICRO_DRAFT_ACTIVITY_TYPES = [
   "ielts_vocab_collocation",
   "ielts_paraphrase_transform",
   "ielts_gap_fill",
+  "ielts_tfng_reasoning",
+  "ielts_scan_detail",
+  "ielts_sentence_transform",
+  "ielts_cohesion_linker",
 ] as const satisfies readonly IeltsLearnActivityType[];
 
 export type IeltsMicroDraftActivityType =
@@ -78,10 +82,42 @@ export const GapFillContentSchema = BasePublicContentSchema.extend({
   wordLimit: z.number().int().min(1).max(5).nullable().default(null),
 }).strict();
 
+export const TfngReasoningContentSchema = BasePublicContentSchema.extend({
+  type: z.literal("ielts_tfng_reasoning"),
+  statement: LocalizedTextSchema,
+  options: z.array(ChoiceSchema).min(3).max(3),
+  rationalePrompt: LocalizedTextSchema,
+}).strict();
+
+export const ScanDetailContentSchema = BasePublicContentSchema.extend({
+  type: z.literal("ielts_scan_detail"),
+  sourceText: z.string().min(1).max(1800),
+  detailQuestion: LocalizedTextSchema,
+  wordLimit: z.number().int().min(1).max(5).nullable().default(null),
+}).strict();
+
+export const SentenceTransformContentSchema = BasePublicContentSchema.extend({
+  type: z.literal("ielts_sentence_transform"),
+  sourceSentence: z.string().min(1).max(1200),
+  targetMeaning: LocalizedTextSchema,
+  textWithBlank: z.string().min(1).max(1600),
+  wordLimit: z.number().int().min(1).max(8).nullable().default(null),
+}).strict();
+
+export const CohesionLinkerContentSchema = BasePublicContentSchema.extend({
+  type: z.literal("ielts_cohesion_linker"),
+  textWithBlank: z.string().min(1).max(1600),
+  options: z.array(ChoiceSchema).min(2).max(5),
+}).strict();
+
 export const IeltsMicroDraftPublicContentSchema = z.discriminatedUnion("type", [
   VocabCollocationContentSchema,
   ParaphraseTransformContentSchema,
   GapFillContentSchema,
+  TfngReasoningContentSchema,
+  ScanDetailContentSchema,
+  SentenceTransformContentSchema,
+  CohesionLinkerContentSchema,
 ]);
 export type IeltsMicroDraftPublicContent = z.infer<
   typeof IeltsMicroDraftPublicContentSchema
@@ -116,10 +152,32 @@ export const GapFillAnswerKeySchema = z
   })
   .strict();
 
+export const TfngReasoningAnswerKeySchema =
+  ObjectiveChoiceAnswerKeySchema.extend({
+    type: z.literal("ielts_tfng_reasoning"),
+  }).strict();
+
+export const ScanDetailAnswerKeySchema = GapFillAnswerKeySchema.extend({
+  type: z.literal("ielts_scan_detail"),
+}).strict();
+
+export const SentenceTransformAnswerKeySchema = GapFillAnswerKeySchema.extend({
+  type: z.literal("ielts_sentence_transform"),
+}).strict();
+
+export const CohesionLinkerAnswerKeySchema =
+  ObjectiveChoiceAnswerKeySchema.extend({
+    type: z.literal("ielts_cohesion_linker"),
+  }).strict();
+
 export const IeltsMicroDraftAnswerKeySchema = z.discriminatedUnion("type", [
   VocabCollocationAnswerKeySchema,
   ParaphraseTransformAnswerKeySchema,
   GapFillAnswerKeySchema,
+  TfngReasoningAnswerKeySchema,
+  ScanDetailAnswerKeySchema,
+  SentenceTransformAnswerKeySchema,
+  CohesionLinkerAnswerKeySchema,
 ]);
 export type IeltsMicroDraftAnswerKey = z.infer<
   typeof IeltsMicroDraftAnswerKeySchema

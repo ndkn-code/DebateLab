@@ -56,6 +56,7 @@ function reasonOf(out: AssessPronunciationOutcome): string {
 /** A dep harness recording logged provider calls; override seams per case. */
 function harness(over: Partial<AssessPronunciationDeps> = {}) {
   const recorded: AiProviderRequestInput[] = [];
+  const logs: Array<{ level: "info" | "warn"; message: string; metadata: unknown }> = [];
   let fetchCalls = 0;
   const deps: Partial<AssessPronunciationDeps> = {
     getConfig: () => CONFIG,
@@ -68,12 +69,17 @@ function harness(over: Partial<AssessPronunciationDeps> = {}) {
       fetchCalls += 1;
       return jsonResponse(AZURE_OK);
     },
+    logger: {
+      info: (message, metadata) => logs.push({ level: "info", message, metadata }),
+      warn: (message, metadata) => logs.push({ level: "warn", message, metadata }),
+    },
     ...over,
   };
-  return { deps, recorded, fetchCalls: () => fetchCalls };
+  return { deps, recorded, logs, fetchCalls: () => fetchCalls };
 }
 
 async function testNotConfigured() {
+  const h = harness();
   let fetched = 0;
   const out = await assessPronunciation(BASE_INPUT, {
     getConfig: () => null,
@@ -83,11 +89,20 @@ async function testNotConfigured() {
     },
     recordRequest: async () => "x",
     now: () => 0,
+    logger: h.deps.logger,
   });
   assert.equal(out.status, "skipped");
   assert.equal(reasonOf(out), "not_configured");
   assert.deepEqual(out.report, EMPTY_PHONEME_REPORT);
   assert.equal(fetched, 0); // no network when unconfigured
+  assert.equal(h.logs[0]?.message, "IELTS pronunciation assessment skipped");
+  assert.deepEqual(h.logs[0]?.metadata, {
+    reason: "not_configured",
+    speakingResponseId: "sr-1",
+    practiceAttemptId: null,
+    audioBytes: 4,
+    hasReferenceText: true,
+  });
 }
 
 async function testMissingAudio() {
@@ -183,6 +198,7 @@ async function testNetworkThrow() {
   if (!rec) throw new Error("expected a logged error");
   assert.equal(rec.errorCode, "azure_request_failed");
   assert.match(String(rec.errorMessage), /ECONNRESET/);
+  assert.equal(h.logs[0]?.level, "warn");
 }
 
 async function testLoggingFailureSwallowed() {
@@ -196,6 +212,7 @@ async function testLoggingFailureSwallowed() {
     recordRequest: async () => {
       throw new Error("db down");
     },
+    logger: { info: () => {}, warn: () => {} },
   });
   assert.equal(reasonOf(out), "azure_request_failed");
 }
@@ -203,14 +220,29 @@ async function testLoggingFailureSwallowed() {
 async function testDefaultDepsNoEnv() {
   const prevKey = process.env.AZURE_SPEECH_KEY;
   const prevRegion = process.env.AZURE_SPEECH_REGION;
+  const prevEndpoint = process.env.AZURE_SPEECH_ENDPOINT;
+  const prevAliasKey = process.env.SPEECH_KEY;
+  const prevAliasRegion = process.env.SPEECH_REGION;
+  const prevAliasEndpoint = process.env.SPEECH_ENDPOINT;
   delete process.env.AZURE_SPEECH_KEY;
   delete process.env.AZURE_SPEECH_REGION;
+  delete process.env.AZURE_SPEECH_ENDPOINT;
+  delete process.env.SPEECH_KEY;
+  delete process.env.SPEECH_REGION;
+  delete process.env.SPEECH_ENDPOINT;
   try {
-    const out = await assessPronunciation(BASE_INPUT);
+    const h = harness();
+    const out = await assessPronunciation(BASE_INPUT, {
+      logger: h.deps.logger,
+    });
     assert.equal(reasonOf(out), "not_configured");
   } finally {
     if (prevKey !== undefined) process.env.AZURE_SPEECH_KEY = prevKey;
     if (prevRegion !== undefined) process.env.AZURE_SPEECH_REGION = prevRegion;
+    if (prevEndpoint !== undefined) process.env.AZURE_SPEECH_ENDPOINT = prevEndpoint;
+    if (prevAliasKey !== undefined) process.env.SPEECH_KEY = prevAliasKey;
+    if (prevAliasRegion !== undefined) process.env.SPEECH_REGION = prevAliasRegion;
+    if (prevAliasEndpoint !== undefined) process.env.SPEECH_ENDPOINT = prevAliasEndpoint;
   }
 }
 

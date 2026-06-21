@@ -21,6 +21,7 @@ import {
   RateIeltsReviewItemSchema,
 } from "@/lib/ielts/review/schema";
 import { resolveIeltsClient, type IeltsDbClient } from "./client";
+import { recordIeltsReviewResultEvidence } from "./review-evidence";
 
 export type IeltsReviewItem = Tables<"ielts_review_items">;
 export type IeltsReviewEvent = Tables<"ielts_review_events">;
@@ -209,5 +210,16 @@ export async function rateIeltsReviewItem(
   });
   if (error) throw new Error(`rateIeltsReviewItem failed: ${error.message}`);
   if (!data) throw new Error("rateIeltsReviewItem failed: no row returned");
+
+  await recordIeltsReviewResultEvidence({
+    client: supabase,
+    item,
+    rating: input.rating,
+    qualityGrade: result.qualityGrade,
+    reviewedAt: result.reviewedAt,
+    responseMs: input.responseMs,
+    isCorrect: input.isCorrect ?? null,
+  });
+
   return data;
 }

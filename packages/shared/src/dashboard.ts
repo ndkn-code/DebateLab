@@ -10,7 +10,8 @@ export type DashboardNavKey =
   | "history"
   | "analytics"
   // IELTS learner shell (WS-5.1) — only surfaced when the active subject is
-  // `ielts`; debate nav never includes these.
+  // `ielts`; `ielts_learn` is additionally emitted only for enrolled students.
+  // Debate nav never includes these.
   | "ielts_home"
   | "ielts_learn"
   | "ielts_library"
@@ -121,6 +122,7 @@ export interface DashboardNavItem {
   key: DashboardNavKey;
   href?: string;
   status: "live" | "coming-soon";
+  requiresEnrollment?: boolean;
 }
 
 export interface DashboardSkillMetric {

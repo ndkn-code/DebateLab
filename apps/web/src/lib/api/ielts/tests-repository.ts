@@ -17,6 +17,18 @@ import { assertTransition, isPublishTransition, type IeltsContentStatus } from "
 
 export type IeltsTest = Tables<"ielts_tests">;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function isGeneratedIeltsSkillDrill(test: Pick<IeltsTest, "metadata">): boolean {
+  return (
+    isRecord(test.metadata) &&
+    (test.metadata.generated_kind === "b2c_skill_drill" ||
+      test.metadata.generated_by === "ielts_skill_drill_v1")
+  );
+}
+
 /** One canonical create path for `ielts_tests` (admin-authored; RLS-enforced). */
 export async function createIeltsTest(
   raw: unknown,
@@ -52,7 +64,10 @@ export async function updateIeltsTest(
 }
 
 /** Published tests, RLS-respecting (learner-facing read). */
-export async function getPublishedIeltsTests(client?: IeltsDbClient): Promise<IeltsTest[]> {
+export async function getPublishedIeltsTests(
+  client?: IeltsDbClient,
+  options: { includeGenerated?: boolean } = {},
+): Promise<IeltsTest[]> {
   const supabase = await resolveIeltsClient(client);
   const { data, error } = await supabase
     .from("ielts_tests")
@@ -60,7 +75,10 @@ export async function getPublishedIeltsTests(client?: IeltsDbClient): Promise<Ie
     .eq("status", "published")
     .order("created_at", { ascending: false });
   if (error) throw new Error(`getPublishedIeltsTests failed: ${error.message}`);
-  return data ?? [];
+  const tests = data ?? [];
+  return options.includeGenerated
+    ? tests
+    : tests.filter((test) => !isGeneratedIeltsSkillDrill(test));
 }
 
 /** Look up a single test by slug (null when absent / not visible under RLS). */

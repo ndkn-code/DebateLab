@@ -13,6 +13,10 @@
  * black-box). Lessons stay browsable; the recommended node is a hint, not a lock.
  */
 import type { Tables } from "@/types/supabase";
+import {
+  ieltsTextActivityEstimatedMinutes,
+  isIeltsFirstTextActivityType,
+} from "@/lib/ielts/learn/text-activities";
 
 // ── Row shapes (the repository selects exactly these columns) ────────────────
 export type LearnCourseRow = Pick<Tables<"courses">, "id" | "title" | "slug" | "sort_order">;
@@ -140,7 +144,9 @@ export function lessonEstimatedMinutes(activity: {
   if (activity.duration_minutes && activity.duration_minutes > 0) {
     return activity.duration_minutes;
   }
-  return activity.activity_type === "ielts_gap_fill" ? 6 : 4;
+  return isIeltsFirstTextActivityType(activity.activity_type)
+    ? ieltsTextActivityEstimatedMinutes(activity.activity_type)
+    : 4;
 }
 
 /**

@@ -11,8 +11,6 @@
  * table + the attempt_band_scores CHECK.
  */
 import {
-  isObjectiveType,
-  scoreObjectiveAnswer,
   type IeltsQuestionType,
   type ObjectiveKey,
 } from "./objective-scoring";
@@ -23,6 +21,17 @@ import {
   type IeltsSkill,
   type ObjectiveBandResult,
 } from "./band-conversion";
+import {
+  DEFAULT_BLANK_ID,
+  IeltsAnswerSchema,
+  isObjectiveQuestionType,
+  parseRawAnswerKey,
+  type IeltsAnswer,
+  type IeltsQuestionFamily,
+} from "@/lib/ielts/question-types";
+import { buildAnswerKey } from "./build-key";
+import { gradeQuestion } from "./grade-question";
+import { extractValue, extractValues } from "./answer-normalize";
 
 export interface GradableQuestion {
   id: string;
@@ -30,6 +39,9 @@ export interface GradableQuestion {
   questionType: IeltsQuestionType;
   maxPoints: number;
   wordLimit: number | null;
+  family: IeltsQuestionFamily;
+  hasOptionBank: boolean;
+  selectCount: number | null;
 }
 
 export interface GradedResponse {
@@ -51,6 +63,47 @@ function clampRaw(value: number): number {
   return Math.max(0, Math.min(MAX_RAW, value));
 }
 
+function toIeltsAnswer(
+  type: IeltsQuestionType,
+  response: unknown,
+): IeltsAnswer {
+  const parsed = IeltsAnswerSchema.safeParse(response);
+  if (parsed.success) return parsed.data;
+
+  if (type === "mcq_multi") {
+    const values = extractValues(response);
+    return values.length > 0 ? { values: { [DEFAULT_BLANK_ID]: values } } : { values: {} };
+  }
+
+  const single = extractValue(response);
+  return single === null ? { values: {} } : { values: { [DEFAULT_BLANK_ID]: single } };
+}
+
+function scoreQuestion(
+  question: GradableQuestion,
+  key: ObjectiveKey,
+  response: unknown,
+): { isCorrect: boolean; awardedPoints: number } {
+  const rawKey = parseRawAnswerKey(key.correct_answer, key.accept_variants);
+  const answerKey = buildAnswerKey(
+    rawKey,
+    {
+      family: question.family,
+      hasOptionBank: question.hasOptionBank,
+      selectCount: question.selectCount,
+    },
+  );
+  const verdict = gradeQuestion(
+    { wordLimit: question.wordLimit },
+    answerKey,
+    toIeltsAnswer(question.questionType, response),
+  );
+  return {
+    isCorrect: verdict.isCorrect,
+    awardedPoints: verdict.awardedPoints,
+  };
+}
+
 export interface GradeObjectiveAttemptParams {
   questions: readonly GradableQuestion[];
   keys: ReadonlyMap<string, ObjectiveKey>;
@@ -69,18 +122,10 @@ export function gradeObjectiveAttempt(
   const skillSeen = new Set<IeltsSkill>();
 
   for (const question of questions) {
-    if (!isObjectiveType(question.questionType)) continue;
+    if (!isObjectiveQuestionType(question.questionType)) continue;
     skillSeen.add(question.skill);
     const key = keys.get(question.id) ?? { correct_answer: null, accept_variants: [] };
-    const result = scoreObjectiveAnswer(
-      {
-        question_type: question.questionType,
-        max_points: question.maxPoints,
-        word_limit: question.wordLimit,
-      },
-      key,
-      responses.get(question.id),
-    );
+    const result = scoreQuestion(question, key, responses.get(question.id));
     // Only persist a graded row for questions the learner actually answered.
     if (responses.has(question.id)) {
       graded.push({

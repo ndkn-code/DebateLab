@@ -6,12 +6,9 @@ import { ArrowRight, Check, Clock3, Play, Sparkles } from "@/components/ui/icons
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { LearnLesson } from "@/lib/ielts/learner/learn-path";
+import { IELTS_FIRST_TEXT_ACTIVITY_TYPES } from "@/lib/ielts/learn/text-activities";
 
-const KNOWN_ACTIVITY_TYPES = new Set([
-  "ielts_vocab_collocation",
-  "ielts_paraphrase_transform",
-  "ielts_gap_fill",
-]);
+const KNOWN_ACTIVITY_TYPES = new Set<string>(IELTS_FIRST_TEXT_ACTIVITY_TYPES);
 
 /** A single lesson node inside a unit. */
 export function LessonRow({ lesson, index }: { lesson: LearnLesson; index: number }) {

@@ -6,6 +6,7 @@
 import type {
   ObjectiveReviewItem,
   ObjectiveReviewSection,
+  ResultsTextSegment,
 } from "@/lib/ielts/results/types";
 
 function Explanation({ item }: { item: ObjectiveReviewItem }) {
@@ -17,6 +18,43 @@ function Explanation({ item }: { item: ObjectiveReviewItem }) {
       ) : null}
       {item.explanationVi ? (
         <p className="mt-1 type-body-sm text-on-surface-variant">{item.explanationVi}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function SourceSegment({ segment }: { segment: ResultsTextSegment }) {
+  return segment.highlighted ? (
+    <mark className="rounded bg-warning-container px-1 py-0.5 text-on-warning-container">
+      {segment.text}
+    </mark>
+  ) : (
+    <>{segment.text}</>
+  );
+}
+
+function SourceContext({ item }: { item: ObjectiveReviewItem }) {
+  const context = item.sourceContext;
+  if (!context) return null;
+  return (
+    <div className="mt-3 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="type-caption font-semibold uppercase text-on-surface-variant">
+          {context.label}
+        </p>
+        {context.title ? (
+          <p className="type-caption text-on-surface-variant">{context.title}</p>
+        ) : null}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface">
+        {context.segments.map((segment, index) => (
+          <SourceSegment key={`${segment.text}-${index}`} segment={segment} />
+        ))}
+      </p>
+      {!context.answerLocation ? (
+        <p className="mt-1 type-caption text-on-surface-variant">
+          Answer location is not tagged for this item yet.
+        </p>
       ) : null}
     </div>
   );
@@ -46,14 +84,13 @@ function ReviewRow({ item }: { item: ObjectiveReviewItem }) {
             {item.learnerAnswer}
           </dd>
         </div>
-        {!item.isCorrect ? (
-          <div className="flex flex-wrap gap-2 type-body-sm">
-            <dt className="text-on-surface-variant">Correct answer:</dt>
-            <dd className="font-medium text-on-surface">{item.correctAnswer}</dd>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2 type-body-sm">
+          <dt className="text-on-surface-variant">Correct answer:</dt>
+          <dd className="font-medium text-on-surface">{item.correctAnswer}</dd>
+        </div>
       </dl>
       <Explanation item={item} />
+      <SourceContext item={item} />
     </li>
   );
 }

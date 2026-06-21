@@ -37,6 +37,10 @@ Rules:
 - Draft 1 to 3 micro-items total.
 - Allowed activityType values: ${allowedTypes}.
 - Prefer ielts_gap_fill only when the original question/key supports a completion-style answer.
+- Prefer ielts_tfng_reasoning for True/False/Not Given or Yes/No/Not Given claim-verification sources.
+- Prefer ielts_scan_detail for locating names, numbers, dates, or exact details in Reading.
+- Prefer ielts_sentence_transform for Writing paraphrase or sentence-rewrite practice.
+- Prefer ielts_cohesion_linker for Writing coherence/cohesion and linking-word practice.
 - Every item must include bilingual English and Vietnamese learner-facing copy.
 - Put learner-visible prompts/options in content only.
 - Put every correct option, accepted answer, and explanation needed for scoring in answerKey only.
@@ -48,7 +52,7 @@ JSON shape:
 {
   "drafts": [
     {
-      "activityType": "ielts_vocab_collocation" | "ielts_paraphrase_transform" | "ielts_gap_fill",
+      "activityType": "ielts_vocab_collocation" | "ielts_paraphrase_transform" | "ielts_gap_fill" | "ielts_tfng_reasoning" | "ielts_scan_detail" | "ielts_sentence_transform" | "ielts_cohesion_linker",
       "subskillKey": "one key from the candidate list or null",
       "content": {
         "type": "<same as activityType>",
@@ -74,10 +78,16 @@ Activity-specific content:
 - ielts_vocab_collocation content also needs stem {en,vi}, options [{id,text}], focusLexeme.
 - ielts_paraphrase_transform content also needs sourceText, targetMeaning {en,vi}, options [{id,text}].
 - ielts_gap_fill content also needs textWithBlank using exactly one [[blank]], blankLabel, wordLimit.
+- ielts_tfng_reasoning content also needs statement {en,vi}, exactly 3 options [{id,text}] using ids true/false/not_given or yes/no/not_given, and rationalePrompt {en,vi}.
+- ielts_scan_detail content also needs sourceText, detailQuestion {en,vi}, wordLimit.
+- ielts_sentence_transform content also needs sourceSentence, targetMeaning {en,vi}, textWithBlank using exactly one [[blank]], wordLimit.
+- ielts_cohesion_linker content also needs textWithBlank using exactly one [[blank]] and options [{id,text}].
 
 Activity-specific answerKey:
 - ielts_vocab_collocation and ielts_paraphrase_transform: correctOptionId, explanationEn, explanationVi.
 - ielts_gap_fill: correctAnswers, acceptVariants, caseSensitive, explanationEn, explanationVi.
+- ielts_tfng_reasoning and ielts_cohesion_linker: correctOptionId, explanationEn, explanationVi.
+- ielts_scan_detail and ielts_sentence_transform: correctAnswers, acceptVariants, caseSensitive, explanationEn, explanationVi.
 
 Candidate subskills:
 ${formatSubskills(source)}

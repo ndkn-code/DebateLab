@@ -138,6 +138,54 @@ assert.equal(text[0].items[0].correctAnswer, "photosynthesis");
 assert.equal(text[0].items[0].prompt, "Name the process: ______");
 assert.equal(text[0].items[0].explanationVi, "Nó hấp thụ năng lượng ánh sáng.");
 
+// ---- Source context: Reading span found from explanation fallback ----------
+const source = buildObjectiveReview(
+  input([
+    oq(
+      {
+        correctAnswer: "Sri Lanka",
+        explanationEn: "The final sentence names India and Sri Lanka.",
+        source: {
+          kind: "reading",
+          title: "The Origins of Tea",
+          text: "Demand reshaped global trade, encouraging the spread of tea cultivation to India and Sri Lanka under colonial rule.",
+        },
+      },
+      { id: "q1", questionType: "short_answer", family: "completion", prompt: "Where else?" },
+    ),
+  ]),
+);
+assert.equal(source[0].items[0].sourceContext?.label, "Relevant passage span");
+assert.equal(source[0].items[0].sourceContext?.title, "The Origins of Tea");
+assert.equal(
+  source[0].items[0].sourceContext?.segments.find((segment) => segment.highlighted)?.text,
+  "Sri Lanka",
+);
+
+// ---- Source context: Listening span found from authored quote hint ----------
+const listeningSource = buildObjectiveReview(
+  input([
+    oq(
+      {
+        correctAnswer: "library card",
+        explanationEn: "The student asks to register for a library card.",
+        source: {
+          kind: "listening",
+          title: "Section 1",
+          text: "Student: Hi, I would like to register for a library card.",
+        },
+        sourceHints: [{ answerLocation: { quote: "register for a library card" } }],
+      },
+      { id: "q1", skill: "listening", questionType: "short_answer", family: "completion" },
+    ),
+  ]),
+);
+assert.equal(
+  listeningSource[0].items[0].sourceContext?.segments.find((segment) => segment.highlighted)?.text,
+  "register for a library card",
+);
+assert.equal(listeningSource[0].items[0].sourceContext?.label, "Transcript answer location");
+
 // ---- MCQ multi: list joined with ", " --------------------------------------
 const multi = buildObjectiveReview(
   input([

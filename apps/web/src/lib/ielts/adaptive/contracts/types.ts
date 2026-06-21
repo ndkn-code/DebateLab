@@ -131,6 +131,10 @@ export const IELTS_LEARN_ACTIVITY_TYPES = [
   "ielts_vocab_collocation",
   "ielts_paraphrase_transform",
   "ielts_gap_fill",
+  "ielts_tfng_reasoning",
+  "ielts_scan_detail",
+  "ielts_sentence_transform",
+  "ielts_cohesion_linker",
   "ielts_listening_micro_clip",
   "ielts_pronunciation_minimal_pair",
   "ielts_reading_skim_scan",
@@ -143,6 +147,7 @@ export type IeltsLearnActivityType = (typeof IELTS_LEARN_ACTIVITY_TYPES)[number]
 export const IELTS_PLAN_ATOM_KINDS = [
   "learn_activity",
   "review",
+  "skill_drill",
   "mini_mock",
   "full_mock",
   "writing_submission",

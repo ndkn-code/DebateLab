@@ -16,6 +16,7 @@ function baseInput(): GenerateIeltsStudyPlanInput {
   return {
     goal: fixtureIeltsGoal,
     prediction: fixtureIeltsPredictionSnapshot,
+    isEnrolled: true,
     learnAtoms: fixtureIeltsLearnAtoms,
     startDate: START_DATE,
   };
@@ -48,12 +49,51 @@ function baseInput(): GenerateIeltsStudyPlanInput {
   const maintenanceItems = plan.items.filter((item) => item.metadata.maintenance === true);
 
   assert.equal(plan.mode, "standard");
+  assert(
+    plan.skillPriorities.some((priority) => priority.recommendedAtom),
+    "enrolled plans should keep course atom recommendations",
+  );
+  assert(
+    plan.items.some((item) => item.kind === "learn_activity"),
+    "enrolled plans should keep Learn activity items",
+  );
   assert([...todaySkills].every((skill) => focus.has(skill)));
   assert(maintenanceItems.length > 0);
   assert(
     maintenanceItems.length < plan.items.length / 2,
     "de-focused skills should stay light maintenance, not dominate the plan",
   );
+}
+
+{
+  const plan = generateIeltsStudyPlan({
+    ...baseInput(),
+    isEnrolled: false,
+    goal: {
+      ...fixtureIeltsGoal,
+      focusSkills: undefined,
+      targetSkillBands: {},
+    },
+  });
+  const objectiveItems = plan.items.filter(
+    (item) => item.skill === "listening" || item.skill === "reading",
+  );
+
+  assert.equal(
+    plan.skillPriorities.some((priority) => priority.recommendedAtom),
+    false,
+    "non-enrolled plans should not source course atom recommendations",
+  );
+  assert.equal(
+    plan.items.some((item) => item.kind === "learn_activity"),
+    false,
+    "non-enrolled plans must never emit Learn activities",
+  );
+  assert(objectiveItems.length > 0);
+  assert(objectiveItems.every((item) => item.kind === "skill_drill"));
+  assert(objectiveItems.every((item) => item.reference.type === "skill_drill"));
+  assert(plan.items.some((item) => item.skill === "writing" && item.kind === "writing_submission"));
+  assert(plan.items.some((item) => item.skill === "speaking" && item.kind === "speaking_submission"));
 }
 
 {

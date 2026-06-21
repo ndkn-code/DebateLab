@@ -38,6 +38,7 @@ import {
   type ReplanTriggerEvent,
   type StudyPlanReconcileResult,
 } from "@/lib/ielts/study-plan";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesInsert, TablesUpdate } from "@/types/supabase";
 import type { IeltsDbClient } from "./client";
@@ -52,16 +53,22 @@ import {
   loadPredictionForGeneratedPlan,
   planSummaryJson,
   predictionJson,
+  reviewSeedFromRow,
   todayIso,
-  toPlanItemInsert,
   type StudyPlanRow,
 } from "./study-plan-repository";
+import { toPlanItemInsert } from "./study-plan-item-inserts";
+import {
+  materializeSkillDrillsForItems,
+  type MaterializedSkillDrillTest,
+} from "./skill-drill-repository";
 import {
   currentRevisionView,
   previousRevisionView,
   toExistingReconcileItem,
   toPredictionView,
 } from "./study-plan-replan-mapping";
+import { listDueIeltsReviewItems } from "./review-repository";
 
 export interface ReplanOutcome {
   changed: boolean;
@@ -101,6 +108,7 @@ function buildReplanCandidates(params: {
   generatedPlan: IeltsGeneratedStudyPlan;
   learnActivityByKey: Map<string, string>;
   diagnosticTest: IeltsDiagnosticTestSummary | null;
+  skillDrillTestByKey: Map<string, MaterializedSkillDrillTest>;
   sourcePredictionId: string | null;
   today: string;
 }): ReplanCandidates {
@@ -114,6 +122,7 @@ function buildReplanCandidates(params: {
       item,
       learnActivityByKey: params.learnActivityByKey,
       diagnosticTest: params.diagnosticTest,
+      skillDrillTestByKey: params.skillDrillTestByKey,
       sourcePredictionId: params.sourcePredictionId,
     });
     if (!insert) continue; // unresolvable reference → skipped (mirrors generate)
@@ -279,19 +288,28 @@ export async function replanIeltsStudyPlanForUser(params: {
   const prediction = IeltsBandPredictionSchema.parse(
     await loadPredictionForGeneratedPlan({ userId: params.userId, goal, client: admin }),
   );
-  const [learnAtoms, diagnosticTest] = await Promise.all([
-    listAvailableIeltsLearnAtoms(admin),
+  const isEnrolled = await isEnrolledStudent(params.userId, admin);
+  const [learnAtoms, diagnosticTest, dueReviews] = await Promise.all([
+    isEnrolled ? listAvailableIeltsLearnAtoms(admin) : Promise.resolve([]),
     findQuickDiagnosticTest(admin),
+    listDueIeltsReviewItems({ userId: params.userId, dueAt: new Date(), limit: 50 }, admin),
   ]);
   const generatedPlan = generateIeltsStudyPlan({
     goal,
     prediction,
+    isEnrolled,
     weaknesses: prediction.weaknesses,
     learnAtoms: learnAtoms.map((entry) => entry.atom),
+    dueReviews: dueReviews.map(reviewSeedFromRow),
     startDate: today,
     horizonDays,
   });
   const predictionSummary = summarizePrediction(prediction);
+  const skillDrillTestByKey = await materializeSkillDrillsForItems({
+    client: admin,
+    userId: params.userId,
+    items: generatedPlan.items,
+  });
 
   const { candidates, insertByKey } = buildReplanCandidates({
     planId: planRow.id,
@@ -301,6 +319,7 @@ export async function replanIeltsStudyPlanForUser(params: {
       learnAtoms.map((entry) => [ieltsLearnAtomKey(entry.atom), entry.activityId]),
     ),
     diagnosticTest,
+    skillDrillTestByKey,
     sourcePredictionId: predictionSummary.sourceId,
     today,
   });

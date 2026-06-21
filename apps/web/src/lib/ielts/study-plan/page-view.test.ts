@@ -91,7 +91,7 @@ const ITEMS: StudyPlanItemRow[] = [
     estimated_minutes: 12,
   }),
   itemRow({ id: "c", scheduled_date: "2026-08-19", skill: "listening", kind: "review", priority_score: 5, estimated_minutes: 5 }),
-  itemRow({ id: "d", scheduled_date: "2026-08-24", skill: "reading", kind: "mini_mock", priority_score: 8, estimated_minutes: 30 }),
+  itemRow({ id: "d", scheduled_date: "2026-08-24", skill: "reading", kind: "skill_drill", priority_score: 8, estimated_minutes: 18 }),
   // Outside the 14-day window — should surface as a reassessment mock, not a calendar item.
   itemRow({ id: "e", scheduled_date: "2026-09-01", skill: "reading", kind: "full_mock", priority_score: 8, estimated_minutes: 60 }),
   // Before today, unresolved -> overdue. Completed past item must NOT be overdue.
@@ -204,8 +204,8 @@ function baseInput(overrides: Partial<BuildIeltsStudyPlanPageViewInput> = {}): B
 
   assert.equal(week2.index, 2);
   assert.equal(week2.itemCount, 1); // d (08-24)
-  assert.equal(week2.plannedMinutes, 30);
-  assert.deepEqual(week2.byKind, [{ kind: "mini_mock", count: 1, minutes: 30 }]);
+  assert.equal(week2.plannedMinutes, 18);
+  assert.deepEqual(week2.byKind, [{ kind: "skill_drill", count: 1, minutes: 18 }]);
 }
 
 // --- Review queue: due vs upcoming, overdue flag -----------------------------
@@ -228,9 +228,9 @@ function baseInput(overrides: Partial<BuildIeltsStudyPlanPageViewInput> = {}): B
 {
   const { reassessment } = buildIeltsStudyPlanPageView(baseInput());
   assert.equal(reassessment.nextReassessmentAt, "2026-08-24T00:00:00.000Z");
-  // Both mocks (in-window mini_mock d + out-of-window full_mock e), date-sorted.
+  // Test-backed reassessments (in-window skill_drill d + out-of-window full_mock e), date-sorted.
   assert.deepEqual(reassessment.mocks.map((mock) => mock.id), ["d", "e"]);
-  assert.equal(reassessment.mocks[0].kind, "mini_mock");
+  assert.equal(reassessment.mocks[0].kind, "skill_drill");
   assert.equal(reassessment.mocks[1].kind, "full_mock");
   assert.equal(reassessment.mocks.every((mock) => !mock.isPast), true);
 }

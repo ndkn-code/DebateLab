@@ -23,6 +23,7 @@ interface ProtectedShellProps {
   userId: string;
   /** Active content subject; defaults to debate so dev/QA shells need not pass it. */
   activeSubject?: Subject;
+  isEnrolledIeltsStudent?: boolean;
   seasonReplayEnabled?: boolean;
   seasonReplayOutcome?: LeaderboardSeasonOutcome | null;
   seasonReplayReducedMotionOverride?: boolean;
@@ -149,6 +150,7 @@ export function ProtectedShell({
   userEmail,
   userId,
   activeSubject = DEFAULT_SUBJECT,
+  isEnrolledIeltsStudent = false,
   seasonReplayEnabled = false,
   seasonReplayOutcome = null,
   seasonReplayReducedMotionOverride,
@@ -246,6 +248,7 @@ export function ProtectedShell({
         profile={profile}
         userEmail={userEmail}
         activeSubject={activeSubject}
+        isEnrolledIeltsStudent={isEnrolledIeltsStudent}
       />
       <main
         ref={mainScrollRef}

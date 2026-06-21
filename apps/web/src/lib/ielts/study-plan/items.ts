@@ -1,8 +1,13 @@
 import {
   type IeltsLearnAtom,
+  type IeltsModule,
   type IeltsPlanAtomKind,
   type IeltsSkill,
 } from "@/lib/ielts/adaptive/contracts";
+import {
+  OBJECTIVE_QUESTION_TYPES,
+  type IeltsQuestionType,
+} from "@/lib/ielts/question-types";
 import type {
   IeltsGeneratedPlanReference,
   IeltsGeneratedStudyPlanItem,
@@ -26,9 +31,25 @@ function availableStatus(
   return scheduledDate === startDate ? "available" : "scheduled";
 }
 
-function itemKindForPriority(priority: IeltsSkillPriority): IeltsPlanAtomKind {
+const OBJECTIVE_QUESTION_TYPE_SET = new Set<string>(OBJECTIVE_QUESTION_TYPES);
+
+function practiceKindForSkill(
+  skill: IeltsSkill,
+  preferSkillDrill: boolean,
+): IeltsPlanAtomKind {
+  if (skill === "writing") return "writing_submission";
+  if (skill === "speaking") return "speaking_submission";
+  return preferSkillDrill ? "skill_drill" : "mini_mock";
+}
+
+function itemKindForPriority(
+  priority: IeltsSkillPriority,
+  isEnrolled: boolean,
+): IeltsPlanAtomKind {
+  if (!isEnrolled) return practiceKindForSkill(priority.skill, true);
+
   const atom = priority.recommendedAtom;
-  if (!atom) return "mini_mock";
+  if (!atom) return practiceKindForSkill(priority.skill, false);
   if (atom.scoringMode === "ai_writing" && atom.questionIds.length > 0) {
     return "writing_submission";
   }
@@ -41,9 +62,40 @@ function itemKindForPriority(priority: IeltsSkillPriority): IeltsPlanAtomKind {
 function referenceForPriority(
   kind: IeltsPlanAtomKind,
   atom: IeltsLearnAtom | null,
+  params: {
+    priority: IeltsSkillPriority;
+    module: IeltsModule;
+    targetMinutes: number;
+  },
 ): IeltsGeneratedPlanReference {
   if (kind === "writing_submission" || kind === "speaking_submission") {
     return { type: "question", questionId: atom?.questionIds[0] ?? null };
+  }
+  if (kind === "skill_drill") {
+    const filters = params.priority.weakness.recommendedActivityFilters;
+    const questionTypes = (filters.questionTypes ?? []).filter(
+      (value): value is IeltsQuestionType => OBJECTIVE_QUESTION_TYPE_SET.has(value),
+    );
+    const subskillTags = filters.subskillTags ?? [params.priority.weaknessKey];
+    return {
+      type: "skill_drill",
+      drillKey: [
+        params.module,
+        params.priority.skill,
+        params.priority.weaknessKey,
+        params.targetMinutes,
+        questionTypes.join(","),
+        subskillTags.join(","),
+      ].join("|"),
+      skill: params.priority.skill,
+      subskillKey: params.priority.weaknessKey,
+      module: params.module,
+      targetMinutes: params.targetMinutes,
+      questionTypes,
+      subskillTags,
+      difficultyBandHint: params.priority.targetBand,
+      sourceQuestionIds: [],
+    };
   }
   if (atom) return { type: "learn_atom", atom };
   return { type: "mock", testId: null };
@@ -73,13 +125,15 @@ function rationaleForPriority(priority: IeltsSkillPriority): {
 
 export function makePriorityItem(params: {
   priority: IeltsSkillPriority;
+  isEnrolled: boolean;
+  module: IeltsModule;
   scheduledDate: string;
   startDate: string;
   sequence: number;
   remainingMinutes: number;
   predictionSourceId: string | null;
 }): IeltsGeneratedStudyPlanItem {
-  const kind = itemKindForPriority(params.priority);
+  const kind = itemKindForPriority(params.priority, params.isEnrolled);
   const rationale = rationaleForPriority(params.priority);
   const minutes = estimateMinutes(params.priority, params.remainingMinutes);
 
@@ -97,7 +151,11 @@ export function makePriorityItem(params: {
     sourceWeaknessKeys: [params.priority.weaknessKey],
     rationaleEn: rationale.en,
     rationaleVi: rationale.vi,
-    reference: referenceForPriority(kind, params.priority.recommendedAtom),
+    reference: referenceForPriority(kind, params.priority.recommendedAtom, {
+      priority: params.priority,
+      module: params.module,
+      targetMinutes: minutes,
+    }),
     metadata: {
       predictionSourceId: params.predictionSourceId,
       maintenance: params.priority.isMaintenance,

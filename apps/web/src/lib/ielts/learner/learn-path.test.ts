@@ -14,6 +14,7 @@ import {
   type LearnSkillStateRow,
   type LearnSubskillRow,
 } from "./learn-path";
+import type { ActivityType } from "@/types/supabase";
 
 // ── masteryLevel: research thresholds, evidence-gated ────────────────────────
 assert.equal(masteryLevel(null, 0), "untouched");
@@ -106,7 +107,7 @@ function mkActivity(
   id: string,
   moduleId: string,
   order: number,
-  type: string,
+  type: ActivityType,
   keys: string[],
 ): LearnActivityRow {
   return {

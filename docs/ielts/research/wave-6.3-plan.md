@@ -120,8 +120,12 @@ self-validating* predictor, not a guess.
    key present; AUS needs a Google key — env gap). Real mocks at exam length (40Q L/R, full
    passages) come from the co-founder; our job is the audio + the authoring ergonomics.
 2. **Azure pronunciation [env gap].** No Azure creds in `apps/web/.env.local` → `assessPronunciation`
-   is currently a no-op, so Speaking phoneme scoring and pronunciation drills are inert. Add creds +
-   verify the WS-3.3 phoneme path end-to-end.
+   is currently a logged no-op, so Speaking phoneme scoring and pronunciation drills are inert.
+   Required env: `AZURE_SPEECH_KEY` plus `AZURE_SPEECH_REGION` (or
+   `AZURE_SPEECH_ENDPOINT`; aliases `SPEECH_KEY` / `SPEECH_REGION` /
+   `SPEECH_ENDPOINT` are accepted). Verify WS-5.2 WAV PCM 16 kHz mono capture →
+   `azurePronunciationContentType` → Azure short-audio REST pronunciation
+   assessment → typed `PhonemeReport` → Speaking Pronunciation prompt signal.
 3. **Results deep-dive.** Per-question review with rationale (explanations columns already exist),
    reading-passage + listening-transcript highlighting, writing annotations, speaking phoneme
    heatmap (after C2). Band-9 model answers for W/S.

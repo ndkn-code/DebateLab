@@ -6,6 +6,7 @@
  * renderer through the typed contract.
  */
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
+import { isObjectiveQuestionType } from "@/lib/ielts/question-types";
 import {
   getIeltsQuestionRenderer,
   type IeltsRendererContext,
@@ -31,22 +32,31 @@ export function QuestionHost({
   context?: IeltsRendererContext;
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
+  const objective = isObjectiveQuestionType(question.questionType);
+  const renderer = renderQuestion({ question, value, disabled, onChange, context });
+
   return (
     <div className="flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container p-5">
-      <div className="flex items-baseline gap-3">
+      <div className="flex items-start gap-3">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
           {number}
         </span>
-        <p className="text-sm font-medium text-on-surface">{question.prompt}</p>
-      </div>
-      {question.wordLimit !== null ? (
-        <p className="pl-10 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-          Write no more than {question.wordLimit}{" "}
-          {question.wordLimit === 1 ? "word" : "words"}
-        </p>
-      ) : null}
-      <div className="pl-10">
-        {renderQuestion({ question, value, disabled, onChange, context })}
+        <div className="min-w-0 flex-1">
+          {objective ? (
+            renderer
+          ) : (
+            <>
+              <p className="text-sm font-medium text-on-surface">{question.prompt}</p>
+              {question.wordLimit !== null ? (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+                  Write no more than {question.wordLimit}{" "}
+                  {question.wordLimit === 1 ? "word" : "words"}
+                </p>
+              ) : null}
+              <div className="mt-3">{renderer}</div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import type {
   IeltsSkill,
   IeltsWeaknessSignal,
 } from "@/lib/ielts/adaptive/contracts";
+import type { IeltsQuestionType } from "@/lib/ielts/question-types";
 
 export const IELTS_STUDY_PLAN_STATUSES = [
   "active",
@@ -66,6 +67,7 @@ export interface IeltsTeacherAssignmentSeed {
 export interface GenerateIeltsStudyPlanInput {
   goal: IeltsGoalModel;
   prediction: IeltsPlanningPrediction;
+  isEnrolled?: boolean;
   weaknesses?: IeltsWeaknessSignal[];
   learnAtoms?: IeltsLearnAtom[];
   dueReviews?: IeltsReviewSeed[];
@@ -101,6 +103,18 @@ export interface IeltsSkillPriority {
 export type IeltsGeneratedPlanReference =
   | { type: "learn_atom"; atom: IeltsLearnAtom }
   | { type: "review_item"; reviewItemId: string }
+  | {
+      type: "skill_drill";
+      drillKey: string;
+      skill: IeltsSkill;
+      subskillKey: string;
+      module: IeltsGoalModel["module"];
+      targetMinutes: number;
+      questionTypes: IeltsQuestionType[];
+      subskillTags: string[];
+      difficultyBandHint: number | null;
+      sourceQuestionIds: string[];
+    }
   | { type: "mock"; testId: string | null }
   | { type: "question"; questionId: string | null }
   | { type: "teacher_assignment"; assignmentId: string };

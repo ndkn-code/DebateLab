@@ -18,6 +18,8 @@
     "test:scoring": "npm run test:scoring -w @thinkfy/web",
     "test:ielts-data-model": "npm run test:ielts-data-model -w @thinkfy/web",
     "test:ielts-scoring": "npm run test:ielts-scoring -w @thinkfy/web",
+    "test:ielts-prediction": "npm run test:ielts-prediction -w @thinkfy/web",
+    "test:ielts-prediction-dashboard": "npm run test:ielts-prediction-dashboard -w @thinkfy/web",
     "test:ielts-questions": "npm run test:ielts-questions -w @thinkfy/web",
     "test:ielts-authoring": "npm run test:ielts-authoring -w @thinkfy/web",
     "test:ielts-adaptive": "npm run test:ielts-adaptive -w @thinkfy/web",

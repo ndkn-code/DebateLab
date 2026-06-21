@@ -6,6 +6,32 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type ActivityType =
+  | "lesson"
+  | "quiz"
+  | "matching"
+  | "fill_blank"
+  | "drag_order"
+  | "flashcard"
+  | "ielts_vocab_collocation"
+  | "ielts_paraphrase_transform"
+  | "ielts_gap_fill"
+  | "ielts_tfng_reasoning"
+  | "ielts_scan_detail"
+  | "ielts_sentence_transform"
+  | "ielts_cohesion_linker"
+
+export type IeltsMicroDraftActivityType = Extract<
+  ActivityType,
+  | "ielts_vocab_collocation"
+  | "ielts_paraphrase_transform"
+  | "ielts_gap_fill"
+  | "ielts_tfng_reasoning"
+  | "ielts_scan_detail"
+  | "ielts_sentence_transform"
+  | "ielts_cohesion_linker"
+>
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -61,7 +87,7 @@ export type Database = {
       }
       activities: {
         Row: {
-          activity_type: string
+          activity_type: ActivityType
           content: Json
           created_at: string | null
           description: string | null
@@ -76,7 +102,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          activity_type: string
+          activity_type: ActivityType
           content?: Json
           created_at?: string | null
           description?: string | null
@@ -91,7 +117,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          activity_type?: string
+          activity_type?: ActivityType
           content?: Json
           created_at?: string | null
           description?: string | null
@@ -4515,7 +4541,7 @@ export type Database = {
       }
       ielts_micro_item_drafts: {
         Row: {
-          activity_type: string
+          activity_type: IeltsMicroDraftActivityType
           answer_key: Json
           created_at: string
           created_by: string | null
@@ -4542,7 +4568,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          activity_type: string
+          activity_type: IeltsMicroDraftActivityType
           answer_key: Json
           created_at?: string
           created_by?: string | null
@@ -4569,7 +4595,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          activity_type?: string
+          activity_type?: IeltsMicroDraftActivityType
           answer_key?: Json
           created_at?: string
           created_by?: string | null
@@ -9829,6 +9855,7 @@ export type Database = {
       ielts_plan_item_kind:
         | "learn_activity"
         | "review"
+        | "skill_drill"
         | "mini_mock"
         | "full_mock"
         | "writing_submission"
@@ -10033,6 +10060,7 @@ export const Constants = {
       ielts_plan_item_kind: [
         "learn_activity",
         "review",
+        "skill_drill",
         "mini_mock",
         "full_mock",
         "writing_submission",

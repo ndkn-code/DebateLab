@@ -126,6 +126,8 @@ function buildEmptyDays(params: {
 function fillStudyDay(params: {
   day: IeltsGeneratedStudyPlanDay;
   priorities: IeltsSkillPriority[];
+  isEnrolled: boolean;
+  module: GenerateIeltsStudyPlanInput["goal"]["module"];
   startDate: string;
   predictionSourceId: string | null;
   maxItems: number;
@@ -147,6 +149,8 @@ function fillStudyDay(params: {
     if (!priority) break;
     const item = makePriorityItem({
       priority,
+      isEnrolled: params.isEnrolled,
+      module: params.module,
       scheduledDate: params.day.date,
       startDate: params.startDate,
       sequence,
@@ -186,11 +190,12 @@ export function generateIeltsStudyPlan(
 ): IeltsGeneratedStudyPlan {
   const input = GenerateIeltsStudyPlanInputSchema.parse(rawInput);
   const prediction = summarizePrediction(input.prediction);
+  const learnAtoms = input.isEnrolled ? input.learnAtoms : [];
   const priorities = buildSkillPriorities({
     goal: input.goal,
     prediction: input.prediction,
     weaknesses: weaknessesForPlanning(input.prediction, input.weaknesses),
-    learnAtoms: input.learnAtoms,
+    learnAtoms,
     startDate: input.startDate,
   });
   const mode = studyPlanMode(diffCalendarDays(input.startDate, input.goal.targetTestDate));
@@ -225,6 +230,8 @@ export function generateIeltsStudyPlan(
         ? fillStudyDay({
             day,
             priorities,
+            isEnrolled: input.isEnrolled,
+            module: input.goal.module,
             startDate: input.startDate,
             predictionSourceId: prediction.sourceId,
             maxItems,

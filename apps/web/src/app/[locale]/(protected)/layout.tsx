@@ -6,6 +6,7 @@ import { LocalizedAppProviders } from "../localized-app-providers";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { IELTS_ENABLED, LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 import { getLeaderboardPageData } from "@/lib/leaderboards/data";
 import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
 import type {
@@ -40,6 +41,14 @@ async function getShellSeasonReplayOutcome(
   }
 }
 
+async function getIeltsEnrollmentForShell(
+  userId: string,
+  activeSubject: string,
+): Promise<boolean> {
+  if (activeSubject !== "ielts") return false;
+  return isEnrolledStudent(userId);
+}
+
 export default async function ProtectedLayout({
   children,
   params,
@@ -63,6 +72,10 @@ export default async function ProtectedLayout({
     if (devAdminBypass || devAuthBypassUser) {
       // Dev bypass renders the admin profile, so the IELTS track is reachable.
       const activeSubject = await getActiveSubject({ ieltsAccessible: true });
+      const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
+        devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id,
+        activeSubject,
+      );
       return (
         <LocalizedAppProviders>
           <ProtectedShell
@@ -70,6 +83,7 @@ export default async function ProtectedLayout({
             userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
             userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
             activeSubject={activeSubject}
+            isEnrolledIeltsStudent={isEnrolledIeltsStudent}
             seasonReplayEnabled={false}
           >
             {children}
@@ -95,6 +109,10 @@ export default async function ProtectedLayout({
   if (!profile || !profile.onboarding_completed) {
     if (devAdminBypass) {
       const activeSubject = await getActiveSubject({ ieltsAccessible: true });
+      const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
+        user.id,
+        activeSubject,
+      );
       return (
         <LocalizedAppProviders>
           <ProtectedShell
@@ -102,6 +120,7 @@ export default async function ProtectedLayout({
             userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
             userId={user.id}
             activeSubject={activeSubject}
+            isEnrolledIeltsStudent={isEnrolledIeltsStudent}
             seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
             seasonReplayOutcome={seasonReplayOutcome}
           >
@@ -119,6 +138,10 @@ export default async function ProtectedLayout({
   const activeSubject = await getActiveSubject({
     ieltsAccessible: IELTS_ENABLED || profile?.role === "admin",
   });
+  const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
+    user.id,
+    activeSubject,
+  );
 
   return (
     <LocalizedAppProviders>
@@ -127,6 +150,7 @@ export default async function ProtectedLayout({
         userEmail={user.email ?? null}
         userId={user.id}
         activeSubject={activeSubject}
+        isEnrolledIeltsStudent={isEnrolledIeltsStudent}
         seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
         seasonReplayOutcome={seasonReplayOutcome}
       >

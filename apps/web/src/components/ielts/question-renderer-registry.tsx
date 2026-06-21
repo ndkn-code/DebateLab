@@ -3,18 +3,33 @@
 /**
  * IELTS question renderer registry (WS-2.1) — the integration seam for WS-1.2.
  * The mock player asks `getIeltsQuestionRenderer(type)` for a component and
- * renders it through the typed `IeltsRendererProps` contract. WS-1.2 registers
- * rich per-type renderers via `registerIeltsRenderer`; until then every type
- * falls back to a generic, fully-working capture component so a learner can sit
- * and be graded on a real R/L section today.
+ * renders it through the typed `IeltsRendererProps` contract. Objective types
+ * register their rich family renderers; Writing/Speaking register async capture
+ * surfaces. The fallback stays only as a defensive preview/degraded path.
  */
 import { useId } from "react";
-import type { ReactElement } from "react";
+import type { ComponentType, ReactElement } from "react";
 import { extractValue, extractValues } from "@/lib/scoring/ielts/answer-normalize";
 import type {
   IeltsQuestionType,
   IeltsQuestionView,
 } from "@/lib/ielts/question-contract";
+import {
+  DEFAULT_BLANK_ID,
+  getQuestionFamily,
+  IeltsAnswerSchema,
+  OBJECTIVE_QUESTION_TYPES,
+  type IeltsAnswer,
+  type IeltsQuestionFamily,
+} from "@/lib/ielts/question-types";
+import { CompletionRenderer } from "./questions/CompletionRenderer";
+import { LabelingRenderer } from "./questions/LabelingRenderer";
+import { MatchingRenderer } from "./questions/MatchingRenderer";
+import { MultiSelectRenderer } from "./questions/MultiSelectRenderer";
+import { SingleSelectRenderer } from "./questions/SingleSelectRenderer";
+import type {
+  IeltsRendererProps as ObjectiveRendererProps,
+} from "./questions/types";
 
 /**
  * Player context a registered task surface may need beyond the question itself —
@@ -37,6 +52,66 @@ export type IeltsQuestionRenderer = (props: IeltsRendererProps) => ReactElement 
 
 const REGISTRY = new Map<IeltsQuestionType, IeltsQuestionRenderer>();
 
+const OBJECTIVE_RENDERERS: Record<
+  IeltsQuestionFamily,
+  ComponentType<ObjectiveRendererProps>
+> = {
+  single_select: SingleSelectRenderer,
+  multi_select: MultiSelectRenderer,
+  matching: MatchingRenderer,
+  completion: CompletionRenderer,
+  labeling: LabelingRenderer,
+};
+
+function coerceObjectiveAnswer(
+  question: IeltsQuestionView,
+  value: unknown,
+): IeltsAnswer | null {
+  const parsed = IeltsAnswerSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+
+  if (question.questionType === "mcq_multi") {
+    const values = extractValues(value);
+    return values.length > 0 ? { values: { [DEFAULT_BLANK_ID]: values } } : null;
+  }
+
+  const single = extractValue(value);
+  return single === null ? null : { values: { [DEFAULT_BLANK_ID]: single } };
+}
+
+function adaptObjectiveRenderer(
+  Renderer: ComponentType<ObjectiveRendererProps>,
+): IeltsQuestionRenderer {
+  return function ObjectiveRendererAdapter({
+    question,
+    value,
+    disabled,
+    onChange,
+  }: IeltsRendererProps) {
+    return (
+      <Renderer
+        question={question}
+        value={coerceObjectiveAnswer(question, value)}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    );
+  };
+}
+
+let objectiveRenderersRegistered = false;
+
+export function ensureIeltsObjectiveRenderersRegistered(): void {
+  if (objectiveRenderersRegistered) return;
+  objectiveRenderersRegistered = true;
+  for (const type of OBJECTIVE_QUESTION_TYPES) {
+    registerIeltsRenderer(
+      type,
+      adaptObjectiveRenderer(OBJECTIVE_RENDERERS[getQuestionFamily(type)]),
+    );
+  }
+}
+
 /** WS-1.2 hook: register a rich renderer for a question type. */
 export function registerIeltsRenderer(
   type: IeltsQuestionType,
@@ -49,6 +124,14 @@ export function getIeltsQuestionRenderer(
   type: IeltsQuestionType,
 ): IeltsQuestionRenderer {
   return REGISTRY.get(type) ?? FallbackQuestion;
+}
+
+export function isIeltsQuestionRendererRegistered(type: IeltsQuestionType): boolean {
+  return REGISTRY.has(type);
+}
+
+export function getRegisteredIeltsQuestionRendererTypes(): IeltsQuestionType[] {
+  return [...REGISTRY.keys()];
 }
 
 interface Choice {

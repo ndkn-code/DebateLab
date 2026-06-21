@@ -9,6 +9,7 @@ import { areStudentCoursesEnabled } from "@/lib/features";
 import { getActiveSubject } from "@/lib/subject/server";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 export const metadata = {
   title: "Courses",
@@ -38,6 +39,10 @@ async function CoursesPayload() {
       : { data: DEV_ADMIN_PROFILE };
 
     redirect(profile?.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
+  }
+
+  if (subject === "ielts" && !(await isEnrolledStudent(activeUserId))) {
+    redirect("/ielts");
   }
 
   // Dev seed content is debate-only; never seed it into the IELTS surface.

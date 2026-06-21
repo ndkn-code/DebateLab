@@ -162,13 +162,31 @@ function makeFlashcardContent(): FlashcardContent {
     "drag_order",
     "fill_blank",
     "flashcard",
+    "ielts_cohesion_linker",
     "ielts_gap_fill",
     "ielts_paraphrase_transform",
+    "ielts_scan_detail",
+    "ielts_sentence_transform",
+    "ielts_tfng_reasoning",
     "ielts_vocab_collocation",
     "lesson",
     "matching",
     "quiz",
   ]);
+
+  for (const type of [
+    "ielts_tfng_reasoning",
+    "ielts_scan_detail",
+    "ielts_sentence_transform",
+    "ielts_cohesion_linker",
+  ] as const) {
+    const activityType = type as ActivityType;
+    assert.deepEqual(validateActivityContent(activityType, getDefaultContent(activityType)), {
+      valid: true,
+      errors: [],
+    });
+    assert.equal(getDefaultPhase(activityType), "practice");
+  }
 }
 
 {

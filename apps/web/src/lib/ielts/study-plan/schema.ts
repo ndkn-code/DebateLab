@@ -48,6 +48,7 @@ export const GenerateIeltsStudyPlanInputSchema = z
   .object({
     goal: IeltsGoalModelSchema,
     prediction: IeltsPlanningPredictionSchema,
+    isEnrolled: z.boolean().default(false),
     weaknesses: z.array(IeltsWeaknessSignalSchema).optional(),
     learnAtoms: z.array(IeltsLearnAtomSchema).default([]),
     dueReviews: z.array(IeltsReviewSeedSchema).default([]),

@@ -2,12 +2,14 @@
 
 /** Listening-section authoring (WS-1.1): script + accent + speakers (audio = WS-1.3). */
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Plus, Trash2 } from "@/components/ui/icons";
 import {
+  backfillListeningAudioAction,
   createListeningSectionAction,
   deleteListeningSectionAction,
   generateListeningAudioAction,
@@ -19,13 +21,16 @@ import type { ListeningSection } from "@/lib/api/ielts/listening-repository";
 import type { ListeningAudioSummary } from "@/lib/api/ielts/audio-repository";
 import { Field, TextArea } from "./ielts-ui";
 
-type AudioStatus = ListeningAudioSummary["status"] | "none";
+// "queued" is a UI-only status (the asset is `pending` in the DB) meaning
+// synthesis is waiting on an unconfigured provider — e.g. AUS needs a Google key.
+type AudioStatus = ListeningAudioSummary["status"] | "none" | "queued";
 
 const AUDIO_STATUS_LABEL: Record<AudioStatus, { text: string; className: string }> = {
   ready: { text: "Ready", className: "text-primary" },
   failed: { text: "Failed", className: "text-destructive" },
   generating: { text: "Generating…", className: "text-on-surface-variant" },
   pending: { text: "Pending", className: "text-on-surface-variant" },
+  queued: { text: "Queued", className: "text-on-surface-variant" },
   none: { text: "Not generated", className: "text-on-surface-variant" },
 };
 
@@ -40,9 +45,12 @@ function AudioControls({
   initial?: ListeningAudioSummary;
 }) {
   const [status, setStatus] = useState<AudioStatus>(
-    initial?.status ?? (section.audio_asset_id ? "pending" : "none"),
+    initial?.queued
+      ? "queued"
+      : (initial?.status ?? (section.audio_asset_id ? "pending" : "none")),
   );
   const [url, setUrl] = useState<string | null>(initial?.url ?? null);
+  const [missing, setMissing] = useState<string[]>(initial?.missingProviders ?? []);
   const [busy, setBusy] = useState(false);
 
   async function generate() {
@@ -50,9 +58,15 @@ function AudioControls({
     setStatus("generating");
     try {
       const result = await generateListeningAudioAction({ sectionId: section.id, testId });
-      setStatus(result.status);
       setUrl(result.url);
-      toast.success(result.skipped ? "Audio already up to date" : "Audio generated");
+      setMissing(result.missingProviders);
+      if (result.queued) {
+        setStatus("queued");
+        toast.message(`Audio queued — needs ${result.missingProviders.join(", ") || "a TTS key"}`);
+      } else {
+        setStatus(result.status);
+        toast.success(result.skipped ? "Audio already up to date" : "Audio generated");
+      }
     } catch (error) {
       setStatus("failed");
       toast.error(error instanceof Error ? error.message : "Generation failed");
@@ -67,6 +81,9 @@ function AudioControls({
       <div className="flex items-center justify-between gap-2">
         <p className="type-caption text-on-surface-variant">
           Audio: <span className={label.className}>{label.text}</span>
+          {status === "queued" && missing.length > 0 ? (
+            <span className="text-on-surface-variant"> — needs {missing.join(", ")} key</span>
+          ) : null}
         </p>
         <Button variant="outline" size="sm" onClick={generate} disabled={busy}>
           {busy ? "Generating…" : status === "ready" ? "Regenerate" : "Generate audio"}
@@ -180,8 +197,10 @@ export function ListeningPanel({
   sections: ListeningSection[];
   audioBySection?: Record<string, ListeningAudioSummary>;
 }) {
+  const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
 
   async function remove(section: ListeningSection) {
     if (!window.confirm(`Delete listening section ${section.section_number}?`)) return;
@@ -193,15 +212,44 @@ export function ListeningPanel({
     }
   }
 
+  /** Generate audio for every section that still needs it (WS-1.3 backfill). */
+  async function backfillAudio() {
+    setBackfilling(true);
+    try {
+      const summary = await backfillListeningAudioAction({ testId });
+      const parts = [`${summary.generated} generated`];
+      if (summary.skipped) parts.push(`${summary.skipped} up to date`);
+      if (summary.queued) {
+        parts.push(`${summary.queued} queued (needs ${summary.missingProviders.join(", ") || "a TTS key"})`);
+      }
+      if (summary.failed) parts.push(`${summary.failed} failed`);
+      const message = `Audio: ${parts.join(", ")}`;
+      if (summary.failed > 0) toast.error(message);
+      else toast.success(message);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Backfill failed");
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="type-body-sm text-on-surface-variant">{sections.length} section(s)</p>
-        {!adding ? (
-          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4" /> Add section
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {sections.length > 0 ? (
+            <Button variant="outline" size="sm" onClick={backfillAudio} disabled={backfilling}>
+              {backfilling ? "Generating…" : "Generate all missing audio"}
+            </Button>
+          ) : null}
+          {!adding ? (
+            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+              <Plus className="h-4 w-4" /> Add section
+            </Button>
+          ) : null}
+        </div>
       </div>
       {adding ? <SectionForm testId={testId} onClose={() => setAdding(false)} /> : null}
       <div className="flex flex-col gap-3">

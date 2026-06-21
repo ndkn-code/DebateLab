@@ -7,7 +7,7 @@
  * responses, conversions, questions) is then read under that same RLS session —
  * "reads RLS-own". The ONE exception is the secret answer key
  * (`ielts_question_keys`, no learner policy): it is read with the service-role
- * client, gated behind the proven ownership AND a non-in-progress attempt, and
+ * client, gated behind the proven ownership AND a submitted attempt, and
  * is resolved into display strings by the pure builder before reaching a client.
  *
  * The output is the de-DB'd {@link AttemptResultsInput} the pure
@@ -29,64 +29,20 @@ import type {
 } from "@/lib/ielts/results/types";
 
 const QUESTION_COLUMNS =
-  "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, order_index";
+  "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, order_index";
 const WRITING_COLUMNS =
-  "question_id, task_number, status, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language";
+  "question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language";
 const SPEAKING_COLUMNS =
-  "question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language";
+  "question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report";
 
-type ResponseRow = Pick<
-  Tables<"ielts_question_responses">,
-  "question_id" | "response" | "is_correct" | "awarded_points"
->;
-type KeyRow = Pick<
-  Tables<"ielts_question_keys">,
-  "question_id" | "correct_answer" | "accept_variants" | "explanation_en" | "explanation_vi"
->;
-type QuestionRow = Pick<
-  Tables<"ielts_questions">,
-  | "id"
-  | "question_type"
-  | "skill"
-  | "prompt"
-  | "group_instructions"
-  | "word_limit"
-  | "max_points"
-  | "options"
-  | "visual"
-  | "metadata"
->;
-type WritingRow = Pick<
-  Tables<"writing_responses">,
-  | "question_id"
-  | "task_number"
-  | "status"
-  | "word_count"
-  | "task_response_band"
-  | "coherence_cohesion_band"
-  | "lexical_resource_band"
-  | "grammar_band"
-  | "task_band"
-  | "criteria_feedback"
-  | "inline_corrections"
-  | "paragraph_feedback"
-  | "model_answer"
-  | "feedback_language"
->;
-type SpeakingRow = Pick<
-  Tables<"speaking_responses">,
-  | "question_id"
-  | "part_number"
-  | "status"
-  | "transcript"
-  | "fluency_coherence_band"
-  | "lexical_resource_band"
-  | "grammar_band"
-  | "pronunciation_band"
-  | "speaking_band"
-  | "feedback"
-  | "feedback_language"
->;
+type ResponseRow = Pick<Tables<"ielts_question_responses">, "question_id" | "response" | "is_correct" | "awarded_points">;
+type KeyRow = Pick<Tables<"ielts_question_keys">, "question_id" | "correct_answer" | "accept_variants" | "explanation_en" | "explanation_vi" | "model_answer" | "examiner_notes">;
+type QuestionRow = Pick<Tables<"ielts_questions">, "id" | "question_type" | "skill" | "prompt" | "group_instructions" | "word_limit" | "max_points" | "options" | "visual" | "metadata" | "passage_id" | "listening_section_id">;
+type WritingRow = Pick<Tables<"writing_responses">, "question_id" | "task_number" | "status" | "essay" | "word_count" | "task_response_band" | "coherence_cohesion_band" | "lexical_resource_band" | "grammar_band" | "task_band" | "criteria_feedback" | "inline_corrections" | "paragraph_feedback" | "model_answer" | "feedback_language">;
+type SpeakingRow = Pick<Tables<"speaking_responses">, "question_id" | "part_number" | "status" | "transcript" | "fluency_coherence_band" | "lexical_resource_band" | "grammar_band" | "pronunciation_band" | "speaking_band" | "feedback" | "feedback_language" | "phoneme_report">;
+type PassageRow = Pick<Tables<"passages">, "id" | "title" | "body">;
+type ListeningSectionRow = Pick<Tables<"listening_sections">, "id" | "title" | "script">;
+type ObjectiveSource = ResultsObjectiveQuestion["source"];
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
 function resolveConversionKey(metadata: Tables<"ielts_tests">["metadata"]): string {
@@ -115,32 +71,114 @@ function buildObjectiveQuestions(
   questions: QuestionRow[],
   responses: ResponseRow[],
   keys: KeyRow[],
+  passages: PassageRow[],
+  listeningSections: ListeningSectionRow[],
 ): ResultsObjectiveQuestion[] {
   const responseByQuestion = new Map(responses.map((row) => [row.question_id, row]));
   const keyByQuestion = new Map(keys.map((row) => [row.question_id, row]));
+  const passageById = new Map(passages.map((row) => [row.id, row]));
+  const listeningById = new Map(listeningSections.map((row) => [row.id, row]));
   return questions
     .filter((question) => isObjectiveQuestionType(question.question_type))
-    .map((question) => {
-      const response = responseByQuestion.get(question.id);
-      const key = keyByQuestion.get(question.id);
-      return {
-        view: parseQuestionView(question),
-        response: response?.response ?? null,
-        isCorrect: response?.is_correct ?? null,
-        awardedPoints: response?.awarded_points ?? null,
-        correctAnswer: key?.correct_answer ?? null,
-        acceptVariants: key?.accept_variants ?? [],
-        explanationEn: key?.explanation_en ?? null,
-        explanationVi: key?.explanation_vi ?? null,
-      } satisfies ResultsObjectiveQuestion;
-    });
+    .map((question) =>
+      toObjectiveQuestion({
+        question,
+        response: responseByQuestion.get(question.id),
+        key: keyByQuestion.get(question.id),
+        passage: question.passage_id ? (passageById.get(question.passage_id) ?? null) : null,
+        listening: question.listening_section_id
+          ? (listeningById.get(question.listening_section_id) ?? null)
+          : null,
+      }),
+    );
 }
 
-function mapWritingTask(row: WritingRow): ResultsWritingTask {
+function sourceForQuestion(
+  question: QuestionRow,
+  passage: PassageRow | null,
+  listening: ListeningSectionRow | null,
+): ObjectiveSource {
+  if (question.skill === "reading" && passage) {
+    return { kind: "reading", title: passage.title, text: passage.body };
+  }
+  if (question.skill === "listening" && listening) {
+    return { kind: "listening", title: listening.title, text: listening.script };
+  }
+  return null;
+}
+
+function sourceHintsForQuestion(
+  question: QuestionRow,
+  key: KeyRow | undefined,
+): ResultsObjectiveQuestion["sourceHints"] {
+  return [question.metadata, key?.examiner_notes].filter(
+    (value): value is NonNullable<typeof value> => value != null,
+  );
+}
+
+function objectiveResponseFields(
+  response: ResponseRow | undefined,
+): Pick<ResultsObjectiveQuestion, "response" | "isCorrect" | "awardedPoints"> {
+  if (!response) {
+    return { response: null, isCorrect: null, awardedPoints: null };
+  }
+  return {
+    response: response.response,
+    isCorrect: response.is_correct,
+    awardedPoints: response.awarded_points,
+  };
+}
+
+function objectiveKeyFields(
+  key: KeyRow | undefined,
+): Pick<
+  ResultsObjectiveQuestion,
+  "correctAnswer" | "acceptVariants" | "explanationEn" | "explanationVi"
+> {
+  if (!key) {
+    return {
+      correctAnswer: null,
+      acceptVariants: [],
+      explanationEn: null,
+      explanationVi: null,
+    };
+  }
+  return {
+    correctAnswer: key.correct_answer,
+    acceptVariants: key.accept_variants ?? [],
+    explanationEn: key.explanation_en,
+    explanationVi: key.explanation_vi,
+  };
+}
+
+function toObjectiveQuestion(params: {
+  question: QuestionRow;
+  response: ResponseRow | undefined;
+  key: KeyRow | undefined;
+  passage: PassageRow | null;
+  listening: ListeningSectionRow | null;
+}): ResultsObjectiveQuestion {
+  const { question, response, key, passage, listening } = params;
+  return {
+    view: parseQuestionView(question),
+    ...objectiveResponseFields(response),
+    ...objectiveKeyFields(key),
+    source: sourceForQuestion(question, passage, listening),
+    sourceHints: sourceHintsForQuestion(question, key),
+  };
+}
+
+function mapWritingTask(
+  row: WritingRow,
+  question: QuestionRow | undefined,
+  key: KeyRow | undefined,
+): ResultsWritingTask {
   return {
     questionId: row.question_id,
+    prompt: question?.prompt ?? null,
     taskNumber: row.task_number,
     status: row.status,
+    essay: row.essay,
     wordCount: row.word_count,
     taskResponseBand: row.task_response_band,
     coherenceCohesionBand: row.coherence_cohesion_band,
@@ -150,14 +188,19 @@ function mapWritingTask(row: WritingRow): ResultsWritingTask {
     criteriaFeedback: row.criteria_feedback,
     inlineCorrections: row.inline_corrections,
     paragraphFeedback: row.paragraph_feedback,
-    modelAnswer: row.model_answer,
+    modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
   };
 }
 
-function mapSpeakingPart(row: SpeakingRow): ResultsSpeakingPart {
+function mapSpeakingPart(
+  row: SpeakingRow,
+  question: QuestionRow | undefined,
+  key: KeyRow | undefined,
+): ResultsSpeakingPart {
   return {
     questionId: row.question_id,
+    prompt: question?.prompt ?? null,
     partNumber: row.part_number,
     status: row.status,
     transcript: row.transcript,
@@ -168,31 +211,27 @@ function mapSpeakingPart(row: SpeakingRow): ResultsSpeakingPart {
     speakingBand: row.speaking_band,
     feedback: row.feedback,
     feedbackLanguage: row.feedback_language,
+    modelAnswer: key?.model_answer ?? null,
+    phonemeReport: row.phoneme_report,
   };
 }
 
 /** Service-role read of the secret keys (gated on proven ownership + status). */
-async function loadObjectiveKeys(questionIds: string[]): Promise<KeyRow[]> {
+async function loadQuestionKeys(questionIds: string[]): Promise<KeyRow[]> {
   if (questionIds.length === 0) return [];
   const admin = createTypedAdminClient();
   const { data, error } = await admin
     .from("ielts_question_keys")
-    .select("question_id, correct_answer, accept_variants, explanation_en, explanation_vi")
+    .select(
+      "question_id, correct_answer, accept_variants, explanation_en, explanation_vi, model_answer, examiner_notes",
+    )
     .in("question_id", questionIds);
   if (error) throw new Error(`loadAttemptResults(keys): ${error.message}`);
   return data ?? [];
 }
 
 type SessionClient = Awaited<ReturnType<typeof createTypedServerClient>>;
-type BandScoreRow = Pick<
-  Tables<"attempt_band_scores">,
-  | "listening_raw"
-  | "reading_raw"
-  | "listening_band"
-  | "reading_band"
-  | "writing_band"
-  | "speaking_band"
->;
+type BandScoreRow = Pick<Tables<"attempt_band_scores">, "listening_raw" | "reading_raw" | "listening_band" | "reading_band" | "writing_band" | "speaking_band">;
 
 interface AttemptReads {
   bandScore: BandScoreRow | null;
@@ -200,6 +239,8 @@ interface AttemptReads {
   responses: ResponseRow[];
   questions: QuestionRow[];
   conversions: BandConversionRow[];
+  passages: PassageRow[];
+  listeningSections: ListeningSectionRow[];
   writing: WritingRow[];
   speaking: SpeakingRow[];
 }
@@ -211,8 +252,17 @@ async function runAttemptReads(
   attemptId: string,
   conversionKey: string,
 ): Promise<AttemptReads> {
-  const [bandScore, sections, responses, questions, conversions, writing, speaking] =
-    await Promise.all([
+  const [
+    bandScore,
+    sections,
+    responses,
+    questions,
+    conversions,
+    passages,
+    listeningSections,
+    writing,
+    speaking,
+  ] = await Promise.all([
       supabase
         .from("attempt_band_scores")
         .select(
@@ -239,11 +289,30 @@ async function runAttemptReads(
         .select("conversion_key, skill, module, band, raw_min, raw_max")
         .in("conversion_key", [...new Set(["default", conversionKey])])
         .in("skill", ["listening", "reading"]),
+      supabase
+        .from("passages")
+        .select("id, title, body")
+        .eq("test_id", testId)
+        .order("order_index"),
+      supabase
+        .from("listening_sections")
+        .select("id, title, script")
+        .eq("test_id", testId)
+        .order("section_number"),
       supabase.from("writing_responses").select(WRITING_COLUMNS).eq("attempt_id", attemptId),
       supabase.from("speaking_responses").select(SPEAKING_COLUMNS).eq("attempt_id", attemptId),
     ]);
 
-  for (const result of [sections, responses, questions, conversions, writing, speaking]) {
+  for (const result of [
+    sections,
+    responses,
+    questions,
+    conversions,
+    passages,
+    listeningSections,
+    writing,
+    speaking,
+  ]) {
     if (result.error) throw new Error(`loadAttemptResults: ${result.error.message}`);
   }
 
@@ -253,6 +322,8 @@ async function runAttemptReads(
     responses: responses.data ?? [],
     questions: questions.data ?? [],
     conversions: (conversions.data ?? []) as BandConversionRow[],
+    passages: passages.data ?? [],
+    listeningSections: listeningSections.data ?? [],
     writing: writing.data ?? [],
     speaking: speaking.data ?? [],
   };
@@ -301,14 +372,13 @@ export async function loadAttemptResults(
     resolveConversionKey(test?.metadata ?? null),
   );
 
-  const objectiveRows = reads.questions.filter((question) =>
-    isObjectiveQuestionType(question.question_type),
-  );
-  // Reveal keys only once the sitting is over (never mid-attempt).
+  const questionById = new Map(reads.questions.map((question) => [question.id, question]));
+  // Reveal keys only once the sitting has been submitted (never mid-attempt).
   const keys =
-    attempt.status === "in_progress"
+    attempt.status === "in_progress" || attempt.submitted_at === null
       ? []
-      : await loadObjectiveKeys(objectiveRows.map((question) => question.id));
+      : await loadQuestionKeys(reads.questions.map((question) => question.id));
+  const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
 
   return {
     attemptId: attempt.id,
@@ -319,9 +389,19 @@ export async function loadAttemptResults(
     submittedAt: attempt.submitted_at,
     skillsInTest: skillsInTest(reads.sections),
     ...bandFields(reads.bandScore),
-    objectiveQuestions: buildObjectiveQuestions(objectiveRows, reads.responses, keys),
+    objectiveQuestions: buildObjectiveQuestions(
+      reads.questions,
+      reads.responses,
+      keys,
+      reads.passages,
+      reads.listeningSections,
+    ),
     bandConversions: reads.conversions,
-    writingTasks: reads.writing.map(mapWritingTask),
-    speakingParts: reads.speaking.map(mapSpeakingPart),
+    writingTasks: reads.writing.map((row) =>
+      mapWritingTask(row, questionById.get(row.question_id), keyByQuestion.get(row.question_id)),
+    ),
+    speakingParts: reads.speaking.map((row) =>
+      mapSpeakingPart(row, questionById.get(row.question_id), keyByQuestion.get(row.question_id)),
+    ),
   };
 }

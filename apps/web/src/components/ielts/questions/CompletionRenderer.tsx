@@ -40,35 +40,37 @@ function CompletionTable({
   renderBlank: (blankId: string, label?: string) => React.ReactNode;
 }) {
   return (
-    <table className="w-full border-collapse overflow-hidden rounded-2xl">
-      {table.caption ? (
-        <caption className="mb-2 text-left">
-          <Text variant="caption" className="text-on-surface-variant">
-            {table.caption}
-          </Text>
-        </caption>
-      ) : null}
-      <tbody>
-        {table.rows.map((row, rowIndex) => (
-          <tr key={rowIndex}>
-            {row.map((cell, cellIndex) => (
-              <td
-                key={cellIndex}
-                className="border border-outline-variant p-2 align-top"
-              >
-                {cell.gap ? (
-                  renderBlank(cell.gap.id, cell.gap.label)
-                ) : (
-                  <Text variant="body-sm" className="text-on-surface">
-                    {cell.text}
-                  </Text>
-                )}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="overflow-x-auto pb-1">
+      <table className="min-w-full border-collapse overflow-hidden rounded-2xl">
+        {table.caption ? (
+          <caption className="mb-2 text-left">
+            <Text variant="caption" className="text-on-surface-variant">
+              {table.caption}
+            </Text>
+          </caption>
+        ) : null}
+        <tbody>
+          {table.rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td
+                  key={cellIndex}
+                  className="min-w-32 border border-outline-variant p-2 align-top"
+                >
+                  {cell.gap ? (
+                    renderBlank(cell.gap.id, cell.gap.label)
+                  ) : (
+                    <Text variant="body-sm" className="break-words text-on-surface">
+                      {cell.text}
+                    </Text>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -111,7 +113,11 @@ export function CompletionRenderer({
 
   if (question.visual?.kind === "table") {
     return (
-      <QuestionShell instructions={question.groupInstructions} wordLimit={question.wordLimit}>
+      <QuestionShell
+        instructions={question.groupInstructions}
+        prompt={question.prompt}
+        wordLimit={question.wordLimit}
+      >
         {bank ? <BankLegend options={bank} /> : null}
         <CompletionTable table={question.visual} renderBlank={renderBlank} />
       </QuestionShell>
