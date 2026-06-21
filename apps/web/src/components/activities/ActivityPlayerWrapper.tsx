@@ -9,16 +9,11 @@ import { useActivityPlayerStore } from "@/lib/stores/activityPlayerStore";
 import { completeActivity } from "@/app/actions/activities";
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { getElapsedSecondsSince } from "@/lib/time";
+import { getActivityPlayerDefinition } from "./player-registry";
 import { TopProgressBar } from "./TopProgressBar";
 import { ActivityCompletionScreen } from "./ActivityCompletionScreen";
 import { ModuleCompletionScreen } from "./ModuleCompletionScreen";
 import { CourseCompletionScreen } from "./CourseCompletionScreen";
-import { QuizPlayer } from "./QuizPlayer";
-import { MatchingPlayer } from "./MatchingPlayer";
-import { FillBlankPlayer } from "./FillBlankPlayer";
-import { DragOrderPlayer } from "./DragOrderPlayer";
-import { FlashcardPlayer } from "./FlashcardPlayer";
-import { LessonPlayer } from "./LessonPlayer";
 
 interface ActivitySummary {
   id: string;
@@ -167,29 +162,22 @@ export function ActivityPlayerWrapper({
 
   const renderPlayer = () => {
     const onComplete = handleComplete;
-    switch (activity.activity_type) {
-      case "quiz":
-        return <QuizPlayer content={activity.content} onComplete={onComplete} />;
-      case "matching":
-        return <MatchingPlayer content={activity.content} onComplete={onComplete} />;
-      case "fill_blank":
-        return <FillBlankPlayer content={activity.content} onComplete={onComplete} />;
-      case "drag_order":
-        return <DragOrderPlayer content={activity.content} onComplete={onComplete} />;
-      case "flashcard":
-        return <FlashcardPlayer content={activity.content} onComplete={onComplete} />;
-      case "lesson":
-        return <LessonPlayer content={activity.content} onComplete={() => onComplete(1, 1, {})} />;
-      default:
-        return (
-          <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
-            <p className="text-lg mb-4">This activity isn&apos;t available yet.</p>
-            <button onClick={() => onComplete(0, 0, {})} className="rounded-2xl bg-primary px-6 py-3 text-base font-semibold text-on-primary">
-              {t("skipActivity")}
-            </button>
-          </div>
-        );
+    const definition = getActivityPlayerDefinition(activity.activity_type);
+    const Player = definition?.Player;
+    if (Player) {
+      return <Player content={activity.content} onComplete={onComplete} />;
     }
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
+        <p className="text-lg mb-4">This activity isn&apos;t available yet.</p>
+        <button
+          onClick={() => onComplete(0, 0, {})}
+          className="rounded-2xl bg-primary px-6 py-3 text-base font-semibold text-on-primary"
+        >
+          {t("skipActivity")}
+        </button>
+      </div>
+    );
   };
 
   // Total XP for module completion
