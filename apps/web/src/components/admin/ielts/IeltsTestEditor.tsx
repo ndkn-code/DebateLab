@@ -16,9 +16,14 @@ import { IELTS_MODULES, IELTS_SKILLS, IELTS_TEST_KINDS } from "@/lib/api/ielts/s
 import { allowedTransitions, type IeltsContentStatus } from "@/lib/api/ielts/workflow";
 import type { ContentVersionSummary } from "@/lib/api/ielts/versions-repository";
 import type { IeltsTestTree } from "@/lib/api/ielts/tree";
+import type {
+  MicroItemDraftView,
+  MicroItemPublishTarget,
+} from "@/lib/ielts/micro-drafts/types";
 import { Field, StatusBadge, TextArea } from "./ielts-ui";
 import { ImportPanel } from "./ImportPanel";
 import { ListeningPanel } from "./ListeningPanel";
+import { MicroItemDraftPanel } from "./MicroItemDraftPanel";
 import { PassagePanel } from "./PassagePanel";
 import { QuestionPanel } from "./QuestionPanel";
 import { VersionHistory } from "./VersionHistory";
@@ -31,13 +36,21 @@ const ACTION_LABEL: Record<IeltsContentStatus, string> = {
   archived: "Archive",
 };
 
-type Tab = "settings" | "passages" | "listening" | "questions" | "versions" | "import";
+type Tab =
+  | "settings"
+  | "passages"
+  | "listening"
+  | "questions"
+  | "micro_items"
+  | "versions"
+  | "import";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "settings", label: "Settings" },
   { id: "passages", label: "Passages" },
   { id: "listening", label: "Listening" },
   { id: "questions", label: "Questions" },
+  { id: "micro_items", label: "Micro-items" },
   { id: "versions", label: "Versions" },
   { id: "import", label: "Import" },
 ];
@@ -128,9 +141,13 @@ function SettingsForm({ tree }: { tree: IeltsTestTree }) {
 export function IeltsTestEditor({
   tree,
   versions,
+  microDrafts,
+  microDraftTargets,
 }: {
   tree: IeltsTestTree;
   versions: ContentVersionSummary[];
+  microDrafts: MicroItemDraftView[];
+  microDraftTargets: MicroItemPublishTarget[];
 }) {
   const { test } = tree;
   const [tab, setTab] = useState<Tab>("settings");
@@ -207,6 +224,14 @@ export function IeltsTestEditor({
           questions={tree.questions}
           passages={tree.passages}
           listeningSections={tree.listeningSections}
+        />
+      ) : null}
+      {tab === "micro_items" ? (
+        <MicroItemDraftPanel
+          testId={test.id}
+          questions={tree.questions}
+          drafts={microDrafts}
+          publishTargets={microDraftTargets}
         />
       ) : null}
       {tab === "versions" ? <VersionHistory testId={test.id} versions={versions} /> : null}
