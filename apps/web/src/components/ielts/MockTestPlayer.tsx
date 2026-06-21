@@ -36,10 +36,15 @@ function bandText(band: number | null): string {
 export function MockTestPlayer({
   structure,
   assignmentId,
+  returnHref,
+  returnLabel,
 }: {
   structure: MockStructure;
   /** When present, the sitting is stamped to this class assignment (WS-5.3). */
   assignmentId?: string;
+  /** Optional post-submit path used by onboarding diagnostics. */
+  returnHref?: string;
+  returnLabel?: string;
 }) {
   const params = useParams<{ locale: string }>();
   const [phase, setPhase] = useState<Phase>("intro");
@@ -174,7 +179,14 @@ export function MockTestPlayer({
     const resultsHref = attemptId
       ? `/${params.locale}/ielts/attempts/${attemptId}/results`
       : null;
-    return <BandSummary grade={grade} resultsHref={resultsHref} />;
+    return (
+      <BandSummary
+        grade={grade}
+        resultsHref={resultsHref}
+        returnHref={returnHref}
+        returnLabel={returnLabel}
+      />
+    );
   }
 
   return (
@@ -264,9 +276,13 @@ function IntroCard({
 function BandSummary({
   grade,
   resultsHref,
+  returnHref,
+  returnLabel,
 }: {
   grade: AttemptGrade;
   resultsHref: string | null;
+  returnHref?: string;
+  returnLabel?: string;
 }) {
   const rows: Array<[string, number | null, number | null]> = [
     ["Listening", grade.listeningRaw, grade.bands.listeningBand],
@@ -299,6 +315,14 @@ function BandSummary({
           className={`${PILL} bg-primary text-center text-on-primary`}
         >
           See full results &amp; review
+        </Link>
+      ) : null}
+      {returnHref ? (
+        <Link
+          href={returnHref}
+          className={`${PILL} bg-surface-container-high text-center text-on-surface`}
+        >
+          {returnLabel ?? "Continue"}
         </Link>
       ) : null}
       <p className="text-center text-xs text-on-surface-variant">

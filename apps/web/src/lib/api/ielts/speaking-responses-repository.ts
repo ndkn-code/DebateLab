@@ -17,6 +17,7 @@ import {
   buildSpeakingFeedback,
   type NormalizedSpeakingScore,
 } from "@/lib/scoring/ielts-speaking/normalize";
+import { recordIeltsSpeakingScoreEvidence } from "./assess-score-evidence";
 
 /**
  * Canonical data access for `speaking_responses` (WS-3.2).
@@ -189,6 +190,10 @@ export async function persistSpeakingScore(
   if (error) {
     throw new Error(`persistSpeakingScore failed: ${error.message}`);
   }
+  await recordIeltsSpeakingScoreEvidence({
+    client: admin,
+    speakingResponseId: params.speakingResponseId,
+  });
 }
 
 export async function markSpeakingScoringFailed(

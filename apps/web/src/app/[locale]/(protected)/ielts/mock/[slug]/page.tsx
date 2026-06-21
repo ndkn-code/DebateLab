@@ -20,10 +20,10 @@ export default async function IeltsMockPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ assignment?: string }>;
+  searchParams: Promise<{ assignment?: string; returnTo?: string }>;
 }) {
-  const { slug } = await params;
-  const { assignment } = await searchParams;
+  const { locale, slug } = await params;
+  const { assignment, returnTo } = await searchParams;
   const test = await getIeltsTestBySlug(slug);
   if (!test) notFound();
 
@@ -36,10 +36,21 @@ export default async function IeltsMockPage({
     assignment && (await isAssignmentStartableForTest(assignment, test.id))
       ? assignment
       : undefined;
+  const safeReturnTo =
+    returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("://")
+      ? returnTo
+      : undefined;
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6">
-      <MockTestPlayer structure={structure} assignmentId={assignmentId} />
+      <MockTestPlayer
+        structure={structure}
+        assignmentId={assignmentId}
+        returnHref={safeReturnTo}
+        returnLabel={
+          locale === "vi" ? "Xem kế hoạch đầu tiên" : "See your first plan"
+        }
+      />
     </main>
   );
 }
