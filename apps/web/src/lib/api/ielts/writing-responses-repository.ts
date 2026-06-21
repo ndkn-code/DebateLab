@@ -17,6 +17,7 @@ import {
   buildCriteriaFeedback,
   type NormalizedWritingScore,
 } from "@/lib/scoring/ielts-writing/normalize";
+import { recordIeltsWritingScoreEvidence } from "./assess-score-evidence";
 
 /**
  * Canonical data access for `writing_responses` (WS-3.1).
@@ -183,6 +184,10 @@ export async function persistWritingScore(
   if (error) {
     throw new Error(`persistWritingScore failed: ${error.message}`);
   }
+  await recordIeltsWritingScoreEvidence({
+    client: admin,
+    writingResponseId: params.writingResponseId,
+  });
 }
 
 export async function markWritingScoringFailed(

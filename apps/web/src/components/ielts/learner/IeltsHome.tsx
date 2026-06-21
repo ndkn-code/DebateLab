@@ -10,7 +10,11 @@ import {
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import { cn } from "@/lib/utils";
-import { formatBand, latestOverallBand } from "@/lib/ielts/learner/summary";
+import { formatBand } from "@/lib/ielts/learner/summary";
+import {
+  confidencePercent,
+  predictionHasOverallEvidence,
+} from "@/lib/ielts/onboarding/model";
 import type { IeltsHomeData } from "@/lib/api/ielts/learner-repository";
 import { RecentAttempts } from "./RecentAttempts";
 import { TestCard } from "./TestCard";
@@ -30,7 +34,8 @@ export function IeltsHome({
   displayName: string;
 }) {
   const t = useTranslations("dashboard.ielts");
-  const latest = latestOverallBand(data.recentAttempts);
+  const hasPrediction = predictionHasOverallEvidence(data.prediction);
+  const predictedBand = data.prediction.overall.band;
   const hasTests = data.featuredTests.length > 0;
   const hasAttempts = data.recentAttempts.length > 0;
 
@@ -41,36 +46,60 @@ export function IeltsHome({
           <section className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container p-6 sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="type-eyebrow font-semibold uppercase tracking-wide text-primary">
+                <p className="type-eyebrow font-semibold uppercase text-primary">
                   {t("eyebrow")}
                 </p>
                 <h1 className="mt-1 type-heading-xl font-bold text-balance text-on-surface">
                   {t("greeting", { name: displayName })}
                 </h1>
                 <p className="mt-2 max-w-prose type-body text-on-surface-variant">
-                  {latest !== null ? t("hero_band_intro") : t("hero_empty")}
+                  {hasPrediction ? t("hero_band_intro") : t("hero_diagnostic_first")}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Link
-                    href="/ielts/tests"
+                    href="/ielts/onboarding"
                     className={cn(buttonVariants({ variant: "primary" }))}
                   >
-                    {t("cta_browse")}
+                    {hasPrediction ? t("cta_view_plan") : t("cta_start_diagnostic")}
                     <ArrowRight className="size-4" />
                   </Link>
+                  {data.diagnosticTest ? null : (
+                    <Link
+                      href="/ielts/tests"
+                      className={cn(buttonVariants({ variant: "secondary" }))}
+                    >
+                      {t("cta_browse")}
+                    </Link>
+                  )}
                 </div>
               </div>
 
-              {latest !== null ? (
+              {hasPrediction && predictedBand !== null ? (
                 <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl bg-primary-container px-7 py-5 text-center">
-                  <span className="type-caption font-semibold uppercase tracking-wide text-on-primary-container">
-                    {t("overall_band")}
+                  <span className="type-caption font-semibold uppercase text-on-primary-container">
+                    {t("predicted_band")}
                   </span>
                   <span className="type-display font-bold tabular-nums text-on-primary-container">
-                    {formatBand(latest)}
+                    {formatBand(predictedBand)}
+                  </span>
+                  <span className="type-caption text-on-primary-container">
+                    {t("prediction_confidence", {
+                      count: confidencePercent(data.prediction.overall.confidence),
+                    })}
                   </span>
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl bg-tertiary-container px-7 py-5 text-center">
+                  <span className="type-caption font-semibold uppercase text-on-tertiary-container">
+                    {t("diagnostic_status")}
+                  </span>
+                  <span className="mt-1 max-w-48 type-body-sm font-semibold text-on-tertiary-container">
+                    {data.diagnosticTest
+                      ? t("diagnostic_ready")
+                      : t("diagnostic_unavailable_short")}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 

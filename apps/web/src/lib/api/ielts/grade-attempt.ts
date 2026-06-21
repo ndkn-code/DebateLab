@@ -19,6 +19,7 @@ import type {
 } from "@/lib/scoring/ielts/band-conversion";
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
+import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
 
 type AdminClient = ReturnType<typeof createTypedAdminClient>;
 
@@ -180,5 +181,6 @@ export async function gradeAttemptObjective(
   const admin = createTypedAdminClient();
   const inputs = await loadAndGrade(admin, attemptId);
   await persist(admin, inputs);
+  await recordIeltsObjectiveAttemptEvidence({ client: admin, attemptId });
   return inputs.grade;
 }
