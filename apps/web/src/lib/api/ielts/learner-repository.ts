@@ -18,6 +18,14 @@ import {
   type IeltsDiagnosticTestSummary,
 } from "./study-plan-repository";
 import { loadIeltsBandPrediction } from "./band-prediction-repository";
+import {
+  buildIeltsTodayList,
+  type IeltsTodayItemView,
+} from "@/lib/ielts/home/today";
+import {
+  buildIeltsHomePlanSummary,
+  type IeltsHomePlanSummary,
+} from "@/lib/ielts/home/plan-summary";
 import type { IeltsDbClient } from "./client";
 import { getPublishedIeltsTests } from "./tests-repository";
 import {
@@ -39,6 +47,14 @@ export interface IeltsHomeData {
   diagnosticTest: IeltsDiagnosticTestSummary | null;
   prediction: IeltsBandPrediction;
   hasGoal: boolean;
+  /** Target band + test-date countdown from the active plan (null with no plan). */
+  planSummary: IeltsHomePlanSummary | null;
+  /** The prioritized "Today" tasks (2–5), launch hrefs resolved. */
+  today: IeltsTodayItemView[];
+  /** Actionable items scheduled for today or earlier. */
+  todayDueCount: number;
+  /** Actionable items hidden behind the Today cap (drives "more in your plan"). */
+  todayOverflowCount: number;
 }
 
 export interface IeltsLibraryData {
@@ -98,7 +114,13 @@ export async function getIeltsLibraryData(): Promise<IeltsLibraryData> {
   return { tests: tests.map(toTestCard) };
 }
 
-/** Home payload: recent sittings + a short featured-tests teaser. */
+/**
+ * Home payload: the adaptive dashboard (WS-6.2.1). Composes the predicted band,
+ * the prioritized "Today" tasks from the active plan, recent sittings, and a
+ * featured-tests teaser. The active study plan + its items are read RLS-own via
+ * `loadActiveIeltsStudyPlan`; the published-test list doubles as the slug source
+ * for resolving each Today item's launch href (no extra query).
+ */
 export async function getIeltsHomeData(
   userId: string,
   client?: IeltsDbClient,
@@ -112,6 +134,18 @@ export async function getIeltsHomeData(
     findQuickDiagnosticTest(supabase),
     loadIeltsBandPrediction(userId, { targetBand, client: supabase }),
   ]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const testSlugById = new Map<string, string>(
+    published.map((test) => [test.id, test.slug]),
+  );
+  if (diagnosticTest) testSlugById.set(diagnosticTest.id, diagnosticTest.slug);
+
+  const todayList = buildIeltsTodayList(activePlan?.items ?? [], {
+    today,
+    testSlugById,
+  });
+
   return {
     recentAttempts,
     featuredTests: published.slice(0, HOME_FEATURED_LIMIT).map(toTestCard),
@@ -119,5 +153,12 @@ export async function getIeltsHomeData(
     diagnosticTest,
     prediction,
     hasGoal: Boolean(activePlan),
+    planSummary: buildIeltsHomePlanSummary({
+      plan: activePlan?.plan ?? null,
+      today,
+    }),
+    today: todayList.items,
+    todayDueCount: todayList.dueCount,
+    todayOverflowCount: todayList.overflowCount,
   };
 }

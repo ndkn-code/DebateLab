@@ -29,6 +29,7 @@
     "test:ielts-speaking-scorer": "npm run test:ielts-speaking-scorer -w @thinkfy/web",
     "test:ielts-results": "npm run test:ielts-results -w @thinkfy/web",
     "test:ielts-learner": "npm run test:ielts-learner -w @thinkfy/web",
+    "test:ielts-home": "npm run test:ielts-home -w @thinkfy/web",
     "test:ielts-capture": "npm run test:ielts-capture -w @thinkfy/web",
     "test:ielts-assignments": "npm run test:ielts-assignments -w @thinkfy/web",
     "test:ielts-adaptive-contracts": "npm run test:ielts-adaptive-contracts -w @thinkfy/web",
