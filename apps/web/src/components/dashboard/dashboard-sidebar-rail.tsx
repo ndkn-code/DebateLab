@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock3,
+  Compass,
   GraduationCap,
   Home,
   Lock,
@@ -41,6 +42,7 @@ const NAV_ICONS = {
   history: Clock3,
   analytics: UserRound,
   ielts_home: GraduationCap,
+  ielts_learn: Compass,
   ielts_library: BookOpen,
   ielts_assigned: ClipboardList,
 } as const;
@@ -110,6 +112,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "ielts_home") {
       return pathname === "/ielts";
+    }
+
+    if (item.key === "ielts_learn") {
+      return pathname.startsWith("/ielts/learn");
     }
 
     if (item.key === "ielts_library") {

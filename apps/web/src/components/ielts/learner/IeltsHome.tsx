@@ -63,6 +63,12 @@ export function IeltsHome({
                     {hasPrediction ? t("cta_view_plan") : t("cta_start_diagnostic")}
                     <ArrowRight className="size-4" />
                   </Link>
+                  <Link
+                    href="/ielts/learn"
+                    className={cn(buttonVariants({ variant: "secondary" }))}
+                  >
+                    {t("learn.start_path_cta")}
+                  </Link>
                   {data.diagnosticTest ? null : (
                     <Link
                       href="/ielts/tests"

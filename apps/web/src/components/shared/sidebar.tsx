@@ -21,6 +21,7 @@ import {
   GraduationCap,
   BookOpen,
   ClipboardList,
+  Compass,
 } from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -81,6 +82,7 @@ const NAV_ITEMS: readonly SidebarNavItem[] = [
 // active subject is `ielts`. Debate nav stays byte-identical (`NAV_ITEMS`).
 const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/ielts", key: "ielts_home", icon: GraduationCap, status: "live" },
+  { href: "/ielts/learn", key: "ielts_learn", icon: Compass, status: "live" },
   { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
   { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
@@ -89,6 +91,7 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
 // IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
 const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { key: "ielts_home", href: "/ielts", status: "live" },
+  { key: "ielts_learn", href: "/ielts/learn", status: "live" },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
