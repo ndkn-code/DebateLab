@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/email-dispatch",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/ielts-replan",
+      "schedule": "0 3 * * *"
     }
   ]
 }

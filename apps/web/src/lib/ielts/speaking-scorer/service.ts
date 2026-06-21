@@ -18,6 +18,7 @@ import {
 } from "@/lib/ielts/pronunciation";
 import { loadSpeakingExemplars } from "@/lib/corpus/ielts-speaking-exemplars";
 import { recomputeAttemptSpeakingBand } from "@/lib/api/ielts/band-scores-repository";
+import { maybeReplanAfterEvidence } from "@/lib/api/ielts/replan-hook";
 import {
   claimSpeakingResponseForScoring,
   createSpeakingResponse,
@@ -247,6 +248,14 @@ export async function runIeltsSpeakingScoringJob(
       response.attempt_id,
       response.user_id,
     );
+    // WS-6.2.4: adapt the learner's future plan to the new Speaking band
+    // (best-effort; never throws, so scoring/redelivery is unaffected).
+    await maybeReplanAfterEvidence({
+      client: admin,
+      userId: response.user_id,
+      trigger: "speaking_scored",
+      source: { type: "speaking_response", id: response.id },
+    });
   } catch (error) {
     await markSpeakingScoringFailed(admin, {
       speakingResponseId: response.id,

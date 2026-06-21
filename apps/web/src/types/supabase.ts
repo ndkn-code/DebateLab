@@ -5282,6 +5282,72 @@ export type Database = {
           },
         ]
       }
+      ielts_study_plan_revisions: {
+        Row: {
+          after_snapshot: Json
+          before_snapshot: Json
+          changed_item_count: number
+          created_at: string
+          from_version: number | null
+          id: string
+          plan_id: string
+          summary_en: string
+          summary_vi: string
+          to_version: number
+          trigger_source_id: string | null
+          trigger_source_type: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          after_snapshot?: Json
+          before_snapshot?: Json
+          changed_item_count?: number
+          created_at?: string
+          from_version?: number | null
+          id?: string
+          plan_id: string
+          summary_en: string
+          summary_vi: string
+          to_version: number
+          trigger_source_id?: string | null
+          trigger_source_type?: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          after_snapshot?: Json
+          before_snapshot?: Json
+          changed_item_count?: number
+          created_at?: string
+          from_version?: number | null
+          id?: string
+          plan_id?: string
+          summary_en?: string
+          summary_vi?: string
+          to_version?: number
+          trigger_source_id?: string | null
+          trigger_source_type?: string | null
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_study_plan_revisions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_study_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_revisions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_study_plans: {
         Row: {
           baseline_prediction_snapshot_id: string | null
