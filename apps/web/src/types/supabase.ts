@@ -4216,6 +4216,87 @@ export type Database = {
           },
         ]
       }
+      ielts_adaptive_evidence: {
+        Row: {
+          band_estimate: number | null
+          confidence: number
+          created_at: string
+          criterion: string | null
+          evidence_type: Database["public"]["Enums"]["ielts_adaptive_evidence_type"]
+          evidence_value: number
+          id: string
+          metadata: Json
+          module: Database["public"]["Enums"]["ielts_module"]
+          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
+          raw_score: number | null
+          reason_en: string
+          reason_vi: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_id: string
+          source_table: string
+          subskill_key: string
+          test_kind: Database["public"]["Enums"]["ielts_test_kind"] | null
+          user_id: string
+        }
+        Insert: {
+          band_estimate?: number | null
+          confidence: number
+          created_at?: string
+          criterion?: string | null
+          evidence_type: Database["public"]["Enums"]["ielts_adaptive_evidence_type"]
+          evidence_value: number
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          raw_score?: number | null
+          reason_en: string
+          reason_vi: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_id: string
+          source_table: string
+          subskill_key: string
+          test_kind?: Database["public"]["Enums"]["ielts_test_kind"] | null
+          user_id: string
+        }
+        Update: {
+          band_estimate?: number | null
+          confidence?: number
+          created_at?: string
+          criterion?: string | null
+          evidence_type?: Database["public"]["Enums"]["ielts_adaptive_evidence_type"]
+          evidence_value?: number
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["ielts_module"]
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          raw_score?: number | null
+          reason_en?: string
+          reason_vi?: string
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_id?: string
+          source_table?: string
+          subskill_key?: string
+          test_kind?: Database["public"]["Enums"]["ielts_test_kind"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_adaptive_evidence_subskill_key_fkey"
+            columns: ["subskill_key"]
+            isOneToOne: false
+            referencedRelation: "ielts_subskills"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ielts_adaptive_evidence_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_attempts: {
         Row: {
           activity_attempt_id: string | null
@@ -4635,6 +4716,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ielts_skill_states: {
+        Row: {
+          band_estimate: number | null
+          confidence: number
+          created_at: string
+          criterion: string | null
+          evidence_count: number
+          explanation: Json
+          id: string
+          last_evidence_at: string | null
+          mastery_score: number
+          module: Database["public"]["Enums"]["ielts_module"]
+          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          subskill_key: string
+          updated_at: string
+          user_id: string
+          weakness_weight: number
+        }
+        Insert: {
+          band_estimate?: number | null
+          confidence?: number
+          created_at?: string
+          criterion?: string | null
+          evidence_count?: number
+          explanation?: Json
+          id?: string
+          last_evidence_at?: string | null
+          mastery_score?: number
+          module?: Database["public"]["Enums"]["ielts_module"]
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          subskill_key: string
+          updated_at?: string
+          user_id: string
+          weakness_weight?: number
+        }
+        Update: {
+          band_estimate?: number | null
+          confidence?: number
+          created_at?: string
+          criterion?: string | null
+          evidence_count?: number
+          explanation?: Json
+          id?: string
+          last_evidence_at?: string | null
+          mastery_score?: number
+          module?: Database["public"]["Enums"]["ielts_module"]
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          subskill_key?: string
+          updated_at?: string
+          user_id?: string
+          weakness_weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_skill_states_subskill_key_fkey"
+            columns: ["subskill_key"]
+            isOneToOne: false
+            referencedRelation: "ielts_subskills"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ielts_skill_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ielts_tests: {
         Row: {
@@ -8793,6 +8946,17 @@ export type Database = {
     }
     Enums: {
       ielts_accent: "uk" | "us" | "aus" | "other"
+      ielts_adaptive_evidence_type:
+        | "mock_result"
+        | "section_result"
+        | "objective_response"
+        | "writing_score"
+        | "speaking_score"
+        | "phoneme_signal"
+        | "learn_activity"
+        | "review_result"
+        | "diagnostic_import"
+        | "manual_adjustment"
       ielts_attempt_status:
         | "in_progress"
         | "submitted"
@@ -8964,6 +9128,18 @@ export const Constants = {
   public: {
     Enums: {
       ielts_accent: ["uk", "us", "aus", "other"],
+      ielts_adaptive_evidence_type: [
+        "mock_result",
+        "section_result",
+        "objective_response",
+        "writing_score",
+        "speaking_score",
+        "phoneme_signal",
+        "learn_activity",
+        "review_result",
+        "diagnostic_import",
+        "manual_adjustment",
+      ],
       ielts_attempt_status: [
         "in_progress",
         "submitted",
