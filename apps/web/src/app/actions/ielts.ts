@@ -41,6 +41,12 @@ import {
 } from "@/lib/api/ielts/tests-repository";
 import { snapshotTestVersion } from "@/lib/api/ielts/versions-repository";
 import type { IeltsContentStatus } from "@/lib/api/ielts/workflow";
+import {
+  generateMicroItemDraftsForQuestion,
+  publishMicroItemDraft,
+  reviewMicroItemDraft,
+  updateMicroItemDraft,
+} from "@/lib/ielts/micro-drafts/repository";
 
 type TypedServerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
@@ -246,6 +252,69 @@ export async function deleteQuestionAction(questionId: string, testId: string) {
   await deleteQuestion(questionId, supabase);
   await logIelts(supabase, adminId, "delete_ielts_question", "ielts_question", questionId);
   revalidateTest(testId);
+}
+
+// --- Micro-item draft queue -----------------------------------------------
+
+export async function generateMicroItemDraftsAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const drafts = await generateMicroItemDraftsForQuestion(input, {
+    adminId,
+    client: supabase,
+  });
+  const testId = drafts[0]?.test_id ?? undefined;
+  await logIelts(supabase, adminId, "generate_ielts_micro_item_drafts", "ielts_question", null, {
+    count: drafts.length,
+    questionId: drafts[0]?.source_question_id ?? null,
+  });
+  revalidateTest(testId);
+  return drafts;
+}
+
+export async function updateMicroItemDraftAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const draft = await updateMicroItemDraft(input, { adminId, client: supabase });
+  await logIelts(
+    supabase,
+    adminId,
+    "update_ielts_micro_item_draft",
+    "ielts_micro_item_draft",
+    draft.id,
+    { status: draft.status },
+  );
+  revalidateTest(draft.test_id ?? undefined);
+  return draft;
+}
+
+export async function reviewMicroItemDraftAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const draft = await reviewMicroItemDraft(input, { adminId, client: supabase });
+  await logIelts(
+    supabase,
+    adminId,
+    "review_ielts_micro_item_draft",
+    "ielts_micro_item_draft",
+    draft.id,
+    { status: draft.status },
+  );
+  revalidateTest(draft.test_id ?? undefined);
+  return draft;
+}
+
+export async function publishMicroItemDraftAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const result = await publishMicroItemDraft(input, { adminId, client: supabase });
+  await logIelts(
+    supabase,
+    adminId,
+    "publish_ielts_micro_item_draft",
+    "ielts_micro_item_draft",
+    result.draft.id,
+    { activityId: result.activityId },
+  );
+  revalidateTest(result.draft.test_id ?? undefined);
+  revalidatePath("/dashboard/admin/courses");
+  return result;
 }
 
 // --- Band conversions -----------------------------------------------------

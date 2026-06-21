@@ -4513,6 +4513,154 @@ export type Database = {
           },
         ]
       }
+      ielts_micro_item_drafts: {
+        Row: {
+          activity_type: string
+          answer_key: Json
+          created_at: string
+          created_by: string | null
+          draft_content: Json
+          edited_by: string | null
+          id: string
+          model_name: string | null
+          model_provider: string | null
+          prompt_version: string
+          provenance: Json
+          published_activity_id: string | null
+          published_at: string | null
+          qa_notes: string | null
+          rationale_en: string
+          rationale_vi: string
+          reviewer_id: string | null
+          reviewed_at: string | null
+          source_listening_section_id: string | null
+          source_passage_id: string | null
+          source_question_id: string | null
+          status: string
+          subskill_key: string | null
+          test_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activity_type: string
+          answer_key: Json
+          created_at?: string
+          created_by?: string | null
+          draft_content: Json
+          edited_by?: string | null
+          id?: string
+          model_name?: string | null
+          model_provider?: string | null
+          prompt_version?: string
+          provenance?: Json
+          published_activity_id?: string | null
+          published_at?: string | null
+          qa_notes?: string | null
+          rationale_en: string
+          rationale_vi: string
+          reviewer_id?: string | null
+          reviewed_at?: string | null
+          source_listening_section_id?: string | null
+          source_passage_id?: string | null
+          source_question_id?: string | null
+          status?: string
+          subskill_key?: string | null
+          test_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: string
+          answer_key?: Json
+          created_at?: string
+          created_by?: string | null
+          draft_content?: Json
+          edited_by?: string | null
+          id?: string
+          model_name?: string | null
+          model_provider?: string | null
+          prompt_version?: string
+          provenance?: Json
+          published_activity_id?: string | null
+          published_at?: string | null
+          qa_notes?: string | null
+          rationale_en?: string
+          rationale_vi?: string
+          reviewer_id?: string | null
+          reviewed_at?: string | null
+          source_listening_section_id?: string | null
+          source_passage_id?: string | null
+          source_question_id?: string | null
+          status?: string
+          subskill_key?: string | null
+          test_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_micro_item_drafts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_published_activity_id_fkey"
+            columns: ["published_activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_source_listening_section_id_fkey"
+            columns: ["source_listening_section_id"]
+            isOneToOne: false
+            referencedRelation: "listening_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_source_passage_id_fkey"
+            columns: ["source_passage_id"]
+            isOneToOne: false
+            referencedRelation: "passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_source_question_id_fkey"
+            columns: ["source_question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_subskill_key_fkey"
+            columns: ["subskill_key"]
+            isOneToOne: false
+            referencedRelation: "ielts_subskills"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ielts_micro_item_drafts_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_question_responses: {
         Row: {
           attempt_id: string
