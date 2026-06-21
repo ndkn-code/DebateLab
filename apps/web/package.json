@@ -20,7 +20,7 @@
     "test:ielts-review": "tsx src/lib/ielts/review/scheduler.test.ts",
     "test:ielts-study-plan": "tsx src/lib/ielts/study-plan/generator.test.ts && tsx src/lib/ielts/study-plan/page-view.test.ts",
     "test:ielts-results": "tsx src/lib/ielts/results/band-summary.test.ts && tsx src/lib/ielts/results/objective-review.test.ts && tsx src/lib/ielts/results/skill-feedback.test.ts && tsx src/lib/ielts/results/view-model.test.ts",
-    "test:ielts-learner": "tsx src/lib/ielts/learner/summary.test.ts && tsx src/lib/ielts/learner/library.test.ts && tsx src/lib/ielts/onboarding/model.test.ts",
+    "test:ielts-learner": "tsx src/lib/ielts/learner/summary.test.ts && tsx src/lib/ielts/learner/library.test.ts && tsx src/lib/ielts/learner/learn-path.test.ts && tsx src/lib/ielts/onboarding/model.test.ts",
     "test:ielts-home": "tsx src/lib/ielts/home/today.test.ts && tsx src/lib/ielts/home/prediction-card.test.ts && tsx src/lib/ielts/home/plan-summary.test.ts",
     "test:ielts-capture": "tsx src/lib/ielts/audio/wav-encoder.test.ts && tsx src/lib/ielts/pronunciation/audio-format.test.ts && tsx src/lib/ielts/capture/capture-format.test.ts",
     "test:ielts-assignments": "tsx src/lib/ielts/assignments/status.test.ts",
