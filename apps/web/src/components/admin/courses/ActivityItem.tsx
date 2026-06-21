@@ -5,10 +5,10 @@ import { useRouter } from "@/i18n/navigation";
 import { GripVertical, BookOpen, HelpCircle, Link2, PenLine, ArrowUpDown, Layers, Trash2, Loader2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { deleteActivity } from "@/app/actions/courses";
-import type { Activity, ActivityType, ActivityPhase } from "@/lib/types/admin";
+import type { Activity, ActivityPhase, CoreActivityType } from "@/lib/types/admin";
 import { InlineActivityEditor } from "./InlineActivityEditor";
 
-const TYPE_ICONS: Record<ActivityType, typeof BookOpen> = {
+const TYPE_ICONS: Record<CoreActivityType, typeof BookOpen> = {
   lesson: BookOpen, quiz: HelpCircle, matching: Link2,
   fill_blank: PenLine, drag_order: ArrowUpDown, flashcard: Layers,
 };
@@ -27,7 +27,7 @@ export function ActivityItem({ activity }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const Icon = TYPE_ICONS[activity.activity_type] ?? BookOpen;
+  const Icon = TYPE_ICONS[activity.activity_type as CoreActivityType] ?? BookOpen;
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();

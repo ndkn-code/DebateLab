@@ -5,6 +5,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Activity, ActivityType } from "@/lib/types/admin";
+import type { IeltsTextActivityFeedback } from "@/lib/ielts/learn/text-activities";
 import { useActivityPlayerStore } from "@/lib/stores/activityPlayerStore";
 import { completeActivity } from "@/app/actions/activities";
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
@@ -66,6 +67,8 @@ export function ActivityPlayerWrapper({
   const [score, setScore] = useState(0);
   const [maxScore, setMaxScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
+  const [completionFeedback, setCompletionFeedback] =
+    useState<IeltsTextActivityFeedback | undefined>(undefined);
   const [completedIds, setCompletedIds] = useState(new Set(initialCompletedIds));
   const startTime = useRef<number | null>(null);
 
@@ -111,26 +114,40 @@ export function ActivityPlayerWrapper({
 
   const handleComplete = useCallback(
     async (s?: number, ms?: number, responses?: Record<string, unknown>) => {
-      const finalScore = s ?? 1;
-      const finalMaxScore = ms ?? 1;
+      let finalScore = s ?? 1;
+      let finalMaxScore = ms ?? 1;
       const elapsed = getElapsedSecondsSince(startTime.current);
-      const xp = calculateXP(activity.activity_type, finalScore, finalMaxScore);
-
-      setScore(finalScore);
-      setMaxScore(finalMaxScore);
-      setXpEarned(xp);
-      addSessionXP(xp);
-      markActivityCompleted(activity.id);
-      setCompletedIds((prev) => new Set([...prev, activity.id]));
+      let xp = calculateXP(activity.activity_type, finalScore, finalMaxScore);
+      let feedback: IeltsTextActivityFeedback | undefined;
 
       // Save to server
       if (!previewMode) {
         try {
-          await completeActivity(activity.id, courseId, finalScore, finalMaxScore, responses ?? {}, xp, elapsed);
+          const result = await completeActivity(
+            activity.id,
+            courseId,
+            finalScore,
+            finalMaxScore,
+            responses ?? {},
+            xp,
+            elapsed,
+          );
+          finalScore = result.score;
+          finalMaxScore = result.maxScore;
+          xp = result.xpEarned;
+          feedback = result.feedback;
         } catch {
           // Don't block the UI
         }
       }
+
+      setScore(finalScore);
+      setMaxScore(finalMaxScore);
+      setXpEarned(xp);
+      setCompletionFeedback(feedback);
+      addSessionXP(xp);
+      markActivityCompleted(activity.id);
+      setCompletedIds((prev) => new Set([...prev, activity.id]));
 
       // Determine next state
       const newCompleted = new Set([...completedIds, activity.id]);
@@ -245,6 +262,7 @@ export function ActivityPlayerWrapper({
                 xpEarned={xpEarned}
                 onContinue={handleContinue}
                 nextActivityTitle={nextActivity?.title}
+                feedback={completionFeedback}
               />
             </motion.div>
           )}

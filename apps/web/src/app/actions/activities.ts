@@ -10,6 +10,15 @@ import {
 } from "@/lib/xp/model";
 import { awardXpEvent } from "@/lib/xp/server";
 import { scoreActivityContent } from "@/lib/activity/registry";
+import {
+  scoreIeltsTextActivity,
+  type IeltsTextActivityScoreResult,
+} from "@/lib/api/ielts/learn-activities";
+import { recordIeltsLearnActivityEvidence } from "@/lib/api/ielts/learn-evidence";
+import {
+  isIeltsFirstTextActivityType,
+  type IeltsTextActivityFeedback,
+} from "@/lib/ielts/learn/text-activities";
 import { revalidatePath } from "next/cache";
 
 function clampTimeSpent(value: number) {
@@ -153,11 +162,26 @@ export async function completeActivity(
 
   if (!scoringActivity) throw new Error("Activity not found");
 
-  const { score, maxScore } = scoreActivityContent(
-    scoringActivity.activity_type,
-    scoringActivity.content,
-    safeResponses,
-  );
+  let ieltsScoring: IeltsTextActivityScoreResult | null = null;
+  let score: number;
+  let maxScore: number;
+  if (isIeltsFirstTextActivityType(scoringActivity.activity_type)) {
+    ieltsScoring = await scoreIeltsTextActivity({
+        activityType: scoringActivity.activity_type,
+        content: scoringActivity.content,
+        responses: safeResponses,
+      });
+    score = ieltsScoring.score;
+    maxScore = ieltsScoring.maxScore;
+  } else {
+    const genericScore = scoreActivityContent(
+      scoringActivity.activity_type,
+      scoringActivity.content,
+      safeResponses,
+    );
+    score = genericScore.score;
+    maxScore = genericScore.maxScore;
+  }
   const xpBreakdown = calculateLessonXp({
     activityType: scoringActivity.activity_type,
     score,
@@ -176,8 +200,9 @@ export async function completeActivity(
 
   const attemptId = attempts?.[0]?.id;
 
+  let completedAttemptId = attemptId ?? null;
   if (attemptId) {
-    await supabase
+    const { error } = await supabase
       .from("activity_attempts")
       .update({
         completed_at: new Date().toISOString(),
@@ -188,18 +213,36 @@ export async function completeActivity(
         time_spent_seconds: safeTimeSpentSeconds,
       })
       .eq("id", attemptId);
+    if (error) throw new Error(error.message);
   } else {
     // Create a completed attempt directly
-    await supabase.from("activity_attempts").insert({
-      user_id: user.id,
-      activity_id: activityId,
-      completed_at: new Date().toISOString(),
-      score,
-      max_score: maxScore,
-      is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
-      attempt_number: 1,
-      responses: safeResponses,
-      time_spent_seconds: safeTimeSpentSeconds,
+    const { data: completedAttempt, error } = await supabase
+      .from("activity_attempts")
+      .insert({
+        user_id: user.id,
+        activity_id: activityId,
+        completed_at: new Date().toISOString(),
+        score,
+        max_score: maxScore,
+        is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
+        attempt_number: 1,
+        responses: safeResponses,
+        time_spent_seconds: safeTimeSpentSeconds,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    completedAttemptId = completedAttempt.id;
+  }
+
+  if (ieltsScoring && completedAttemptId) {
+    await recordIeltsLearnActivityEvidence({
+      userId: user.id,
+      activityId,
+      attemptId: completedAttemptId,
+      content: scoringActivity.content,
+      scoring: ieltsScoring,
+      timeSpentSeconds: safeTimeSpentSeconds,
     });
   }
 
@@ -300,7 +343,9 @@ export async function completeActivity(
   revalidatePath("/courses");
   revalidatePath("/dashboard");
 
-  return { success: true, xpEarned };
+  const feedback: IeltsTextActivityFeedback | undefined =
+    ieltsScoring?.feedback ?? undefined;
+  return { success: true, xpEarned, score, maxScore, feedback };
 }
 
 export async function getModuleProgress(moduleId: string) {

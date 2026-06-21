@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Star, ArrowRight } from "@/components/ui/icons";
 import confetti from "canvas-confetti";
 import type { ActivityType } from "@/lib/types/admin";
+import type { IeltsTextActivityFeedback } from "@/lib/ielts/learn/text-activities";
 
 interface Props {
   activityType: ActivityType;
@@ -14,6 +15,7 @@ interface Props {
   xpEarned: number;
   onContinue: () => void;
   nextActivityTitle?: string;
+  feedback?: IeltsTextActivityFeedback;
 }
 
 const MESSAGES = {
@@ -30,6 +32,7 @@ export function ActivityCompletionScreen({
   xpEarned,
   onContinue,
   nextActivityTitle,
+  feedback,
 }: Props) {
   const t = useTranslations("courses.player");
   const [displayXP, setDisplayXP] = useState(0);
@@ -121,6 +124,38 @@ export function ActivityCompletionScreen({
         >
           {message}
         </motion.p>
+
+        {feedback ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-4 w-full rounded-lg border border-outline-variant bg-surface p-4 text-left"
+          >
+            <p className="type-body-sm font-semibold text-on-surface">{feedback.en}</p>
+            <p className="mt-2 type-body-sm text-on-surface-variant">{feedback.vi}</p>
+            {feedback.items.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {feedback.items.map((item, index) => (
+                  <div
+                    key={item.questionId}
+                    className="rounded-lg bg-surface-container-low px-3 py-2"
+                  >
+                    <p className="type-caption font-semibold text-on-surface">
+                      {index + 1}. {item.awardedPoints}/{item.maxPoints}
+                    </p>
+                    <p className="mt-1 type-caption text-on-surface-variant">
+                      {item.feedbackEn}
+                    </p>
+                    <p className="mt-1 type-caption text-on-surface-variant">
+                      {item.feedbackVi}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </motion.div>
+        ) : null}
 
         {/* Next activity preview */}
         {nextActivityTitle && (
