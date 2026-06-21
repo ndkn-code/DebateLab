@@ -14,6 +14,7 @@
     "audit:design-system": "tsx scripts/design-system-audit.ts",
     "test:design-system": "tsx scripts/design-system-tokens.test.ts",
     "test": "tsx scripts/ci/run-all-tests.ts",
+    "test:activity": "npm run test:activity -w @thinkfy/web",
     "test:scoring": "npm run test:scoring -w @thinkfy/web",
     "test:ielts-data-model": "npm run test:ielts-data-model -w @thinkfy/web",
     "test:ielts-scoring": "npm run test:ielts-scoring -w @thinkfy/web",

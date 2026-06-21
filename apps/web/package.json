@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:activity": "tsx src/lib/activity/registry.test.ts",
     "test:admin-analytics": "tsx src/lib/analytics/admin-user-analytics.test.ts",
     "test:ielts-data-model": "tsx src/lib/api/ielts/schema.test.ts",
     "test:ielts-scoring": "tsx src/lib/scoring/ielts/text-normalize.test.ts && tsx src/lib/scoring/ielts/build-key.test.ts && tsx src/lib/scoring/ielts/grade-blank.test.ts && tsx src/lib/scoring/ielts/grade-question.test.ts",
