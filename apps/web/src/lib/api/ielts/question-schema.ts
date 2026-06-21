@@ -7,6 +7,7 @@
  */
 import { z } from "zod";
 import type { Database, Json } from "@/types/supabase";
+import { validateAdaptiveQuestionMetadata } from "@/lib/ielts/adaptive/evidence";
 import { IELTS_QUESTION_TYPES, IELTS_SKILLS } from "./schema";
 import { JsonSchema } from "./json";
 import { VisualSchema, type IeltsVisual } from "./visual";
@@ -46,6 +47,11 @@ type Add = (path: string, message: string) => void;
 
 const StringOrList = z.union([z.string(), z.array(z.string())]);
 
+const MetadataSchema = z
+  .record(z.string(), JsonSchema)
+  .default({})
+  .superRefine(validateAdaptiveQuestionMetadata);
+
 const BaseQuestion = z.object({
   testId: z.string().uuid(),
   skill: z.enum(IELTS_SKILLS),
@@ -60,7 +66,7 @@ const BaseQuestion = z.object({
   maxPoints: z.number().int().min(0).max(40).default(1),
   wordLimit: z.number().int().positive().max(100).nullish(),
   visual: VisualSchema.nullish(),
-  metadata: z.record(z.string(), JsonSchema).default({}),
+  metadata: MetadataSchema,
   correctAnswer: StringOrList.optional(),
   acceptVariants: StringOrList.optional(),
   explanationEn: z.string().max(8000).nullish(),
