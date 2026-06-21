@@ -11,6 +11,7 @@ import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { normalizeWritingScore } from "@/lib/scoring/ielts-writing/normalize";
 import { loadWritingExemplars } from "@/lib/corpus/ielts-exemplars";
 import { recomputeAttemptWritingBand } from "@/lib/api/ielts/band-scores-repository";
+import { maybeReplanAfterEvidence } from "@/lib/api/ielts/replan-hook";
 import { writingTaskNumberForQuestionType } from "@/lib/api/ielts/schema";
 import {
   claimWritingResponseForScoring,
@@ -159,6 +160,14 @@ export async function runIeltsWritingScoringJob(
       response.attempt_id,
       response.user_id,
     );
+    // WS-6.2.4: adapt the learner's future plan to the new Writing band
+    // (best-effort; never throws, so scoring/redelivery is unaffected).
+    await maybeReplanAfterEvidence({
+      client: admin,
+      userId: response.user_id,
+      trigger: "writing_scored",
+      source: { type: "writing_response", id: response.id },
+    });
   } catch (error) {
     await markWritingScoringFailed(admin, {
       writingResponseId: response.id,

@@ -20,6 +20,7 @@ import type {
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
 import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
+import { maybeReplanAfterEvidence } from "./replan-hook";
 
 type AdminClient = ReturnType<typeof createTypedAdminClient>;
 
@@ -182,5 +183,13 @@ export async function gradeAttemptObjective(
   const inputs = await loadAndGrade(admin, attemptId);
   await persist(admin, inputs);
   await recordIeltsObjectiveAttemptEvidence({ client: admin, attemptId });
+  // WS-6.2.4: adapt the learner's future plan to the fresh result (best-effort;
+  // never throws, so grading is unaffected if the replan fails).
+  await maybeReplanAfterEvidence({
+    client: admin,
+    userId: inputs.attempt.user_id,
+    trigger: "attempt_graded",
+    source: { type: "ielts_attempt", id: attemptId },
+  });
   return inputs.grade;
 }

@@ -7,6 +7,7 @@ import {
   type IeltsGoalModel,
 } from "@/lib/ielts/adaptive/contracts";
 import {
+  computeNextReassessmentAt,
   generateIeltsStudyPlan,
   summarizePrediction,
   type IeltsGeneratedStudyPlan,
@@ -41,8 +42,8 @@ export type {
   IeltsDiagnosticTestSummary,
 } from "./study-plan-content";
 
-type StudyPlanRow = Tables<"ielts_study_plans">;
-type StudyPlanItemRow = Tables<"ielts_study_plan_items">;
+export type StudyPlanRow = Tables<"ielts_study_plans">;
+export type StudyPlanItemRow = Tables<"ielts_study_plan_items">;
 
 export interface IeltsStudyPlanView {
   plan: StudyPlanRow;
@@ -58,7 +59,7 @@ export interface PersistedIeltsStudyPlanResult {
   diagnosticTest: IeltsDiagnosticTestSummary | null;
 }
 
-function todayIso(): string {
+export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -154,7 +155,7 @@ export async function saveIeltsStudyPlanGoal(params: {
   return data;
 }
 
-function planSummaryJson(plan: IeltsGeneratedStudyPlan): Json {
+export function planSummaryJson(plan: IeltsGeneratedStudyPlan): Json {
   return {
     mode: plan.mode,
     horizon: plan.horizon,
@@ -171,7 +172,7 @@ function planSummaryJson(plan: IeltsGeneratedStudyPlan): Json {
   } satisfies Json;
 }
 
-function predictionJson(
+export function predictionJson(
   prediction: ReturnType<typeof IeltsBandPredictionSchema.parse>,
 ): Json {
   const summary = summarizePrediction(prediction);
@@ -210,7 +211,7 @@ function itemReferencePatch(params: {
   return { assignment_id: item.reference.assignmentId };
 }
 
-function toPlanItemInsert(params: {
+export function toPlanItemInsert(params: {
   planId: string;
   userId: string;
   item: IeltsGeneratedStudyPlanItem;
@@ -291,7 +292,7 @@ async function replacePlanItems(params: {
   return { persisted: data ?? [], skipped };
 }
 
-async function loadPredictionForGeneratedPlan(params: {
+export async function loadPredictionForGeneratedPlan(params: {
   userId: string;
   goal: IeltsGoalModel;
   client?: IeltsDbClient;
@@ -370,6 +371,9 @@ export async function generateAndPersistIeltsStudyPlanForUser(params: {
       planRow.baseline_prediction_snapshot_id ?? predictionSummary.sourceId,
     generated_at: now,
     last_replanned_at: now,
+    // WS-6.2.4: seed the reassessment cursor so the nightly replan pass can find
+    // freshly generated plans (additive — onboarding output is otherwise unchanged).
+    next_reassessment_at: computeNextReassessmentAt(generatedPlan.mode, todayIso()),
     updated_at: now,
   };
 
