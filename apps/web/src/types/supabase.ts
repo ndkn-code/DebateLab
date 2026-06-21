@@ -4948,6 +4948,305 @@ export type Database = {
           },
         ]
       }
+      ielts_study_plan_items: {
+        Row: {
+          activity_attempt_id: string | null
+          activity_id: string | null
+          assignment_id: string | null
+          available_at: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          criterion: string | null
+          due_at: string | null
+          estimated_minutes: number
+          focus_area: string
+          id: string
+          ielts_attempt_id: string | null
+          ielts_question_id: string | null
+          ielts_test_id: string | null
+          kind: Database["public"]["Enums"]["ielts_plan_item_kind"]
+          metadata: Json
+          plan_id: string
+          priority_score: number
+          question_type: Database["public"]["Enums"]["ielts_question_type"] | null
+          rationale_en: string
+          rationale_vi: string
+          review_item_id: string | null
+          scheduled_date: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_prediction_snapshot_id: string | null
+          source_weakness_keys: string[]
+          speaking_response_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ielts_plan_item_status"]
+          updated_at: string
+          user_id: string
+          writing_response_id: string | null
+        }
+        Insert: {
+          activity_attempt_id?: string | null
+          activity_id?: string | null
+          assignment_id?: string | null
+          available_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          criterion?: string | null
+          due_at?: string | null
+          estimated_minutes: number
+          focus_area: string
+          id?: string
+          ielts_attempt_id?: string | null
+          ielts_question_id?: string | null
+          ielts_test_id?: string | null
+          kind: Database["public"]["Enums"]["ielts_plan_item_kind"]
+          metadata?: Json
+          plan_id: string
+          priority_score?: number
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          rationale_en: string
+          rationale_vi: string
+          review_item_id?: string | null
+          scheduled_date: string
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_prediction_snapshot_id?: string | null
+          source_weakness_keys?: string[]
+          speaking_response_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ielts_plan_item_status"]
+          updated_at?: string
+          user_id: string
+          writing_response_id?: string | null
+        }
+        Update: {
+          activity_attempt_id?: string | null
+          activity_id?: string | null
+          assignment_id?: string | null
+          available_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          criterion?: string | null
+          due_at?: string | null
+          estimated_minutes?: number
+          focus_area?: string
+          id?: string
+          ielts_attempt_id?: string | null
+          ielts_question_id?: string | null
+          ielts_test_id?: string | null
+          kind?: Database["public"]["Enums"]["ielts_plan_item_kind"]
+          metadata?: Json
+          plan_id?: string
+          priority_score?: number
+          question_type?: Database["public"]["Enums"]["ielts_question_type"] | null
+          rationale_en?: string
+          rationale_vi?: string
+          review_item_id?: string | null
+          scheduled_date?: string
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_prediction_snapshot_id?: string | null
+          source_weakness_keys?: string[]
+          speaking_response_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ielts_plan_item_status"]
+          updated_at?: string
+          user_id?: string
+          writing_response_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_study_plan_items_activity_attempt_id_fkey"
+            columns: ["activity_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "activity_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "club_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_ielts_attempt_id_fkey"
+            columns: ["ielts_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_ielts_question_id_fkey"
+            columns: ["ielts_question_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_ielts_test_id_fkey"
+            columns: ["ielts_test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_study_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_review_item_id_fkey"
+            columns: ["review_item_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_review_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_speaking_response_id_fkey"
+            columns: ["speaking_response_id"]
+            isOneToOne: false
+            referencedRelation: "speaking_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_study_plan_items_writing_response_id_fkey"
+            columns: ["writing_response_id"]
+            isOneToOne: false
+            referencedRelation: "writing_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_study_plans: {
+        Row: {
+          baseline_prediction_snapshot_id: string | null
+          created_at: string
+          daily_minutes: number
+          explanation: Json
+          feedback_language: string
+          focus_skills: Database["public"]["Enums"]["ielts_skill"][] | null
+          generated_at: string
+          id: string
+          last_replanned_at: string | null
+          latest_prediction_snapshot_id: string | null
+          module: Database["public"]["Enums"]["ielts_module"]
+          next_reassessment_at: string | null
+          plan_horizon_days: number
+          plan_version: number
+          predicted_listening_band: number | null
+          predicted_overall_band: number | null
+          predicted_reading_band: number | null
+          predicted_speaking_band: number | null
+          predicted_writing_band: number | null
+          prediction_confidence: number | null
+          prediction_summary: Json
+          status: Database["public"]["Enums"]["ielts_study_plan_status"]
+          study_days: number[]
+          target_listening_band: number | null
+          target_overall_band: number
+          target_reading_band: number | null
+          target_speaking_band: number | null
+          target_test_date: string
+          target_writing_band: number | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baseline_prediction_snapshot_id?: string | null
+          created_at?: string
+          daily_minutes: number
+          explanation?: Json
+          feedback_language?: string
+          focus_skills?: Database["public"]["Enums"]["ielts_skill"][] | null
+          generated_at?: string
+          id?: string
+          last_replanned_at?: string | null
+          latest_prediction_snapshot_id?: string | null
+          module?: Database["public"]["Enums"]["ielts_module"]
+          next_reassessment_at?: string | null
+          plan_horizon_days?: number
+          plan_version?: number
+          predicted_listening_band?: number | null
+          predicted_overall_band?: number | null
+          predicted_reading_band?: number | null
+          predicted_speaking_band?: number | null
+          predicted_writing_band?: number | null
+          prediction_confidence?: number | null
+          prediction_summary?: Json
+          status?: Database["public"]["Enums"]["ielts_study_plan_status"]
+          study_days: number[]
+          target_listening_band?: number | null
+          target_overall_band?: number
+          target_reading_band?: number | null
+          target_speaking_band?: number | null
+          target_test_date: string
+          target_writing_band?: number | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baseline_prediction_snapshot_id?: string | null
+          created_at?: string
+          daily_minutes?: number
+          explanation?: Json
+          feedback_language?: string
+          focus_skills?: Database["public"]["Enums"]["ielts_skill"][] | null
+          generated_at?: string
+          id?: string
+          last_replanned_at?: string | null
+          latest_prediction_snapshot_id?: string | null
+          module?: Database["public"]["Enums"]["ielts_module"]
+          next_reassessment_at?: string | null
+          plan_horizon_days?: number
+          plan_version?: number
+          predicted_listening_band?: number | null
+          predicted_overall_band?: number | null
+          predicted_reading_band?: number | null
+          predicted_speaking_band?: number | null
+          predicted_writing_band?: number | null
+          prediction_confidence?: number | null
+          prediction_summary?: Json
+          status?: Database["public"]["Enums"]["ielts_study_plan_status"]
+          study_days?: number[]
+          target_listening_band?: number | null
+          target_overall_band?: number
+          target_reading_band?: number | null
+          target_speaking_band?: number | null
+          target_test_date?: string
+          target_writing_band?: number | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_study_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_skill_states: {
         Row: {
           band_estimate: number | null
@@ -9313,6 +9612,22 @@ export type Database = {
         | "published"
         | "archived"
       ielts_module: "academic" | "general_training"
+      ielts_plan_item_kind:
+        | "learn_activity"
+        | "review"
+        | "mini_mock"
+        | "full_mock"
+        | "writing_submission"
+        | "speaking_submission"
+        | "teacher_assignment"
+      ielts_plan_item_status:
+        | "scheduled"
+        | "available"
+        | "started"
+        | "completed"
+        | "missed"
+        | "skipped"
+        | "cancelled"
       ielts_question_type:
         | "mcq_single"
         | "mcq_multi"
@@ -9342,6 +9657,7 @@ export type Database = {
       ielts_review_algorithm: "sm2_v1" | "fsrs_v1"
       ielts_review_rating: "again" | "hard" | "good" | "easy"
       ielts_skill: "listening" | "reading" | "writing" | "speaking"
+      ielts_study_plan_status: "active" | "paused" | "completed" | "archived"
       ielts_test_kind: "full_mock" | "skill_set" | "drill"
     }
     CompositeTypes: {
@@ -9500,6 +9816,24 @@ export const Constants = {
         "archived",
       ],
       ielts_module: ["academic", "general_training"],
+      ielts_plan_item_kind: [
+        "learn_activity",
+        "review",
+        "mini_mock",
+        "full_mock",
+        "writing_submission",
+        "speaking_submission",
+        "teacher_assignment",
+      ],
+      ielts_plan_item_status: [
+        "scheduled",
+        "available",
+        "started",
+        "completed",
+        "missed",
+        "skipped",
+        "cancelled",
+      ],
       ielts_question_type: [
         "mcq_single",
         "mcq_multi",
@@ -9531,6 +9865,7 @@ export const Constants = {
       ielts_review_algorithm: ["sm2_v1", "fsrs_v1"],
       ielts_review_rating: ["again", "hard", "good", "easy"],
       ielts_skill: ["listening", "reading", "writing", "speaking"],
+      ielts_study_plan_status: ["active", "paused", "completed", "archived"],
       ielts_test_kind: ["full_mock", "skill_set", "drill"],
     },
   },
