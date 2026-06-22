@@ -71,13 +71,16 @@ no-leakage / diagnostic-skip accounting holds. This validates the *math* before 
 cohort exists; post-launch the same engine runs on real `ielts_adaptive_evidence` +
 `attempt_band_scores` and validates the *model*.
 
+## Shipped beyond the core harness
+
+- **B4 Admin "Prediction Quality" dashboard** — aggregates these metrics over users with
+  ≥2 mocks (calibration plot, per-skill error, drift). Internal/admin-only. Consumes
+  `runBacktest`'s `BacktestReport` directly, reusing `band-prediction-repository.ts`'s
+  `mapEvidence` to assemble `BacktestScenario`s from the live ledger.
+
 ## Deferred (still Workstream B)
 
-- **B4 Admin "Prediction Quality" dashboard** — aggregate these metrics over users with
-  ≥2 mocks (calibration plot, per-skill error, drift). Internal only. Consumes
-  `runBacktest`'s `BacktestReport` directly.
-- **B2 more challengers** — Elo-style update, small Bayesian model. Each is just another
+- **More challengers** — Elo-style update, small Bayesian model. Each is just another
   `Forecaster`; the gate already handles them.
-- **Wiring** — a server path that assembles `BacktestScenario`s from the ledger (reuse
-  `band-prediction-repository.ts`'s `mapEvidence`) and a shadow-logging sink. The harness
-  is pure on purpose; nothing here touches the DB.
+- **A shadow-logging sink** that records each challenger's live predictions vs v1 for
+  ongoing offline comparison once real cohorts exist.

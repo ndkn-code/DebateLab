@@ -27,6 +27,7 @@ delete from ielts_adaptive_evidence where metadata->>'seed'   = 'ielts-demo-v1';
 delete from ielts_skill_states     where explanation->>'seed' = 'ielts-demo-v1';
 delete from activity_attempts      where responses->>'seed'   = 'ielts-demo-v1';
 delete from ielts_attempts         where metadata->>'seed'    = 'ielts-demo-v1';
+delete from clubs                  where id = '0de70000-0000-4000-a000-0000000aa001';
 delete from courses                where id = '0de70000-0000-4000-a000-0000000e0001';
 delete from ielts_tests            where id = '0de70000-0000-4000-a000-0000000a0001';
 
@@ -177,6 +178,22 @@ values
    '{"activityType":"ielts_gap_fill","instruction":{"en":"Complete each sentence with the correct linking word.","vi":"Hoàn thành mỗi câu với từ nối đúng."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0022","subskillKey":"writing:grammar_range_accuracy","labelEn":"Complex sentences","labelVi":"Câu phức"}],"rendererTags":["gap_fill","writing"],"module":"academic","version":1}'::jsonb),
   ('0de70000-0000-4000-a000-0000000f0005','0de70000-0000-4000-a000-0000000e0013','ielts_vocab_collocation','Topic vocabulary: education','Build a bank of education-topic collocations.','learn',0,7,
    '{"activityType":"ielts_vocab_collocation","instruction":{"en":"Group the collocations under the right topic.","vi":"Nhóm các collocation theo đúng chủ đề."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0022","subskillKey":"writing:lexical_resource","labelEn":"Education vocabulary","labelVi":"Từ vựng giáo dục"}],"rendererTags":["collocation","vocabulary"],"module":"academic","version":1}'::jsonb);
+
+-- ===========================================================================
+-- B2B FIXTURE: a demo teaching center + ONE enrolled admin, so the B2B course
+-- (Learn) path is previewable. contact.tuandat@gmail.com (Tuấn) = enrolled/B2B;
+-- ndkn.work@gmail.com (Jensen) stays B2C (the practice-only prep app).
+-- ===========================================================================
+insert into clubs (id, code, name, status, metadata)
+values ('0de70000-0000-4000-a000-0000000aa001','DEMO-IELTS-CENTER','Demo IELTS Center','active','{"seed":"ielts-demo-v1"}'::jsonb)
+on conflict (id) do nothing;
+
+insert into club_memberships (id, club_id, user_id, role, status, metadata)
+select '0de70000-0000-4000-a000-0000000ab001','0de70000-0000-4000-a000-0000000aa001', p.id, 'student', 'active', '{"seed":"ielts-demo-v1"}'::jsonb
+from profiles p
+join auth.users u on u.id = p.id
+where u.email = 'contact.tuandat@gmail.com'
+on conflict (id) do nothing;
 
 -- ===========================================================================
 -- TRAJECTORY (per admin): completed diagnostic attempt
@@ -341,13 +358,13 @@ select
   case when it.review_key <> '' then md5('ielts-demo:review:'||a.user_id::text||':'||it.review_key)::uuid else null end
 from (select id as user_id from profiles where role = 'admin') a
 cross join (values
-  ('d0_collo','learn_activity','available',0,'writing','Academic collocations for Task 2',8,0.90,'writing:lexical_resource','Build the lexical range your Task 2 essays are missing.','Mở rộng vốn từ mà bài Task 2 của bạn còn thiếu.','Vocab: Task 2 collocations','Từ vựng: collocation Task 2','0de70000-0000-4000-a000-0000000f0003',false,'',''),
+  ('d0_collo','writing_submission','available',0,'writing','Task 1 report writing',25,0.90,'writing:lexical_resource','Draft a Task 1 report to build the lexical range your essays are missing.','Viết một báo cáo Task 1 để mở rộng vốn từ còn thiếu.','Write a Task 1 report','Viết báo cáo Task 1','',false,'0de70000-0000-4000-a000-0000000d0021',''),
   ('d0_review','review','available',0,'reading','Matching headings',10,0.75,'reading:matching_headings','Spaced review reinforces weak main-idea reading.','Ôn tập cách quãng củng cố kỹ năng đọc ý chính còn yếu.','Review: Matching headings','Ôn tập: Ghép tiêu đề','',false,'','r_match'),
   ('d0_write','writing_submission','available',0,'writing','Task 2 essay',40,0.70,'writing:task_response_task2','Write and submit a full Task 2 essay for AI band feedback.','Viết và nộp một bài Task 2 hoàn chỉnh để nhận nhận xét band từ AI.','Write a Task 2 essay','Viết bài luận Task 2','',false,'0de70000-0000-4000-a000-0000000d0022',''),
-  ('d1_para','learn_activity','scheduled',1,'reading','Paraphrase recognition',8,0.65,'reading:paraphrase_recognition','Train the synonym spotting that matching questions rely on.','Luyện nhận diện từ đồng nghĩa mà câu ghép cần đến.','Spot the paraphrase','Tìm cách diễn đạt lại','0de70000-0000-4000-a000-0000000f0001',false,'',''),
+  ('d1_para','skill_drill','scheduled',1,'reading','Paraphrase recognition',12,0.65,'reading:paraphrase_recognition','A short reading drill on the synonym spotting that matching questions rely on.','Một bài luyện đọc ngắn về nhận diện từ đồng nghĩa mà câu ghép cần đến.','Reading drill: paraphrase','Luyện đọc: diễn đạt lại','',true,'',''),
   ('d2_mock','mini_mock','scheduled',2,'reading','Reading section practice',20,0.60,'reading:matching_headings','A short reading set to track progress on weak question types.','Một bộ đọc ngắn để theo dõi tiến bộ ở dạng câu yếu.','Mini reading mock','Mini test đọc','',true,'',''),
   ('d2_lrev','review','scheduled',2,'listening','Listening detail',10,0.50,'listening:short_answer','Keep listening detail sharp with spaced recall.','Giữ kỹ năng nghe chi tiết bằng ôn tập cách quãng.','Review: Listening notes','Ôn tập: Ghi chú nghe','',false,'','l_note'),
-  ('d3_gram','learn_activity','scheduled',3,'writing','Grammar range & accuracy',8,0.62,'writing:grammar_range_accuracy','Practise complex sentences to lift your grammar band.','Luyện câu phức để nâng band ngữ pháp.','Complex sentence gap-fill','Điền từ câu phức','0de70000-0000-4000-a000-0000000f0004',false,'',''),
+  ('d3_gram','writing_submission','scheduled',3,'writing','Grammar range & accuracy',25,0.62,'writing:grammar_range_accuracy','Revisit a Task 2 essay, focusing on complex and accurate sentences.','Viết lại một bài Task 2, tập trung vào câu phức chính xác.','Revisit your Task 2 essay','Xem lại bài Task 2','',false,'0de70000-0000-4000-a000-0000000d0022',''),
   ('d4_speak','speaking_submission','scheduled',4,'speaking','Part 2 cue card',15,0.55,'speaking:fluency_coherence','Record a Part 2 answer for fluency and pronunciation feedback.','Ghi âm câu trả lời Part 2 để nhận nhận xét trôi chảy và phát âm.','Record a Part 2 answer','Ghi âm câu trả lời Part 2','',false,'0de70000-0000-4000-a000-0000000d0032',''),
   ('d5_wrev','review','scheduled',5,'writing','Lexical resource',10,0.48,'writing:lexical_resource','Lock in the collocations you reviewed earlier this week.','Ghi nhớ các collocation đã ôn đầu tuần.','Review: Collocations','Ôn tập: Collocation','',false,'','w_lex'),
   ('d7_full','full_mock','scheduled',7,'reading','Full practice mock',60,0.40,'reading:matching_headings','A full timed mock to re-measure your predicted band.','Một bài mock đầy đủ có tính giờ để đo lại band dự đoán.','Full mock test','Bài mock đầy đủ','',true,'','')

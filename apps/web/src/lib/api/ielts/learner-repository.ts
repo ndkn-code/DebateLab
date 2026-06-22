@@ -38,7 +38,11 @@ import {
 import type { StreakActivityEvent } from "@/lib/streaks/model";
 import type { IeltsDbClient } from "./client";
 import { getPublishedIeltsTests, isGeneratedIeltsSkillDrill } from "./tests-repository";
-import { listDueIeltsReviewItems, type IeltsReviewItem } from "./review-repository";
+import {
+  countDueIeltsReviewItems,
+  listDueIeltsReviewItems,
+  type IeltsReviewItem,
+} from "./review-repository";
 import {
   summarizeAttempts,
   type AttemptBandRow,
@@ -64,6 +68,7 @@ interface IeltsHomeReadBundle {
   retentionActivities: StreakActivityEvent[] | undefined;
   todayStat: IeltsRetentionDailyStatRow | null;
   dueReviews: IeltsReviewItem[];
+  dueReviewsTotal: number;
 }
 
 export interface IeltsHomeData {
@@ -205,6 +210,7 @@ async function loadIeltsHomeReadBundle(params: {
     retentionActivities,
     todayStat,
     dueReviews,
+    dueReviewsTotal,
   ] = await Promise.all([
     listRecentIeltsAttempts({ userId: params.userId, client: params.client }),
     getPublishedIeltsTests(params.client, { includeGenerated: true }),
@@ -221,6 +227,10 @@ async function loadIeltsHomeReadBundle(params: {
       { userId: params.userId, dueAt: params.now, limit: 200 },
       params.client,
     ),
+    countDueIeltsReviewItems(
+      { userId: params.userId, dueAt: params.now, limit: 1 },
+      params.client,
+    ),
   ]);
 
   return {
@@ -233,6 +243,7 @@ async function loadIeltsHomeReadBundle(params: {
     retentionActivities,
     todayStat,
     dueReviews,
+    dueReviewsTotal,
   };
 }
 
@@ -261,7 +272,7 @@ function buildTodayAndRetention(params: {
     testSlugById: params.testSlugById,
   });
   const todayList = withDueReviewTodayEntry(planTodayList, {
-    count: params.reads.dueReviews.length,
+    count: params.reads.dueReviewsTotal,
     earliestDueAt: params.reads.dueReviews[0]?.due_at ?? null,
     skill: params.reads.dueReviews[0]?.skill ?? "reading",
     today: params.today,
@@ -305,7 +316,7 @@ function buildIeltsHomeDataResponse(params: {
     planSummary: buildIeltsHomePlanSummary({ plan, today: params.today }),
     today: params.todayAndRetention.today,
     todayDueCount: params.todayAndRetention.todayDueCount,
-    reviewsDueCount: params.reads.dueReviews.length,
+    reviewsDueCount: params.reads.dueReviewsTotal,
     todayOverflowCount: params.todayAndRetention.todayOverflowCount,
     retention: params.todayAndRetention.retention,
     isEnrolledStudent: params.reads.enrolled,

@@ -263,7 +263,7 @@ function PlanNudgeCard({ nudge }: { nudge: IeltsHomeRetentionView["nudge"] }) {
 
       <Link
         href={nudge.nextHref}
-        className="inline-flex h-9 items-center justify-center gap-1.5 self-start rounded-full bg-primary px-3.5 type-caption font-black text-on-primary transition-colors hover:bg-primary/90"
+        className="inline-flex h-9 items-center justify-center gap-1.5 self-start rounded-full bg-primary px-3.5 type-caption font-black text-on-primary transition-opacity hover:opacity-90"
       >
         {hasPlanItem ? t("today_start") : t("cta_view_plan")}
         <ArrowRight className="size-3.5" aria-hidden />

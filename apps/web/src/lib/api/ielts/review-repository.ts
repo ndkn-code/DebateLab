@@ -172,6 +172,27 @@ export async function listDueIeltsReviewItems(
   return data ?? [];
 }
 
+/**
+ * Exact count of due review items (head-only), so the home "reviews due" badge
+ * reflects the true total rather than a capped list length.
+ */
+export async function countDueIeltsReviewItems(
+  raw: unknown,
+  client?: IeltsDbClient,
+): Promise<number> {
+  const input = parseInput(DueIeltsReviewItemsQuerySchema, raw);
+  const dueAt = input.dueAt ?? new Date();
+  const supabase = await resolveIeltsClient(client);
+  const { count, error } = await supabase
+    .from("ielts_review_items")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", input.userId)
+    .in("state", input.states)
+    .lte("due_at", dueAt.toISOString());
+  if (error) throw new Error(`countDueIeltsReviewItems failed: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function rateIeltsReviewItem(
   raw: unknown,
   client?: IeltsDbClient,
