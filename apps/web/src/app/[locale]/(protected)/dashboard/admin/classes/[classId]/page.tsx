@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ClassDetailDashboard } from "@/components/admin/classes/ClassDetailDashboard";
 import { getAdminClassDetail } from "@/lib/api/admin-classes";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin - Class Detail" };
 
 export default async function AdminClassDetailPage({

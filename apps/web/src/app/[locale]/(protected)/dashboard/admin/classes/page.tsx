@@ -1,6 +1,10 @@
 import { ClassesDashboard } from "@/components/admin/classes/ClassesDashboard";
-import { getAdminClassesPageData, getAdminClassSchedulesPageData } from "@/lib/api/admin-classes";
+import {
+  getAdminClassesPageData,
+  getAdminClassSchedulesPageData,
+} from "@/lib/api/admin-classes";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin - Classes" };
 
 export default async function AdminClassesPage({

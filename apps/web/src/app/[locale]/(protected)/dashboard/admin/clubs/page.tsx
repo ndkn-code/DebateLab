@@ -1,6 +1,7 @@
 import { ClubsDashboard } from "@/components/admin/clubs/ClubsDashboard";
 import { getAdminClubsPageData } from "@/lib/api/admin-clubs";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin - Clubs" };
 
 export default async function AdminClubsPage({
@@ -9,7 +10,9 @@ export default async function AdminClubsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const data = await getAdminClubsPageData({ searchParams: resolvedSearchParams });
+  const data = await getAdminClubsPageData({
+    searchParams: resolvedSearchParams,
+  });
 
   return <ClubsDashboard data={data} />;
 }
