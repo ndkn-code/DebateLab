@@ -633,3 +633,14 @@ DebateLab product UI should feel calm, sparse, and action-led. The OnePrep lesso
 4. Use Browser QA on landing, auth, dashboard, courses, practice, feedback/history, chat/coach, leaderboards, profile/social, settings, admin, and dev QA pages.
 5. Capture screenshots for changed surfaces and compare against the approved imagegen reference board.
 6. Any visible legacy primary color outside the approved exceptions is a failure.
+
+## Chart System
+- **Tokens:** the §Chart Colors palette is promoted to `--color-chart-1..7` (light + dark), plus `--color-chart-grid/axis/tooltip-bg/tooltip-text/crosshair`. Source of truth: `@thinkfy/shared/design-system` (mirrored in `globals.css`). Semantic intent over index order: `chart-3` = positive, `chart-4` = caution, `chart-7` = negative.
+- **Engine:** one engine — the vendored bklit ChartKit (Visx) under `apps/web/src/components/charts/`, re-themed via a single `--chart-*` → `var(--color-chart-*)` bridge in `globals.css` (auto theme-switches, incl. nested `.dark`). Import chart roots + parts from `@/components/charts` (`AreaChart/BarChart/LineChart/RadarChart/RingChart/HeatmapChart` + `Grid/XAxis/ChartTooltip/...`).
+- **Primitives:** `@/components/data-viz` — `ChartCard` (shell), `StatCard` (KPI + count-up + sparkline), `Sparkline`, `SegmentedRange`, `DashboardSectionHeader`, and `ChartSkeleton/ChartEmpty/ChartError`.
+- **Rules:** series colors use `var(--chart-line-primary|secondary)` or `var(--color-chart-1..7)` — never raw hex, never `/opacity` on a chart token (use `opacity-*`). `components/charts/` is audit-allowlisted (vendored); every consuming surface is token-clean and audit-enforced.
+- **Reference:** the `/dashboard/admin/ui-system` styleguide; full plan in `docs/analytics-ui-revamp-masterplan.md`.
+
+## Motion System
+- **Tokens:** `thinkfyMotion` in `@thinkfy/shared` — `duration` (fast/base/slow), `ease` (standard/emphasized/overshoot), `spring` (soft/snappy). CSS mirrors: `--motion-duration-*` / `--motion-ease-*`.
+- **Kit:** `@/components/motion` — `PageTransition`, `Stagger`/`StaggerItem`, `AnimatedNumber`, `Shimmer`, `SuccessCheck`, `Swap`, `Shake` (variants in `@/lib/motion/variants`). Built on framer-motion from the transitions.dev vocabulary; all respect `prefers-reduced-motion`.
