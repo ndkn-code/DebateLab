@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { motion } from "framer-motion";
 import useSWR, { mutate as mutateSWR } from "swr";
 import { Link } from "@/i18n/navigation";
 import {
@@ -42,7 +41,35 @@ import {
   ProductPageHeader,
   ProductPageShell,
 } from "@/components/shared/product-layout";
-import { SKILL_UI_META } from "@/lib/analytics/skill-metadata";
+import { ChartCard, ChartEmpty, SegmentedRange } from "@/components/data-viz";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  BarXAxis,
+  ChartTooltip,
+  Grid,
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapLegend,
+  HeatmapTooltip,
+  HeatmapXAxis,
+  HeatmapYAxis,
+  RadarArea,
+  RadarAxis,
+  RadarChart,
+  RadarGrid,
+  RadarLabels,
+  Ring,
+  RingCenter,
+  RingChart,
+  XAxis,
+  type HeatmapColumn,
+  type HeatmapLevelColors,
+} from "@/components/charts";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { cn } from "@/lib/utils";
 import fireAnimation from "../../../public/lottie/fire.json";
@@ -51,6 +78,7 @@ import type {
   AnalyticsPageData,
   AnalyticsRangePreset,
   AnalyticsRecentSession,
+  AnalyticsTrendPoint,
   DebateSession,
 } from "@/types";
 
@@ -58,10 +86,28 @@ const RANGE_PRESETS: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
 const ANALYTICS_DEDUPE_INTERVAL = 5 * 60 * 1000;
 const LOCAL_SESSIONS_STORAGE_KEY = "debatelab_sessions";
 const LOCAL_SESSIONS_UPDATE_EVENT = "debatelab:sessions-updated";
-
-const CHART_SIZE = 330;
-const CHART_CENTER = CHART_SIZE / 2;
-const CHART_MAX_RADIUS = 106;
+const TREND_BASE_DATE_MS = Date.UTC(2024, 0, 1, 12);
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HEATMAP_WEEK_COUNT = 6;
+const HEATMAP_DAYS_PER_WEEK = 7;
+const FALLBACK_HEATMAP_END_DATE_MS = Date.UTC(2024, 0, 42, 12);
+const HEATMAP_LEVEL_COLORS: HeatmapLevelColors = [
+  "var(--color-surface-container-low)",
+  "var(--color-chart-2)",
+  "var(--color-chart-1)",
+  "var(--color-chart-6)",
+  "var(--color-chart-3)",
+];
+const SKILL_DOT_CLASS: Record<
+  AnalyticsPageData["skillSnapshot"]["metrics"][number]["key"],
+  string
+> = {
+  clarity: "bg-chart-1",
+  logic: "bg-chart-3",
+  rebuttal: "bg-chart-4",
+  evidence: "bg-chart-5",
+  delivery: "bg-chart-6",
+};
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
@@ -75,7 +121,7 @@ function getInitials(name: string | null | undefined) {
 
 function formatTotalMinutes(
   totalMinutes: number,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
   if (totalMinutes < 60) return t("minutes_short", { count: totalMinutes });
   const hours = Math.floor(totalMinutes / 60);
@@ -85,7 +131,10 @@ function formatTotalMinutes(
     : t("hours_short", { count: hours });
 }
 
-function formatDuration(minutes: number | null, t: ReturnType<typeof useTranslations>) {
+function formatDuration(
+  minutes: number | null,
+  t: ReturnType<typeof useTranslations>,
+) {
   if (!minutes || minutes <= 0) return t("duration_unknown");
   if (minutes < 60) return t("minutes_short", { count: minutes });
   const hours = Math.floor(minutes / 60);
@@ -104,7 +153,7 @@ function formatDate(iso: string, locale: string) {
 
 function findInsight<T extends AnalyticsInsightCard["key"]>(
   insights: AnalyticsInsightCard[],
-  key: T
+  key: T,
 ) {
   return insights.find((insight) => insight.key === key) as Extract<
     AnalyticsInsightCard,
@@ -112,39 +161,9 @@ function findInsight<T extends AnalyticsInsightCard["key"]>(
   >;
 }
 
-function labelPositionForIndex(index: number) {
-  const radius = CHART_MAX_RADIUS + 28;
-  const angle = -Math.PI / 2 + (index * (Math.PI * 2)) / 5;
-  const x = CHART_CENTER + Math.cos(angle) * radius;
-  const y = CHART_CENTER + Math.sin(angle) * radius;
-
-  if (index === 0) return { x, y, textAnchor: "middle" as const };
-  if (index === 1 || index === 2) return { x, y, textAnchor: "start" as const };
-  return { x, y, textAnchor: "end" as const };
-}
-
-function pointForValue(index: number, value: number) {
-  const radius = CHART_MAX_RADIUS * (value / 100);
-  const angle = -Math.PI / 2 + (index * (Math.PI * 2)) / 5;
-
-  return {
-    x: CHART_CENTER + Math.cos(angle) * radius,
-    y: CHART_CENTER + Math.sin(angle) * radius,
-  };
-}
-
-function polygonPoints(values: number[]) {
-  return values
-    .map((value, index) => {
-      const point = pointForValue(index, value);
-      return `${point.x},${point.y}`;
-    })
-    .join(" ");
-}
-
 function getAnalyticsSummaryKey(
   range: AnalyticsRangePreset,
-  practiceLanguage: string
+  practiceLanguage: string,
 ) {
   return `/api/analytics/summary?range=${range}&language=${practiceLanguage}`;
 }
@@ -182,7 +201,7 @@ function parseLocalRecentSessions(snapshot: string, practiceLanguage: string) {
     return (JSON.parse(snapshot) as DebateSession[])
       .filter(
         (session) =>
-          coercePracticeLanguage(session.practiceLanguage) === practiceLanguage
+          coercePracticeLanguage(session.practiceLanguage) === practiceLanguage,
       )
       .map(mapLocalRecentSession);
   } catch {
@@ -213,18 +232,20 @@ function mapLocalRecentSession(session: DebateSession): AnalyticsRecentSession {
 
 function mergeRecentSessions(
   remoteSessions: AnalyticsRecentSession[],
-  localSessions: AnalyticsRecentSession[]
+  localSessions: AnalyticsRecentSession[],
 ) {
   return [...remoteSessions, ...localSessions]
     .filter((session, index, sessions) => {
       const firstMatchIndex = sessions.findIndex(
-        (candidate) => candidate.kind === session.kind && candidate.id === session.id
+        (candidate) =>
+          candidate.kind === session.kind && candidate.id === session.id,
       );
       return firstMatchIndex === index;
     })
     .sort(
       (left, right) =>
-        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
     );
 }
 
@@ -240,16 +261,90 @@ async function fetchAnalyticsSummary(key: string): Promise<AnalyticsPageData> {
 function replaceRangeInUrl(range: AnalyticsRangePreset) {
   const url = new URL(window.location.href);
   url.searchParams.set("range", range);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  window.history.replaceState(
+    null,
+    "",
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function trendDate(index: number) {
+  return new Date(TREND_BASE_DATE_MS + index * DAY_MS);
+}
+
+function toTrendChartData(series: AnalyticsTrendPoint[]) {
+  return series.map((entry, index) => ({
+    date: trendDate(index),
+    label: entry.label,
+    value: Math.round(entry.value),
+  }));
+}
+
+function toPracticeMinutesData(series: AnalyticsTrendPoint[]) {
+  return series.map((entry) => ({
+    label: entry.label,
+    minutes: Math.round(entry.value),
+  }));
+}
+
+function buildActivityHeatmap(
+  sessions: AnalyticsRecentSession[],
+): HeatmapColumn[] {
+  const counts = new Map<string, number>();
+  const sessionTimes: number[] = [];
+
+  sessions.forEach((session) => {
+    const date = new Date(session.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    const key = date.toISOString().slice(0, 10);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    sessionTimes.push(date.getTime());
+  });
+
+  const latestSessionTime =
+    sessionTimes.length > 0
+      ? Math.max(...sessionTimes)
+      : FALLBACK_HEATMAP_END_DATE_MS;
+  const latestDate = new Date(latestSessionTime);
+  latestDate.setUTCHours(12, 0, 0, 0);
+  const firstDateMs =
+    latestDate.getTime() -
+    (HEATMAP_WEEK_COUNT * HEATMAP_DAYS_PER_WEEK - 1) * DAY_MS;
+
+  return Array.from({ length: HEATMAP_WEEK_COUNT }, (_, week) => ({
+    bin: week,
+    bins: Array.from({ length: HEATMAP_DAYS_PER_WEEK }, (_, day) => {
+      const index = week * HEATMAP_DAYS_PER_WEEK + day;
+      const date = new Date(firstDateMs + index * DAY_MS);
+      const key = date.toISOString().slice(0, 10);
+
+      return {
+        bin: day,
+        count: counts.get(key) ?? 0,
+        date,
+      };
+    }),
+  }));
+}
+
+function getHeatmapLevelColor(count: number | null | undefined) {
+  if (!count || count <= 0) return HEATMAP_LEVEL_COLORS[0];
+  if (count === 1) return HEATMAP_LEVEL_COLORS[1];
+  if (count === 2) return HEATMAP_LEVEL_COLORS[2];
+  if (count === 3) return HEATMAP_LEVEL_COLORS[3];
+  return HEATMAP_LEVEL_COLORS[4];
 }
 
 function getAnalyticsScoreMeta(
   score: number | null,
-  t?: ReturnType<typeof useTranslations>
+  t?: ReturnType<typeof useTranslations>,
 ) {
   if (score == null) {
     return {
-      stroke: "#8A96A8",
       status: t?.("score_status.completed") ?? "Completed",
       note: t?.("score_note.reviewed") ?? "Reviewed",
       badgeClassName: "bg-surface-container-low text-on-surface-variant",
@@ -258,30 +353,27 @@ function getAnalyticsScoreMeta(
 
   if (score >= 80) {
     return {
-      stroke: "#00a66f",
       status: t?.("score_status.proficient") ?? "Proficient",
       note:
         score >= 90
-          ? t?.("score_note.excellent") ?? "Excellent"
-          : t?.("score_note.very_good") ?? "Very Good",
+          ? (t?.("score_note.excellent") ?? "Excellent")
+          : (t?.("score_note.very_good") ?? "Very Good"),
       badgeClassName: "bg-surface-container text-on-surface-variant",
     };
   }
 
   if (score >= 70) {
     return {
-      stroke: "#1478ff",
       status: t?.("score_status.competent") ?? "Competent",
       note:
         score >= 74
-          ? t?.("score_note.good") ?? "Good"
-          : t?.("score_note.solid") ?? "Solid",
+          ? (t?.("score_note.good") ?? "Good")
+          : (t?.("score_note.solid") ?? "Solid"),
       badgeClassName: "bg-surface-container text-primary",
     };
   }
 
   return {
-    stroke: "#F59E0B",
     status: t?.("score_status.developing") ?? "Developing",
     note: t?.("score_note.keep_going") ?? "Keep going",
     badgeClassName: "bg-warning-container text-on-surface-variant",
@@ -341,7 +433,10 @@ function getSessionVisual(session: AnalyticsRecentSession, index: number) {
   return visuals[index % visuals.length];
 }
 
-function getSessionDetail(session: AnalyticsRecentSession, t: ReturnType<typeof useTranslations>) {
+function getSessionDetail(
+  session: AnalyticsRecentSession,
+  t: ReturnType<typeof useTranslations>,
+) {
   if (session.kind === "duel") return t("recent_duel_badge");
   if (session.practiceTrack === "speaking") {
     return t("recent_speaking_badge");
@@ -353,288 +448,251 @@ function getSessionDetail(session: AnalyticsRecentSession, t: ReturnType<typeof 
     : t("recent_constructive");
 }
 
+function getScoreChartColor(score: number) {
+  if (score >= 80) return "var(--color-chart-3)";
+  if (score >= 70) return "var(--chart-line-primary)";
+  return "var(--color-chart-4)";
+}
+
 function AnalyticsScoreRing({ score }: { score: number | null }) {
   if (score == null) {
     return (
       <div className="flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-full bg-surface-container-low text-sm font-semibold text-on-surface-variant">
-        —
+        -
       </div>
     );
   }
 
-  const meta = getAnalyticsScoreMeta(score);
-  const radius = 24;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.max(0, Math.min(100, score)) / 100) * circumference;
+  const value = clampPercent(score);
+  const color = getScoreChartColor(value);
+  const ringData = [{ label: "Score", value, maxValue: 100, color }];
 
   return (
-    <div className="relative flex h-[3.8rem] w-[3.8rem] items-center justify-center">
-      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 64 64">
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke="rgba(222,232,248,0.95)"
-          strokeWidth="4"
-        />
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke={meta.stroke}
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-        />
-      </svg>
-      <span className="text-sm font-semibold text-on-surface">{score}</span>
-    </div>
-  );
-}
-
-function MiniBarChart({
-  values,
-  labels,
-  compact = false,
-}: {
-  values: number[];
-  labels: string[];
-  compact?: boolean;
-}) {
-  const max = Math.max(...values, 1);
-  const hasData = values.some((value) => value > 0);
-  const highlightIndex = hasData ? values.findIndex((value) => value === max) : -1;
-  const chartHeight = compact ? 98 : 112;
-  const barWidthClass = compact ? "max-w-[12px]" : "max-w-[18px]";
-
-  return (
-    <div className={cn("mt-5", compact && "mt-0")}>
-      <div className="flex items-end justify-between gap-2.5" style={{ height: chartHeight }}>
-        {values.map((value, index) => (
-          <div
-            key={`${labels[index]}-${index}`}
-            className="flex flex-1 flex-col items-center justify-end"
-          >
-            <div
-              className={cn(
-                "w-full rounded-full transition-all",
-                barWidthClass,
-                index === highlightIndex
-                  ? "bg-primary"
-                  : value > 0
-                    ? "bg-primary/42"
-                    : "bg-primary/16"
-              )}
-              style={{
-                height: `${hasData ? Math.max(12, (value / max) * (compact ? 88 : 96)) : 9}px`,
-              }}
-            />
-            {labels[index] ? (
-              <div className="mt-2 text-center type-caption text-on-surface-variant/90">
-                {labels[index]}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MiniLineChart({
-  values,
-  ariaLabel,
-}: {
-  values: number[];
-  ariaLabel: string;
-}) {
-  if (values.length === 0) {
-    return (
-      <div className="mt-4 flex h-[96px] items-center justify-center rounded-2xl bg-surface-container-low text-sm text-on-surface-variant">
-        —
-      </div>
-    );
-  }
-
-  const width = 320;
-  const height = 116;
-  const chartLeft = 36;
-  const chartRight = 312;
-  const chartTop = 12;
-  const chartBottom = 94;
-  const stepX =
-    values.length === 1 ? 0 : (chartRight - chartLeft) / (values.length - 1);
-
-  const chartPoints = values.map((value, index) => {
-      const x = chartLeft + index * stepX;
-    const clamped = Math.max(0, Math.min(100, value));
-    const y = chartBottom - (clamped / 100) * (chartBottom - chartTop);
-    return { x, y, value: Math.round(value) };
-  });
-  const points = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
-  const areaPoints = `${chartLeft},${chartBottom} ${points} ${chartRight},${chartBottom}`;
-
-  return (
-    <div className="mt-3 -mx-1">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-[112px] w-full overflow-visible"
-        role="img"
-        aria-label={ariaLabel}
+    <div className="flex h-[3.8rem] w-[3.8rem] items-center justify-center">
+      <RingChart
+        data={ringData}
+        size={58}
+        strokeWidth={5}
+        ringGap={0}
+        baseInnerRadius={18}
       >
-        <defs>
-          <linearGradient id="analytics-score-area" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#00B8D9" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#00B8D9" stopOpacity="0" />
-          </linearGradient>
-          <filter id="analytics-score-glow" x="-20%" y="-80%" width="140%" height="260%">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="0 0 0 0 0.302 0 0 0 0 0.525 0 0 0 0 0.969 0 0 0 0.35 0"
-            />
-            <feMerge>
-              <feMergeNode />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        {[100, 75, 50, 25, 0].map((tick) => {
-          const y = chartBottom - (tick / 100) * (chartBottom - chartTop);
-          return (
-            <g key={tick}>
-              <text
-                x="3"
-                y={y + 3}
-                className="fill-primary type-caption"
-              >
-                {tick}
-              </text>
-              <line
-                x1={chartLeft}
-                y1={y}
-                x2={chartRight}
-                y2={y}
-                stroke="rgba(65,80,105,0.1)"
-                strokeWidth="1"
-              />
-            </g>
-          );
-        })}
-        <polygon points={areaPoints} fill="url(#analytics-score-area)" />
-        <polyline
-          fill="none"
-          stroke="rgba(0,184,217,0.22)"
-          strokeWidth="7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points}
+        <Ring index={0} color={color} showGlow={false} />
+        <RingCenter
+          defaultLabel=""
+          labelClassName="sr-only"
+          valueClassName="type-label tabular-nums text-on-surface"
         />
-        <polyline
-          fill="none"
-          stroke="#00B8D9"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points}
-          filter="url(#analytics-score-glow)"
-        />
-        {chartPoints.map((point, index) => {
-          const tooltipX = Math.min(Math.max(point.x - 24, chartLeft), chartRight - 48);
-          const tooltipY = Math.max(point.y - 30, 1);
-
-          return (
-            <g key={`${point.x}-${point.y}-${index}`} className="group cursor-default">
-              <circle cx={point.x} cy={point.y} r="11" fill="transparent">
-                <title>{`${point.value}/100`}</title>
-              </circle>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={index === chartPoints.length - 1 ? "5" : "3.8"}
-                fill="#00B8D9"
-                stroke="#FFFFFF"
-                strokeWidth="2"
-              />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={index === chartPoints.length - 1 ? "9" : "0"}
-                fill="rgba(0,184,217,0.18)"
-              />
-              <g className="pointer-events-none opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                <rect
-                  x={tooltipX}
-                  y={tooltipY}
-                  width="48"
-                  height="22"
-                  rx="8"
-                  fill="#102936"
-                  opacity="0.92"
-                />
-                <text
-                  x={tooltipX + 24}
-                  y={tooltipY + 14.5}
-                  textAnchor="middle"
-                  className="fill-white type-caption font-semibold"
-                >
-                  {point.value}/100
-                </text>
-              </g>
-            </g>
-          );
-        })}
-      </svg>
+      </RingChart>
     </div>
   );
 }
 
-function DonutRing({
-  value,
+function PracticeMinutesBarChart({
+  series,
+}: {
+  series: AnalyticsTrendPoint[];
+}) {
+  const chartData = toPracticeMinutesData(series);
+
+  return (
+    <div className="h-28">
+      <BarChart
+        aspectRatio="auto"
+        barGap={0.35}
+        className="h-full"
+        data={chartData}
+        margin={{ top: 8, right: 8, bottom: 28, left: 8 }}
+        xDataKey="label"
+      >
+        <Bar
+          dataKey="minutes"
+          fill="var(--chart-line-primary)"
+          lineCap="round"
+          minBarHeight={3}
+        />
+        <BarXAxis maxLabels={4} />
+        <ChartTooltip
+          rows={(point) => [
+            {
+              color: "var(--chart-line-primary)",
+              label: String(point.label ?? ""),
+              value: point.minutes as number,
+            },
+          ]}
+          showDatePill={false}
+        />
+      </BarChart>
+    </div>
+  );
+}
+
+function ScoreTrendAreaChart({
+  series,
+  emptyTitle,
+}: {
+  series: AnalyticsTrendPoint[];
+  emptyTitle: string;
+}) {
+  const chartData = toTrendChartData(series);
+  const hasData = chartData.some((entry) => entry.value > 0);
+
+  if (!hasData) {
+    return <ChartEmpty className="h-28" title={emptyTitle} />;
+  }
+
+  return (
+    <div className="h-28">
+      <AreaChart
+        aspectRatio="auto"
+        className="h-full"
+        data={chartData}
+        margin={{ top: 10, right: 10, bottom: 28, left: 10 }}
+        style={{ height: "100%" }}
+      >
+        <Grid horizontal />
+        <Area
+          dataKey="value"
+          fill="var(--chart-line-primary)"
+          fillOpacity={0.24}
+          gradientToOpacity={0}
+          showMarkers
+          stroke="var(--chart-line-primary)"
+          strokeWidth={2.5}
+        />
+        <XAxis numTicks={3} />
+        <ChartTooltip
+          rows={(point) => [
+            {
+              color: "var(--chart-line-primary)",
+              label: String(point.label ?? ""),
+              value: `${point.value}/100`,
+            },
+          ]}
+          showDatePill={false}
+        />
+      </AreaChart>
+    </div>
+  );
+}
+
+function PercentRingChart({ value, label }: { value: number; label: string }) {
+  const clamped = clampPercent(value);
+  const ringData = [
+    {
+      label,
+      value: clamped,
+      maxValue: 100,
+      color: "var(--chart-line-primary)",
+    },
+  ];
+
+  return (
+    <div className="flex h-36 w-36 shrink-0 items-center justify-center">
+      <RingChart
+        data={ringData}
+        size={136}
+        strokeWidth={12}
+        ringGap={0}
+        baseInnerRadius={40}
+      >
+        <Ring index={0} color="var(--chart-line-primary)" />
+        <RingCenter
+          defaultLabel={label}
+          suffix="%"
+          valueClassName="type-heading-lg font-semibold text-on-surface"
+        />
+      </RingChart>
+    </div>
+  );
+}
+
+function OverallRingChart({
+  score,
   label,
 }: {
-  value: number;
+  score: number | null;
   label: string;
 }) {
-  const radius = 39;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, value));
-  const offset = circumference - (clamped / 100) * circumference;
+  if (score == null) {
+    return <ChartEmpty className="h-48" title="-" />;
+  }
+
+  const value = clampPercent(score);
+  const color = getScoreChartColor(value);
+  const ringData = [{ label, value, maxValue: 100, color }];
 
   return (
-    <div className="relative flex h-36 w-36 shrink-0 items-center justify-center">
-      <svg className="h-36 w-36 -rotate-90" viewBox="0 0 100 100">
-        <circle
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="none"
-          stroke="rgba(168,240,215,0.25)"
-          strokeWidth="12"
+    <div className="flex h-52 items-center justify-center">
+      <RingChart
+        data={ringData}
+        size={192}
+        strokeWidth={14}
+        ringGap={0}
+        baseInnerRadius={56}
+      >
+        <Ring index={0} color={color} />
+        <RingCenter
+          defaultLabel={label}
+          valueClassName="type-display-sm text-on-surface"
         />
-        <circle
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="none"
-          stroke="#00B8D9"
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-        />
-      </svg>
-      <div className="absolute text-center">
-        <Stat size="heading-lg" as="div" className="font-semibold text-on-surface">
-          {clamped}%
-        </Stat>
-        <div className="mt-0.5 text-xs text-on-surface-variant">{label}</div>
-      </div>
+      </RingChart>
     </div>
+  );
+}
+
+function ActivityHeatmapCard({
+  sessions,
+}: {
+  sessions: AnalyticsRecentSession[];
+}) {
+  const t = useTranslations("analyticsPage");
+  const locale = useLocale();
+  const heatmapData = useMemo(() => buildActivityHeatmap(sessions), [sessions]);
+  const hasActivity = heatmapData.some((column) =>
+    column.bins.some((bin) => bin.count > 0),
+  );
+
+  return (
+    <ChartCard
+      title={t("activity.title")}
+      subtitle={t("activity.subtitle")}
+      className="overflow-hidden"
+    >
+      {hasActivity ? (
+        <HeatmapInteractionProvider>
+          <HeatmapInteractionBoundary>
+            <div className="flex flex-col gap-3">
+              <HeatmapChart
+                className="w-full"
+                data={heatmapData}
+                layout="fluid"
+                levelColors={HEATMAP_LEVEL_COLORS}
+                margin={{ top: 26, right: 10, bottom: 0, left: 34 }}
+              >
+                <HeatmapCells />
+                <HeatmapXAxis />
+                <HeatmapYAxis />
+                <HeatmapTooltip
+                  formatLabel={(count, date) =>
+                    t("activity.tooltip", {
+                      count,
+                      date: formatDate(date.toISOString(), locale),
+                    })
+                  }
+                />
+              </HeatmapChart>
+              <HeatmapLegend
+                colorScale={getHeatmapLevelColor}
+                lessLabel={t("activity.less")}
+                moreLabel={t("activity.more")}
+              />
+            </div>
+          </HeatmapInteractionBoundary>
+        </HeatmapInteractionProvider>
+      ) : (
+        <ChartEmpty className="h-40" title={t("activity.empty")} />
+      )}
+    </ChartCard>
   );
 }
 
@@ -642,56 +700,29 @@ function RangeControl({
   currentRange,
   isPending,
   onRangeChange,
-  onRangePrefetch,
 }: {
   currentRange: AnalyticsRangePreset;
   isPending: boolean;
   onRangeChange: (range: AnalyticsRangePreset) => void;
-  onRangePrefetch: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("analyticsPage");
+  const options = RANGE_PRESETS.map((preset) => ({
+    value: preset,
+    label: t(`range_${preset}`),
+  }));
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div
-        className="inline-flex rounded-full border border-outline-variant/20 bg-surface p-1 shadow-sm"
-        role="tablist"
-        aria-label={t("range_label")}
-      >
-        {RANGE_PRESETS.map((preset) => {
-          const active = currentRange === preset;
-          return (
-            <button
-              key={preset}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => onRangeChange(preset)}
-              onMouseEnter={() => onRangePrefetch(preset)}
-              onFocus={() => onRangePrefetch(preset)}
-              className={cn(
-                "relative h-10 min-w-[4.35rem] overflow-hidden rounded-full px-4 text-sm font-medium transition-colors",
-                active
-                  ? "text-on-primary"
-                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-              )}
-            >
-              {active ? (
-                <motion.span
-                  layoutId="analytics-range-thumb"
-                  className="absolute inset-0 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                />
-              ) : null}
-              <span className="relative z-10">{t(`range_${preset}`)}</span>
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedRange
+        className="shadow-sm"
+        onChange={onRangeChange}
+        options={options}
+        value={currentRange}
+      />
       <span
         className={cn(
           "text-xs font-medium text-on-surface-variant transition-opacity",
-          isPending ? "opacity-100" : "opacity-0"
+          isPending ? "opacity-100" : "opacity-0",
         )}
         aria-live="polite"
       >
@@ -717,16 +748,24 @@ function HeroStat({
       <div
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          tone
+          tone,
         )}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <Stat size="heading-md" as="div" className="whitespace-nowrap text-on-surface">
+        <Stat
+          size="heading-md"
+          as="div"
+          className="whitespace-nowrap text-on-surface"
+        >
           {value}
         </Stat>
-        <Text variant="body-sm" as="div" className="mt-1 whitespace-nowrap text-on-surface-variant">
+        <Text
+          variant="body-sm"
+          as="div"
+          className="mt-1 whitespace-nowrap text-on-surface-variant"
+        >
           {label}
         </Text>
       </div>
@@ -742,102 +781,56 @@ function AnalyticsSkillSnapshotCard({
   confidence,
 }: AnalyticsPageData["skillSnapshot"]) {
   const t = useTranslations("analyticsPage");
-  const values = metrics.map((metric) => (metric.coverage > 0 ? metric.value : 0));
+  const radarMetrics = metrics.map((metric) => ({
+    key: metric.key,
+    label: t(`skills.${metric.key}`),
+  }));
+  const radarData = [
+    {
+      label: t("overall_score"),
+      color: "var(--chart-line-primary)",
+      values: Object.fromEntries(
+        metrics.map((metric) => [
+          metric.key,
+          metric.coverage > 0 ? clampPercent(metric.value) : 0,
+        ]),
+      ),
+    },
+  ];
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 pb-3 shadow-token-card lg:p-6 lg:pb-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <Heading level={4} as="h2">
-            {t("skill_snapshot_title")}
-          </Heading>
-        </div>
+    <ChartCard
+      actions={
         <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           {t("confidence", { count: confidence })}
         </span>
-      </div>
-
+      }
+      className="min-w-0 overflow-hidden"
+      title={t("skill_snapshot_title")}
+    >
       {sourceSessions === 0 ? (
-        <div className="mt-5 flex h-[250px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-5 text-center">
-          <Text variant="body-sm" className="font-medium text-on-surface">{t("empty_title")}</Text>
-          <Text variant="body-sm" className="mt-2 max-w-md text-on-surface-variant">
-            {t("empty_body")}
-          </Text>
-        </div>
+        <ChartEmpty
+          className="h-[250px] rounded-xl border border-dashed border-outline-variant/20 bg-surface-container-low px-5"
+          description={t("empty_body")}
+          title={t("empty_title")}
+        />
       ) : (
-        <div className="mt-4 grid min-w-0 gap-5 xl:grid-cols-[minmax(300px,1.08fr)_minmax(270px,0.92fr)]">
-          <div className="flex min-h-[294px] items-center justify-center">
-            <svg
-              viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
-              className="block h-[297px] w-full max-w-[352px]"
-              aria-hidden="true"
-            >
-              {[1, 2, 3, 4].map((step) => {
-                const ringValue = 25 * step;
-                return (
-                  <polygon
-                    key={step}
-                    points={polygonPoints(Array(5).fill(ringValue))}
-                    fill={step % 2 === 0 ? "rgba(168,240,215,0.1)" : "transparent"}
-                    stroke="rgba(65,80,105,0.18)"
-                    strokeWidth="1"
-                  />
-                );
-              })}
-
-              {metrics.map((_, index) => {
-                const edge = pointForValue(index, 100);
-                return (
-                  <line
-                    key={`axis-${index}`}
-                    x1={CHART_CENTER}
-                    y1={CHART_CENTER}
-                    x2={edge.x}
-                    y2={edge.y}
-                    stroke="rgba(65,80,105,0.16)"
-                    strokeWidth="1"
-                  />
-                );
-              })}
-
-              <polygon
-                points={polygonPoints(values)}
-                fill="rgba(0,184,217,0.16)"
-                stroke="rgba(7,136,160,0.95)"
-                strokeWidth="2.5"
-              />
-
-              {metrics.map((metric, index) => {
-                const point = pointForValue(index, metric.value);
-                return (
-                  <circle
-                    key={`point-${metric.key}`}
-                    cx={point.x}
-                    cy={point.y}
-                    r="4"
-                    fill="#0788A0"
-                  />
-                );
-              })}
-
-              {metrics.map((metric, index) => {
-                const position = labelPositionForIndex(index);
-                return (
-                  <text
-                    key={`${metric.key}-label`}
-                    x={position.x}
-                    y={position.y}
-                    textAnchor={position.textAnchor}
-                    className="fill-primary type-body-sm font-medium"
-                  >
-                    {t(`skills.${metric.key}`)}
-                  </text>
-                );
-              })}
-            </svg>
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(300px,1.04fr)_minmax(250px,0.96fr)]">
+          <div className="flex min-h-[294px] items-center justify-center rounded-xl bg-surface-container-low px-3 py-4">
+            <RadarChart data={radarData} metrics={radarMetrics} size={284}>
+              <RadarGrid />
+              <RadarAxis />
+              <RadarLabels fontSize={10} offset={16} />
+              <RadarArea index={0} color="var(--chart-line-primary)" />
+            </RadarChart>
           </div>
 
-          <div className="flex flex-col border-t border-outline-variant/16 pt-5 xl:border-l xl:border-t-0 xl:pt-0 xl:pl-6">
+          <div className="grid gap-4">
+            <OverallRingChart
+              label={t("overall_score")}
+              score={overallScore != null ? Math.round(overallScore) : null}
+            />
+
             <div className="divide-y divide-outline-variant/16">
               {metrics.map((metric) => (
                 <div
@@ -846,8 +839,10 @@ function AnalyticsSkillSnapshotCard({
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: SKILL_UI_META[metric.key].accentHex }}
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full",
+                        SKILL_DOT_CLASS[metric.key],
+                      )}
                     />
                     <span className="type-body font-medium text-on-surface">
                       {t(`skills.${metric.key}`)}
@@ -858,36 +853,25 @@ function AnalyticsSkillSnapshotCard({
                       {metric.coverage > 0 ? Math.round(metric.value) : "—"}
                     </Stat>
                     {metric.coverage > 0 ? (
-                      <span className="ml-1 text-sm text-on-surface-variant">/100</span>
+                      <span className="ml-1 text-sm text-on-surface-variant">
+                        /100
+                      </span>
                     ) : null}
                   </p>
                 </div>
               ))}
             </div>
-
-            <div className="mt-1">
-              <div className="flex items-center justify-between gap-4 border-t border-outline-variant/16 pt-2">
-                <span className="min-w-0 text-sm font-medium text-on-surface">
-                  {t("overall_score")}
-                </span>
-                <p className="inline-flex shrink-0 items-center gap-1.5 text-right">
-                  <Star className="h-4.5 w-4.5 fill-primary text-primary" />
-                  <Stat size="heading-md" className="text-primary">
-                    {overallScore != null ? Math.round(overallScore) : "—"}
-                  </Stat>
-                  <span className="ml-1 text-sm text-on-surface-variant">/100</span>
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="flex items-center gap-3 rounded-[1.15rem] bg-surface-container-low px-4 py-3 xl:col-span-2 xl:-mt-4">
             <Star className="h-4.5 w-4.5 shrink-0 fill-primary text-primary" />
-            <Text variant="body-sm" className="min-w-0 text-on-surface-variant">{note}</Text>
+            <Text variant="body-sm" className="min-w-0 text-on-surface-variant">
+              {note}
+            </Text>
           </div>
         </div>
       )}
-    </section>
+    </ChartCard>
   );
 }
 
@@ -903,7 +887,8 @@ function RecentSessionCard({
   const score = session.score != null ? Math.round(session.score) : null;
   const scoreMeta = getAnalyticsScoreMeta(score, t);
   const visual = getSessionVisual(session, index);
-  const StatusIcon = scoreMeta.status === "Proficient" ? BadgeCheck : ShieldCheck;
+  const StatusIcon =
+    scoreMeta.status === "Proficient" ? BadgeCheck : ShieldCheck;
   const tag =
     session.kind === "duel"
       ? t("recent_duel_badge")
@@ -916,10 +901,12 @@ function RecentSessionCard({
       <div
         className={cn(
           "flex h-14 w-14 items-center justify-center rounded-[1.1rem]",
-          visual.iconWrapClassName
+          visual.iconWrapClassName,
         )}
       >
-        <visual.Icon className={cn("h-7 w-7 stroke-[2.25]", visual.iconClassName)} />
+        <visual.Icon
+          className={cn("h-7 w-7 stroke-[2.25]", visual.iconClassName)}
+        />
       </div>
 
       <div className="min-w-0">
@@ -934,7 +921,7 @@ function RecentSessionCard({
                 ? "bg-warning-container text-warning"
                 : session.practiceTrack === "speaking"
                   ? "bg-surface-container text-primary"
-                  : "bg-surface-container text-on-surface-variant"
+                  : "bg-surface-container text-on-surface-variant",
             )}
           >
             {tag}
@@ -951,7 +938,7 @@ function RecentSessionCard({
         <span
           className={cn(
             "inline-flex h-8 w-fit max-w-full items-center gap-1.5 truncate rounded-full px-2.5 text-xs font-semibold",
-            scoreMeta.badgeClassName
+            scoreMeta.badgeClassName,
           )}
         >
           <StatusIcon className="h-4 w-4 shrink-0" />
@@ -961,7 +948,7 @@ function RecentSessionCard({
               : session.resultLabel === "Lost"
                 ? t("recent_lost")
                 : t("recent_completed")
-            : session.resultLabel ?? scoreMeta.status}
+            : (session.resultLabel ?? scoreMeta.status)}
         </span>
         <span className="pl-2 text-sm font-medium text-on-surface-variant">
           {scoreMeta.note}
@@ -992,40 +979,50 @@ function RecentSessionCard({
   );
 }
 
-export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }) {
+export function AnalyticsPage({
+  data: initialData,
+}: {
+  data: AnalyticsPageData;
+}) {
   const t = useTranslations("analyticsPage");
   const locale = useLocale();
   const practiceLanguage = coercePracticeLanguage(locale);
   const [selectedRange, setSelectedRange] = useState(initialData.range);
-  const prefetchedRangesRef = useRef(new Set<AnalyticsRangePreset>([initialData.range]));
+  const prefetchedRangesRef = useRef(
+    new Set<AnalyticsRangePreset>([initialData.range]),
+  );
   const localSessionsSnapshot = useSyncExternalStore(
     subscribeToLocalSessions,
     getLocalSessionsSnapshot,
-    () => "[]"
+    () => "[]",
   );
   const analyticsKey = getAnalyticsSummaryKey(selectedRange, practiceLanguage);
   const { data: fetchedData, isValidating } = useSWR<AnalyticsPageData>(
     analyticsKey,
     fetchAnalyticsSummary,
     {
-      fallbackData: selectedRange === initialData.range ? initialData : undefined,
+      fallbackData:
+        selectedRange === initialData.range ? initialData : undefined,
       keepPreviousData: true,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: ANALYTICS_DEDUPE_INTERVAL,
-    }
+    },
   );
   const data = fetchedData ?? initialData;
   const isPending = data.range !== selectedRange || isValidating;
-  const prefetchRange = useCallback((range: AnalyticsRangePreset) => {
-    if (prefetchedRangesRef.current.has(range)) return;
-    prefetchedRangesRef.current.add(range);
-    const key = getAnalyticsSummaryKey(range, practiceLanguage);
-    mutateSWR(key, fetchAnalyticsSummary(key), {
-      populateCache: true,
-      revalidate: false,
-    });
-  }, [practiceLanguage]);
+  const prefetchRange = useCallback(
+    (range: AnalyticsRangePreset) => {
+      if (prefetchedRangesRef.current.has(range)) return;
+      prefetchedRangesRef.current.add(range);
+      const key = getAnalyticsSummaryKey(range, practiceLanguage);
+      mutateSWR(key, fetchAnalyticsSummary(key), {
+        populateCache: true,
+        revalidate: false,
+      });
+    },
+    [practiceLanguage],
+  );
   const handleRangeChange = useCallback(
     (range: AnalyticsRangePreset) => {
       if (range === selectedRange) return;
@@ -1033,7 +1030,7 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
       replaceRangeInUrl(range);
       prefetchRange(range);
     },
-    [prefetchRange, selectedRange, setSelectedRange]
+    [prefetchRange, selectedRange, setSelectedRange],
   );
 
   useEffect(() => {
@@ -1046,19 +1043,19 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
 
   const practiceMinutesCard = useMemo(
     () => findInsight(data.insights, "practice-minutes"),
-    [data.insights]
+    [data.insights],
   );
   const mixCard = useMemo(
     () => findInsight(data.insights, "speaking-vs-debate"),
-    [data.insights]
+    [data.insights],
   );
   const averageCard = useMemo(
     () => findInsight(data.insights, "recent-average-score"),
-    [data.insights]
+    [data.insights],
   );
   const strongestFocusCard = useMemo(
     () => findInsight(data.insights, "strongest-focus"),
-    [data.insights]
+    [data.insights],
   );
   const practiceMinutesDisplay = practiceMinutesCard;
   const mixDisplay = mixCard;
@@ -1067,123 +1064,137 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
     () =>
       mergeRecentSessions(
         data.recentSessions,
-        parseLocalRecentSessions(localSessionsSnapshot, practiceLanguage)
+        parseLocalRecentSessions(localSessionsSnapshot, practiceLanguage),
       ),
-    [data.recentSessions, localSessionsSnapshot, practiceLanguage]
+    [data.recentSessions, localSessionsSnapshot, practiceLanguage],
   );
 
   return (
     <PageTransition className="min-h-full bg-background">
       <ProductPageShell>
-      <PageContainer size="standard" className="flex min-w-0 flex-col py-5 lg:py-6">
-        <ProductPageHeader
-          title={t("title")}
-          icon={<BarChart3 />}
-          actions={
-            <RangeControl
-              currentRange={selectedRange}
-              isPending={isPending}
-              onRangeChange={handleRangeChange}
-              onRangePrefetch={prefetchRange}
-            />
-          }
-        />
+        <PageContainer
+          size="standard"
+          className="flex min-w-0 flex-col py-5 lg:py-6"
+        >
+          <ProductPageHeader
+            title={t("title")}
+            icon={<BarChart3 />}
+            actions={
+              <RangeControl
+                currentRange={selectedRange}
+                isPending={isPending}
+                onRangeChange={handleRangeChange}
+              />
+            }
+          />
 
-        <div className="grid gap-4">
-          <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
-            <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-token-card lg:p-6">
-              <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
-                <Avatar className="h-28 w-28 shrink-0 ring-2 ring-primary-container shadow-token-card">
-                  {data.hero.avatarUrl ? (
-                    <AvatarImage src={data.hero.avatarUrl} alt={data.hero.displayName} />
-                  ) : null}
-                  <AvatarFallback className="bg-[linear-gradient(180deg,#E5F8FC_0%,#DCEAFF_100%)] type-heading-lg font-semibold text-primary">
-                    {getInitials(data.hero.displayName)}
-                  </AvatarFallback>
-                </Avatar>
+          <div className="grid gap-4">
+            <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
+              <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-token-card lg:p-6">
+                <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
+                  <Avatar className="h-28 w-28 shrink-0 ring-2 ring-primary-container shadow-token-card">
+                    {data.hero.avatarUrl ? (
+                      <AvatarImage
+                        src={data.hero.avatarUrl}
+                        alt={data.hero.displayName}
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-primary-container type-heading-lg font-semibold text-primary">
+                      {getInitials(data.hero.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="mt-5 min-w-0 md:mt-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Heading level={1} as="h2" className="font-semibold">
-                      {data.hero.displayName}
-                    </Heading>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 type-body font-medium text-primary">
-                      {data.hero.title ?? t("default_title")}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-on-surface-variant">
-                    <span>{t("level", { level: data.hero.level })}</span>
-                    <span>•</span>
-                    <span>{t("xp_total", { count: data.hero.xp })}</span>
-                  </div>
-
-                  <Text variant="body" className="mt-4 max-w-[42rem] break-words text-on-surface-variant">
-                    {data.hero.statusLine}
-                  </Text>
-
-                  <div className="mt-6">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium text-on-surface">
-                        {t("xp_progress", {
-                          current: data.hero.xpInLevel,
-                          total: data.hero.xpToNextLevel,
-                        })}
-                      </span>
-                      <span className="text-on-surface-variant">
-                        {data.hero.xpProgressPercent}%
+                  <div className="mt-5 min-w-0 md:mt-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Heading level={1} as="h2" className="font-semibold">
+                        {data.hero.displayName}
+                      </Heading>
+                      <span className="rounded-full bg-primary/10 px-3 py-1 type-body font-medium text-primary">
+                        {data.hero.title ?? t("default_title")}
                       </span>
                     </div>
-                    <Progress value={data.hero.xpProgressPercent} className="w-full gap-0" />
+
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-on-surface-variant">
+                      <span>{t("level", { level: data.hero.level })}</span>
+                      <span>•</span>
+                      <span>{t("xp_total", { count: data.hero.xp })}</span>
+                    </div>
+
+                    <Text
+                      variant="body"
+                      className="mt-4 max-w-[42rem] break-words text-on-surface-variant"
+                    >
+                      {data.hero.statusLine}
+                    </Text>
+
+                    <div className="mt-6">
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <span className="font-medium text-on-surface">
+                          {t("xp_progress", {
+                            current: data.hero.xpInLevel,
+                            total: data.hero.xpToNextLevel,
+                          })}
+                        </span>
+                        <span className="text-on-surface-variant">
+                          {data.hero.xpProgressPercent}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={data.hero.xpProgressPercent}
+                        className="w-full gap-0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-span-full mt-9 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+                    <HeroStat
+                      icon={
+                        <LottieAnimation
+                          animationData={fireAnimation}
+                          className="h-8 w-8"
+                          loop
+                        />
+                      }
+                      value={data.hero.streak}
+                      label={t("hero_streak")}
+                      tone="bg-surface-container"
+                    />
+                    <HeroStat
+                      icon={<BarChart3 className="h-5 w-5 text-primary" />}
+                      value={data.hero.totalSessions}
+                      label={t("hero_sessions")}
+                      tone="bg-primary/10"
+                    />
+                    <HeroStat
+                      icon={<Clock3 className="h-5 w-5 text-success" />}
+                      value={formatTotalMinutes(
+                        data.hero.totalPracticeMinutes,
+                        t,
+                      )}
+                      label={t("hero_practice_time")}
+                      tone="bg-surface-container"
+                    />
                   </div>
                 </div>
+              </section>
 
-                <div className="col-span-full mt-9 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-                  <HeroStat
-                    icon={
-                      <LottieAnimation
-                        animationData={fireAnimation}
-                        className="h-8 w-8"
-                        loop
-                      />
-                    }
-                    value={data.hero.streak}
-                    label={t("hero_streak")}
-                    tone="bg-surface-container"
-                  />
-                  <HeroStat
-                    icon={<BarChart3 className="h-5 w-5 text-primary" />}
-                    value={data.hero.totalSessions}
-                    label={t("hero_sessions")}
-                    tone="bg-primary/10"
-                  />
-                  <HeroStat
-                    icon={<Clock3 className="h-5 w-5 text-success" />}
-                    value={formatTotalMinutes(data.hero.totalPracticeMinutes, t)}
-                    label={t("hero_practice_time")}
-                    tone="bg-surface-container"
-                  />
-                </div>
-              </div>
-            </section>
+              <AnalyticsSkillSnapshotCard {...data.skillSnapshot} />
+            </div>
 
-            <AnalyticsSkillSnapshotCard {...data.skillSnapshot} />
-          </div>
-
-          <div className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-              <div className="flex items-center justify-between">
-                <h3 className="type-body font-semibold text-on-surface">
-                  {t("cards.practice_minutes.title")}
-                </h3>
-              </div>
-              <p className="mt-1 text-xs font-medium text-on-surface-variant">
-                {t("cards.practice_minutes.scope")}
-              </p>
-              <div className="mt-5 flex flex-1 items-end justify-between gap-5">
-                <div className="min-w-0 flex-1 self-start">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4">
+              <ChartCard
+                bodyClassName="flex flex-1 flex-col"
+                className="min-h-[210px]"
+                subtitle={t("cards.practice_minutes.scope")}
+                title={t("cards.practice_minutes.title")}
+              >
+                <div className="flex flex-1 flex-col gap-4">
                   <div className="flex items-end gap-2">
-                    <Stat size="heading-xl" as="div" className="text-on-surface">
+                    <Stat
+                      size="heading-xl"
+                      as="div"
+                      className="text-on-surface"
+                    >
                       {practiceMinutesDisplay.totalMinutes}
                     </Stat>
                     <div className="pb-1 text-sm text-on-surface-variant">
@@ -1192,231 +1203,234 @@ export function AnalyticsPage({ data: initialData }: { data: AnalyticsPageData }
                   </div>
                   <p
                     className={cn(
-                      "mt-2 max-w-[9.5rem] text-sm font-medium leading-5",
+                      "text-sm font-medium leading-5",
                       practiceMinutesDisplay.deltaPercent != null &&
-                      practiceMinutesDisplay.deltaPercent >= 0
-                        ? "text-emerald-600"
-                        : "text-on-surface-variant"
+                        practiceMinutesDisplay.deltaPercent >= 0
+                        ? "text-success"
+                        : "text-on-surface-variant",
                     )}
                   >
                     {practiceMinutesDisplay.deltaPercent != null
                       ? t("cards.practice_minutes.delta", {
                           count: Math.abs(practiceMinutesDisplay.deltaPercent),
-                          sign: practiceMinutesDisplay.deltaPercent >= 0 ? "+" : "-",
+                          sign:
+                            practiceMinutesDisplay.deltaPercent >= 0
+                              ? "+"
+                              : "-",
                         })
                       : t("cards.practice_minutes.no_delta")}
                   </p>
-                </div>
-
-                <div className="w-[148px] shrink-0 self-end">
-                  <MiniBarChart
-                    compact
-                    values={practiceMinutesDisplay.series.map((entry) => entry.value)}
-                    labels={practiceMinutesDisplay.series.map((entry) => entry.label)}
+                  <PracticeMinutesBarChart
+                    series={practiceMinutesDisplay.series}
                   />
                 </div>
-              </div>
-            </section>
+              </ChartCard>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-              <div className="flex items-center justify-between">
-                <h3 className="type-body font-semibold text-on-surface">
-                  {t("cards.mix.title")}
-                </h3>
-              </div>
-              <p className="mt-1 text-xs font-medium text-on-surface-variant">
-                {t("cards.mix.scope")}
-              </p>
-              <div className="mt-4 flex flex-1 items-center gap-6">
-                <DonutRing value={mixDisplay.debatePercent} label={t("cards.mix.debate")} />
-                <div className="min-w-0 flex-1 space-y-3.5 text-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-on-surface">
-                      <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                      {t("cards.mix.debate")}
-                    </div>
-                    <span className="font-semibold text-on-surface">
-                      {mixDisplay.debatePercent}%
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-on-surface">
-                      <span className="h-2.5 w-2.5 rounded-full bg-primary/25" />
-                      {t("cards.mix.speaking")}
-                    </div>
-                    <span className="font-semibold text-on-surface">
-                      {mixDisplay.speakingPercent}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <Link
-                href="/profile?tab=activities"
-                className="mt-3 inline-flex items-center gap-2 self-end text-sm font-medium text-primary hover:underline"
+              <ChartCard
+                bodyClassName="flex flex-1 flex-col"
+                className="min-h-[210px]"
+                subtitle={t("cards.mix.scope")}
+                title={t("cards.mix.title")}
               >
-                {t("cards.mix.view_breakdown")}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </section>
+                <div className="flex flex-1 items-center gap-6">
+                  <PercentRingChart
+                    value={mixDisplay.debatePercent}
+                    label={t("cards.mix.debate")}
+                  />
+                  <div className="min-w-0 flex-1 space-y-3.5 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-on-surface">
+                        <span className="h-2.5 w-2.5 rounded-full bg-chart-1" />
+                        {t("cards.mix.debate")}
+                      </div>
+                      <span className="font-semibold text-on-surface">
+                        {mixDisplay.debatePercent}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-on-surface">
+                        <span className="h-2.5 w-2.5 rounded-full bg-chart-2" />
+                        {t("cards.mix.speaking")}
+                      </div>
+                      <span className="font-semibold text-on-surface">
+                        {mixDisplay.speakingPercent}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href="/profile?tab=activities"
+                  className="mt-3 inline-flex items-center gap-2 self-end text-sm font-medium text-primary hover:underline"
+                >
+                  {t("cards.mix.view_breakdown")}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </ChartCard>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-              <div className="flex items-center justify-between">
-                <h3 className="type-body font-semibold text-on-surface">
-                  {t("cards.average_score.title")}
-                </h3>
-              </div>
-              <p className="mt-1 text-xs font-medium text-on-surface-variant">
-                {t("cards.average_score.scope")}
-              </p>
-              <div className="mt-4 flex items-end gap-2">
-                <Stat size="heading-xl" as="div" className="text-on-surface">
-                  {averageScoreDisplay.averageScore != null
-                    ? Math.round(averageScoreDisplay.averageScore)
-                    : "—"}
-                </Stat>
-                <div className="pb-1 text-sm text-on-surface-variant">/100</div>
-              </div>
-              <p
-                className={cn(
-                  "mt-2 text-sm font-medium",
-                  averageScoreDisplay.deltaPoints != null &&
-                    averageScoreDisplay.deltaPoints >= 0
-                    ? "text-emerald-600"
-                    : "text-on-surface-variant"
-                )}
+              <ChartCard
+                bodyClassName="flex flex-1 flex-col"
+                className="min-h-[210px]"
+                subtitle={t("cards.average_score.scope")}
+                title={t("cards.average_score.title")}
               >
-                {averageScoreDisplay.deltaPoints != null
-                  ? t("cards.average_score.delta", {
-                      count: Math.abs(Math.round(averageScoreDisplay.deltaPoints)),
-                      sign: averageScoreDisplay.deltaPoints >= 0 ? "+" : "-",
-                    })
-                  : t("cards.average_score.no_delta")}
-              </p>
-              <div className="mt-auto">
-                <MiniLineChart
-                  values={averageScoreDisplay.series.map((entry) => entry.value)}
-                  ariaLabel={t("score_trend_chart")}
-                />
-              </div>
-            </section>
+                <div className="flex items-end gap-2">
+                  <Stat size="heading-xl" as="div" className="text-on-surface">
+                    {averageScoreDisplay.averageScore != null
+                      ? Math.round(averageScoreDisplay.averageScore)
+                      : "-"}
+                  </Stat>
+                  <div className="pb-1 text-sm text-on-surface-variant">
+                    /100
+                  </div>
+                </div>
+                <p
+                  className={cn(
+                    "mt-2 text-sm font-medium",
+                    averageScoreDisplay.deltaPoints != null &&
+                      averageScoreDisplay.deltaPoints >= 0
+                      ? "text-success"
+                      : "text-on-surface-variant",
+                  )}
+                >
+                  {averageScoreDisplay.deltaPoints != null
+                    ? t("cards.average_score.delta", {
+                        count: Math.abs(
+                          Math.round(averageScoreDisplay.deltaPoints),
+                        ),
+                        sign: averageScoreDisplay.deltaPoints >= 0 ? "+" : "-",
+                      })
+                    : t("cards.average_score.no_delta")}
+                </p>
+                <div className="mt-auto">
+                  <ScoreTrendAreaChart
+                    emptyTitle={t("cards.average_score.no_delta")}
+                    series={averageScoreDisplay.series}
+                  />
+                </div>
+              </ChartCard>
 
-            <section className="flex min-h-[210px] min-w-0 flex-col rounded-[1.65rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-              <div className="flex items-center justify-between">
-                <h3 className="type-body font-semibold text-on-surface">
-                  {t("cards.strongest_focus.title")}
-                </h3>
-              </div>
-              <p className="mt-1 text-xs font-medium text-on-surface-variant">
-                {t("cards.strongest_focus.scope")}
-              </p>
-              <div className="mt-4 flex flex-1 flex-col justify-center gap-3">
-                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-token-card">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success/16 text-success">
-                        <Trophy className="h-5 w-5" />
+              <ChartCard
+                bodyClassName="flex flex-1 flex-col justify-center"
+                className="min-h-[210px]"
+                subtitle={t("cards.strongest_focus.scope")}
+                title={t("cards.strongest_focus.title")}
+              >
+                <div className="flex flex-1 flex-col justify-center gap-3">
+                  <div className="rounded-xl bg-surface-container-low px-4 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success/16 text-success">
+                          <Trophy className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm text-on-surface-variant">
+                            {t("cards.strongest_focus.strongest")}
+                          </div>
+                          <div className="mt-0.5 truncate type-title text-on-surface">
+                            {strongestFocusCard.strongestSkill
+                              ? t(`skills.${strongestFocusCard.strongestSkill}`)
+                              : t("empty_title")}
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm text-on-surface-variant">
-                          {t("cards.strongest_focus.strongest")}
-                        </div>
-                        <div className="mt-0.5 truncate type-title text-on-surface">
-                          {strongestFocusCard.strongestSkill
-                            ? t(`skills.${strongestFocusCard.strongestSkill}`)
-                            : t("empty_title")}
-                        </div>
+                      <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
+                        <Stat size="heading-lg" className="font-semibold">
+                          {strongestFocusCard.strongestScore ?? "-"}
+                        </Stat>
+                        {strongestFocusCard.strongestScore != null ? (
+                          <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
+                            /100
+                          </span>
+                        ) : null}
                       </div>
                     </div>
-                    <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
-                      <Stat size="heading-lg" className="font-semibold">
-                        {strongestFocusCard.strongestScore ?? "—"}
-                      </Stat>
-                      {strongestFocusCard.strongestScore != null ? (
-                        <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
-                          /100
-                        </span>
-                      ) : null}
+                  </div>
+                  <div className="rounded-xl bg-surface-container-low px-4 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/18 text-on-surface-variant">
+                          <Target className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm text-on-surface-variant">
+                            {t("cards.strongest_focus.focus_next")}
+                          </div>
+                          <div className="mt-0.5 truncate type-title text-on-surface">
+                            {strongestFocusCard.focusSkill
+                              ? t(`skills.${strongestFocusCard.focusSkill}`)
+                              : t("empty_title")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
+                        <Stat size="heading-lg" className="font-semibold">
+                          {strongestFocusCard.focusScore ?? "-"}
+                        </Stat>
+                        {strongestFocusCard.focusScore != null ? (
+                          <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
+                            /100
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-[1.2rem] border border-outline-variant/12 bg-surface px-4 py-4 shadow-token-card">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/18 text-on-surface-variant">
-                        <Target className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm text-on-surface-variant">
-                          {t("cards.strongest_focus.focus_next")}
-                        </div>
-                        <div className="mt-0.5 truncate type-title text-on-surface">
-                          {strongestFocusCard.focusSkill
-                            ? t(`skills.${strongestFocusCard.focusSkill}`)
-                            : t("empty_title")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex w-[5.5rem] shrink-0 items-end justify-end text-right text-on-surface">
-                      <Stat size="heading-lg" className="font-semibold">
-                        {strongestFocusCard.focusScore ?? "—"}
-                      </Stat>
-                      {strongestFocusCard.focusScore != null ? (
-                        <span className="ml-1 pb-[1px] text-sm leading-none text-on-surface-variant">
-                          /100
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <Heading level={4} as="h3">
-                  {t("recent_sessions_title")}
-                </Heading>
-              </div>
-              <Link href="/profile?tab=activities" className="text-sm font-medium text-primary hover:underline">
-                {t("view_all")}
-              </Link>
+              </ChartCard>
             </div>
 
-            {recentSessionsDisplay.length > 0 ? (
-              <div className="mt-4 space-y-3 rounded-[1.35rem] bg-surface px-1">
-                {recentSessionsDisplay.slice(0, 4).map((session, index) => (
-                  <RecentSessionCard
-                    key={`${session.kind}-${session.id}`}
-                    session={session}
-                    index={index}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5 flex min-h-[220px] items-center rounded-[1.6rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-6 py-10 text-center">
-                <div className="mx-auto">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <CheckCircle2 className="h-6 w-6" />
-                  </div>
-                  <h4 className="mt-4 type-heading-md text-on-surface">
-                    {t("empty_title")}
-                  </h4>
-                  <Text variant="body-sm" className="mx-auto mt-2 max-w-xl text-on-surface-variant">
-                    {t("empty_body")}
-                  </Text>
-                  <Link href="/practice" className="mt-5 inline-flex">
-                    <Button className="h-11 rounded-2xl px-5">
-                      {t("start_practicing")}
-                    </Button>
-                  </Link>
+            <ActivityHeatmapCard sessions={recentSessionsDisplay} />
+
+            <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <Heading level={4} as="h3">
+                    {t("recent_sessions_title")}
+                  </Heading>
                 </div>
+                <Link
+                  href="/profile?tab=activities"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {t("view_all")}
+                </Link>
               </div>
-            )}
-          </section>
-        </div>
-      </PageContainer>
+
+              {recentSessionsDisplay.length > 0 ? (
+                <div className="mt-4 space-y-3 rounded-[1.35rem] bg-surface px-1">
+                  {recentSessionsDisplay.slice(0, 4).map((session, index) => (
+                    <RecentSessionCard
+                      key={`${session.kind}-${session.id}`}
+                      session={session}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 flex min-h-[220px] items-center rounded-[1.6rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-6 py-10 text-center">
+                  <div className="mx-auto">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <CheckCircle2 className="h-6 w-6" />
+                    </div>
+                    <h4 className="mt-4 type-heading-md text-on-surface">
+                      {t("empty_title")}
+                    </h4>
+                    <Text
+                      variant="body-sm"
+                      className="mx-auto mt-2 max-w-xl text-on-surface-variant"
+                    >
+                      {t("empty_body")}
+                    </Text>
+                    <Link href="/practice" className="mt-5 inline-flex">
+                      <Button className="h-11 rounded-2xl px-5">
+                        {t("start_practicing")}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        </PageContainer>
       </ProductPageShell>
     </PageTransition>
   );

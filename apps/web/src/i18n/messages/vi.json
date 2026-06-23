@@ -2908,6 +2908,14 @@
         "focus_next": "Tập trung tiếp"
       }
     },
+    "activity": {
+      "title": "Hoạt động",
+      "subtitle": "Phiên gần đây theo từng ngày",
+      "less": "Ít",
+      "more": "Nhiều",
+      "empty": "Các phiên gần đây sẽ hiện ở đây sau lần luyện tiếp theo.",
+      "tooltip": "{count, plural, one {# phiên} other {# phiên}} vào {date}"
+    },
   "recent_sessions_title": "Phiên gần đây",
   "recent_sessions_subtitle": "Xem lại các phiên solo và 1v1 có AI chấm gần nhất.",
   "recent_speaking_badge": "Luyện nói",

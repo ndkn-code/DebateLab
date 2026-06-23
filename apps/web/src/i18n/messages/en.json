@@ -2908,6 +2908,14 @@
         "focus_next": "Focus Next"
       }
     },
+    "activity": {
+      "title": "Activity",
+      "subtitle": "Recent sessions by day",
+      "less": "Less",
+      "more": "More",
+      "empty": "Recent sessions will appear here after your next practice.",
+      "tooltip": "{count, plural, one {# session} other {# sessions}} on {date}"
+    },
     "recent_sessions_title": "Recent Sessions",
     "recent_sessions_subtitle": "Review your latest solo rounds and judged duels.",
     "recent_speaking_badge": "Speaking Practice",
