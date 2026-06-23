@@ -8,6 +8,13 @@
       "port": 3004
     },
     {
+      "name": "web-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "@thinkfy/web", "--", "--port", "3005"],
+      "port": 3005,
+      "env": { "DEV_ADMIN_BYPASS": "true" }
+    },
+    {
       "name": "lottie",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "tmp/lottie-player", "run", "dev", "--", "--port", "5199", "--strictPort"],

@@ -16,6 +16,10 @@ const approvedPathFragments = [
   "apps/web/src/lib/analytics/skill-metadata.ts",
   "apps/web/src/components/courses/course-artwork.tsx",
   "apps/web/src/components/analytics/analytics-page.tsx",
+  // Vendored bklit ChartKit (Visx). Themed via the --chart-* CSS-var bridge in
+  // globals.css; the few literals are bklit internals (heatmap default ramp,
+  // pattern presets, bug-number comments). We do not hand-edit 80 vendored files.
+  "apps/web/src/components/charts/",
   "apps/web/src/app/[locale]/auth/login/page.tsx",
   "apps/web/src/components/admin/overview/",
   "apps/web/src/components/admin/users/UserAnalyticsDashboard.tsx",

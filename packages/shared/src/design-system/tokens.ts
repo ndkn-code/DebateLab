@@ -51,6 +51,18 @@ export type ThinkfyColorRole =
   | "chartPrimary"
   | "chartSecondary"
   | "chartTertiary"
+  | "chart1"
+  | "chart2"
+  | "chart3"
+  | "chart4"
+  | "chart5"
+  | "chart6"
+  | "chart7"
+  | "chartGrid"
+  | "chartAxis"
+  | "chartTooltipBg"
+  | "chartTooltipText"
+  | "chartCrosshair"
   | "courseAccent";
 
 export type ThinkfyTone =
@@ -183,6 +195,20 @@ const lightColors = {
   chartPrimary: "#00B8D9",
   chartSecondary: "#34C759",
   chartTertiary: "#FFD166",
+  // Categorical chart ramp (design.md §Chart Colors, blue-first). Semantic
+  // intent over index order: chart3=positive, chart4=caution, chart7=negative.
+  chart1: "#00B8D9",
+  chart2: "#8BE8F7",
+  chart3: "#34C759",
+  chart4: "#F5B942",
+  chart5: "#7B61FF",
+  chart6: "#0788A0",
+  chart7: "#FF7A59",
+  chartGrid: "#E3EEF1",
+  chartAxis: "#657B84",
+  chartTooltipBg: "#FFFFFF",
+  chartTooltipText: "#102936",
+  chartCrosshair: "#CDECF3",
   courseAccent: "#00B8D9",
 } satisfies ThinkfyColorRoles;
 
@@ -237,6 +263,19 @@ const darkColors = {
   chartPrimary: "#00B8D9",
   chartSecondary: "#8BE8F7",
   chartTertiary: "#FFE08A",
+  // Categorical ramp brightened for the dark surface (#0A2730).
+  chart1: "#22C9E6",
+  chart2: "#8BE8F7",
+  chart3: "#6FE08D",
+  chart4: "#FFD166",
+  chart5: "#A78BFA",
+  chart6: "#34D3EC",
+  chart7: "#FF9B80",
+  chartGrid: "#1E5363",
+  chartAxis: "#9BB8C1",
+  chartTooltipBg: "#0E3A46",
+  chartTooltipText: "#F3FCFE",
+  chartCrosshair: "#2E6574",
   courseAccent: "#8BE8F7",
 } satisfies ThinkfyColorRoles;
 
@@ -514,6 +553,20 @@ function makeWebCssVariables(
     "--sidebar-selected-text": components.sidebar.selectedText,
     "--sidebar-selected-accent": components.sidebar.selectedAccent,
     "--sidebar-selected-shadow": components.sidebar.selectedShadow,
+    "--color-chart-1": colors.chart1,
+    "--color-chart-2": colors.chart2,
+    "--color-chart-3": colors.chart3,
+    "--color-chart-4": colors.chart4,
+    "--color-chart-5": colors.chart5,
+    "--color-chart-6": colors.chart6,
+    "--color-chart-7": colors.chart7,
+    "--color-chart-grid": colors.chartGrid,
+    "--color-chart-axis": colors.chartAxis,
+    "--color-chart-tooltip-bg": colors.chartTooltipBg,
+    "--color-chart-tooltip-text": colors.chartTooltipText,
+    "--color-chart-crosshair": colors.chartCrosshair,
+    // The bklit (@bklitui/ui) --chart-* bridge lives in globals.css (it maps onto
+    // these --color-chart-* tokens via var(), so it theme-switches automatically).
   } as const;
 }
 
@@ -591,4 +644,33 @@ export const thinkfyTypography = {
 } as const satisfies {
   family: Record<ThinkfyFontRole, string>;
   step: Record<string, ThinkfyTypeStep>;
+};
+
+export type ThinkfyMotionSpring = {
+  type: "spring";
+  stiffness: number;
+  damping: number;
+};
+
+/**
+ * Motion tokens — the timing/easing analog to the color + type systems.
+ * Durations are in **seconds** (framer-motion native). CSS mirrors live as
+ * `--motion-duration-*` / `--motion-ease-*` in apps/web/src/app/globals.css.
+ * Easings are cubic-bezier control points. See docs/analytics-ui-revamp-masterplan.md.
+ */
+export const thinkfyMotion = {
+  duration: { fast: 0.15, base: 0.25, slow: 0.4 },
+  ease: {
+    standard: [0.2, 0, 0, 1],
+    emphasized: [0.3, 0, 0, 1],
+    overshoot: [0.34, 1.56, 0.64, 1],
+  },
+  spring: {
+    soft: { type: "spring", stiffness: 260, damping: 25 },
+    snappy: { type: "spring", stiffness: 300, damping: 24 },
+  },
+} as const satisfies {
+  duration: Record<"fast" | "base" | "slow", number>;
+  ease: Record<"standard" | "emphasized" | "overshoot", readonly [number, number, number, number]>;
+  spring: Record<"soft" | "snappy", ThinkfyMotionSpring>;
 };
