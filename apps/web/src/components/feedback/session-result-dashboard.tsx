@@ -1,5 +1,6 @@
 "use client";
 
+import { curveNatural } from "@visx/curve";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -34,7 +35,18 @@ import {
 } from "@/components/ui/icons";
 import type { LucideIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Eyebrow, Heading, Stat } from "@/components/ui/typography";
+import { Eyebrow, Heading } from "@/components/ui/typography";
+import {
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+  Ring,
+  RingCenter,
+  RingChart,
+} from "@/components/charts";
+import { ChartCard } from "@/components/data-viz";
+import { SuccessCheck } from "@/components/motion";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
 import {
@@ -42,7 +54,7 @@ import {
   getFullRoundWinnerResult,
 } from "@/lib/results/session-result";
 import { cn } from "@/lib/utils";
-import type { DebateSession } from "@/types";
+import type { DebateRound, DebateSession } from "@/types";
 
 interface SessionResultDashboardProps {
   session: DebateSession;
@@ -59,26 +71,36 @@ interface SessionResultDashboardProps {
 
 const BAND_STYLES = {
   novice: {
-    stroke: "#F87171",
+    ring: "var(--color-chart-7)",
     chip: "bg-error-container text-on-surface-variant",
   },
   developing: {
-    stroke: "#FB923C",
+    ring: "var(--color-chart-4)",
     chip: "bg-surface-container text-on-surface-variant",
   },
   competent: {
-    stroke: "#FFD166",
+    ring: "var(--color-chart-4)",
     chip: "bg-surface-container text-on-surface-variant",
   },
   proficient: {
-    stroke: "#2F76EF",
+    ring: "var(--chart-line-secondary)",
     chip: "bg-surface-container text-on-surface-variant",
   },
   expert: {
-    stroke: "#00B8D9",
+    ring: "var(--chart-line-primary)",
     chip: "bg-surface-container text-on-surface-variant",
   },
 } as const;
+
+const CHART_SERIES_COLORS = [
+  "var(--chart-line-primary)",
+  "var(--chart-line-secondary)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+  "var(--color-chart-6)",
+  "var(--color-chart-7)",
+] as const;
 
 const SKILL_ICONS: Partial<Record<string, LucideIcon>> = {
   clarity: MessageCircle,
@@ -123,7 +145,7 @@ function formatTimeLabel(iso: string, locale: string) {
 
 function formatDurationLabel(
   seconds: number,
-  t: ReturnType<typeof useTranslations<"sessionResult.duration">>
+  t: ReturnType<typeof useTranslations<"sessionResult.duration">>,
 ) {
   if (seconds < 60) {
     return t("seconds", { count: seconds });
@@ -146,16 +168,30 @@ function formatDurationLabel(
 
 function formatTimeBoxLabel(
   seconds: number | undefined,
-  t: ReturnType<typeof useTranslations<"sessionResult.coaching">>
+  t: ReturnType<typeof useTranslations<"sessionResult.coaching">>,
 ) {
   if (!seconds) return null;
   if (seconds < 60) return t("seconds", { count: seconds });
   return t("minutes", { count: Math.round(seconds / 60) });
 }
 
+function getSeriesColor(index: number) {
+  return CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length];
+}
+
+function buildRoundTimelineData(rounds: DebateRound[]) {
+  return rounds.map((round, index) => ({
+    date: new Date(Date.UTC(2026, 0, index + 1)),
+    progress: index + 1,
+    label: round.label,
+    duration: round.duration ?? 0,
+    roundNumber: round.roundNumber,
+  }));
+}
+
 function getTrackLabel(
   session: DebateSession,
-  t: ReturnType<typeof useTranslations<"sessionResult.tracks">>
+  t: ReturnType<typeof useTranslations<"sessionResult.tracks">>,
 ) {
   const practiceTrack =
     session.feedback?.practiceTrack ?? session.practiceTrack ?? "debate";
@@ -164,7 +200,7 @@ function getTrackLabel(
 
 function getModeLabel(
   session: DebateSession,
-  t: ReturnType<typeof useTranslations<"sessionResult.modes">>
+  t: ReturnType<typeof useTranslations<"sessionResult.modes">>,
 ) {
   const practiceTrack =
     session.feedback?.practiceTrack ?? session.practiceTrack ?? "debate";
@@ -199,14 +235,24 @@ function ResultList({
       {items.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
           {items.map((item) => (
-            <li key={item} className="flex gap-3 type-body-sm leading-6 text-on-surface-variant">
-              <span className={cn("mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full", dotClassName)} />
+            <li
+              key={item}
+              className="flex gap-3 type-body-sm leading-6 text-on-surface-variant"
+            >
+              <span
+                className={cn(
+                  "mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full",
+                  dotClassName,
+                )}
+              />
               <span>{item}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm leading-6 text-on-surface-variant">{emptyMessage}</p>
+        <p className="mt-4 text-sm leading-6 text-on-surface-variant">
+          {emptyMessage}
+        </p>
       )}
     </div>
   );
@@ -231,33 +277,15 @@ export function SessionResultDashboard({
   const tModes = useTranslations("sessionResult.modes");
   const tCoaching = useTranslations("sessionResult.coaching");
   const locale = useLocale();
-  const [displayScore, setDisplayScore] = useState(0);
-  const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
+  const [shareState, setShareState] = useState<"idle" | "copied" | "shared">(
+    "idle",
+  );
   const [showTranscript, setShowTranscript] = useState(defaultShowTranscript);
   const [showTimeline, setShowTimeline] = useState(defaultShowTimeline);
-  const viewModel = useMemo(() => buildSessionResultViewModel(session), [session]);
-
-  useEffect(() => {
-    if (!viewModel) return;
-
-    const target = viewModel.feedback.totalScore;
-    const duration = 900;
-    const startTime = performance.now();
-    let frame = 0;
-
-    const tick = (time: number) => {
-      const progress = Math.min((time - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayScore(Math.round(eased * target));
-
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
-      }
-    };
-
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [viewModel]);
+  const viewModel = useMemo(
+    () => buildSessionResultViewModel(session),
+    [session],
+  );
 
   useEffect(() => {
     if (shareState === "idle") return;
@@ -277,13 +305,22 @@ export function SessionResultDashboard({
 
   const bandKey = toBandKey(viewModel.feedback.overallBand);
   const bandStyle = BAND_STYLES[bandKey];
-  const circumference = 2 * Math.PI * 92;
-  const strokeDashoffset =
-    circumference * (1 - viewModel.feedback.totalScore / 100);
-  const winnerResult = getFullRoundWinnerResult(session, viewModel.practiceTrack);
+  const overallRingData = [
+    {
+      label: t("scoreLabel"),
+      value: viewModel.feedback.totalScore,
+      maxValue: 100,
+      color: bandStyle.ring,
+    },
+  ];
+  const winnerResult = getFullRoundWinnerResult(
+    session,
+    viewModel.practiceTrack,
+  );
   const strongestMetric = viewModel.strongest.metric;
   const weakestMetric = viewModel.weakest.metric;
   const focusMetric = viewModel.focus.metric;
+  const roundTimelineData = buildRoundTimelineData(viewModel.rounds);
   const caseworkItems = [
     {
       label: t("casework.caseSummary"),
@@ -305,9 +342,8 @@ export function SessionResultDashboard({
       value: viewModel.feedback.clashFeedback,
       icon: MessageCircle,
     },
-  ].filter(
-    (item): item is { label: string; value: string; icon: LucideIcon } =>
-      Boolean(item.value)
+  ].filter((item): item is { label: string; value: string; icon: LucideIcon } =>
+    Boolean(item.value),
   );
   const argumentBreakdowns = viewModel.feedback.argumentBreakdowns ?? [];
   const scoreRationale = viewModel.feedback.scoreRationale;
@@ -351,7 +387,7 @@ export function SessionResultDashboard({
         ? shareUrl
           ? new URL(shareUrl, baseUrl).toString()
           : window.location.href
-        : shareUrl ?? "";
+        : (shareUrl ?? "");
     const text = t("shareText", {
       score: viewModel.feedback.totalScore,
       topic: session.topic.title,
@@ -431,10 +467,7 @@ export function SessionResultDashboard({
 
   return (
     <div
-      className={cn(
-        "mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8",
-        className
-      )}
+      className={cn("mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8", className)}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {backHref && backLabel ? (
@@ -482,55 +515,37 @@ export function SessionResultDashboard({
                 key={className}
                 className={cn(
                   "absolute h-3 w-3 rotate-45 rounded-[3px]",
-                  className
+                  className,
                 )}
               />
             ))}
 
-            <div className="relative flex h-[218px] w-[218px] items-center justify-center">
-              <svg className="h-[218px] w-[218px] -rotate-90" viewBox="0 0 220 220" aria-hidden="true">
-                <circle
-                  cx="110"
-                  cy="110"
-                  r="92"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="10"
-                  className="text-surface-container-high"
-                />
-                <circle
-                  cx="110"
-                  cy="110"
-                  r="92"
-                  fill="none"
-                  stroke={bandStyle.stroke}
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  className="transition-[stroke-dashoffset] duration-1000 ease-out"
-                />
-              </svg>
-
-              <div
-                className="absolute flex flex-col items-center"
-                aria-label={`${viewModel.feedback.totalScore} out of 100`}
+            <div
+              className="relative flex h-[218px] w-[218px] items-center justify-center"
+              aria-label={`${viewModel.feedback.totalScore} out of 100`}
+            >
+              <RingChart
+                data={overallRingData}
+                size={218}
+                strokeWidth={12}
+                baseInnerRadius={74}
+                ringGap={0}
               >
-                <span className="text-sm font-medium text-on-surface-variant">
-                  {t("scoreLabel")}
-                </span>
-                <Stat size="display-md" className="mt-1 font-bold text-on-surface">
-                  {displayScore}
-                </Stat>
-                <span className="sr-only">out of 100</span>
-              </div>
+                <Ring index={0} color={bandStyle.ring} />
+                <RingCenter defaultLabel={t("scoreLabel")} />
+              </RingChart>
+              <SuccessCheck
+                className="absolute right-3 top-3 rounded-full bg-[var(--card-bg)] p-1 shadow-token-card"
+                size={40}
+              />
+              <span className="sr-only">out of 100</span>
             </div>
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <span
                 className={cn(
                   "inline-flex rounded-full px-4 py-1.5 text-sm font-semibold",
-                  bandStyle.chip
+                  bandStyle.chip,
                 )}
               >
                 {t(`encouragement.${bandKey}`)}
@@ -563,7 +578,7 @@ export function SessionResultDashboard({
                       {winnerResult.kind === "tie"
                         ? `${t("winner.tieLabel")}: ${t("winner.tie")}`
                         : `${t("winner.label")}: ${t(
-                            `winner.sides.${winnerResult.side}`
+                            `winner.sides.${winnerResult.side}`,
                           )}`}
                     </span>
                     <span className="rounded-xl bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
@@ -682,6 +697,61 @@ export function SessionResultDashboard({
         </div>
       </div>
 
+      {roundTimelineData.length > 1 && (
+        <ChartCard
+          className="mt-5"
+          eyebrow={t("detail.timeline")}
+          title={t("detail.timeline")}
+          subtitle={t("detail.showTimeline")}
+        >
+          <div className="h-48">
+            <LineChart
+              data={roundTimelineData}
+              margin={{ top: 28, right: 28, bottom: 20, left: 28 }}
+              xDataKey="date"
+            >
+              <Grid horizontal />
+              <Line
+                dataKey="progress"
+                curve={curveNatural}
+                showMarkers
+                stroke="var(--chart-line-primary)"
+                strokeWidth={3}
+              />
+              <ChartTooltip
+                showDatePill={false}
+                rows={(point) => {
+                  const duration =
+                    typeof point.duration === "number" && point.duration > 0
+                      ? formatDurationLabel(point.duration, tDuration)
+                      : `#${point.roundNumber}`;
+
+                  return [
+                    {
+                      color: "var(--chart-line-primary)",
+                      label: String(point.label),
+                      value: duration,
+                    },
+                  ];
+                }}
+              />
+            </LineChart>
+          </div>
+          <div
+            className="mt-3 grid gap-2 text-center type-caption font-semibold text-on-surface-variant"
+            style={{
+              gridTemplateColumns: `repeat(${roundTimelineData.length}, minmax(0, 1fr))`,
+            }}
+          >
+            {roundTimelineData.map((round) => (
+              <span key={round.roundNumber} className="truncate">
+                {round.label}
+              </span>
+            ))}
+          </div>
+        </ChartCard>
+      )}
+
       {hasLearningReview && (
         <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           {viewModel.prepNotes && (
@@ -716,12 +786,14 @@ export function SessionResultDashboard({
                       {tCoaching("notes.whatHelped")}
                     </div>
                     <ul className="mt-3 space-y-2 text-sm leading-6 text-on-surface-variant">
-                      {viewModel.feedback.noteTakingFeedback.whatHelped.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-success-dim" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
+                      {viewModel.feedback.noteTakingFeedback.whatHelped.map(
+                        (item) => (
+                          <li key={item} className="flex gap-2">
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-success-dim" />
+                            <span>{item}</span>
+                          </li>
+                        ),
+                      )}
                     </ul>
                   </div>
                   <div className="rounded-xl bg-warning-container/35 p-4 ring-1 ring-outline-variant">
@@ -736,7 +808,7 @@ export function SessionResultDashboard({
                             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
                             <span>{item}</span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </div>
@@ -752,7 +824,7 @@ export function SessionResultDashboard({
                             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                             <span>{item}</span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </div>
@@ -764,7 +836,7 @@ export function SessionResultDashboard({
           <div
             className={cn(
               "rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6",
-              !viewModel.prepNotes && "xl:col-span-2"
+              !viewModel.prepNotes && "xl:col-span-2",
             )}
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -785,7 +857,7 @@ export function SessionResultDashboard({
                 {viewModel.improvementPlan.map((step, index) => {
                   const timeBox = formatTimeBoxLabel(
                     step.timeBoxSeconds,
-                    tCoaching
+                    tCoaching,
                   );
                   return (
                     <article
@@ -861,51 +933,55 @@ export function SessionResultDashboard({
         </section>
       )}
 
-      <div className="mt-5">
-        <h2 className="text-base font-bold text-on-surface">
-          {t("skillBreakdown")}
-        </h2>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-          {viewModel.metrics.map((metric) => {
+      <ChartCard
+        className="mt-5"
+        eyebrow={t("scoreLabel")}
+        title={t("skillBreakdown")}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          {viewModel.metrics.map((metric, index) => {
             const Icon = SKILL_ICONS[metric.key] ?? Sparkles;
             const isWeakest = metric.key === weakestMetric?.key;
+            const chartColor = getSeriesColor(index);
+            const ringData = [
+              {
+                label: tSkills(metric.key),
+                value: metric.score,
+                maxValue: 100,
+                color: chartColor,
+              },
+            ];
 
             return (
               <div
                 key={metric.key}
-                className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card"
+                className="rounded-xl border border-outline-variant bg-surface-container p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Icon
                       className={cn(
                         "h-5 w-5",
-                        isWeakest ? "text-on-surface-variant" : "text-primary"
+                        isWeakest ? "text-on-surface-variant" : "text-primary",
                       )}
                     />
                     <span className="text-sm font-bold text-on-surface">
                       {tSkills(metric.key)}
                     </span>
                   </div>
-                  <span
-                    className={cn(
-                      "text-lg font-bold",
-                      isWeakest ? "text-on-surface-variant" : "text-on-surface-variant"
-                    )}
-                  >
-                    {metric.score}
-                    <span className="sr-only"> out of 100</span>
-                  </span>
                 </div>
 
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface-container">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-[width] duration-700 ease-out",
-                      isWeakest ? "bg-surface-container" : metric.progressClassName
-                    )}
-                    style={{ width: `${metric.score}%` }}
-                  />
+                <div className="mt-4 flex h-32 items-center justify-center">
+                  <RingChart
+                    data={ringData}
+                    size={128}
+                    strokeWidth={10}
+                    baseInnerRadius={38}
+                    ringGap={0}
+                  >
+                    <Ring index={0} color={chartColor} />
+                    <RingCenter defaultLabel={tSkills(metric.key)} />
+                  </RingChart>
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-on-surface-variant">
@@ -915,7 +991,7 @@ export function SessionResultDashboard({
             );
           })}
         </div>
-      </div>
+      </ChartCard>
 
       {scoreRationale && (
         <section className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
@@ -1067,7 +1143,7 @@ export function SessionResultDashboard({
         <h2 className="text-base font-bold text-on-surface">
           {t("detail.heading")}
         </h2>
-        <div className="mt-4 grid gap-5 xl:grid-cols-[1fr_1fr_1.05fr] xl:divide-x xl:divide-[#E6ECF8]">
+        <div className="mt-4 grid gap-5 xl:grid-cols-[1fr_1fr_1.05fr] xl:divide-x xl:divide-outline-variant">
           <div className="xl:pr-6">
             <ResultList
               title={t("detail.strengths")}
@@ -1110,7 +1186,9 @@ export function SessionResultDashboard({
               className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
             >
               <FileText className="mr-2 h-4 w-4" />
-              {showTranscript ? t("detail.hideTranscript") : t("detail.showTranscript")}
+              {showTranscript
+                ? t("detail.hideTranscript")
+                : t("detail.showTranscript")}
               {showTranscript ? (
                 <ChevronUp className="ml-2 h-4 w-4" />
               ) : (
@@ -1126,7 +1204,9 @@ export function SessionResultDashboard({
                 className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                {showTimeline ? t("detail.hideTimeline") : t("detail.showTimeline")}
+                {showTimeline
+                  ? t("detail.hideTimeline")
+                  : t("detail.showTimeline")}
                 {showTimeline ? (
                   <ChevronUp className="ml-2 h-4 w-4" />
                 ) : (
@@ -1156,14 +1236,16 @@ export function SessionResultDashboard({
           </div>
         )}
 
-        {showInlineReviewControls && showTimeline && viewModel.rounds.length > 0 && (
-          <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
-            <h3 className="mb-4 text-base font-semibold text-on-surface">
-              {t("detail.timeline")}
-            </h3>
-            <DebateTimeline rounds={viewModel.rounds} />
-          </div>
-        )}
+        {showInlineReviewControls &&
+          showTimeline &&
+          viewModel.rounds.length > 0 && (
+            <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+              <h3 className="mb-4 text-base font-semibold text-on-surface">
+                {t("detail.timeline")}
+              </h3>
+              <DebateTimeline rounds={viewModel.rounds} />
+            </div>
+          )}
       </div>
 
       {actionBar && <div className="mt-5">{actionBar}</div>}
