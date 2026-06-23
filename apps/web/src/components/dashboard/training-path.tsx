@@ -55,17 +55,17 @@ const NODE_STYLES: Record<NodeState, { circle: string; icon: string; chip: strin
     chip: "bg-surface-container text-on-surface-variant",
   },
   strong: {
-    circle: "border-b-4 border-[#0AA3C2] bg-primary text-white shadow-token-primary",
+    circle: "border-b-4 border-primary-dim bg-primary text-on-primary shadow-token-primary",
     icon: "",
     chip: "bg-primary-container text-primary-dim",
   },
   mid: {
-    circle: "border-b-4 border-[#E3A700] bg-reward text-white",
+    circle: "border-b-4 border-reward-dim bg-reward text-on-reward",
     icon: "",
     chip: "bg-warning-container text-on-warning-container",
   },
   weak: {
-    circle: "border-b-4 border-error-dim bg-error text-white",
+    circle: "border-b-4 border-error-dim bg-error text-on-error",
     icon: "",
     chip: "bg-error-container text-error-dim",
   },
@@ -94,13 +94,20 @@ function GoalRing({ goal }: { goal: DashboardGoalSummary }) {
         aria-label={t("weekly_goal")}
       >
         <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
-          <circle cx="32" cy="32" r={radius} fill="none" stroke="#E5F8FC" strokeWidth="8" />
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke="var(--color-surface-container-high)"
+            strokeWidth="8"
+          />
           <motion.circle
             cx="32"
             cy="32"
             r={radius}
             fill="none"
-            stroke="#00B8D9"
+            stroke="var(--chart-line-primary)"
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -175,7 +182,7 @@ export function TrainingPath({
           <path
             d={PATH_D}
             fill="none"
-            stroke="#CDECF3"
+            stroke="var(--color-chart-grid)"
             strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray="0.1 18"
@@ -184,7 +191,7 @@ export function TrainingPath({
           <motion.path
             d={PATH_D}
             fill="none"
-            stroke="#00B8D9"
+            stroke="var(--chart-line-primary)"
             strokeWidth="10"
             strokeLinecap="round"
             pathLength={1}

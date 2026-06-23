@@ -67,7 +67,7 @@ export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) 
   return (
     <section
       data-testid="dashboard-open-canvas"
-      className="relative overflow-hidden rounded-[2rem] border border-outline-variant bg-[linear-gradient(125deg,#F8FDFF_0%,#E5F8FC_100%)] shadow-token-card dark:border-outline-variant/70 dark:bg-[linear-gradient(125deg,#0A2730_0%,#0E3A46_100%)]"
+      className="relative overflow-hidden rounded-[2rem] border border-outline-variant bg-[linear-gradient(125deg,var(--color-surface-container-lowest)_0%,var(--color-primary-container)_100%)] shadow-token-card dark:border-outline-variant/70"
     >
       <div className="grid items-center gap-2 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6">
         <div className="relative z-10 min-w-0">
@@ -118,7 +118,7 @@ export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) 
         >
           <div
             aria-hidden="true"
-            className="absolute inset-3 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.25)_60%,rgba(255,255,255,0)_75%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,184,217,0.18)_0%,rgba(0,184,217,0)_72%)]"
+            className="absolute inset-3 rounded-full bg-surface-container-lowest/70 dark:bg-primary-container/20"
           />
           <motion.div
             animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
@@ -132,7 +132,7 @@ export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) 
               width={512}
               height={512}
               priority
-              className="h-auto w-[210px] object-contain drop-shadow-[0_14px_18px_rgba(16,41,54,0.16)]"
+              className="h-auto w-[210px] object-contain drop-shadow-token-card"
               sizes="210px"
             />
           </motion.div>

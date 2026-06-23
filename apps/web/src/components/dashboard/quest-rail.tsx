@@ -12,6 +12,13 @@ import {
   Sparkles,
   Zap,
 } from "@/components/ui/icons";
+import {
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapTooltip,
+} from "@/components/charts";
 import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
 import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -23,6 +30,22 @@ import type {
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const XP_QUEST_GOAL = 50;
+const STREAK_HEATMAP_LEVELS = [
+  "var(--color-surface-container-high)",
+  "var(--color-chart-4)",
+  "var(--color-chart-4)",
+  "var(--color-chart-3)",
+  "var(--color-chart-3)",
+] as const;
+
+function toHeatmapDate(date: string) {
+  return new Date(`${date}T12:00:00`);
+}
+
+function getHeatmapCount(entry: DailyStatEntry) {
+  if (entry.practice_minutes <= 0 && entry.sessions_completed <= 0) return 0;
+  return Math.min(4, 1 + entry.sessions_completed + Math.floor(entry.practice_minutes / 20));
+}
 
 function RailCard({
   children,
@@ -78,7 +101,7 @@ function LevelCard({ topBar }: { topBar: DashboardHomeData["topBar"] }) {
             className="h-14 w-14 object-contain"
             sizes="56px"
           />
-          <span className="type-body absolute translate-y-[3px] font-extrabold text-[#8A5C00]">
+          <span className="type-body absolute translate-y-[3px] font-extrabold text-on-warning-container">
             {topBar.level}
           </span>
         </div>
@@ -220,6 +243,20 @@ function StreakRailCard({
   const t = useTranslations("dashboard.home");
   const locale = useLocale();
   const days = useMemo(() => weeklyStats.slice(-7), [weeklyStats]);
+  const heatmapData = useMemo(
+    () =>
+      days.map((entry, index) => ({
+        bin: index,
+        bins: [
+          {
+            bin: 0,
+            count: getHeatmapCount(entry),
+            date: toHeatmapDate(entry.date),
+          },
+        ],
+      })),
+    [days]
+  );
 
   return (
     <RailCard testId="dashboard-streak-rail">
@@ -246,28 +283,43 @@ function StreakRailCard({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      <HeatmapInteractionProvider>
+        <HeatmapInteractionBoundary className="mt-4">
+          <HeatmapChart
+            data={heatmapData}
+            layout="fill"
+            levelColors={STREAK_HEATMAP_LEVELS}
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            gap={5}
+            className="h-8 w-full"
+          >
+            <HeatmapCells cornerRadius={7} />
+            <HeatmapTooltip
+              formatLabel={(count, date) =>
+                count > 0
+                  ? t("active_days_this_week", { count: 1 })
+                  : date.toLocaleDateString(locale, {
+                      month: "short",
+                      day: "numeric",
+                    })
+              }
+            />
+          </HeatmapChart>
+        </HeatmapInteractionBoundary>
+      </HeatmapInteractionProvider>
+
+      <div className="mt-2 grid grid-cols-7 gap-1.5">
         {days.map((entry) => {
-          const active = entry.sessions_completed > 0 || entry.practice_minutes > 0;
           const initial = new Date(`${entry.date}T12:00:00`).toLocaleDateString(locale, {
             weekday: "narrow",
           });
           return (
-            <div key={entry.date} className="flex flex-col items-center gap-1.5">
-              <span
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full",
-                  active
-                    ? "bg-[#FF9F45] text-white"
-                    : "border-2 border-dashed border-outline-variant bg-surface"
-                )}
-              >
-                {active ? <CheckCircle2 className="h-4 w-4" /> : null}
-              </span>
-              <span className="type-caption font-extrabold uppercase text-on-surface-variant">
-                {initial}
-              </span>
-            </div>
+            <span
+              key={entry.date}
+              className="type-caption text-center font-extrabold uppercase text-on-surface-variant"
+            >
+              {initial}
+            </span>
           );
         })}
       </div>

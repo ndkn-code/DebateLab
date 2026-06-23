@@ -23,7 +23,7 @@ const CATEGORY_META = {
   },
   "public-speaking": {
     icon: Mic2,
-    gradient: "from-secondary via-secondary-dim to-[#1c4a40]",
+    gradient: "from-secondary via-secondary-dim to-secondary",
   },
 } as const;
 
@@ -130,11 +130,11 @@ export function ContinueLearningCard({
               ) : (
                 <div
                   className={cn(
-                    "flex h-full w-full items-center justify-center bg-gradient-to-br text-white",
+                    "flex h-full w-full items-center justify-center bg-gradient-to-br text-on-secondary",
                     categoryMeta.gradient
                   )}
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-container-lowest/15 backdrop-blur-sm">
                     <Icon className="h-7 w-7" />
                   </div>
                 </div>
@@ -142,7 +142,7 @@ export function ContinueLearningCard({
 
               <div className="absolute inset-0 bg-gradient-to-t from-primary-depth/80 via-primary-depth/15 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
-                <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
+                <Badge className="border-on-primary/20 bg-on-primary/10 text-on-primary hover:bg-on-primary/10">
                   {categoryLabel}
                 </Badge>
               </div>
@@ -251,11 +251,11 @@ export function ContinueLearningCard({
             ) : (
               <div
                 className={cn(
-                  "flex h-full w-full items-center justify-center bg-gradient-to-br text-white",
+                  "flex h-full w-full items-center justify-center bg-gradient-to-br text-on-secondary",
                   categoryMeta.gradient
                 )}
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container-lowest/15 backdrop-blur-sm">
                   <Icon className="h-8 w-8" />
                 </div>
               </div>
@@ -263,10 +263,10 @@ export function ContinueLearningCard({
 
             <div className="absolute inset-0 bg-gradient-to-t from-primary-depth/85 via-primary-depth/25 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
-              <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
+              <Badge className="border-on-primary/20 bg-on-primary/10 text-on-primary hover:bg-on-primary/10">
                 {categoryLabel}
               </Badge>
-              <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
+              <Badge className="border-on-primary/20 bg-on-primary/10 text-on-primary hover:bg-on-primary/10">
                 {t("course_progress_label")}
               </Badge>
             </div>

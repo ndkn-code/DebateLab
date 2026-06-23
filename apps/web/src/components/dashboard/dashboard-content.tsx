@@ -13,6 +13,7 @@ import { DashboardStatsPanel } from "@/components/dashboard/dashboard-stats-pane
 import { DailyFocusHero } from "@/components/dashboard/daily-focus-hero";
 import { TrainingPath } from "@/components/dashboard/training-path";
 import { QuestRail } from "@/components/dashboard/quest-rail";
+import { Stagger, StaggerItem } from "@/components/motion";
 import {
   NextMovesCard,
   RecentActivityCard,
@@ -110,10 +111,14 @@ export function DashboardContent({
                 checkpoint={checkpoint}
               />
 
-              <div className="grid gap-5 xl:grid-cols-2">
-                <NextMovesCard items={data.todayPlanItems} />
-                <RecentActivityCard items={data.recentActivity} />
-              </div>
+              <Stagger className="grid gap-5 xl:grid-cols-2">
+                <StaggerItem>
+                  <NextMovesCard items={data.todayPlanItems} />
+                </StaggerItem>
+                <StaggerItem>
+                  <RecentActivityCard items={data.recentActivity} />
+                </StaggerItem>
+              </Stagger>
             </div>
 
             {/* Right rail (stacks below main feed on mobile) */}

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, Sparkles, Zap } from "@/components/ui/icons";
 import { Stat } from "@/components/ui/typography";
+import { StatCard } from "@/components/data-viz";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry, DashboardHomeData } from "@/lib/api/dashboard";
 
@@ -53,7 +54,9 @@ export function DashboardStatsPanel({
           "h-10 w-10 sm:h-11 sm:w-11",
           topBar.currentStreak === 0 && "opacity-40 grayscale"
         )}
-        value={streakCount}
+        label={t("stats.streak_title")}
+        value={topBar.currentStreak}
+        format={formatDashboardNumber}
       >
         <StreakPopover
           currentStreak={topBar.currentStreak}
@@ -67,7 +70,9 @@ export function DashboardStatsPanel({
         dataTestId="dashboard-stats-credits"
         iconSrc={CREDIT_ICON_SRC}
         iconClassName="h-10 w-10 sm:h-11 sm:w-11"
-        value={creditsCount}
+        label={t("stats.credits_title")}
+        value={topBar.orbBalance}
+        format={formatDashboardNumber}
       >
         <CreditsPopover
           formattedBalance={creditsCount}
@@ -91,18 +96,23 @@ export function StatCounter({
   dataTestId,
   iconSrc,
   iconClassName,
+  label,
   value,
+  format,
   children,
 }: {
   ariaLabel: string;
   dataTestId: string;
   iconSrc: string;
   iconClassName?: string;
-  value: ReactNode;
+  label?: ReactNode;
+  value: number | ReactNode;
+  format?: (value: number) => string;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const renderStatCard = typeof value === "number" && label != null && format != null;
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current) {
@@ -137,37 +147,79 @@ export function StatCounter({
         setOpen(nextOpen);
       }}
     >
-      <PopoverTrigger
-        type="button"
-        openOnHover
-        delay={120}
-        closeDelay={160}
-        aria-label={ariaLabel}
-        data-testid={dataTestId}
-        onClick={() => {
-          window.setTimeout(openPopover, 0);
-        }}
-        onFocus={openPopover}
-        onMouseEnter={openPopover}
-        onMouseLeave={scheduleClose}
-        onPointerLeave={scheduleClose}
-        onPointerMove={openPopover}
-        className="group inline-flex h-12 min-w-0 items-center gap-2 rounded-full border border-transparent px-2.5 pr-3.5 text-left transition-all outline-none hover:-translate-y-0.5 hover:bg-surface-container-low hover:shadow-token-card focus-visible:ring-3 focus-visible:ring-ring/50 data-open:-translate-y-0.5 data-open:bg-surface-container-low data-open:shadow-token-card"
-      >
-        <Image
-          src={iconSrc}
-          alt=""
-          width={44}
-          height={44}
-          className={cn("shrink-0 object-contain", iconClassName)}
-          loading="eager"
-          unoptimized
-          aria-hidden="true"
+      {renderStatCard ? (
+        <PopoverTrigger
+          openOnHover
+          delay={120}
+          closeDelay={160}
+          aria-label={ariaLabel}
+          data-testid={dataTestId}
+          nativeButton={false}
+          render={
+            <StatCard
+              label={label}
+              value={value}
+              format={format}
+              animate={false}
+              icon={
+                <Image
+                  src={iconSrc}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className={cn("shrink-0 object-contain", iconClassName)}
+                  loading="eager"
+                  unoptimized
+                  aria-hidden="true"
+                />
+              }
+              className="group min-w-[8.75rem] cursor-pointer rounded-xl p-3 text-left transition-all outline-none hover:-translate-y-0.5 hover:ring-primary/30 focus-visible:ring-3 focus-visible:ring-ring/50 data-open:-translate-y-0.5 data-open:ring-primary/30"
+            />
+          }
+          onClick={() => {
+            window.setTimeout(openPopover, 0);
+          }}
+          onFocus={openPopover}
+          onMouseEnter={openPopover}
+          onMouseLeave={scheduleClose}
+          onPointerLeave={scheduleClose}
+          onPointerMove={openPopover}
         />
-        <Stat size="heading-lg" className="truncate font-extrabold leading-none text-on-surface">
-          {value}
-        </Stat>
-      </PopoverTrigger>
+      ) : (
+        <PopoverTrigger
+          type="button"
+          openOnHover
+          delay={120}
+          closeDelay={160}
+          aria-label={ariaLabel}
+          data-testid={dataTestId}
+          onClick={() => {
+            window.setTimeout(openPopover, 0);
+          }}
+          onFocus={openPopover}
+          onMouseEnter={openPopover}
+          onMouseLeave={scheduleClose}
+          onPointerLeave={scheduleClose}
+          onPointerMove={openPopover}
+          className="group inline-flex h-12 min-w-0 items-center gap-2 rounded-full border border-transparent px-2.5 pr-3.5 text-left transition-all outline-none hover:-translate-y-0.5 hover:bg-surface-container-low hover:shadow-token-card focus-visible:ring-3 focus-visible:ring-ring/50 data-open:-translate-y-0.5 data-open:bg-surface-container-low data-open:shadow-token-card"
+        >
+          <>
+            <Image
+              src={iconSrc}
+              alt=""
+              width={44}
+              height={44}
+              className={cn("shrink-0 object-contain", iconClassName)}
+              loading="eager"
+              unoptimized
+              aria-hidden="true"
+            />
+            <Stat size="heading-lg" className="truncate font-extrabold leading-none text-on-surface">
+              {value}
+            </Stat>
+          </>
+        </PopoverTrigger>
+      )}
       <PopoverContent
         align="end"
         sideOffset={12}
@@ -239,7 +291,7 @@ function StreakPopover({
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
                       isActive
-                        ? "bg-[#FF9F45] text-white shadow-token-card"
+                        ? "bg-reward text-on-reward shadow-token-card"
                         : "bg-outline-variant/30 text-on-surface-variant"
                     )}
                   >

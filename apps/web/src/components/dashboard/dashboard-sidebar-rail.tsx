@@ -172,7 +172,7 @@ export function DashboardSidebarRail({
                 <span
                   className={cn(
                     "type-caption ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold uppercase",
-                    "bg-white/[0.08] text-sidebar-muted/75"
+                    "bg-sidebar-muted/10 text-sidebar-muted/75"
                   )}
                 >
                   <Lock className="h-3 w-3" />

@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Activity, CalendarDays, TimerReset } from "@/components/ui/icons";
-import { cn } from "@/lib/utils";
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from "@/components/charts";
+import { ChartCard, ChartEmpty, StatCard } from "@/components/data-viz";
 import type { DailyStatEntry } from "@/lib/api/dashboard";
 
 interface WeeklyChartProps {
@@ -35,104 +35,82 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
   }));
 
   return (
-    <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-on-surface">
-            {t("this_weeks_activity")}
-          </h3>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            {totalSessions > 0
-              ? t("weekly_chart_subtitle")
-              : t("weekly_chart_empty_subtitle")}
-          </p>
-        </div>
-        <span className="text-sm font-medium text-on-surface-variant">
+    <ChartCard
+      title={t("this_weeks_activity")}
+      subtitle={
+        totalSessions > 0
+          ? t("weekly_chart_subtitle")
+          : t("weekly_chart_empty_subtitle")
+      }
+      actions={
+        <span className="type-label whitespace-nowrap text-on-surface-variant">
           {t("total_hours", { hours: totalHours })}
         </span>
-      </div>
-
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <SummaryPill
-          icon={<CalendarDays className="h-4 w-4 text-primary" />}
+      }
+      className="rounded-[2rem] p-5 sm:p-6"
+      bodyClassName="flex flex-col gap-5"
+    >
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard
           label={t("weekly_active_days_label")}
-          value={`${activeDays}/7`}
+          value={activeDays}
+          format={(value) => `${Math.round(value)}/7`}
+          icon={<CalendarDays className="h-4 w-4 text-primary" />}
+          animate={false}
+          className="rounded-[1.25rem] p-3.5"
         />
-        <SummaryPill
-          icon={<Activity className="h-4 w-4 text-secondary" />}
+        <StatCard
           label={t("weekly_sessions_label")}
-          value={String(totalSessions)}
+          value={totalSessions}
+          icon={<Activity className="h-4 w-4 text-secondary" />}
+          animate={false}
+          className="rounded-[1.25rem] p-3.5"
         />
-        <SummaryPill
-          icon={<TimerReset className="h-4 w-4 text-tertiary" />}
+        <StatCard
           label={t("weekly_best_day_label")}
-          value={`${bestDay.practice_minutes} ${t("min")}`}
+          value={bestDay.practice_minutes}
+          format={(value) => `${Math.round(value)} ${t("min")}`}
+          icon={<TimerReset className="h-4 w-4 text-tertiary" />}
+          animate={false}
+          className="rounded-[1.25rem] p-3.5"
         />
       </div>
 
-      <div className="grid grid-cols-7 gap-2 sm:gap-3">
-        {data.map((entry) => {
-          const heightPercent =
-            entry.minutes > 0 ? Math.max((entry.minutes / maxMinutes) * 100, 16) : 8;
-
-          return (
-            <div key={entry.name} className="flex flex-col items-center gap-2">
-              <div className="flex h-28 w-full max-w-[56px] items-end rounded-[1.25rem] bg-surface-container-low p-1.5">
-                <div
-                  className={cn(
-                    "w-full rounded-[0.9rem] transition-colors",
-                    entry.isToday
-                      ? "bg-primary"
-                      : entry.minutes > 0
-                        ? "bg-primary/30"
-                        : "bg-outline-variant/20"
-                  )}
-                  style={{ height: `${heightPercent}%` }}
-                />
-              </div>
-              <div className="text-center">
-                <p
-                  className={cn(
-                    "text-xs font-medium",
-                    entry.isToday ? "text-on-surface" : "text-on-surface-variant"
-                  )}
-                >
-                  {entry.name}
-                </p>
-                <p className="type-caption mt-0.5 text-on-surface-variant">
-                  {entry.minutes > 0 ? `${entry.minutes}` : "0"}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {totalSessions === 0 ? (
-        <div className="mt-5 rounded-[1.25rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
-          {t("weekly_chart_empty_note")}
+      {totalSessions === 0 && maxMinutes <= 1 ? (
+        <ChartEmpty
+          title={t("weekly_chart_empty_note")}
+          description={t("weekly_chart_empty_subtitle")}
+          className="h-48 rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-4"
+        />
+      ) : (
+        <div className="h-64">
+          <BarChart
+            data={data}
+            xDataKey="name"
+            margin={{ top: 24, right: 18, bottom: 34, left: 18 }}
+            barGap={0.35}
+          >
+            <Grid horizontal />
+            <Bar dataKey="minutes" fill="var(--chart-line-primary)" lineCap="round" minBarHeight={6} />
+            <Bar dataKey="sessions" fill="var(--chart-line-secondary)" lineCap="round" minBarHeight={4} />
+            <BarXAxis showAllLabels />
+            <ChartTooltip
+              rows={(point) => [
+                {
+                  label: t("min"),
+                  value: `${point.minutes ?? 0}`,
+                  color: "var(--chart-line-primary)",
+                },
+                {
+                  label: t("weekly_sessions_label"),
+                  value: `${point.sessions ?? 0}`,
+                  color: "var(--chart-line-secondary)",
+                },
+              ]}
+            />
+          </BarChart>
         </div>
-      ) : null}
-    </section>
-  );
-}
-
-function SummaryPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[1.25rem] border border-outline-variant/10 bg-surface-container-low p-3.5">
-      <div className="flex items-center gap-2 text-xs font-medium text-on-surface-variant">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <p className="mt-2 text-lg font-semibold text-on-surface">{value}</p>
-    </div>
+      )}
+    </ChartCard>
   );
 }

@@ -73,11 +73,11 @@ export function RecentPracticePanel({
                   className={cn(
                     "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                     session.total_score != null && session.total_score >= 75
-                      ? "bg-emerald-500/10 text-emerald-600"
+                      ? "bg-success-container text-success-dim"
                       : session.total_score != null && session.total_score >= 40
-                        ? "bg-amber-500/10 text-amber-600"
+                        ? "bg-warning-container text-on-warning-container"
                         : session.total_score != null
-                          ? "bg-red-500/10 text-red-500"
+                          ? "bg-error-container text-error-dim"
                           : "bg-surface-container-high text-on-surface-variant"
                   )}
                 >
