@@ -7,6 +7,12 @@ import {
   DEFAULT_PRACTICE_LANGUAGE,
   coercePracticeLanguage,
 } from "@/lib/practice-language";
+import {
+  BASE_SESSION_SELECT,
+  FULL_SESSION_SELECT,
+  isSessionSchemaCompatibilityError,
+  rowToDebateSession,
+} from "@/lib/results/debate-session-row";
 import { getTopicCategoryKey, getTopicStableKey } from "@/lib/topics";
 import type { DebateSession, PracticeLanguage } from "@/types";
 
@@ -16,10 +22,6 @@ const STORAGE_UPDATE_EVENT = "debatelab:sessions-updated";
 const MAX_SESSIONS = 50;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const FULL_SESSION_SELECT =
-  "id, created_at, topic_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, transcript, feedback, duration_seconds, prep_notes, ai_difficulty, rounds";
-const BASE_SESSION_SELECT =
-  "id, created_at, topic_title, topic_category, topic_difficulty, side, mode, prep_time, speech_time, transcript, feedback, duration_seconds";
 const OPTIONAL_SESSION_COLUMNS = [
   "practice_topic_key",
   "topic_category_key",
@@ -183,7 +185,7 @@ const supabaseAdapter = {
       );
     }
 
-    const remoteSessions = data.map(rowToSession);
+    const remoteSessions = data.map(rowToDebateSession);
     const remoteIds = new Set(remoteSessions.map((session) => session.id));
     const importIdResolver = createImportIdResolver();
     const allLocalSessions = localAdapter.getSessions();
@@ -222,7 +224,7 @@ const supabaseAdapter = {
     let data: Record<string, unknown> | null = initialResult.data;
     let error = initialResult.error;
 
-    if (isSchemaCompatibilityError(error)) {
+    if (isSessionSchemaCompatibilityError(error)) {
       const retry = await supabase
         .from("debate_sessions")
         .select(BASE_SESSION_SELECT)
@@ -236,7 +238,7 @@ const supabaseAdapter = {
     if (error || !data) {
       return localAdapter.getSession(id);
     }
-    return rowToSession(data);
+    return rowToDebateSession(data);
   },
 
   async deleteSession(id: string, userId: string): Promise<void> {
@@ -351,26 +353,13 @@ function stripOptionalSessionColumns<T extends Record<string, unknown>>(row: T) 
   return compatibleRow;
 }
 
-function isSchemaCompatibilityError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-  const code = "code" in error ? String(error.code) : "";
-  const message = "message" in error ? String(error.message) : "";
-  return (
-    code === "42703" ||
-    code === "PGRST204" ||
-    message.includes("Could not find") ||
-    message.includes("schema cache") ||
-    message.includes("column")
-  );
-}
-
 async function insertSessionRows(
   rows: ReturnType<typeof sessionToRow> | ReturnType<typeof sessionToRow>[]
 ) {
   const supabase = createClient();
   const { error } = await supabase.from("debate_sessions").insert(rows);
 
-  if (!isSchemaCompatibilityError(error)) {
+  if (!isSessionSchemaCompatibilityError(error)) {
     return { error };
   }
 
@@ -389,7 +378,7 @@ async function upsertSessionRows(
     .from("debate_sessions")
     .upsert(rows, { ignoreDuplicates: true, onConflict: "id" });
 
-  if (!isSchemaCompatibilityError(error)) {
+  if (!isSessionSchemaCompatibilityError(error)) {
     return { error };
   }
 
@@ -422,7 +411,7 @@ async function querySessions(
     .order("created_at", { ascending: false })
     .limit(MAX_SESSIONS);
 
-  if (!isSchemaCompatibilityError(result.error)) {
+  if (!isSessionSchemaCompatibilityError(result.error)) {
     return result;
   }
 
@@ -467,41 +456,6 @@ async function syncLocalOnlySessions(
   if (error) {
     console.warn("Failed to sync local practice history to Supabase", error.message);
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToSession(row: any): DebateSession {
-  return {
-    id: row.id,
-    date: row.created_at,
-    topic: {
-      id: row.practice_topic_key ?? row.topic_id ?? row.id,
-      topicKey: row.practice_topic_key ?? row.topic_id ?? row.id,
-      categoryKey: row.topic_category_key,
-      title: row.topic_title,
-      category: row.topic_category,
-      difficulty: row.topic_difficulty ?? "intermediate",
-    },
-    side: row.side,
-    practiceTrack:
-      row.practice_track ??
-      row.practiceTrack ??
-      row.feedback?.practiceTrack ??
-      "debate",
-    practiceLanguage: coercePracticeLanguage(
-      row.practice_language ?? row.practiceLanguage ?? row.feedback?.practiceLanguage,
-      DEFAULT_PRACTICE_LANGUAGE
-    ),
-    mode: row.mode,
-    prepTime: row.prep_time,
-    speechTime: row.speech_time,
-    transcript: row.transcript,
-    feedback: row.feedback,
-    duration: row.duration_seconds,
-    prepNotes: row.prep_notes,
-    aiDifficulty: row.ai_difficulty,
-    rounds: row.rounds,
-  };
 }
 
 // Unified storage interface

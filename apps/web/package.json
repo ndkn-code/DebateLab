@@ -34,6 +34,7 @@
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts && tsx src/lib/practice-analysis/retry-guard.test.ts",
+    "test:practice-session-resilience": "tsx src/lib/practice-session-drafts.test.ts && tsx src/lib/results/debate-session-row.test.ts",
     "test:practice-judge-reliability": "tsx src/lib/ai/provider-selection.test.ts && tsx src/lib/practice-feedback-errors.test.ts && tsx src/lib/practice-client-state.test.ts",
     "test:stt": "tsx src/lib/stt/stt.test.ts",
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",

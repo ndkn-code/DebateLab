@@ -1,0 +1,281 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import {
+  ArrowLeft,
+  RotateCcw,
+  Trash2,
+  Sparkles,
+} from "@/components/ui/icons";
+import { Button } from "@/components/ui/button";
+import { ResultActionButton } from "@/components/feedback/result-action-button";
+import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";
+import { DebateVerdictPanel } from "@/components/feedback/debate-verdict-panel";
+import { SessionReviewShell } from "@/components/feedback/session-review-shell";
+import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
+import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { storage, supabaseStorage } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
+import { useSessionStore } from "@/store/session-store";
+import type { DebateSession } from "@/types";
+
+type InitialSessionState = "loaded" | "not-found" | "error";
+
+export default function SessionDetailClient({
+  sessionId,
+  initialSession,
+  initialState,
+  initialLoadError = null,
+}: {
+  sessionId: string;
+  initialSession: DebateSession | null;
+  initialState: InitialSessionState;
+  initialLoadError?: string | null;
+}) {
+  const router = useRouter();
+  const tResult = useTranslations("sessionResult");
+  const tHistory = useTranslations("dashboard.history");
+  const [session, setSession] = useState<DebateSession | null>(initialSession);
+  const [notFound, setNotFound] = useState(initialState === "not-found");
+  const [loadError, setLoadError] = useState<string | null>(
+    initialLoadError
+  );
+  const [showDelete, setShowDelete] = useState(false);
+
+  const {
+    setTopic,
+    setSide,
+    setPracticeTrack,
+    setMode,
+    setPrepTime,
+    setSpeechTime,
+    setAiDifficulty,
+    startSession: storeStartSession,
+  } = useSessionStore();
+
+  useEffect(() => {
+    if (initialState === "loaded") return undefined;
+
+    const fallbackTimer = window.setTimeout(() => {
+      try {
+        const localSession = storage.getSession(sessionId);
+        if (localSession) {
+          setSession(localSession);
+          setNotFound(false);
+          setLoadError(null);
+        }
+      } catch {
+        // Keep the server-provided error/not-found state visible.
+      }
+    }, 0);
+
+    return () => window.clearTimeout(fallbackTimer);
+  }, [initialState, sessionId]);
+
+  useEffect(() => {
+    const eventName = session
+      ? "practice_result_loaded"
+      : loadError
+        ? "practice_result_error"
+        : "practice_result_not_found";
+    trackAnalyticsEvent({
+      eventName,
+      featureArea: "practice",
+      route: window.location.pathname,
+      metadata: {
+        debate_session_id: sessionId,
+        has_feedback: Boolean(session?.feedback),
+        error: loadError ?? undefined,
+      },
+    });
+  }, [loadError, session, sessionId]);
+
+  const handleRetry = () => {
+    if (!session) return;
+    const { resetSession } = useSessionStore.getState();
+    const practiceTrack =
+      session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+    resetSession();
+    setTopic(session.topic);
+    setPracticeTrack(practiceTrack);
+    setSide(session.side);
+    setMode(session.mode);
+    setPrepTime(session.prepTime);
+    setSpeechTime(session.speechTime);
+    if (practiceTrack === "debate" && session.mode === "full" && session.aiDifficulty) {
+      setAiDifficulty(session.aiDifficulty);
+    }
+    storeStartSession();
+    router.push("/practice/session");
+  };
+
+  const handleDelete = async () => {
+    if (!session) return;
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user) {
+      await supabaseStorage.deleteSession(session.id, authData.user.id);
+    } else {
+      storage.deleteSession(session.id);
+    }
+    router.push("/profile?tab=activities");
+  };
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4 text-center">
+        <h1 className="text-2xl font-bold text-on-surface">
+          {tResult("notFoundTitle")}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm text-on-surface-variant">
+          {loadError}
+        </p>
+        <Link href="/profile?tab=activities" className="mt-6">
+          <Button
+            variant="outline"
+            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {tResult("backToHistory")}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4">
+        <h1 className="text-2xl font-bold text-on-surface">
+          {tResult("notFoundTitle")}
+        </h1>
+        <p className="mt-2 text-sm text-on-surface-variant">
+          {tResult("notFoundBody")}
+        </p>
+        <Link href="/profile?tab=activities" className="mt-6">
+          <Button
+            variant="outline"
+            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {tResult("backToHistory")}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (!session) return null;
+
+  const practiceTrack = session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+  const practiceLanguage =
+    session.practiceLanguage ?? session.feedback?.practiceLanguage ?? "en";
+  const feedback = session.feedback
+    ? {
+        ...session.feedback,
+        practiceTrack: session.feedback.practiceTrack ?? practiceTrack,
+        practiceLanguage: session.feedback.practiceLanguage ?? practiceLanguage,
+      }
+    : null;
+  const sessionWithNormalizedFeedback = feedback
+    ? {
+        ...session,
+        practiceLanguage,
+        feedback,
+      }
+    : { ...session, practiceLanguage };
+  const coachPrompt =
+    practiceTrack === "speaking"
+      ? `I just reviewed my speaking practice on "${session.topic.title}" (${session.side} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
+      : `I just reviewed my debate on "${session.topic.title}" (${session.side} side, ${session.mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
+  const isFullRoundDebate =
+    practiceTrack === "debate" && session.mode === "full" && Boolean(session.rounds?.length);
+
+  return (
+    <div className="min-h-full bg-background">
+      {feedback ? (
+        <SessionReviewShell
+          verdict={
+            isFullRoundDebate ? (
+              <DebateVerdictPanel session={sessionWithNormalizedFeedback} />
+            ) : undefined
+          }
+          overall={
+            <SessionResultDashboard
+              session={sessionWithNormalizedFeedback}
+              backHref="/profile?tab=activities"
+              backLabel={tResult("backToHistory")}
+              shareUrl={`/history/${session.id}`}
+              showInlineReviewControls={false}
+              className="max-w-none px-0 py-0"
+              actionBar={
+                <div className="flex flex-wrap gap-3">
+                  <ResultActionButton onClick={handleRetry} tone="primary">
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {tResult("actions.retryTopic")}
+                  </ResultActionButton>
+                  <Link
+                    href={`/chat?message=${encodeURIComponent(
+                      coachPrompt
+                    )}&context=practice-feedback&contextId=${session.id}`}
+                  >
+                    <ResultActionButton tone="coach">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {tResult("actions.askCoach")}
+                    </ResultActionButton>
+                  </Link>
+                  <ResultActionButton
+                    onClick={() => setShowDelete(true)}
+                    tone="danger"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {tResult("actions.deleteSession")}
+                  </ResultActionButton>
+                </div>
+              }
+            />
+          }
+          transcript={
+            <SessionTranscriptPanel
+              session={sessionWithNormalizedFeedback}
+              annotations={feedback.transcriptAnnotations}
+              backHref="/profile?tab=activities"
+              backLabel={tResult("backToHistory")}
+              emptyLabel={tResult("detail.emptyTranscript")}
+              suggestionLabel={tResult("annotations.suggestion")}
+              unmatchedLabel={tResult("annotations.unmatched")}
+              roundLabel={(roundNumber) =>
+                tResult("annotations.round", { round: roundNumber })
+              }
+            />
+          }
+          clashMap={
+            isFullRoundDebate ? (
+              <DebateClashMapPanel session={sessionWithNormalizedFeedback} />
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-8 text-center">
+            <p className="text-sm text-on-surface-variant">
+              {tResult("noFeedback")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showDelete}
+        title={tHistory("delete_title")}
+        description={tHistory("delete_description")}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDelete(false)}
+      />
+    </div>
+  );
+}

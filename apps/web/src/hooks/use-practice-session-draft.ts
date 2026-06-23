@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   clearStoredPracticeDraftId,
+  consumePendingPracticeSessionHandoff,
   getLocalPracticeSessionDraft,
   createPracticeSessionDraft,
   getStoredPracticeDraftId,
@@ -12,6 +13,7 @@ import {
   updatePracticeSessionDraft,
   type PracticeSessionDraftPayload,
 } from "@/lib/practice-session-drafts";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionStore, type Phase } from "@/store/session-store";
 import type { DebateRound } from "@/types";
@@ -23,6 +25,7 @@ const ACTIVE_DRAFT_PHASES: Phase[] = [
   "ai-rebuttal",
   "analyzing",
 ];
+const AUTH_RESTORE_TIMEOUT_MS = 4000;
 
 function isDraftPhase(phase: Phase) {
   return ACTIVE_DRAFT_PHASES.includes(phase);
@@ -100,12 +103,60 @@ export function usePracticeSessionDraft() {
     let cancelled = false;
 
     async function initializeDraft() {
+      let restoredPendingHandoff = false;
+
+      if (!useSessionStore.getState().selectedTopic) {
+        const pendingHandoff = consumePendingPracticeSessionHandoff();
+        if (pendingHandoff) {
+          restoreSessionDraft({
+            ...pendingHandoff,
+            draftId: "",
+          });
+          setLocalPracticeSessionDraft(pendingHandoff);
+          lastSavedRef.current = JSON.stringify(pendingHandoff);
+          trackAnalyticsEvent({
+            eventName: "practice_session_handoff_restored",
+            featureArea: "practice",
+            route: window.location.pathname,
+            metadata: {
+              practice_track: pendingHandoff.practiceTrack,
+              practice_language: pendingHandoff.practiceLanguage,
+              mode: pendingHandoff.mode,
+              phase: pendingHandoff.currentPhase,
+            },
+          });
+          restoredPendingHandoff = true;
+          if (!cancelled) {
+            setIsRestoringDraft(false);
+          }
+        }
+      }
+
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const authResult = await Promise.race([
+        supabase.auth.getUser().then((result) => ({
+          result,
+          timedOut: false,
+        })),
+        new Promise<{ data: { user: null } }>((resolve) => {
+          window.setTimeout(
+            () => resolve({ data: { user: null } }),
+            AUTH_RESTORE_TIMEOUT_MS
+          );
+        }).then((result) => ({
+          result,
+          timedOut: true,
+        })),
+      ]);
 
       if (cancelled) return;
+
+      if (authResult.timedOut) {
+        setIsRestoringDraft(false);
+        return;
+      }
+
+      const user = authResult.result.data.user;
 
       if (!user) {
         clearStoredPracticeDraftId();
@@ -124,7 +175,11 @@ export function usePracticeSessionDraft() {
       setUserId(user.id);
 
       const storedDraftId = getStoredPracticeDraftId();
-      if (!useSessionStore.getState().selectedTopic && storedDraftId) {
+      if (
+        !restoredPendingHandoff &&
+        !useSessionStore.getState().selectedTopic &&
+        storedDraftId
+      ) {
         const draft = await loadPracticeSessionDraft(storedDraftId, user.id);
         if (!cancelled && draft) {
           restoreSessionDraft(draft);
@@ -132,6 +187,15 @@ export function usePracticeSessionDraft() {
         } else if (!cancelled) {
           clearStoredPracticeDraftId(storedDraftId);
         }
+      }
+
+      const localDraft = getLocalPracticeSessionDraft();
+      if (!useSessionStore.getState().selectedTopic && localDraft) {
+        restoreSessionDraft({
+          ...localDraft,
+          draftId: "",
+        });
+        lastSavedRef.current = JSON.stringify(localDraft);
       }
 
       if (!cancelled) {

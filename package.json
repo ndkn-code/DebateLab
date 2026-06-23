@@ -63,6 +63,7 @@
     "test:student-read-model-rpcs": "npm run test:student-read-model-rpcs -w @thinkfy/web",
     "test:practice-feedback-plan": "npm run test:practice-feedback-plan -w @thinkfy/web",
     "test:practice-analysis": "npm run test:practice-analysis -w @thinkfy/web",
+    "test:practice-session-resilience": "npm run test:practice-session-resilience -w @thinkfy/web",
     "test:practice-judge-reliability": "npm run test:practice-judge-reliability -w @thinkfy/web",
     "test:stt": "npm run test:stt -w @thinkfy/web",
     "stt:repair:eval": "tsx scripts/stt-repair-shadow-eval.ts",

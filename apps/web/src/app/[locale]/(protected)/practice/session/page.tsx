@@ -28,7 +28,34 @@ import { TransitionOverlay } from "@/components/practice/transition-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { showToast } from "@/components/shared/toast";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, ArrowLeft } from "@/components/ui/icons";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import type { AiHighlight } from "@/types";
+
+function MissingSessionState({ onBack }: { onBack: () => void }) {
+  const t = useTranslations("dashboard.practice");
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6 text-center shadow-token-card">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-container text-primary">
+          <AlertCircle className="h-6 w-6" />
+        </div>
+        <h1 className="mt-5 type-heading-md font-extrabold text-on-surface">
+          {t("session.setup_expired_title")}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+          {t("session.setup_expired_body")}
+        </p>
+        <Button onClick={onBack} className="mt-6 h-11 w-full gap-2 rounded-2xl">
+          <ArrowLeft className="h-4 w-4" />
+          {t("session.return_to_practice")}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function SessionPage() {
   const router = useRouter();
@@ -69,6 +96,7 @@ export default function SessionPage() {
   const [ttsVoice, setTtsVoice] = useState(DEFAULT_VOICE);
   const hasStartedRef = useRef(false);
   const hasEndedRef = useRef(false);
+  const hasTrackedMissingSessionRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
   const transitionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { isRestoringDraft } = usePracticeSessionDraft();
@@ -131,12 +159,24 @@ export default function SessionPage() {
     loadVoice();
   }, [practiceLanguage]);
 
-  // Redirect if no topic
   useEffect(() => {
-    if (!isRestoringDraft && !selectedTopic) {
-      router.replace("/practice");
+    if (
+      isRestoringDraft ||
+      selectedTopic ||
+      hasTrackedMissingSessionRef.current
+    ) {
+      return;
     }
-  }, [isRestoringDraft, selectedTopic, router]);
+    hasTrackedMissingSessionRef.current = true;
+    trackAnalyticsEvent({
+      eventName: "practice_session_handoff_missing",
+      featureArea: "practice",
+      route: window.location.pathname,
+      metadata: {
+        phase: currentPhase,
+      },
+    });
+  }, [currentPhase, isRestoringDraft, selectedTopic]);
 
   // Cleanup mic stream and timers on unmount
   useEffect(() => {
@@ -572,7 +612,7 @@ export default function SessionPage() {
   }
 
   if (!selectedTopic) {
-    return <StudentRouteSkeleton variant="practice" />;
+    return <MissingSessionState onBack={() => router.replace("/practice")} />;
   }
 
   const resolvedSide =

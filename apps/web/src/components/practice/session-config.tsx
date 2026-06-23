@@ -30,9 +30,16 @@ import {
 } from "@/lib/practice-durations";
 import { useSessionStore } from "@/store/session-store";
 import { getDisplayMotionBrief } from "@/lib/motion-brief";
+import {
+  clearLocalPracticeSessionDraft,
+  clearStoredPracticeDraftId,
+  setPendingPracticeSessionHandoff,
+  type PracticeSessionDraftPayload,
+} from "@/lib/practice-session-drafts";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { getTopicCategoryKey } from "@/lib/topics";
 import { cn } from "@/lib/utils";
-import type { DebateTopic } from "@/types";
+import type { DebateRound, DebateTopic } from "@/types";
 
 interface SessionConfigProps {
   topic: DebateTopic;
@@ -301,6 +308,40 @@ export function SessionConfig({
     onBalanceChange(result.newBalance);
     setTopic(topic);
     startSession();
+    const sessionState = useSessionStore.getState();
+    const resolvedSide =
+      sessionState.side === "random" ? "proposition" : sessionState.side;
+    const handoffPayload: PracticeSessionDraftPayload = {
+      selectedTopic: sessionState.selectedTopic ?? topic,
+      side: resolvedSide,
+      practiceTrack: sessionState.practiceTrack,
+      practiceLanguage: sessionState.practiceLanguage,
+      mode: sessionState.mode,
+      prepTime: sessionState.prepTime,
+      speechTime: sessionState.speechTime,
+      aiDifficulty: sessionState.aiDifficulty,
+      currentPhase: sessionState.currentPhase,
+      currentRound: sessionState.currentRound,
+      prepNotes: sessionState.prepNotes,
+      transcript: sessionState.transcript,
+      rounds: sessionState.rounds as DebateRound[],
+      debateMemory: sessionState.debateMemory,
+      sessionStartTime: sessionState.sessionStartTime,
+    };
+    clearStoredPracticeDraftId();
+    clearLocalPracticeSessionDraft();
+    setPendingPracticeSessionHandoff(handoffPayload);
+    trackAnalyticsEvent({
+      eventName: "practice_session_handoff_written",
+      featureArea: "practice",
+      route: window.location.pathname,
+      metadata: {
+        practice_track: handoffPayload.practiceTrack,
+        practice_language: handoffPayload.practiceLanguage,
+        mode: handoffPayload.mode,
+        phase: handoffPayload.currentPhase,
+      },
+    });
     setShowBeginTransition(true);
     window.setTimeout(() => {
       router.push("/practice/session");

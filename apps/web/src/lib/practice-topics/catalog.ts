@@ -295,20 +295,25 @@ export async function getActivePracticeTopics(
   options: { allowAdminFallback?: boolean } = {}
 ) {
   const bundledTopics = getBundledPracticeTopics(language);
-  const supabase = await createClient();
-  const result = await queryActivePracticeTopics(supabase, language);
-  if (!result.error && (result.topics.length > 0 || !options.allowAdminFallback)) {
-    return result.topics.length > 0 ? result.topics : bundledTopics;
-  }
+  let firstError: { message: string } | null = null;
 
   if (options.allowAdminFallback) {
     const admin = tryCreateAdminClient();
     if (admin) {
       const adminResult = await queryActivePracticeTopics(admin, language);
       if (!adminResult.error) {
-        return adminResult.topics.length > 0 ? adminResult.topics : bundledTopics;
+        return adminResult.topics.length > 0
+          ? adminResult.topics
+          : bundledTopics;
       }
+      firstError = adminResult.error;
     }
+  }
+
+  const supabase = await createClient();
+  const result = await queryActivePracticeTopics(supabase, language);
+  if (!result.error && (result.topics.length > 0 || !options.allowAdminFallback)) {
+    return result.topics.length > 0 ? result.topics : bundledTopics;
   }
 
   if (!result.error) {
@@ -317,7 +322,7 @@ export async function getActivePracticeTopics(
 
   console.warn(
     "Failed to load active practice topics; using bundled topic catalog",
-    result.error.message
+    firstError?.message ?? result.error.message
   );
   return bundledTopics;
 }

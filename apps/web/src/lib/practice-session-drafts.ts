@@ -21,6 +21,8 @@ import type {
 
 const STORAGE_KEY = "debatelab_practice_draft_id";
 const LOCAL_DRAFT_KEY = "debatelab_practice_local_draft";
+const PENDING_HANDOFF_KEY = "debatelab_practice_pending_session";
+const PENDING_HANDOFF_TTL_MS = 10 * 60 * 1000;
 
 export interface PracticeSessionDraftPayload {
   selectedTopic: DebateTopic;
@@ -38,6 +40,11 @@ export interface PracticeSessionDraftPayload {
   rounds: DebateRound[];
   debateMemory?: DebateMemory | null;
   sessionStartTime: number | null;
+}
+
+interface PendingPracticeSessionHandoff {
+  createdAt: number;
+  payload: PracticeSessionDraftPayload;
 }
 
 interface PracticeSessionDraftRow {
@@ -167,6 +174,86 @@ export function setLocalPracticeSessionDraft(
 export function clearLocalPracticeSessionDraft() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(LOCAL_DRAFT_KEY);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPracticeSessionDraftPayload(
+  value: unknown
+): value is PracticeSessionDraftPayload {
+  if (!isPlainObject(value)) return false;
+
+  const selectedTopic = value.selectedTopic;
+  return (
+    isPlainObject(selectedTopic) &&
+    typeof selectedTopic.title === "string" &&
+    typeof selectedTopic.category === "string" &&
+    (value.side === "proposition" || value.side === "opposition") &&
+    (value.practiceTrack === "speaking" || value.practiceTrack === "debate") &&
+    (value.mode === "quick" || value.mode === "full") &&
+    typeof value.prepTime === "number" &&
+    typeof value.speechTime === "number" &&
+    typeof value.currentPhase === "string" &&
+    typeof value.currentRound === "number"
+  );
+}
+
+function readPendingPracticeSessionHandoff() {
+  if (typeof window === "undefined") return null;
+
+  const rawHandoff = window.localStorage.getItem(PENDING_HANDOFF_KEY);
+  if (!rawHandoff) return null;
+
+  try {
+    const parsed = JSON.parse(rawHandoff) as unknown;
+    if (!isPlainObject(parsed)) return null;
+
+    const createdAt =
+      typeof parsed.createdAt === "number" ? parsed.createdAt : 0;
+    if (
+      createdAt <= 0 ||
+      Date.now() - createdAt > PENDING_HANDOFF_TTL_MS ||
+      !isPracticeSessionDraftPayload(parsed.payload)
+    ) {
+      window.localStorage.removeItem(PENDING_HANDOFF_KEY);
+      return null;
+    }
+
+    return {
+      createdAt,
+      payload: parsed.payload,
+    };
+  } catch {
+    window.localStorage.removeItem(PENDING_HANDOFF_KEY);
+    return null;
+  }
+}
+
+export function setPendingPracticeSessionHandoff(
+  payload: PracticeSessionDraftPayload
+) {
+  if (typeof window === "undefined") return;
+
+  const handoff: PendingPracticeSessionHandoff = {
+    createdAt: Date.now(),
+    payload,
+  };
+  window.localStorage.setItem(PENDING_HANDOFF_KEY, JSON.stringify(handoff));
+}
+
+export function consumePendingPracticeSessionHandoff() {
+  const handoff = readPendingPracticeSessionHandoff();
+  if (typeof window !== "undefined" && handoff) {
+    window.localStorage.removeItem(PENDING_HANDOFF_KEY);
+  }
+  return handoff?.payload ?? null;
+}
+
+export function clearPendingPracticeSessionHandoff() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(PENDING_HANDOFF_KEY);
 }
 
 export async function createPracticeSessionDraft(
