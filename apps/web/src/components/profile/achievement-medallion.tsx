@@ -78,7 +78,7 @@ export function AchievementMedallion({
         <span className="absolute inset-0 flex items-center justify-center">
           <span
             className={cn(
-              "flex items-center justify-center rounded-full bg-white/85 text-on-surface-variant shadow-token-card backdrop-blur-sm dark:bg-surface-container-high/85",
+              "flex items-center justify-center rounded-full bg-surface-container-lowest/85 text-on-surface-variant shadow-token-card backdrop-blur-sm dark:bg-surface-container-high/85",
               styles.lock
             )}
           >

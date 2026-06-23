@@ -53,31 +53,31 @@ function getActivityMeta(kind: ProfileActivityKind): {
     case "practice":
       return {
         icon: History,
-        tileClassName: "bg-[#E3F3FF] text-[#1D7FD6] dark:bg-[#3B9EFF]/15 dark:text-[#6FB9FF]",
+        tileClassName: "bg-primary-container text-primary-dim",
         labelKey: "kinds.practice",
       };
     case "duel":
       return {
         icon: Swords,
-        tileClassName: "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]",
+        tileClassName: "bg-error-container text-error",
         labelKey: "kinds.duel",
       };
     case "lesson":
       return {
         icon: BookOpen,
-        tileClassName: "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]",
+        tileClassName: "bg-success-container text-success-dim",
         labelKey: "kinds.lesson",
       };
     case "course":
       return {
         icon: GraduationCap,
-        tileClassName: "bg-[#EFEAFE] text-[#6D4FD0] dark:bg-[#8B5CF6]/15 dark:text-[#B49AFC]",
+        tileClassName: "bg-surface-container text-chart-5",
         labelKey: "kinds.course",
       };
     case "level":
       return {
         icon: Sparkles,
-        tileClassName: "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
+        tileClassName: "bg-warning-container text-on-warning-container",
         labelKey: "kinds.level",
       };
     default:
@@ -91,12 +91,12 @@ function getActivityMeta(kind: ProfileActivityKind): {
 
 function getScorePillClassName(score: number) {
   if (score >= 80) {
-    return "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]";
+    return "bg-success-container text-success-dim";
   }
   if (score >= 55) {
-    return "bg-[#E3F3FF] text-[#1D7FD6] dark:bg-[#3B9EFF]/15 dark:text-[#6FB9FF]";
+    return "bg-primary-container text-primary-dim";
   }
-  return "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]";
+  return "bg-warning-container text-on-warning-container";
 }
 
 function formatActivityDate(iso: string, locale: string) {
@@ -184,7 +184,7 @@ function ActivityCard({
             {t(meta.labelKey)}
           </span>
           {item.xpEarned > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-[#FFF3DC] px-2.5 py-1 type-caption font-bold leading-none text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+            <span className="inline-flex items-center rounded-full bg-warning-container px-2.5 py-1 type-caption font-bold leading-none text-on-warning-container">
               +{item.xpEarned} XP
             </span>
           ) : null}

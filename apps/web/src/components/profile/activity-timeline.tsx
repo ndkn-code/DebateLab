@@ -69,7 +69,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card md:p-6">
+    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-token-card md:p-6">
       <h2 className="mb-4 text-base font-semibold text-on-surface">
         {t("recent_activity")}
       </h2>
@@ -94,7 +94,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
               {/* Dot */}
               <div
                 className={cn(
-                  "relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-white shadow-sm",
+                  "relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-surface-container-lowest shadow-sm",
                   getDotColor(entry.activity_type)
                 )}
               />

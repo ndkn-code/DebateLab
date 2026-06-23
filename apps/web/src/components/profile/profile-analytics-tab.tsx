@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { curveNatural } from "@visx/curve";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -21,13 +21,29 @@ import {
 import { getLocalizedLeagueName } from "@/lib/leaderboards/replay";
 import { Eyebrow, Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import {
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+  RadarArea,
+  RadarAxis,
+  RadarChart,
+  RadarGrid,
+  RadarLabels,
+  Ring,
+  RingCenter,
+  RingChart,
+  XAxis,
+} from "@/components/charts";
+import { ChartCard, ChartEmpty, SegmentedRange } from "@/components/data-viz";
 import type { ProfileAnalyticsTabData } from "@/lib/profile-social/tab-model";
 import type { PublicProfileShell } from "@/lib/profile-social/model";
 import type {
   AnalyticsInsightCard,
   AnalyticsPageData,
   AnalyticsRangePreset,
-  SkillMetricKey,
+  AnalyticsTrendPoint,
 } from "@/types";
 
 const LEVEL_ICON_SRC = "/images/rewards/level-up.webp";
@@ -70,85 +86,26 @@ export function AnalyticsRangeControl({
   onRangeChange: (range: AnalyticsRangePreset) => void;
 }) {
   const t = useTranslations("analyticsPage");
-  const ranges: AnalyticsRangePreset[] = ["7d", "30d", "90d"];
+  const options = [
+    { value: "7d", label: t("range_7d") },
+    { value: "30d", label: t("range_30d") },
+    { value: "90d", label: t("range_90d") },
+  ] satisfies Array<{ value: AnalyticsRangePreset; label: string }>;
 
   return (
     <div
-      className={cn(
-        "inline-flex rounded-full bg-surface-container p-1 transition-opacity duration-200",
-        isPending ? "opacity-80" : "opacity-100"
-      )}
       aria-label={t("range_label")}
       aria-busy={isPending ? "true" : undefined}
+      className={cn("transition-opacity duration-200", isPending ? "opacity-80" : "opacity-100")}
     >
-      {ranges.map((item) => {
-        const active = item === range;
-        return (
-          <button
-            key={item}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onRangeChange(item)}
-            className={cn(
-              "relative inline-flex h-9 min-w-[4.25rem] items-center justify-center rounded-full px-4 type-body-sm font-semibold transition-colors",
-              active
-                ? "text-on-primary"
-                : "text-on-surface-variant hover:text-on-surface"
-            )}
-          >
-            {active ? (
-              <motion.span
-                layoutId="profile-range-pill"
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 rounded-full bg-primary shadow-token-primary"
-              />
-            ) : null}
-            <span className="relative z-10">{t(`range_${item}`)}</span>
-          </button>
-        );
-      })}
+      <SegmentedRange
+        value={range}
+        onChange={onRangeChange}
+        options={options}
+      />
     </div>
   );
 }
-
-function BentoTile({
-  title,
-  action,
-  children,
-  className,
-  contentClassName,
-}: {
-  title?: string;
-  action?: ReactNode;
-  children: ReactNode;
-  className?: string;
-  contentClassName?: string;
-}) {
-  return (
-    <section
-      className={cn(
-        "flex min-w-0 flex-col rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-token-card sm:p-7",
-        className
-      )}
-    >
-      {title || action ? (
-        <div className="mb-5 flex items-center justify-between gap-3">
-          {title ? (
-            <h2 className="type-body font-bold text-on-surface">{title}</h2>
-          ) : null}
-          {action}
-        </div>
-      ) : null}
-      <div className={cn("min-h-0 flex-1", contentClassName)}>{children}</div>
-    </section>
-  );
-}
-
-const SKILL_AXIS_COLORS = {
-  strongest: { dot: "#34C759", label: "fill-[#1E9E54] dark:fill-[#5DD984]" },
-  focus: { dot: "#FFB020", label: "fill-[#C98A1B] dark:fill-[#FFD98A]" },
-  default: { dot: "#00B8D9", label: "fill-[var(--color-on-surface-variant)]" },
-} as const;
 
 function SkillRadarHero({
   snapshot,
@@ -158,42 +115,32 @@ function SkillRadarHero({
   strongestFocus: StrongestFocusInsight | undefined;
 }) {
   const t = useTranslations("analyticsPage");
-  const prefersReducedMotion = useReducedMotion();
   const metrics = snapshot.metrics.slice(0, 5);
   const strongestSkill =
     strongestFocus?.strongestSkill ?? snapshot.strongestSkill;
   const focusSkill = strongestFocus?.focusSkill ?? snapshot.weakestSkill;
-  const centerX = 170;
-  const centerY = 134;
-  const radius = 88;
-
-  function point(index: number, value: number, extra = 0) {
-    const angle =
-      -Math.PI / 2 + (index * Math.PI * 2) / Math.max(metrics.length, 1);
-    const scaled = radius * (value / 100) + extra;
-    return {
-      x: centerX + Math.cos(angle) * scaled,
-      y: centerY + Math.sin(angle) * scaled,
-    };
-  }
-
-  function axisTone(key: SkillMetricKey) {
-    if (key === strongestSkill) return SKILL_AXIS_COLORS.strongest;
-    if (key === focusSkill) return SKILL_AXIS_COLORS.focus;
-    return SKILL_AXIS_COLORS.default;
-  }
-
-  const polygon = metrics
-    .map((metric, index) => {
-      const p = point(index, metric.coverage > 0 ? metric.value : 0);
-      return `${p.x},${p.y}`;
-    })
-    .join(" ");
 
   const overall =
     snapshot.overallScore != null ? Math.round(snapshot.overallScore) : null;
+  const radarMetrics = metrics.map((metric) => ({
+    key: metric.key,
+    label: t(`skills.${metric.key}`),
+  }));
+  const radarValues = Object.fromEntries(
+    metrics.map((metric) => [
+      metric.key,
+      Math.round(metric.coverage > 0 ? metric.value : 0),
+    ])
+  );
+  const radarData = [
+    {
+      label: t("skill_snapshot_title"),
+      values: radarValues,
+      color: "var(--chart-line-primary)",
+    },
+  ];
 
-  function skillScore(key: SkillMetricKey | null) {
+  function skillScore(key: AnalyticsPageData["skillSnapshot"]["strongestSkill"]) {
     if (!key) return null;
     const metric = metrics.find((item) => item.key === key);
     return metric ? Math.round(metric.value) : null;
@@ -202,173 +149,54 @@ function SkillRadarHero({
   return (
     <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">
       <div className="flex justify-center">
-        <svg
-          viewBox="0 0 340 268"
-          className="h-auto w-full max-w-[400px]"
-          aria-hidden="true"
-        >
-          {[25, 50, 75, 100].map((value) => (
-            <polygon
-              key={value}
-              points={metrics
-                .map((_, index) => {
-                  const p = point(index, value);
-                  return `${p.x},${p.y}`;
-                })
-                .join(" ")}
-              fill={value === 100 ? "rgba(0,184,217,0.04)" : "transparent"}
-              stroke="var(--color-outline-variant)"
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-          ))}
-          {metrics.map((_, index) => {
-            const p = point(index, 100);
-            return (
-              <line
-                key={index}
-                x1={centerX}
-                y1={centerY}
-                x2={p.x}
-                y2={p.y}
-                stroke="var(--color-outline-variant)"
-                strokeWidth="1"
-              />
-            );
-          })}
-
-          <motion.polygon
-            points={polygon}
-            fill="rgba(0,184,217,0.18)"
-            stroke="#00B8D9"
-            strokeWidth="2.5"
-            strokeLinejoin="round"
-            initial={
-              prefersReducedMotion ? false : { opacity: 0, scale: 0.82 }
-            }
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: `${centerX}px ${centerY}px` }}
-          />
-
-          {metrics.map((metric, index) => {
-            const tone = axisTone(metric.key);
-            const p = point(index, metric.coverage > 0 ? metric.value : 0);
-            const emphasized =
-              metric.key === strongestSkill || metric.key === focusSkill;
-            return (
-              <g key={`dot-${metric.key}`}>
-                {emphasized ? (
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={9}
-                    fill={tone.dot}
-                    opacity={0.18}
-                  />
-                ) : null}
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={4.5}
-                  fill={tone.dot}
-                  stroke="var(--color-surface-container-lowest)"
-                  strokeWidth="2"
-                />
-              </g>
-            );
-          })}
-
-          <circle
-            cx={centerX}
-            cy={centerY}
-            r={27}
-            fill="var(--color-surface-container-lowest)"
-            stroke="var(--color-outline-variant)"
-            strokeWidth="1"
-          />
-          {overall != null ? (
-            <text
-              x={centerX}
-              y={centerY}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="var(--color-on-surface)"
-              className="type-heading-lg font-extrabold"
-            >
-              {overall}
-            </text>
-          ) : (
-            <circle
-              cx={centerX}
-              cy={centerY}
-              r={4}
-              fill="var(--color-outline-variant)"
-            />
-          )}
-
-          {metrics.map((metric, index) => {
-            const tone = axisTone(metric.key);
-            const labelPoint = point(index, 100, 25);
-            const anchor =
-              Math.abs(labelPoint.x - centerX) < 10
-                ? "middle"
-                : labelPoint.x > centerX
-                  ? "start"
-                  : "end";
-            return (
-              <text
-                key={`label-${metric.key}`}
-                x={labelPoint.x}
-                y={labelPoint.y}
-                textAnchor={anchor}
-                dominantBaseline="central"
-              >
-                <tspan
-                  x={labelPoint.x}
-                  dy="-0.4em"
-                  className={cn("type-caption font-semibold", tone.label)}
-                >
-                  {t(`skills.${metric.key}`)}
-                </tspan>
-                <tspan
-                  x={labelPoint.x}
-                  dy="1.4em"
-                  fill="var(--color-on-surface)"
-                  className="type-caption font-extrabold"
-                >
-                  {Math.round(metric.value)}
-                </tspan>
-              </text>
-            );
-          })}
-        </svg>
+        {metrics.length > 0 ? (
+          <div className="relative flex size-[260px] items-center justify-center sm:size-[300px]">
+            <RadarChart data={radarData} metrics={radarMetrics} size={260}>
+              <RadarGrid />
+              <RadarAxis />
+              <RadarLabels fontSize={11} offset={18} />
+              <RadarArea index={0} color="var(--chart-line-primary)" />
+            </RadarChart>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="flex size-16 flex-col items-center justify-center rounded-full bg-surface-container-lowest text-center shadow-token-card ring-1 ring-outline-variant">
+                <Stat size="title" as="p" className="font-extrabold leading-none text-on-surface">
+                  {overall ?? "-"}
+                </Stat>
+                <span className="mt-0.5 type-caption font-semibold text-on-surface-variant">
+                  /100
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ChartEmpty title={t("skill_snapshot_empty_title")} />
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        <div className="rounded-2xl bg-[#E5F6EC] p-4 dark:bg-[#34C759]/12">
-          <Eyebrow className="text-[#1E9E54] dark:text-[#5DD984]">
+        <div className="rounded-xl bg-success-container p-4">
+          <Eyebrow className="text-success-dim">
             {t("cards.strongest_focus.strongest")}
           </Eyebrow>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <p className="type-title font-extrabold text-on-surface">
               {strongestSkill ? t(`skills.${strongestSkill}`) : "-"}
             </p>
-            <Stat size="title" className="font-extrabold text-[#1E9E54] dark:text-[#5DD984]">
+            <Stat size="title" className="font-extrabold text-success-dim">
               {skillScore(strongestSkill) ?? ""}
             </Stat>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-[#FFF3DC] p-4 dark:bg-[#FFD166]/12">
-          <Eyebrow className="text-[#C98A1B] dark:text-[#FFD98A]">
+        <div className="rounded-xl bg-warning-container p-4">
+          <Eyebrow className="text-on-warning-container">
             {t("cards.strongest_focus.focus_next")}
           </Eyebrow>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <p className="type-title font-extrabold text-on-surface">
               {focusSkill ? t(`skills.${focusSkill}`) : "-"}
             </p>
-            <Stat size="title" className="font-extrabold text-[#C98A1B] dark:text-[#FFD98A]">
+            <Stat size="title" className="font-extrabold text-on-warning-container">
               {skillScore(focusSkill) ?? ""}
             </Stat>
           </div>
@@ -394,8 +222,8 @@ function DeltaPill({
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 type-caption font-bold tabular-nums",
         positive
-          ? "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]"
-          : "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]"
+          ? "bg-success-container text-success-dim"
+          : "bg-error-container text-error"
       )}
     >
       {positive ? (
@@ -408,159 +236,113 @@ function DeltaPill({
   );
 }
 
-function WeeklyBars({ insight }: { insight: PracticeMinutesInsight | undefined }) {
-  const prefersReducedMotion = useReducedMotion();
-  const visibleSeries = insight?.series.slice(-7) ?? [];
-  const values =
-    visibleSeries.length > 0
-      ? visibleSeries.map((point) => point.value)
-      : [0, 0, 0, 0, 0, 0, 0];
-  const max = Math.max(...values, 1);
-  const peakIndex = values.indexOf(Math.max(...values));
+function trendRows(series: AnalyticsTrendPoint[] | undefined) {
+  return (series ?? []).map((point, index) => ({
+    date: new Date(Date.UTC(2026, 0, index + 1)),
+    label: point.label,
+    value: point.value,
+  }));
+}
+
+function TrendLine({
+  series,
+  emptyTitle,
+}: {
+  series: AnalyticsTrendPoint[] | undefined;
+  emptyTitle: string;
+}) {
+  const rows = trendRows(series);
 
   return (
-    <div className="mt-6 flex h-[132px] items-end gap-3">
-      {values.map((value, index) => (
-        <div
-          key={`${value}-${index}`}
-          className="flex h-full flex-1 flex-col items-center justify-end gap-2"
-        >
-          <motion.div
-            initial={prefersReducedMotion ? false : { scaleY: 0 }}
-            animate={{ scaleY: 1 }}
-            transition={{
-              duration: 0.45,
-              delay: index * 0.05,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            style={{
-              height: `${Math.max(10, (value / max) * 100)}px`,
-              transformOrigin: "bottom",
-            }}
-            className={cn(
-              "w-full max-w-[22px] rounded-full",
-              index === peakIndex && value > 0
-                ? "bg-[linear-gradient(180deg,#34D5EE_0%,#00B8D9_100%)]"
-                : "bg-[#00B8D9]/25 dark:bg-[#00B8D9]/35"
-            )}
-          />
-          <span className="type-caption font-semibold text-on-surface-variant">
-            {visibleSeries[index]?.label ?? ""}
-          </span>
-        </div>
-      ))}
+    <div className="mt-5">
+      {rows.length > 1 ? (
+        <>
+          <div className="h-40">
+            <LineChart data={rows} margin={{ top: 18, right: 18, bottom: 30, left: 18 }}>
+              <Grid horizontal />
+              <Line
+                dataKey="value"
+                curve={curveNatural}
+                stroke="var(--chart-line-primary)"
+                showMarkers
+              />
+              <XAxis numTicks={3} />
+              <ChartTooltip />
+            </LineChart>
+          </div>
+          <div className="mt-1 flex justify-between gap-2 type-caption font-semibold text-on-surface-variant">
+            <span className="truncate">{rows[0]?.label}</span>
+            <span className="truncate text-right">{rows.at(-1)?.label}</span>
+          </div>
+        </>
+      ) : (
+        <ChartEmpty title={emptyTitle} />
+      )}
     </div>
   );
 }
 
-function ScoreGauge({ score }: { score: number | null }) {
-  const prefersReducedMotion = useReducedMotion();
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
+function ScoreRing({ score }: { score: number | null }) {
   const bounded = score != null ? Math.max(0, Math.min(100, score)) : 0;
-  const tone =
+  const color =
     score == null
-      ? "#CDECF3"
+      ? "var(--color-chart-axis)"
       : bounded >= 80
-        ? "#34C759"
+        ? "var(--color-chart-3)"
         : bounded >= 55
-          ? "#00B8D9"
-          : "#FFB020";
+          ? "var(--chart-line-primary)"
+          : "var(--color-chart-4)";
+  const data = [
+    {
+      label: "/100",
+      value: Math.round(bounded),
+      maxValue: 100,
+      color,
+    },
+  ];
 
   return (
-    <div className="relative inline-flex">
-      <svg viewBox="0 0 128 128" className="size-[124px] -rotate-90">
-        <circle
-          cx="64"
-          cy="64"
-          r={radius}
-          fill="none"
-          strokeWidth="11"
-          stroke="var(--color-surface-container-high)"
-        />
-        <motion.circle
-          cx="64"
-          cy="64"
-          r={radius}
-          fill="none"
-          stroke={tone}
-          strokeWidth="11"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={
-            prefersReducedMotion
-              ? false
-              : { strokeDashoffset: circumference }
-          }
-          animate={{
-            strokeDashoffset: circumference * (1 - bounded / 100),
-          }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <Stat size="heading-lg" as="p" className="font-extrabold leading-none text-on-surface">
-          {score != null ? Math.round(score) : "-"}
-        </Stat>
-        <p className="mt-0.5 type-caption font-semibold text-on-surface-variant">
-          /100
-        </p>
-      </div>
-    </div>
+    <RingChart data={data} size={132} strokeWidth={14} baseInnerRadius={40}>
+      <Ring index={0} color={color} />
+      <RingCenter defaultLabel="/100" />
+    </RingChart>
   );
 }
 
-function MixDonut({
-  debatePercent,
+function MixRing({
+  debateCount,
+  speakingCount,
   total,
   sessionsLabel,
 }: {
-  debatePercent: number;
+  debateCount: number;
+  speakingCount: number;
   total: number;
   sessionsLabel: string;
 }) {
-  const prefersReducedMotion = useReducedMotion();
-  const radius = 48;
-  const circumference = 2 * Math.PI * radius;
-  const debateLength = circumference * (Math.max(0, Math.min(100, debatePercent)) / 100);
+  const maxValue = Math.max(total, 1);
+  const data = [
+    {
+      label: sessionsLabel,
+      value: debateCount,
+      maxValue,
+      color: "var(--chart-line-primary)",
+    },
+    {
+      label: sessionsLabel,
+      value: speakingCount,
+      maxValue,
+      color: "var(--chart-line-secondary)",
+    },
+  ];
 
   return (
-    <div className="relative inline-flex">
-      <svg viewBox="0 0 120 120" className="size-[118px] -rotate-90">
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          strokeWidth="13"
-          stroke="#8BE8F7"
-          className="dark:opacity-60"
-        />
-        <motion.circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="#00B8D9"
-          strokeWidth="13"
-          strokeLinecap={debatePercent > 0 && debatePercent < 100 ? "round" : "butt"}
-          strokeDasharray={`${debateLength} ${circumference}`}
-          initial={
-            prefersReducedMotion ? false : { strokeDasharray: `0 ${circumference}` }
-          }
-          animate={{ strokeDasharray: `${debateLength} ${circumference}` }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <Stat size="heading-lg" as="p" className="font-extrabold leading-none text-on-surface">
-          {total}
-        </Stat>
-        <p className="mt-0.5 type-caption font-semibold text-on-surface-variant">
-          {sessionsLabel}
-        </p>
-      </div>
-    </div>
+    <RingChart data={data} size={150} strokeWidth={13} baseInnerRadius={42}>
+      {data.map((item, index) => (
+        <Ring index={index} key={item.color} color={item.color} />
+      ))}
+      <RingCenter defaultLabel={sessionsLabel} />
+    </RingChart>
   );
 }
 
@@ -577,7 +359,7 @@ function MixLegend({
     <div className="grid w-full gap-2.5">
       <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-container px-3.5 py-2.5">
         <span className="inline-flex min-w-0 items-center gap-2 type-caption font-semibold text-on-surface">
-          <Scale className="size-4 shrink-0 text-[#00B8D9]" />
+          <Scale className="size-4 shrink-0 text-chart-1" />
           <span className="truncate">{tAnalytics("cards.mix.debate")}</span>
         </span>
         <span className="type-body-sm font-extrabold tabular-nums text-on-surface">
@@ -586,7 +368,7 @@ function MixLegend({
       </div>
       <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-container px-3.5 py-2.5">
         <span className="inline-flex min-w-0 items-center gap-2 type-caption font-semibold text-on-surface">
-          <Mic2 className="size-4 shrink-0 text-[#56CBE0]" />
+          <Mic2 className="size-4 shrink-0 text-chart-2" />
           <span className="truncate">{tAnalytics("cards.mix.speaking")}</span>
         </span>
         <span className="type-body-sm font-extrabold tabular-nums text-on-surface">
@@ -615,7 +397,7 @@ function SeasonTile({
   const leagueName = getLocalizedLeagueName(tierId, locale).name;
 
   return (
-    <BentoTile title={t("season_performance")} className={className}>
+    <ChartCard title={t("season_performance")} className={className}>
       <Link
         href="/leaderboards"
         aria-label={t("view_leaderboard")}
@@ -640,7 +422,7 @@ function SeasonTile({
                 {formatNumber(seasonXp)} {t("season_xp")}
               </span>
               {profile.season?.rank ? (
-                <span className="rounded-full bg-[#FFF3DC] px-3 py-1.5 type-caption font-bold tabular-nums text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+                <span className="rounded-full bg-warning-container px-3 py-1.5 type-caption font-bold tabular-nums text-on-warning-container">
                   #{profile.season.rank}
                 </span>
               ) : null}
@@ -663,7 +445,7 @@ function SeasonTile({
           </p>
         </div>
       </Link>
-    </BentoTile>
+    </ChartCard>
   );
 }
 
@@ -703,21 +485,21 @@ export function ProfileAnalyticsTab({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
-        <BentoTile
+        <ChartCard
           title={t("skill_snapshot")}
           className="xl:col-span-7"
-          contentClassName="grid items-center"
+          bodyClassName="grid items-center"
         >
           <SkillRadarHero
             snapshot={analyticsData.skillSnapshot}
             strongestFocus={strongestFocus}
           />
-        </BentoTile>
+        </ChartCard>
 
         <div className="grid min-w-0 content-start gap-5 xl:col-span-5">
-          <BentoTile
+          <ChartCard
             title={t("weekly_practice")}
-            action={
+            actions={
               <DeltaPill
                 delta={practiceMinutes?.deltaPercent}
                 label={
@@ -738,19 +520,22 @@ export function ProfileAnalyticsTab({
                 {t("minutes")}
               </p>
             </div>
-            <WeeklyBars insight={practiceMinutes} />
-          </BentoTile>
+            <TrendLine
+              series={practiceMinutes?.series}
+              emptyTitle={t("weekly_practice")}
+            />
+          </ChartCard>
 
-          <BentoTile title={t("average_score")}>
+          <ChartCard title={t("average_score")}>
             <div className="flex items-center gap-6">
-              <ScoreGauge score={averageScore?.averageScore ?? null} />
+              <ScoreRing score={averageScore?.averageScore ?? null} />
               {averageScore?.deltaPoints != null ? (
                 <p
                   className={cn(
                     "type-body-sm font-semibold leading-6",
                     averageScore.deltaPoints >= 0
-                      ? "text-[#1E9E54] dark:text-[#5DD984]"
-                      : "text-[#D6494E] dark:text-[#FF9398]"
+                      ? "text-success-dim"
+                      : "text-error"
                   )}
                 >
                   {t("score_delta", {
@@ -759,17 +544,18 @@ export function ProfileAnalyticsTab({
                 </p>
               ) : null}
             </div>
-          </BentoTile>
+          </ChartCard>
         </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
         <SeasonTile profile={profile} className="xl:col-span-7" />
 
-        <BentoTile title={t("practice_mix")} className="xl:col-span-5">
+        <ChartCard title={t("practice_mix")} className="xl:col-span-5">
           <div className="flex flex-wrap items-center gap-6">
-            <MixDonut
-              debatePercent={mix?.debatePercent ?? 0}
+            <MixRing
+              debateCount={mix?.debateCount ?? 0}
+              speakingCount={mix?.speakingCount ?? 0}
               total={totalMix}
               sessionsLabel={t("sessions")}
             />
@@ -780,7 +566,7 @@ export function ProfileAnalyticsTab({
               />
             </div>
           </div>
-        </BentoTile>
+        </ChartCard>
       </div>
     </div>
   );
@@ -820,7 +606,7 @@ export function PublicProfileAnalyticsTab({
       <div className="grid gap-5 xl:grid-cols-12">
         <SeasonTile profile={profile} className="xl:col-span-7" />
 
-        <BentoTile title={t("weekly_practice")} className="xl:col-span-5">
+        <ChartCard title={t("weekly_practice")} className="xl:col-span-5">
           <div className="flex items-baseline gap-2">
             <Stat size="heading-xl" as="p" className="font-extrabold leading-none text-on-surface">
               {formatNumber(data?.totalPracticeMinutes ?? 0)}
@@ -832,18 +618,19 @@ export function PublicProfileAnalyticsTab({
           <p className="mt-4 type-body-sm font-semibold text-on-surface-variant">
             {t("sessions_in_range", { count: data?.totalSessions ?? 0 })}
           </p>
-        </BentoTile>
+        </ChartCard>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        <BentoTile title={t("average_score")}>
-          <ScoreGauge score={data?.averageScore ?? null} />
-        </BentoTile>
+        <ChartCard title={t("average_score")}>
+          <ScoreRing score={data?.averageScore ?? null} />
+        </ChartCard>
 
-        <BentoTile title={t("practice_mix")}>
+        <ChartCard title={t("practice_mix")}>
           <div className="flex flex-wrap items-center gap-5">
-            <MixDonut
-              debatePercent={debatePercent}
+            <MixRing
+              debateCount={debateCount}
+              speakingCount={speakingCount}
               total={totalMix}
               sessionsLabel={t("sessions")}
             />
@@ -854,9 +641,9 @@ export function PublicProfileAnalyticsTab({
               />
             </div>
           </div>
-        </BentoTile>
+        </ChartCard>
 
-        <BentoTile title={t("profile_level")}>
+        <ChartCard title={t("profile_level")}>
           <div className="flex items-center gap-4">
             <Image
               src={LEVEL_ICON_SRC}
@@ -879,7 +666,7 @@ export function PublicProfileAnalyticsTab({
               </p>
             </div>
           </div>
-        </BentoTile>
+        </ChartCard>
       </div>
     </div>
   );

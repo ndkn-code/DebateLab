@@ -304,7 +304,7 @@ function ProfileStatTile({
           className="size-11 shrink-0 object-contain drop-shadow-token-card"
         />
       ) : (
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#EFEAFE] text-[#6D4FD0] dark:bg-[#8B5CF6]/15 dark:text-[#B49AFC]">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary-dim">
           {icon}
         </span>
       )}
@@ -337,7 +337,7 @@ function ProfileActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-semibold text-on-surface shadow-token-card transition hover:border-outline-variant hover:bg-background disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface shadow-token-card transition hover:border-outline-variant hover:bg-background disabled:cursor-not-allowed disabled:opacity-60",
         className
       )}
     >
@@ -451,7 +451,7 @@ function DiscoveryConnectionButton({
             t("cancelled_toast")
           )
         }
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock3 className="h-3.5 w-3.5" />}
         {t("requested")}
@@ -475,7 +475,7 @@ function DiscoveryConnectionButton({
               t("accepted_toast")
             )
           }
-          className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
+          className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
         >
           {t("accept")}
         </button>
@@ -492,7 +492,7 @@ function DiscoveryConnectionButton({
               t("declined_toast")
             )
           }
-          className="inline-flex h-9 items-center rounded-lg border border-outline-variant bg-white px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
+          className="inline-flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
         >
           {t("decline")}
         </button>
@@ -511,7 +511,7 @@ function DiscoveryConnectionButton({
             t("requested_toast")
           )
         }
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
         {t("add_friend")}
@@ -564,7 +564,7 @@ function DiscoveryPersonCard({
   );
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-white p-3 shadow-token-card">
+    <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 shadow-token-card">
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3">
           {content}
@@ -684,14 +684,14 @@ function FindFriendsDrawer({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface"
             aria-label={t("close")}
           >
             <X className="h-4.5 w-4.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-3 border-b border-outline-variant bg-white">
+        <div className="grid grid-cols-3 border-b border-outline-variant bg-surface-container-lowest">
           {[
             { value: "search", label: t("tab_search"), count: 0 },
             {
@@ -740,7 +740,7 @@ function FindFriendsDrawer({
                 <label className="text-sm font-semibold text-on-surface" htmlFor="profile-discovery-search">
                   {t("search_label")}
                 </label>
-                <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 focus-within:border-primary">
+                <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 focus-within:border-primary">
                   <Search className="h-4 w-4 text-on-surface-variant" />
                   <input
                     id="profile-discovery-search"
@@ -752,14 +752,14 @@ function FindFriendsDrawer({
                   <button
                     type="submit"
                     disabled={isSearching}
-                    className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60"
+                    className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
                   >
                     {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("search_button")}
                   </button>
                 </div>
               </form>
 
-              <div className="rounded-lg border border-outline-variant bg-white p-4">
+              <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("friend_code_label")}</p>
@@ -801,7 +801,7 @@ function FindFriendsDrawer({
                   onChanged={refreshCenter}
                 />
               ) : searchResult && searchResult.status !== "empty" ? (
-                <div className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-8 text-center text-sm text-on-surface-variant">
+                <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-8 text-center text-sm text-on-surface-variant">
                   {searchResult.status === "rate_limited"
                     ? t("search_rate_limited")
                     : searchResult.status === "blocked"
@@ -841,7 +841,7 @@ function FindFriendsDrawer({
                       />
                     ))
                   ) : (
-                    <p className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-6 text-center text-sm text-on-surface-variant">
+                    <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-6 text-center text-sm text-on-surface-variant">
                       {t("no_incoming")}
                     </p>
                   )}
@@ -859,7 +859,7 @@ function FindFriendsDrawer({
                       />
                     ))
                   ) : (
-                    <p className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-6 text-center text-sm text-on-surface-variant">
+                    <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-6 text-center text-sm text-on-surface-variant">
                       {t("no_outgoing")}
                     </p>
                   )}
@@ -879,7 +879,7 @@ function FindFriendsDrawer({
                   />
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-outline-variant bg-white px-4 py-12 text-center">
+                <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-12 text-center">
                   <UserRoundPlus className="mx-auto h-8 w-8 text-muted-foreground" />
                   <p className="mt-3 text-sm font-semibold text-on-surface">{t("no_friends_title")}</p>
                   <p className="mt-1 text-sm text-on-surface-variant">{t("no_friends_body")}</p>
@@ -914,7 +914,7 @@ function ProfileConnectionActions({
     return (
       <Link
         href="/settings#privacy"
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 text-sm font-semibold text-on-surface transition hover:bg-background"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface transition hover:bg-background"
       >
         <Settings className="h-4 w-4" />
         {t("actions.edit_visibility")}
@@ -956,21 +956,21 @@ function ProfileConnectionActions({
       <div className="flex flex-wrap items-center gap-3">
         <ProfileActionButton
           onClick={() => setFindFriendsOpen(true)}
-          className="border-outline-variant bg-white text-on-surface"
+          className="border-outline-variant bg-surface-container-lowest text-on-surface"
         >
           <UserPlus className="h-4 w-4" />
           {t("actions.find_friends")}
         </ProfileActionButton>
         <Link
           href="/settings"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-token-primary transition hover:bg-primary-dim"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary transition hover:bg-primary-dim"
         >
           {t("actions.edit_profile")}
         </Link>
         <Link
           href="/settings"
           aria-label={t("actions.settings")}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface transition hover:bg-background"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-background"
         >
           <Settings className="h-4.5 w-4.5" />
         </Link>
@@ -993,7 +993,7 @@ function ProfileConnectionActions({
               t("actions.requested_toast")
             )
           }
-          className="border-transparent bg-primary text-white hover:bg-primary-dim"
+          className="border-transparent bg-primary text-on-primary hover:bg-primary-dim"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           {t("actions.add_friend")}
@@ -1029,7 +1029,7 @@ function ProfileConnectionActions({
                 t("actions.accepted_toast")
               )
             }
-            className="border-transparent bg-primary text-white hover:bg-primary-dim"
+            className="border-transparent bg-primary text-on-primary hover:bg-primary-dim"
           >
             <Check className="h-4 w-4" />
             {t("actions.accept")}
@@ -1069,7 +1069,7 @@ function ProfileConnectionActions({
       ) : null}
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-on-surface transition hover:bg-background">
+        <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-background">
           <MoreHorizontal className="h-4.5 w-4.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -1108,9 +1108,9 @@ function ProfileConnectionActions({
 }
 
 const FEATURED_CHIP_TONES = [
-  "bg-[#E3F3FF] text-[#1D7FD6] dark:bg-[#3B9EFF]/15 dark:text-[#6FB9FF]",
-  "bg-[#EFEAFE] text-[#6D4FD0] dark:bg-[#8B5CF6]/15 dark:text-[#B49AFC]",
-  "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
+  "bg-primary-container text-primary-dim",
+  "bg-surface-container text-chart-5",
+  "bg-warning-container text-on-warning-container",
 ] as const;
 
 function HeaderFeaturedAchievements({
@@ -1169,13 +1169,13 @@ function ProfileHeader({
   return (
     <header className="grid gap-8 pb-9 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
       <div className="flex items-start justify-center lg:justify-end">
-        <span className="inline-flex rounded-full bg-[conic-gradient(from_140deg,#00B8D9,#8BE8F7,#FFD166,#00B8D9)] p-[4px] shadow-token-card">
+        <span className="inline-flex rounded-full bg-[conic-gradient(from_140deg,var(--color-chart-1),var(--color-chart-2),var(--color-chart-4),var(--color-chart-1))] p-[4px] shadow-token-card">
           <span className="inline-flex rounded-full bg-background p-[5px]">
             <Avatar className="h-40 w-40 bg-surface-container sm:h-44 sm:w-44 lg:h-52 lg:w-52">
               {profile.avatarUrl ? (
                 <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
               ) : null}
-              <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,#FFFFFF_0%,#E5F8FC_52%,#CDECF3_100%)] text-5xl font-semibold text-[#102936]">
+              <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,var(--color-surface-container-lowest)_0%,var(--color-primary-container)_52%,var(--color-chart-crosshair)_100%)] text-5xl font-semibold text-on-surface">
                 {getInitials(profile.displayName)}
               </AvatarFallback>
             </Avatar>
@@ -1327,7 +1327,7 @@ function PrivacyPanel({
   body: string;
 }) {
   return (
-    <section className="rounded-xl border border-dashed border-outline-variant bg-white px-6 py-16 text-center">
+    <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-16 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
         <ShieldCheck className="h-6 w-6" />
       </div>
@@ -1536,7 +1536,7 @@ export function SocialProfilePage({
         {profile ? (
           <>
             {privacyPreview ? (
-              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm text-on-surface-variant">
+              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant">
                 <Eye className="h-4 w-4 shrink-0 text-primary" />
                 <span>{t("privacy_preview")}</span>
               </div>
@@ -1575,7 +1575,7 @@ export function SocialProfilePage({
         ) : (
           <>
             {privacyPreview ? (
-              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3 text-sm text-on-surface-variant">
+              <div className="mb-5 flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant">
                 <Eye className="h-4 w-4 shrink-0 text-primary" />
                 <span>{t("privacy_preview")}</span>
               </div>

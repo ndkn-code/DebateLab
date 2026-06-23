@@ -1,35 +1,45 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { Brain } from "@/components/ui/icons";
+import {
+  RadarArea,
+  RadarAxis,
+  RadarChart,
+  RadarGrid,
+  RadarLabels,
+} from "@/components/charts";
 import type { SkillData } from "./profile-content";
 
 interface SkillRadarProps {
   skills: SkillData;
 }
 
-const RadarSkillChart = dynamic(
-  () =>
-    import("./skill-radar-chart").then((mod) => ({
-      default: mod.RadarSkillChart,
-    })),
-  { ssr: false }
-);
-
 export function SkillRadar({ skills }: SkillRadarProps) {
   const t = useTranslations("dashboard.profile");
   const hasEnoughData = skills.total_sessions >= 3;
 
+  const metrics = [
+    { key: "content", label: t("skill_content") },
+    { key: "structure", label: t("skill_structure") },
+    { key: "language", label: t("skill_language") },
+    { key: "persuasion", label: t("skill_persuasion") },
+  ];
   const data = [
-    { skill: t("skill_content"), value: Math.round(skills.content) },
-    { skill: t("skill_structure"), value: Math.round(skills.structure) },
-    { skill: t("skill_language"), value: Math.round(skills.language) },
-    { skill: t("skill_persuasion"), value: Math.round(skills.persuasion) },
+    {
+      label: t("skill_breakdown"),
+      values: {
+        content: Math.round(skills.content),
+        structure: Math.round(skills.structure),
+        language: Math.round(skills.language),
+        persuasion: Math.round(skills.persuasion),
+      },
+      color: "var(--chart-line-primary)",
+    },
   ];
 
   return (
-    <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card md:p-6">
+    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-token-card md:p-6">
       <h2 className="mb-4 text-base font-semibold text-on-surface">
         {t("skill_breakdown")}
       </h2>
@@ -47,7 +57,14 @@ export function SkillRadar({ skills }: SkillRadarProps) {
           </p>
         </div>
       ) : (
-        <RadarSkillChart data={data} />
+        <div className="flex h-64 w-full items-center justify-center">
+          <RadarChart data={data} metrics={metrics} size={240}>
+            <RadarGrid />
+            <RadarAxis />
+            <RadarLabels fontSize={11} offset={18} />
+            <RadarArea index={0} color="var(--chart-line-primary)" />
+          </RadarChart>
+        </div>
       )}
     </div>
   );

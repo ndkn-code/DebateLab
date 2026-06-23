@@ -173,16 +173,16 @@ function AchievementInfoDialog({
         </div>
 
         <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          <div className="rounded-2xl bg-[#FFF3DC] p-3.5 dark:bg-[#FFD166]/12">
-            <Eyebrow className="text-[#C98A1B] dark:text-[#FFD98A]">
+          <div className="rounded-2xl bg-warning-container p-3.5">
+            <Eyebrow className="text-on-warning-container">
               {t("xp_reward")}
             </Eyebrow>
             <p className="mt-1 type-body font-extrabold tabular-nums text-on-surface">
               {achievement.xpReward} XP
             </p>
           </div>
-          <div className="rounded-2xl bg-[#E3F3FF] p-3.5 dark:bg-[#3B9EFF]/12">
-            <Eyebrow className="text-[#1D7FD6] dark:text-[#6FB9FF]">
+          <div className="rounded-2xl bg-primary-container p-3.5">
+            <Eyebrow className="text-primary-dim">
               {t("title_reward")}
             </Eyebrow>
             <p className="mt-1 truncate type-body font-extrabold text-on-surface">
@@ -312,7 +312,7 @@ function AchievementCard({
 
       <div className="mt-auto w-full pt-5">
         {achievement.unlocked ? (
-          <p className="inline-flex items-center gap-1.5 type-caption font-bold text-[#1E9E54] dark:text-[#5DD984]">
+          <p className="inline-flex items-center gap-1.5 type-caption font-bold text-success-dim">
             <CheckCircle2 className="size-4" />
             {t("complete")}
           </p>
@@ -429,7 +429,7 @@ export function ProfileAchievementsTab({
     <div className="grid gap-6">
       <div className="flex flex-col gap-4 rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-token-card sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div className="flex items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-warning-container text-on-warning-container">
             <Award className="size-6" />
           </span>
           <h2 className="text-lg font-extrabold text-on-surface">{t("title")}</h2>
