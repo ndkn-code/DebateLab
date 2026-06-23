@@ -1,6 +1,5 @@
 "use client";
 
-import { curveNatural } from "@visx/curve";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -36,15 +35,7 @@ import {
 import type { LucideIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, Heading } from "@/components/ui/typography";
-import {
-  ChartTooltip,
-  Grid,
-  Line,
-  LineChart,
-  Ring,
-  RingCenter,
-  RingChart,
-} from "@/components/charts";
+import { Ring, RingCenter, RingChart } from "@/components/charts";
 import { ChartCard } from "@/components/data-viz";
 import { SuccessCheck } from "@/components/motion";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
@@ -54,7 +45,7 @@ import {
   getFullRoundWinnerResult,
 } from "@/lib/results/session-result";
 import { cn } from "@/lib/utils";
-import type { DebateRound, DebateSession } from "@/types";
+import type { DebateSession } from "@/types";
 
 interface SessionResultDashboardProps {
   session: DebateSession;
@@ -190,16 +181,6 @@ function getSeriesColor(index: number) {
   return CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length];
 }
 
-function buildRoundTimelineData(rounds: DebateRound[]) {
-  return rounds.map((round, index) => ({
-    date: new Date(Date.UTC(2026, 0, index + 1)),
-    progress: index + 1,
-    label: round.label,
-    duration: round.duration ?? 0,
-    roundNumber: round.roundNumber,
-  }));
-}
-
 function getTrackLabel(
   session: DebateSession,
   t: ReturnType<typeof useTranslations<"sessionResult.tracks">>,
@@ -332,7 +313,6 @@ export function SessionResultDashboard({
   const strongestMetric = viewModel.strongest.metric;
   const weakestMetric = viewModel.weakest.metric;
   const focusMetric = viewModel.focus.metric;
-  const roundTimelineData = buildRoundTimelineData(viewModel.rounds);
   const caseworkItems = [
     {
       label: t("casework.caseSummary"),
@@ -708,61 +688,6 @@ export function SessionResultDashboard({
           </div>
         </div>
       </div>
-
-      {roundTimelineData.length > 1 && (
-        <ChartCard
-          className="mt-5"
-          eyebrow={t("detail.timeline")}
-          title={t("detail.timeline")}
-          subtitle={t("detail.showTimeline")}
-        >
-          <div className="h-48">
-            <LineChart
-              data={roundTimelineData}
-              margin={{ top: 28, right: 28, bottom: 20, left: 28 }}
-              xDataKey="date"
-            >
-              <Grid horizontal />
-              <Line
-                dataKey="progress"
-                curve={curveNatural}
-                showMarkers
-                stroke="var(--chart-line-primary)"
-                strokeWidth={3}
-              />
-              <ChartTooltip
-                showDatePill={false}
-                rows={(point) => {
-                  const duration =
-                    typeof point.duration === "number" && point.duration > 0
-                      ? formatDurationLabel(point.duration, tDuration)
-                      : `#${point.roundNumber}`;
-
-                  return [
-                    {
-                      color: "var(--chart-line-primary)",
-                      label: String(point.label),
-                      value: duration,
-                    },
-                  ];
-                }}
-              />
-            </LineChart>
-          </div>
-          <div
-            className="mt-3 grid gap-2 text-center type-caption font-semibold text-on-surface-variant"
-            style={{
-              gridTemplateColumns: `repeat(${roundTimelineData.length}, minmax(0, 1fr))`,
-            }}
-          >
-            {roundTimelineData.map((round) => (
-              <span key={round.roundNumber} className="truncate">
-                {round.label}
-              </span>
-            ))}
-          </div>
-        </ChartCard>
-      )}
 
       {hasLearningReview && (
         <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
