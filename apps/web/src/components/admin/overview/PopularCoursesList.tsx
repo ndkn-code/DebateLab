@@ -4,7 +4,13 @@ import { useTranslations } from "next-intl";
 import { BookOpen } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 
-const COLORS = ["#2f4fdd", "#7c3aed", "#059669", "#d97706", "#dc2626"];
+const COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
 
 interface Props {
   courses: { course_id: string; title: string; enrollment_count: number }[];
@@ -30,7 +36,7 @@ export function PopularCoursesList({ courses }: Props) {
               className="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-container transition-colors"
             >
               <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white text-xs font-bold"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-on-primary text-xs font-bold"
                 style={{ backgroundColor: COLORS[i % COLORS.length] }}
               >
                 {course.title[0]?.toUpperCase()}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChartCard, ChartEmpty } from "@/components/data-viz";
 
 interface GeoPoint {
   country: string;
@@ -31,18 +32,14 @@ export function GlobalMap({ geoData }: Props) {
 
   if (geoData.length === 0) {
     return (
-      <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-on-surface mb-4">Global Users</h3>
-        <div className="flex items-center justify-center h-[300px] text-on-surface-variant text-sm">
-          No geo data available yet
-        </div>
-      </div>
+      <ChartCard title="Global Users" bodyClassName="h-[300px]">
+        <ChartEmpty title="No geo data available yet" />
+      </ChartCard>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 p-5 shadow-sm relative">
-      <h3 className="text-sm font-semibold text-on-surface mb-4">Global Users</h3>
+    <ChartCard title="Global Users" className="relative">
       <div className="h-[350px]">
         <svg
           viewBox="0 0 100 52"
@@ -60,7 +57,7 @@ export function GlobalMap({ geoData }: Props) {
               <path
                 d="M 10 0 L 0 0 0 8"
                 fill="none"
-                stroke="#d7e0ec"
+                stroke="var(--color-outline-variant)"
                 strokeWidth="0.18"
               />
             </pattern>
@@ -68,11 +65,11 @@ export function GlobalMap({ geoData }: Props) {
           <rect width="100" height="52" fill="url(#global-map-grid)" />
           <path
             d="M12 16c4-5 14-8 22-6 4 1 8 3 14 2 7-1 12-5 20-3 9 3 15 9 18 18 2 7-1 13-8 15-6 2-13-2-19-1-10 2-18 8-29 5C17 43 8 31 12 16Z"
-            fill="#dfe8f2"
+            fill="var(--color-surface-container-high)"
           />
           <path
             d="M18 21c5-3 12-4 17-2 4 2 8 5 13 4 6-1 9-5 15-4 6 2 12 8 12 14 0 4-3 6-8 6-6 0-10-3-15-1-8 3-14 6-23 3-9-3-17-13-11-20Z"
-            fill="#d3dfeb"
+            fill="var(--color-surface-container-low)"
           />
           {geoData.map((point, i) => {
             const position = projectPoint(point);
@@ -83,9 +80,9 @@ export function GlobalMap({ geoData }: Props) {
                 cx={position.x}
                 cy={position.y}
                 r={Math.max(4, (point.count / maxCount) * 16)}
-                fill="#2f4fdd"
+                fill="var(--chart-line-primary)"
                 fillOpacity={0.6}
-                stroke="#2f4fdd"
+                stroke="var(--chart-line-primary)"
                 strokeWidth={1}
                 strokeOpacity={0.3}
                 onMouseEnter={() => setTooltip(point)}
@@ -103,6 +100,6 @@ export function GlobalMap({ geoData }: Props) {
           <p className="text-primary font-semibold">{tooltip.count} users</p>
         </div>
       )}
-    </div>
+    </ChartCard>
   );
 }
