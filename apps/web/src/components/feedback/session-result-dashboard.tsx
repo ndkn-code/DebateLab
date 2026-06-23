@@ -124,8 +124,19 @@ function toDisplayLocale(locale: string) {
   return locale === "vi" ? "vi-VN" : "en-US";
 }
 
-function toBandKey(band: string) {
-  return String(band).toLowerCase() as keyof typeof BAND_STYLES;
+function toBandKey(band: string | null | undefined) {
+  const key = String(band ?? "").toLowerCase();
+  return key in BAND_STYLES
+    ? (key as keyof typeof BAND_STYLES)
+    : "competent";
+}
+
+function clampChartScore(value: unknown) {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, Math.round(numeric)));
 }
 
 function formatDateLabel(iso: string, locale: string) {
@@ -305,10 +316,11 @@ export function SessionResultDashboard({
 
   const bandKey = toBandKey(viewModel.feedback.overallBand);
   const bandStyle = BAND_STYLES[bandKey];
+  const overallScore = clampChartScore(viewModel.feedback.totalScore);
   const overallRingData = [
     {
       label: t("scoreLabel"),
-      value: viewModel.feedback.totalScore,
+      value: overallScore,
       maxValue: 100,
       color: bandStyle.ring,
     },
@@ -522,7 +534,7 @@ export function SessionResultDashboard({
 
             <div
               className="relative flex h-[218px] w-[218px] items-center justify-center"
-              aria-label={`${viewModel.feedback.totalScore} out of 100`}
+              aria-label={`${overallScore} out of 100`}
             >
               <RingChart
                 data={overallRingData}
@@ -943,10 +955,11 @@ export function SessionResultDashboard({
             const Icon = SKILL_ICONS[metric.key] ?? Sparkles;
             const isWeakest = metric.key === weakestMetric?.key;
             const chartColor = getSeriesColor(index);
+            const metricScore = clampChartScore(metric.score);
             const ringData = [
               {
                 label: tSkills(metric.key),
-                value: metric.score,
+                value: metricScore,
                 maxValue: 100,
                 color: chartColor,
               },

@@ -38,22 +38,29 @@ function formatStatValue(
 }
 
 function useNumberFlowElementReady(): boolean {
-  const [ready, setReady] = useState(
-    () =>
-      typeof customElements !== "undefined" &&
-      Boolean(customElements.get("number-flow-react"))
-  );
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (ready) {
       return;
     }
     let cancelled = false;
-    customElements.whenDefined("number-flow-react").then(() => {
+    if (typeof customElements === "undefined") {
+      return;
+    }
+
+    const markReady = () => {
       if (!cancelled) {
         setReady(true);
       }
-    });
+    };
+
+    if (customElements.get("number-flow-react")) {
+      markReady();
+    } else {
+      customElements.whenDefined("number-flow-react").then(markReady);
+    }
+
     return () => {
       cancelled = true;
     };

@@ -126,9 +126,18 @@ function pickModelAnswer(feedback: DebateScore) {
   }
 
   return {
-    value: feedback.summary,
+    value:
+      typeof feedback.summary === "string" && feedback.summary.trim()
+        ? feedback.summary
+        : null,
     kind: "summary" as const,
   };
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function buildMetricList(feedback: DebateScore, practiceTrack: PracticeTrack) {
@@ -255,10 +264,15 @@ export function buildSessionResultViewModel(
   const practiceTrack = feedback.practiceTrack ?? session.practiceTrack ?? "debate";
   const metrics = buildMetricList(feedback, practiceTrack);
   const sortedMetrics = [...metrics].sort((left, right) => left.score - right.score);
+  const strengths = toStringArray(feedback.strengths);
   const improvements =
     feedback.missingLayers && feedback.missingLayers.length > 0
-      ? feedback.missingLayers
-      : feedback.improvements;
+      ? toStringArray(feedback.missingLayers)
+      : toStringArray(feedback.improvements);
+  const summary =
+    typeof feedback.summary === "string" && feedback.summary.trim()
+      ? feedback.summary
+      : "Feedback saved for this session.";
   const modelAnswer = pickModelAnswer(feedback);
 
   return {
@@ -267,17 +281,17 @@ export function buildSessionResultViewModel(
     metrics,
     strongest: {
       metric: sortedMetrics.at(-1) ?? null,
-      note: feedback.strengths[0] ?? feedback.summary,
+      note: strengths[0] ?? summary,
     },
     weakest: {
       metric: sortedMetrics[0] ?? null,
-      note: improvements[0] ?? feedback.summary,
+      note: improvements[0] ?? summary,
     },
     focus: {
       metric: sortedMetrics[0] ?? null,
-      note: improvements[1] ?? modelAnswer.value ?? feedback.summary,
+      note: improvements[1] ?? modelAnswer.value ?? summary,
     },
-    strengths: feedback.strengths,
+    strengths,
     improvements,
     modelAnswer: modelAnswer.value,
     modelAnswerKind: modelAnswer.kind,

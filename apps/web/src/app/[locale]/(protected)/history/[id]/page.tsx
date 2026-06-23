@@ -33,6 +33,7 @@ export default function SessionDetailPage({
   const tHistory = useTranslations("dashboard.history");
   const [session, setSession] = useState<DebateSession | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -48,23 +49,55 @@ export default function SessionDetailPage({
   } = useSessionStore();
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadSession = async () => {
-      const supabase = createClient();
-      const { data: authData } = await supabase.auth.getUser();
-      let s: DebateSession | null = null;
-      if (authData.user) {
-        s = await supabaseStorage.getSession(id, authData.user.id);
-      } else {
-        s = storage.getSession(id);
+      try {
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.getUser();
+        let s: DebateSession | null = null;
+        if (authData.user) {
+          s = await supabaseStorage.getSession(id, authData.user.id);
+        } else {
+          s = storage.getSession(id);
+        }
+
+        if (cancelled) return;
+
+        if (s) {
+          setSession(s);
+        } else {
+          setNotFound(true);
+        }
+      } catch (error) {
+        if (cancelled) return;
+
+        try {
+          const localSession = storage.getSession(id);
+          if (localSession) {
+            setSession(localSession);
+            return;
+          }
+        } catch {
+          // Fall through to the visible error state below.
+        }
+
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load this session."
+        );
+      } finally {
+        if (!cancelled) {
+          setMounted(true);
+        }
       }
-      if (s) {
-        setSession(s);
-      } else {
-        setNotFound(true);
-      }
-      setMounted(true);
     };
     loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const handleRetry = () => {
@@ -100,6 +133,28 @@ export default function SessionDetailPage({
 
   if (!mounted) {
     return <div className="min-h-full bg-background" />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4 text-center">
+        <h1 className="text-2xl font-bold text-on-surface">
+          {tResult("notFoundTitle")}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm text-on-surface-variant">
+          {loadError}
+        </p>
+        <Link href="/profile?tab=activities" className="mt-6">
+          <Button
+            variant="outline"
+            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {tResult("backToHistory")}
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   if (notFound) {

@@ -26,6 +26,7 @@ import { AiRebuttalPhase } from "@/components/practice/ai-rebuttal-phase";
 import { RoundProgress } from "@/components/practice/round-progress";
 import { TransitionOverlay } from "@/components/practice/transition-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { showToast } from "@/components/shared/toast";
 import type { AiHighlight } from "@/types";
 
@@ -567,10 +568,12 @@ export default function SessionPage() {
   }, [router, stopMicStream]);
 
   if (isRestoringDraft) {
-    return <div className="h-dvh bg-background" />;
+    return <StudentRouteSkeleton variant="practice" />;
   }
 
-  if (!selectedTopic) return null;
+  if (!selectedTopic) {
+    return <StudentRouteSkeleton variant="practice" />;
+  }
 
   const resolvedSide =
     side === "random"
