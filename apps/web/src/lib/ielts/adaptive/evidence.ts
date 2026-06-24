@@ -106,7 +106,7 @@ export const IeltsAdaptiveEvidenceSchema = z
     sourceId: z.string().uuid(),
     reasonEn: z.string().min(1).max(2000),
     reasonVi: z.string().min(1).max(2000),
-    createdAt: z.string().datetime(),
+    createdAt: z.string().datetime({ offset: true }),
   })
   .refine((value) => value.subskillKey.startsWith(`${value.skill}:`), {
     message: "subskillKey prefix must match skill",

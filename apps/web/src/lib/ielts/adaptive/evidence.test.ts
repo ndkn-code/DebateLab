@@ -91,6 +91,14 @@ const secondEvidence = parseInput(IeltsAdaptiveEvidenceSchema, {
   createdAt: "2026-06-21T10:00:00.000Z",
 });
 
+assert.equal(
+  parseInput(IeltsAdaptiveEvidenceSchema, {
+    ...firstEvidence,
+    createdAt: "2026-06-24T16:59:46.773+00:00",
+  }).createdAt,
+  "2026-06-24T16:59:46.773+00:00",
+);
+
 {
   const states = deriveIeltsSkillStates([secondEvidence, firstEvidence]);
   assert.equal(states.length, 1);
