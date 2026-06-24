@@ -60,6 +60,13 @@ const AdaptiveTagSchema = z
   .max(80)
   .regex(/^[a-z0-9:_-]+$/, "tag must be lowercase snake/kebab key text");
 
+const PostgresUuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    "sourceId must be a PostgreSQL UUID",
+  );
+
 export const AdaptiveQuestionMetadataSchema = z
   .object({
     subskill_tags: z.array(IeltsSubskillKeySchema).max(16).optional(),
@@ -103,7 +110,7 @@ export const IeltsAdaptiveEvidenceSchema = z
     rawScore: z.number().finite().nullish(),
     confidence: z.number().min(0).max(1),
     sourceTable: z.enum(IELTS_ADAPTIVE_SOURCE_TABLES),
-    sourceId: z.string().uuid(),
+    sourceId: PostgresUuidSchema,
     reasonEn: z.string().min(1).max(2000),
     reasonVi: z.string().min(1).max(2000),
     createdAt: z.string().datetime({ offset: true }),
