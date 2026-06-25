@@ -45,6 +45,13 @@ const RECORDER_ERROR_KEYS: Record<RecorderErrorCode, string> = {
 
 const PILL = "rounded-full px-5 py-2 type-body-sm font-semibold disabled:opacity-50";
 
+function speakingGuidanceKey(questionType: string): string {
+  if (questionType === "speaking_part1") return "speaking.part1Hint";
+  if (questionType === "speaking_part2_cuecard") return "speaking.part2Hint";
+  if (questionType === "speaking_part3") return "speaking.part3Hint";
+  return "speaking.intro";
+}
+
 function SpeakingCapture({
   recorder,
   disabled,
@@ -177,6 +184,7 @@ export function SpeakingTaskRenderer({
   const attemptId = context?.attemptId ?? null;
   const working = submitting || poll.pending;
   const recorderErrorKey = recorder.error ? RECORDER_ERROR_KEYS[recorder.error] : null;
+  const guidanceKey = speakingGuidanceKey(question.questionType);
 
   const handleRecordAgain = () => {
     recorder.reset();
@@ -215,7 +223,7 @@ export function SpeakingTaskRenderer({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="type-body-sm text-on-surface-variant">{t("speaking.intro")}</p>
+      <p className="type-body-sm text-on-surface-variant">{t(guidanceKey)}</p>
 
       <SpeakingCapture
         recorder={recorder}

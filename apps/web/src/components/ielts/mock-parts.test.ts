@@ -32,6 +32,13 @@ function listeningQuestion(id: string, sectionId: string): IeltsQuestionView {
   return { id, skill: "listening", listeningSectionId: sectionId } as unknown as IeltsQuestionView;
 }
 
+function speakingQuestion(
+  id: string,
+  questionType: IeltsQuestionView["questionType"],
+): IeltsQuestionView {
+  return { id, skill: "speaking", questionType } as unknown as IeltsQuestionView;
+}
+
 function structure(over: Partial<MockStructure>): MockStructure {
   return {
     test: {} as Tables<"ielts_tests">,
@@ -76,6 +83,26 @@ async function main() {
 
   // --- missing supabaseUrl → no src even when ready (can't build a URL) ------
   assert.equal(buildSectionParts(ready, "listening", undefined)[0].audio[0].src, null);
+
+  // --- Speaking splits into ordered IELTS parts before the fallback bucket ----
+  const speaking = structure({
+    questions: [
+      speakingQuestion("p1-a", "speaking_part1"),
+      speakingQuestion("p3", "speaking_part3"),
+      speakingQuestion("p2", "speaking_part2_cuecard"),
+      speakingQuestion("p1-b", "speaking_part1"),
+      speakingQuestion("legacy", "short_answer"),
+    ],
+  });
+  const speakingParts = buildSectionParts(speaking, "speaking", SUPABASE_URL);
+  assert.deepEqual(
+    speakingParts.map((part) => part.title),
+    ["Part 1: Interview", "Part 2: Cue card", "Part 3: Discussion", "Tasks"],
+  );
+  assert.deepEqual(
+    speakingParts.map((part) => part.questions.map((question) => question.id)),
+    [["p1-a", "p1-b"], ["p2"], ["p3"], ["legacy"]],
+  );
 
   console.log("ielts/components/mock-parts tests passed");
 }

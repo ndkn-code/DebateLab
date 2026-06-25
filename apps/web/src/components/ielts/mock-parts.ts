@@ -67,6 +67,29 @@ function listeningParts(
   });
 }
 
+const SPEAKING_PART_DEFINITIONS: Array<{
+  id: string;
+  title: string;
+  questionType: IeltsQuestionView["questionType"];
+}> = [
+  { id: "speaking-part-1", title: "Part 1: Interview", questionType: "speaking_part1" },
+  { id: "speaking-part-2", title: "Part 2: Cue card", questionType: "speaking_part2_cuecard" },
+  { id: "speaking-part-3", title: "Part 3: Discussion", questionType: "speaking_part3" },
+];
+
+function speakingParts(structure: MockStructure): MockPart[] {
+  return SPEAKING_PART_DEFINITIONS.map((part) => ({
+    id: part.id,
+    title: part.title,
+    body: null,
+    audio: [],
+    questions: questionsFor(
+      structure,
+      (q) => q.skill === "speaking" && q.questionType === part.questionType,
+    ),
+  }));
+}
+
 function unlinkedPart(
   structure: MockStructure,
   skill: IeltsSkill,
@@ -101,7 +124,9 @@ export function buildSectionParts(
       ? readingParts(structure)
       : skill === "listening"
         ? listeningParts(structure, supabaseUrl)
-        : [];
+        : skill === "speaking"
+          ? speakingParts(structure)
+          : [];
   const used = new Set(parts.flatMap((part) => part.questions.map((q) => q.id)));
   const trailing = unlinkedPart(structure, skill, used);
   return trailing ? [...parts, trailing] : parts;
