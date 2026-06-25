@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { parseInput } from "@/lib/api/boundary";
@@ -49,6 +50,31 @@ export interface SubmitWritingResponseResult {
   usage: { used: number; limit: number | null };
 }
 
+export function scheduleIeltsWritingScoringFallback(
+  message: IeltsWritingQueueMessage,
+  reason: "submit" | "poll",
+): void {
+  try {
+    after(async () => {
+      try {
+        await runIeltsWritingScoringJob(message, { deliveryCount: 1 });
+      } catch (error) {
+        console.error("IELTS writing fallback scoring failed", {
+          writingResponseId: message.writingResponseId,
+          reason,
+          error,
+        });
+      }
+    });
+  } catch (error) {
+    console.warn("IELTS writing fallback could not be scheduled", {
+      writingResponseId: message.writingResponseId,
+      reason,
+      error,
+    });
+  }
+}
+
 /**
  * Submit an essay for async scoring: meter the request (one unit per scoring
  * request, so over-cap users never queue work), persist the response via the
@@ -78,10 +104,19 @@ export async function submitWritingResponseForScoring(params: {
   }
 
   const response = await createWritingResponse(params.raw, params.userId);
-  await enqueueIeltsWritingScoring({
+  const message = {
     writingResponseId: response.id,
     userId: params.userId,
-  });
+  };
+  scheduleIeltsWritingScoringFallback(message, "submit");
+  try {
+    await enqueueIeltsWritingScoring(message);
+  } catch (error) {
+    console.error("IELTS writing queue enqueue failed; fallback scheduled", {
+      writingResponseId: response.id,
+      error,
+    });
+  }
 
   return {
     writingResponseId: response.id,

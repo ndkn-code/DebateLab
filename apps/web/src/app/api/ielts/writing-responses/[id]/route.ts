@@ -5,6 +5,13 @@ import {
   getWritingResponseForUser,
   toWritingResponseView,
 } from "@/lib/api/ielts/writing-responses-repository";
+import { scheduleIeltsWritingScoringFallback } from "@/lib/ielts/writing-scorer/service";
+
+export const maxDuration = 60;
+
+function shouldScheduleFallback(status: string): boolean {
+  return status === "pending" || status === "failed" || status === "scoring";
+}
 
 /**
  * GET /api/ielts/writing-responses/[id] — poll a Writing response's scoring
@@ -23,6 +30,12 @@ export async function GET(
     return NextResponse.json(
       { error: "Writing response not found." },
       { status: 404 },
+    );
+  }
+  if (shouldScheduleFallback(response.status)) {
+    scheduleIeltsWritingScoringFallback(
+      { writingResponseId: response.id, userId: auth.user.id },
+      "poll",
     );
   }
   return NextResponse.json(toWritingResponseView(response));

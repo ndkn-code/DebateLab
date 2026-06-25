@@ -5,6 +5,13 @@ import {
   getSpeakingResponseForUser,
   toSpeakingResponseView,
 } from "@/lib/api/ielts/speaking-responses-repository";
+import { scheduleIeltsSpeakingScoringFallback } from "@/lib/ielts/speaking-scorer/service";
+
+export const maxDuration = 120;
+
+function shouldScheduleFallback(status: string): boolean {
+  return status === "pending" || status === "failed" || status === "scoring";
+}
 
 /**
  * GET /api/ielts/speaking-responses/[id] — poll a Speaking response's scoring
@@ -24,6 +31,12 @@ export async function GET(
     return NextResponse.json(
       { error: "Speaking response not found." },
       { status: 404 },
+    );
+  }
+  if (shouldScheduleFallback(response.status)) {
+    scheduleIeltsSpeakingScoringFallback(
+      { speakingResponseId: response.id, userId: auth.user.id },
+      "poll",
     );
   }
   return NextResponse.json(toSpeakingResponseView(response));

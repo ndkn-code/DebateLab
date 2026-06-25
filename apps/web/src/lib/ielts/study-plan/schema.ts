@@ -11,6 +11,13 @@ import {
   IeltsWeaknessSignalSchema,
 } from "@/lib/ielts/adaptive/contracts";
 
+const PostgresUuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    "must be a PostgreSQL UUID",
+  );
+
 export const IeltsPlanningPredictionSchema = z.union([
   IeltsBandPredictionSchema,
   IeltsPredictionSnapshotSchema,
@@ -18,7 +25,7 @@ export const IeltsPlanningPredictionSchema = z.union([
 
 export const IeltsReviewSeedSchema = z
   .object({
-    reviewItemId: z.string().uuid(),
+    reviewItemId: PostgresUuidSchema,
     skill: IeltsSkillSchema,
     focusArea: z.string().trim().min(1).max(160),
     dueAt: IeltsIsoDateTimeSchema,
@@ -29,7 +36,7 @@ export const IeltsReviewSeedSchema = z
 
 export const IeltsTeacherAssignmentSeedSchema = z
   .object({
-    assignmentId: z.string().uuid(),
+    assignmentId: PostgresUuidSchema,
     skill: IeltsSkillSchema,
     focusArea: z.string().trim().min(1).max(160),
     scheduledDate: IeltsIsoDateSchema,

@@ -8,11 +8,12 @@ import {
   rateIeltsReviewItem,
 } from "@/lib/api/ielts/review-repository";
 import { IELTS_REVIEW_RATINGS } from "@/lib/ielts/review";
+import { PostgresUuidSchema } from "@/lib/ielts/review/schema";
 import { requireIeltsUserId } from "@/lib/ielts/access";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 
 const GradeIeltsReviewItemActionSchema = z.object({
-  reviewItemId: z.string().uuid(),
+  reviewItemId: PostgresUuidSchema,
   rating: z.enum(IELTS_REVIEW_RATINGS),
   responseMs: z.number().int().nonnegative().max(24 * 60 * 60 * 1000).optional(),
 });

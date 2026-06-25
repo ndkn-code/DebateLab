@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { parseInput } from "@/lib/api/boundary";
@@ -56,6 +57,31 @@ export interface SubmitSpeakingResponseResult {
   usage: { used: number; limit: number | null };
 }
 
+export function scheduleIeltsSpeakingScoringFallback(
+  message: IeltsSpeakingQueueMessage,
+  reason: "submit" | "poll",
+): void {
+  try {
+    after(async () => {
+      try {
+        await runIeltsSpeakingScoringJob(message, { deliveryCount: 1 });
+      } catch (error) {
+        console.error("IELTS speaking fallback scoring failed", {
+          speakingResponseId: message.speakingResponseId,
+          reason,
+          error,
+        });
+      }
+    });
+  } catch (error) {
+    console.warn("IELTS speaking fallback could not be scheduled", {
+      speakingResponseId: message.speakingResponseId,
+      reason,
+      error,
+    });
+  }
+}
+
 /**
  * Submit a recording for async scoring: meter the request (one unit per scoring
  * request, so over-cap users never queue work), persist the response via the
@@ -85,11 +111,20 @@ export async function submitSpeakingResponseForScoring(params: {
   }
 
   const response = await createSpeakingResponse(params.raw, params.userId);
-  await enqueueIeltsSpeakingScoring({
+  const message = {
     speakingResponseId: response.id,
     userId: params.userId,
     durationSeconds: input.durationSeconds,
-  });
+  };
+  scheduleIeltsSpeakingScoringFallback(message, "submit");
+  try {
+    await enqueueIeltsSpeakingScoring(message);
+  } catch (error) {
+    console.error("IELTS speaking queue enqueue failed; fallback scheduled", {
+      speakingResponseId: response.id,
+      error,
+    });
+  }
 
   return {
     speakingResponseId: response.id,

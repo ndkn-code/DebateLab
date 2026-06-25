@@ -32,7 +32,13 @@ export const BILINGUAL_REVIEW_COPY_SCHEMA = z.object({
 });
 
 const JsonObjectSchema = z.record(z.string(), JsonSchema).default({});
-const OptionalUuidSchema = z.string().uuid().nullish();
+export const PostgresUuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    "must be a PostgreSQL UUID",
+  );
+const OptionalUuidSchema = PostgresUuidSchema.nullish();
 
 export const CreateIeltsReviewItemSchema = z.object({
   userId: z.string().uuid(),
@@ -59,7 +65,7 @@ export const CreateIeltsReviewItemSchema = z.object({
 export type CreateIeltsReviewItemInput = z.infer<typeof CreateIeltsReviewItemSchema>;
 
 export const RateIeltsReviewItemSchema = z.object({
-  reviewItemId: z.string().uuid(),
+  reviewItemId: PostgresUuidSchema,
   rating: z.enum(IELTS_REVIEW_RATINGS),
   reviewedAt: z.coerce.date().optional(),
   targetTestDate: z.coerce.date().nullish(),
