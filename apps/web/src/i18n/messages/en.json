@@ -3213,6 +3213,9 @@
       },
       "speaking": {
         "intro": "Record your spoken answer, then submit it for AI band scoring.",
+        "part1Hint": "Record your interview answer, then submit it for AI band scoring. Aim for a natural 20-30 second reply.",
+        "part2Hint": "Take about 1 min to prepare, then speak for up to 2 min before submitting for AI band scoring.",
+        "part3Hint": "Record a fuller discussion answer, then submit it for AI band scoring. Explain reasons and examples for about 40-60 seconds.",
         "record": "Record answer",
         "stop": "Stop",
         "rerecord": "Record again",

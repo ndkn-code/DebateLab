@@ -3213,6 +3213,9 @@
       },
       "speaking": {
         "intro": "Ghi âm câu trả lời nói của bạn, sau đó gửi để AI chấm điểm band.",
+        "part1Hint": "Ghi âm câu trả lời phỏng vấn của bạn, sau đó gửi để AI chấm điểm band. Nên trả lời tự nhiên trong khoảng 20-30 giây.",
+        "part2Hint": "Dành khoảng 1 phút chuẩn bị, sau đó nói tối đa 2 phút trước khi gửi để AI chấm điểm band.",
+        "part3Hint": "Ghi âm câu trả lời thảo luận đầy đủ hơn, sau đó gửi để AI chấm điểm band. Giải thích lý do và ví dụ trong khoảng 40-60 giây.",
         "record": "Ghi âm câu trả lời",
         "stop": "Dừng",
         "rerecord": "Ghi âm lại",
