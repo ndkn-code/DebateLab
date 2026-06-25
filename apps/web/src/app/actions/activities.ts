@@ -187,6 +187,10 @@ export async function completeActivity(
     score,
     maxScore,
   });
+  const hasScorableIeltsSources = !ieltsScoring || ieltsScoring.sourceScores.length > 0;
+  const awardedXpBreakdown = hasScorableIeltsSources
+    ? xpBreakdown
+    : { total: 0, components: {}, eligible: false, reason: "unscorable_ielts_activity" };
 
   // Find in-progress attempt
   const { data: attempts } = await supabase
@@ -235,7 +239,7 @@ export async function completeActivity(
     completedAttemptId = completedAttempt.id;
   }
 
-  if (ieltsScoring && completedAttemptId) {
+  if (ieltsScoring && completedAttemptId && ieltsScoring.sourceScores.length > 0) {
     await recordIeltsLearnActivityEvidence({
       userId: user.id,
       activityId,
@@ -254,14 +258,14 @@ export async function completeActivity(
     referenceType: "activity",
     category: "lesson",
     idempotencyKey: createXpIdempotencyKey(["activity", user.id, activityId]),
-    lifetimeXp: xpBreakdown.total,
-    seasonXp: xpBreakdown.total,
+    lifetimeXp: awardedXpBreakdown.total,
+    seasonXp: awardedXpBreakdown.total,
     minutes: Math.round(safeTimeSpentSeconds / 60),
     metadata: {
       score,
       maxScore,
       timeSpentSeconds: safeTimeSpentSeconds,
-      xp_breakdown: xpBreakdown,
+      xp_breakdown: awardedXpBreakdown,
     },
   });
   const xpEarned = award.lifetimeXpAwarded;

@@ -25,7 +25,9 @@ export function isGeneratedIeltsSkillDrill(test: Pick<IeltsTest, "metadata">): b
   return (
     isRecord(test.metadata) &&
     (test.metadata.generated_kind === "b2c_skill_drill" ||
-      test.metadata.generated_by === "ielts_skill_drill_v1")
+      test.metadata.generated_by === "ielts_skill_drill_v1" ||
+      test.metadata.hidden_from_library === true ||
+      test.metadata.purpose === "ielts_learn_source_bank")
   );
 }
 

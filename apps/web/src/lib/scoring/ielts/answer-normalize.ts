@@ -85,7 +85,19 @@ export function toAnswerStrings(value: unknown): string[] {
     return value.flatMap(toAnswerStrings);
   }
   const single = extractValue(value);
-  return single === null ? [] : [single];
+  if (single !== null) return [single];
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return Object.keys(record)
+      .sort((a, b) => {
+        const left = Number(a);
+        const right = Number(b);
+        if (Number.isFinite(left) && Number.isFinite(right)) return left - right;
+        return a.localeCompare(b);
+      })
+      .flatMap((key) => toAnswerStrings(record[key]));
+  }
+  return [];
 }
 
 /** Word count under IELTS "NO MORE THAN N WORDS" rules. */

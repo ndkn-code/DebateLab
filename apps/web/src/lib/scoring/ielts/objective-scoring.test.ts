@@ -42,6 +42,7 @@ assert.deepEqual(score(q("mcq_single"), key("b"), { value: "b" }), {
 assert.deepEqual(score(q("mcq_single"), key("b"), "B"), {
   isCorrect: true, awardedPoints: 1, maxPoints: 1,
 }); // case-insensitive, bare string envelope
+assert.equal(score(q("mcq_single"), key({ 0: "b" }), "B").isCorrect, true); // legacy seed envelope
 assert.equal(score(q("mcq_single"), key("b"), { value: "c" }).isCorrect, false);
 assert.equal(score(q("mcq_single"), key("b"), {}).isCorrect, false); // no response
 assert.equal(score(q("mcq_single"), key("a", ["A.", "(a)"]), "(A)").isCorrect, true); // variant
@@ -60,6 +61,7 @@ assert.equal(score(q("yes_no_notgiven"), key("yes"), {}).isCorrect, false); // n
 
 // ---- text gap (variant-tolerant, word-limit aware) -------------------------
 assert.equal(score(q("short_answer"), key("photosynthesis"), " Photosynthesis ").isCorrect, true);
+assert.equal(score(q("short_answer"), key({ 0: "Sri Lanka" }), "sri lanka").isCorrect, true);
 assert.equal(
   score(q("sentence_completion"), key("global warming", ["climate change"]), "Climate Change").isCorrect,
   true,

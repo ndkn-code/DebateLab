@@ -15,7 +15,10 @@ import {
 } from "@/lib/ielts/learn/text-activities";
 import { getFixedOptions } from "@/lib/ielts/question-types";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
-import { scoreObjectiveAnswer } from "@/lib/scoring/ielts/objective-scoring";
+import {
+  isObjectiveType,
+  scoreObjectiveAnswer,
+} from "@/lib/scoring/ielts/objective-scoring";
 import {
   extractValue,
   normalizeChoice,
@@ -47,6 +50,18 @@ type KeyRow = Pick<
   | "explanation_en"
   | "explanation_vi"
 >;
+
+type SkippedSource = {
+  questionId: string;
+  subskillKey: string;
+  reason: string;
+};
+
+type ScorableSource = {
+  source: IeltsTextActivityContent["sources"][number];
+  question: QuestionRow;
+  key: KeyRow;
+};
 
 export type IeltsTextActivityScoreResult = {
   activityType: IeltsFirstTextActivityType;
@@ -211,13 +226,90 @@ function overallFeedback(score: number, maxScore: number): { en: string; vi: str
   };
 }
 
+function unscorableFeedback(): IeltsTextActivityFeedback {
+  return {
+    en: "This activity was completed, but its source item is not scorable yet. Your progress was saved without adding IELTS mastery evidence.",
+    vi: "Bạn đã hoàn thành hoạt động này, nhưng câu nguồn chưa thể chấm điểm. Tiến độ đã được lưu mà không thêm tín hiệu năng lực IELTS.",
+    items: [],
+  };
+}
+
+function hasUsableKey(key: KeyRow): boolean {
+  return (
+    toAnswerStrings(key.correct_answer).length > 0 ||
+    toAnswerStrings(key.accept_variants).length > 0
+  );
+}
+
+function canScoreQuestionForActivity(
+  activityType: IeltsFirstTextActivityType,
+  question: QuestionRow,
+): boolean {
+  if (!isObjectiveType(question.question_type)) return false;
+  if (
+    activityType === "ielts_vocab_collocation" ||
+    activityType === "ielts_paraphrase_transform"
+  ) {
+    return normalizeOptions(question.options, question.question_type).length > 0;
+  }
+  return true;
+}
+
+function skippedScoreResult(params: {
+  activityType: IeltsFirstTextActivityType;
+  skippedSources: SkippedSource[];
+}): IeltsTextActivityScoreResult {
+  console.error("[ielts-learn] activity has no scorable source questions", {
+    activityType: params.activityType,
+    skippedSources: params.skippedSources,
+  });
+  return {
+    activityType: params.activityType,
+    score: 0,
+    maxScore: 0,
+    feedback: unscorableFeedback(),
+    sourceScores: [],
+  };
+}
+
+function skippedSource(source: IeltsTextActivityContent["sources"][number], reason: string): {
+  skipped: SkippedSource;
+} {
+  return {
+    skipped: {
+      questionId: source.questionId,
+      subskillKey: source.subskillKey,
+      reason,
+    },
+  };
+}
+
+function resolveScorableSource(params: {
+  activityType: IeltsFirstTextActivityType;
+  source: IeltsTextActivityContent["sources"][number];
+  question?: QuestionRow;
+  key?: KeyRow;
+}): { scorable: ScorableSource } | { skipped: SkippedSource } {
+  const { activityType, source, question, key } = params;
+  if (!question) return skippedSource(source, "missing_question");
+  if (!key || !hasUsableKey(key)) return skippedSource(source, "missing_or_empty_key");
+  if (!source.subskillKey.startsWith(`${question.skill}:`)) {
+    return skippedSource(source, `skill_mismatch:${question.skill}`);
+  }
+  if (!canScoreQuestionForActivity(activityType, question)) {
+    return skippedSource(source, `unsupported_question_type:${question.question_type}`);
+  }
+  return { scorable: { source, question, key } };
+}
+
 export async function scoreIeltsTextActivity(params: {
   activityType: string;
   content: unknown;
   responses: ActivityResponses;
 }): Promise<IeltsTextActivityScoreResult> {
-  if (!isIeltsFirstTextActivityType(params.activityType)) {
-    throw new Error(`Unsupported IELTS text activity: ${params.activityType}`);
+  const activityType = params.activityType;
+  if (!isIeltsFirstTextActivityType(activityType)) {
+    throw new Error(`Unsupported IELTS text activity: ${activityType}`);
   }
 
   const content = parseInput(IeltsTextActivityContentSchema, params.content);
@@ -243,24 +335,28 @@ export async function scoreIeltsTextActivity(params: {
   );
   const feedbackItems: IeltsTextActivityFeedbackItem[] = [];
   const sourceScores: IeltsTextActivityScoreResult["sourceScores"] = [];
+  const skippedSources: SkippedSource[] = [];
 
   for (const source of content.sources) {
-    const question = questionById.get(source.questionId);
-    const key = keyByQuestion.get(source.questionId);
-    if (!question || !key) continue;
-    if (!source.subskillKey.startsWith(`${question.skill}:`)) {
-      throw new Error(
-        `IELTS activity source ${source.questionId} has mismatched subskill ${source.subskillKey}`,
-      );
+    const resolved = resolveScorableSource({
+      activityType,
+      source,
+      question: questionById.get(source.questionId),
+      key: keyByQuestion.get(source.questionId),
+    });
+    if ("skipped" in resolved) {
+      skippedSources.push(resolved.skipped);
+      continue;
     }
+    const { question, key } = resolved.scorable;
 
     const response = getIeltsTextResponseForQuestion(
       params.responses,
       source.questionId,
     );
     const verdict =
-      params.activityType === "ielts_vocab_collocation" ||
-      params.activityType === "ielts_paraphrase_transform"
+      activityType === "ielts_vocab_collocation" ||
+      activityType === "ielts_paraphrase_transform"
         ? scoreChoiceFromKey(key, response)
         : scoreObjectiveFromKey(question, key, response);
     const feedback = itemFeedback(key, verdict.correct);
@@ -284,7 +380,16 @@ export async function scoreIeltsTextActivity(params: {
   }
 
   if (sourceScores.length === 0) {
-    throw new Error("scoreIeltsTextActivity: no gradable source questions");
+    return skippedScoreResult({
+      activityType,
+      skippedSources,
+    });
+  }
+  if (skippedSources.length > 0) {
+    console.warn("[ielts-learn] skipped unscorable source questions", {
+      activityType,
+      skippedSources,
+    });
   }
 
   const score = sourceScores.reduce((sum, source) => sum + source.awardedPoints, 0);
@@ -292,7 +397,7 @@ export async function scoreIeltsTextActivity(params: {
   const overall = overallFeedback(score, maxScore);
 
   return {
-    activityType: params.activityType,
+    activityType,
     score,
     maxScore,
     feedback: {

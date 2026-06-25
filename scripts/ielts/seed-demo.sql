@@ -131,21 +131,21 @@ values
 -- ===========================================================================
 insert into ielts_question_keys (question_id, correct_answer, accept_variants, explanation_en, explanation_vi)
 values
-  ('0de70000-0000-4000-a000-0000000d0001','{"0":"b"}'::jsonb,'{}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0001','["b"]'::jsonb,'[]'::jsonb,
    'The passage states the Chinese valued tea as a herbal medicine.','Bài đọc nói người Trung Quốc xem trà như một loại thảo dược.'),
-  ('0de70000-0000-4000-a000-0000000d0002','{"0":"not_given"}'::jsonb,'{}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0002','["not_given"]'::jsonb,'[]'::jsonb,
    'The passage lists the Netherlands and England together without saying which came first.','Bài đọc nêu Hà Lan và Anh cùng nhau, không nói nơi nào trước.'),
-  ('0de70000-0000-4000-a000-0000000d0003','{"0":"Sri Lanka"}'::jsonb,'{"0":["Sri Lanka","sri lanka"]}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0003','["Sri Lanka"]'::jsonb,'["Sri Lanka","sri lanka"]'::jsonb,
    'The final sentence names India and Sri Lanka.','Câu cuối nhắc đến Ấn Độ và Sri Lanka.'),
-  ('0de70000-0000-4000-a000-0000000d0004','{"0":"c"}'::jsonb,'{}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0004','["c"]'::jsonb,'[]'::jsonb,
    'The passage traces the history and global spread of tea.','Bài đọc kể lịch sử và sự lan rộng của trà.'),
-  ('0de70000-0000-4000-a000-0000000d0011','{"0":"library card"}'::jsonb,'{"0":["library card","a library card"]}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0011','["library card"]'::jsonb,'["library card","a library card"]'::jsonb,
    'The student asks to register for a library card.','Sinh viên muốn đăng ký thẻ thư viện.'),
-  ('0de70000-0000-4000-a000-0000000d0012','{"0":"b"}'::jsonb,'{}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0012','["b"]'::jsonb,'[]'::jsonb,
    'The librarian says they are open until eight on weekdays.','Thủ thư nói mở cửa đến 8 giờ tối các ngày trong tuần.'),
-  ('0de70000-0000-4000-a000-0000000d0013','{"0":"rivers"}'::jsonb,'{"0":["rivers","river"]}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0013','["rivers"]'::jsonb,'["rivers","river"]'::jsonb,
    'The lecturer discusses how rivers shape the landscape.','Giảng viên nói về cách sông định hình cảnh quan.'),
-  ('0de70000-0000-4000-a000-0000000d0014','{"0":"a"}'::jsonb,'{}'::jsonb,
+  ('0de70000-0000-4000-a000-0000000d0014','["a"]'::jsonb,'[]'::jsonb,
    'The session is designed for first-year students.','Buổi học dành cho sinh viên năm nhất.');
 
 -- ===========================================================================
@@ -173,11 +173,11 @@ values
   ('0de70000-0000-4000-a000-0000000f0002','0de70000-0000-4000-a000-0000000e0011','ielts_gap_fill','Reading gap-fill','Complete sentences with the precise word from the passage.','practice',1,6,
    '{"activityType":"ielts_gap_fill","instruction":{"en":"Fill each gap using no more than two words.","vi":"Điền vào mỗi chỗ trống không quá hai từ."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0003","subskillKey":"reading:short_answer","labelEn":"Scan for detail","labelVi":"Quét tìm chi tiết"}],"rendererTags":["gap_fill","reading"],"module":"academic","version":1}'::jsonb),
   ('0de70000-0000-4000-a000-0000000f0003','0de70000-0000-4000-a000-0000000e0012','ielts_vocab_collocation','Task 2 collocations','Pair academic nouns with their strongest verbs and adjectives.','learn',0,8,
-   '{"activityType":"ielts_vocab_collocation","instruction":{"en":"Match each word with its strongest collocation.","vi":"Ghép mỗi từ với collocation mạnh nhất."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0022","subskillKey":"writing:collocation_precision","labelEn":"Academic collocations","labelVi":"Collocation học thuật"}],"rendererTags":["collocation","writing"],"module":"academic","version":1}'::jsonb),
+   '{"activityType":"ielts_vocab_collocation","instruction":{"en":"Match each word with its strongest collocation.","vi":"Ghép mỗi từ với collocation mạnh nhất."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d1001","subskillKey":"writing:collocation_precision","labelEn":"Policy collocation","labelVi":"Cụm từ về chính sách"}],"rendererTags":["collocation","writing"],"module":"academic","version":1}'::jsonb),
   ('0de70000-0000-4000-a000-0000000f0004','0de70000-0000-4000-a000-0000000e0012','ielts_gap_fill','Complex sentence gap-fill','Practise subordinating conjunctions in academic sentences.','practice',1,6,
-   '{"activityType":"ielts_gap_fill","instruction":{"en":"Complete each sentence with the correct linking word.","vi":"Hoàn thành mỗi câu với từ nối đúng."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0022","subskillKey":"writing:grammar_range_accuracy","labelEn":"Complex sentences","labelVi":"Câu phức"}],"rendererTags":["gap_fill","writing"],"module":"academic","version":1}'::jsonb),
+   '{"activityType":"ielts_gap_fill","instruction":{"en":"Complete each sentence with the correct linking word.","vi":"Hoàn thành mỗi câu với từ nối đúng."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d1003","subskillKey":"writing:grammar_range_accuracy","labelEn":"Conditional grammar","labelVi":"Ngữ pháp câu điều kiện"}],"rendererTags":["gap_fill","writing"],"module":"academic","version":1}'::jsonb),
   ('0de70000-0000-4000-a000-0000000f0005','0de70000-0000-4000-a000-0000000e0013','ielts_vocab_collocation','Topic vocabulary: education','Build a bank of education-topic collocations.','learn',0,7,
-   '{"activityType":"ielts_vocab_collocation","instruction":{"en":"Group the collocations under the right topic.","vi":"Nhóm các collocation theo đúng chủ đề."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d0022","subskillKey":"writing:lexical_resource","labelEn":"Education vocabulary","labelVi":"Từ vựng giáo dục"}],"rendererTags":["collocation","vocabulary"],"module":"academic","version":1}'::jsonb);
+   '{"activityType":"ielts_vocab_collocation","instruction":{"en":"Group the collocations under the right topic.","vi":"Nhóm các collocation theo đúng chủ đề."},"sources":[{"questionId":"0de70000-0000-4000-a000-0000000d1002","subskillKey":"writing:lexical_resource","labelEn":"Education vocabulary","labelVi":"Từ vựng chủ đề giáo dục"}],"rendererTags":["collocation","vocabulary"],"module":"academic","version":1}'::jsonb);
 
 -- ===========================================================================
 -- B2B FIXTURE: a demo teaching center + ONE enrolled admin, so the B2B course

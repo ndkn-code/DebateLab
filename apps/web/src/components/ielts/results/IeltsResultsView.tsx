@@ -21,7 +21,14 @@ function OverallHero({ overall }: { overall: OverallBandSummary }) {
       <p className="type-label uppercase">
         {overall.isProvisional ? "Provisional overall band" : "Overall band"}
       </p>
-      <p className="mt-1 text-5xl font-extrabold tabular-nums">{bandText(overall.band)}</p>
+      <p className="mt-1 text-5xl font-extrabold tabular-nums">
+        {overall.isProvisional ? "—" : bandText(overall.band)}
+      </p>
+      {overall.isProvisional ? (
+        <span className="mt-3 inline-flex rounded-full border border-on-primary/30 bg-on-primary/10 px-3 py-1 type-caption font-semibold uppercase text-on-primary">
+          Pending
+        </span>
+      ) : null}
       <p className="mt-2 type-body-sm">
         {overall.presentCount} of {overall.totalSkills}{" "}
         {overall.totalSkills === 1 ? "skill" : "skills"} scored

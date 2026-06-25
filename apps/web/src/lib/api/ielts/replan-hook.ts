@@ -1,6 +1,5 @@
 import "server-only";
 
-import { IELTS_ENABLED } from "@/lib/features";
 import {
   replanIeltsStudyPlanForUser,
   type ReplanOutcome,
@@ -14,8 +13,7 @@ import type { ReplanTriggerEvent } from "@/lib/ielts/study-plan";
  * The WS-6.1.5 evidence hooks live inside the grading/scoring transactions
  * (grade-attempt, the Writing/Speaking scorer workers). Those paths `throw` to
  * trigger queue redelivery, so a replan failure there must NEVER bubble up and
- * cause re-grading/re-scoring. This wrapper swallows any error (logging it) and
- * is gated on `IELTS_ENABLED` so it is inert until the track launches.
+ * cause re-grading/re-scoring. This wrapper swallows any error (logging it).
  *
  * Add ONE call next to each evidence hook — the orchestration + idempotency
  * live in `replanIeltsStudyPlanForUser`.
@@ -26,7 +24,6 @@ export async function maybeReplanAfterEvidence(params: {
   source?: { type: string; id: string | null };
   client?: IeltsDbClient;
 }): Promise<ReplanOutcome | null> {
-  if (!IELTS_ENABLED) return null;
   try {
     return await replanIeltsStudyPlanForUser({
       userId: params.userId,

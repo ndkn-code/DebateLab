@@ -38,7 +38,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "media-src 'self' blob: data: https://api.deepgram.com",
+  "media-src 'self' blob: data: https://api.deepgram.com https://*.supabase.co",
   `connect-src ${connectSrc}`,
   "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://tally.so https://*.tally.so",
   "worker-src 'self' blob:",

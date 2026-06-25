@@ -65,6 +65,11 @@ assert.deepEqual(toAnswerStrings("answer"), ["answer"]);
 assert.deepEqual(toAnswerStrings(["a", "b"]), ["a", "b"]);
 assert.deepEqual(toAnswerStrings([["a"], "b"]), ["a", "b"]);
 assert.deepEqual(toAnswerStrings({ value: "v" }), ["v"]);
+assert.deepEqual(toAnswerStrings({ 0: "a", 1: "b" }), ["a", "b"]);
+assert.deepEqual(toAnswerStrings({ 0: ["Sri Lanka", "sri lanka"] }), [
+  "Sri Lanka",
+  "sri lanka",
+]);
 assert.deepEqual(toAnswerStrings({}), []);
 
 // wordCount: empty, single, multiple, padded.
