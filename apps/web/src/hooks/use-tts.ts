@@ -3,6 +3,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
 
+export type TtsPlaybackState =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "playing"
+  | "paused"
+  | "ended"
+  | "error";
+
 interface UseTTSOptions {
   voice?: string;
   practiceLanguage?: "en" | "vi";
@@ -13,18 +22,24 @@ interface UseTTSOptions {
 }
 
 interface UseTTSReturn {
-  speak: (text: string) => Promise<void>;
+  speak: (text: string) => Promise<boolean>;
+  play: () => Promise<boolean>;
+  pause: () => void;
+  resume: () => Promise<boolean>;
   stop: () => void;
-  replay: () => void;
+  replay: () => Promise<boolean>;
+  playbackState: TtsPlaybackState;
   isLoading: boolean;
   isPlaying: boolean;
+  isPaused: boolean;
   hasPlayed: boolean;
+  canPlay: boolean;
   error: string | null;
   latencyMs: number | null;
+  currentTimeSeconds: number;
+  durationSeconds: number | null;
   audioDurationSeconds: number | null;
 }
-
-type WebAudioStopReason = "manual" | "replace";
 
 let sharedTtsAudioContext: AudioContext | null = null;
 
@@ -81,24 +96,47 @@ export function useTtsAutoplayUnlock() {
   }, []);
 }
 
-async function decodeTtsAudioBuffer(blob: Blob) {
-  const context = getTtsAudioContext();
-  if (!context) return null;
-
-  try {
-    const arrayBuffer = await blob.arrayBuffer();
-    return await context.decodeAudioData(arrayBuffer.slice(0));
-  } catch {
-    return null;
-  }
+function getSafeDuration(audio: HTMLAudioElement) {
+  return Number.isFinite(audio.duration) && audio.duration > 0
+    ? audio.duration
+    : null;
 }
 
-function stopWebAudioSource(source: AudioBufferSourceNode | null) {
-  try {
-    source?.stop();
-  } catch {
-    // The source may already have ended; stopping twice throws in some browsers.
+function waitForAudioReady(audio: HTMLAudioElement) {
+  if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    return Promise.resolve();
   }
+
+  return new Promise<void>((resolve, reject) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      audio.removeEventListener("loadedmetadata", handleReady);
+      audio.removeEventListener("canplay", handleReady);
+      audio.removeEventListener("error", handleError);
+    };
+
+    const handleReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const handleError = () => {
+      cleanup();
+      reject(new Error("Audio playback failed"));
+    };
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, 2500);
+
+    audio.addEventListener("loadedmetadata", handleReady);
+    audio.addEventListener("canplay", handleReady);
+    audio.addEventListener("error", handleError);
+    audio.load();
+  });
 }
 
 export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
@@ -111,160 +149,204 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     onError,
   } = options;
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackState, setPlaybackState] = useState<TtsPlaybackState>("idle");
   const [hasPlayed, setHasPlayed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [audioDurationSeconds, setAudioDurationSeconds] = useState<number | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
+  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
-  const decodedAudioRef = useRef<AudioBuffer | null>(null);
-  const webAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const webAudioStopReasonRef = useRef<WebAudioStopReason | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const playStartTimeRef = useRef<number | null>(null);
   const hasPlayedRef = useRef(false);
+  const wasReplayRef = useRef(false);
   const playbackTextLengthRef = useRef(0);
   const playbackLatencyMsRef = useRef<number | null>(null);
   const playbackAudioSizeRef = useRef(0);
   const posthog = usePostHog();
 
-  // Keep ref in sync
   useEffect(() => {
     hasPlayedRef.current = hasPlayed;
   }, [hasPlayed]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (webAudioSourceRef.current) {
-        webAudioStopReasonRef.current = "replace";
-        stopWebAudioSource(webAudioSourceRef.current);
-        webAudioSourceRef.current = null;
-      }
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-      }
-    };
+  const cancelClock = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
   }, []);
 
+  const updateClock = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    setCurrentTimeSeconds(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+    setDurationSeconds(getSafeDuration(audio));
+
+    if (!audio.paused && !audio.ended) {
+      animationFrameRef.current = window.requestAnimationFrame(updateClock);
+    }
+  }, []);
+
+  const startClock = useCallback(() => {
+    cancelClock();
+    animationFrameRef.current = window.requestAnimationFrame(updateClock);
+  }, [cancelClock, updateClock]);
+
+  const cleanupAudio = useCallback(() => {
+    cancelClock();
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onloadedmetadata = null;
+      audio.onplay = null;
+      audio.onpause = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audioRef.current = null;
+    }
+
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+  }, [cancelClock]);
+
+  useEffect(() => cleanupAudio, [cleanupAudio]);
+
   const handlePlaybackStart = useCallback(() => {
-    setIsPlaying(true);
+    setPlaybackState("playing");
+    setError(null);
     playStartTimeRef.current = Date.now();
+    startClock();
     onPlayStart?.();
-  }, [onPlayStart]);
+  }, [onPlayStart, startClock]);
 
-  const handlePlaybackCompleted = useCallback(
-    (wasReplay: boolean) => {
-      setIsPlaying(false);
-      setHasPlayed(true);
+  const handlePlaybackCompleted = useCallback(() => {
+    cancelClock();
+    setPlaybackState("ended");
+    setHasPlayed(true);
 
-      const listenDuration = playStartTimeRef.current
-        ? Date.now() - playStartTimeRef.current
-        : 0;
+    const audio = audioRef.current;
+    setCurrentTimeSeconds(audio ? getSafeDuration(audio) ?? audio.currentTime : 0);
+    setDurationSeconds(audio ? getSafeDuration(audio) : null);
 
-      posthog?.capture('tts_playback_completed', {
+    const listenDuration = playStartTimeRef.current
+      ? Date.now() - playStartTimeRef.current
+      : 0;
+
+    posthog?.capture('tts_playback_completed', {
+      voice,
+      text_length: playbackTextLengthRef.current,
+      listen_duration_ms: listenDuration,
+      latency_ms: playbackLatencyMsRef.current,
+      audio_size_bytes: playbackAudioSizeRef.current,
+      was_replay: wasReplayRef.current,
+    });
+
+    wasReplayRef.current = false;
+    onPlayEnd?.();
+  }, [cancelClock, onPlayEnd, posthog, voice]);
+
+  const handlePlaybackError = useCallback(
+    (message = "Audio playback failed") => {
+      cancelClock();
+      setPlaybackState("error");
+      setError(message);
+      posthog?.capture('tts_playback_error', {
         voice,
         text_length: playbackTextLengthRef.current,
-        listen_duration_ms: listenDuration,
-        latency_ms: playbackLatencyMsRef.current,
-        audio_size_bytes: playbackAudioSizeRef.current,
-        was_replay: wasReplay,
       });
-
-      onPlayEnd?.();
+      onError?.(message);
     },
-    [onPlayEnd, posthog, voice]
+    [cancelClock, onError, posthog, voice]
   );
 
-  const handlePlaybackSkipped = useCallback(
-    (skipPoint?: number, totalDuration?: number) => {
-      setIsPlaying(false);
+  const play = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return false;
 
-      const listenDuration = playStartTimeRef.current
-        ? Date.now() - playStartTimeRef.current
-        : 0;
-
-      posthog?.capture('tts_playback_skipped', {
-        voice,
-        text_length: playbackTextLengthRef.current,
-        listen_duration_ms: listenDuration,
-        skip_point: skipPoint,
-        total_duration: totalDuration,
-      });
-    },
-    [posthog, voice]
-  );
-
-  const playDecodedAudio = useCallback(
-    async (audioBuffer: AudioBuffer) => {
-      const context = getTtsAudioContext();
-      if (!context) return false;
-
-      const unlocked = await unlockTtsAutoplay();
-      if (!unlocked || context.state !== "running") return false;
-
-      if (webAudioSourceRef.current) {
-        webAudioStopReasonRef.current = "replace";
-        stopWebAudioSource(webAudioSourceRef.current);
-        webAudioSourceRef.current = null;
-      }
-
-      const source = context.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(context.destination);
-
-      const wasReplay = hasPlayedRef.current;
-      webAudioSourceRef.current = source;
-      webAudioStopReasonRef.current = null;
-
-      source.onended = () => {
-        if (webAudioSourceRef.current !== source) return;
-
-        webAudioSourceRef.current = null;
-        const stopReason = webAudioStopReasonRef.current;
-        webAudioStopReasonRef.current = null;
-
-        if (stopReason === "manual") {
-          handlePlaybackSkipped(
-            playStartTimeRef.current
-              ? (Date.now() - playStartTimeRef.current) / 1000
-              : undefined,
-            audioBuffer.duration
-          );
-          return;
-        }
-
-        if (stopReason === "replace") {
-          setIsPlaying(false);
-          return;
-        }
-
-        handlePlaybackCompleted(wasReplay);
-      };
-
-      handlePlaybackStart();
-      source.start(0);
+    try {
+      void unlockTtsAutoplay();
+      wasReplayRef.current =
+        wasReplayRef.current || (hasPlayedRef.current && audio.currentTime === 0);
+      await audio.play();
       return true;
-    },
-    [handlePlaybackCompleted, handlePlaybackSkipped, handlePlaybackStart]
-  );
+    } catch {
+      cancelClock();
+      setPlaybackState("ready");
+      setError(null);
+      posthog?.capture('tts_autoplay_blocked', {
+        voice,
+        text_length: playbackTextLengthRef.current,
+      });
+      return false;
+    }
+  }, [cancelClock, posthog, voice]);
+
+  const pause = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || audio.paused || audio.ended) return;
+    audio.pause();
+    cancelClock();
+    setCurrentTimeSeconds(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+    setDurationSeconds(getSafeDuration(audio));
+    setPlaybackState("paused");
+  }, [cancelClock]);
+
+  const resume = useCallback(async () => play(), [play]);
+
+  const stop = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      setPlaybackState("idle");
+      setCurrentTimeSeconds(0);
+      return;
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
+    cancelClock();
+    setCurrentTimeSeconds(0);
+    setDurationSeconds(getSafeDuration(audio));
+    setPlaybackState("ready");
+  }, [cancelClock]);
+
+  const replay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return false;
+
+    audio.pause();
+    audio.currentTime = 0;
+    setCurrentTimeSeconds(0);
+    setDurationSeconds(getSafeDuration(audio));
+    setHasPlayed(false);
+    hasPlayedRef.current = false;
+    wasReplayRef.current = true;
+    posthog?.capture('tts_replay', { voice });
+    return play();
+  }, [play, posthog, voice]);
 
   const speak = useCallback(async (text: string) => {
-    setIsLoading(true);
-    setError(null);
-    setAudioDurationSeconds(null);
-    decodedAudioRef.current = null;
-
     const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
+    cleanupAudio();
+    setPlaybackState("loading");
+    setError(null);
+    setLatencyMs(null);
+    setDurationSeconds(null);
+    setCurrentTimeSeconds(0);
+    setHasPlayed(false);
+    hasPlayedRef.current = false;
+    wasReplayRef.current = false;
 
-    const attemptFetch = async (): Promise<{ blob: Blob; latency: number }> => {
-      const fetchStart = Date.now();
+    const fetchStart = Date.now();
+
+    try {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,71 +358,50 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         throw new Error(errData.error || `TTS request failed (${res.status})`);
       }
 
-      return { blob: await res.blob(), latency: Date.now() - fetchStart };
-    };
-
-    try {
-      let result: { blob: Blob; latency: number };
-
-      try {
-        result = await attemptFetch();
-      } catch {
-        // Retry once
-        result = await attemptFetch();
-      }
-
-      const { blob: audioBlob, latency } = result;
+      const audioBlob = await res.blob();
+      const headerLatency = Number(res.headers.get("X-TTS-Synthesis-Ms"));
+      const latency = Number.isFinite(headerLatency)
+        ? headerLatency
+        : Date.now() - fetchStart;
       setLatencyMs(latency);
       playbackTextLengthRef.current = truncatedText.length;
       playbackLatencyMsRef.current = latency;
       playbackAudioSizeRef.current = audioBlob.size;
 
-      // Clean up previous blob URL
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-
       const url = URL.createObjectURL(audioBlob);
       blobUrlRef.current = url;
-      const decodedAudio = await decodeTtsAudioBuffer(audioBlob);
-      decodedAudioRef.current = decodedAudio;
-      if (decodedAudio?.duration) {
-        setAudioDurationSeconds(decodedAudio.duration);
-      }
-
       const audio = new Audio(url);
       audio.preload = "auto";
       audioRef.current = audio;
 
       audio.onloadedmetadata = () => {
-        setAudioDurationSeconds(
-          Number.isFinite(audio.duration) && audio.duration > 0
-            ? audio.duration
-            : null
-        );
+        setDurationSeconds(getSafeDuration(audio));
       };
 
       audio.onplay = () => {
         handlePlaybackStart();
       };
 
-      audio.onended = () => {
-        handlePlaybackCompleted(hasPlayedRef.current);
+      audio.onpause = () => {
+        if (audio.ended) return;
+        cancelClock();
+        setCurrentTimeSeconds(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+        setDurationSeconds(getSafeDuration(audio));
+        setPlaybackState("paused");
       };
 
-      audio.onpause = () => {
-        if (!audio.ended) {
-          handlePlaybackSkipped(audio.currentTime, audio.duration);
-        }
+      audio.onended = () => {
+        handlePlaybackCompleted();
       };
 
       audio.onerror = () => {
-        setIsPlaying(false);
-        setAudioDurationSeconds(null);
-        setError('Audio playback failed');
-        posthog?.capture('tts_playback_error', { voice, text_length: truncatedText.length });
-        onError?.('Audio playback failed');
+        handlePlaybackError();
       };
 
-      // PostHog: TTS generated
+      await waitForAudioReady(audio);
+      setDurationSeconds(getSafeDuration(audio));
+      setPlaybackState("ready");
+
       posthog?.capture('tts_generated', {
         voice,
         text_length: truncatedText.length,
@@ -348,91 +409,59 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         audio_size_bytes: audioBlob.size,
       });
 
-      if (autoPlay) {
-        const playedWithWebAudio = decodedAudio
-          ? await playDecodedAudio(decodedAudio)
-          : false;
-
-        if (!playedWithWebAudio) {
-          try {
-            await audio.play();
-          } catch {
-          // Browser blocked autoplay — user hasn't interacted recently enough
-          // Don't treat as error: just mark as "ready to play" so replay button appears
-            setIsPlaying(false);
-            setHasPlayed(true); // Show replay button so user can tap to play
-            posthog?.capture('tts_autoplay_blocked', { voice, text_length: truncatedText.length });
-          }
-        }
-      }
+      if (!autoPlay) return true;
+      return play();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'TTS failed';
+      cleanupAudio();
+      setPlaybackState("error");
       setError(msg);
-      setAudioDurationSeconds(null);
-      posthog?.capture('tts_silent_failure', { voice, text_length: truncatedText.length, error: msg });
+      setDurationSeconds(null);
+      setCurrentTimeSeconds(0);
+      posthog?.capture('tts_silent_failure', {
+        voice,
+        text_length: truncatedText.length,
+        error: msg,
+      });
       onError?.(msg);
-    } finally {
-      setIsLoading(false);
+      return false;
     }
   }, [
-    voice,
-    practiceLanguage,
     autoPlay,
-    posthog,
-    onError,
-    handlePlaybackStart,
+    cancelClock,
+    cleanupAudio,
     handlePlaybackCompleted,
-    handlePlaybackSkipped,
-    playDecodedAudio,
+    handlePlaybackError,
+    handlePlaybackStart,
+    onError,
+    play,
+    posthog,
+    practiceLanguage,
+    voice,
   ]);
 
-  const stop = useCallback(() => {
-    if (webAudioSourceRef.current) {
-      webAudioStopReasonRef.current = "manual";
-      stopWebAudioSource(webAudioSourceRef.current);
-      setIsPlaying(false);
-    }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-    }
-  }, []);
-
-  const replay = useCallback(() => {
-    if (decodedAudioRef.current) {
-      setHasPlayed(false);
-      void playDecodedAudio(decodedAudioRef.current).then((played) => {
-        if (!played) {
-          setHasPlayed(true);
-        }
-      });
-
-      posthog?.capture('tts_replay', { voice });
-      return;
-    }
-
-    if (audioRef.current && blobUrlRef.current) {
-      audioRef.current.currentTime = 0;
-      setHasPlayed(false);
-      audioRef.current.play().catch(() => {
-        setHasPlayed(true);
-      });
-
-      posthog?.capture('tts_replay', { voice });
-    }
-  }, [voice, posthog, playDecodedAudio]);
+  const canPlay =
+    playbackState === "ready" ||
+    playbackState === "paused" ||
+    playbackState === "ended";
 
   return {
     speak,
+    play,
+    pause,
+    resume,
     stop,
     replay,
-    isLoading,
-    isPlaying,
+    playbackState,
+    isLoading: playbackState === "loading",
+    isPlaying: playbackState === "playing",
+    isPaused: playbackState === "paused",
     hasPlayed,
+    canPlay,
     error,
     latencyMs,
-    audioDurationSeconds,
+    currentTimeSeconds,
+    durationSeconds,
+    audioDurationSeconds: durationSeconds,
   };
 }

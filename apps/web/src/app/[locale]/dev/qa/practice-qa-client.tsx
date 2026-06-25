@@ -14,6 +14,7 @@ import {
 import { SessionResultDashboard } from "@/components/feedback/session-result-dashboard";
 import { SessionTranscriptPanel } from "@/components/feedback/session-transcript-panel";
 import { PrepPhase } from "@/components/practice/prep-phase";
+import { AiRebuttalPhase } from "@/components/practice/ai-rebuttal-phase";
 import { SessionConfig } from "@/components/practice/session-config";
 import { SpeakingPhase } from "@/components/practice/speaking-phase";
 import {
@@ -35,7 +36,8 @@ type QaTab =
   | "history"
   | "duels"
   | "duel-result"
-  | "ai-debate";
+  | "ai-debate"
+  | "ai-tts";
 
 const tabs: Array<{ key: QaTab; label: string }> = [
   { key: "setup", label: "Solo setup" },
@@ -46,7 +48,58 @@ const tabs: Array<{ key: QaTab; label: string }> = [
   { key: "duels", label: "Duel timers" },
   { key: "duel-result", label: "Duel result" },
   { key: "ai-debate", label: "AI debate result" },
+  { key: "ai-tts", label: "AI TTS sync" },
 ];
+
+const aiTtsFixtures = {
+  vi: {
+    topic:
+      "Chúng tôi ủng hộ việc chấm dứt các cuộc thi mang tính cạnh tranh dành cho học sinh.",
+    userTranscript:
+      "Tôi cho rằng nên chấm dứt các cuộc thi cạnh tranh vì chúng tạo áp lực, làm học sinh học vì giải thưởng, và khiến nhiều bạn thấy mình thua kém.",
+    previousRoundText:
+      "Tôi cho rằng nên chấm dứt các cuộc thi cạnh tranh vì chúng tạo áp lực và làm lệch mục tiêu học tập.",
+    response:
+      "Cảm ơn phần mở đầu của bạn. Tuy nhiên, tôi muốn phản biện ở ba điểm. Thứ nhất, vấn đề không nằm ở cạnh tranh, mà nằm ở cách thiết kế cuộc thi. Một cuộc thi có luật rõ ràng, phản hồi tử tế và mục tiêu học tập minh bạch có thể giúp học sinh rèn khả năng quản lý thời gian, trình bày ý tưởng và chịu áp lực tích cực. Thứ hai, nếu bỏ toàn bộ cuộc thi, chúng ta cũng bỏ đi một môi trường để học sinh thử sức bên ngoài lớp học. Thứ ba, giải pháp hợp lý hơn là cải thiện tiêu chí đánh giá, hỗ trợ sức khỏe tinh thần và giảm văn hóa thành tích, thay vì cấm hẳn một công cụ có thể được dùng tốt.",
+    voice: "vi-VN-Chirp3-HD-Kore",
+    highlights: [
+      {
+        type: "claim" as const,
+        quote: "vấn đề không nằm ở cạnh tranh, mà nằm ở cách thiết kế cuộc thi",
+        note: "Main response frame",
+      },
+      {
+        type: "impact" as const,
+        quote:
+          "rèn khả năng quản lý thời gian, trình bày ý tưởng và chịu áp lực tích cực",
+        note: "Positive student outcome",
+      },
+    ],
+  },
+  en: {
+    topic: "This house would end competitive academic contests for students.",
+    userTranscript:
+      "Competitive contests should end because they make students anxious, reward narrow achievement, and turn learning into a ranking game.",
+    previousRoundText:
+      "Competitive contests should end because they create anxiety and distort the purpose of learning.",
+    response:
+      "Thank you for the opening case. I disagree for three reasons. First, the problem is not competition itself, but poor contest design. A contest with clear rules, constructive feedback, and transparent learning goals can help students practice time management, public reasoning, and resilience under pressure. Second, removing every contest also removes a structured place where students can test ideas beyond the classroom. Third, the better remedy is to reform judging criteria, reduce unhealthy prize culture, and support student wellbeing, rather than banning a tool that can be used responsibly.",
+    voice: "aura-asteria-en",
+    highlights: [
+      {
+        type: "claim" as const,
+        quote: "the problem is not competition itself, but poor contest design",
+        note: "Main response frame",
+      },
+      {
+        type: "impact" as const,
+        quote:
+          "practice time management, public reasoning, and resilience under pressure",
+        note: "Positive student outcome",
+      },
+    ],
+  },
+};
 
 function isQaTab(value: string | null): value is QaTab {
   return tabs.some((tab) => tab.key === value);
@@ -90,6 +143,8 @@ export function DevPracticeQaPage() {
   const showLegacyDuel = searchParams.get("duelLegacy") === "1";
   const [activeTab, setActiveTab] = useState<QaTab>(initialTab);
   const [prepNotes, setPrepNotes] = useState(showcasePrepNotes);
+  const ttsFixtureLanguage = searchParams.get("ttsLang") === "en" ? "en" : "vi";
+  const aiTtsFixture = aiTtsFixtures[ttsFixtureLanguage];
 
   return (
     <main className="min-h-screen bg-background">
@@ -270,6 +325,32 @@ export function DevPracticeQaPage() {
             />
           }
           clashMap={<DebateClashMapPanel session={showcaseFullRoundSession} />}
+        />
+      )}
+
+      {activeTab === "ai-tts" && (
+        <AiRebuttalPhase
+          topic={aiTtsFixture.topic}
+          side="opposition"
+          userTranscript={aiTtsFixture.userTranscript}
+          roundLabel="AI Rebuttal"
+          difficulty="medium"
+          practiceTrack="debate"
+          practiceLanguage={ttsFixtureLanguage}
+          previousRounds={[
+            {
+              label: "Opening",
+              speaker: "student",
+              text: aiTtsFixture.previousRoundText,
+            },
+          ]}
+          prepNotes={prepNotes}
+          onNotesChange={setPrepNotes}
+          onComplete={() => undefined}
+          onGenerated={() => undefined}
+          initialResponse={aiTtsFixture.response}
+          initialHighlights={aiTtsFixture.highlights}
+          ttsVoice={aiTtsFixture.voice}
         />
       )}
     </main>
