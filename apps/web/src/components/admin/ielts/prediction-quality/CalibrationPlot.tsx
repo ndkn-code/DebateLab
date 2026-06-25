@@ -1,23 +1,76 @@
 "use client";
 
 import {
-  CartesianGrid,
-  Cell,
-  ReferenceLine,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-  ZAxis,
-} from "recharts";
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+} from "@/components/charts";
+import { ChartEmpty } from "@/components/data-viz";
 import type { CalibrationPoint } from "@/lib/ielts/prediction-quality/types";
 
-const GRID = "#e5e7eb";
-const AXIS = "#6b7280";
-const ON_TARGET = "#16a34a";
-const OVERCONFIDENT = "#d97706";
+const DAY_MS = 24 * 60 * 60 * 1000;
+const CALIBRATION_START = Date.UTC(2026, 0, 1);
+
+type CalibrationDatum = {
+  date: Date;
+  label: string;
+  claimed: number;
+  empirical: number;
+  calibrated: number | null;
+  overconfident: number | null;
+  floor: number;
+  ceiling: number;
+  sampleSize: number;
+};
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function toCalibrationData(points: CalibrationPoint[]): CalibrationDatum[] {
+  return points
+    .filter((point) => point.sampleSize > 0)
+    .map((point, index) => {
+      const calibrated = point.empirical + 1e-9 >= point.claimed;
+      return {
+        date: new Date(CALIBRATION_START + index * DAY_MS),
+        label: point.label,
+        claimed: point.claimed,
+        empirical: point.empirical,
+        calibrated: calibrated ? point.empirical : null,
+        overconfident: calibrated ? null : point.empirical,
+        floor: 0,
+        ceiling: 1,
+        sampleSize: point.sampleSize,
+      };
+    });
+}
+
+function CalibrationTooltipContent({ point }: { point: Record<string, unknown> }) {
+  const label = typeof point.label === "string" ? point.label : "Target";
+  const empirical = typeof point.empirical === "number" ? point.empirical : 0;
+  const claimed = typeof point.claimed === "number" ? point.claimed : 0;
+  const sampleSize = typeof point.sampleSize === "number" ? point.sampleSize : 0;
+  const isCalibrated = empirical + 1e-9 >= claimed;
+
+  return (
+    <div className="min-w-40 px-3 py-2.5">
+      <p className="type-caption font-semibold uppercase text-chart-tooltip-muted">
+        {label}
+      </p>
+      <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
+        {formatPercent(empirical)} empirical
+      </p>
+      <p className="mt-1 type-caption text-chart-tooltip-muted">
+        Claimed {formatPercent(claimed)} · n={sampleSize}
+      </p>
+      <p className="mt-2 type-caption font-semibold text-chart-tooltip-foreground">
+        {isCalibrated ? "Calibrated" : "Overconfident interval"}
+      </p>
+    </div>
+  );
+}
 
 /**
  * Per-target calibration: does each served interval contain the truth as often
@@ -27,77 +80,100 @@ const OVERCONFIDENT = "#d97706";
  */
 export function CalibrationPlot({ points }: { points: CalibrationPoint[] }) {
   const claimed = points[0]?.claimed ?? 0.8;
-  const data = points
-    .filter((point) => point.sampleSize > 0)
-    .map((point) => ({
-      label: point.label,
-      empirical: point.empirical,
-      claimed: point.claimed,
-      sampleSize: point.sampleSize,
-      calibrated: point.empirical + 1e-9 >= point.claimed,
-    }));
+  const data = toCalibrationData(points);
 
   if (data.length === 0) {
     return (
-      <div className="flex h-[250px] items-center justify-center text-sm text-on-surface-variant">
-        No interval observations to calibrate yet.
-      </div>
+      <ChartEmpty
+        className="h-64"
+        description="Interval observations appear once scored mock boundaries accumulate."
+        title="No calibration points yet"
+      />
     );
   }
 
   return (
-    <div className="h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-          <XAxis
-            type="category"
-            dataKey="label"
-            tick={{ fontSize: 11, fill: AXIS }}
-            tickLine={false}
-            axisLine={false}
+    <div className="flex h-72 flex-col gap-2">
+      <div className="min-h-0 flex-1">
+        <LineChart
+          aspectRatio="unset"
+          data={data}
+          margin={{ top: 14, right: 18, bottom: 18, left: 44 }}
+          style={{ height: "100%" }}
+        >
+          <Grid
+            horizontal
+            highlightRowStroke="var(--chart-line-secondary)"
+            highlightRowStrokeDasharray="5,4"
+            highlightRowValues={[claimed]}
+            rowTickValues={[0, 0.25, 0.5, 0.75, 1]}
           />
-          <YAxis
-            type="number"
-            dataKey="empirical"
-            domain={[0, 1]}
-            ticks={[0, 0.25, 0.5, 0.75, 1]}
-            tickFormatter={(value: number) => `${Math.round(value * 100)}%`}
-            tick={{ fontSize: 11, fill: AXIS }}
-            tickLine={false}
-            axisLine={false}
-            width={44}
+          <Line
+            dataKey="claimed"
+            fadeEdges={false}
+            showMarkers={false}
+            stroke="var(--chart-line-secondary)"
+            strokeWidth={2}
           />
-          <ZAxis range={[120, 120]} />
-          <ReferenceLine
-            y={claimed}
-            stroke={AXIS}
-            strokeDasharray="5 4"
-            label={{
-              value: `claimed ${Math.round(claimed * 100)}%`,
-              position: "insideTopRight",
-              fontSize: 11,
-              fill: AXIS,
+          <Line
+            dataKey="calibrated"
+            fadeEdges={false}
+            markers={{
+              fill: "var(--color-chart-3)",
+              outlineColor: "var(--chart-background)",
+              outlineWidth: 2,
+              radius: 4.5,
+              ringGap: 1.5,
+              stroke: "var(--color-chart-3)",
             }}
+            showHighlight={false}
+            showMarkers
+            stroke="transparent"
+            strokeWidth={0}
           />
-          <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
-            contentStyle={{ borderRadius: 12, border: `1px solid ${GRID}`, fontSize: 13 }}
-            formatter={(_value, _name, item) => {
-              const point = item?.payload as { empirical?: number; sampleSize?: number };
-              return [
-                `${Math.round((point?.empirical ?? 0) * 100)}% (n=${point?.sampleSize ?? 0})`,
-                "Empirical coverage",
-              ];
+          <Line
+            dataKey="overconfident"
+            fadeEdges={false}
+            markers={{
+              fill: "var(--color-chart-4)",
+              outlineColor: "var(--chart-background)",
+              outlineWidth: 2,
+              radius: 4.5,
+              ringGap: 1.5,
+              stroke: "var(--color-chart-4)",
             }}
+            showHighlight={false}
+            showMarkers
+            stroke="transparent"
+            strokeWidth={0}
           />
-          <Scatter data={data} dataKey="empirical">
-            {data.map((point) => (
-              <Cell key={point.label} fill={point.calibrated ? ON_TARGET : OVERCONFIDENT} />
-            ))}
-          </Scatter>
-        </ScatterChart>
-      </ResponsiveContainer>
+          <Line
+            dataKey="floor"
+            fadeEdges={false}
+            showHighlight={false}
+            stroke="transparent"
+            strokeWidth={0}
+          />
+          <Line
+            dataKey="ceiling"
+            fadeEdges={false}
+            showHighlight={false}
+            stroke="transparent"
+            strokeWidth={0}
+          />
+          <ChartTooltip
+            content={({ point }) => <CalibrationTooltipContent point={point} />}
+            showDatePill={false}
+          />
+        </LineChart>
+      </div>
+      <div className="flex justify-between gap-2 pl-11 pr-4 type-caption font-semibold text-on-surface-variant">
+        {data.map((point) => (
+          <span key={point.label} className="min-w-0 truncate text-center">
+            {point.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

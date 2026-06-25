@@ -19,10 +19,6 @@ const approvedPathFragments = [
   // globals.css; the few literals are bklit internals (heatmap default ramp,
   // pattern presets, bug-number comments). We do not hand-edit 80 vendored files.
   "apps/web/src/components/charts/",
-  // IELTS prediction-quality charts (recharts, from Wave 6.3) — pending the B7
-  // ChartKit migration, which removes these + the recharts dependency.
-  "apps/web/src/components/admin/ielts/prediction-quality/CalibrationPlot.tsx",
-  "apps/web/src/components/admin/ielts/prediction-quality/DriftChart.tsx",
   "apps/web/src/app/[locale]/auth/login/page.tsx",
   "apps/web/src/components/admin/feedback-popups/FeedbackPopupsDashboard.tsx",
   "apps/web/src/components/admin/users/UserAccessDashboard.tsx",

@@ -8,6 +8,16 @@ import {
   TrendingDown,
   TrendingUp,
 } from "@/components/ui/icons";
+import {
+  Bar,
+  BarChart,
+  BarYAxis,
+  ChartTooltip,
+  Grid,
+  Ring,
+  RingCenter,
+  RingChart,
+} from "@/components/charts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatBand } from "@/lib/ielts/learner/summary";
@@ -26,6 +36,14 @@ const CONFIDENCE_LEVEL: Record<
   low_confidence: "low",
   medium_confidence: "medium",
   high_confidence: "high",
+};
+
+type SkillBandDatum = {
+  label: string;
+  band: number;
+  target: number;
+  displayBand: string;
+  hasEvidence: boolean;
 };
 
 function TrendChip({ direction }: { direction: IeltsPredictionSkillRow["trend"] }) {
@@ -47,13 +65,77 @@ function TrendChip({ direction }: { direction: IeltsPredictionSkillRow["trend"] 
   );
 }
 
+function SkillBandTooltip({ point }: { point: Record<string, unknown> }) {
+  const label = typeof point.label === "string" ? point.label : "Skill";
+  const displayBand =
+    typeof point.displayBand === "string" ? point.displayBand : formatBand(null);
+  const target = typeof point.target === "number" ? point.target : 0;
+  const hasEvidence = Boolean(point.hasEvidence);
+
+  return (
+    <div className="min-w-40 px-3 py-2.5">
+      <p className="type-caption font-semibold uppercase text-chart-tooltip-muted">
+        {label}
+      </p>
+      <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
+        {hasEvidence ? displayBand : "No evidence yet"}
+      </p>
+      <p className="mt-1 type-caption text-chart-tooltip-muted">
+        Target {formatBand(target)}
+      </p>
+    </div>
+  );
+}
+
+function SkillBandChart({
+  skills,
+  targetBand,
+}: {
+  skills: IeltsPredictionSkillRow[];
+  targetBand: number;
+}) {
+  const t = useTranslations("dashboard.ielts");
+  const data: SkillBandDatum[] = skills.map((row) => ({
+    label: t(`skill_${row.skill}`),
+    band: row.band ?? 0,
+    target: targetBand,
+    displayBand: formatBand(row.band),
+    hasEvidence: row.hasEvidence,
+  }));
+
+  return (
+    <div className="h-56">
+      <BarChart
+        aspectRatio="unset"
+        className="h-full"
+        data={data}
+        margin={{ top: 12, right: 20, bottom: 12, left: 92 }}
+        orientation="horizontal"
+        stacked={false}
+        xDataKey="label"
+      >
+        <Grid horizontal={false} vertical />
+        <Bar dataKey="band" fill="var(--chart-line-primary)" lineCap="round" />
+        <Bar dataKey="target" fill="var(--chart-line-secondary)" lineCap="round" />
+        <BarYAxis />
+        <ChartTooltip
+          content={({ point }) => <SkillBandTooltip point={point} />}
+          showCrosshair={false}
+          showDatePill={false}
+          showDots={false}
+        />
+      </BarChart>
+    </div>
+  );
+}
+
 function SkillRow({ row }: { row: IeltsPredictionSkillRow }) {
   const t = useTranslations("dashboard.ielts");
   const Icon = IELTS_SKILL_ICON[row.skill];
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-3.5 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3.5 py-2.5">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-high text-on-surface-variant">
           <Icon className="size-4" aria-hidden />
         </span>
         <span className="truncate type-body-sm font-medium text-on-surface">
@@ -149,17 +231,39 @@ export function PredictedBandCard({
 
   const overall = view.overall;
   const countdown = countdownCaption(t, planSummary);
+  const ringData = [
+    {
+      label: t("predicted_title"),
+      value: overall.band ?? 0,
+      maxValue: 9,
+      color: "var(--chart-line-primary)",
+    },
+  ];
 
   return (
     <section className="rounded-3xl border border-outline-variant bg-surface-container p-6 sm:p-7">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
-        <div className="flex flex-col justify-center gap-3 rounded-2xl bg-primary-container p-6 text-center lg:w-64 lg:shrink-0">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-primary-container p-6 text-center text-on-primary-container lg:w-64 lg:shrink-0">
           <span className="type-caption font-semibold uppercase text-on-primary-container">
             {t("predicted_title")}
           </span>
-          <span className="type-display font-bold tabular-nums text-on-primary-container">
-            {formatBand(overall.band)}
-          </span>
+          <RingChart
+            baseInnerRadius={48}
+            data={ringData}
+            size={176}
+            strokeWidth={14}
+          >
+            <Ring index={0} />
+            <RingCenter
+              defaultLabel="Band"
+              formatOptions={{
+                maximumFractionDigits: 1,
+                minimumFractionDigits: 1,
+              }}
+              labelClassName="type-caption font-semibold text-on-primary-container"
+              valueClassName="type-heading-xl font-bold tabular-nums text-on-primary-container"
+            />
+          </RingChart>
           {overall.rangeLabel ? (
             <span className="type-body-sm font-medium text-on-primary-container">
               {t("predicted_range", { range: overall.rangeLabel })}
@@ -186,6 +290,7 @@ export function PredictedBandCard({
               <TrendChip direction={overall.trend} />
             </div>
           </div>
+          <SkillBandChart skills={view.skills} targetBand={overall.targetBand} />
           <div className="grid gap-2 sm:grid-cols-2">
             {view.skills.map((row) => (
               <SkillRow key={row.skill} row={row} />
