@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { getTimeGreetingKey } from "@/components/dashboard/plan-copy";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { STUDENT_COURSES_ENABLED } from "@/lib/features";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
@@ -389,6 +390,10 @@ export default async function Page({
       <DashboardContent
         data={makeDashboardData(state)}
         displayName="Jensen Huang"
+        greetingKey={getTimeGreetingKey(
+          new Date("2026-05-18T12:00:00.000Z"),
+          "America/New_York"
+        )}
         userId={QA_USER_ID}
         showWelcome={false}
       />

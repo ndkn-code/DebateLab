@@ -5,8 +5,27 @@ import type {
 
 type Translator = ReturnType<typeof useTranslations>;
 
-export function getTimeGreetingKey(): string {
-  const hour = new Date().getHours();
+function getHour(now: Date, timezone?: string | null) {
+  if (!timezone) return now.getHours();
+
+  try {
+    const hour = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: timezone,
+    })
+      .formatToParts(now)
+      .find((part) => part.type === "hour")?.value;
+
+    const parsed = hour == null ? Number.NaN : Number(hour);
+    return Number.isFinite(parsed) ? parsed % 24 : now.getHours();
+  } catch {
+    return now.getHours();
+  }
+}
+
+export function getTimeGreetingKey(now = new Date(), timezone?: string | null): string {
+  const hour = getHour(now, timezone);
   if (hour < 12) return "greeting_morning";
   if (hour < 17) return "greeting_afternoon";
   return "greeting_evening";
