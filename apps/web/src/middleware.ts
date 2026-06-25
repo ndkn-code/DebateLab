@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api") ||
     pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/email/unsubscribe") ||
+    pathname.startsWith("/ingest/") ||
     pathname.startsWith("/join/")
   ) {
     return await updateSession(request);

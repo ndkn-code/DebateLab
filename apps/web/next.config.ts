@@ -17,7 +17,6 @@ const connectSrc = [
   "https://us-assets.i.posthog.com",
   "https://vitals.vercel-insights.com",
   "https://*.vercel-insights.com",
-  "https://ip-api.com",
   ...(isDevelopment
     ? [
         "http://127.0.0.1:54321",

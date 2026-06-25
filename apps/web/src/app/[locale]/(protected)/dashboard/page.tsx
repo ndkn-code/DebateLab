@@ -8,6 +8,7 @@ import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { getTimeGreetingKey } from "@/components/dashboard/plan-copy";
 
 export const metadata = {
   title: "Dashboard",
@@ -30,7 +31,13 @@ async function DashboardPayload() {
   const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
   const timezone = cookieStore.get("thinkfy_timezone")?.value;
   const subject = coerceSubject(cookieStore.get(SUBJECT_COOKIE_NAME)?.value);
-  const data = await getDashboardData(activeUserId, supabase, { timezone, subject });
+  const now = new Date();
+  const data = await getDashboardData(activeUserId, supabase, {
+    timezone,
+    subject,
+    now,
+  });
+  const greetingKey = getTimeGreetingKey(now, timezone);
 
   // Get preferences for welcome banner check
   const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);
@@ -50,6 +57,7 @@ async function DashboardPayload() {
     <DashboardContent
       data={data}
       displayName={displayName}
+      greetingKey={greetingKey}
       userId={activeUserId}
       showWelcome={showWelcome}
     />

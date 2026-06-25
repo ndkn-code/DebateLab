@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const HEARTBEAT_INTERVAL = 60_000; // 60 seconds
 
 export function useSessionHeartbeat(userId: string | undefined) {
   const sessionIdRef = useRef<string | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (!userId) return;
@@ -17,13 +17,6 @@ export function useSessionHeartbeat(userId: string | undefined) {
     if (storedId) sessionIdRef.current = storedId;
 
     async function startSession() {
-      // Fetch geo info once (best effort)
-      let geo: { country?: string; city?: string; lat?: number; lon?: number } = {};
-      try {
-        const res = await fetch("https://ip-api.com/json/?fields=country,city,lat,lon", { signal: AbortSignal.timeout(3000) });
-        if (res.ok) geo = await res.json();
-      } catch { /* ignore */ }
-
       if (sessionIdRef.current) {
         // Reactivate existing session
         await supabase.from("user_sessions").update({
@@ -36,10 +29,6 @@ export function useSessionHeartbeat(userId: string | undefined) {
         const { data } = await supabase.from("user_sessions").insert({
           user_id: userId,
           is_active: true,
-          geo_country: geo.country ?? null,
-          geo_city: geo.city ?? null,
-          geo_lat: geo.lat ?? null,
-          geo_lon: geo.lon ?? null,
           user_agent: navigator.userAgent,
         }).select("id").single();
 
@@ -60,12 +49,17 @@ export function useSessionHeartbeat(userId: string | undefined) {
     function endSession() {
       if (!sessionIdRef.current) return;
       // Use sendBeacon for reliability on page close
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/user_sessions?id=eq.${sessionIdRef.current}`;
-      const body = JSON.stringify({ is_active: false, session_end: new Date().toISOString() });
-      navigator.sendBeacon(
-        url,
-        new Blob([body], { type: "application/json" })
-      );
+      const body = JSON.stringify({ sessionId: sessionIdRef.current });
+      const payload = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon("/api/sessions/end", payload)) return;
+
+      void fetch("/api/sessions/end", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => undefined);
     }
 
     startSession();

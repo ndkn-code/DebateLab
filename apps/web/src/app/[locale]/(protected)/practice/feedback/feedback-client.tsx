@@ -186,10 +186,8 @@ export default function FeedbackPage() {
   const [referralCode, setReferralCode] = useState<string>("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
-  const [resultDate, setResultDate] = useState(() => new Date().toISOString());
-  const [resultDuration, setResultDuration] = useState(() =>
-    sessionStartTime ? Math.max(0, Math.round((Date.now() - sessionStartTime) / 1000)) : 0
-  );
+  const [resultDate, setResultDate] = useState("");
+  const [resultDuration, setResultDuration] = useState(0);
   const hasCalledApi = useRef(false);
   const hasSaved = useRef(false);
 
@@ -478,9 +476,12 @@ export default function FeedbackPage() {
     // If we already have feedback (e.g. from store), skip API call
     if (storeFeedback) {
       setLocalFeedback(normalizeFeedback(storeFeedback));
-      if (resultDuration === 0 && sessionStartTime) {
-        setResultDuration(Math.max(0, Math.round((Date.now() - sessionStartTime) / 1000)));
-      }
+      setResultDate((current) => current || new Date().toISOString());
+      setResultDuration((current) =>
+        current === 0 && sessionStartTime
+          ? Math.max(0, Math.round((Date.now() - sessionStartTime) / 1000))
+          : current
+      );
       setLoading(false);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
@@ -496,7 +497,6 @@ export default function FeedbackPage() {
     storeFeedback,
     fetchFeedback,
     normalizeFeedback,
-    resultDuration,
     router,
     sessionStartTime,
   ]);
@@ -539,7 +539,7 @@ export default function FeedbackPage() {
     ? `I just finished a speaking practice on "${selectedTopicTitle}" (${resolvedSide} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
     : `I just finished a debate on "${selectedTopicTitle}" (${resolvedSide} side, ${mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
   const resultSession = useMemo<DebateSession | null>(() => {
-    if (!feedback || !selectedTopic) return null;
+    if (!feedback || !selectedTopic || !resultDate) return null;
 
     return {
       id: savedSessionId ?? "current-session",

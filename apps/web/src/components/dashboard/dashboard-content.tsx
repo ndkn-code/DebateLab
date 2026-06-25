@@ -19,7 +19,6 @@ import {
   RecentActivityCard,
 } from "@/components/dashboard/activity-cards";
 import type { DashboardHomeData } from "@/lib/api/dashboard";
-import { getTimeGreetingKey } from "./plan-copy";
 
 const DASHBOARD_TIMEZONE_COOKIE = "thinkfy_timezone";
 const DASHBOARD_TIMEZONE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -27,6 +26,7 @@ const DASHBOARD_TIMEZONE_MAX_AGE = 60 * 60 * 24 * 365;
 interface DashboardContentProps {
   data: DashboardHomeData;
   displayName: string;
+  greetingKey: string;
   userId: string;
   showWelcome: boolean;
 }
@@ -68,6 +68,7 @@ function useDashboardTimezoneCookie() {
 export function DashboardContent({
   data,
   displayName,
+  greetingKey,
   userId,
   showWelcome,
 }: DashboardContentProps) {
@@ -84,7 +85,7 @@ export function DashboardContent({
         <PageContainer size="wide" className="flex flex-col py-4 pb-24 lg:py-5 lg:pb-28">
           <div className="flex flex-wrap items-center justify-between gap-3 text-on-surface">
             <p className="type-title min-w-0 font-bold text-on-surface">
-              {t(getTimeGreetingKey())}, {displayName}{" "}
+              {t(greetingKey)}, {displayName}{" "}
               <span aria-hidden="true">👋</span>
             </p>
 
