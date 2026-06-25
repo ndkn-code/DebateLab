@@ -29,6 +29,20 @@ const excerptFeedbackSchema = z.object({
   suggestion: z.string().max(1200),
 });
 
+function hasNonBlankExcerpt(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return true;
+  }
+  const excerpt = (value as { excerpt?: unknown }).excerpt;
+  return typeof excerpt !== "string" || excerpt.trim().length > 0;
+}
+
+const excerptFeedbackArraySchema = z.preprocess(
+  (value) =>
+    Array.isArray(value) ? value.filter(hasNonBlankExcerpt) : value,
+  z.array(excerptFeedbackSchema).max(60).default([]),
+);
+
 export const ieltsSpeakingModelOutputSchema = z.object({
   criteria: z.object({
     fluencyCoherence: criterionScoreSchema,
@@ -42,7 +56,7 @@ export const ieltsSpeakingModelOutputSchema = z.object({
   /** Overall improvement levers to reach the next band. */
   improvements: z.array(z.string().min(1).max(600)).max(20).default([]),
   /** Verbatim transcript excerpts where marks were lost, per criterion. */
-  excerptFeedback: z.array(excerptFeedbackSchema).max(60).default([]),
+  excerptFeedback: excerptFeedbackArraySchema,
   /** Optional Vietnamese-language explanation (VN-first learners). */
   vietnameseSummary: z.string().min(1).max(4000).optional(),
 });

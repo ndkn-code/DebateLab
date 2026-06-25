@@ -116,10 +116,10 @@ export async function submitSpeakingResponseForScoring(params: {
     userId: params.userId,
     durationSeconds: input.durationSeconds,
   };
-  scheduleIeltsSpeakingScoringFallback(message, "submit");
   try {
     await enqueueIeltsSpeakingScoring(message);
   } catch (error) {
+    scheduleIeltsSpeakingScoringFallback(message, "submit");
     console.error("IELTS speaking queue enqueue failed; fallback scheduled", {
       speakingResponseId: response.id,
       error,

@@ -68,6 +68,27 @@ const emptySuggestion = ieltsSpeakingModelOutputSchema.safeParse({
 });
 assert.equal(emptySuggestion.success, true);
 
+// --- blank excerpts are dropped instead of failing silent-response scoring ---
+const blankExcerpt = ieltsSpeakingModelOutputSchema.parse({
+  ...fullOutput,
+  excerptFeedback: [
+    {
+      excerpt: "   ",
+      criterion: "pronunciation" as const,
+      issue: "No speech was detected.",
+      suggestion: "",
+    },
+    {
+      excerpt: "short answer",
+      criterion: "fluencyCoherence" as const,
+      issue: "Too limited to develop coherence.",
+      suggestion: "Give a complete answer with one reason.",
+    },
+  ],
+});
+assert.equal(blankExcerpt.excerptFeedback.length, 1);
+assert.equal(blankExcerpt.excerptFeedback[0].excerpt, "short answer");
+
 // --- invalid: missing a criterion ------------------------------------------
 const missingCriterion = ieltsSpeakingModelOutputSchema.safeParse({
   criteria: {
