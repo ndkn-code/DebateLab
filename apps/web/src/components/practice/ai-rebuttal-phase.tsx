@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { Pause, RotateCcw } from "@/components/ui/icons";
+import { Pause, Play, RotateCcw } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTranslations } from "next-intl";
@@ -15,6 +15,7 @@ import {
   QuickNotesEditor,
 } from "./practice-session-ui";
 import { cn } from "@/lib/utils";
+import { getSpeechRevealText } from "@/lib/tts-playback";
 import { localizeRoundLabel } from "./round-labels";
 import { normalizeStructuredRebuttalResponse } from "@/lib/rebuttal/structured-response";
 import { AiQualityRatingWidget } from "@/components/ai-quality/ai-quality-rating-widget";
@@ -102,14 +103,6 @@ function ThinkingDots() {
       ))}
     </span>
   );
-}
-
-function getTypewriterDelayMs(text: string, audioDurationSeconds: number | null) {
-  if (audioDurationSeconds && audioDurationSeconds > 0 && text.length > 0) {
-    return Math.max(10, Math.min(90, Math.round((audioDurationSeconds * 1000) / text.length)));
-  }
-
-  return text.length > 5000 ? 5 : text.length > 3000 ? 8 : 18;
 }
 
 function HighlightedResponse({
@@ -207,7 +200,6 @@ export function AiRebuttalPhase({
   initialHighlights = EMPTY_HIGHLIGHTS,
   ttsVoice = 'aura-asteria-en',
   showcaseState,
-  showcaseStreamingText = "",
   showcaseError = "AI response generation failed in this fixture state.",
 }: AiRebuttalPhaseProps) {
   const t = useTranslations('dashboard.practice');
@@ -217,15 +209,14 @@ export function AiRebuttalPhase({
     [initialHighlights, initialResponse]
   );
   const isShowcase = Boolean(showcaseState);
-  const [status, setStatus] = useState<"loading" | "typing" | "done" | "error">(
-    getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal))
+  const [status, setStatus] = useState<"loading" | "speaking" | "paused" | "done" | "error">(
+    isShowcase
+      ? getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal))
+      : "loading"
   );
   const [fullText, setFullText] = useState(normalizedInitialResponse.rebuttal);
   const [displayedText, setDisplayedText] = useState(
-    normalizedInitialResponse.rebuttal
-  );
-  const [streamingText, setStreamingText] = useState(
-    showcaseState === "streaming" ? showcaseStreamingText : ""
+    isShowcase ? normalizedInitialResponse.rebuttal : ""
   );
   const [highlights, setHighlights] = useState<AiHighlight[]>(
     normalizedInitialResponse.highlights
@@ -234,23 +225,25 @@ export function AiRebuttalPhase({
   const [error, setError] = useState<string | null>(
     showcaseState === "error" ? showcaseError : null
   );
-  const [typewriterDelayMs, setTypewriterDelayMs] = useState(18);
   const hasFetched = useRef(
     Boolean(normalizedInitialResponse.rebuttal) || isShowcase
   );
-  const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsTriggeredRef = useRef(false);
-  const ttsWasLoadingRef = useRef(false);
 
   const {
     speak: ttsSpeak,
-    stop: ttsStop,
+    play: ttsPlay,
+    pause: ttsPause,
+    resume: ttsResume,
     replay: ttsReplay,
+    playbackState: ttsPlaybackState,
     isLoading: ttsLoading,
     isPlaying: ttsPlaying,
+    isPaused: ttsPaused,
     hasPlayed: ttsHasPlayed,
     error: ttsError,
-    audioDurationSeconds,
+    currentTimeSeconds,
+    durationSeconds,
   } = useTTS({
     voice: ttsVoice,
     practiceLanguage,
@@ -262,9 +255,8 @@ export function AiRebuttalPhase({
     setError(null);
     setFullText("");
     setDisplayedText("");
-    setStreamingText("");
     setHighlights([]);
-    setTypewriterDelayMs(18);
+    ttsTriggeredRef.current = false;
 
     try {
       const controller = new AbortController();
@@ -330,9 +322,7 @@ export function AiRebuttalPhase({
               string,
               unknown
             >;
-            if (currentEvent === "delta" && typeof payload.text === "string") {
-              setStreamingText((existing) => `${existing}${payload.text}`);
-            } else if (currentEvent === "final") {
+            if (currentEvent === "final") {
               data = payload as unknown as RebuttalApiResponse;
             } else if (currentEvent === "error") {
               throw new Error(
@@ -356,7 +346,6 @@ export function AiRebuttalPhase({
         finalData.highlights
       );
       setFullText(normalizedResponse.rebuttal);
-      setStreamingText("");
       setDisplayedText("");
       setHighlights(normalizedResponse.highlights);
       setAiRunId(finalData._aiRunId ?? null);
@@ -364,10 +353,8 @@ export function AiRebuttalPhase({
         normalizedResponse.rebuttal,
         normalizedResponse.highlights
       );
-      // Don't set status="typing" yet — wait for TTS audio to load first
-      // so typewriter and audio start simultaneously
       ttsTriggeredRef.current = true;
-      ttsSpeak(normalizedResponse.rebuttal);
+      void ttsSpeak(normalizedResponse.rebuttal);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setError("AI response timed out. Please try again.");
@@ -407,7 +394,6 @@ export function AiRebuttalPhase({
     setStatus(getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal)));
     setFullText(normalizedInitialResponse.rebuttal);
     setDisplayedText(normalizedInitialResponse.rebuttal);
-    setStreamingText(showcaseState === "streaming" ? showcaseStreamingText : "");
     setHighlights(normalizedInitialResponse.highlights);
     setError(showcaseState === "error" ? showcaseError : null);
     hasFetched.current = true;
@@ -416,58 +402,82 @@ export function AiRebuttalPhase({
     normalizedInitialResponse.rebuttal,
     showcaseError,
     showcaseState,
-    showcaseStreamingText,
   ]);
 
-  // Typewriter effect
   useEffect(() => {
-    if (status !== "typing" || !fullText) return;
+    if (isShowcase || !fullText || ttsTriggeredRef.current) return;
+    ttsTriggeredRef.current = true;
+    setDisplayedText("");
+    setStatus("loading");
+    void ttsSpeak(fullText);
+  }, [fullText, isShowcase, ttsSpeak]);
 
-    let charIndex = 0;
-    const typeNext = () => {
-      if (charIndex < fullText.length) {
-        charIndex++;
-        setDisplayedText(fullText.substring(0, charIndex));
-        typewriterRef.current = setTimeout(typeNext, typewriterDelayMs);
-      } else {
-        setStatus("done");
-      }
-    };
-
-    typewriterRef.current = setTimeout(typeNext, typewriterDelayMs);
-
-    return () => {
-      if (typewriterRef.current) {
-        clearTimeout(typewriterRef.current);
-      }
-    };
-  }, [status, fullText, typewriterDelayMs]);
-
-  // Wait for TTS audio to load, then start typewriter so both run simultaneously
   useEffect(() => {
-    if (ttsLoading) {
-      ttsWasLoadingRef.current = true;
-    }
-    // Once TTS finishes loading (success, autoplay-blocked, or error) AND we have
-    // text AND we haven't started typing yet → start the typewriter
-    if (ttsWasLoadingRef.current && !ttsLoading && fullText && status === "loading") {
-      setTypewriterDelayMs(getTypewriterDelayMs(fullText, audioDurationSeconds));
-      setStatus("typing");
-    }
-  }, [ttsLoading, fullText, status, audioDurationSeconds]);
+    if (isShowcase || !fullText) return;
 
-  const handleSkipAnimation = () => {
-    if (typewriterRef.current) {
-      clearTimeout(typewriterRef.current);
+    if (ttsPlaybackState === "loading" || ttsPlaybackState === "ready") {
+      setDisplayedText("");
+      setStatus(ttsPlaybackState === "ready" ? "paused" : "loading");
+      return;
     }
-    setDisplayedText(fullText);
-    setStatus("done");
-  };
+
+    if (ttsPlaybackState === "playing" || ttsPlaybackState === "paused") {
+      setDisplayedText(
+        getSpeechRevealText({
+          text: fullText,
+          currentTimeSeconds,
+          durationSeconds,
+          locale: practiceLanguage,
+        })
+      );
+      setStatus(ttsPlaybackState === "paused" ? "paused" : "speaking");
+      return;
+    }
+
+    if (ttsPlaybackState === "ended") {
+      setDisplayedText(fullText);
+      setStatus("done");
+      return;
+    }
+
+    if (ttsPlaybackState === "error") {
+      setDisplayedText("");
+      setError(ttsError || t("tts.error"));
+      setStatus("error");
+    }
+  }, [
+    currentTimeSeconds,
+    durationSeconds,
+    fullText,
+    isShowcase,
+    practiceLanguage,
+    t,
+    ttsError,
+    ttsPlaybackState,
+  ]);
 
   const handleRetry = () => {
     if (isShowcase) return;
+    if (fullText) {
+      setError(null);
+      setDisplayedText("");
+      setStatus("loading");
+      ttsTriggeredRef.current = true;
+      void ttsSpeak(fullText);
+      return;
+    }
     hasFetched.current = false;
     fetchRebuttal();
+  };
+
+  const handleReplay = () => {
+    setDisplayedText("");
+    setStatus("loading");
+    void ttsReplay();
+  };
+
+  const handleResume = () => {
+    void (ttsPlaybackState === "ready" ? ttsPlay() : ttsResume());
   };
 
   const handleContinue = () => {
@@ -475,6 +485,10 @@ export function AiRebuttalPhase({
   };
 
   const displayRoundLabel = localizeRoundLabel(roundLabel, t);
+  const canResumeSpeech = ttsPaused || ttsPlaybackState === "ready";
+  const canReplaySpeech =
+    ttsHasPlayed && !ttsPlaying && !ttsLoading && ttsPlaybackState === "ended";
+  const playbackActionDisabled = !ttsPlaying && !canResumeSpeech;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 py-3 sm:px-5 lg:px-6">
@@ -485,7 +499,7 @@ export function AiRebuttalPhase({
               <motion.span
                 className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-container"
                 animate={
-                  !reduceMotion && (status === "loading" || status === "typing")
+                  !reduceMotion && (status === "loading" || status === "speaking")
                     ? { scale: [1, 1.05, 1] }
                     : undefined
                 }
@@ -517,34 +531,33 @@ export function AiRebuttalPhase({
                 >
                   {status === "loading"
                     ? t("session.ai_preparing")
-                    : status === "typing"
+                    : status === "speaking"
                       ? t("session.ai_speaking")
                       : status === "done"
                         ? t("session.ai_finished")
-                        : t("session.error")}
+                        : status === "paused"
+                          ? t("session.paused")
+                          : t("session.error")}
                 </p>
               </div>
             </div>
 
-            {(status === "typing" || status === "done") && (
+            {fullText && !isShowcase && (
               <div className="flex flex-wrap justify-end gap-2">
-                {status === "typing" && (
-                  <Button
-                    variant="outline"
-                    onClick={handleSkipAnimation}
-                    className="h-9 rounded-full border-outline-variant/70 bg-surface text-sm text-primary"
-                  >
-                    {t("session.skip_animation")}
-                  </Button>
-                )}
                 {ttsPlaying && (
-                  <Button variant="outline" onClick={ttsStop} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                  <Button variant="outline" onClick={ttsPause} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
                     <Pause className="h-4 w-4" />
                     {t('tts.pause')}
                   </Button>
                 )}
-                {ttsHasPlayed && !ttsPlaying && !ttsLoading && (
-                  <Button variant="outline" onClick={ttsReplay} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                {canResumeSpeech && !ttsError && (
+                  <Button variant="outline" onClick={handleResume} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                    <Play className="h-4 w-4" />
+                    {t(ttsPlaybackState === "ready" ? 'tts.play' : 'tts.resume')}
+                  </Button>
+                )}
+                {canReplaySpeech && (
+                  <Button variant="outline" onClick={handleReplay} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
                     <RotateCcw className="h-4 w-4" />
                     {t('tts.replay')}
                   </Button>
@@ -552,7 +565,7 @@ export function AiRebuttalPhase({
                 {ttsError && !ttsLoading && (
                   <Button
                     variant="outline"
-                    onClick={() => { ttsTriggeredRef.current = false; ttsSpeak(fullText); }}
+                    onClick={handleRetry}
                     className="h-9 gap-2 rounded-full border-error/40 bg-error-container text-sm text-error"
                   >
                     <RotateCcw className="h-4 w-4" />
@@ -565,28 +578,20 @@ export function AiRebuttalPhase({
 
           <div className="mt-4 flex min-h-[300px] flex-col rounded-xl bg-surface-container/60 p-5">
             {status === "loading" ? (
-              streamingText ? (
-                <HighlightedResponse
-                  text={streamingText}
-                  highlights={[]}
-                  isTyping
-                />
-              ) : (
-                <div className="flex flex-1 items-center justify-center">
-                  <div className="flex flex-col items-center gap-4">
-                    <Image
-                      src="/images/mascot/mascot-thinking.webp"
-                      alt=""
-                      aria-hidden="true"
-                      width={1254}
-                      height={1254}
-                      className="h-auto w-24 object-contain"
-                      sizes="96px"
-                    />
-                    <ThinkingDots />
-                  </div>
+              <div className="flex flex-1 items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <Image
+                    src="/images/mascot/mascot-thinking.webp"
+                    alt=""
+                    aria-hidden="true"
+                    width={1254}
+                    height={1254}
+                    className="h-auto w-24 object-contain"
+                    sizes="96px"
+                  />
+                  <ThinkingDots />
                 </div>
-              )
+              </div>
             ) : status === "error" ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
                 <Image
@@ -604,7 +609,7 @@ export function AiRebuttalPhase({
               <HighlightedResponse
                 text={displayedText}
                 highlights={highlights}
-                isTyping={status === "typing"}
+                isTyping={status === "speaking"}
               />
             )}
           </div>
@@ -640,13 +645,13 @@ export function AiRebuttalPhase({
       <ActionRail className="sticky bottom-4">
         <Button
           type="button"
-          onClick={ttsStop}
-          disabled={!ttsPlaying}
+          onClick={ttsPlaying ? ttsPause : handleResume}
+          disabled={playbackActionDisabled}
           variant="outline"
           className="h-11 min-w-[132px] gap-2 rounded-lg border-outline-variant/80 bg-surface text-sm font-semibold text-on-surface hover:bg-surface-container disabled:opacity-50"
         >
-          <Pause className="h-4 w-4" />
-          {t("session.pause")}
+          {ttsPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {ttsPlaying ? t("session.pause") : t("tts.resume")}
         </Button>
         {status === "error" ? (
           <PrimaryActionButton onClick={handleRetry}>

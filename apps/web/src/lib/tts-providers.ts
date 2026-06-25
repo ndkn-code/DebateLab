@@ -18,6 +18,22 @@ interface GoogleTokenResponse {
   error_description?: string;
 }
 
+export interface TtsSynthesisRequestOptions {
+  signal?: AbortSignal;
+}
+
+export class TtsProviderRequestError extends Error {
+  readonly providerErrorCode: string;
+  readonly responseStatus: number | null;
+
+  constructor(providerErrorCode: string, responseStatus?: number | null) {
+    super(providerErrorCode);
+    this.name = "TtsProviderRequestError";
+    this.providerErrorCode = providerErrorCode;
+    this.responseStatus = responseStatus ?? null;
+  }
+}
+
 let cachedGoogleToken: { accessToken: string; expiresAt: number } | null = null;
 
 export function escapeSsml(text: string) {
@@ -52,7 +68,7 @@ function arrayBufferFromBuffer(buffer: Buffer) {
 export function parseGoogleServiceAccount(raw: string) {
   const parsed = JSON.parse(raw) as Partial<GoogleServiceAccount>;
   if (!parsed.client_email || !parsed.private_key) {
-    throw new Error("GOOGLE_TTS_INVALID_SERVICE_ACCOUNT");
+    throw new TtsProviderRequestError("GOOGLE_TTS_INVALID_SERVICE_ACCOUNT");
   }
 
   return {
@@ -138,7 +154,7 @@ async function readGoogleServiceAccount() {
 
   const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (!credentialsPath) {
-    throw new Error("GOOGLE_TTS_MISSING_CONFIG");
+    throw new TtsProviderRequestError("GOOGLE_TTS_MISSING_CONFIG");
   }
 
   return parseGoogleServiceAccount(await readFile(credentialsPath, "utf8"));
@@ -200,7 +216,7 @@ async function getGoogleAccessToken() {
     if (process.env.NODE_ENV === "development") {
       console.error("Google TTS auth error:", token);
     }
-    throw new Error("GOOGLE_TTS_AUTH_FAILED");
+    throw new TtsProviderRequestError("GOOGLE_TTS_AUTH_FAILED", response.status);
   }
 
   cachedGoogleToken = {
@@ -211,10 +227,14 @@ async function getGoogleAccessToken() {
   return token.access_token;
 }
 
-export async function synthesizeDeepgram(text: string, voiceId: string): Promise<ArrayBuffer> {
+export async function synthesizeDeepgram(
+  text: string,
+  voiceId: string,
+  options: TtsSynthesisRequestOptions = {}
+): Promise<ArrayBuffer> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
-    throw new Error("DEEPGRAM_TTS_MISSING_API_KEY");
+    throw new TtsProviderRequestError("DEEPGRAM_TTS_MISSING_API_KEY");
   }
 
   const response = await fetch(
@@ -226,23 +246,28 @@ export async function synthesizeDeepgram(text: string, voiceId: string): Promise
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ text }),
+      signal: options.signal,
     }
   );
 
   if (!response.ok) {
     const error = await response.text();
     if (process.env.NODE_ENV === "development") console.error("Deepgram TTS error:", error);
-    throw new Error("DEEPGRAM_TTS_FAILED");
+    throw new TtsProviderRequestError("DEEPGRAM_TTS_FAILED", response.status);
   }
 
   return response.arrayBuffer();
 }
 
-export async function synthesizeAzure(text: string, voice: TTSVoice): Promise<ArrayBuffer> {
+export async function synthesizeAzure(
+  text: string,
+  voice: TTSVoice,
+  options: TtsSynthesisRequestOptions = {}
+): Promise<ArrayBuffer> {
   const apiKey = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
   if (!apiKey || !region) {
-    throw new Error("AZURE_TTS_MISSING_CONFIG");
+    throw new TtsProviderRequestError("AZURE_TTS_MISSING_CONFIG");
   }
 
   const response = await fetch(
@@ -256,19 +281,24 @@ export async function synthesizeAzure(text: string, voice: TTSVoice): Promise<Ar
         "User-Agent": "Thinkfy",
       },
       body: buildAzureSsml(text, voice),
+      signal: options.signal,
     }
   );
 
   if (!response.ok) {
     const error = await response.text();
     if (process.env.NODE_ENV === "development") console.error("Azure TTS error:", error);
-    throw new Error("AZURE_TTS_FAILED");
+    throw new TtsProviderRequestError("AZURE_TTS_FAILED", response.status);
   }
 
   return response.arrayBuffer();
 }
 
-export async function synthesizeGoogle(text: string, voice: TTSVoice): Promise<ArrayBuffer> {
+export async function synthesizeGoogle(
+  text: string,
+  voice: TTSVoice,
+  options: TtsSynthesisRequestOptions = {}
+): Promise<ArrayBuffer> {
   const accessToken = await getGoogleAccessToken();
   const response = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
     method: "POST",
@@ -277,6 +307,7 @@ export async function synthesizeGoogle(text: string, voice: TTSVoice): Promise<A
       "Content-Type": "application/json; charset=utf-8",
     },
     body: JSON.stringify(buildGoogleSynthesizeRequest(text, voice)),
+    signal: options.signal,
   });
   const body = (await response.json()) as { audioContent?: string; error?: unknown };
 
@@ -284,20 +315,24 @@ export async function synthesizeGoogle(text: string, voice: TTSVoice): Promise<A
     if (process.env.NODE_ENV === "development") {
       console.error("Google TTS error:", body);
     }
-    throw new Error("GOOGLE_TTS_FAILED");
+    throw new TtsProviderRequestError("GOOGLE_TTS_FAILED", response.status);
   }
 
   return arrayBufferFromBuffer(Buffer.from(body.audioContent, "base64"));
 }
 
-export async function synthesizeTtsVoice(text: string, voice: TTSVoice): Promise<ArrayBuffer> {
+export async function synthesizeTtsVoice(
+  text: string,
+  voice: TTSVoice,
+  options: TtsSynthesisRequestOptions = {}
+): Promise<ArrayBuffer> {
   if (voice.provider === "azure") {
-    return synthesizeAzure(text, voice);
+    return synthesizeAzure(text, voice, options);
   }
 
   if (voice.provider === "google") {
-    return synthesizeGoogle(text, voice);
+    return synthesizeGoogle(text, voice, options);
   }
 
-  return synthesizeDeepgram(text, voice.id);
+  return synthesizeDeepgram(text, voice.id, options);
 }

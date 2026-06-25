@@ -1240,10 +1240,12 @@
     },
     "tts": {
       "generating": "Đang tạo giọng nói...",
+      "play": "Phát",
       "pause": "Tạm dừng",
-        "replay": "Nghe lại",
-        "error": "Lỗi phát âm thanh"
-      }
+      "resume": "Tiếp tục",
+      "replay": "Nghe lại",
+      "error": "Lỗi phát âm thanh"
+    }
     },
     "chat": {
       "new_chat": "Chat Mới",

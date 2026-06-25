@@ -1240,7 +1240,9 @@
       },
       "tts": {
         "generating": "Generating voice...",
+        "play": "Play",
         "pause": "Pause",
+        "resume": "Resume",
         "replay": "Replay",
         "error": "Audio playback failed"
       }
