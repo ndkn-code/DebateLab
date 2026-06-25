@@ -10,7 +10,12 @@ import {
 } from "@thinkfy/shared/dashboard";
 import type { DebateScore, PracticeTrack } from "@/types/feedback";
 
-import { buildWeeklyGoalSummary, selectDashboardImprovementSkill } from "./dashboard";
+import {
+  buildSessionDerivedStats,
+  buildStreakActivityEventsFromSessions,
+  buildWeeklyGoalSummary,
+  selectDashboardImprovementSkill,
+} from "./dashboard";
 import { computeEffectiveStreakState, dateKeyInTimezone } from "@/lib/streaks/model";
 
 function stat(minutes: number): DailyStatEntry {
@@ -299,6 +304,49 @@ function daysAgo(days: number) {
 
   assert.equal(active.current, 2);
   assert.equal(active.atRiskToday, true);
+}
+
+{
+  const completedSessions = [
+    {
+      id: "today-session",
+      created_at: "2026-06-23T22:49:06.381Z",
+      duration_seconds: 26,
+      total_score: 8,
+    },
+    {
+      id: "today-session",
+      created_at: "2026-06-23T22:49:06.381Z",
+      duration_seconds: 26,
+      total_score: 8,
+    },
+    {
+      id: "older-session",
+      created_at: "2026-06-15T17:23:09.873Z",
+      duration_seconds: 75,
+      total_score: 60,
+    },
+  ];
+  const sessionStats = buildSessionDerivedStats(
+    completedSessions,
+    ["2026-06-23", "2026-06-24"],
+    "America/New_York"
+  );
+  const todayStats = sessionStats.get("2026-06-23");
+  const repairedStreak = computeEffectiveStreakState({
+    profile: {
+      streak_current: 2,
+      streak_last_active_date: "2026-05-26",
+    },
+    activities: buildStreakActivityEventsFromSessions(completedSessions),
+    timezone: "America/New_York",
+    now: new Date("2026-06-24T03:07:37.901Z"),
+  });
+
+  assert.equal(todayStats?.sessions_completed, 1);
+  assert.equal(todayStats?.practice_minutes, 0);
+  assert.equal(repairedStreak.current, 1);
+  assert.equal(repairedStreak.activeToday, true);
 }
 
 {

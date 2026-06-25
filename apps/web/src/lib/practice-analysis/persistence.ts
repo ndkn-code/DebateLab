@@ -150,10 +150,6 @@ export async function saveCompletedPracticeAttempt(
     console.warn("Failed to record performance attempt", performanceResult.error);
   }
 
-  if (alreadySaved) {
-    return { sessionId: session.id, didCreateSession: false };
-  }
-
   const durationMinutes = Math.round(session.duration / 60);
   const previousBestScore = await getPreviousBestPracticeScore(
     supabase,
@@ -207,24 +203,26 @@ export async function saveCompletedPracticeAttempt(
     supabase
   );
   const xpEarned = award.lifetimeXpAwarded;
-  const today = new Date().toISOString().split("T")[0];
+  const activityDate = new Date(session.date).toISOString().split("T")[0];
 
-  await recordAnalyticsEvent(supabase, params.attempt.user_id, {
-    eventName: "practice_completed",
-    featureArea: "practice",
-    route: "/practice/feedback",
-    durationMs: session.duration * 1000,
-    metadata: {
-      debate_session_id: session.id,
-      practice_attempt_id: params.attempt.id,
-      topic: session.topic.title,
-      practice_track: session.practiceTrack,
-      practice_language: session.practiceLanguage,
-      mode: session.mode,
-      score: session.feedback?.totalScore ?? null,
-      xp_earned: xpEarned,
-    },
-  });
+  if (award.inserted) {
+    await recordAnalyticsEvent(supabase, params.attempt.user_id, {
+      eventName: "practice_completed",
+      featureArea: "practice",
+      route: "/practice/feedback",
+      durationMs: session.duration * 1000,
+      metadata: {
+        debate_session_id: session.id,
+        practice_attempt_id: params.attempt.id,
+        topic: session.topic.title,
+        practice_track: session.practiceTrack,
+        practice_language: session.practiceLanguage,
+        mode: session.mode,
+        score: session.feedback?.totalScore ?? null,
+        xp_earned: xpEarned,
+      },
+    });
+  }
 
   const { data: profileData } = await supabase
     .from("profiles")
@@ -232,12 +230,12 @@ export async function saveCompletedPracticeAttempt(
     .eq("id", params.attempt.user_id)
     .single();
 
-  if (profileData) {
+  if (award.inserted && profileData) {
     let newStreak = profileData.streak_current ?? 0;
     const lastActive = profileData.streak_last_active_date;
-    if (lastActive !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+    if (lastActive !== activityDate) {
+      const yesterday = new Date(session.date);
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
       const yesterdayStr = yesterday.toISOString().split("T")[0];
       newStreak = lastActive === yesterdayStr ? newStreak + 1 : 1;
     }
@@ -252,10 +250,10 @@ export async function saveCompletedPracticeAttempt(
           (profileData.total_practice_minutes ?? 0) + durationMinutes,
         streak_current: newStreak,
         streak_longest: newLongest,
-        streak_last_active_date: today,
+        streak_last_active_date: activityDate,
       })
       .eq("id", params.attempt.user_id);
   }
 
-  return { sessionId: session.id, didCreateSession: true };
+  return { sessionId: session.id, didCreateSession: !alreadySaved };
 }
