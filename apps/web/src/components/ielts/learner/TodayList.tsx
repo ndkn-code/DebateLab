@@ -8,12 +8,19 @@ import { cn } from "@/lib/utils";
 import type { IeltsTodayItemView } from "@/lib/ielts/home/today";
 import { IELTS_SKILL_ICON } from "./skill-icon";
 
-function TodayItemCard({ item }: { item: IeltsTodayItemView }) {
+function TodayItemCard({
+  item,
+  softenDueState,
+}: {
+  item: IeltsTodayItemView;
+  softenDueState: boolean;
+}) {
   const t = useTranslations("dashboard.ielts");
   const locale = useLocale();
   const Icon = IELTS_SKILL_ICON[item.skill];
   const title = locale === "vi" ? item.titleVi : item.titleEn;
   const rationale = locale === "vi" ? item.rationaleVi : item.rationaleEn;
+  const showOverdue = item.isOverdue && !softenDueState;
 
   return (
     <Link
@@ -29,9 +36,13 @@ function TodayItemCard({ item }: { item: IeltsTodayItemView }) {
           <span className="truncate type-body font-semibold text-on-surface">
             {title}
           </span>
-          {item.isOverdue ? (
+          {showOverdue ? (
             <span className="type-caption font-semibold uppercase text-error">
               {t("today_overdue")}
+            </span>
+          ) : item.isOverdue ? (
+            <span className="type-caption font-semibold uppercase text-primary">
+              {t("today_ready")}
             </span>
           ) : null}
         </div>
@@ -71,12 +82,14 @@ export function TodayList({
   hasGoal,
   diagnosticReady,
   totalMinutes,
+  softenDueState = false,
 }: {
   items: IeltsTodayItemView[];
   overflowCount: number;
   hasGoal: boolean;
   diagnosticReady: boolean;
   totalMinutes: number;
+  softenDueState?: boolean;
 }) {
   const t = useTranslations("dashboard.ielts");
 
@@ -97,7 +110,11 @@ export function TodayList({
         <>
           <div className="flex flex-col gap-2.5">
             {items.map((item) => (
-              <TodayItemCard key={item.id} item={item} />
+              <TodayItemCard
+                key={item.id}
+                item={item}
+                softenDueState={softenDueState}
+              />
             ))}
           </div>
           {overflowCount > 0 ? (

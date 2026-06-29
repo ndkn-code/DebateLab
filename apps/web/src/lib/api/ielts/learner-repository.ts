@@ -35,6 +35,7 @@ import {
   type IeltsRetentionDailyStatRow,
   type IeltsRetentionProfileRow,
 } from "@/lib/ielts/home/retention";
+import { ieltsHomeFirstName } from "@/lib/ielts/home/identity";
 import type { StreakActivityEvent } from "@/lib/streaks/model";
 import type { IeltsDbClient } from "./client";
 import { getPublishedIeltsTests, isGeneratedIeltsSkillDrill } from "./tests-repository";
@@ -57,6 +58,10 @@ const HOME_FEATURED_LIMIT = 3;
 
 type ActiveIeltsHomePlan = Awaited<ReturnType<typeof loadActiveIeltsStudyPlan>>;
 type PublishedIeltsTest = Awaited<ReturnType<typeof getPublishedIeltsTests>>[number];
+type IeltsHomeProfileRow = IeltsRetentionProfileRow & {
+  display_name: string;
+  email: string | null;
+};
 
 interface IeltsHomeReadBundle {
   recentAttempts: IeltsAttemptSummary[];
@@ -64,7 +69,7 @@ interface IeltsHomeReadBundle {
   diagnosticTest: IeltsDiagnosticTestSummary | null;
   prediction: IeltsBandPrediction;
   enrolled: boolean;
-  retentionProfile: IeltsRetentionProfileRow | null;
+  retentionProfile: IeltsHomeProfileRow | null;
   retentionActivities: StreakActivityEvent[] | undefined;
   todayStat: IeltsRetentionDailyStatRow | null;
   dueReviews: IeltsReviewItem[];
@@ -72,6 +77,9 @@ interface IeltsHomeReadBundle {
 }
 
 export interface IeltsHomeData {
+  identity: {
+    firstName: string | null;
+  };
   recentAttempts: IeltsAttemptSummary[];
   featuredTests: IeltsTestCard[];
   publishedCount: number;
@@ -154,10 +162,10 @@ export async function getIeltsLibraryData(): Promise<IeltsLibraryData> {
 async function loadIeltsRetentionProfile(
   userId: string,
   client: IeltsDbClient,
-): Promise<IeltsRetentionProfileRow | null> {
+): Promise<IeltsHomeProfileRow | null> {
   const { data, error } = await client
     .from("profiles")
-    .select("streak_current, streak_longest, streak_last_active_date, xp, level")
+    .select("created_at, display_name, email, streak_current, streak_longest, streak_last_active_date, xp, level")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(`loadIeltsRetentionProfile: ${error.message}`);
@@ -193,6 +201,14 @@ async function loadIeltsTodayStat(
   return data;
 }
 
+async function loadOptionalQuickDiagnosticTest(client: IeltsDbClient) {
+  try {
+    return await findQuickDiagnosticTest(client);
+  } catch {
+    return null;
+  }
+}
+
 async function loadIeltsHomeReadBundle(params: {
   userId: string;
   client: IeltsDbClient;
@@ -214,7 +230,7 @@ async function loadIeltsHomeReadBundle(params: {
   ] = await Promise.all([
     listRecentIeltsAttempts({ userId: params.userId, client: params.client }),
     getPublishedIeltsTests(params.client, { includeGenerated: true }),
-    findQuickDiagnosticTest(params.client),
+    loadOptionalQuickDiagnosticTest(params.client),
     loadIeltsBandPrediction(params.userId, {
       targetBand: params.targetBand,
       client: params.client,
@@ -291,6 +307,7 @@ function buildTodayAndRetention(params: {
       todayItems: todayList.items,
       todayDueCount: todayList.dueCount,
       todayOverflowCount: todayList.overflowCount,
+      hasRecentAttempts: params.reads.recentAttempts.length > 0,
       activities: params.reads.retentionActivities,
       now: params.now,
     }),
@@ -307,6 +324,12 @@ function buildIeltsHomeDataResponse(params: {
   const plan = params.activePlan?.plan ?? null;
 
   return {
+    identity: {
+      firstName: ieltsHomeFirstName({
+        displayName: params.reads.retentionProfile?.display_name ?? null,
+        email: params.reads.retentionProfile?.email ?? null,
+      }),
+    },
     recentAttempts: params.reads.recentAttempts,
     featuredTests: params.catalogTests.slice(0, HOME_FEATURED_LIMIT).map(toTestCard),
     publishedCount: params.catalogTests.length,

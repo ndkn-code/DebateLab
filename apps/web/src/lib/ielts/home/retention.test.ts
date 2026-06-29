@@ -15,6 +15,7 @@ const NOW = new Date("2026-06-21T10:00:00.000Z");
 const TODAY = "2026-06-21";
 
 const profile: IeltsRetentionProfileRow = {
+  created_at: "2026-06-01T08:00:00.000Z",
   streak_current: 1,
   streak_longest: 5,
   streak_last_active_date: "2026-06-20",
@@ -23,6 +24,7 @@ const profile: IeltsRetentionProfileRow = {
 };
 
 const plan: IeltsRetentionPlanRow = {
+  created_at: "2026-06-01T09:00:00.000Z",
   daily_minutes: 40,
   timezone: "UTC",
 };
@@ -124,6 +126,7 @@ assert.equal(todayIsoForIeltsRetention(new Date("2026-06-20T22:30:00.000Z"), "As
   assert.equal(view.xp.xpToNextLevel, 250);
   assert.equal(view.nudge.reviewsDueCount, 2);
   assert.equal(view.nudge.reviewsOverdueCount, 1);
+  assert.equal(view.nudge.showOverdueWarning, true);
   assert.equal(view.nudge.todayDueCount, 3);
   assert.equal(view.nudge.todayOverflowCount, 2);
   assert.equal(view.nudge.nextTitleEn, "Scan for names");
@@ -178,6 +181,73 @@ assert.equal(todayIsoForIeltsRetention(new Date("2026-06-20T22:30:00.000Z"), "As
   assert.equal(view.dailyGoal.progressPercent, 0);
   assert.equal(view.xp.level, 1);
   assert.equal(view.xp.lifetimeXp, 0);
+}
+
+// Day-one plan/profile grace softens overdue presentation without changing counts.
+{
+  const view = buildIeltsHomeRetentionView({
+    profile: { ...profile, created_at: "2026-06-21T08:00:00.000Z", xp: 0, level: 1 },
+    plan: { ...plan, created_at: "2026-06-21T08:30:00.000Z" },
+    planItems: [planItem({ id: "seeded-overdue", scheduled_date: "2026-06-20" })],
+    todayStat: null,
+    reviewsDue: [review({ due_at: "2026-06-20T08:00:00.000Z" })],
+    todayItems,
+    todayDueCount: 2,
+    todayOverflowCount: 0,
+    hasRecentAttempts: false,
+    activities: [],
+    now: NOW,
+  });
+
+  assert.equal(view.isFirstRunGrace, true);
+  assert.equal(view.nudge.reviewsOverdueCount, 1);
+  assert.equal(view.nudge.showOverdueWarning, false);
+}
+
+// A returning learner sees overdue warnings again.
+{
+  const view = buildIeltsHomeRetentionView({
+    profile,
+    plan,
+    planItems: [planItem({ id: "old-overdue", scheduled_date: "2026-06-20" })],
+    todayStat: null,
+    reviewsDue: [review({ due_at: "2026-06-20T08:00:00.000Z" })],
+    todayItems,
+    todayDueCount: 2,
+    todayOverflowCount: 0,
+    hasRecentAttempts: false,
+    activities: [],
+    now: NOW,
+  });
+
+  assert.equal(view.isFirstRunGrace, false);
+  assert.equal(view.nudge.showOverdueWarning, true);
+}
+
+// Day-one grace ends once there is meaningful IELTS completion history.
+{
+  const view = buildIeltsHomeRetentionView({
+    profile: { ...profile, created_at: "2026-06-21T08:00:00.000Z" },
+    plan: { ...plan, created_at: "2026-06-21T08:30:00.000Z" },
+    planItems: [
+      planItem({
+        id: "completed",
+        status: "completed",
+        completed_at: "2026-06-21T09:00:00.000Z",
+      }),
+    ],
+    todayStat: null,
+    reviewsDue: [review({ due_at: "2026-06-20T08:00:00.000Z" })],
+    todayItems,
+    todayDueCount: 1,
+    todayOverflowCount: 0,
+    hasRecentAttempts: false,
+    activities: [],
+    now: NOW,
+  });
+
+  assert.equal(view.isFirstRunGrace, false);
+  assert.equal(view.nudge.showOverdueWarning, true);
 }
 
 console.log("retention.test.ts: all assertions passed");

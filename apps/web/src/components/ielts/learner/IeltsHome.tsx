@@ -15,9 +15,8 @@ import { RecentAttempts } from "./RecentAttempts";
 import { TestCard } from "./TestCard";
 import { IeltsEmptyState } from "./EmptyState";
 import { PredictedBandCard } from "./PredictedBandCard";
-import { TodayList } from "./TodayList";
+import { IeltsDailyLoopPanel } from "./IeltsDailyLoopPanel";
 import { IeltsEntryTiles } from "./IeltsEntryTiles";
-import { IeltsRetentionPanel } from "./IeltsRetentionPanel";
 
 /**
  * IELTS learner home — the adaptive dashboard (WS-6.2.1). The surface a student
@@ -30,10 +29,8 @@ import { IeltsRetentionPanel } from "./IeltsRetentionPanel";
  */
 export function IeltsHome({
   data,
-  displayName,
 }: {
   data: IeltsHomeData;
-  displayName: string;
 }) {
   const t = useTranslations("dashboard.ielts");
   const targetBand = data.planSummary?.targetOverallBand ?? DEFAULT_IELTS_TARGET_BAND;
@@ -52,11 +49,20 @@ export function IeltsHome({
               {t("eyebrow")}
             </p>
             <h1 className="type-heading-xl font-bold text-balance text-on-surface">
-              {t("greeting", { name: displayName })}
+              {data.identity.firstName
+                ? t("greeting", { name: data.identity.firstName })
+                : t("greeting_fallback")}
             </h1>
           </header>
 
-          <IeltsRetentionPanel retention={data.retention} />
+          <IeltsDailyLoopPanel
+            diagnosticReady={diagnosticReady}
+            hasGoal={data.hasGoal}
+            items={data.today}
+            overflowCount={data.todayOverflowCount}
+            retention={data.retention}
+            totalMinutes={totalMinutes}
+          />
 
           <PredictedBandCard
             view={predictionView}
@@ -64,17 +70,10 @@ export function IeltsHome({
             diagnosticReady={diagnosticReady}
           />
 
-          <TodayList
-            items={data.today}
-            overflowCount={data.todayOverflowCount}
-            hasGoal={data.hasGoal}
-            diagnosticReady={diagnosticReady}
-            totalMinutes={totalMinutes}
-          />
-
           <IeltsEntryTiles
             isEnrolled={data.isEnrolledStudent}
             reviewsDueCount={data.reviewsDueCount}
+            softenDueState={data.retention.isFirstRunGrace}
           />
 
           {hasAttempts ? (

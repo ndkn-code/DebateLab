@@ -73,9 +73,11 @@ function IeltsLearnUpsellTile() {
 export function IeltsEntryTiles({
   isEnrolled,
   reviewsDueCount,
+  softenDueState = false,
 }: {
   isEnrolled: boolean;
   reviewsDueCount: number;
+  softenDueState?: boolean;
 }) {
   const t = useTranslations("dashboard.ielts");
   return (
@@ -100,7 +102,9 @@ export function IeltsEntryTiles({
               </span>
               <span className="block truncate type-caption text-on-surface-variant">
                 {href === "/ielts/review" && reviewsDueCount > 0
-                  ? t("tile_review_due", { count: reviewsDueCount })
+                  ? softenDueState
+                    ? t("tile_review_ready", { count: reviewsDueCount })
+                    : t("tile_review_due", { count: reviewsDueCount })
                   : t(bodyKey)}
               </span>
             </span>

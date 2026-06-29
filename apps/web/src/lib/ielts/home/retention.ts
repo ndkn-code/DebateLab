@@ -13,12 +13,17 @@ import type { IeltsPlanItemStatus } from "./today";
 
 export type IeltsRetentionProfileRow = Pick<
   Tables<"profiles">,
-  "streak_current" | "streak_longest" | "streak_last_active_date" | "xp" | "level"
+  | "created_at"
+  | "streak_current"
+  | "streak_longest"
+  | "streak_last_active_date"
+  | "xp"
+  | "level"
 >;
 
 export type IeltsRetentionPlanRow = Pick<
   Tables<"ielts_study_plans">,
-  "daily_minutes" | "timezone"
+  "created_at" | "daily_minutes" | "timezone"
 >;
 
 export type IeltsRetentionDailyStatRow = Pick<
@@ -45,6 +50,7 @@ export interface IeltsRetentionTodayItemSummary {
 export interface IeltsHomeRetentionView {
   timezone: string;
   today: string;
+  isFirstRunGrace: boolean;
   streak: {
     current: number;
     longest: number;
@@ -76,6 +82,7 @@ export interface IeltsHomeRetentionView {
     todayDueCount: number;
     todayItemCount: number;
     todayOverflowCount: number;
+    showOverdueWarning: boolean;
     nextTitleEn: string | null;
     nextTitleVi: string | null;
     nextHref: string;
@@ -91,6 +98,33 @@ function clampPercent(value: number): number {
 
 function safeNumber(value: number | null | undefined): number {
   return Math.max(0, Math.round(Number.isFinite(value) ? (value ?? 0) : 0));
+}
+
+function createdToday(
+  value: string | null | undefined,
+  today: string,
+  timezone: string,
+): boolean {
+  return Boolean(value && dateKeyInTimezone(value, timezone) === today);
+}
+
+function hasCompletedPlanHistory(items: readonly IeltsRetentionPlanItemRow[]): boolean {
+  return items.some((item) => item.status === "completed" || Boolean(item.completed_at));
+}
+
+function buildFirstRunGrace(params: {
+  profile: IeltsRetentionProfileRow | null;
+  plan: IeltsRetentionPlanRow | null;
+  planItems: readonly IeltsRetentionPlanItemRow[];
+  hasRecentAttempts: boolean;
+  today: string;
+  timezone: string;
+}): boolean {
+  const dayOne =
+    createdToday(params.profile?.created_at, params.today, params.timezone) ||
+    createdToday(params.plan?.created_at, params.today, params.timezone);
+  if (!dayOne) return false;
+  return !params.hasRecentAttempts && !hasCompletedPlanHistory(params.planItems);
 }
 
 function buildXpView(profile: IeltsRetentionProfileRow | null): IeltsHomeRetentionView["xp"] {
@@ -185,6 +219,7 @@ function buildNudgeView(params: {
   todayItems: readonly IeltsRetentionTodayItemSummary[];
   todayDueCount: number;
   todayOverflowCount: number;
+  isFirstRunGrace: boolean;
   today: string;
   timezone: string;
 }): IeltsHomeRetentionView["nudge"] {
@@ -199,6 +234,7 @@ function buildNudgeView(params: {
     todayDueCount: Math.max(0, params.todayDueCount),
     todayItemCount: params.todayItems.length,
     todayOverflowCount: Math.max(0, params.todayOverflowCount),
+    showOverdueWarning: reviewsOverdueCount > 0 && !params.isFirstRunGrace,
     nextTitleEn: next?.titleEn ?? null,
     nextTitleVi: next?.titleVi ?? null,
     nextHref: next?.launchHref ?? DEFAULT_PLAN_HREF,
@@ -218,16 +254,26 @@ export function buildIeltsHomeRetentionView(params: {
   todayItems: readonly IeltsRetentionTodayItemSummary[];
   todayDueCount: number;
   todayOverflowCount: number;
+  hasRecentAttempts?: boolean;
   activities?: StreakActivityEvent[] | null;
   now?: Date;
 }): IeltsHomeRetentionView {
   const now = params.now ?? new Date();
   const timezone = normalizeStreakTimezone(params.plan?.timezone ?? DEFAULT_STREAK_TIMEZONE);
   const today = todayIsoForIeltsRetention(now, timezone);
+  const isFirstRunGrace = buildFirstRunGrace({
+    profile: params.profile,
+    plan: params.plan,
+    planItems: params.planItems,
+    hasRecentAttempts: Boolean(params.hasRecentAttempts),
+    today,
+    timezone,
+  });
 
   return {
     timezone,
     today,
+    isFirstRunGrace,
     streak: buildStreakView({
       profile: params.profile,
       activities: params.activities,
@@ -247,6 +293,7 @@ export function buildIeltsHomeRetentionView(params: {
       todayItems: params.todayItems,
       todayDueCount: params.todayDueCount,
       todayOverflowCount: params.todayOverflowCount,
+      isFirstRunGrace,
       today,
       timezone,
     }),
