@@ -9,6 +9,10 @@ import {
   TrendingUp,
   Users,
 } from "@/components/ui/icons";
+import {
+  ChartCard as DataVizChartCard,
+  StatCard,
+} from "@/components/data-viz";
 import { cn } from "@/lib/utils";
 import type {
   PredictionErrorRow,
@@ -79,36 +83,65 @@ export function PredictionQualityDashboard({
         ) : (
           <>
             <section className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-              <Kpi label="Learners" value={String(kpis.learnerCount)} icon={Users} />
-              <Kpi label="Boundaries" value={String(kpis.boundaryCount)} icon={Activity} />
-              <Kpi label="Overall MAE" value={formatBand(kpis.mae)} icon={Target} />
-              <Kpi label="Bias" value={formatSigned(kpis.bias)} icon={TrendingUp} />
-              <Kpi label="Within ½ band" value={formatPercent(kpis.withinHalfBand)} icon={Gauge} />
-              <Kpi
-                label={`Coverage @${formatPercent(kpis.claimedLevel)}`}
-                value={formatPercent(kpis.servedCoverage)}
-                icon={SlidersHorizontal}
+              <StatCard
+                icon={<Users className="h-4 w-4" />}
+                label="Learners"
+                value={kpis.learnerCount}
               />
-              <Kpi
+              <StatCard
+                icon={<Activity className="h-4 w-4" />}
+                label="Boundaries"
+                value={kpis.boundaryCount}
+              />
+              <StatCard
+                format={() => formatBand(kpis.mae)}
+                icon={<Target className="h-4 w-4" />}
+                label="Overall MAE"
+                value={kpis.mae ?? 0}
+              />
+              <StatCard
+                format={() => formatSigned(kpis.bias)}
+                icon={<TrendingUp className="h-4 w-4" />}
+                label="Bias"
+                value={kpis.bias ?? 0}
+              />
+              <StatCard
+                format={() => formatPercent(kpis.withinHalfBand)}
+                icon={<Gauge className="h-4 w-4" />}
+                label="Within ½ band"
+                value={kpis.withinHalfBand ?? 0}
+              />
+              <StatCard
+                format={() => formatPercent(kpis.servedCoverage)}
+                icon={<SlidersHorizontal className="h-4 w-4" />}
+                label={`Coverage @${formatPercent(kpis.claimedLevel)}`}
+                value={kpis.servedCoverage ?? 0}
+              />
+              <StatCard
+                format={() => formatPercent(kpis.calibrationError)}
+                icon={<Info className="h-4 w-4" />}
                 label="Calibration err"
-                value={formatPercent(kpis.calibrationError)}
-                icon={Info}
+                value={kpis.calibrationError ?? 0}
               />
             </section>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <ChartCard
+              <DataVizChartCard
+                bodyClassName="min-h-0"
+                eyebrow="Scatter / Line"
                 title="Calibration"
                 subtitle="Empirical coverage of each served interval vs the claimed level. Below the line ⇒ overconfident."
               >
                 <CalibrationPlot points={view.calibration} />
-              </ChartCard>
-              <ChartCard
+              </DataVizChartCard>
+              <DataVizChartCard
+                bodyClassName="min-h-0"
+                eyebrow="Area"
                 title="Drift over time"
                 subtitle="Overall MAE by month of mock. Rising ⇒ the model is degrading against reality."
               >
                 <DriftChart points={view.drift} />
-              </ChartCard>
+              </DataVizChartCard>
             </div>
 
             <ErrorTable rows={view.errorRows} />
@@ -215,49 +248,11 @@ function EmptyState({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: typeof Gauge;
-}) {
-  return (
-    <div className="rounded-2xl border border-outline-variant/15 bg-surface p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="type-eyebrow text-on-surface-variant">{label}</div>
-        <Icon className="h-4 w-4 text-primary" />
-      </div>
-      <div className="mt-3 text-2xl font-bold text-on-surface">{value}</div>
-    </div>
-  );
-}
-
 function Badge({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-outline-variant/15 bg-surface px-3 py-1.5">
       <span className="type-eyebrow text-on-surface-variant">{label}</span>
       <span className="ml-2 text-sm font-semibold text-on-surface">{value}</span>
     </div>
-  );
-}
-
-function ChartCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-outline-variant/15 bg-surface p-5">
-      <h2 className="text-sm font-semibold text-on-surface">{title}</h2>
-      <p className="mb-3 mt-1 text-xs text-on-surface-variant">{subtitle}</p>
-      {children}
-    </section>
   );
 }

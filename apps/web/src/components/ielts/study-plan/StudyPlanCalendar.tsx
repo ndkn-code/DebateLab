@@ -5,6 +5,16 @@ import {
   CalendarDays,
   CheckCircle2,
 } from "@/components/ui/icons";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  BarYAxis,
+  ChartTooltip,
+  Grid,
+  XAxis,
+} from "@/components/charts";
 import type {
   IeltsStudyPlanItemView,
   IeltsStudyPlanPageView,
@@ -18,6 +28,58 @@ import {
   formatShortDate,
   pickText,
 } from "./shared";
+
+type ForecastDayDatum = {
+  date: Date;
+  label: string;
+  plannedMinutes: number;
+  completedMinutes: number;
+  itemCount: number;
+};
+
+type ForecastSkillDatum = {
+  label: string;
+  minutes: number;
+};
+
+function ForecastTooltip({ point }: { point: Record<string, unknown> }) {
+  const label = typeof point.label === "string" ? point.label : "";
+  const plannedMinutes =
+    typeof point.plannedMinutes === "number" ? point.plannedMinutes : 0;
+  const completedMinutes =
+    typeof point.completedMinutes === "number" ? point.completedMinutes : 0;
+  const itemCount = typeof point.itemCount === "number" ? point.itemCount : 0;
+
+  return (
+    <div className="min-w-40 px-3 py-2.5">
+      <p className="type-caption font-semibold uppercase text-chart-tooltip-muted">
+        {label}
+      </p>
+      <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
+        {plannedMinutes} planned minutes
+      </p>
+      <p className="mt-1 type-caption text-chart-tooltip-muted">
+        {completedMinutes} completed · {itemCount} tasks
+      </p>
+    </div>
+  );
+}
+
+function SkillMinutesTooltip({ point }: { point: Record<string, unknown> }) {
+  const label = typeof point.label === "string" ? point.label : "";
+  const minutes = typeof point.minutes === "number" ? point.minutes : 0;
+
+  return (
+    <div className="min-w-36 px-3 py-2.5">
+      <p className="type-caption font-semibold uppercase text-chart-tooltip-muted">
+        {label}
+      </p>
+      <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
+        {minutes} minutes
+      </p>
+    </div>
+  );
+}
 
 function TaskRow({ item }: { item: IeltsStudyPlanItemView }) {
   const t = useTranslations("ielts.studyPlan");
@@ -134,6 +196,15 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
   const locale = useLocale();
   const weeks = view.weeklyForecast;
   if (weeks.length === 0) return null;
+  const forecastDays: ForecastDayDatum[] = view.calendar.days
+    .slice(0, 14)
+    .map((day) => ({
+      date: new Date(`${day.date}T00:00:00.000Z`),
+      label: formatShortDate(day.date, locale),
+      plannedMinutes: day.plannedMinutes,
+      completedMinutes: day.completedMinutes,
+      itemCount: day.items.length,
+    }));
 
   return (
     <SectionCard
@@ -141,9 +212,45 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
       title={t("forecast_title")}
       caption={t("forecast_caption")}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-5">
+        <div className="h-64">
+          <AreaChart
+            aspectRatio="unset"
+            data={forecastDays}
+            margin={{ top: 16, right: 18, bottom: 34, left: 42 }}
+            style={{ height: "100%" }}
+          >
+            <Grid horizontal />
+            <Area
+              dataKey="plannedMinutes"
+              fill="var(--chart-line-primary)"
+              fillOpacity={0.28}
+              showMarkers
+              stroke="var(--chart-line-primary)"
+              strokeWidth={2.5}
+            />
+            <Area
+              dataKey="completedMinutes"
+              fill="var(--chart-line-secondary)"
+              fillOpacity={0.22}
+              showMarkers
+              stroke="var(--chart-line-secondary)"
+              strokeWidth={2}
+            />
+            <XAxis />
+            <ChartTooltip
+              content={({ point }) => <ForecastTooltip point={point} />}
+              showDatePill={false}
+            />
+          </AreaChart>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
         {weeks.map((week) => {
-          const maxMinutes = Math.max(1, ...week.bySkill.map((entry) => entry.minutes));
+          const skillData: ForecastSkillDatum[] = week.bySkill.map((entry) => ({
+            label: t(`skills.${entry.skill}`),
+            minutes: entry.minutes,
+          }));
           return (
             <div
               key={week.index}
@@ -166,26 +273,35 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
                 })}
               </p>
               {week.bySkill.length > 0 ? (
-                <div className="mt-3 grid gap-1.5">
-                  {week.bySkill.map((entry) => (
-                    <div key={entry.skill} className="flex items-center gap-2">
-                      <SkillBadge skill={entry.skill} className="w-20 justify-center" />
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-high">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{ width: `${(entry.minutes / maxMinutes) * 100}%` }}
-                        />
-                      </div>
-                      <span className="w-12 shrink-0 text-right type-caption tabular-nums text-on-surface-variant">
-                        {t("minutes", { count: entry.minutes })}
-                      </span>
-                    </div>
-                  ))}
+                <div className="mt-3 h-40">
+                  <BarChart
+                    aspectRatio="unset"
+                    className="h-full"
+                    data={skillData}
+                    margin={{ top: 8, right: 16, bottom: 8, left: 88 }}
+                    orientation="horizontal"
+                    xDataKey="label"
+                  >
+                    <Grid horizontal={false} vertical />
+                    <Bar
+                      dataKey="minutes"
+                      fill="var(--chart-line-primary)"
+                      lineCap="round"
+                    />
+                    <BarYAxis />
+                    <ChartTooltip
+                      content={({ point }) => <SkillMinutesTooltip point={point} />}
+                      showCrosshair={false}
+                      showDatePill={false}
+                      showDots={false}
+                    />
+                  </BarChart>
                 </div>
               ) : null}
             </div>
           );
         })}
+        </div>
       </div>
     </SectionCard>
   );

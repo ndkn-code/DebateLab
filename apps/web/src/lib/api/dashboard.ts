@@ -29,6 +29,7 @@ import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
 import {
   DEFAULT_STREAK_TIMEZONE,
   computeEffectiveStreakState,
+  dateKeyInTimezone,
   normalizeStreakTimezone,
   type StreakActivityEvent,
 } from "@/lib/streaks/model";
@@ -194,6 +195,104 @@ function getTrailingDates(
   }
 
   return dates;
+}
+
+export type DashboardSessionActivitySource = {
+  id: string;
+  created_at: string;
+  duration_seconds?: number | null;
+  total_score?: number | null;
+};
+
+function uniqueSessions(sessions: DashboardSessionActivitySource[]) {
+  const byId = new Map<string, DashboardSessionActivitySource>();
+
+  for (const session of sessions) {
+    if (!session.id || byId.has(session.id)) continue;
+    byId.set(session.id, session);
+  }
+
+  return Array.from(byId.values());
+}
+
+export function buildStreakActivityEventsFromSessions(
+  sessions: DashboardSessionActivitySource[]
+): StreakActivityEvent[] {
+  return uniqueSessions(sessions)
+    .filter((session) => Boolean(session.created_at))
+    .map((session) => ({
+      activity_type: "debate_completed",
+      reference_type: "debate_session",
+      created_at: session.created_at,
+    }));
+}
+
+export function buildSessionDerivedStats(
+  sessions: DashboardSessionActivitySource[],
+  dates: string[],
+  timezone = DEFAULT_STREAK_TIMEZONE
+) {
+  const dateSet = new Set(dates);
+  const stats = new Map<string, DailyStatEntry>();
+
+  for (const session of uniqueSessions(sessions)) {
+    if (!session.created_at) continue;
+    const date = dateKeyInTimezone(session.created_at, timezone);
+    if (!dateSet.has(date)) continue;
+
+    const current =
+      stats.get(date) ??
+      ({
+        date,
+        sessions_completed: 0,
+        practice_minutes: 0,
+        xp_earned: 0,
+      } satisfies DailyStatEntry);
+    const durationSeconds =
+      typeof session.duration_seconds === "number" &&
+      Number.isFinite(session.duration_seconds)
+        ? session.duration_seconds
+        : 0;
+
+    stats.set(date, {
+      date,
+      sessions_completed: current.sessions_completed + 1,
+      practice_minutes:
+        current.practice_minutes + Math.max(0, Math.round(durationSeconds / 60)),
+      xp_earned: current.xp_earned,
+    });
+  }
+
+  return stats;
+}
+
+function mergeSessionDerivedStats(
+  statsByDate: Map<string, DailyStatEntry>,
+  derivedStats: Map<string, DailyStatEntry>
+) {
+  for (const [date, derived] of derivedStats) {
+    const current =
+      statsByDate.get(date) ??
+      ({
+        date,
+        sessions_completed: 0,
+        practice_minutes: 0,
+        xp_earned: 0,
+      } satisfies DailyStatEntry);
+
+    statsByDate.set(date, {
+      date,
+      sessions_completed: Math.max(
+        current.sessions_completed,
+        derived.sessions_completed
+      ),
+      practice_minutes: Math.max(
+        current.practice_minutes,
+        derived.practice_minutes
+      ),
+      xp_earned: Math.max(current.xp_earned, derived.xp_earned),
+    });
+  }
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -827,15 +926,6 @@ export async function getDashboardData(
 
   const profile = (rpcPayload?.profile ??
     fallbackPayload?.[0].data) as Profile | null;
-  const streakActivities = streakActivitiesRes.error
-    ? undefined
-    : ((streakActivitiesRes.data ?? []) as StreakActivityEvent[]);
-  const effectiveStreak = computeEffectiveStreakState({
-    profile: profile ?? {},
-    activities: streakActivities,
-    timezone,
-    now,
-  });
   const isAdmin = profile?.role === "admin";
   const enrollmentRows = rpcPayload
     ? asArray(rpcPayload.enrollments)
@@ -882,6 +972,23 @@ export async function getDashboardData(
   const scoredSessions = (rpcPayload
     ? asArray(rpcPayload.scored_sessions)
     : fallbackPayload?.[3].data ?? []) as SessionScoreRow[];
+  const sessionActivityEvents = buildStreakActivityEventsFromSessions([
+    ...recentSessions,
+    ...scoredSessions,
+  ]);
+  const loggedStreakActivities = streakActivitiesRes.error
+    ? []
+    : ((streakActivitiesRes.data ?? []) as StreakActivityEvent[]);
+  const streakActivities =
+    !streakActivitiesRes.error || sessionActivityEvents.length > 0
+      ? [...loggedStreakActivities, ...sessionActivityEvents]
+      : undefined;
+  const effectiveStreak = computeEffectiveStreakState({
+    profile: profile ?? {},
+    activities: streakActivities,
+    timezone,
+    now,
+  });
 
   const statsByDate = new Map<string, DailyStatEntry>();
   for (const date of trailing14Dates) {
@@ -909,6 +1016,14 @@ export async function getDashboardData(
       xp_earned: stat.xp_earned,
     });
   }
+  mergeSessionDerivedStats(
+    statsByDate,
+    buildSessionDerivedStats(
+      [...recentSessions, ...scoredSessions],
+      trailing14Dates,
+      timezone
+    )
+  );
 
   const weeklyStats = weekDates.map((date) => {
     return (
