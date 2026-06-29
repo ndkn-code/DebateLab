@@ -27,6 +27,7 @@ const conversions: BandConversionRow[] = [
 function input(p: Partial<AttemptResultsInput>): AttemptResultsInput {
   return {
     attemptId: "a",
+    userId: "user-1",
     testTitle: "T",
     testSlug: "t",
     module: "academic",

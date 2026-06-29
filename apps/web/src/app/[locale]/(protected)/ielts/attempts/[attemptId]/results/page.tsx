@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadAttemptResults } from "@/lib/api/ielts/results-repository";
+import { loadActiveIeltsBandTargets } from "@/lib/api/ielts/study-plan-repository";
 import { buildAttemptResultsViewModel } from "@/lib/ielts/results/view-model";
 import { IeltsResultsView } from "@/components/ielts/results/IeltsResultsView";
 
@@ -40,10 +41,11 @@ export default async function IeltsAttemptResultsPage({
     );
   }
 
+  const targets = await loadActiveIeltsBandTargets(input.userId);
   const model = buildAttemptResultsViewModel(input);
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-6">
-      <IeltsResultsView model={model} />
+      <IeltsResultsView model={model} targets={targets} />
     </main>
   );
 }

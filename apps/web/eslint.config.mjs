@@ -141,6 +141,9 @@ const eslintConfig = defineConfig([
     "qa-artifacts/**",
     "out/**",
     "build/**",
+    // Vendored bklit ChartKit internals are governed through design-system
+    // audit tokens while the app migrates analytics surfaces onto the wrapper.
+    "src/components/charts/**",
     "next-env.d.ts",
   ]),
 ]);

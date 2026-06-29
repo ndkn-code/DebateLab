@@ -80,6 +80,8 @@ export interface ResultsSpeakingPart {
 
 export interface AttemptResultsInput {
   attemptId: string;
+  /** Server-only owner id, used to resolve the learner's active target plan. */
+  userId: string;
   testTitle: string;
   testSlug: string;
   module: IeltsModuleKey;

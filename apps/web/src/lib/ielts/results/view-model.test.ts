@@ -10,6 +10,7 @@ const conversions: BandConversionRow[] = [
 
 const input: AttemptResultsInput = {
   attemptId: "att-1",
+  userId: "user-1",
   testTitle: "Academic Mock 1",
   testSlug: "academic-mock-1",
   module: "academic",

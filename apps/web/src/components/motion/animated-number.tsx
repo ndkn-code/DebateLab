@@ -12,6 +12,8 @@ type AnimatedNumberProps = {
   format?: (value: number) => string;
   /** Tween length in ms. Defaults to the `slow` motion token. */
   durationMs?: number;
+  /** Start immediately on mount instead of waiting for viewport entry. */
+  startOnMount?: boolean;
   /** Compose type/colour utilities here, e.g. "type-display-sm text-on-surface". */
   className?: string;
 };
@@ -27,15 +29,17 @@ export function AnimatedNumber({
   value,
   format = defaultFormat,
   durationMs,
+  startOnMount = false,
   className,
 }: AnimatedNumberProps) {
   const ref = React.useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
   const reduce = useReducedMotion();
   const [display, setDisplay] = React.useState(() => format(0));
+  const shouldAnimate = startOnMount || inView;
 
   React.useEffect(() => {
-    if (!inView) return;
+    if (!shouldAnimate) return;
     if (reduce) {
       setDisplay(format(value));
       return;
@@ -46,7 +50,7 @@ export function AnimatedNumber({
       onUpdate: (latest) => setDisplay(format(latest)),
     });
     return () => controls.stop();
-  }, [inView, reduce, value, durationMs, format]);
+  }, [shouldAnimate, reduce, value, durationMs, format]);
 
   return (
     <span ref={ref} className={cn("tabular-nums", className)}>

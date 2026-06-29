@@ -61,6 +61,7 @@ export function IeltsOnboardingFlow({
   }, [availableDiagnostic, diagnosticHref, locale]);
 
   const resultPrediction = planResult?.prediction ?? initialPrediction;
+  const resultGoal = useMemo(() => stateToGoal(goal), [goal]);
   const hasPrediction =
     planResult !== null
       ? predictionHasOverallEvidence(planResult.prediction)
@@ -133,6 +134,7 @@ export function IeltsOnboardingFlow({
             <IeltsOnboardingResultStep
               isPending={isPending}
               hasPrediction={hasPrediction}
+              goal={resultGoal}
               prediction={resultPrediction}
               planResult={planResult}
               diagnosticTest={availableDiagnostic}

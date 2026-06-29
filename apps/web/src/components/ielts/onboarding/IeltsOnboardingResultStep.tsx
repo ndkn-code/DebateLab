@@ -5,8 +5,11 @@ import { Link } from "@/i18n/navigation";
 import {
   IELTS_SKILLS,
   type IeltsBandPrediction,
+  type IeltsGoalModel,
 } from "@/lib/ielts/adaptive/contracts";
+import { BandGauge, BandMeter } from "@/components/ielts/band-visuals";
 import type { IeltsDiagnosticTestSummary } from "@/lib/api/ielts/study-plan-repository";
+import { targetBandForSkill, type IeltsBandTargets } from "@/lib/ielts/band-visuals";
 import {
   confidencePercent,
   predictionHasOverallEvidence,
@@ -25,6 +28,7 @@ function bandRange(prediction: IeltsBandPrediction): string {
 export function IeltsOnboardingResultStep({
   isPending,
   hasPrediction,
+  goal,
   prediction,
   planResult,
   diagnosticTest,
@@ -32,6 +36,7 @@ export function IeltsOnboardingResultStep({
 }: {
   isPending: boolean;
   hasPrediction: boolean;
+  goal: IeltsGoalModel;
   prediction: IeltsBandPrediction;
   planResult: PlanResult | null;
   diagnosticTest: IeltsDiagnosticTestSummary | null;
@@ -40,6 +45,11 @@ export function IeltsOnboardingResultStep({
   const t = useTranslations("ielts.onboarding");
   const locale = useLocale();
   const todayItems = planResult?.generatedPlan.today.slice(0, 4) ?? [];
+  const targets: IeltsBandTargets = {
+    overall: goal.targetOverallBand,
+    skills: goal.targetSkillBands,
+  };
+  const confidence = confidencePercent(prediction.overall.confidence);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -66,31 +76,27 @@ export function IeltsOnboardingResultStep({
           </p>
           {predictionHasOverallEvidence(prediction) &&
           prediction.overall.band !== null ? (
-            <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-              <div className="rounded-lg bg-primary-container p-5 text-center text-on-primary-container">
-                <p className="type-caption font-semibold uppercase">
-                  {t("predicted_overall")}
-                </p>
-                <p className="type-display font-bold tabular-nums">
-                  {formatBand(prediction.overall.band)}
-                </p>
-                <p className="type-caption">
-                  {t("range", { range: bandRange(prediction) })}
-                </p>
-              </div>
+            <div className="grid gap-3">
+              <BandGauge
+                band={prediction.overall.band}
+                caption={
+                  <span className="flex flex-col gap-1">
+                    <span>{t("range", { range: bandRange(prediction) })}</span>
+                    <span>{t("confidence", { count: confidence })}</span>
+                  </span>
+                }
+                label={t("predicted_overall")}
+                target={targets.overall}
+              />
               <div className="grid gap-2 sm:grid-cols-2">
                 {IELTS_SKILLS.map((skill) => (
-                  <div
+                  <BandMeter
+                    band={prediction.skills[skill].band}
+                    delayMs={IELTS_SKILLS.indexOf(skill) * 70}
                     key={skill}
-                    className="rounded-lg bg-surface-container-low px-3 py-2"
-                  >
-                    <p className="type-caption font-semibold text-on-surface-variant">
-                      {t(`skills.${skill}`)}
-                    </p>
-                    <p className="type-heading-sm font-bold text-on-surface">
-                      {formatBand(prediction.skills[skill].band)}
-                    </p>
-                  </div>
+                    skill={t(`skills.${skill}`)}
+                    target={targetBandForSkill(targets, skill)}
+                  />
                 ))}
               </div>
             </div>
@@ -113,11 +119,11 @@ export function IeltsOnboardingResultStep({
               ) : null}
             </div>
           )}
-          <p className="type-caption text-on-surface-variant">
-            {t("confidence", {
-              count: confidencePercent(prediction.overall.confidence),
-            })}
-          </p>
+          {!hasPrediction ? (
+            <p className="type-caption text-on-surface-variant">
+              {t("confidence", { count: confidence })}
+            </p>
+          ) : null}
         </div>
 
         {planResult ? (

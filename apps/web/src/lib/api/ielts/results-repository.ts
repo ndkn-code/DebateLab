@@ -353,7 +353,7 @@ export async function loadAttemptResults(
 
   const { data: attempt, error } = await supabase
     .from("ielts_attempts")
-    .select("id, test_id, module, status, submitted_at")
+    .select("id, user_id, test_id, module, status, submitted_at")
     .eq("id", attemptId)
     .maybeSingle();
   if (error) throw new Error(`loadAttemptResults(attempt): ${error.message}`);
@@ -382,6 +382,7 @@ export async function loadAttemptResults(
 
   return {
     attemptId: attempt.id,
+    userId: attempt.user_id,
     testTitle: test?.title ?? "IELTS mock",
     testSlug: test?.slug ?? "",
     module: attempt.module,

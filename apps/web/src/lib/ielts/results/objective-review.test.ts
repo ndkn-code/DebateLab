@@ -39,6 +39,7 @@ function oq(p: Partial<ResultsObjectiveQuestion>, view: Partial<IeltsQuestionVie
 function input(objectiveQuestions: ResultsObjectiveQuestion[]): AttemptResultsInput {
   return {
     attemptId: "a",
+    userId: "user-1",
     testTitle: "T",
     testSlug: "t",
     module: "academic",

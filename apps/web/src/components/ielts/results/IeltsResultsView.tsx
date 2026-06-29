@@ -10,58 +10,92 @@ import type {
   OverallBandSummary,
   SkillBandRow,
 } from "@/lib/ielts/results/types";
+import {
+  buildResultsBandInsight,
+  targetBandForSkill,
+  type IeltsBandTargets,
+} from "@/lib/ielts/band-visuals";
+import { BandGauge, BandMeter } from "@/components/ielts/band-visuals";
 import { ObjectiveReviewList } from "./ObjectiveReviewList";
 import { RawBandBreakdown } from "./RawBandBreakdown";
 import { SpeakingResultPanel, WritingResultPanel } from "./SkillFeedbackPanels";
-import { STATUS_LABEL, STATUS_PILL, bandText } from "./format";
+import { STATUS_LABEL, STATUS_PILL } from "./format";
 
-function OverallHero({ overall }: { overall: OverallBandSummary }) {
+function OverallHero({
+  overall,
+  skills,
+  targets,
+}: {
+  overall: OverallBandSummary;
+  skills: SkillBandRow[];
+  targets: IeltsBandTargets;
+}) {
+  const scoredCopy = `${overall.presentCount} of ${overall.totalSkills} ${
+    overall.totalSkills === 1 ? "skill" : "skills"
+  } scored`;
+  const insight = buildResultsBandInsight(skills, targets);
+
   return (
-    <section className="rounded-3xl bg-primary p-6 text-center text-on-primary sm:p-8">
-      <p className="type-label uppercase">
-        {overall.isProvisional ? "Provisional overall band" : "Overall band"}
-      </p>
-      <p className="mt-1 text-5xl font-extrabold tabular-nums">
-        {overall.isProvisional ? "—" : bandText(overall.band)}
-      </p>
-      {overall.isProvisional ? (
-        <span className="mt-3 inline-flex rounded-full border border-on-primary/30 bg-on-primary/10 px-3 py-1 type-caption font-semibold uppercase text-on-primary">
-          Pending
+    <BandGauge
+      band={overall.band}
+      caption={
+        <span className="flex flex-col gap-2">
+          <span>
+            {scoredCopy}
+            {overall.isProvisional
+              ? " · updates as Writing & Speaking are marked"
+              : ""}
+          </span>
+          {overall.isProvisional ? (
+            <span className="inline-flex w-fit rounded-full bg-surface-container-high px-3 py-1 type-caption font-semibold uppercase text-on-surface-variant">
+              Pending
+            </span>
+          ) : null}
+          <span className="text-on-surface">{insight}</span>
         </span>
-      ) : null}
-      <p className="mt-2 type-body-sm">
-        {overall.presentCount} of {overall.totalSkills}{" "}
-        {overall.totalSkills === 1 ? "skill" : "skills"} scored
-        {overall.isProvisional ? " · updates as Writing & Speaking are marked" : ""}
-      </p>
-    </section>
+      }
+      isProvisional={overall.isProvisional}
+      label="Overall band"
+      target={targets.overall}
+    />
   );
 }
 
-function SkillRow({ skill }: { skill: SkillBandRow }) {
+function SkillRow({
+  delayMs,
+  skill,
+  targets,
+}: {
+  delayMs: number;
+  skill: SkillBandRow;
+  targets: IeltsBandTargets;
+}) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-outline-variant bg-surface-container px-4 py-3">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="type-title text-on-surface">{skill.label}</span>
-        <span className={`rounded-full px-2.5 py-0.5 type-caption ${STATUS_PILL[skill.status]}`}>
+    <BandMeter
+      band={skill.band}
+      delayMs={delayMs}
+      raw={skill.raw}
+      rawMax={skill.rawMax}
+      skill={skill.label}
+      status={
+        <span
+          className={`rounded-full px-2.5 py-0.5 type-caption ${STATUS_PILL[skill.status]}`}
+        >
           {STATUS_LABEL[skill.status]}
         </span>
-      </div>
-      <div className="flex items-center gap-4">
-        {skill.raw !== null ? (
-          <span className="type-body-sm text-on-surface-variant tabular-nums">
-            {skill.raw}/{skill.rawMax}
-          </span>
-        ) : null}
-        <span className="min-w-10 text-right type-heading-md text-on-surface tabular-nums">
-          {bandText(skill.band)}
-        </span>
-      </div>
-    </div>
+      }
+      target={targetBandForSkill(targets, skill.skill)}
+    />
   );
 }
 
-export function IeltsResultsView({ model }: { model: AttemptResultsViewModel }) {
+export function IeltsResultsView({
+  model,
+  targets,
+}: {
+  model: AttemptResultsViewModel;
+  targets: IeltsBandTargets;
+}) {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -71,11 +105,20 @@ export function IeltsResultsView({ model }: { model: AttemptResultsViewModel }) 
         </p>
       </header>
 
-      <OverallHero overall={model.overall} />
+      <OverallHero
+        overall={model.overall}
+        skills={model.skills}
+        targets={targets}
+      />
 
       <section className="flex flex-col gap-2">
-        {model.skills.map((skill) => (
-          <SkillRow key={skill.skill} skill={skill} />
+        {model.skills.map((skill, index) => (
+          <SkillRow
+            delayMs={index * 70}
+            key={skill.skill}
+            skill={skill}
+            targets={targets}
+          />
         ))}
       </section>
 

@@ -2,10 +2,12 @@ import "server-only";
 
 import { parseInput } from "@/lib/api/boundary";
 import {
+  DEFAULT_IELTS_TARGET_BAND,
   IeltsBandPredictionSchema,
   IeltsGoalModelSchema,
   type IeltsGoalModel,
 } from "@/lib/ielts/adaptive/contracts";
+import type { IeltsBandTargets } from "@/lib/ielts/band-visuals";
 import {
   computeNextReassessmentAt,
   generateIeltsStudyPlan,
@@ -135,6 +137,34 @@ export async function loadActiveIeltsStudyPlan(
     throw new Error(`loadActiveIeltsStudyPlan(items): ${itemsError.message}`);
   }
   return { plan, items: items ?? [] };
+}
+
+export async function loadActiveIeltsBandTargets(
+  userId: string,
+  client?: IeltsDbClient,
+): Promise<IeltsBandTargets> {
+  const supabase = await resolveIeltsClient(client);
+  const { data: plan, error } = await supabase
+    .from("ielts_study_plans")
+    .select(
+      "target_overall_band, target_listening_band, target_reading_band, target_writing_band, target_speaking_band",
+    )
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`loadActiveIeltsBandTargets(plan): ${error.message}`);
+
+  return {
+    overall: plan?.target_overall_band ?? DEFAULT_IELTS_TARGET_BAND,
+    skills: {
+      listening: plan?.target_listening_band ?? null,
+      reading: plan?.target_reading_band ?? null,
+      writing: plan?.target_writing_band ?? null,
+      speaking: plan?.target_speaking_band ?? null,
+    },
+  };
 }
 
 export async function saveIeltsStudyPlanGoal(params: {
