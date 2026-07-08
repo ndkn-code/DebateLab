@@ -134,6 +134,13 @@ export interface AdminClubAssignmentRow {
   submissionCount: number;
   uniqueSubmitters: number;
   averageScore: number | null;
+  isHomework: boolean;
+  submissionTextEnabled: boolean;
+  submissionFilesEnabled: boolean;
+  submissionMaxFiles: number;
+  submissionMaxFileMb: number;
+  submissionAllowedExt: string[] | null;
+  submissionInstructions: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -277,6 +284,12 @@ export interface ClubAssignmentInput {
   rubricKey?: string;
   rubricVersion?: number;
   status?: ClubAssignmentStatus;
+  submissionTextEnabled?: boolean;
+  submissionFilesEnabled?: boolean;
+  submissionMaxFiles?: number;
+  submissionMaxFileMb?: number;
+  submissionAllowedExt?: string[] | null;
+  submissionInstructions?: string | null;
 }
 
 export interface SaveClubEventInput {

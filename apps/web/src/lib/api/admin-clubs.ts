@@ -136,9 +136,60 @@ function toAssignmentRow(row: Record<string, unknown>): AdminClubAssignmentRow {
     submissionCount: Number(row.submission_count ?? 0),
     uniqueSubmitters: Number(row.unique_submitters ?? 0),
     averageScore: numberOrNull(row.average_score),
+    isHomework: false,
+    submissionTextEnabled: true,
+    submissionFilesEnabled: false,
+    submissionMaxFiles: 3,
+    submissionMaxFileMb: 10,
+    submissionAllowedExt: null,
+    submissionInstructions: null,
     createdAt: String(row.created_at ?? new Date().toISOString()),
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
   };
+}
+
+function isHomeworkMetadata(metadata: unknown) {
+  return Boolean(
+    metadata &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      (metadata as Record<string, unknown>).submission_mode === "homework"
+  );
+}
+
+async function enrichAssignmentSubmissionConfig(
+  supabase: Supabase,
+  assignments: AdminClubAssignmentRow[]
+): Promise<AdminClubAssignmentRow[]> {
+  const ids = assignments.map((assignment) => assignment.id);
+  if (ids.length === 0) return assignments;
+
+  const { data, error } = await supabase
+    .from("club_assignments")
+    .select("id, metadata, submission_text_enabled, submission_files_enabled, submission_max_files, submission_max_file_mb, submission_allowed_ext, submission_instructions")
+    .in("id", ids);
+  if (error) return assignments;
+
+  const configById = new Map(
+    ((data ?? []) as Record<string, unknown>[]).map((row) => [String(row.id), row])
+  );
+
+  return assignments.map((assignment) => {
+    const config = configById.get(assignment.id);
+    if (!config) return assignment;
+    return {
+      ...assignment,
+      isHomework: isHomeworkMetadata(config.metadata),
+      submissionTextEnabled: config.submission_text_enabled !== false,
+      submissionFilesEnabled: config.submission_files_enabled === true,
+      submissionMaxFiles: Number(config.submission_max_files ?? 3),
+      submissionMaxFileMb: Number(config.submission_max_file_mb ?? 10),
+      submissionAllowedExt: Array.isArray(config.submission_allowed_ext)
+        ? config.submission_allowed_ext.map(String)
+        : null,
+      submissionInstructions: (config.submission_instructions as string | null | undefined) ?? null,
+    };
+  });
 }
 
 function toInvitationRow(row: Record<string, unknown>): AdminClubInvitation {
@@ -437,7 +488,10 @@ export async function getAdminClubDetail(
 
   const members = await enrichMembers(supabase, (membersRes.data ?? []) as Record<string, unknown>[]);
   const cohorts = ((cohortsRes.data ?? []) as Record<string, unknown>[]).map(toClassListRow);
-  const assignments = ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(toAssignmentRow);
+  const assignments = await enrichAssignmentSubmissionConfig(
+    supabase,
+    ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(toAssignmentRow)
+  );
   const invitations = ((invitationsRes.data ?? []) as Record<string, unknown>[]).map(toInvitationRow);
   const joinCodes = ((joinCodesRes.data ?? []) as Record<string, unknown>[]).map(toJoinCodeRow);
   const scheduleRangeStart = toIsoDate(addDays(new Date(), -7));
@@ -1037,6 +1091,13 @@ function buildDevAssignments(
     submissionCount: completion[index] ?? 0,
     uniqueSubmitters: completion[index] ?? 0,
     averageScore: state === "high" ? 82 + index : state === "low" ? 58 + index * 2 : 68 + index * 3,
+    isHomework: index === 0,
+    submissionTextEnabled: true,
+    submissionFilesEnabled: index === 0,
+    submissionMaxFiles: index === 0 ? 3 : 0,
+    submissionMaxFileMb: 10,
+    submissionAllowedExt: index === 0 ? ["pdf", "docx", "png", "jpg"] : null,
+    submissionInstructions: index === 0 ? "Upload your case brief and include a short reflection." : null,
     createdAt: "2026-05-01T00:00:00.000Z",
     updatedAt: "2026-05-15T00:00:00.000Z",
   }));

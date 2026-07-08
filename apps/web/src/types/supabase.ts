@@ -891,6 +891,71 @@ export type Database = {
           },
         ]
       }
+      assignment_submission_files: {
+        Row: {
+          club_id: string
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_submission_files_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submission_files_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submission_files_submission_owner_fkey"
+            columns: ["submission_id", "club_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "club_assignment_submissions"
+            referencedColumns: ["id", "club_id", "user_id"]
+          },
+          {
+            foreignKeyName: "assignment_submission_files_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attempt_band_scores: {
         Row: {
           attempt_id: string
@@ -1610,11 +1675,19 @@ export type Database = {
           class_id: string | null
           club_id: string
           created_at: string
+          feedback: string | null
+          grade_status: string
+          graded_at: string | null
+          graded_by: string | null
           id: string
           metadata: Json
-          source_id: string
+          rubric_breakdown: Json
+          score: number | null
+          score_max: number | null
+          source_id: string | null
           source_type: string
           status: string
+          submission_text: string | null
           submitted_at: string
           updated_at: string
           user_id: string
@@ -1624,11 +1697,19 @@ export type Database = {
           class_id?: string | null
           club_id: string
           created_at?: string
+          feedback?: string | null
+          grade_status?: string
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           metadata?: Json
-          source_id: string
+          rubric_breakdown?: Json
+          score?: number | null
+          score_max?: number | null
+          source_id?: string | null
           source_type?: string
           status?: string
+          submission_text?: string | null
           submitted_at?: string
           updated_at?: string
           user_id: string
@@ -1638,11 +1719,19 @@ export type Database = {
           class_id?: string | null
           club_id?: string
           created_at?: string
+          feedback?: string | null
+          grade_status?: string
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           metadata?: Json
-          source_id?: string
+          rubric_breakdown?: Json
+          score?: number | null
+          score_max?: number | null
+          source_id?: string | null
           source_type?: string
           status?: string
+          submission_text?: string | null
           submitted_at?: string
           updated_at?: string
           user_id?: string
@@ -1691,6 +1780,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "club_assignment_submissions_graded_by_fkey"
+            columns: ["graded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "club_assignment_submissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1716,6 +1812,12 @@ export type Database = {
           rubric_key: string
           rubric_version: number
           status: string
+          submission_allowed_ext: string[] | null
+          submission_files_enabled: boolean
+          submission_instructions: string | null
+          submission_max_file_mb: number
+          submission_max_files: number
+          submission_text_enabled: boolean
           title: string
           topic_category: string | null
           topic_title: string | null
@@ -1737,6 +1839,12 @@ export type Database = {
           rubric_key?: string
           rubric_version?: number
           status?: string
+          submission_allowed_ext?: string[] | null
+          submission_files_enabled?: boolean
+          submission_instructions?: string | null
+          submission_max_file_mb?: number
+          submission_max_files?: number
+          submission_text_enabled?: boolean
           title: string
           topic_category?: string | null
           topic_title?: string | null
@@ -1758,6 +1866,12 @@ export type Database = {
           rubric_key?: string
           rubric_version?: number
           status?: string
+          submission_allowed_ext?: string[] | null
+          submission_files_enabled?: boolean
+          submission_instructions?: string | null
+          submission_max_file_mb?: number
+          submission_max_files?: number
+          submission_text_enabled?: boolean
           title?: string
           topic_category?: string | null
           topic_title?: string | null

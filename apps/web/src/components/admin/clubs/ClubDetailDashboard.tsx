@@ -31,6 +31,7 @@ import {
   revokeClubJoinCode,
   searchProfilesForClub,
 } from "@/app/actions/admin-clubs";
+import { ClubHomeworkAssignForm } from "@/components/admin/clubs/ClubHomeworkAssignForm";
 import { resolveLeaderboardXpEventFlag } from "@/app/actions/leaderboards";
 import { ClubSchedulePanel } from "@/components/admin/clubs/ClubSchedulePanel";
 import { ChartCard, ChartEmpty, StatCard } from "@/components/data-viz";
@@ -269,23 +270,34 @@ function WeakestSkills({
 function AssignmentTable({
   assignments,
   clubId,
+  title = "Recent Assignments",
+  limit = 5,
+  showViewAll = true,
 }: {
   assignments: AdminClubAssignmentRow[];
   clubId: string;
+  title?: string;
+  limit?: number | null;
+  showViewAll?: boolean;
 }) {
+  const visibleAssignments =
+    limit == null ? assignments : assignments.slice(0, limit);
+
   return (
     <section className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-sm">
       <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3">
         <h2 className="text-base font-bold text-on-surface">
-          Recent Assignments
+          {title}
         </h2>
-        <Link
-          href={`/dashboard/admin/clubs/${clubId}?tab=Assignments`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant"
-        >
-          View all assignments
-          <ChevronRight className="h-4 w-4" />
-        </Link>
+        {showViewAll ? (
+          <Link
+            href={`/dashboard/admin/clubs/${clubId}?tab=Assignments`}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant"
+          >
+            View all assignments
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        ) : null}
       </div>
       <div className="hidden grid-cols-[1.4fr_0.7fr_0.7fr_0.85fr_0.9fr_0.7fr_0.7fr_42px] border-b border-outline-variant bg-background px-4 py-3 text-xs font-semibold text-on-surface-variant lg:grid">
         <div>Assignment</div>
@@ -298,12 +310,10 @@ function AssignmentTable({
         <div />
       </div>
       <div>
-        {assignments.length ? (
-          assignments
-            .slice(0, 5)
-            .map((assignment) => (
-              <AssignmentRow key={assignment.id} assignment={assignment} />
-            ))
+        {visibleAssignments.length ? (
+          visibleAssignments.map((assignment) => (
+            <AssignmentRow key={assignment.id} assignment={assignment} />
+          ))
         ) : (
           <div className="px-4 py-14 text-center text-sm text-on-surface-variant">
             No assignments yet.
@@ -315,20 +325,22 @@ function AssignmentTable({
 }
 
 function AssignmentRow({ assignment }: { assignment: AdminClubAssignmentRow }) {
-  const href = buildPracticeHref({
-    topicTitle: assignment.topicTitle ?? assignment.title,
-    topicCategory: assignment.topicCategory ?? "Education",
-    practiceTrack:
-      assignment.assignedTrack === "speaking" ? "speaking" : "debate",
-    mode: assignment.assignedTrack === "speaking" ? "quick" : "full",
-    side: "proposition",
-    clubContext: {
-      clubId: assignment.clubId,
-      classId: assignment.classId ?? undefined,
-      assignmentId: assignment.id,
-      assignmentTitle: assignment.title,
-    },
-  });
+  const href = assignment.isHomework
+    ? `/dashboard/clubs/${assignment.clubId}/assignments/${assignment.id}`
+    : buildPracticeHref({
+        topicTitle: assignment.topicTitle ?? assignment.title,
+        topicCategory: assignment.topicCategory ?? "Education",
+        practiceTrack:
+          assignment.assignedTrack === "speaking" ? "speaking" : "debate",
+        mode: assignment.assignedTrack === "speaking" ? "quick" : "full",
+        side: "proposition",
+        clubContext: {
+          clubId: assignment.clubId,
+          classId: assignment.classId ?? undefined,
+          assignmentId: assignment.id,
+          assignmentTitle: assignment.title,
+        },
+      });
   const complete = assignment.status === "archived";
   return (
     <div className="grid gap-3 border-b border-outline-variant px-4 py-3 text-sm last:border-b-0 lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.85fr_0.9fr_0.7fr_0.7fr_42px] lg:items-center">
@@ -358,7 +370,7 @@ function AssignmentRow({ assignment }: { assignment: AdminClubAssignmentRow }) {
         {assignment.classTitle ?? "All"}
       </div>
       <div className="capitalize text-on-surface-variant">
-        {assignment.assignmentType}
+        {assignment.isHomework ? "Homework" : assignment.assignmentType}
       </div>
       <div
         className={cn(
@@ -1081,7 +1093,11 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
               <Mail className="h-4 w-4" />
               Message Club
             </button>
-            <button className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface-container-high px-4 text-sm font-bold text-on-surface shadow-sm shadow-token-card/25">
+            <button
+              type="button"
+              onClick={() => setActiveTab("Assignments")}
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface-container-high px-4 text-sm font-bold text-on-surface shadow-sm shadow-token-card/25"
+            >
               <Plus className="h-4 w-4" />
               Create Assignment
             </button>
@@ -1477,7 +1493,11 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
         )}
         {activeTab === "Assignments" && (
           <div className="mt-5 flex flex-col gap-4">
-            <div className="flex justify-end">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <ClubHomeworkAssignForm
+                clubId={data.club.id}
+                cohorts={data.cohorts}
+              />
               <Link
                 href={`/dashboard/clubs/${data.club.id}/ielts`}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
@@ -1486,7 +1506,13 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
-            <AssignmentTable assignments={data.assignments} clubId={data.club.id} />
+            <AssignmentTable
+              assignments={data.assignments}
+              clubId={data.club.id}
+              title="Assignments"
+              limit={null}
+              showViewAll={false}
+            />
           </div>
         )}
         {activeTab === "Performance" && <div className="mt-5"><AttemptsList attempts={data.attempts} /></div>}

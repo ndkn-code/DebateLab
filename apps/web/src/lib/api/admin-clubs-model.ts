@@ -33,6 +33,7 @@ const CLUB_EVENT_TYPES = new Set<ClubEventType>([
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EXTENSION_PATTERN = /^[a-z0-9]{1,12}$/;
 
 export const VIETNAM_CITY_OPTIONS = [
   "An Giang",
@@ -210,6 +211,24 @@ export function validateClubAssignmentInput(input: ClubAssignmentInput) {
   }
   if (input.dueAt && Number.isNaN(new Date(input.dueAt).getTime())) {
     return { ok: false as const, reason: "invalid_due_at" };
+  }
+  if (input.submissionTextEnabled === false && input.submissionFilesEnabled === false) {
+    return { ok: false as const, reason: "assignment_requires_submission_mode" };
+  }
+  if (input.submissionMaxFiles != null && (!Number.isInteger(input.submissionMaxFiles) || input.submissionMaxFiles < 0 || input.submissionMaxFiles > 20)) {
+    return { ok: false as const, reason: "invalid_submission_max_files" };
+  }
+  if (input.submissionMaxFileMb != null && (!Number.isInteger(input.submissionMaxFileMb) || input.submissionMaxFileMb < 1 || input.submissionMaxFileMb > 50)) {
+    return { ok: false as const, reason: "invalid_submission_max_file_mb" };
+  }
+  const allowedExt = input.submissionAllowedExt ?? [];
+  if (
+    allowedExt.some((ext) => {
+      const normalized = String(ext).trim().toLowerCase().replace(/^\./, "");
+      return !EXTENSION_PATTERN.test(normalized);
+    })
+  ) {
+    return { ok: false as const, reason: "invalid_submission_allowed_ext" };
   }
   return { ok: true as const };
 }

@@ -36,6 +36,13 @@ const assignment: AdminClubAssignmentRow = {
   submissionCount: 8,
   uniqueSubmitters: 8,
   averageScore: 72,
+  isHomework: false,
+  submissionTextEnabled: true,
+  submissionFilesEnabled: false,
+  submissionMaxFiles: 3,
+  submissionMaxFileMb: 10,
+  submissionAllowedExt: null,
+  submissionInstructions: null,
   createdAt: "2026-05-01T00:00:00.000Z",
   updatedAt: "2026-05-01T00:00:00.000Z",
 };
@@ -116,6 +123,16 @@ assert.deepEqual(
     rubricVersion: 1,
   }),
   { ok: true }
+);
+
+assert.equal(
+  validateClubAssignmentInput({
+    clubId,
+    title: "Policy Case",
+    submissionTextEnabled: false,
+    submissionFilesEnabled: false,
+  }).reason,
+  "assignment_requires_submission_mode",
 );
 
 assert.equal(

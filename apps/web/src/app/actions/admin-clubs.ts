@@ -175,6 +175,14 @@ function safeLogoExtension(file: File) {
   return null;
 }
 
+function normalizeAssignmentExtensions(values: string[] | null | undefined) {
+  const normalized = (values ?? [])
+    .map((value) => value.trim().toLowerCase().replace(/^\./, ""))
+    .filter((value, index, source) => value.length > 0 && source.indexOf(value) === index);
+
+  return normalized.length > 0 ? normalized : null;
+}
+
 async function uploadClubLogo(input: {
   clubId: string;
   file: FormDataEntryValue | null;
@@ -731,21 +739,35 @@ export async function revokeClubJoinCode(clubId: string, codeId: string) {
 
 export async function createClubAssignment(input: ClubAssignmentInput) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
   const validation = validateClubAssignmentInput(input);
   if (!validation.ok) {
     throw new Error(validation.reason);
   }
+  const managerId = await verifyClubManager(supabase, input.clubId);
 
   if (await isDevClubBypassId(input.clubId)) {
     return "00000000-0000-4c20-8000-000000000999";
   }
 
+  const classId = cleanString(input.classId);
+  if (classId) {
+    const { data: cohort, error: cohortError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("id", classId)
+      .eq("club_id", input.clubId)
+      .maybeSingle();
+    if (cohortError) throw new Error(cohortError.message);
+    if (!cohort) throw new Error("Assignment cohort must belong to this club.");
+  }
+
+  const textEnabled = input.submissionTextEnabled ?? true;
+  const filesEnabled = input.submissionFilesEnabled ?? false;
   const { data, error } = await supabase
     .from("club_assignments")
     .insert({
       club_id: input.clubId,
-      class_id: input.classId ?? null,
+      class_id: classId,
       title: input.title.trim(),
       description: input.description?.trim() || null,
       assignment_type: input.assignmentType ?? "practice",
@@ -757,7 +779,14 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
       rubric_key: input.rubricKey ?? (input.assignedTrack === "speaking" ? "speaking_v1" : "debate_v1"),
       rubric_version: input.rubricVersion ?? 1,
       status: input.status ?? "active",
-      created_by: adminId,
+      created_by: managerId,
+      metadata: { submission_mode: "homework" },
+      submission_text_enabled: textEnabled,
+      submission_files_enabled: filesEnabled,
+      submission_max_files: input.submissionMaxFiles ?? (filesEnabled ? 3 : 0),
+      submission_max_file_mb: input.submissionMaxFileMb ?? 10,
+      submission_allowed_ext: normalizeAssignmentExtensions(input.submissionAllowedExt),
+      submission_instructions: input.submissionInstructions?.trim() || null,
     })
     .select("id")
     .single();
