@@ -45,6 +45,9 @@ export function MultiSelectRenderer({
             text={option.text}
             selected={selected.includes(option.id)}
             disabled={locked}
+            allowElimination={!locked && question.questionType === "mcq_multi"}
+            questionId={question.id}
+            optionId={option.id}
             onSelect={() =>
               onChange(toggleArrayValue(value, DEFAULT_BLANK_ID, option.id, max))
             }

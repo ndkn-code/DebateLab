@@ -7,13 +7,14 @@
  * sections → finish → objective grade → band. The results UI is intentionally
  * minimal here (full review is WS-2.2).
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
+import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
 import { showToast } from "@/components/shared/toast";
 import {
   enterSection,
@@ -61,10 +62,18 @@ export function MockTestPlayer({
   const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(new Map());
   const lastAnswerToastAt = useRef(0);
   const answerSaveErrorShown = useRef(false);
+  const hydrateAnnotations = useMockAnnotationsStore((store) => store.hydrateAttempt);
+  const clearAnnotations = useMockAnnotationsStore((store) => store.clearActiveAttempt);
 
   const sections = state?.sections ?? [];
   const section = sections[activeIndex];
   const attemptId = state?.attempt.id ?? null;
+
+  useEffect(() => {
+    if (!attemptId) return undefined;
+    hydrateAnnotations(attemptId);
+    return () => clearAnnotations();
+  }, [attemptId, hydrateAnnotations, clearAnnotations]);
 
   const run = useCallback(async (fn: () => Promise<void>) => {
     setBusy(true);

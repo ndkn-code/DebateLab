@@ -45,6 +45,14 @@ export function SingleSelectRenderer({
               selected={isSelected}
               state={state}
               disabled={locked}
+              allowElimination={
+                !locked &&
+                (question.questionType === "mcq_single" ||
+                  question.questionType === "true_false_notgiven" ||
+                  question.questionType === "yes_no_notgiven")
+              }
+              questionId={question.id}
+              optionId={option.id}
               onSelect={() => onChange(setValue(value, DEFAULT_BLANK_ID, option.id))}
             />
           );

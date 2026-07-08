@@ -18,6 +18,7 @@ import type { MockStructure } from "@/lib/api/ielts/mock-repository";
 import { SectionTimer } from "./SectionTimer";
 import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
 import { QuestionHost } from "./QuestionHost";
+import { PassageHighlighter } from "./PassageHighlighter";
 import { buildSectionParts, type MockPart } from "./mock-parts";
 
 /** Passage / listening stimulus column; renders nothing for Writing/Speaking. */
@@ -27,10 +28,7 @@ function SectionStimulus({ part }: { part: MockPart }) {
     <div className="flex flex-col gap-4">
       {part.audio.length > 0 ? <ListeningAudioPlayer tracks={part.audio} /> : null}
       {part.body !== null ? (
-        <article className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-3xl border border-outline-variant bg-surface-container p-5 text-sm leading-relaxed text-on-surface">
-          <h3 className="mb-2 text-base font-bold">{part.title}</h3>
-          {part.body}
-        </article>
+        <PassageHighlighter passageKey={part.id} title={part.title} body={part.body} />
       ) : null}
     </div>
   );
