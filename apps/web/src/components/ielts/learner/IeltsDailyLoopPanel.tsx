@@ -28,23 +28,39 @@ function percentFormat(value: number) {
   return `${Math.round(value)}%`;
 }
 
+// Per-metric icon tone. Streak reads warm (coral) because a streak is a
+// "keep the fire alive" signal; XP reads as a reward (gold); goal stays on the
+// core brand cyan. Keeps the daily-loop row from being one flat cyan.
+const METRIC_TONE = {
+  streak: "bg-secondary-container text-on-secondary-container",
+  goal: "bg-primary-container text-on-primary-container",
+  xp: "bg-reward-container text-reward-dim",
+} as const;
+
 function MetricShell({
   icon: Icon,
   label,
   value,
   caption,
+  tone = "goal",
   children,
 }: {
   icon: LucideIcon;
   label: string;
   value: ReactNode;
   caption: string;
+  tone?: keyof typeof METRIC_TONE;
   children?: ReactNode;
 }) {
   return (
     <article className="min-w-0 rounded-lg bg-surface-container-low p-4">
       <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            METRIC_TONE[tone],
+          )}
+        >
           <Icon className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -73,7 +89,7 @@ function StreakDots({ dots }: { dots: IeltsHomeRetentionView["streak"]["dots"] }
           className={cn(
             "h-2 rounded-full",
             dot.active
-              ? "bg-primary"
+              ? "bg-secondary"
               : dot.today
                 ? "bg-surface-container-highest"
                 : "bg-surface-container-high",
@@ -193,6 +209,7 @@ function DailyMetrics({ retention }: { retention: IeltsHomeRetentionView }) {
         caption={t(streakCaption(retention))}
         icon={Flame}
         label={t("retention_streak_label")}
+        tone="streak"
         value={
           <span className="inline-flex items-baseline gap-1.5">
             <AnimatedNumber startOnMount value={retention.streak.current} />
@@ -239,6 +256,7 @@ function DailyMetrics({ retention }: { retention: IeltsHomeRetentionView }) {
         caption={xpCaption}
         icon={Zap}
         label={t("retention_xp_label")}
+        tone="xp"
         value={
           <span className="inline-flex items-baseline gap-1.5">
             <AnimatedNumber startOnMount value={retention.xp.lifetimeXp} />

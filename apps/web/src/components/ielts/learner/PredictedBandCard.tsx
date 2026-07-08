@@ -129,13 +129,30 @@ function SkillBandChart({
   );
 }
 
-function SkillRow({ row }: { row: IeltsPredictionSkillRow }) {
+function SkillRow({
+  row,
+  targetBand,
+}: {
+  row: IeltsPredictionSkillRow;
+  targetBand: number;
+}) {
   const t = useTranslations("dashboard.ielts");
   const Icon = IELTS_SKILL_ICON[row.skill];
+  // Skills with evidence that sit below target are the ones to focus on —
+  // warm coral chip, matching the gap pill above.
+  const belowTarget =
+    row.hasEvidence && row.band !== null && row.band < targetBand;
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3.5 py-2.5">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-high text-on-surface-variant">
+        <span
+          className={cn(
+            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+            belowTarget
+              ? "bg-secondary-container text-on-secondary-container"
+              : "bg-surface-container-high text-on-surface-variant",
+          )}
+        >
           <Icon className="size-4" aria-hidden />
         </span>
         <span className="truncate type-body-sm font-medium text-on-surface">
@@ -158,13 +175,36 @@ function SkillRow({ row }: { row: IeltsPredictionSkillRow }) {
   );
 }
 
-function targetCaption(
-  t: ReturnType<typeof useTranslations>,
-  overall: IeltsPredictionCardView["overall"],
-): string {
-  if (overall.targetDelta === null) return t("target_band_label", { band: formatBand(overall.targetBand) });
-  if (overall.meetsTarget) return t("target_on_track");
-  return t("target_gap", { gap: Math.abs(overall.targetDelta).toFixed(1) });
+/**
+ * Target status. When the learner is behind target we surface a warm coral
+ * "focus" pill (secondary) so the eye lands on the gap to close; on-track and
+ * no-target states stay quiet (a prediction card shouldn't shout when good).
+ */
+function TargetChip({
+  overall,
+}: {
+  overall: IeltsPredictionCardView["overall"];
+}) {
+  const t = useTranslations("dashboard.ielts");
+  if (overall.targetDelta === null) {
+    return (
+      <span className="type-body-sm font-medium text-on-surface-variant">
+        {t("target_band_label", { band: formatBand(overall.targetBand) })}
+      </span>
+    );
+  }
+  if (overall.meetsTarget) {
+    return (
+      <span className="type-body-sm font-semibold text-success">
+        {t("target_on_track")}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-secondary-container px-2.5 py-0.5 type-caption font-semibold text-on-secondary-container">
+      {t("target_gap", { gap: Math.abs(overall.targetDelta).toFixed(1) })}
+    </span>
+  );
 }
 
 function countdownCaption(
@@ -281,9 +321,7 @@ export function PredictedBandCard({
               {t("per_skill_title")}
             </h2>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="type-body-sm font-medium text-on-surface-variant">
-                {targetCaption(t, overall)}
-              </span>
+              <TargetChip overall={overall} />
               {countdown ? (
                 <span className="type-body-sm text-on-surface-variant">· {countdown}</span>
               ) : null}
@@ -293,7 +331,7 @@ export function PredictedBandCard({
           <SkillBandChart skills={view.skills} targetBand={overall.targetBand} />
           <div className="grid gap-2 sm:grid-cols-2">
             {view.skills.map((row) => (
-              <SkillRow key={row.skill} row={row} />
+              <SkillRow key={row.skill} row={row} targetBand={overall.targetBand} />
             ))}
           </div>
         </div>
