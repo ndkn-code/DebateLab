@@ -25,21 +25,25 @@
   --color-on-primary-fixed-variant: #0788A0;
   --color-inverse-primary: #00B8D9;
 
-  --color-secondary: #00B8D9;
-  --color-secondary-dim: #00B8D9;
-  --color-secondary-container: #E5F8FC;
-  --color-secondary-fixed: #E5F8FC;
-  --color-secondary-fixed-dim: #8BE8F7;
+  /* secondary = warm coral accent (the one non-cyan brand hue). Distinct from
+     error (#FF5A5F) by leaning orange. Mirrors the emitter derivation in
+     @thinkfy/shared design-system tokens.ts (must stay in sync). */
+  --color-secondary: #FF8A5B;
+  --color-secondary-dim: #C24A26;
+  --color-secondary-container: #FFEDE3;
+  --color-secondary-fixed: #FFEDE3;
+  --color-secondary-fixed-dim: #FFEDE3;
   --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #00B8D9;
-  --color-on-secondary-fixed: #00B8D9;
-  --color-on-secondary-fixed-variant: #00B8D9;
+  --color-on-secondary-container: #C24A26;
+  --color-on-secondary-fixed: #C24A26;
+  --color-on-secondary-fixed-variant: #C24A26;
 
-  --color-tertiary: #00B8D9;
+  /* tertiary = deep-cyan supporting tone (tonal depth against the primary cyan) */
+  --color-tertiary: #0788A0;
   --color-tertiary-dim: #0788A0;
-  --color-tertiary-container: #E5F8FC;
-  --color-tertiary-fixed: #E5F8FC;
-  --color-tertiary-fixed-dim: #8BE8F7;
+  --color-tertiary-container: #D5EFF5;
+  --color-tertiary-fixed: #D5EFF5;
+  --color-tertiary-fixed-dim: #D5EFF5;
   --color-on-tertiary: #ffffff;
   --color-on-tertiary-container: #0788A0;
   --color-on-tertiary-fixed: #0788A0;
@@ -287,25 +291,27 @@
     --color-on-primary-fixed-variant: #DFFAFF;
     --color-inverse-primary: #0788A0;
 
-    --color-secondary: #8BE8F7;
-    --color-secondary-dim: #00B8D9;
-    --color-secondary-container: #0B3440;
-    --color-secondary-fixed: #0B3440;
-    --color-secondary-fixed-dim: #104653;
+    /* secondary = warm coral, lightened for dark surfaces (mirror tokens.ts) */
+    --color-secondary: #FFAE86;
+    --color-secondary-dim: #FF8A5B;
+    --color-secondary-container: #4A2416;
+    --color-secondary-fixed: #4A2416;
+    --color-secondary-fixed-dim: #4A2416;
     --color-on-secondary: #05242B;
-    --color-on-secondary-container: #DFFAFF;
-    --color-on-secondary-fixed: #DFFAFF;
-    --color-on-secondary-fixed-variant: #8BE8F7;
+    --color-on-secondary-container: #FF8A5B;
+    --color-on-secondary-fixed: #FF8A5B;
+    --color-on-secondary-fixed-variant: #FF8A5B;
 
-    --color-tertiary: #8BE8F7;
-    --color-tertiary-dim: #00B8D9;
+    /* tertiary = supporting cyan tone on dark */
+    --color-tertiary: #7ED4E8;
+    --color-tertiary-dim: #7ED4E8;
     --color-tertiary-container: #092F39;
     --color-tertiary-fixed: #092F39;
-    --color-tertiary-fixed-dim: #103D5C;
-    --color-on-tertiary: #061A20;
-    --color-on-tertiary-container: #D8F0FF;
-    --color-on-tertiary-fixed: #D8F0FF;
-    --color-on-tertiary-fixed-variant: #8BE8F7;
+    --color-tertiary-fixed-dim: #092F39;
+    --color-on-tertiary: #05242B;
+    --color-on-tertiary-container: #7ED4E8;
+    --color-on-tertiary-fixed: #7ED4E8;
+    --color-on-tertiary-fixed-variant: #7ED4E8;
 
     --color-error: #FF8A8E;
     --color-error-dim: #FF6B70;
