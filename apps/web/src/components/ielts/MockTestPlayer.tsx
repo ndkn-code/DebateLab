@@ -10,9 +10,11 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
+import { showToast } from "@/components/shared/toast";
 import {
   enterSection,
   getAttemptState,
@@ -47,6 +49,7 @@ export function MockTestPlayer({
   returnLabel?: string;
 }) {
   const params = useParams<{ locale: string }>();
+  const t = useTranslations("ielts.player");
   const [phase, setPhase] = useState<Phase>("intro");
   const [state, setState] = useState<AttemptState | null>(null);
   const [responses, setResponses] = useState<IeltsResponseMap>({});
@@ -56,6 +59,8 @@ export function MockTestPlayer({
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(new Map());
+  const lastAnswerToastAt = useRef(0);
+  const answerSaveErrorShown = useRef(false);
 
   const sections = state?.sections ?? [];
   const section = sections[activeIndex];
@@ -67,11 +72,13 @@ export function MockTestPlayer({
     try {
       await fn();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Something went wrong");
+      const message = caught instanceof Error ? caught.message : t("toastActionFailed");
+      setError(message);
+      showToast(message, "error");
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [t]);
 
   const hydrate = (next: AttemptState) => {
     setState(next);
@@ -87,11 +94,23 @@ export function MockTestPlayer({
     if (!item) return;
     try {
       await saveResponse({ sectionId: item.sectionId, questionId, response: item.value });
-      if (pending.current.get(questionId) === item) pending.current.delete(questionId);
+      if (pending.current.get(questionId) === item) {
+        pending.current.delete(questionId);
+        answerSaveErrorShown.current = false;
+        const now = Date.now();
+        if (now - lastAnswerToastAt.current > 12000) {
+          lastAnswerToastAt.current = now;
+          showToast(t("toastAnswerSaved"), "success");
+        }
+      }
     } catch {
+      if (!answerSaveErrorShown.current) {
+        answerSaveErrorShown.current = true;
+        showToast(t("toastAnswerSaveFailed"), "warning");
+      }
       /* keep pending for retry */
     }
-  }, []);
+  }, [t]);
 
   // Drain all debounced saves NOW — called before every state transition so no
   // just-typed answer is lost when a section/attempt is submitted.
@@ -141,12 +160,16 @@ export function MockTestPlayer({
   };
 
   const sectionAction =
-    (action: (input: { attemptId: string; sectionId: string }) => Promise<AttemptState>) =>
+    (
+      action: (input: { attemptId: string; sectionId: string }) => Promise<AttemptState>,
+      successMessage?: string,
+    ) =>
     () => {
       if (!section || !attemptId) return;
       void run(async () => {
         await flushPending();
         setState(await action({ attemptId, sectionId: section.id }));
+        if (successMessage) showToast(successMessage, "success");
       });
     };
 
@@ -166,6 +189,7 @@ export function MockTestPlayer({
       setState(result.state);
       setGrade(result.grade);
       setPhase("done");
+      showToast(t("toastMockSubmitted"), "success");
     });
   };
 
@@ -223,7 +247,7 @@ export function MockTestPlayer({
           onAnswer={handleAnswer}
           onPause={sectionAction(pauseSection)}
           onResume={sectionAction(resumeSection)}
-          onSubmitSection={sectionAction(submitSection)}
+          onSubmitSection={sectionAction(submitSection, t("toastSectionSubmitted"))}
           onExpire={handleExpire}
         />
       ) : null}

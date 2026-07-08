@@ -7,6 +7,7 @@ import {
   ProductPageShell,
 } from "@/components/shared/product-layout";
 import { PageTransition } from "@/components/shared/page-motion";
+import { showToast } from "@/components/shared/toast";
 import {
   generateIeltsOnboardingPlanAction,
   saveIeltsOnboardingGoalAction,
@@ -78,8 +79,11 @@ export function IeltsOnboardingFlow({
         const result = await generateIeltsOnboardingPlanAction();
         setPlanResult(result);
         setAvailableDiagnostic(result.diagnosticTest);
+        showToast(t("toast_plan_ready"), "success");
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : t("error_generic"));
+        const message = caught instanceof Error ? caught.message : t("error_generic");
+        setError(message);
+        showToast(message, "error");
       }
     });
   }, [isPending, planResult, step, t]);
@@ -91,8 +95,11 @@ export function IeltsOnboardingFlow({
         const result = await saveIeltsOnboardingGoalAction(stateToGoal(goal));
         setAvailableDiagnostic(result.diagnosticTest);
         setStep("diagnostic");
+        showToast(t("toast_goal_saved"), "success");
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : t("error_generic"));
+        const message = caught instanceof Error ? caught.message : t("error_generic");
+        setError(message);
+        showToast(message, "error");
       }
     });
   };

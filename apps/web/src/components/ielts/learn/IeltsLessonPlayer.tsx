@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { ArrowLeft, Clock3 } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { PageContainer, ProductPageShell } from "@/components/shared/product-layout";
+import { showToast } from "@/components/shared/toast";
 import { cn } from "@/lib/utils";
 import { getElapsedSecondsSince } from "@/lib/time";
 import { completeActivity } from "@/app/actions/activities";
@@ -96,6 +97,7 @@ export function IeltsLessonPlayer(props: IeltsLessonPlayerProps) {
         masteryDelta: [],
         saveError: false,
       };
+      showToast(t("toast_completed"), "success");
       // `completeActivity` has already refreshed skill states — read them back.
       try {
         const after = await loadIeltsSubskillMasterySnapshot(props.subskillKeys);
@@ -105,6 +107,7 @@ export function IeltsLessonPlayer(props: IeltsLessonPlayerProps) {
       }
     } catch {
       completion.saveError = true;
+      showToast(t("save_error"), "error");
     }
 
     setResult(completion);

@@ -72,6 +72,7 @@ function SkillRow({
 }) {
   return (
     <BandMeter
+      accent={skill.skill}
       band={skill.band}
       delayMs={delayMs}
       raw={skill.raw}

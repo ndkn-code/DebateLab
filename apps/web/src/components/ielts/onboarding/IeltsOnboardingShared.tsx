@@ -26,12 +26,12 @@ export function OnboardingHeader({
   const t = useTranslations("ielts.onboarding");
 
   return (
-    <header className="flex flex-col gap-4 border-b border-outline-variant pb-5">
+    <header className="flex flex-col gap-3 border-b border-outline-variant pb-4">
       <div>
-        <p className="type-eyebrow font-semibold uppercase text-primary">
+        <p className="type-label font-semibold uppercase text-primary">
           {t("eyebrow")}
         </p>
-        <h1 className="type-heading-xl font-bold text-on-surface">
+        <h1 className="type-heading-lg font-bold text-on-surface">
           {t("title")}
         </h1>
       </div>
@@ -43,7 +43,7 @@ export function OnboardingHeader({
             <li
               key={item}
               className={cn(
-                "flex min-h-12 items-center gap-2 rounded-lg border px-3 type-body-sm font-semibold",
+                "flex min-h-11 items-center gap-2 rounded-lg border px-3 type-body-sm font-semibold",
                 active
                   ? "border-primary bg-primary-container text-on-primary-container"
                   : done
@@ -85,7 +85,7 @@ export function ChoiceGroup({
 }) {
   return (
     <div className="grid gap-2">
-      <p className="type-body-sm font-semibold text-on-surface">{label}</p>
+      <p className="type-label font-semibold uppercase text-on-surface-variant">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -112,7 +112,7 @@ export function InfoStrip({
       <div className="inline-flex size-9 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
         <Icon className="size-5" />
       </div>
-      <p className="type-body-sm font-semibold text-on-surface">{label}</p>
+      <p className="type-label font-semibold uppercase text-on-surface-variant">{label}</p>
     </div>
   );
 }

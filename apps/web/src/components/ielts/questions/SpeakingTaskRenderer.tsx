@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
 import type { SpeakingResponseView } from "@/lib/api/ielts/speaking-responses-repository";
+import { showToast } from "@/components/shared/toast";
 import {
   CaptureRequestError,
   pollSpeakingResponse,
@@ -213,9 +214,12 @@ export function SpeakingTaskRenderer({
       });
       poll.begin(submitted.speakingResponseId);
       onChange({ speakingResponseId: submitted.speakingResponseId, audioStoragePath });
+      showToast(t("speaking.toastSubmitted"), "success");
     } catch (error) {
       const limit = error instanceof CaptureRequestError && error.status === 402;
-      setErrorKey(limit ? "speaking.limitReached" : "speaking.failed");
+      const key = limit ? "speaking.limitReached" : "speaking.failed";
+      setErrorKey(key);
+      showToast(t(key), "error");
     } finally {
       setSubmitting(false);
     }

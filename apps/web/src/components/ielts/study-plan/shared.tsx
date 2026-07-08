@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import type { LucideIcon } from "@/components/ui/icons";
 import type { IeltsSkill } from "@/lib/ielts/adaptive/contracts";
+import { skillAccentVars } from "@/components/ielts/skill-accent";
 import { cn } from "@/lib/utils";
 
 /** Consistent section container for the study-plan surfaces. */
@@ -19,14 +20,14 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-outline-variant bg-surface-container p-5 sm:p-6">
+    <section className="rounded-lg border border-outline-variant bg-surface-container p-4 shadow-token-card sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary-container text-on-secondary-container">
+        <div className="flex items-start gap-2.5">
+          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
             <Icon className="size-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="type-heading-sm font-bold text-on-surface">{title}</h2>
+            <h2 className="type-title font-bold text-on-surface">{title}</h2>
             {caption ? (
               <p className="mt-0.5 type-body-sm text-on-surface-variant">{caption}</p>
             ) : null}
@@ -34,7 +35,7 @@ export function SectionCard({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
@@ -50,9 +51,15 @@ export function SkillBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-0.5 type-caption font-semibold text-on-surface-variant",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 type-caption font-semibold",
         className,
       )}
+      style={{
+        ...skillAccentVars(skill),
+        backgroundColor: "var(--ielts-skill-accent-container)",
+        borderColor: "var(--ielts-skill-accent-border)",
+        color: "var(--ielts-skill-accent-text)",
+      }}
     >
       {t(`skills.${skill}`)}
     </span>

@@ -26,11 +26,29 @@ const icons = {
   success: CheckCircle2,
 };
 
-const colors = {
-  info: "border-primary/30 bg-primary/10 text-primary",
-  warning: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  error: "border-red-500/30 bg-red-500/10 text-red-400",
-  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+const tones: Record<
+  ToastType,
+  {
+    accent: string;
+    surface: string;
+  }
+> = {
+  info: {
+    accent: "var(--color-primary)",
+    surface: "var(--color-primary-container)",
+  },
+  warning: {
+    accent: "var(--color-warning)",
+    surface: "var(--color-warning-container)",
+  },
+  error: {
+    accent: "var(--color-error)",
+    surface: "var(--color-error-container)",
+  },
+  success: {
+    accent: "var(--color-success)",
+    surface: "var(--color-success-container)",
+  },
 };
 
 export function ToastContainer() {
@@ -56,6 +74,7 @@ export function ToastContainer() {
       <AnimatePresence>
         {toasts.map((toast) => {
           const Icon = icons[toast.type];
+          const tone = tones[toast.type];
           return (
             <motion.div
               key={toast.id}
@@ -63,11 +82,17 @@ export function ToastContainer() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className={cn(
-                "flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lg backdrop-blur-xl",
-                colors[toast.type]
+                "flex items-center gap-3 rounded-lg border px-4 py-3 text-on-surface shadow-lg backdrop-blur-xl"
               )}
+              style={{
+                backgroundColor: `color-mix(in srgb, ${tone.surface} 82%, var(--color-surface) 18%)`,
+                borderColor: `color-mix(in srgb, ${tone.accent} 36%, var(--color-outline-variant))`,
+              }}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon
+                className="h-4 w-4 shrink-0"
+                style={{ color: tone.accent }}
+              />
               <span className="text-sm">{toast.message}</span>
               <button
                 onClick={() =>

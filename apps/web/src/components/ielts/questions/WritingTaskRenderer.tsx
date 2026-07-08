@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
 import type { WritingResponseView } from "@/lib/api/ielts/writing-responses-repository";
+import { showToast } from "@/components/shared/toast";
 import {
   CaptureRequestError,
   pollWritingResponse,
@@ -109,9 +110,12 @@ export function WritingTaskRenderer({
       });
       poll.begin(result.writingResponseId);
       onChange({ essay, writingResponseId: result.writingResponseId });
+      showToast(t("writing.toastSubmitted"), "success");
     } catch (error) {
       const limit = error instanceof CaptureRequestError && error.status === 402;
-      setErrorKey(limit ? "writing.limitReached" : "writing.failed");
+      const key = limit ? "writing.limitReached" : "writing.failed";
+      setErrorKey(key);
+      showToast(t(key), "error");
     } finally {
       setSubmitting(false);
     }

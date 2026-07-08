@@ -91,6 +91,7 @@ export function IeltsOnboardingResultStep({
               <div className="grid gap-2 sm:grid-cols-2">
                 {IELTS_SKILLS.map((skill) => (
                   <BandMeter
+                    accent={skill}
                     band={prediction.skills[skill].band}
                     delayMs={IELTS_SKILLS.indexOf(skill) * 70}
                     key={skill}

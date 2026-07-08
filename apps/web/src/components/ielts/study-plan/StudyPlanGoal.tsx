@@ -11,6 +11,7 @@ import {
   ChoiceGroup,
   choiceClass,
 } from "@/components/ielts/onboarding/IeltsOnboardingShared";
+import { showToast } from "@/components/shared/toast";
 import { goalToState, type GoalState } from "@/components/ielts/onboarding/types";
 import { updateIeltsStudyPlanGoalAction } from "@/app/actions/ielts/study-plan";
 import {
@@ -104,9 +105,10 @@ function GoalSummary({ goal, onEdit }: { goal: IeltsGoalModel; onEdit: () => voi
           {skillTargets.map((skill) => (
             <span
               key={skill}
-              className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-0.5 type-caption font-semibold text-on-surface-variant"
+              className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-1.5 py-1 type-caption font-semibold text-on-surface-variant"
             >
-              {t(`skills.${skill}`)} · {formatBand(goal.targetSkillBands[skill])}
+              <SkillBadge skill={skill} />
+              {formatBand(goal.targetSkillBands[skill])}
             </span>
           ))}
         </div>
@@ -167,8 +169,11 @@ export function StudyPlanGoal({
       try {
         await updateIeltsStudyPlanGoalAction(toGoal(form, module));
         setEditing(false);
+        showToast(t("goal_saved"), "success");
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : t("error_generic"));
+        const message = caught instanceof Error ? caught.message : t("error_generic");
+        setError(message);
+        showToast(message, "error");
       }
     });
   };

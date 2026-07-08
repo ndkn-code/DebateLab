@@ -10,6 +10,8 @@ import {
   formatBandValue,
   targetDeltaView,
 } from "@/lib/ielts/band-visuals";
+import type { IeltsSkill } from "@/lib/ielts/adaptive/contracts";
+import { skillAccentVars } from "@/components/ielts/skill-accent";
 import { cn } from "@/lib/utils";
 
 type BandValue = number | null | undefined;
@@ -27,6 +29,7 @@ export interface BandMeterProps {
   skill: string;
   band: BandValue;
   target: BandValue;
+  accent?: IeltsSkill;
   status?: React.ReactNode;
   raw?: number | null;
   rawMax?: number | null;
@@ -113,7 +116,7 @@ export function BandGauge({
                 fill="none"
                 initial={{ pathLength: reduceMotion ? progress : 0 }}
                 r={gaugeRadius}
-                stroke="var(--color-chart-1)"
+                stroke="color-mix(in srgb, var(--color-chart-1) 84%, var(--color-chart-6))"
                 strokeLinecap="round"
                 strokeWidth={gaugeStroke}
                 style={{
@@ -183,6 +186,7 @@ export function BandMeter({
   rawMax,
   delayMs = 0,
   className,
+  accent,
 }: BandMeterProps) {
   const reduceMotion = useReducedMotion();
   const progress = bandProgress(band);
@@ -198,6 +202,7 @@ export function BandMeter({
         "rounded-lg border border-outline-variant bg-surface-container px-4 py-3",
         className,
       )}
+      style={accent ? skillAccentVars(accent) : undefined}
       data-band={numericBand ?? ""}
       data-ielts-band-meter
       data-reduced-motion={reduceMotion ? "true" : "false"}
@@ -230,7 +235,7 @@ export function BandMeter({
           initial={{ scaleX: reduceMotion ? progress : 0 }}
           style={{
             background:
-              "linear-gradient(90deg, var(--color-chart-1), var(--color-chart-6))",
+              "linear-gradient(90deg, var(--ielts-skill-accent, var(--color-chart-1)), var(--ielts-skill-accent-end, var(--color-chart-6)))",
             transformOrigin: "left center",
           }}
           transition={
@@ -241,7 +246,8 @@ export function BandMeter({
           aria-hidden="true"
           className="absolute inset-y-0 w-px rounded-full"
           style={{
-            backgroundColor: "var(--color-chart-axis)",
+            backgroundColor:
+              "color-mix(in srgb, var(--ielts-skill-accent-text, var(--color-chart-axis)) 70%, var(--color-chart-axis))",
             left: `${targetProgress * 100}%`,
           }}
         />

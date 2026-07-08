@@ -13,6 +13,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { PageContainer, ProductPageShell } from "@/components/shared/product-layout";
 import { PageTransition } from "@/components/shared/page-motion";
+import { showToast } from "@/components/shared/toast";
 import { cn } from "@/lib/utils";
 import type {
   IeltsReviewRating,
@@ -101,9 +102,14 @@ function ReviewCard({
         rating,
         responseMs: Math.max(0, Date.now() - startedAt.current),
       });
+      showToast(
+        item.position >= total ? t("toast_complete") : t("toast_saved"),
+        "success",
+      );
       onGraded(item.id);
     } catch {
       setError(t("grade_error"));
+      showToast(t("grade_error"), "error");
     } finally {
       setSaving(null);
     }

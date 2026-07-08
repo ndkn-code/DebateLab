@@ -16,6 +16,7 @@ import {
   PageContainer,
   ProductPageShell,
 } from "@/components/shared/product-layout";
+import { showToast } from "@/components/shared/toast";
 import { regenerateIeltsStudyPlanAction } from "@/app/actions/ielts/study-plan";
 import type { IeltsStudyPlanPageView } from "@/lib/ielts/study-plan/page-view";
 import { cn } from "@/lib/utils";
@@ -52,8 +53,11 @@ export function IeltsStudyPlanView({
       setError(null);
       try {
         await regenerateIeltsStudyPlanAction();
+        showToast(t("regenerate_success"), "success");
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : t("error_generic"));
+        const message = caught instanceof Error ? caught.message : t("error_generic");
+        setError(message);
+        showToast(message, "error");
       }
     });
   };
@@ -86,8 +90,8 @@ export function IeltsStudyPlanView({
           ) : null}
 
           {view.status === "no_plan" ? (
-            <section className="rounded-3xl border border-outline-variant bg-surface-container p-8 text-center">
-              <span className="mx-auto inline-flex size-12 items-center justify-center rounded-2xl bg-primary-container text-on-primary-container">
+            <section className="rounded-lg border border-outline-variant bg-surface-container p-6 text-center shadow-token-card sm:p-8">
+              <span className="mx-auto inline-flex size-11 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
                 <GraduationCap className="size-6" />
               </span>
               <h1 className="mt-4 type-heading-lg font-bold text-on-surface">
@@ -106,13 +110,13 @@ export function IeltsStudyPlanView({
             </section>
           ) : (
             <>
-              <section className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container p-6 sm:p-8">
+              <section className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-5 shadow-token-card sm:p-6">
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="type-eyebrow font-semibold uppercase text-primary">
+                    <p className="type-label font-semibold uppercase text-primary">
                       {t("eyebrow")}
                     </p>
-                    <h1 className="mt-1 type-heading-xl font-bold text-balance text-on-surface">
+                    <h1 className="mt-1 type-heading-lg font-bold text-balance text-on-surface">
                       {t("title")}
                     </h1>
                     <p className="mt-2 max-w-prose type-body text-on-surface-variant">
@@ -120,8 +124,8 @@ export function IeltsStudyPlanView({
                     </p>
                   </div>
                   {countdown ? (
-                    <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl bg-primary-container px-6 py-4 text-center text-on-primary-container">
-                      <span className="type-heading-md font-bold text-balance">
+                    <div className="flex shrink-0 flex-col items-center justify-center rounded-lg bg-primary-container px-5 py-3 text-center text-on-primary-container">
+                      <span className="type-title font-bold text-balance">
                         {countdownLabel}
                       </span>
                       <span className="mt-1 type-caption font-semibold">
@@ -157,7 +161,7 @@ export function IeltsStudyPlanView({
               </section>
 
               {view.status === "needs_diagnostic" ? (
-                <section className="rounded-3xl border border-warning bg-warning-container p-6">
+                <section className="rounded-lg border border-warning bg-warning-container p-5">
                   <h2 className="type-heading-sm font-bold text-on-warning-container">
                     {t("needs_diagnostic_title")}
                   </h2>
