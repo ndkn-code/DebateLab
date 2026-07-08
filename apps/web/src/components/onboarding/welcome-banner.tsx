@@ -66,7 +66,7 @@ export function WelcomeBanner({
           transition={{ duration: 0.3 }}
           className="mb-6 overflow-hidden"
         >
-          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-[#E5F8FC] to-background p-6">
+          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-primary-container to-background p-6">
             {/* Dismiss */}
             <button
               onClick={handleDismiss}

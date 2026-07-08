@@ -310,7 +310,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   <span>Expires</span>
                   <span>Actions</span>
                 </div>
-                <div className="divide-y divide-[#e6edf7]">
+                <div className="divide-y divide-outline-variant">
                 {filteredUsers.map((user) => {
                   const selected = selectedUser?.id === user.id;
                   const expiresIn = daysUntil(user.latestSubscription?.current_period_end);

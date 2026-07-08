@@ -931,7 +931,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
           {latestResponses.length === 0 ? (
             <p className="p-6 text-sm text-on-surface-variant">No feedback responses yet.</p>
           ) : (
-            <div className="divide-y divide-[#CDECF3]">
+            <div className="divide-y divide-outline-variant">
               {latestResponses.map((response) => (
                 <div key={response.id} className="p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1037,7 +1037,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
           {data.cronRuns.length === 0 ? (
             <p className="p-6 text-sm text-on-surface-variant">No cron runs recorded yet.</p>
           ) : (
-            <div className="divide-y divide-[#CDECF3]">
+            <div className="divide-y divide-outline-variant">
               {data.cronRuns.map((run) => (
                 <div key={run.id} className="grid gap-3 p-5 text-sm md:grid-cols-[1fr_1fr_1fr_2fr]">
                   <div className="font-bold text-on-surface">
