@@ -3,6 +3,7 @@
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
+  AlertCircle,
   ArrowLeft,
   BarChart3,
   BookOpen,
@@ -33,6 +34,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/ui-showcase", key: "uiShowcase" as const, icon: LayoutGrid },
   { href: "/dashboard/admin/corpus", key: "corpus" as const, icon: Layers3 },
   { href: "/dashboard/admin/users", key: "users" as const, icon: Users },
+  { href: "/dashboard/admin/reports", key: "reports" as const, icon: AlertCircle },
   { href: "/dashboard/admin/classes", key: "classes" as const, icon: CalendarDays },
   { href: "/dashboard/admin/clubs", key: "clubs" as const, icon: Building2 },
   { href: "/dashboard/admin/emails", key: "emails" as const, icon: Mail },
