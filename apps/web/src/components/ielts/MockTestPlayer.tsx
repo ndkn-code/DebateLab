@@ -28,6 +28,7 @@ import {
 } from "@/app/actions/ielts/mock";
 import { startAssignedMockAttempt } from "@/app/actions/ielts/assignments";
 import { MockSectionView } from "./MockSectionView";
+import { MockPreTestGuide } from "./MockPreTestGuide";
 
 type Phase = "intro" | "running" | "done";
 const PILL = "rounded-full px-5 py-2 text-sm font-semibold";
@@ -293,6 +294,7 @@ function IntroCard({
         Timed, exam-conditions mock. Each section is server-timed; you can pause,
         resume, and navigate within a section.
       </p>
+      <MockPreTestGuide />
       {error ? <p className="text-sm text-error">{error}</p> : null}
       <button
         type="button"

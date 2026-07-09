@@ -16,12 +16,21 @@ import type {
 } from "@/lib/ielts/section-timing";
 import type { MockStructure } from "@/lib/api/ielts/mock-repository";
 import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
+import { ProductIcon } from "@/components/ui/product-icon";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SectionTimer } from "./SectionTimer";
 import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
 import { QuestionHost } from "./QuestionHost";
 import { QuestionNavigator } from "./QuestionNavigator";
 import { SectionReviewSheet } from "./SectionReviewSheet";
 import { PassageHighlighter } from "./PassageHighlighter";
+import { MockPreTestGuide } from "./MockPreTestGuide";
 import { buildSectionParts, type MockPart } from "./mock-parts";
 import {
   buildMockQuestionStatuses,
@@ -174,6 +183,7 @@ export function MockSectionView({
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [timerStatus, setTimerStatus] = useState<SectionRuntimeStatus>("not_started");
   const flags = useMockAnnotationsStore((store) => store.flags);
 
@@ -257,6 +267,16 @@ export function MockSectionView({
             counts={questionCounts}
             onJump={jumpToQuestion}
           />
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className={`${PILL} inline-flex items-center gap-2 bg-surface-container-high text-on-surface transition hover:bg-surface-container`}
+            aria-haspopup="dialog"
+            aria-expanded={guideOpen}
+          >
+            <ProductIcon name="info" size="xs" weight="bold" />
+            How it works
+          </button>
         </div>
         <SectionControls
           paused={paused}
@@ -316,6 +336,31 @@ export function MockSectionView({
         onJump={jumpToQuestion}
         onConfirm={onSubmitSection}
       />
+
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent
+          className="bottom-0 left-0 top-auto !z-[1000] flex max-h-[calc(100dvh-1rem)] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-xl border border-outline-variant bg-surface p-0 shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+          overlayClassName="!z-[900] bg-inverse-surface/20"
+        >
+          <DialogHeader className="border-b border-outline-variant px-4 py-4 pr-12 sm:px-5">
+            <DialogTitle className="text-base font-bold text-on-surface">
+              How this mock works
+            </DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
+            <MockPreTestGuide showHeading={false} className="shadow-none" />
+          </div>
+          <DialogFooter className="mx-0 mb-0 rounded-none border-t border-outline-variant bg-surface px-4 py-3 sm:px-5">
+            <button
+              type="button"
+              onClick={() => setGuideOpen(false)}
+              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
+            >
+              Got it
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
