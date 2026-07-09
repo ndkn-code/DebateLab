@@ -29,6 +29,7 @@ export interface HighlightSegment {
 interface MockAnnotationsState {
   activeAttemptId: string | null;
   highlights: Record<string, Highlight[]>;
+  flags: Record<string, true>;
   eliminations: Record<string, Set<string>>;
   hydrateAttempt: (attemptId: string) => void;
   clearActiveAttempt: () => void;
@@ -40,6 +41,8 @@ interface MockAnnotationsState {
   ) => Highlight | null;
   removeHighlight: (passageKey: string, highlightId: string) => void;
   clearHighlights: (passageKey: string) => void;
+  toggleFlag: (questionId: string) => void;
+  clearFlag: (questionId: string) => void;
   toggleElimination: (questionId: string, optionId: string) => void;
   clearElimination: (questionId: string, optionId: string) => void;
   clearQuestionEliminations: (questionId: string) => void;
@@ -99,17 +102,33 @@ function sanitizeHighlightRecord(value: unknown, attemptId: string): Record<stri
   return output;
 }
 
-function readPersistedHighlights(attemptId: string): Record<string, Highlight[]> {
-  if (!canUseStorage()) return {};
+function sanitizeFlagRecord(value: unknown, attemptId: string): Record<string, true> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const prefix = attemptPrefix(attemptId);
+  const output: Record<string, true> = {};
+  for (const [key, flagged] of Object.entries(value as Record<string, unknown>)) {
+    if (key.startsWith(prefix) && flagged === true) output[key] = true;
+  }
+  return output;
+}
+
+function readPersistedAnnotations(attemptId: string): {
+  highlights: Record<string, Highlight[]>;
+  flags: Record<string, true>;
+} {
+  if (!canUseStorage()) return { highlights: {}, flags: {} };
   try {
     const raw = window.localStorage.getItem(storageKey(attemptId));
-    if (!raw) return {};
+    if (!raw) return { highlights: {}, flags: {} };
     const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
+    if (!parsed || typeof parsed !== "object") return { highlights: {}, flags: {} };
     const record = parsed as Record<string, unknown>;
-    return sanitizeHighlightRecord(record.highlights, attemptId);
+    return {
+      highlights: sanitizeHighlightRecord(record.highlights, attemptId),
+      flags: sanitizeFlagRecord(record.flags, attemptId),
+    };
   } catch {
-    return {};
+    return { highlights: {}, flags: {} };
   }
 }
 
@@ -126,6 +145,16 @@ function highlightsForAttempt(
   );
 }
 
+function flagsForAttempt(
+  flags: Record<string, true>,
+  attemptId: string,
+): Record<string, true> {
+  const prefix = attemptPrefix(attemptId);
+  return Object.fromEntries(
+    Object.entries(flags).filter(([key]) => key.startsWith(prefix)),
+  );
+}
+
 function omitAttemptSets(
   eliminations: Record<string, Set<string>>,
   attemptId: string,
@@ -136,21 +165,30 @@ function omitAttemptSets(
   );
 }
 
-function persistHighlightsNow(attemptId: string, highlights: Record<string, Highlight[]>): void {
+function persistAnnotationsNow(
+  attemptId: string,
+  highlights: Record<string, Highlight[]>,
+  flags: Record<string, true>,
+): void {
   if (persistTimer) {
     clearTimeout(persistTimer);
     persistTimer = null;
   }
   if (!canUseStorage()) return;
   try {
-    const scoped = highlightsForAttempt(highlights, attemptId);
-    if (Object.keys(scoped).length === 0) {
+    const scopedHighlights = highlightsForAttempt(highlights, attemptId);
+    const scopedFlags = flagsForAttempt(flags, attemptId);
+    if (Object.keys(scopedHighlights).length === 0 && Object.keys(scopedFlags).length === 0) {
       window.localStorage.removeItem(storageKey(attemptId));
       return;
     }
     window.localStorage.setItem(
       storageKey(attemptId),
-      JSON.stringify({ version: STORAGE_VERSION, highlights: scoped }),
+      JSON.stringify({
+        version: STORAGE_VERSION,
+        highlights: scopedHighlights,
+        flags: scopedFlags,
+      }),
     );
   } catch {
     // Browser storage can be unavailable or quota-limited. Annotation UI should
@@ -158,13 +196,14 @@ function persistHighlightsNow(attemptId: string, highlights: Record<string, High
   }
 }
 
-function scheduleHighlightPersist(
+function scheduleAnnotationPersist(
   attemptId: string,
   highlights: Record<string, Highlight[]>,
+  flags: Record<string, true>,
 ): void {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    persistHighlightsNow(attemptId, highlights);
+    persistAnnotationsNow(attemptId, highlights, flags);
   }, MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS);
 }
 
@@ -235,25 +274,33 @@ export function buildHighlightSegments(
 export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) => ({
   activeAttemptId: null,
   highlights: {},
+  flags: {},
   eliminations: {},
 
   hydrateAttempt: (attemptId) =>
-    set((state) => ({
-      activeAttemptId: attemptId,
-      highlights: {
-        ...state.highlights,
-        ...readPersistedHighlights(attemptId),
-      },
-      eliminations:
-        state.activeAttemptId && state.activeAttemptId !== attemptId
-          ? omitAttemptSets(state.eliminations, state.activeAttemptId)
-          : state.eliminations,
-    })),
+    set((state) => {
+      const persisted = readPersistedAnnotations(attemptId);
+      return {
+        activeAttemptId: attemptId,
+        highlights: {
+          ...state.highlights,
+          ...persisted.highlights,
+        },
+        flags: {
+          ...state.flags,
+          ...persisted.flags,
+        },
+        eliminations:
+          state.activeAttemptId && state.activeAttemptId !== attemptId
+            ? omitAttemptSets(state.eliminations, state.activeAttemptId)
+            : state.eliminations,
+      };
+    }),
 
   clearActiveAttempt: () =>
     set((state) => {
       if (!state.activeAttemptId) return state;
-      persistHighlightsNow(state.activeAttemptId, state.highlights);
+      persistAnnotationsNow(state.activeAttemptId, state.highlights, state.flags);
       return {
         activeAttemptId: null,
         eliminations: omitAttemptSets(state.eliminations, state.activeAttemptId),
@@ -278,7 +325,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
         [key]: [...(state.highlights[key] ?? []), highlight],
       },
     }));
-    scheduleHighlightPersist(attemptId, get().highlights);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
     return highlight;
   },
 
@@ -295,7 +342,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       else delete highlights[key];
       return { highlights };
     });
-    scheduleHighlightPersist(attemptId, get().highlights);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
   },
 
   clearHighlights: (passageKey) => {
@@ -307,7 +354,33 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       delete highlights[key];
       return { highlights };
     });
-    scheduleHighlightPersist(attemptId, get().highlights);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+  },
+
+  toggleFlag: (questionId) => {
+    const attemptId = get().activeAttemptId;
+    if (!attemptId) return;
+    const key = mockAnnotationKey(attemptId, questionId);
+    set((state) => {
+      const flags = { ...state.flags };
+      if (flags[key]) delete flags[key];
+      else flags[key] = true;
+      return { flags };
+    });
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+  },
+
+  clearFlag: (questionId) => {
+    const attemptId = get().activeAttemptId;
+    if (!attemptId) return;
+    const key = mockAnnotationKey(attemptId, questionId);
+    set((state) => {
+      if (!state.flags[key]) return state;
+      const flags = { ...state.flags };
+      delete flags[key];
+      return { flags };
+    });
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
   },
 
   toggleElimination: (questionId, optionId) => {

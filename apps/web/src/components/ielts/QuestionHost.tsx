@@ -8,6 +8,11 @@
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
 import { isObjectiveQuestionType } from "@/lib/ielts/question-types";
 import {
+  mockAnnotationKey,
+  useMockAnnotationsStore,
+} from "@/lib/stores/mockAnnotationsStore";
+import { Bookmark, BookmarkCheck } from "@/components/ui/icons";
+import {
   getIeltsQuestionRenderer,
   type IeltsRendererContext,
 } from "./question-renderer-registry";
@@ -23,6 +28,7 @@ export function QuestionHost({
   disabled,
   onChange,
   context,
+  allowFlag = false,
 }: {
   question: IeltsQuestionView;
   number: number;
@@ -30,17 +36,47 @@ export function QuestionHost({
   disabled: boolean;
   onChange: (value: unknown) => void;
   context?: IeltsRendererContext;
+  allowFlag?: boolean;
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
   const objective = isObjectiveQuestionType(question.questionType);
   const renderer = renderQuestion({ question, value, disabled, onChange, context });
+  const isFlagged = useMockAnnotationsStore((store) => {
+    if (!store.activeAttemptId) return false;
+    return store.flags[mockAnnotationKey(store.activeAttemptId, question.id)] === true;
+  });
+  const toggleFlag = useMockAnnotationsStore((store) => store.toggleFlag);
+  const FlagIcon = isFlagged ? BookmarkCheck : Bookmark;
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container p-5">
+    <div
+      id={`mock-q-${question.id}`}
+      className="scroll-mt-24 rounded-3xl border border-outline-variant bg-surface-container p-5"
+    >
       <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
-          {number}
-        </span>
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+            {number}
+          </span>
+          {allowFlag ? (
+            <button
+              type="button"
+              onClick={() => toggleFlag(question.id)}
+              aria-pressed={isFlagged}
+              title={isFlagged ? "Remove flag" : "Flag for review"}
+              className={`flex size-7 items-center justify-center rounded-full border transition active:scale-95 ${
+                isFlagged
+                  ? "border-warning bg-warning-container text-on-warning-container"
+                  : "border-outline-variant bg-surface text-on-surface-variant hover:border-warning hover:text-warning"
+              }`}
+            >
+              <FlagIcon className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">
+                {isFlagged ? "Remove flag" : "Flag for review"}
+              </span>
+            </button>
+          ) : null}
+        </div>
         <div className="min-w-0 flex-1">
           {objective ? (
             renderer

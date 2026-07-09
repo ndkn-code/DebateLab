@@ -78,6 +78,31 @@ export function extractValues(response: ResponseLike): string[] {
   return single === null ? [] : [single];
 }
 
+function hasNonEmptyToken(value: unknown): boolean {
+  const single = primitiveToString(value);
+  if (single !== null) return single.trim().length > 0;
+  if (Array.isArray(value)) return value.some(hasNonEmptyToken);
+  return false;
+}
+
+/** UI-safe answer presence check shared by mock navigation/review surfaces. */
+export function isAnsweredResponse(response: ResponseLike): boolean {
+  if (response === null || response === undefined) return false;
+  if (hasNonEmptyToken(response)) return true;
+
+  if (response && typeof response === "object" && !Array.isArray(response)) {
+    const record = response as Record<string, unknown>;
+    if ("values" in record && record.values && typeof record.values === "object") {
+      if (Array.isArray(record.values)) return record.values.some(hasNonEmptyToken);
+      return Object.values(record.values as Record<string, unknown>).some(hasNonEmptyToken);
+    }
+    return ["value", "selected", "answer", "text", "essay", "speakingResponseId", "audioStoragePath"]
+      .some((key) => hasNonEmptyToken(record[key]));
+  }
+
+  return false;
+}
+
 /** Flatten a JSON answer-key value into a list of acceptable answer strings. */
 export function toAnswerStrings(value: unknown): string[] {
   if (value === null || value === undefined) return [];

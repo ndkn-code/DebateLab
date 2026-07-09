@@ -7,7 +7,7 @@
  * once the section is paused, submitted, or past its server deadline — the DB
  * enforces the same, this just keeps the UI honest.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Tables } from "@/types/supabase";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type {
@@ -15,11 +15,18 @@ import type {
   SectionTimingState,
 } from "@/lib/ielts/section-timing";
 import type { MockStructure } from "@/lib/api/ielts/mock-repository";
+import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
 import { SectionTimer } from "./SectionTimer";
 import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
 import { QuestionHost } from "./QuestionHost";
+import { QuestionNavigator } from "./QuestionNavigator";
+import { SectionReviewSheet } from "./SectionReviewSheet";
 import { PassageHighlighter } from "./PassageHighlighter";
 import { buildSectionParts, type MockPart } from "./mock-parts";
+import {
+  buildMockQuestionStatuses,
+  summarizeMockQuestionStatuses,
+} from "./mock-flow-status";
 
 /** Passage / listening stimulus column; renders nothing for Writing/Speaking. */
 function SectionStimulus({ part }: { part: MockPart }) {
@@ -68,6 +75,7 @@ function SectionPart({
             disabled={disabled}
             onChange={(value) => onAnswer(question.id, value)}
             context={{ attemptId }}
+            allowFlag
           />
         ))}
         {part.questions.length === 0 ? (
@@ -92,6 +100,65 @@ interface Props {
 
 const PILL = "rounded-full px-4 py-1.5 text-sm font-semibold";
 
+function activeQuestionForPart(
+  part: MockPart | undefined,
+  activeQuestionId: string | null,
+): string | null {
+  if (!part) return null;
+  if (activeQuestionId && part.questions.some((question) => question.id === activeQuestionId)) {
+    return activeQuestionId;
+  }
+  return part.questions[0]?.id ?? null;
+}
+
+function SectionControls({
+  paused,
+  busy,
+  locked,
+  onPause,
+  onResume,
+  onReview,
+}: {
+  paused: boolean;
+  busy: boolean;
+  locked: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onReview: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {paused ? (
+        <button
+          type="button"
+          onClick={onResume}
+          disabled={busy || locked}
+          className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
+        >
+          Resume
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onPause}
+          disabled={busy || locked}
+          className={`${PILL} bg-surface-container-high text-on-surface disabled:opacity-50`}
+        >
+          Pause
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onReview}
+        disabled={busy || locked}
+        className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
+      >
+        Submit section
+      </button>
+    </div>
+  );
+}
+
 export function MockSectionView({
   section,
   structure,
@@ -104,13 +171,31 @@ export function MockSectionView({
   onExpire,
 }: Props) {
   const [activePart, setActivePart] = useState(0);
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [timerStatus, setTimerStatus] = useState<SectionRuntimeStatus>("not_started");
+  const flags = useMockAnnotationsStore((store) => store.flags);
 
   const parts = useMemo(
     () => buildSectionParts(structure, section.skill, process.env.NEXT_PUBLIC_SUPABASE_URL),
     [structure, section.skill],
   );
-  const part = parts[Math.min(activePart, Math.max(0, parts.length - 1))];
+  const activePartIndex = parts.length === 0 ? -1 : Math.min(activePart, parts.length - 1);
+  const part = activePartIndex >= 0 ? parts[activePartIndex] : undefined;
+  const sectionLabel = section.label ?? section.skill;
+  const currentQuestionId = activeQuestionForPart(part, activeQuestionId);
+
+  useEffect(() => {
+    if (!pendingScrollQuestionId) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`mock-q-${pendingScrollQuestionId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setPendingScrollQuestionId(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePartIndex, pendingScrollQuestionId]);
 
   const timing: SectionTimingState = {
     startedAt: section.started_at,
@@ -124,50 +209,63 @@ export function MockSectionView({
   const disabled = locked || paused || busy;
 
   // Global question number = count in prior parts + index within this part.
-  const numberOffset = parts
-    .slice(0, parts.indexOf(part))
-    .reduce((sum, p) => sum + p.questions.length, 0);
+  const numberOffset = activePartIndex <= 0
+    ? 0
+    : parts
+        .slice(0, activePartIndex)
+        .reduce((sum, p) => sum + p.questions.length, 0);
+  const questionStatuses = useMemo(
+    () =>
+      buildMockQuestionStatuses({
+        parts,
+        responses,
+        flags,
+        attemptId: section.attempt_id,
+        activeQuestionId: currentQuestionId,
+      }),
+    [currentQuestionId, flags, parts, responses, section.attempt_id],
+  );
+  const questionCounts = useMemo(
+    () => summarizeMockQuestionStatuses(questionStatuses),
+    [questionStatuses],
+  );
+
+  const selectPart = (index: number) => {
+    setActivePart(index);
+    setActiveQuestionId(parts[index]?.questions[0]?.id ?? null);
+  };
+
+  const jumpToQuestion = (partIndex: number, questionId: string) => {
+    setActivePart(partIndex);
+    setActiveQuestionId(questionId);
+    setPendingScrollQuestionId(questionId);
+  };
 
   return (
     <section className="flex flex-col gap-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-on-surface">{section.label ?? section.skill}</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-lg font-bold text-on-surface">{sectionLabel}</h2>
           <SectionTimer
             timing={timing}
             onExpire={onExpire}
             onStatusChange={setTimerStatus}
           />
+          <QuestionNavigator
+            sectionLabel={sectionLabel}
+            statuses={questionStatuses}
+            counts={questionCounts}
+            onJump={jumpToQuestion}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          {paused ? (
-            <button
-              type="button"
-              onClick={onResume}
-              disabled={busy || locked}
-              className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-            >
-              Resume
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onPause}
-              disabled={busy || locked}
-              className={`${PILL} bg-surface-container-high text-on-surface disabled:opacity-50`}
-            >
-              Pause
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onSubmitSection}
-            disabled={busy || locked}
-            className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-          >
-            Submit section
-          </button>
-        </div>
+        <SectionControls
+          paused={paused}
+          busy={busy}
+          locked={locked}
+          onPause={onPause}
+          onResume={onResume}
+          onReview={() => setReviewOpen(true)}
+        />
       </header>
 
       {parts.length > 1 ? (
@@ -176,9 +274,9 @@ export function MockSectionView({
             <button
               key={candidate.id}
               type="button"
-              onClick={() => setActivePart(index)}
+              onClick={() => selectPart(index)}
               className={`${PILL} ${
-                index === parts.indexOf(part)
+                index === activePartIndex
                   ? "bg-primary text-on-primary"
                   : "bg-surface-container text-on-surface-variant"
               }`}
@@ -207,6 +305,17 @@ export function MockSectionView({
       ) : (
         <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
       )}
+
+      <SectionReviewSheet
+        open={reviewOpen}
+        sectionLabel={sectionLabel}
+        statuses={questionStatuses}
+        counts={questionCounts}
+        busy={busy || locked}
+        onOpenChange={setReviewOpen}
+        onJump={jumpToQuestion}
+        onConfirm={onSubmitSection}
+      />
     </section>
   );
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   extractValue,
   extractValues,
+  isAnsweredResponse,
   normalizeBoolean,
   normalizeChoice,
   normalizeText,
@@ -57,6 +58,20 @@ assert.deepEqual(extractValues("solo"), ["solo"]);
 assert.deepEqual(extractValues({ value: "one" }), ["one"]);
 assert.deepEqual(extractValues(null), []);
 assert.deepEqual(extractValues({}), []);
+
+// isAnsweredResponse: scalar, IELTS answer envelopes, capture envelopes, blanks.
+assert.equal(isAnsweredResponse(" answer "), true);
+assert.equal(isAnsweredResponse("   "), false);
+assert.equal(isAnsweredResponse({ value: "b" }), true);
+assert.equal(isAnsweredResponse({ value: "" }), false);
+assert.equal(isAnsweredResponse({ selected: [] }), false);
+assert.equal(isAnsweredResponse({ selected: ["a"] }), true);
+assert.equal(isAnsweredResponse({ values: { "0": "" } }), false);
+assert.equal(isAnsweredResponse({ values: { "0": ["", "c"] } }), true);
+assert.equal(isAnsweredResponse({ essay: "  first draft  " }), true);
+assert.equal(isAnsweredResponse({ speakingResponseId: null, audioStoragePath: null }), false);
+assert.equal(isAnsweredResponse(null), false);
+assert.equal(isAnsweredResponse(undefined), false);
 
 // toAnswerStrings: null, scalar, array, nested array, object envelope.
 assert.deepEqual(toAnswerStrings(null), []);

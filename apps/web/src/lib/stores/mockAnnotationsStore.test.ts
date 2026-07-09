@@ -38,6 +38,7 @@ function resetStore(): void {
   useMockAnnotationsStore.setState({
     activeAttemptId: null,
     highlights: {},
+    flags: {},
     eliminations: {},
   });
   localStorage.clear();
@@ -75,6 +76,7 @@ async function main() {
   const optionId = "choice-a";
   const highlightKey = mockAnnotationKey(attemptId, passageKey);
   const eliminationKey = mockAnnotationKey(attemptId, questionId);
+  const flagKey = mockAnnotationKey(attemptId, questionId);
 
   useMockAnnotationsStore.getState().hydrateAttempt(attemptId);
   const added = useMockAnnotationsStore
@@ -89,12 +91,15 @@ async function main() {
     useMockAnnotationsStore.getState().eliminations[eliminationKey]?.has(optionId),
     true,
   );
+  useMockAnnotationsStore.getState().toggleFlag(questionId);
+  assert.equal(useMockAnnotationsStore.getState().flags[flagKey], true);
 
   await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
   const persisted = JSON.parse(
     localStorage.getItem(`ielts-mock-annotations-${attemptId}`) ?? "{}",
-  ) as { highlights?: Record<string, Highlight[]> };
+  ) as { highlights?: Record<string, Highlight[]>; flags?: Record<string, true> };
   assert.equal(persisted.highlights?.[highlightKey]?.length, 1);
+  assert.equal(persisted.flags?.[flagKey], true);
   assert.equal(JSON.stringify(persisted).includes(optionId), false);
 
   useMockAnnotationsStore.getState().clearActiveAttempt();
@@ -104,15 +109,58 @@ async function main() {
   useMockAnnotationsStore.setState({
     activeAttemptId: null,
     highlights: {},
+    flags: {},
     eliminations: {},
   });
   useMockAnnotationsStore.getState().hydrateAttempt(attemptId);
   assert.equal(useMockAnnotationsStore.getState().highlights[highlightKey]?.length, 1);
+  assert.equal(useMockAnnotationsStore.getState().flags[flagKey], true);
   assert.equal(useMockAnnotationsStore.getState().eliminations[eliminationKey], undefined);
 
   useMockAnnotationsStore.getState().clearHighlights(passageKey);
   await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
+  assert.equal(
+    JSON.parse(localStorage.getItem(`ielts-mock-annotations-${attemptId}`) ?? "{}").flags?.[flagKey],
+    true,
+  );
+
+  useMockAnnotationsStore.getState().clearFlag(questionId);
+  await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
   assert.equal(localStorage.getItem(`ielts-mock-annotations-${attemptId}`), null);
+
+  resetStore();
+  const oldAttemptId = "attempt-old";
+  const oldHighlightKey = mockAnnotationKey(oldAttemptId, "old-passage");
+  localStorage.setItem(
+    `ielts-mock-annotations-${oldAttemptId}`,
+    JSON.stringify({
+      version: 1,
+      highlights: {
+        [oldHighlightKey]: [{ id: "old", start: 0, end: 4, color: "yellow" }],
+      },
+    }),
+  );
+  useMockAnnotationsStore.getState().hydrateAttempt(oldAttemptId);
+  assert.equal(useMockAnnotationsStore.getState().highlights[oldHighlightKey]?.length, 1);
+  assert.deepEqual(useMockAnnotationsStore.getState().flags, {});
+
+  resetStore();
+  const mixedAttemptId = "attempt-mixed";
+  const goodFlagKey = mockAnnotationKey(mixedAttemptId, "question-good");
+  localStorage.setItem(
+    `ielts-mock-annotations-${mixedAttemptId}`,
+    JSON.stringify({
+      version: 1,
+      highlights: {},
+      flags: {
+        [goodFlagKey]: true,
+        [mockAnnotationKey("other-attempt", "question-bad")]: true,
+        [mockAnnotationKey(mixedAttemptId, "question-false")]: false,
+      },
+    }),
+  );
+  useMockAnnotationsStore.getState().hydrateAttempt(mixedAttemptId);
+  assert.deepEqual(useMockAnnotationsStore.getState().flags, { [goodFlagKey]: true });
 
   console.log("mockAnnotationsStore tests passed");
 }
