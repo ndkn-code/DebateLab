@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
@@ -51,6 +51,7 @@ export function MockTestPlayer({
   returnLabel?: string;
 }) {
   const params = useParams<{ locale: string }>();
+  const router = useRouter();
   const t = useTranslations("ielts.player");
   const [phase, setPhase] = useState<Phase>("intro");
   const [state, setState] = useState<AttemptState | null>(null);
@@ -200,12 +201,15 @@ export function MockTestPlayer({
       setGrade(result.grade);
       setPhase("done");
       showToast(t("toastMockSubmitted"), "success");
+      router.push(`/${params.locale}/ielts/attempts/${attemptId}/results`);
     });
   };
 
   if (phase === "intro") {
     return (
-      <IntroCard title={structure.test.title} busy={busy} error={error} onStart={handleStart} />
+      <div className="flex h-full items-center justify-center overflow-y-auto px-4 py-8">
+        <IntroCard title={structure.test.title} busy={busy} error={error} onStart={handleStart} />
+      </div>
     );
   }
 
@@ -224,28 +228,12 @@ export function MockTestPlayer({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="relative flex h-full min-h-0 flex-col bg-background">
       {error ? (
-        <p className="rounded-2xl bg-error-container px-4 py-3 text-sm text-error">{error}</p>
+        <p className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-2xl bg-error-container px-4 py-3 text-sm font-semibold text-error shadow-lg">
+          {error}
+        </p>
       ) : null}
-      <nav className="flex flex-wrap gap-2">
-        {sections.map((candidate, index) => (
-          <button
-            key={candidate.id}
-            type="button"
-            onClick={() => handleSwitch(index)}
-            disabled={busy}
-            className={`${PILL} ${
-              index === activeIndex
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container text-on-surface-variant"
-            } disabled:opacity-50`}
-          >
-            {candidate.label ?? candidate.skill}
-            {candidate.submitted_at !== null ? " ✓" : ""}
-          </button>
-        ))}
-      </nav>
 
       {section ? (
         <MockSectionView
@@ -254,24 +242,18 @@ export function MockTestPlayer({
           structure={structure}
           responses={responses}
           busy={busy}
+          testTitle={structure.test.title}
+          sections={sections}
+          activeSectionIndex={activeIndex}
           onAnswer={handleAnswer}
+          onSwitchSection={handleSwitch}
           onPause={sectionAction(pauseSection)}
           onResume={sectionAction(resumeSection)}
           onSubmitSection={sectionAction(submitSection, t("toastSectionSubmitted"))}
           onExpire={handleExpire}
+          onFinish={handleFinish}
         />
       ) : null}
-
-      <footer className="flex justify-end border-t border-outline-variant pt-4">
-        <button
-          type="button"
-          onClick={handleFinish}
-          disabled={busy}
-          className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-        >
-          Finish test &amp; see band
-        </button>
-      </footer>
     </div>
   );
 }

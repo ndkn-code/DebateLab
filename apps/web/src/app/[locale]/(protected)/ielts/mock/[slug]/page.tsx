@@ -42,7 +42,7 @@ export default async function IeltsMockPage({
       : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6">
+    <main className="h-full min-h-0 w-full overflow-hidden">
       <MockTestPlayer
         structure={structure}
         assignmentId={assignmentId}

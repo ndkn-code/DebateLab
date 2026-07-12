@@ -16,7 +16,6 @@ import type {
 } from "@/lib/ielts/section-timing";
 import type { MockStructure } from "@/lib/api/ielts/mock-repository";
 import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
-import { ProductIcon } from "@/components/ui/product-icon";
 import {
   Dialog,
   DialogContent,
@@ -24,13 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SectionTimer } from "./SectionTimer";
 import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
 import { QuestionHost } from "./QuestionHost";
-import { QuestionNavigator } from "./QuestionNavigator";
 import { SectionReviewSheet } from "./SectionReviewSheet";
 import { PassageHighlighter } from "./PassageHighlighter";
 import { MockPreTestGuide } from "./MockPreTestGuide";
+import { ExamSectionFooter, ExamSectionHeader } from "./exam/ExamChrome";
 import { buildSectionParts, type MockPart } from "./mock-parts";
 import {
   buildMockQuestionStatuses,
@@ -97,14 +95,19 @@ function SectionPart({
 
 interface Props {
   section: Tables<"ielts_attempt_sections">;
+  sections: Tables<"ielts_attempt_sections">[];
   structure: MockStructure;
   responses: IeltsResponseMap;
   busy: boolean;
+  testTitle: string;
+  activeSectionIndex: number;
   onAnswer: (questionId: string, value: unknown) => void;
+  onSwitchSection: (index: number) => void;
   onPause: () => void;
   onResume: () => void;
   onSubmitSection: () => void;
   onExpire: () => void;
+  onFinish: () => void;
 }
 
 const PILL = "rounded-full px-4 py-1.5 text-sm font-semibold";
@@ -120,64 +123,21 @@ function activeQuestionForPart(
   return part.questions[0]?.id ?? null;
 }
 
-function SectionControls({
-  paused,
-  busy,
-  locked,
-  onPause,
-  onResume,
-  onReview,
-}: {
-  paused: boolean;
-  busy: boolean;
-  locked: boolean;
-  onPause: () => void;
-  onResume: () => void;
-  onReview: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      {paused ? (
-        <button
-          type="button"
-          onClick={onResume}
-          disabled={busy || locked}
-          className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-        >
-          Resume
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={onPause}
-          disabled={busy || locked}
-          className={`${PILL} bg-surface-container-high text-on-surface disabled:opacity-50`}
-        >
-          Pause
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={onReview}
-        disabled={busy || locked}
-        className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-      >
-        Submit section
-      </button>
-    </div>
-  );
-}
-
 export function MockSectionView({
   section,
+  sections,
   structure,
   responses,
   busy,
+  testTitle,
+  activeSectionIndex,
   onAnswer,
+  onSwitchSection,
   onPause,
   onResume,
   onSubmitSection,
   onExpire,
+  onFinish,
 }: Props) {
   const [activePart, setActivePart] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
@@ -251,80 +211,85 @@ export function MockSectionView({
     setPendingScrollQuestionId(questionId);
   };
 
+  const isLastSection = activeSectionIndex === sections.length - 1;
+
   return (
-    <section className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-bold text-on-surface">{sectionLabel}</h2>
-          <SectionTimer
-            timing={timing}
-            onExpire={onExpire}
-            onStatusChange={setTimerStatus}
-          />
-          <QuestionNavigator
-            sectionLabel={sectionLabel}
-            statuses={questionStatuses}
-            counts={questionCounts}
-            onJump={jumpToQuestion}
-          />
-          <button
-            type="button"
-            onClick={() => setGuideOpen(true)}
-            className={`${PILL} inline-flex items-center gap-2 bg-surface-container-high text-on-surface transition hover:bg-surface-container`}
-            aria-haspopup="dialog"
-            aria-expanded={guideOpen}
-          >
-            <ProductIcon name="info" size="xs" weight="bold" />
-            How it works
-          </button>
+    <section className="flex h-full min-h-0 flex-col bg-background text-on-surface">
+      <ExamSectionHeader
+        testTitle={testTitle}
+        sectionLabel={sectionLabel}
+        sections={sections}
+        activeSectionIndex={activeSectionIndex}
+        timing={timing}
+        paused={paused}
+        busy={busy}
+        locked={locked}
+        guideOpen={guideOpen}
+        onTimerStatusChange={setTimerStatus}
+        onExpire={onExpire}
+        onPause={onPause}
+        onResume={onResume}
+        onOpenGuide={() => setGuideOpen(true)}
+        onSwitchSection={onSwitchSection}
+      />
+
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
+          {parts.length > 1 ? (
+            <nav className="flex gap-2 overflow-x-auto" aria-label="Section parts">
+              {parts.map((candidate, index) => (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  onClick={() => selectPart(index)}
+                  aria-current={index === activePartIndex ? "step" : undefined}
+                  className={`${PILL} shrink-0 ${
+                    index === activePartIndex
+                      ? "bg-secondary text-on-secondary"
+                      : "bg-surface-container text-on-surface-variant"
+                  }`}
+                >
+                  {candidate.title}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+
+          {paused ? (
+            <p className="rounded-2xl bg-error-container px-4 py-3 text-sm font-medium text-error">
+              Paused — the clock is frozen. Resume to keep answering.
+            </p>
+          ) : null}
+
+          {part ? (
+            <SectionPart
+              part={part}
+              attemptId={section.attempt_id}
+              numberOffset={numberOffset}
+              disabled={disabled}
+              responses={responses}
+              onAnswer={onAnswer}
+            />
+          ) : (
+            <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
+          )}
         </div>
-        <SectionControls
-          paused={paused}
-          busy={busy}
-          locked={locked}
-          onPause={onPause}
-          onResume={onResume}
-          onReview={() => setReviewOpen(true)}
-        />
-      </header>
+      </main>
 
-      {parts.length > 1 ? (
-        <nav className="flex flex-wrap gap-2">
-          {parts.map((candidate, index) => (
-            <button
-              key={candidate.id}
-              type="button"
-              onClick={() => selectPart(index)}
-              className={`${PILL} ${
-                index === activePartIndex
-                  ? "bg-primary text-on-primary"
-                  : "bg-surface-container text-on-surface-variant"
-              }`}
-            >
-              {candidate.title}
-            </button>
-          ))}
-        </nav>
-      ) : null}
-
-      {paused ? (
-        <p className="rounded-2xl bg-error-container px-4 py-3 text-sm font-medium text-error">
-          Paused — the clock is frozen. Resume to keep answering.
-        </p>
-      ) : null}
-
-      {part ? (
-        <SectionPart
-          part={part}
-          attemptId={section.attempt_id}
-          numberOffset={numberOffset}
-          disabled={disabled}
-          responses={responses}
-          onAnswer={onAnswer}
-        />
-      ) : (
-        <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
-      )}
+      <ExamSectionFooter
+        sectionLabel={sectionLabel}
+        statuses={questionStatuses}
+        counts={questionCounts}
+        activePartIndex={activePartIndex}
+        partsLength={parts.length}
+        busy={busy}
+        locked={locked}
+        isLastSection={isLastSection}
+        onSelectPart={selectPart}
+        onJump={jumpToQuestion}
+        onReview={() => setReviewOpen(true)}
+        onFinish={onFinish}
+      />
 
       <SectionReviewSheet
         open={reviewOpen}

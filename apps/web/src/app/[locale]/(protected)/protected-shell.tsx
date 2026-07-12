@@ -165,6 +165,8 @@ export function ProtectedShell({
     seasonReplayReducedMotionOverride ?? detectedReducedMotion;
   const [seasonReplayOpen, setSeasonReplayOpen] = useState(false);
   const isPracticeSession = pathname?.includes("/practice/session");
+  const isIeltsMock = pathname?.includes("/ielts/mock/");
+  const isImmersive = isPracticeSession || isIeltsMock;
   const seasonReplayDismissalKey = useMemo(() => {
     if (!seasonReplayOutcome) return null;
     return getSeasonReplayDismissalKey(userId, seasonReplayOutcome);
@@ -231,7 +233,7 @@ export function ProtectedShell({
       />
     ) : null;
 
-  if (isPracticeSession) {
+  if (isImmersive) {
     return (
       <div className="fixed inset-0 h-dvh min-h-0 overflow-hidden overscroll-none bg-background">
         {children}
