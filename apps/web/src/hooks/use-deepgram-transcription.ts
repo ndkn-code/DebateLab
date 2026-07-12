@@ -12,8 +12,14 @@ import {
   createPracticeDebugId,
   setPracticeDebugId,
 } from "@/lib/practice-debug-id";
+import {
+  appendTranscriptSegment,
+  buildFinalizedSpeech,
+  type FinalizedSpeech,
+} from "@/lib/stt/live-finalization";
 
 const AUDIO_INPUT_LEVEL_THRESHOLD = 0.012;
+const FINALIZE_TIMEOUT_MS = 2000;
 const EMPTY_STT_CONTEXT: SttContextInput = {};
 
 function logSpeechDebug(
@@ -37,6 +43,7 @@ interface DeepgramResult {
   type: string;
   is_final: boolean;
   speech_final: boolean;
+  from_finalize?: boolean;
   channel: {
     alternatives: Array<{
       transcript: string;
@@ -128,6 +135,7 @@ export function useDeepgramTranscription(
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const shouldBeListeningRef = useRef(false);
   const transcriptRef = useRef("");
+  const interimTranscriptRef = useRef("");
   const hasReceivedSpeechRef = useRef(false);
   const lastSpeechTimeRef = useRef<number>(0);
   const silenceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -138,6 +146,10 @@ export function useDeepgramTranscription(
   const hasDetectedAudioRef = useRef(false);
   const hasReceivedInterimRef = useRef(false);
   const hasReceivedFinalRef = useRef(false);
+  const isFinalizingRef = useRef(false);
+  const finalizeResolverRef = useRef<
+    ((value: { finalizedByProvider: boolean; timedOut: boolean }) => void) | null
+  >(null);
 
   const markAudioDetected = useCallback(
     (source: string, metadata: Record<string, unknown> = {}) => {
@@ -386,9 +398,19 @@ export function useDeepgramTranscription(
                 });
               }
               // Append finalized text to transcript
-              transcriptRef.current += (transcriptRef.current ? " " : "") + text;
+              transcriptRef.current = appendTranscriptSegment(
+                transcriptRef.current,
+                text
+              );
               setTranscript(transcriptRef.current);
+              interimTranscriptRef.current = "";
               setInterimTranscript("");
+              if (isFinalizingRef.current) {
+                finalizeResolverRef.current?.({
+                  finalizedByProvider: true,
+                  timedOut: false,
+                });
+              }
             } else {
               if (!hasReceivedInterimRef.current) {
                 hasReceivedInterimRef.current = true;
@@ -398,6 +420,7 @@ export function useDeepgramTranscription(
                 });
               }
               // Show interim text
+              interimTranscriptRef.current = text;
               setInterimTranscript(text);
             }
           }
@@ -471,6 +494,7 @@ export function useDeepgramTranscription(
       hasReceivedFinalRef.current = false;
       setHasDetectedAudio(false);
       setHasReceivedSpeech(false);
+      interimTranscriptRef.current = "";
 
       shouldBeListeningRef.current = true;
       streamRef.current = micStream;
@@ -482,7 +506,7 @@ export function useDeepgramTranscription(
     [connectWebSocket, practiceLanguage, startSilenceDetection]
   );
 
-  const stopListening = useCallback(() => {
+  const pauseListening = useCallback(() => {
     logSpeechDebug(debugIdRef.current, "speech_stop_requested", {
       hasReceivedSpeech: hasReceivedSpeechRef.current,
       hasReceivedInterim: hasReceivedInterimRef.current,
@@ -495,6 +519,13 @@ export function useDeepgramTranscription(
       reconnectTimerRef.current = null;
     }
     clearSilenceTimer();
+    const pausedTranscript = appendTranscriptSegment(
+      transcriptRef.current,
+      interimTranscriptRef.current
+    );
+    transcriptRef.current = pausedTranscript;
+    interimTranscriptRef.current = "";
+    setTranscript(pausedTranscript);
     closeWebSocket();
     closeAudioProcessing();
     streamRef.current = null;
@@ -502,8 +533,77 @@ export function useDeepgramTranscription(
     setInterimTranscript("");
   }, [clearSilenceTimer, closeWebSocket, closeAudioProcessing]);
 
+  const finalizeListening = useCallback(async (): Promise<FinalizedSpeech> => {
+    const debugId = debugIdRef.current;
+    const ws = wsRef.current;
+    const interimAtStart = interimTranscriptRef.current;
+    logSpeechDebug(debugId, "stt_finalize_started", {
+      finalizedLength: transcriptRef.current.length,
+      interimLength: interimAtStart.length,
+    });
+
+    shouldBeListeningRef.current = false;
+    isFinalizingRef.current = true;
+    clearSilenceTimer();
+    closeAudioProcessing();
+    streamRef.current = null;
+    setIsListening(false);
+
+    let outcome = { finalizedByProvider: false, timedOut: false };
+    if (ws?.readyState === WebSocket.OPEN) {
+      outcome = await new Promise((resolve) => {
+        let settled = false;
+        const finish = (value: typeof outcome) => {
+          if (settled) return;
+          settled = true;
+          finalizeResolverRef.current = null;
+          resolve(value);
+        };
+        finalizeResolverRef.current = finish;
+        const timeoutId = window.setTimeout(() => {
+          finish({ finalizedByProvider: false, timedOut: true });
+        }, FINALIZE_TIMEOUT_MS);
+        const resolver = finalizeResolverRef.current;
+        finalizeResolverRef.current = (value) => {
+          window.clearTimeout(timeoutId);
+          resolver?.(value);
+        };
+        try {
+          ws.send(JSON.stringify({ type: "Finalize" }));
+        } catch {
+          window.clearTimeout(timeoutId);
+          finish({ finalizedByProvider: false, timedOut: false });
+        }
+      });
+    }
+
+    const result = buildFinalizedSpeech({
+      finalizedTranscript: transcriptRef.current,
+      interimTranscript: interimTranscriptRef.current || interimAtStart,
+      ...outcome,
+    });
+    transcriptRef.current = result.transcript;
+    interimTranscriptRef.current = "";
+    setTranscript(result.transcript);
+    setInterimTranscript("");
+    isFinalizingRef.current = false;
+    closeWebSocket();
+
+    logSpeechDebug(
+      debugId,
+      result.status === "timeout"
+        ? "stt_finalize_timeout"
+        : result.status === "interim_fallback"
+          ? "stt_finalize_interim_fallback"
+          : "stt_finalize_completed",
+      { status: result.status, ...result.metadata }
+    );
+    return result;
+  }, [clearSilenceTimer, closeAudioProcessing, closeWebSocket]);
+
   const resetTranscript = useCallback(() => {
     transcriptRef.current = "";
+    interimTranscriptRef.current = "";
     setTranscript("");
     setInterimTranscript("");
     hasDetectedAudioRef.current = false;
@@ -531,7 +631,9 @@ export function useDeepgramTranscription(
     interimTranscript,
     isListening,
     startListening,
-    stopListening,
+    pauseListening,
+    stopListening: pauseListening,
+    finalizeListening,
     resetTranscript,
     isSupported: true, // Deepgram works on all browsers with getUserMedia
     error,

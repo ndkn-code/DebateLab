@@ -47,6 +47,7 @@ interface SpeakingPhaseProps {
   isPaused: boolean;
   hasDetectedAudio?: boolean;
   hasReceivedSpeech?: boolean;
+  isFinalizing?: boolean;
   showcaseEndConfirm?: boolean;
   /** Full-round mode: enables the per-round transcript tabs. */
   rounds?: DebateRound[];
@@ -72,6 +73,7 @@ export function SpeakingPhase({
   isPaused,
   hasDetectedAudio = false,
   hasReceivedSpeech = false,
+  isFinalizing = false,
   showcaseEndConfirm = false,
   rounds,
   currentRound,
@@ -316,6 +318,7 @@ export function SpeakingPhase({
         />
         <Button
           onClick={() => setShowEndConfirm(true)}
+          disabled={isFinalizing}
           aria-label="End speech early"
           className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim"
         >

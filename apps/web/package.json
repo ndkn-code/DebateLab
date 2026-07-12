@@ -36,7 +36,7 @@
     "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts && tsx src/lib/practice-analysis/retry-guard.test.ts",
     "test:practice-session-resilience": "tsx src/lib/practice-session-drafts.test.ts && tsx src/lib/results/debate-session-row.test.ts",
     "test:practice-judge-reliability": "tsx src/lib/ai/provider-selection.test.ts && tsx src/lib/practice-feedback-errors.test.ts && tsx src/lib/practice-client-state.test.ts",
-    "test:stt": "tsx src/lib/stt/stt.test.ts",
+    "test:stt": "tsx src/lib/stt/stt.test.ts && tsx src/lib/stt/live-finalization.test.ts && tsx src/lib/audio/media-recorder-stop.test.ts",
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",
     "test:ai-quality": "tsx src/lib/ai/quality-model.test.ts",
     "test:ai-coach": "tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/metadata.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts",

@@ -109,8 +109,6 @@ async function finalizePracticeTranscription(params: {
   motionBrief: ReturnType<typeof getMotionBrief>;
   prepNotes: string;
 }) {
-  if (params.practiceLanguage !== "vi") return null;
-
   const response = await fetch("/api/practice-transcriptions/finalize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -213,8 +211,10 @@ export default function FeedbackPage() {
   );
 
   const fetchFeedback = useCallback(async () => {
-    if (!selectedTopic || !transcript) {
-      setError("Missing session transcript. Please try the speech again.");
+    if (!selectedTopic || (!transcript.trim() && !audioBlob)) {
+      setError(
+        "No transcript or recording was captured. Please try the speech again."
+      );
       setLoading(false);
       return;
     }
@@ -242,11 +242,12 @@ export default function FeedbackPage() {
     }, ANALYSIS_SUBMIT_TIMEOUT_MS);
 
     try {
-      const wordCount = transcript
+      const liveWordCount = transcript
         .split(/\s+/)
         .filter((w: string) => w.length > 0).length;
       logAnalyzeDebug(debugId, "request_started", {
-        wordCount,
+        wordCount: liveWordCount,
+        audioByteSize: audioBlob?.size ?? 0,
         practiceTrack,
         practiceLanguage,
         mode,
@@ -269,7 +270,11 @@ export default function FeedbackPage() {
       let analysisTranscript = transcript;
       let transcription: PracticeTranscriptionArtifact | null = null;
 
-      if (uploadedAudio) {
+      const shouldRetranscribe =
+        Boolean(uploadedAudio) &&
+        !isFullRound &&
+        (practiceLanguage === "vi" || liveWordCount < 20);
+      if (uploadedAudio && shouldRetranscribe) {
         transcription = await finalizePracticeTranscription({
           audio: uploadedAudio,
           practiceLanguage,
@@ -292,6 +297,17 @@ export default function FeedbackPage() {
           setTranscriptionArtifact(transcription);
           useSessionStore.getState().setTranscript(analysisTranscript);
         }
+      }
+
+      const wordCount = analysisTranscript
+        .split(/\s+/)
+        .filter((word) => word.length > 0).length;
+      if (wordCount < 20) {
+        throw new Error(
+          uploadedAudio
+            ? "We saved your recording, but could not recover enough speech to analyze it. Please retry."
+            : `Transcript too short (${wordCount} words). Minimum 20 words required.`
+        );
       }
 
       const res = await fetch("/api/practice-attempts", {

@@ -90,12 +90,14 @@ export default function SessionPage() {
   const [transitionMessage, setTransitionMessage] = useState("");
   const [transitionSub, setTransitionSub] = useState("");
   const [isPaused, setIsPaused] = useState(false);
+  const [isFinalizingSpeech, setIsFinalizingSpeech] = useState(false);
   const [showShortDialog, setShowShortDialog] = useState(false);
   const [shortWordCount, setShortWordCount] = useState(0);
   const [audioChecked, setAudioChecked] = useState(false);
   const [ttsVoice, setTtsVoice] = useState(DEFAULT_VOICE);
   const hasStartedRef = useRef(false);
   const hasEndedRef = useRef(false);
+  const lastFinalizedTranscriptRef = useRef("");
   const hasTrackedMissingSessionRef = useRef(false);
   const roundSpeechStartRef = useRef<number>(0);
   const transitionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -225,8 +227,7 @@ export default function SessionPage() {
   // Speech timer finished → end round
   useEffect(() => {
     if (speechTimer.isFinished && currentPhase === "speaking" && !hasEndedRef.current) {
-      hasEndedRef.current = true;
-      handleRoundSpeechEnd();
+      void handleRoundSpeechEnd();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speechTimer.isFinished, currentPhase]);
@@ -348,7 +349,7 @@ export default function SessionPage() {
         speech.resetTranscript();
         setTranscript("");
         speech.startListening(stream);
-        audio.startRecording(stream);
+        audio.startRecording(stream, true);
       }
     }, 1500);
     transitionTimersRef.current.push(tid);
@@ -373,8 +374,8 @@ export default function SessionPage() {
 
   const handlePause = useCallback(() => {
     speechTimer.pause();
-    speech.stopListening();
-    audio.stopRecording();
+    speech.pauseListening();
+    void audio.stopRecording();
     setIsPaused(true);
   }, [speechTimer, speech, audio]);
 
@@ -383,7 +384,7 @@ export default function SessionPage() {
     const stream = await acquireMicStream();
     if (stream) {
       speech.startListening(stream);
-      audio.startRecording(stream);
+      audio.startRecording(stream, false);
     }
     setIsPaused(false);
   }, [speechTimer, speech, audio, acquireMicStream]);
@@ -397,40 +398,55 @@ export default function SessionPage() {
     }
   }, []);
 
-  const navigateToFeedback = useCallback(() => {
+  const navigateToFeedback = useCallback((recordedAudio?: Blob | null) => {
     stopMicStream();
-    const tid1 = setTimeout(() => {
-      if (audio.audioBlob) setAudioBlob(audio.audioBlob);
-      if (audio.audioUrl) setAudioUrl(audio.audioUrl);
+    const finalAudio = recordedAudio ?? audio.audioBlob;
+    if (finalAudio) setAudioBlob(finalAudio);
+    if (audio.audioUrl) setAudioUrl(audio.audioUrl);
 
-      setTransitionMessage(t("session.transition_analyzing"));
-      setTransitionSub(t("session.transition_analyzing_subtitle"));
-      setShowTransition(true);
-      setPhase("analyzing");
+    setTransitionMessage(t("session.transition_analyzing"));
+    setTransitionSub(t("session.transition_analyzing_subtitle"));
+    setShowTransition(true);
+    setPhase("analyzing");
 
-      const tid2 = setTimeout(() => {
-        router.push("/practice/feedback");
-      }, 1500);
-      transitionTimersRef.current.push(tid2);
-    }, 300);
-    transitionTimersRef.current.push(tid1);
-  }, [audio, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream, t]);
+    const tid = setTimeout(() => {
+      router.push("/practice/feedback");
+    }, 1500);
+    transitionTimersRef.current.push(tid);
+  }, [audio.audioBlob, audio.audioUrl, setAudioBlob, setAudioUrl, setPhase, router, stopMicStream, t]);
 
   /** After a valid speech round, decide what comes next */
   const proceedAfterSpeech = useCallback(
-    (_transcript: string, _duration: number) => {
-      void _transcript;
+    (_transcript: string, _duration: number, recordedAudio?: Blob | null) => {
       void _duration;
 
       if (!isFullRound) {
-        navigateToFeedback();
+        navigateToFeedback(recordedAudio);
         return;
       }
 
       if (currentRound >= totalRounds) {
-        const allTranscripts = getAllTranscripts();
+        // React has not committed saveRoundTranscript yet, so inject the current
+        // round explicitly instead of reading a stale rounds snapshot.
+        const allTranscripts = rounds
+          .map((round) => {
+            if (round.type === "user-speech") {
+              const roundTranscript =
+                round.roundNumber === currentRound
+                  ? _transcript
+                  : round.transcript;
+              return roundTranscript
+                ? `[${round.label}]\n${roundTranscript}`
+                : null;
+            }
+            return round.aiResponse
+              ? `[AI - ${round.label}]\n${round.aiResponse}`
+              : null;
+          })
+          .filter(Boolean)
+          .join("\n\n");
         setTranscript(allTranscripts);
-        navigateToFeedback();
+        navigateToFeedback(recordedAudio);
         return;
       }
 
@@ -462,7 +478,6 @@ export default function SessionPage() {
       rounds,
       advanceToNextRound,
       setPhase,
-      getAllTranscripts,
       setTranscript,
       getRoundLabel,
       navigateToFeedback,
@@ -470,37 +485,52 @@ export default function SessionPage() {
     ]
   );
 
-  const handleRoundSpeechEnd = useCallback(() => {
-    speech.stopListening();
-    audio.stopRecording();
-    // Don't fully stop stream between rounds in full-round mode
-    if (!isFullRound || currentRound >= totalRounds) {
-      stopMicStream();
+  const handleRoundSpeechEnd = useCallback(async () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    setIsFinalizingSpeech(true);
+
+    try {
+      const [finalizedSpeech, recordedAudio] = await Promise.all([
+        speech.finalizeListening(),
+        audio.stopRecording(),
+      ]);
+      const finalTranscript = finalizedSpeech.transcript;
+      lastFinalizedTranscriptRef.current = finalTranscript;
+      setTranscript(finalTranscript);
+
+      // Don't fully stop stream between rounds in full-round mode
+      if (!isFullRound || currentRound >= totalRounds) stopMicStream();
+
+      const duration = roundSpeechStartRef.current
+        ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
+        : 0;
+
+      const wordCount = finalTranscript
+        .split(/\s+/)
+        .filter((w) => w.length > 0).length;
+
+      // Save transcript for current round (Full Round)
+      if (isFullRound) {
+        saveRoundTranscript(currentRound, finalTranscript, duration);
+      }
+
+      if (wordCount < 20) {
+        setShortWordCount(wordCount);
+        setShowShortDialog(true);
+        return;
+      }
+
+      proceedAfterSpeech(finalTranscript, duration, recordedAudio);
+    } catch (error) {
+      console.error("[PracticeSession] Failed to finalize speech", {
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+      hasEndedRef.current = false;
+      showToast("Could not finish recording. Please try again.", "error");
+    } finally {
+      setIsFinalizingSpeech(false);
     }
-
-    const finalTranscript = speech.transcript;
-    setTranscript(finalTranscript);
-
-    const duration = roundSpeechStartRef.current
-      ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
-      : 0;
-
-    const wordCount = finalTranscript
-      .split(/\s+/)
-      .filter((w) => w.length > 0).length;
-
-    // Save transcript for current round (Full Round)
-    if (isFullRound) {
-      saveRoundTranscript(currentRound, finalTranscript, duration);
-    }
-
-    if (wordCount < 20) {
-      setShortWordCount(wordCount);
-      setShowShortDialog(true);
-      return;
-    }
-
-    proceedAfterSpeech(finalTranscript, duration);
   }, [
     speech,
     audio,
@@ -554,7 +584,7 @@ export default function SessionPage() {
             speech.resetTranscript();
             setTranscript("");
             speech.startListening(stream);
-            audio.startRecording(stream);
+            audio.startRecording(stream, true);
           }
         }, 1500);
         transitionTimersRef.current.push(tid);
@@ -589,17 +619,17 @@ export default function SessionPage() {
   /** Manual end button during speaking */
   const handleEndSession = useCallback(() => {
     speechTimer.pause();
-    handleRoundSpeechEnd();
+    void handleRoundSpeechEnd();
   }, [speechTimer, handleRoundSpeechEnd]);
 
   const handleShortSubmitAnyway = useCallback(() => {
     setShowShortDialog(false);
-    const finalTranscript = speech.transcript;
+    const finalTranscript = lastFinalizedTranscriptRef.current;
     const duration = roundSpeechStartRef.current
       ? Math.round((Date.now() - roundSpeechStartRef.current) / 1000)
       : 0;
-    proceedAfterSpeech(finalTranscript, duration);
-  }, [speech.transcript, proceedAfterSpeech]);
+    proceedAfterSpeech(finalTranscript, duration, audio.audioBlob);
+  }, [audio.audioBlob, proceedAfterSpeech]);
 
   const handleShortGoBack = useCallback(() => {
     setShowShortDialog(false);
@@ -728,6 +758,7 @@ export default function SessionPage() {
               isPaused={isPaused}
               hasDetectedAudio={speech.hasDetectedAudio}
               hasReceivedSpeech={speech.hasReceivedSpeech}
+              isFinalizing={isFinalizingSpeech}
               rounds={isFullRound ? rounds : undefined}
               currentRound={isFullRound ? currentRound : undefined}
             />
