@@ -3869,6 +3869,65 @@ export type Database = {
           },
         ]
       }
+      email_campaigns: {
+        Row: {
+          audience: Json
+          body: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          locale: string
+          name: string
+          scheduled_for: string | null
+          sent_count: number
+          status: string
+          subject: string | null
+          template_key: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          audience: Json
+          body?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locale?: string
+          name: string
+          scheduled_for?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          template_key: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          audience?: Json
+          body?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locale?: string
+          name?: string
+          scheduled_for?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          template_key?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_cron_runs: {
         Row: {
           candidate_users: number

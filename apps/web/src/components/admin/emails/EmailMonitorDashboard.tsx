@@ -15,6 +15,7 @@ import {
   TrendingUp,
 } from "@/components/ui/icons";
 import { EmailTemplateEditor } from "@/components/admin/emails/EmailTemplateEditor";
+import { EmailCampaignsDashboard } from "@/components/admin/emails/EmailCampaignsDashboard";
 import type { EmailAdminDashboardData, EmailAdminKpi } from "@/lib/email/admin";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +68,7 @@ function KpiIcon({ kpiKey }: { kpiKey: string }) {
 }
 
 export function EmailMonitorDashboard({ data }: Props) {
-  const [activeTab, setActiveTab] = useState<"monitor" | "templates">("monitor");
+  const [activeTab, setActiveTab] = useState<"monitor" | "templates" | "campaigns">("monitor");
   const maxTrend = Math.max(
     1,
     ...data.trend.map((point) => Math.max(point.sent, point.delivered, point.opened, point.clicked, point.failed))
@@ -100,11 +101,12 @@ export function EmailMonitorDashboard({ data }: Props) {
         {[
           { key: "monitor", label: "Monitor" },
           { key: "templates", label: "Templates" },
+          { key: "campaigns", label: "Campaigns" },
         ].map((tab) => (
           <button
             key={tab.key}
             type="button"
-            onClick={() => setActiveTab(tab.key as "monitor" | "templates")}
+            onClick={() => setActiveTab(tab.key as "monitor" | "templates" | "campaigns")}
             className={cn(
               "h-9 rounded-md px-5 text-sm font-bold transition-colors",
               activeTab === tab.key
@@ -119,6 +121,8 @@ export function EmailMonitorDashboard({ data }: Props) {
 
       {activeTab === "templates" ? (
         <EmailTemplateEditor />
+      ) : activeTab === "campaigns" ? (
+        <EmailCampaignsDashboard />
       ) : (
         <>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7">

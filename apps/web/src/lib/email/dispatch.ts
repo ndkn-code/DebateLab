@@ -275,13 +275,18 @@ async function sendCandidate(input: {
 }) {
   const { supabase, resend, candidate } = input;
 
-  if (await hasActiveSuppression(supabase, candidate.toEmail, candidate.category)) {
-    return { sent: false, skipped: true, failed: false, reason: "active_suppression" };
-  }
-
   const inserted = await insertEmailMessage(supabase, candidate);
   if (inserted.duplicate || !inserted.id) {
     return { sent: false, skipped: true, failed: false, reason: "duplicate_send_key" };
+  }
+
+  if (await hasActiveSuppression(supabase, candidate.toEmail, candidate.category)) {
+    await updateMessage(supabase, inserted.id, {
+      status: "suppressed",
+      skip_reason: "active_suppression",
+      suppressed_at: new Date().toISOString(),
+    });
+    return { sent: false, skipped: true, failed: false, reason: "active_suppression" };
   }
 
   if (!input.sendingEnabled) {
@@ -349,6 +354,54 @@ async function sendCandidate(input: {
       reason: error instanceof Error ? error.message : "send_failed",
     };
   }
+}
+
+/**
+ * Send an explicit, already-authorized candidate batch through the same
+ * suppression, idempotency, rendering, test-recipient, and tracking path used
+ * by lifecycle dispatch. Campaign orchestration must call this instead of
+ * inserting email_messages directly.
+ */
+export async function dispatchEmailCandidates(input: {
+  supabase: SupabaseClient;
+  candidates: EmailCandidate[];
+  delayMs?: number;
+}) {
+  const result: EmailDispatchResult = {
+    candidateUsers: new Set(input.candidates.map((candidate) => candidate.userId)).size,
+    queued: input.candidates.length,
+    sent: 0,
+    skipped: 0,
+    failed: 0,
+    dryRun: isEmailDryRun(),
+    errors: [],
+  };
+  const sendingEnabled = isEmailSendingEnabled();
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+  for (const candidate of input.candidates) {
+    try {
+      const sendResult = await sendCandidate({
+        supabase: input.supabase,
+        resend,
+        candidate,
+        dryRun: result.dryRun,
+        sendingEnabled,
+      });
+      if (sendResult.sent) result.sent += 1;
+      if (sendResult.skipped) result.skipped += 1;
+      if (sendResult.failed) result.failed += 1;
+    } catch (error) {
+      result.failed += 1;
+      result.errors.push(error instanceof Error ? error.message : "Unknown dispatch failure");
+    }
+
+    if ((input.delayMs ?? 550) > 0) {
+      await new Promise((resolve) => setTimeout(resolve, input.delayMs ?? 550));
+    }
+  }
+
+  return result;
 }
 
 async function createCronRun(supabase: SupabaseClient) {

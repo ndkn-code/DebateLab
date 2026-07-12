@@ -22,7 +22,7 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { EmailLocale, EmailTemplateKey } from "@/lib/email/types";
 
-type CopyFieldKey =
+export type CopyFieldKey =
   | "subject"
   | "preheader"
   | "headline"
@@ -33,7 +33,7 @@ type CopyFieldKey =
   | "stat2_label"
   | "stat3_label";
 
-type TemplateCopy = Record<CopyFieldKey, string>;
+export type TemplateCopy = Record<CopyFieldKey, string>;
 
 interface CopyFieldConfig {
   key: CopyFieldKey;
@@ -167,6 +167,38 @@ function FieldEditor({
         />
       )}
     </label>
+  );
+}
+
+const CAMPAIGN_COPY_FIELDS: CopyFieldConfig[] = [
+  { key: "subject", label: "Subject", maxLength: 200, required: true },
+  { key: "preheader", label: "Preheader", maxLength: 220, required: true },
+  { key: "headline", label: "Headline", maxLength: 180, required: true },
+  { key: "body", label: "Body", maxLength: 1200, required: true },
+  { key: "cta_label", label: "CTA label", maxLength: 80, required: true },
+  { key: "badge_label", label: "Badge", maxLength: 80, required: false },
+];
+
+/** Campaign-scoped copy editor. It reuses the same field primitives and copy
+ * contract as the global template editor without mutating template overrides. */
+export function CampaignEmailTemplateEditor({
+  value,
+  onChange,
+}: {
+  value: TemplateCopy;
+  onChange: (value: TemplateCopy) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {CAMPAIGN_COPY_FIELDS.map((field) => (
+        <FieldEditor
+          key={field.key}
+          field={field}
+          value={value[field.key]}
+          onChange={(next) => onChange({ ...value, [field.key]: next })}
+        />
+      ))}
+    </div>
   );
 }
 

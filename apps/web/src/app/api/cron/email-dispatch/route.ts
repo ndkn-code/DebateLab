@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dispatchUserEmails } from "@/lib/email/dispatch";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { processDueEmailCampaigns } from "@/lib/api/email-campaigns";
+import { createTypedAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,9 +25,10 @@ export async function GET(request: NextRequest) {
       : undefined;
 
   try {
-    const admin = createAdminClient();
+    const admin = createTypedAdminClient();
+    const campaigns = await processDueEmailCampaigns(admin);
     const result = await dispatchUserEmails({ supabase: admin, limit });
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ok: true, ...result, campaigns });
   } catch (error) {
     return NextResponse.json(
       {

@@ -1907,6 +1907,20 @@
     "status": { "published": "Đã xuất bản", "draft": "Bản nháp" },
     "delete": { "label": "Xóa tài liệu", "title": "Xóa tài liệu này?", "description": "“{title}” và tệp riêng tư đi kèm (nếu có) sẽ bị xóa vĩnh viễn.", "confirm": "Xóa" }
   },
+  "emailCampaigns": {
+    "new": "Chiến dịch mới",
+    "empty": "Chưa có chiến dịch",
+    "compose": "Soạn chiến dịch",
+    "edit": "Chi tiết chiến dịch",
+    "fields": { "name": "Tên chiến dịch", "template": "Mẫu email", "locale": "Ngôn ngữ" },
+    "audience": { "title": "Đối tượng", "adminTest": "Chỉ admin thử nghiệm", "all": "Tất cả người dùng đã đồng ý", "plan": "Theo gói", "locale": "Theo ngôn ngữ", "club": "Theo câu lạc bộ", "referrers": "Người giới thiệu" },
+    "actions": { "save": "Lưu bản nháp", "schedule": "Lên lịch", "send": "Gửi ngay", "cancel": "Hủy chiến dịch" },
+    "schedule": { "title": "Lên lịch gửi", "confirm": "Xác nhận lịch bằng tên chiến dịch" },
+    "send": { "title": "Nhập tên chiến dịch để xác nhận gửi", "confirm": "Xác nhận gửi bằng tên chiến dịch" },
+    "results": { "title": "Kết quả chiến dịch", "sent": "Đã gửi", "delivered": "Đã nhận", "opened": "Đã mở", "clicked": "Đã nhấp", "deliveryRate": "Tỷ lệ nhận", "openRate": "Tỷ lệ mở", "clickRate": "Tỷ lệ nhấp", "risk": "Trả lại, lỗi hoặc chặn" },
+    "notices": { "saved": "Đã lưu bản nháp.", "scheduled": "Đã lên lịch chiến dịch.", "sent": "Đã hoàn tất đợt gửi.", "processing": "Đã gửi đợt đầu; cron sẽ tiếp tục xử lý.", "canceled": "Đã hủy chiến dịch; sẽ không gửi thêm đợt nào." },
+    "errors": { "load": "Không thể tải chiến dịch.", "action": "Không thể cập nhật chiến dịch.", "saveFirst": "Hãy lưu bản nháp trước khi lên lịch hoặc gửi." }
+  },
   "referrals": {
     "title": "Giới thiệu",
     "readOnly": "Chỉ xem",

@@ -1907,6 +1907,20 @@
     "status": { "published": "Published", "draft": "Draft" },
     "delete": { "label": "Delete resource", "title": "Delete this resource?", "description": "“{title}” and its private file, if any, will be permanently removed.", "confirm": "Delete" }
   },
+  "emailCampaigns": {
+    "new": "New campaign",
+    "empty": "No campaigns yet",
+    "compose": "Compose campaign",
+    "edit": "Campaign details",
+    "fields": { "name": "Campaign name", "template": "Template", "locale": "Language" },
+    "audience": { "title": "Audience", "adminTest": "Admin test only", "all": "All opted-in users", "plan": "By plan", "locale": "By locale", "club": "By club", "referrers": "Referrers" },
+    "actions": { "save": "Save draft", "schedule": "Schedule", "send": "Send now", "cancel": "Cancel campaign" },
+    "schedule": { "title": "Schedule delivery", "confirm": "Confirm schedule with campaign name" },
+    "send": { "title": "Confirm send by typing the campaign name", "confirm": "Confirm send with campaign name" },
+    "results": { "title": "Campaign results", "sent": "Sent", "delivered": "Delivered", "opened": "Opened", "clicked": "Clicked", "deliveryRate": "Delivery rate", "openRate": "Open rate", "clickRate": "Click rate", "risk": "Bounced, failed, or suppressed" },
+    "notices": { "saved": "Draft saved.", "scheduled": "Campaign scheduled.", "sent": "Campaign batch completed.", "processing": "First batch sent; cron will continue processing.", "canceled": "Campaign canceled; no further batches will send." },
+    "errors": { "load": "Unable to load campaigns.", "action": "Unable to update campaign.", "saveFirst": "Save the draft before scheduling or sending." }
+  },
   "referrals": {
     "title": "Referrals",
     "readOnly": "Read only",

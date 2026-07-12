@@ -57,7 +57,7 @@
     "test:xp": "tsx src/lib/xp/model.test.ts",
     "test:leaderboards": "tsx src/lib/leaderboards/model.test.ts && tsx src/lib/organizations/model.test.ts",
     "test:profile-social": "tsx src/lib/profile-social/model.test.ts && tsx src/lib/profile-social/ui-model.test.ts",
-    "test:email-system": "tsx src/lib/email/email-system.test.ts",
+    "test:email-system": "tsx src/lib/email/email-system.test.ts && tsx src/lib/email/campaigns-model.test.ts",
     "test:support-reports": "tsx src/lib/support/tally-url.test.ts && tsx src/lib/support/tally-webhook.test.ts && tsx src/lib/support/support-reports-model.test.ts",
     "test:admin-referrals": "tsx src/lib/referrals/admin-referrals-model.test.ts",
     "test:maintenance": "NODE_ENV=production tsx src/lib/maintenance/model.test.ts",
