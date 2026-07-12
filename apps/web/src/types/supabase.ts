@@ -7731,6 +7731,78 @@ export type Database = {
           },
         ]
       }
+      resources: {
+        Row: {
+          access_level: string
+          club_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          published: boolean
+          size_bytes: number | null
+          storage_path: string | null
+          subject: string
+          tags: string[]
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          access_level?: string
+          club_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          published?: boolean
+          size_bytes?: number | null
+          storage_path?: string | null
+          subject?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          access_level?: string
+          club_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          published?: boolean
+          size_bytes?: number | null
+          storage_path?: string | null
+          subject?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revenuecat_customer_mappings: {
         Row: {
           aliases: Json

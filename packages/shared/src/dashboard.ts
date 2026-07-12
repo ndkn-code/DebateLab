@@ -9,6 +9,7 @@ export type DashboardNavKey =
   | "coach"
   | "history"
   | "analytics"
+  | "resources"
   // IELTS learner shell (WS-5.1) — only surfaced when the active subject is
   // `ielts`; `ielts_learn` is additionally emitted only for enrolled students.
   // Debate nav never includes these.

@@ -94,6 +94,7 @@
     "test:support-reports": "npm run test:support-reports -w @thinkfy/web",
     "test:admin-referrals": "npm run test:admin-referrals -w @thinkfy/web",
     "test:maintenance": "npm run test:maintenance -w @thinkfy/web",
+    "test:resources": "npm run test:resources -w @thinkfy/web",
     "test:email-templates": "npm run test:email-templates -w @thinkfy/web",
     "test:calico-motions": "tsx scripts/ingest-calico-motions.test.ts",
     "ingest:calico-motions": "tsx scripts/ingest-calico-motions.ts",

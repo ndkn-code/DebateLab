@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   BookOpen,
+  BookOpenText,
   ChevronRight,
   ClipboardList,
   Clock3,
@@ -46,6 +47,7 @@ const NAV_ICONS = {
   ielts_learn: Compass,
   ielts_library: BookOpen,
   ielts_assigned: ClipboardList,
+  resources: BookOpenText,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -109,6 +111,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "analytics") {
       return pathname.startsWith("/profile");
+    }
+
+    if (item.key === "resources") {
+      return pathname.startsWith("/resources");
     }
 
     if (item.key === "ielts_home") {

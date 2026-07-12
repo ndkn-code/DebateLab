@@ -22,6 +22,7 @@ import {
   BookOpen,
   ClipboardList,
   Compass,
+  BookOpenText,
 } from "@/components/ui/icons";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
@@ -78,6 +79,7 @@ const NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/debates", key: "duel", icon: Swords, status: "live" },
   { href: "/chat", key: "chat", icon: MessageCircle, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
+  { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
 ];
 
 // IELTS learner nav (WS-5.1) — used for the mobile sheet + legacy aside when the
@@ -93,6 +95,7 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
   },
   { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
   { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
+  { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ];
 
@@ -107,6 +110,7 @@ const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
+  { key: "resources", href: "/resources", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
 ];
 
@@ -394,6 +398,7 @@ export function Sidebar({
       : []),
     { key: "coach", href: "/chat?context=coach-home", status: "live" },
     { key: "analytics", href: "/profile", status: "live" },
+    { key: "resources", href: "/resources", status: "live" },
   ];
   const dashboardNavItems: DashboardNavItem[] =
     activeSubject === "ielts"

@@ -297,6 +297,7 @@
       "feedback": "Phản hồi",
       "bookmarks": "Đánh dấu",
       "analytics": "Hồ sơ",
+      "resources": "Tài liệu",
       "ielts_home": "Trang IELTS",
       "ielts_learn": "Học",
       "ielts_library": "Thư viện đề",
@@ -1833,6 +1834,7 @@
         "maintenance": "Bảo trì",
         "courses": "Khóa học",
         "vocabulary": "Ngân hàng từ vựng",
+        "resources": "Tài liệu",
         "ielts": "IELTS",
         "questionBank": "Ngân hàng câu hỏi",
         "duels": "Đấu đối kháng",
@@ -1863,6 +1865,47 @@
     "empty": { "title": "Không tìm thấy từ vựng", "description": "Tạo từ đầu tiên hoặc nới lỏng bộ lọc." },
     "form": { "createTitle": "Tạo từ vựng", "editTitle": "Sửa từ vựng", "description": "Ngăn cách từ đồng nghĩa, collocation và chủ đề bằng dấu phẩy." },
     "fields": { "term": "Từ", "subject": "Môn", "band": "Band", "partOfSpeech": "Từ loại", "phonetic": "Phiên âm (IPA)", "definitionEn": "Định nghĩa (Tiếng Anh)", "definitionVi": "Định nghĩa (Tiếng Việt)", "example": "Ví dụ", "synonyms": "Từ đồng nghĩa", "collocations": "Collocation", "topicTags": "Chủ đề", "source": "Nguồn" }
+  },
+  "resources": {
+    "eyebrow": "Thư viện nội dung",
+    "title": "Tài liệu",
+    "description": "Quản lý tệp và liên kết uy tín cho học viên IELTS và Debate. Tệp riêng tư được mở bằng liên kết ký có thời hạn ngắn.",
+    "create": "Thêm tài liệu",
+    "save": "Lưu tài liệu",
+    "saving": "Đang lưu…",
+    "saved": "Đã lưu tài liệu",
+    "saveFailed": "Chưa lưu được tài liệu",
+    "deleted": "Đã xóa tài liệu",
+    "deleteFailed": "Chưa xóa được tài liệu",
+    "cancel": "Hủy",
+    "edit": "Sửa tài liệu",
+    "preview": "Xem thử",
+    "noDescription": "Chưa có mô tả",
+    "summary": { "total": "Tổng", "published": "Đã xuất bản", "files": "Tệp" },
+    "empty": { "title": "Chưa có tài liệu", "description": "Thêm tệp hoặc liên kết uy tín để bắt đầu thư viện học viên." },
+    "editor": { "createTitle": "Thêm tài liệu", "editTitle": "Sửa tài liệu", "description": "Chọn người có thể xem, rồi xuất bản khi đã sẵn sàng." },
+    "fields": {
+      "title": "Tiêu đề",
+      "description": "Mô tả",
+      "kind": "Loại tài liệu",
+      "subject": "Môn học",
+      "url": "URL liên kết",
+      "file": "Tệp",
+      "chooseFile": "Chọn tệp (tối đa 50MB)",
+      "fileTooLarge": "Hãy chọn tệp có dung lượng tối đa 50MB.",
+      "replaceFile": "Chọn tệp thay thế hoặc giữ tệp hiện tại",
+      "tags": "Thẻ",
+      "tagsPlaceholder": "speaking, rubric, research",
+      "access": "Quyền truy cập",
+      "club": "Câu lạc bộ",
+      "chooseClub": "Chọn câu lạc bộ",
+      "published": "Đã xuất bản",
+      "publishedHint": "Hiển thị ngay cho những người được phép theo quyền truy cập đã chọn."
+    },
+    "kind": { "file": "Tệp", "link": "Liên kết" },
+    "access": { "public": "Công khai", "authenticated": "Học viên đã đăng nhập", "club": "Thành viên câu lạc bộ" },
+    "status": { "published": "Đã xuất bản", "draft": "Bản nháp" },
+    "delete": { "label": "Xóa tài liệu", "title": "Xóa tài liệu này?", "description": "“{title}” và tệp riêng tư đi kèm (nếu có) sẽ bị xóa vĩnh viễn.", "confirm": "Xóa" }
   },
   "referrals": {
     "title": "Giới thiệu",
@@ -2228,6 +2271,18 @@
         }
       }
     }
+  },
+  "resources": {
+    "eyebrow": "Kệ học tập của bạn",
+    "title": "Thư viện tài liệu",
+    "description": "Hướng dẫn, bài tập và liên kết uy tín được chọn lọc cho việc luyện IELTS và Debate.",
+    "count": "{count} tài liệu",
+    "filters": { "label": "Bộ lọc tài liệu", "subject": "Lọc theo môn", "allSubjects": "Tất cả môn", "allTags": "Tất cả thẻ" },
+    "empty": { "title": "Kệ tài liệu đang trống", "description": "Tài liệu học mới sẽ xuất hiện tại đây sau khi được xuất bản.", "filteredTitle": "Không có tài liệu phù hợp", "filteredDescription": "Hãy thử môn hoặc thẻ khác." },
+    "kind": { "file": "Tệp", "link": "Liên kết" },
+    "access": { "public": "Công khai", "authenticated": "Học viên", "club": "Câu lạc bộ của bạn" },
+    "open": { "file": "Mở tệp", "link": "Mở liên kết", "unavailable": "Chưa khả dụng" },
+    "noDescription": "Sẵn sàng khi bạn bắt đầu."
   },
   "courses": {
     "player": {
