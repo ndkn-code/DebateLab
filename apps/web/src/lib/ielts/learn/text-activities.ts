@@ -58,6 +58,14 @@ const BaseIeltsTextActivityContentSchema = z
 export const IeltsVocabCollocationActivityContentSchema =
   BaseIeltsTextActivityContentSchema.extend({
     activityType: z.literal("ielts_vocab_collocation"),
+    vocabSource: z
+      .object({
+        bandTag: z.string().trim().min(1).max(20).optional(),
+        topicTag: z.string().trim().min(1).max(100).optional(),
+        limit: z.number().int().min(1).max(20).default(6),
+      })
+      .strict()
+      .optional(),
   }).strict();
 
 export const IeltsParaphraseTransformActivityContentSchema =
@@ -149,6 +157,7 @@ export type IeltsTextActivityQuestionView = {
   groupInstructions: string | null;
   options: Array<{ value: string; label: string }>;
   wordLimit: number | null;
+  correctAnswer?: string;
 };
 
 export type IeltsTextActivityView = {

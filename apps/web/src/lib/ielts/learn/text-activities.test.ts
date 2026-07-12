@@ -53,11 +53,16 @@ const content = IeltsTextActivityContentSchema.parse({
 
   for (const [activityType, subskillKey] of Object.entries(expectedSubskills)) {
     const parsed = IeltsTextActivityContentSchema.parse(
-      defaultIeltsTextActivityContent(activityType as keyof typeof expectedSubskills),
+      defaultIeltsTextActivityContent(
+        activityType as keyof typeof expectedSubskills,
+      ),
     );
     assert.equal(parsed.activityType, activityType);
     assert.equal(parsed.sources[0].subskillKey, subskillKey);
-    assert.equal(defaultIeltsTextActivitySubskill(parsed.activityType), subskillKey);
+    assert.equal(
+      defaultIeltsTextActivitySubskill(parsed.activityType),
+      subskillKey,
+    );
     assert.equal(toIeltsLearnAtom(parsed).skill, subskillKey.split(":")[0]);
     assert.equal(
       toIeltsLearnAtom(parsed).estimatedMinutes,
@@ -69,7 +74,10 @@ const content = IeltsTextActivityContentSchema.parse({
 {
   assert.equal(content.module, "academic");
   assert.equal(content.version, 1);
-  assert.equal(content.sources[0].subskillKey, "reading:paraphrase_recognition");
+  assert.equal(
+    content.sources[0].subskillKey,
+    "reading:paraphrase_recognition",
+  );
   assert.equal(
     Object.hasOwn(content, "correctAnswer"),
     false,
@@ -93,6 +101,23 @@ assert.throws(() =>
     ],
   }),
 );
+
+{
+  const bankBacked = IeltsTextActivityContentSchema.parse({
+    activityType: "ielts_vocab_collocation",
+    instruction: { en: "Pick one.", vi: "Chọn một đáp án." },
+    sources: [
+      { questionId: QUESTION_ID, subskillKey: "writing:collocation_precision" },
+    ],
+    vocabSource: { bandTag: "6.5", topicTag: "education", limit: 8 },
+  });
+  assert.equal(bankBacked.activityType, "ielts_vocab_collocation");
+  assert.deepEqual(bankBacked.vocabSource, {
+    bandTag: "6.5",
+    topicTag: "education",
+    limit: 8,
+  });
+}
 
 {
   const scan = IeltsTextActivityContentSchema.parse({

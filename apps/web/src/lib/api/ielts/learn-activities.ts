@@ -25,6 +25,7 @@ import {
   toAnswerStrings,
 } from "@/lib/scoring/ielts/answer-normalize";
 import { resolveIeltsClient, type IeltsDbClient } from "./client";
+import { loadVocabActivityView } from "./vocab-activity-view";
 
 const QUESTION_COLUMNS =
   "id, skill, question_type, prompt, group_instructions, options, word_limit, max_points, metadata";
@@ -133,6 +134,9 @@ export async function loadIeltsTextActivityView(
   client?: IeltsDbClient,
 ): Promise<IeltsTextActivityView> {
   const content = parseInput(IeltsTextActivityContentSchema, rawContent);
+  if (content.activityType === "ielts_vocab_collocation" && content.vocabSource) {
+    return loadVocabActivityView(content);
+  }
   const supabase = await resolveIeltsClient(client);
   const questionIds = content.sources.map((source) => source.questionId);
 

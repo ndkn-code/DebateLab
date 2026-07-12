@@ -13,6 +13,7 @@ import { MatchingBuilder } from "./builders/MatchingBuilder";
 import { FillBlankBuilder } from "./builders/FillBlankBuilder";
 import { DragOrderBuilder } from "./builders/DragOrderBuilder";
 import { FlashcardBuilder } from "./builders/FlashcardBuilder";
+import { IeltsVocabCollocationBuilder } from "./builders/IeltsVocabCollocationBuilder";
 
 interface Props {
   activity: Activity;
@@ -56,6 +57,7 @@ export function InlineActivityEditor({ activity, onClose }: Props) {
       case "fill_blank": return <FillBlankBuilder {...props} />;
       case "drag_order": return <DragOrderBuilder {...props} />;
       case "flashcard": return <FlashcardBuilder {...props} />;
+      case "ielts_vocab_collocation": return <IeltsVocabCollocationBuilder {...props} />;
       default:
         if (isIeltsFirstTextActivityType(activity.activity_type)) {
           return (

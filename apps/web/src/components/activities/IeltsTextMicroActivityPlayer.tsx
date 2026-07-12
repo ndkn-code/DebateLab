@@ -198,7 +198,13 @@ export function IeltsTextMicroActivityPlayer({
     questions.length > 0 && questions.every((question) => hasAnswer(question, answers));
 
   const handleSubmit = () => {
-    void onComplete(0, questions.length, {
+    const score = questions.reduce(
+      (total, question) =>
+        total +
+        (question.correctAnswer && answers[question.questionId] === question.correctAnswer ? 1 : 0),
+      0,
+    );
+    void onComplete(score, questions.length, {
       activityType: activityContent.activityType,
       answers: questions.map((question) => ({
         questionId: question.questionId,

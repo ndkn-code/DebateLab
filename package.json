@@ -57,6 +57,7 @@
     "test:admin-classes": "npm run test:admin-classes -w @thinkfy/web",
     "test:admin-class-schedules": "npm run test:admin-class-schedules -w @thinkfy/web",
     "test:admin-clubs": "npm run test:admin-clubs -w @thinkfy/web",
+    "test:vocab": "npm run test:vocab -w @thinkfy/web",
     "test:club-performance": "npm run test:club-performance -w @thinkfy/web",
     "test:entitlements": "npm run test:entitlements -w @thinkfy/web",
     "test:performance-summary": "npm run test:performance-summary -w @thinkfy/web",

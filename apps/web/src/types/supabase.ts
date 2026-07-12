@@ -8726,6 +8726,71 @@ export type Database = {
           },
         ]
       }
+      vocab_items: {
+        Row: {
+          band_tag: string | null
+          collocations: string[]
+          created_at: string
+          created_by: string | null
+          definition_en: string | null
+          definition_vi: string | null
+          example: string | null
+          id: string
+          part_of_speech: string | null
+          phonetic: string | null
+          source: string | null
+          subject: string
+          synonyms: string[]
+          term: string
+          topic_tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          band_tag?: string | null
+          collocations?: string[]
+          created_at?: string
+          created_by?: string | null
+          definition_en?: string | null
+          definition_vi?: string | null
+          example?: string | null
+          id?: string
+          part_of_speech?: string | null
+          phonetic?: string | null
+          source?: string | null
+          subject?: string
+          synonyms?: string[]
+          term: string
+          topic_tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          band_tag?: string | null
+          collocations?: string[]
+          created_at?: string
+          created_by?: string | null
+          definition_en?: string | null
+          definition_vi?: string | null
+          example?: string | null
+          id?: string
+          part_of_speech?: string | null
+          phonetic?: string | null
+          source?: string | null
+          subject?: string
+          synonyms?: string[]
+          term?: string
+          topic_tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocab_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       writing_responses: {
         Row: {
           attempt_id: string

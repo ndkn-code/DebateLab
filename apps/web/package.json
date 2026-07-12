@@ -28,6 +28,7 @@
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
+    "test:vocab": "tsx src/lib/vocab/model.test.ts",
     "test:club-performance": "tsx src/lib/performance/club-performance-recorder.test.ts",
     "test:entitlements": "tsx src/lib/entitlements.test.ts",
     "test:performance-summary": "tsx src/lib/analytics/performance-summary.test.ts",

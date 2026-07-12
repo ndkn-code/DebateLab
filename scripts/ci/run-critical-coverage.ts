@@ -1,12 +1,12 @@
 /**
  * Critical-path coverage gate (WS-0.1). Enforces coverage thresholds on
- * `src/lib/scoring/**` and `src/lib/payments/**` using Node's native V8 test
+ * critical model paths using Node's native V8 test
  * coverage (source-mapped through tsx) — no extra test-infra dependency.
  *
  * Two guards:
  *   1. Every non-test source module under those paths must have a sibling
  *      `*.test.ts` — a "missing test" cannot merge.
- *   2. Loaded scoring/payments code must meet line/function/branch thresholds.
+ *   2. Loaded critical-path code must meet line/function/branch thresholds.
  *
  * Node's `--test-coverage-*` flags take a PERCENT (0-100). Run with
  * cwd = apps/web (via `npm run test:coverage:critical`).
@@ -16,7 +16,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 const cwd = process.cwd(); // apps/web
-const roots = ["src/lib/scoring", "src/lib/payments"];
+const roots = ["src/lib/scoring", "src/lib/payments", "src/lib/vocab"];
 
 const THRESHOLD_LINES = "90";
 const THRESHOLD_FUNCS = "90";
@@ -46,14 +46,14 @@ const missing = sourceFiles.filter(
 );
 if (missing.length > 0) {
   console.error(
-    `coverage:critical: ${missing.length} scoring/payments module(s) missing a sibling *.test.ts:`,
+    `coverage:critical: ${missing.length} critical module(s) missing a sibling *.test.ts:`,
   );
   for (const f of missing) console.error(`  - ${f}`);
   process.exit(1);
 }
 
 if (testFiles.length === 0) {
-  console.log("coverage:critical: no scoring/payments tests yet — skipping.");
+  console.log("coverage:critical: no critical-path tests yet — skipping.");
   process.exit(0);
 }
 
@@ -64,6 +64,7 @@ const args = [
   "--experimental-test-coverage",
   "--test-coverage-include=src/lib/scoring/**",
   "--test-coverage-include=src/lib/payments/**",
+  "--test-coverage-include=src/lib/vocab/**",
   "--test-coverage-exclude=**/*.test.ts",
   `--test-coverage-lines=${THRESHOLD_LINES}`,
   `--test-coverage-functions=${THRESHOLD_FUNCS}`,
