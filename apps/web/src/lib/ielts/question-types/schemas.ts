@@ -8,6 +8,10 @@
  */
 import { z } from "zod";
 import type { Tables } from "@/types/supabase";
+import {
+  VisualSchema as AuthoredVisualSchema,
+  type IeltsVisual as AuthoredIeltsVisual,
+} from "@/lib/api/ielts/visual";
 import { getFixedOptions, getQuestionFamily } from "./registry";
 import type {
   BlankValue,
@@ -57,7 +61,7 @@ const TableCellSchema = z.object({
   gap: z.object({ id: z.string().min(1), label: z.string().optional() }).optional(),
 });
 
-const VisualSchema: z.ZodType<IeltsVisual> = z.discriminatedUnion("kind", [
+const LegacyVisualSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("table"),
     caption: z.string().optional(),
@@ -79,6 +83,41 @@ const VisualSchema: z.ZodType<IeltsVisual> = z.discriminatedUnion("kind", [
       .default([]),
   }),
 ]);
+
+function normalizeAuthoredVisual(visual: AuthoredIeltsVisual): IeltsVisual {
+  switch (visual.type) {
+    case "image": {
+      const { type, ...image } = visual;
+      return { ...image, kind: type, hotspots: [] };
+    }
+    case "table": {
+      const { type, rows, ...table } = visual;
+      return {
+        ...table,
+        kind: type,
+        rows: rows.map((row) => row.map((text) => ({ text }))),
+      };
+    }
+    case "chart":
+    case "described": {
+      const { type, ...rest } = visual;
+      return { ...rest, kind: type } as IeltsVisual;
+    }
+  }
+}
+
+function parseVisual(raw: unknown): IeltsVisual | null {
+  const authored = AuthoredVisualSchema.safeParse(raw);
+  if (authored.success) return normalizeAuthoredVisual(authored.data);
+
+  // Preserve the objective-question visual shape already stored by WS-1.2.
+  const legacy = LegacyVisualSchema.safeParse(raw);
+  if (!legacy.success) return null;
+  if (legacy.data.kind === "table") {
+    return { ...legacy.data, headers: [] };
+  }
+  return { ...legacy.data, alt: legacy.data.alt ?? "", hotspots: legacy.data.hotspots };
+}
 
 const MetadataSchema = z
   .object({
@@ -109,7 +148,7 @@ export function parseQuestionView(
   const fixed = getFixedOptions(row.question_type);
   const options = fixed.length > 0 ? fixed : normalizeOptions(row.options);
   const meta = MetadataSchema.parse(row.metadata ?? {});
-  const visual = row.visual == null ? null : VisualSchema.nullable().catch(null).parse(row.visual);
+  const visual = row.visual == null ? null : parseVisual(row.visual);
 
   return {
     id: row.id,

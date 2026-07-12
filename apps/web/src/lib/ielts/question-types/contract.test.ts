@@ -105,7 +105,7 @@ assert.equal(isObjectiveQuestionType("speaking_part1"), false);
   assert.equal(view.items[0].id, "s1");
 }
 
-// ── parseQuestionView: word_limit + selectCount + table visual ───────────────
+// ── parseQuestionView: authored visuals normalize type → kind ────────────────
 {
   const view = parseQuestionView(
     row({
@@ -113,25 +113,67 @@ assert.equal(isObjectiveQuestionType("speaking_part1"), false);
       word_limit: 2,
       metadata: { selectCount: 2 },
       visual: {
-        kind: "table",
-        rows: [[{ text: "Header" }, { gap: { id: "g1" } }]],
+        type: "table",
+        headers: ["Year", "Sales"],
+        rows: [["2025", "42"]],
       },
     }),
   );
   assert.equal(view.wordLimit, 2);
   assert.equal(view.selectCount, 2);
   assert.equal(view.visual?.kind, "table");
+  if (view.visual?.kind === "table") {
+    assert.deepEqual(view.visual.headers, ["Year", "Sales"]);
+    assert.equal(view.visual.rows[0]?.[1]?.text, "42");
+  }
 }
 
-// ── parseQuestionView: image visual ──────────────────────────────────────────
 {
   const view = parseQuestionView(
     row({
       question_type: "diagram_label",
-      visual: { kind: "image", url: "/d.png", hotspots: [{ id: "h1", x: 10, y: 20 }] },
+      visual: { type: "image", url: "https://example.com/d.png", alt: "A diagram" },
     }),
   );
   assert.equal(view.visual?.kind, "image");
+  if (view.visual?.kind === "image") assert.deepEqual(view.visual.hotspots, []);
+}
+
+{
+  const view = parseQuestionView(
+    row({
+      visual: {
+        type: "chart",
+        chartType: "line",
+        title: "Annual sales",
+        xAxisKey: "year",
+        data: [{ year: "2025", sales: 42 }],
+        series: [{ dataKey: "sales", label: "Sales" }],
+      },
+    }),
+  );
+  assert.equal(view.visual?.kind, "chart");
+  if (view.visual?.kind === "chart") assert.equal(view.visual.series[0]?.label, "Sales");
+}
+
+{
+  const view = parseQuestionView(
+    row({ visual: { type: "described", description: "A line graph of annual sales." } }),
+  );
+  assert.deepEqual(view.visual, {
+    kind: "described",
+    description: "A line graph of annual sales.",
+  });
+}
+
+// Null remains null, while the legacy objective shape stays supported.
+{
+  assert.equal(parseQuestionView(row({ visual: null })).visual, null);
+  const view = parseQuestionView(
+    row({ visual: { kind: "image", url: "/d.png", hotspots: [{ id: "h1", x: 10, y: 20 }] } }),
+  );
+  assert.equal(view.visual?.kind, "image");
+  if (view.visual?.kind === "image") assert.equal(view.visual.hotspots[0]?.id, "h1");
 }
 
 // ── parseQuestionView: malformed visual degrades to null ─────────────────────

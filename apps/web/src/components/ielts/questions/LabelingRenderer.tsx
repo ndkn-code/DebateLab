@@ -2,15 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import {
-  parsePromptSegments,
   DEFAULT_BLANK_ID,
+  type IeltsOption,
+  parsePromptSegments,
 } from "@/lib/ielts/question-types";
-import type { IeltsImageHotspot } from "@/lib/ielts/question-types";
-import type { IeltsOption } from "@/lib/ielts/question-types";
 import { Text } from "@/components/ui/typography";
 import type { IeltsRendererProps } from "./types";
 import { BlankControl } from "./BlankControl";
 import type { ChoiceState } from "./ChoiceTile";
+import { QuestionVisual } from "./QuestionVisual";
 import { QuestionShell } from "./QuestionShell";
 
 function LabelBankLegend({ options }: { options: IeltsOption[] }) {
@@ -65,7 +65,7 @@ export function LabelingRenderer({
   );
 
   if (question.visual?.kind === "image") {
-    const { url, alt, hotspots } = question.visual;
+    const { hotspots } = question.visual;
     return (
       <QuestionShell
         instructions={question.groupInstructions}
@@ -73,19 +73,7 @@ export function LabelingRenderer({
         wordLimit={question.wordLimit}
       >
         {bank ? <LabelBankLegend options={bank} /> : null}
-        <div className="relative">
-          {/* eslint-disable-next-line @next/next/no-img-element -- authored diagrams are arbitrary remote assets */}
-          <img src={url} alt={alt ?? ""} className="w-full rounded-2xl border border-outline-variant" />
-          {hotspots.map((hotspot: IeltsImageHotspot, index) => (
-            <span
-              key={hotspot.id}
-              style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-              className="absolute flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-sm ring-2 ring-surface"
-            >
-              {hotspot.label ?? index + 1}
-            </span>
-          ))}
-        </div>
+        <QuestionVisual visual={question.visual} framed={false} />
         <div className="grid gap-3 sm:grid-cols-2">
           {hotspots.map((hotspot, index) => (
             <div

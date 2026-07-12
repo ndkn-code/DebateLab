@@ -3,16 +3,14 @@
 import { useTranslations } from "next-intl";
 import {
   DEFAULT_BLANK_ID,
+  type IeltsOption,
   parsePromptSegments,
-} from "@/lib/ielts/question-types";
-import type {
-  IeltsOption,
-  IeltsTableVisual,
 } from "@/lib/ielts/question-types";
 import { Text } from "@/components/ui/typography";
 import type { IeltsRendererProps } from "./types";
 import { BlankControl } from "./BlankControl";
 import type { ChoiceState } from "./ChoiceTile";
+import { QuestionVisual } from "./QuestionVisual";
 import { QuestionShell } from "./QuestionShell";
 
 type BlankStateFn = (blankId: string) => ChoiceState;
@@ -29,48 +27,6 @@ function BankLegend({ options }: { options: IeltsOption[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function CompletionTable({
-  table,
-  renderBlank,
-}: {
-  table: IeltsTableVisual;
-  renderBlank: (blankId: string, label?: string) => React.ReactNode;
-}) {
-  return (
-    <div className="overflow-x-auto pb-1">
-      <table className="min-w-full border-collapse overflow-hidden rounded-2xl">
-        {table.caption ? (
-          <caption className="mb-2 text-left">
-            <Text variant="caption" className="text-on-surface-variant">
-              {table.caption}
-            </Text>
-          </caption>
-        ) : null}
-        <tbody>
-          {table.rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td
-                  key={cellIndex}
-                  className="min-w-32 border border-outline-variant p-2 align-top"
-                >
-                  {cell.gap ? (
-                    renderBlank(cell.gap.id, cell.gap.label)
-                  ) : (
-                    <Text variant="body-sm" className="break-words text-on-surface">
-                      {cell.text}
-                    </Text>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 
@@ -119,7 +75,11 @@ export function CompletionRenderer({
         wordLimit={question.wordLimit}
       >
         {bank ? <BankLegend options={bank} /> : null}
-        <CompletionTable table={question.visual} renderBlank={renderBlank} />
+        <QuestionVisual
+          visual={question.visual}
+          framed={false}
+          renderGap={(gap) => renderBlank(gap.id, gap.label)}
+        />
       </QuestionShell>
     );
   }

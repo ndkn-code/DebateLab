@@ -20,6 +20,7 @@
  * grading modes + five renderer families — see {@link IeltsQuestionFamily}.
  */
 import type { Enums } from "@/types/supabase";
+import type { IeltsVisual as AuthoredIeltsVisual } from "@/lib/api/ielts/visual";
 
 export type IeltsQuestionType = Enums<"ielts_question_type">;
 export type IeltsSkill = Enums<"ielts_skill">;
@@ -67,12 +68,22 @@ export interface IeltsTableCell {
   gap?: IeltsVisualGap;
 }
 
-export interface IeltsTableVisual {
-  kind: "table";
-  caption?: string;
+type AuthoredVisualOfKind<Kind extends AuthoredIeltsVisual["type"]> = Extract<
+  AuthoredIeltsVisual,
+  { type: Kind }
+>;
+
+type WithKind<Visual extends { type: string }> = Omit<Visual, "type"> & {
+  kind: Visual["type"];
+};
+
+export type IeltsTableVisual = Omit<
+  WithKind<AuthoredVisualOfKind<"table">>,
+  "rows"
+> & {
   /** Row-major grid; a cell is either static `text` or a `gap` input. */
   rows: IeltsTableCell[][];
-}
+};
 
 /** A labelable position on a diagram/map image. */
 export interface IeltsImageHotspot {
@@ -84,14 +95,24 @@ export interface IeltsImageHotspot {
   y: number;
 }
 
-export interface IeltsImageVisual {
-  kind: "image";
-  url: string;
+export type IeltsImageVisual = Omit<
+  WithKind<AuthoredVisualOfKind<"image">>,
+  "alt"
+> & {
+  /** Legacy objective diagrams may not have authored alternative text yet. */
   alt?: string;
   hotspots: IeltsImageHotspot[];
-}
+};
 
-export type IeltsVisual = IeltsTableVisual | IeltsImageVisual;
+export type IeltsChartVisual = WithKind<AuthoredVisualOfKind<"chart">>;
+export type IeltsDescribedVisual = WithKind<AuthoredVisualOfKind<"described">>;
+
+/** Every authored visual kind normalized to the renderer-side `kind` discriminator. */
+export type IeltsVisual =
+  | IeltsTableVisual
+  | IeltsImageVisual
+  | IeltsChartVisual
+  | IeltsDescribedVisual;
 
 /** The parsed, non-secret question handed to a renderer. */
 export interface IeltsQuestionView {

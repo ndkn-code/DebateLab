@@ -30,6 +30,7 @@ import {
   CaptureScoringNote,
   type CaptureBandRow,
 } from "./CaptureBandResult";
+import { QuestionVisual } from "./QuestionVisual";
 import { useScoringPoll } from "./useScoringPoll";
 
 function WordCount({ words, minWords }: { words: number; minWords: number }) {
@@ -121,9 +122,8 @@ export function WritingTaskRenderer({
     }
   };
 
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="type-body-sm text-on-surface-variant">{t("writing.intro")}</p>
+  const editor = (
+    <div className="flex min-w-0 flex-col gap-3">
       <textarea
         value={essay}
         disabled={disabled || submitting}
@@ -142,6 +142,20 @@ export function WritingTaskRenderer({
           {poll.responseId ? t("writing.resubmit") : t("writing.submit")}
         </button>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="type-body-sm text-on-surface-variant">{t("writing.intro")}</p>
+      {question.visual ? (
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <QuestionVisual visual={question.visual} />
+          {editor}
+        </div>
+      ) : (
+        editor
+      )}
 
       {errorKey ? <CaptureErrorNote message={t(errorKey)} /> : null}
       {working ? (
