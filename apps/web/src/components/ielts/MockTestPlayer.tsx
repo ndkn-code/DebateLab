@@ -201,7 +201,10 @@ export function MockTestPlayer({
       setGrade(result.grade);
       setPhase("done");
       showToast(t("toastMockSubmitted"), "success");
-      router.push(`/${params.locale}/ielts/attempts/${attemptId}/results`);
+      // Diagnostic sittings (onboarding / study-plan) pass a returnHref and must
+      // funnel back there — the plan, not the raw results page. Self-serve mocks
+      // (no returnHref) go to full results.
+      router.push(returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`);
     });
   };
 
