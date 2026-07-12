@@ -1,12 +1,15 @@
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 import { updateSession } from "@/lib/supabase/middleware";
+import { getMaintenanceGateResponse } from "@/lib/maintenance/middleware";
 import { type NextRequest } from "next/server";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const maintenanceResponse = await getMaintenanceGateResponse(request);
+  if (maintenanceResponse) return maintenanceResponse;
 
   // Skip intl middleware for API routes, auth callback, and join referral route
   if (

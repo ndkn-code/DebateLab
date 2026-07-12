@@ -1803,6 +1803,16 @@
     "switchToDark": "Bật chế độ tối",
     "switchToLight": "Bật chế độ sáng"
   },
+  "maintenance": {
+    "badge": "Bảo trì theo kế hoạch",
+    "headline": "Thinkfy sẽ sớm trở lại",
+    "expectedBack": "Dự kiến trở lại",
+    "soon": "Sớm thôi",
+    "coffeeFooter": "Cảm ơn bạn đã kiên nhẫn — mình cùng nghỉ một chút nhé.",
+    "bannerLabel": "Thông báo bảo trì",
+    "artAlt": "Linh vật Thinkfy sẵn sàng chào đón người học trở lại",
+    "artFallback": "Minh họa bảo trì Thinkfy"
+  },
   "admin": {
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",
@@ -1820,6 +1830,7 @@
         "clubs": "Câu lạc bộ",
         "emails": "Email",
         "feedbackPopups": "Popup góp ý",
+        "maintenance": "Bảo trì",
         "courses": "Khóa học",
         "ielts": "IELTS",
         "questionBank": "Ngân hàng câu hỏi",
@@ -1846,6 +1857,32 @@
       "filteredTitle": "Không có kết quả phù hợp",
       "filteredDescription": "Hãy thử email hoặc trạng thái khác."
     }
+  },
+  "maintenance": {
+    "eyebrow": "Vận hành",
+    "title": "Chế độ bảo trì",
+    "description": "Đăng thông báo ngắn hoặc tạm thời chuyển người học tới trang bảo trì mang thương hiệu Thinkfy. Trang quản trị và xác thực vẫn hoạt động.",
+    "save": "Lưu cài đặt",
+    "saving": "Đang lưu…",
+    "saved": "Đã lưu cài đặt bảo trì",
+    "saveFailed": "Không thể lưu cài đặt bảo trì",
+    "invalid": "Vui lòng kiểm tra cài đặt bảo trì",
+    "modeTitle": "Chế độ trang web",
+    "modeDescription": "Thay đổi có hiệu lực trong vài giây trên môi trường production.",
+    "modes": {
+      "off": { "label": "Tắt", "description": "Hoạt động bình thường, không hiện thông báo bảo trì." },
+      "banner": { "label": "Banner", "description": "Vẫn mở ứng dụng và hiển thị thông báo song ngữ." },
+      "full": { "label": "Toàn phần", "description": "Chuyển hướng trang người học và trả về 503 cho API công khai." }
+    },
+    "bannerTitle": "Nội dung banner",
+    "bannerDescription": "Hiển thị ở đầu ứng dụng khi chọn chế độ banner.",
+    "fullTitle": "Nội dung toàn trang",
+    "fullDescription": "Hiển thị trên trang bảo trì công khai khi chọn chế độ toàn phần.",
+    "languages": { "en": "Tiếng Anh", "vi": "Tiếng Việt" },
+    "doneAtTitle": "Thời gian dự kiến hoàn tất",
+    "doneAtDescription": "Bắt buộc và phải là thời điểm trong tương lai khi chọn chế độ toàn phần.",
+    "doneAtLabel": "Dự kiến hoàn tất lúc",
+    "doneAtHint": "Sử dụng múi giờ trên trình duyệt và được lưu dưới dạng UTC."
   },
   "comingSoon": "Sắp ra mắt",
     "unauthorized": "Bạn không có quyền truy cập trang này.",

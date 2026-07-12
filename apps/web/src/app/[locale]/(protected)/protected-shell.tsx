@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { GlobalOverlays } from "@/components/shared/global-overlays";
 import { SessionHeartbeatProvider } from "@/components/shared/SessionHeartbeatProvider";
 import { SeasonReplayDialog } from "@/components/leaderboards/season-replay-dialog";
+import { MaintenanceBanner } from "@/components/maintenance/MaintenanceBanner";
 import { useRouter } from "@/i18n/navigation";
 import {
   getSeasonReplayDismissalKey,
@@ -257,6 +258,7 @@ export function ProtectedShell({
         className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-none"
         style={{ WebkitOverflowScrolling: "auto" }}
       >
+        <MaintenanceBanner />
         {children}
       </main>
       <GlobalOverlays />

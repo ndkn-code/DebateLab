@@ -6438,6 +6438,50 @@ export type Database = {
           },
         ]
       }
+      maintenance_settings: {
+        Row: {
+          banner_message_en: string
+          banner_message_vi: string
+          expected_done_at: string | null
+          full_message_en: string
+          full_message_vi: string
+          id: string
+          mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          banner_message_en: string
+          banner_message_vi: string
+          expected_done_at?: string | null
+          full_message_en: string
+          full_message_vi: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          banner_message_en?: string
+          banner_message_vi?: string
+          expected_done_at?: string | null
+          full_message_en?: string
+          full_message_vi?: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orb_transactions: {
         Row: {
           amount: number

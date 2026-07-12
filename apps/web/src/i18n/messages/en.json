@@ -1803,6 +1803,16 @@
     "switchToDark": "Switch to Dark",
     "switchToLight": "Switch to Light"
   },
+  "maintenance": {
+    "badge": "Scheduled maintenance",
+    "headline": "We’ll be right back",
+    "expectedBack": "Expected back",
+    "soon": "Soon",
+    "coffeeFooter": "Thanks for your patience — this is a good moment for a coffee.",
+    "bannerLabel": "Maintenance notice",
+    "artAlt": "Thinkfy mascot ready to welcome learners back",
+    "artFallback": "Thinkfy maintenance illustration"
+  },
   "admin": {
     "title": "Administration",
     "switchToAdmin": "Switch to Administration",
@@ -1820,6 +1830,7 @@
       "clubs": "Clubs",
       "emails": "Emails",
       "feedbackPopups": "Feedback Popups",
+      "maintenance": "Maintenance",
       "courses": "Courses",
       "ielts": "IELTS",
       "questionBank": "Question Bank",
@@ -1846,6 +1857,32 @@
       "filteredTitle": "No matching referrals",
       "filteredDescription": "Try a different email or status."
     }
+  },
+  "maintenance": {
+    "eyebrow": "Operations",
+    "title": "Maintenance mode",
+    "description": "Publish a lightweight notice or temporarily route learners to the branded maintenance page. Admin and authentication routes stay available.",
+    "save": "Save settings",
+    "saving": "Saving…",
+    "saved": "Maintenance settings saved",
+    "saveFailed": "Could not save maintenance settings",
+    "invalid": "Review the maintenance settings",
+    "modeTitle": "Site mode",
+    "modeDescription": "Changes take effect within a few seconds in production.",
+    "modes": {
+      "off": { "label": "Off", "description": "Normal operation with no maintenance notice." },
+      "banner": { "label": "Banner", "description": "Keep the app open and show a bilingual notice." },
+      "full": { "label": "Full", "description": "Redirect learner pages and return 503 from public APIs." }
+    },
+    "bannerTitle": "Banner message",
+    "bannerDescription": "Shown at the top of the signed-in app in banner mode.",
+    "fullTitle": "Full-page message",
+    "fullDescription": "Shown on the public maintenance splash in full mode.",
+    "languages": { "en": "English", "vi": "Vietnamese" },
+    "doneAtTitle": "Expected completion",
+    "doneAtDescription": "Required and validated as a future time when full mode is selected.",
+    "doneAtLabel": "Expected done at",
+    "doneAtHint": "Uses your browser’s local timezone. It is stored as UTC."
   },
   "comingSoon": "Coming soon",
     "unauthorized": "You don't have permission to access this page.",
