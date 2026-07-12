@@ -1814,7 +1814,8 @@
         "uiShowcase": "Thư viện UI",
         "corpus": "Corpus",
         "users": "Người dùng & truy cập",
-        "reports": "Báo cáo",
+    "reports": "Báo cáo",
+    "referrals": "Giới thiệu",
         "classes": "Classes",
         "clubs": "Câu lạc bộ",
         "emails": "Email",
@@ -1824,7 +1825,28 @@
         "duels": "Đấu đối kháng",
         "motions": "Kiến nghị"
       },
-    "comingSoon": "Sắp ra mắt",
+  "referrals": {
+    "title": "Giới thiệu",
+    "readOnly": "Chỉ xem",
+    "orbsShort": "ORB",
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm tên hoặc email",
+    "previous": "Trước",
+    "next": "Tiếp",
+    "pagination": "Trang {page} / {pages}",
+    "kpis": { "total": "Tổng lượt giới thiệu", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "orbs": "ORB đã thưởng" },
+    "leaderboard": { "title": "Người giới thiệu hàng đầu", "empty": "Chưa có người giới thiệu" },
+    "list": { "title": "Hoạt động giới thiệu" },
+    "status": { "all": "Tất cả", "pending": "Đang chờ", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "rejected": "Từ chối" },
+    "table": { "referrer": "Người giới thiệu", "referee": "Người được giới thiệu", "status": "Trạng thái", "orbs": "ORB", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "created": "Ngày tạo" },
+    "empty": {
+      "title": "Chưa có lượt giới thiệu",
+      "description": "Hoạt động giới thiệu sẽ xuất hiện tại đây sau khi ra mắt.",
+      "filteredTitle": "Không có kết quả phù hợp",
+      "filteredDescription": "Hãy thử email hoặc trạng thái khác."
+    }
+  },
+  "comingSoon": "Sắp ra mắt",
     "unauthorized": "Bạn không có quyền truy cập trang này.",
     "overview": {
       "title": "Tổng quan",

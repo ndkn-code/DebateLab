@@ -58,6 +58,7 @@
     "test:profile-social": "tsx src/lib/profile-social/model.test.ts && tsx src/lib/profile-social/ui-model.test.ts",
     "test:email-system": "tsx src/lib/email/email-system.test.ts",
     "test:support-reports": "tsx src/lib/support/tally-url.test.ts && tsx src/lib/support/tally-webhook.test.ts && tsx src/lib/support/support-reports-model.test.ts",
+    "test:admin-referrals": "tsx src/lib/referrals/admin-referrals-model.test.ts",
     "generate:tts-samples": "tsx ../../scripts/generate-tts-voice-samples.ts",
     "test:email-templates": "tsx src/lib/email/template-overrides.test.ts",
     "test:scoring": "tsx src/lib/scoring/round-half-band.test.ts && tsx src/lib/scoring/ielts-writing/band-math.test.ts && tsx src/lib/scoring/ielts-writing/result-schema.test.ts && tsx src/lib/scoring/ielts-writing/normalize.test.ts && tsx src/lib/scoring/ielts-speaking/band-math.test.ts && tsx src/lib/scoring/ielts-speaking/result-schema.test.ts && tsx src/lib/scoring/ielts-speaking/normalize.test.ts && tsx src/lib/scoring/ielts-prediction/predictor.test.ts && tsx src/lib/scoring/ielts-prediction/weakness.test.ts",

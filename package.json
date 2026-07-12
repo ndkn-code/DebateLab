@@ -91,6 +91,7 @@
     "test:profile-social": "npm run test:profile-social -w @thinkfy/web",
     "test:email-system": "npm run test:email-system -w @thinkfy/web",
     "test:support-reports": "npm run test:support-reports -w @thinkfy/web",
+    "test:admin-referrals": "npm run test:admin-referrals -w @thinkfy/web",
     "test:email-templates": "npm run test:email-templates -w @thinkfy/web",
     "test:calico-motions": "tsx scripts/ingest-calico-motions.test.ts",
     "ingest:calico-motions": "tsx scripts/ingest-calico-motions.ts",

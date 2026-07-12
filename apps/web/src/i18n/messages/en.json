@@ -1814,7 +1814,8 @@
       "uiShowcase": "UI Showcase",
       "corpus": "Corpus",
       "users": "Users & Access",
-      "reports": "Reports",
+    "reports": "Reports",
+    "referrals": "Referrals",
       "classes": "Classes",
       "clubs": "Clubs",
       "emails": "Emails",
@@ -1824,7 +1825,28 @@
       "duels": "Duels",
       "motions": "Motions"
     },
-    "comingSoon": "Coming soon",
+  "referrals": {
+    "title": "Referrals",
+    "readOnly": "Read only",
+    "orbsShort": "ORBs",
+    "search": "Search",
+    "searchPlaceholder": "Search names or emails",
+    "previous": "Previous",
+    "next": "Next",
+    "pagination": "Page {page} of {pages}",
+    "kpis": { "total": "Total referrals", "qualified": "Qualified", "credited": "Credited", "orbs": "ORBs awarded" },
+    "leaderboard": { "title": "Top referrers", "empty": "No referrers yet" },
+    "list": { "title": "Referral activity" },
+    "status": { "all": "All", "pending": "Pending", "qualified": "Qualified", "credited": "Credited", "rejected": "Rejected" },
+    "table": { "referrer": "Referrer", "referee": "Referee", "status": "Status", "orbs": "ORBs", "qualified": "Qualified", "credited": "Credited", "created": "Created" },
+    "empty": {
+      "title": "No referrals yet",
+      "description": "Referral activity will appear here after launch.",
+      "filteredTitle": "No matching referrals",
+      "filteredDescription": "Try a different email or status."
+    }
+  },
+  "comingSoon": "Coming soon",
     "unauthorized": "You don't have permission to access this page.",
     "overview": {
       "title": "Overview",
