@@ -7,7 +7,7 @@
  * once the section is paused, submitted, or past its server deadline — the DB
  * enforces the same, this just keeps the UI honest.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Tables } from "@/types/supabase";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type {
@@ -20,18 +20,11 @@ import {
   type NoteAnchor,
   useMockAnnotationsStore,
 } from "@/lib/stores/mockAnnotationsStore";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ListeningAudioPlayer } from "./ListeningAudioPlayer";
+import { ListeningStimulusDeck } from "./ListeningStimulusDeck";
 import { QuestionHost } from "./QuestionHost";
 import { SectionReviewSheet } from "./SectionReviewSheet";
 import { PassageHighlighter } from "./PassageHighlighter";
-import { MockPreTestGuide } from "./MockPreTestGuide";
+import { MockGuideDialog } from "./MockGuideDialog";
 import { ExamNotesSheet } from "./ExamNotesSheet";
 import { ExamSelectionPopup } from "./ExamSelectionPopup";
 import { ExamSectionFooter, ExamSectionHeader } from "./exam/ExamChrome";
@@ -49,10 +42,8 @@ function SectionStimulus({
   part: MockPart;
   onOpenNotes: (noteId: string) => void;
 }) {
-  if (part.audio.length === 0 && part.body === null) return null;
   return (
     <div className="flex flex-col gap-4">
-      {part.audio.length > 0 ? <ListeningAudioPlayer tracks={part.audio} /> : null}
       {part.body !== null ? (
         <PassageHighlighter
           passageKey={part.id}
@@ -72,6 +63,8 @@ function SectionStimulus({
  */
 function SectionPart({
   part,
+  stimulus,
+  hasStimulus,
   attemptId,
   numberOffset,
   disabled,
@@ -80,6 +73,8 @@ function SectionPart({
   onOpenNotes,
 }: {
   part: MockPart;
+  stimulus: ReactNode;
+  hasStimulus: boolean;
   attemptId: string;
   numberOffset: number;
   disabled: boolean;
@@ -87,10 +82,9 @@ function SectionPart({
   onAnswer: (questionId: string, value: unknown) => void;
   onOpenNotes: (noteId: string) => void;
 }) {
-  const hasStimulus = part.audio.length > 0 || part.body !== null;
   return (
     <div className={hasStimulus ? "grid gap-5 lg:grid-cols-2" : "flex flex-col gap-3"}>
-      <SectionStimulus part={part} onOpenNotes={onOpenNotes} />
+      {hasStimulus ? stimulus : null}
       <div className="flex flex-col gap-3">
         {part.questions.map((question, index) => (
           <QuestionHost
@@ -143,6 +137,21 @@ function activeQuestionForPart(
   return part.questions[0]?.id ?? null;
 }
 
+function boundedPartIndex(partsLength: number, activePart: number): number {
+  if (partsLength === 0) return -1;
+  return Math.min(activePart, partsLength - 1);
+}
+
+function sectionHasStimulus(
+  skill: Tables<"ielts_attempt_sections">["skill"],
+  part: MockPart | undefined,
+  parts: MockPart[],
+): boolean {
+  if (!part) return false;
+  if (part.body !== null) return true;
+  return skill === "listening" && parts.some((item) => item.audio.length > 0);
+}
+
 export function MockSectionView({
   section,
   sections,
@@ -172,6 +181,7 @@ export function MockSectionView({
   const [selectedHighlightColor, setSelectedHighlightColor] =
     useState<MockHighlightColor>("yellow");
   const [timerStatus, setTimerStatus] = useState<SectionRuntimeStatus>("not_started");
+  const [listeningPlaybackActive, setListeningPlaybackActive] = useState(false);
   const flags = useMockAnnotationsStore((store) => store.flags);
   const notes = useMockAnnotationsStore((store) => store.notes);
 
@@ -179,7 +189,7 @@ export function MockSectionView({
     () => buildSectionParts(structure, section.skill, process.env.NEXT_PUBLIC_SUPABASE_URL),
     [structure, section.skill],
   );
-  const activePartIndex = parts.length === 0 ? -1 : Math.min(activePart, parts.length - 1);
+  const activePartIndex = boundedPartIndex(parts.length, activePart);
   const part = activePartIndex >= 0 ? parts[activePartIndex] : undefined;
   const sectionLabel = section.label ?? section.skill;
   const currentQuestionId = activeQuestionForPart(part, activeQuestionId);
@@ -231,6 +241,7 @@ export function MockSectionView({
   const paused = section.paused_at !== null;
   const locked = section.submitted_at !== null || timerStatus === "expired";
   const disabled = locked || paused || busy;
+  const hasStimulus = sectionHasStimulus(section.skill, part, parts);
 
   // Global question number = count in prior parts + index within this part.
   const numberOffset = activePartIndex <= 0
@@ -259,6 +270,11 @@ export function MockSectionView({
     setActiveQuestionId(parts[index]?.questions[0]?.id ?? null);
   };
 
+  const handleAudioEnded = (partIndex: number) => {
+    if (activePartIndex !== partIndex || partIndex >= parts.length - 1) return;
+    selectPart(partIndex + 1);
+  };
+
   const jumpToQuestion = (partIndex: number, questionId: string) => {
     setActivePart(partIndex);
     setActiveQuestionId(questionId);
@@ -278,6 +294,8 @@ export function MockSectionView({
         paused={paused}
         busy={busy}
         locked={locked}
+        allowPause={section.skill !== "listening"}
+        sectionNavigationLocked={listeningPlaybackActive}
         guideOpen={guideOpen}
         onTimerStatusChange={setTimerStatus}
         onExpire={onExpire}
@@ -324,6 +342,24 @@ export function MockSectionView({
           {part ? (
             <SectionPart
               part={part}
+              stimulus={(
+                section.skill === "listening" ? (
+                  <ListeningStimulusDeck
+                    parts={parts}
+                    activePartIndex={activePartIndex}
+                    attemptId={section.attempt_id}
+                    playbackBlocked={locked || paused}
+                    onPlaybackActiveChange={setListeningPlaybackActive}
+                    onAudioEnded={handleAudioEnded}
+                  />
+                ) : (
+                  <SectionStimulus
+                    part={part}
+                    onOpenNotes={(noteId) => openNotes(noteId)}
+                  />
+                )
+              )}
+              hasStimulus={hasStimulus}
               attemptId={section.attempt_id}
               numberOffset={numberOffset}
               disabled={disabled}
@@ -345,6 +381,7 @@ export function MockSectionView({
         partsLength={parts.length}
         busy={busy}
         locked={locked}
+        submissionLocked={listeningPlaybackActive}
         isLastSection={isLastSection}
         onSelectPart={selectPart}
         onJump={jumpToQuestion}
@@ -393,30 +430,7 @@ export function MockSectionView({
         }}
       />
 
-      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
-        <DialogContent
-          className="bottom-0 left-0 top-auto !z-[1000] flex max-h-[calc(100dvh-1rem)] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-xl border border-outline-variant bg-surface p-0 shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
-          overlayClassName="!z-[900] bg-inverse-surface/20"
-        >
-          <DialogHeader className="border-b border-outline-variant px-4 py-4 pr-12 sm:px-5">
-            <DialogTitle className="text-base font-bold text-on-surface">
-              How this mock works
-            </DialogTitle>
-          </DialogHeader>
-          <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
-            <MockPreTestGuide showHeading={false} className="shadow-none" />
-          </div>
-          <DialogFooter className="mx-0 mb-0 rounded-none border-t border-outline-variant bg-surface px-4 py-3 sm:px-5">
-            <button
-              type="button"
-              onClick={() => setGuideOpen(false)}
-              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
-            >
-              Got it
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MockGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
     </section>
   );
 }

@@ -276,8 +276,8 @@ function IntroCard({
     <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-3xl border border-outline-variant bg-surface-container p-8 text-center">
       <h1 className="text-xl font-bold text-on-surface">{title}</h1>
       <p className="text-sm text-on-surface-variant">
-        Timed, exam-conditions mock. Each section is server-timed; you can pause,
-        resume, and navigate within a section.
+        Timed, exam-conditions mock. Reading, Writing, and Speaking can be paused;
+        Listening recordings play once without pause or replay.
       </p>
       <MockPreTestGuide />
       {error ? <p className="text-sm text-error">{error}</p> : null}

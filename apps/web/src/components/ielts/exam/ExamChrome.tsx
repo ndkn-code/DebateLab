@@ -52,6 +52,8 @@ export function ExamSectionHeader({
   paused,
   busy,
   locked,
+  allowPause,
+  sectionNavigationLocked,
   guideOpen,
   onTimerStatusChange,
   onExpire,
@@ -74,6 +76,8 @@ export function ExamSectionHeader({
   paused: boolean;
   busy: boolean;
   locked: boolean;
+  allowPause: boolean;
+  sectionNavigationLocked: boolean;
   guideOpen: boolean;
   onTimerStatusChange: (status: SectionRuntimeStatus) => void;
   onExpire: () => void;
@@ -105,15 +109,17 @@ export function ExamSectionHeader({
             onExpire={onExpire}
             onStatusChange={onTimerStatusChange}
           />
-          <ExamButton
-            onClick={paused ? onResume : onPause}
-            disabled={busy || locked}
-            className="size-10 px-0 sm:w-auto sm:px-4"
-            aria-label={paused ? "Resume section" : "Pause section"}
-          >
-            <ProductIcon name={paused ? "play" : "pause"} size="sm" weight="bold" />
-            <span className="hidden sm:inline">{paused ? "Resume" : "Pause"}</span>
-          </ExamButton>
+          {allowPause ? (
+            <ExamButton
+              onClick={paused ? onResume : onPause}
+              disabled={busy || locked}
+              className="size-10 px-0 sm:w-auto sm:px-4"
+              aria-label={paused ? "Resume section" : "Pause section"}
+            >
+              <ProductIcon name={paused ? "play" : "pause"} size="sm" weight="bold" />
+              <span className="hidden sm:inline">{paused ? "Resume" : "Pause"}</span>
+            </ExamButton>
+          ) : null}
           <div className="lg:hidden">
             <ExamAnnotationToolbar
               compact
@@ -158,7 +164,7 @@ export function ExamSectionHeader({
             key={candidate.id}
             type="button"
             onClick={() => onSwitchSection(index)}
-            disabled={busy}
+            disabled={busy || (sectionNavigationLocked && index !== activeSectionIndex)}
             aria-current={index === activeSectionIndex ? "step" : undefined}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition disabled:opacity-50",
@@ -193,6 +199,7 @@ export function ExamSectionFooter({
   partsLength,
   busy,
   locked,
+  submissionLocked,
   isLastSection,
   onSelectPart,
   onJump,
@@ -206,6 +213,7 @@ export function ExamSectionFooter({
   partsLength: number;
   busy: boolean;
   locked: boolean;
+  submissionLocked: boolean;
   isLastSection: boolean;
   onSelectPart: (index: number) => void;
   onJump: (partIndex: number, questionId: string) => void;
@@ -276,7 +284,7 @@ export function ExamSectionFooter({
           <ExamButton
             tone="primary"
             onClick={onReview}
-            disabled={busy || locked}
+            disabled={busy || locked || submissionLocked}
             className="px-3 sm:px-4"
           >
             <ProductIcon name="listChecks" size="sm" weight="bold" />
@@ -284,7 +292,12 @@ export function ExamSectionFooter({
             <span className="md:hidden">Review</span>
           </ExamButton>
           {isLastSection ? (
-            <ExamButton tone="secondary" onClick={onFinish} disabled={busy} className="hidden sm:inline-flex">
+            <ExamButton
+              tone="secondary"
+              onClick={onFinish}
+              disabled={busy || submissionLocked}
+              className="hidden sm:inline-flex"
+            >
               Finish test
               <ProductIcon name="arrowRight" size="sm" weight="bold" />
             </ExamButton>
@@ -293,7 +306,12 @@ export function ExamSectionFooter({
       </div>
       {isLastSection ? (
         <div className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden">
-          <ExamButton tone="secondary" onClick={onFinish} disabled={busy} className="w-full">
+          <ExamButton
+            tone="secondary"
+            onClick={onFinish}
+            disabled={busy || submissionLocked}
+            className="w-full"
+          >
             Finish test &amp; see band
             <ProductIcon name="arrowRight" size="sm" weight="bold" />
           </ExamButton>

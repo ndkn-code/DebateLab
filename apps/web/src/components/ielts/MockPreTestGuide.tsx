@@ -36,7 +36,7 @@ const GUIDE_ITEMS: Array<{
   },
   {
     title: "Pause",
-    description: "Freeze the section clock, then resume when ready.",
+    description: "Freeze the clock in Reading, Writing, and Speaking. Listening cannot be paused.",
     icon: "pause",
   },
   {
