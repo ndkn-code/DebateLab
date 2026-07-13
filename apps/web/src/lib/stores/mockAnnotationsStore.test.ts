@@ -5,6 +5,7 @@ import {
   mockAnnotationKey,
   useMockAnnotationsStore,
   type Highlight,
+  type Note,
 } from "./mockAnnotationsStore";
 
 class MemoryLocalStorage {
@@ -39,6 +40,7 @@ function resetStore(): void {
     activeAttemptId: null,
     highlights: {},
     flags: {},
+    notes: {},
     eliminations: {},
   });
   localStorage.clear();
@@ -77,6 +79,7 @@ async function main() {
   const highlightKey = mockAnnotationKey(attemptId, passageKey);
   const eliminationKey = mockAnnotationKey(attemptId, questionId);
   const flagKey = mockAnnotationKey(attemptId, questionId);
+  const noteKey = mockAnnotationKey(attemptId, questionId);
 
   useMockAnnotationsStore.getState().hydrateAttempt(attemptId);
   const added = useMockAnnotationsStore
@@ -93,13 +96,25 @@ async function main() {
   );
   useMockAnnotationsStore.getState().toggleFlag(questionId);
   assert.equal(useMockAnnotationsStore.getState().flags[flagKey], true);
+  const note = useMockAnnotationsStore.getState().addNote(
+    questionId,
+    "selected answer",
+    { kind: "question", questionId, range: { start: 2, end: 17 } },
+  );
+  assert.ok(note);
+  useMockAnnotationsStore.getState().editNote(questionId, note.id, "Review this wording");
 
   await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
   const persisted = JSON.parse(
     localStorage.getItem(`ielts-mock-annotations-${attemptId}`) ?? "{}",
-  ) as { highlights?: Record<string, Highlight[]>; flags?: Record<string, true> };
+  ) as {
+    highlights?: Record<string, Highlight[]>;
+    flags?: Record<string, true>;
+    notes?: Record<string, Note[]>;
+  };
   assert.equal(persisted.highlights?.[highlightKey]?.length, 1);
   assert.equal(persisted.flags?.[flagKey], true);
+  assert.equal(persisted.notes?.[noteKey]?.[0]?.body, "Review this wording");
   assert.equal(JSON.stringify(persisted).includes(optionId), false);
 
   useMockAnnotationsStore.getState().clearActiveAttempt();
@@ -110,11 +125,13 @@ async function main() {
     activeAttemptId: null,
     highlights: {},
     flags: {},
+    notes: {},
     eliminations: {},
   });
   useMockAnnotationsStore.getState().hydrateAttempt(attemptId);
   assert.equal(useMockAnnotationsStore.getState().highlights[highlightKey]?.length, 1);
   assert.equal(useMockAnnotationsStore.getState().flags[flagKey], true);
+  assert.equal(useMockAnnotationsStore.getState().notes[noteKey]?.[0]?.quote, "selected answer");
   assert.equal(useMockAnnotationsStore.getState().eliminations[eliminationKey], undefined);
 
   useMockAnnotationsStore.getState().clearHighlights(passageKey);
@@ -125,6 +142,9 @@ async function main() {
   );
 
   useMockAnnotationsStore.getState().clearFlag(questionId);
+  await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
+  assert.notEqual(localStorage.getItem(`ielts-mock-annotations-${attemptId}`), null);
+  useMockAnnotationsStore.getState().removeNote(questionId, note.id);
   await delay(MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS + 25);
   assert.equal(localStorage.getItem(`ielts-mock-annotations-${attemptId}`), null);
 
@@ -143,6 +163,7 @@ async function main() {
   useMockAnnotationsStore.getState().hydrateAttempt(oldAttemptId);
   assert.equal(useMockAnnotationsStore.getState().highlights[oldHighlightKey]?.length, 1);
   assert.deepEqual(useMockAnnotationsStore.getState().flags, {});
+  assert.deepEqual(useMockAnnotationsStore.getState().notes, {});
 
   resetStore();
   const mixedAttemptId = "attempt-mixed";
@@ -161,6 +182,22 @@ async function main() {
   );
   useMockAnnotationsStore.getState().hydrateAttempt(mixedAttemptId);
   assert.deepEqual(useMockAnnotationsStore.getState().flags, { [goodFlagKey]: true });
+
+  resetStore();
+  const invalidAttemptId = "attempt-invalid-note";
+  localStorage.setItem(
+    `ielts-mock-annotations-${invalidAttemptId}`,
+    JSON.stringify({
+      version: 1,
+      notes: {
+        [mockAnnotationKey(invalidAttemptId, "question-1")]: [
+          { id: "bad", quote: "quote", body: "body", anchor: { kind: "question" } },
+        ],
+      },
+    }),
+  );
+  useMockAnnotationsStore.getState().hydrateAttempt(invalidAttemptId);
+  assert.deepEqual(useMockAnnotationsStore.getState().notes, {});
 
   console.log("mockAnnotationsStore tests passed");
 }

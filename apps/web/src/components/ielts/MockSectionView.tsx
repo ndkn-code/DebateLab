@@ -15,7 +15,11 @@ import type {
   SectionTimingState,
 } from "@/lib/ielts/section-timing";
 import type { MockStructure } from "@/lib/api/ielts/mock-repository";
-import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
+import {
+  type MockHighlightColor,
+  type NoteAnchor,
+  useMockAnnotationsStore,
+} from "@/lib/stores/mockAnnotationsStore";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +32,8 @@ import { QuestionHost } from "./QuestionHost";
 import { SectionReviewSheet } from "./SectionReviewSheet";
 import { PassageHighlighter } from "./PassageHighlighter";
 import { MockPreTestGuide } from "./MockPreTestGuide";
+import { ExamNotesSheet } from "./ExamNotesSheet";
+import { ExamSelectionPopup } from "./ExamSelectionPopup";
 import { ExamSectionFooter, ExamSectionHeader } from "./exam/ExamChrome";
 import { buildSectionParts, type MockPart } from "./mock-parts";
 import {
@@ -36,13 +42,24 @@ import {
 } from "./mock-flow-status";
 
 /** Passage / listening stimulus column; renders nothing for Writing/Speaking. */
-function SectionStimulus({ part }: { part: MockPart }) {
+function SectionStimulus({
+  part,
+  onOpenNotes,
+}: {
+  part: MockPart;
+  onOpenNotes: (noteId: string) => void;
+}) {
   if (part.audio.length === 0 && part.body === null) return null;
   return (
     <div className="flex flex-col gap-4">
       {part.audio.length > 0 ? <ListeningAudioPlayer tracks={part.audio} /> : null}
       {part.body !== null ? (
-        <PassageHighlighter passageKey={part.id} title={part.title} body={part.body} />
+        <PassageHighlighter
+          passageKey={part.id}
+          title={part.title}
+          body={part.body}
+          onOpenNotes={onOpenNotes}
+        />
       ) : null}
     </div>
   );
@@ -60,6 +77,7 @@ function SectionPart({
   disabled,
   responses,
   onAnswer,
+  onOpenNotes,
 }: {
   part: MockPart;
   attemptId: string;
@@ -67,11 +85,12 @@ function SectionPart({
   disabled: boolean;
   responses: IeltsResponseMap;
   onAnswer: (questionId: string, value: unknown) => void;
+  onOpenNotes: (noteId: string) => void;
 }) {
   const hasStimulus = part.audio.length > 0 || part.body !== null;
   return (
     <div className={hasStimulus ? "grid gap-5 lg:grid-cols-2" : "flex flex-col gap-3"}>
-      <SectionStimulus part={part} />
+      <SectionStimulus part={part} onOpenNotes={onOpenNotes} />
       <div className="flex flex-col gap-3">
         {part.questions.map((question, index) => (
           <QuestionHost
@@ -83,6 +102,7 @@ function SectionPart({
             onChange={(value) => onAnswer(question.id, value)}
             context={{ attemptId }}
             allowFlag
+            onOpenNotes={onOpenNotes}
           />
         ))}
         {part.questions.length === 0 ? (
@@ -142,10 +162,18 @@ export function MockSectionView({
   const [activePart, setActivePart] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState<string | null>(null);
+  const [pendingAnnotationAnchor, setPendingAnnotationAnchor] =
+    useState<NoteAnchor | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [highlightMode, setHighlightMode] = useState(true);
+  const [selectedHighlightColor, setSelectedHighlightColor] =
+    useState<MockHighlightColor>("yellow");
   const [timerStatus, setTimerStatus] = useState<SectionRuntimeStatus>("not_started");
   const flags = useMockAnnotationsStore((store) => store.flags);
+  const notes = useMockAnnotationsStore((store) => store.notes);
 
   const parts = useMemo(
     () => buildSectionParts(structure, section.skill, process.env.NEXT_PUBLIC_SUPABASE_URL),
@@ -155,6 +183,18 @@ export function MockSectionView({
   const part = activePartIndex >= 0 ? parts[activePartIndex] : undefined;
   const sectionLabel = section.label ?? section.skill;
   const currentQuestionId = activeQuestionForPart(part, activeQuestionId);
+  const noteCount = useMemo(() => {
+    const prefix = `${section.attempt_id}:`;
+    return Object.entries(notes).reduce(
+      (total, [key, values]) => total + (key.startsWith(prefix) ? values.length : 0),
+      0,
+    );
+  }, [notes, section.attempt_id]);
+
+  const openNotes = (noteId: string | null = null) => {
+    setActiveNoteId(noteId);
+    setNotesOpen(true);
+  };
 
   useEffect(() => {
     if (!pendingScrollQuestionId) return undefined;
@@ -166,6 +206,20 @@ export function MockSectionView({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [activePartIndex, pendingScrollQuestionId]);
+
+  useEffect(() => {
+    if (!pendingAnnotationAnchor) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const target = pendingAnnotationAnchor.kind === "question"
+        ? document.getElementById(`mock-q-${pendingAnnotationAnchor.questionId}`)
+        : document.querySelector<HTMLElement>(
+            `[data-annotation-kind="passage"][data-annotation-key="${CSS.escape(pendingAnnotationAnchor.passageKey)}"]`,
+          );
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setPendingAnnotationAnchor(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePartIndex, pendingAnnotationAnchor]);
 
   const timing: SectionTimingState = {
     startedAt: section.started_at,
@@ -231,6 +285,12 @@ export function MockSectionView({
         onResume={onResume}
         onOpenGuide={() => setGuideOpen(true)}
         onSwitchSection={onSwitchSection}
+        highlightMode={highlightMode}
+        selectedHighlightColor={selectedHighlightColor}
+        noteCount={noteCount}
+        onToggleHighlightMode={() => setHighlightMode((enabled) => !enabled)}
+        onSelectHighlightColor={setSelectedHighlightColor}
+        onOpenNotes={() => openNotes()}
       />
 
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
@@ -269,6 +329,7 @@ export function MockSectionView({
               disabled={disabled}
               responses={responses}
               onAnswer={onAnswer}
+              onOpenNotes={(noteId) => openNotes(noteId)}
             />
           ) : (
             <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
@@ -300,6 +361,36 @@ export function MockSectionView({
         onOpenChange={setReviewOpen}
         onJump={jumpToQuestion}
         onConfirm={onSubmitSection}
+      />
+
+      <ExamSelectionPopup
+        highlightMode={highlightMode}
+        selectedColor={selectedHighlightColor}
+        onNoteCreated={(noteId) => openNotes(noteId)}
+      />
+
+      <ExamNotesSheet
+        open={notesOpen}
+        attemptId={section.attempt_id}
+        activeNoteId={activeNoteId}
+        parts={parts}
+        onOpenChange={(open) => {
+          setNotesOpen(open);
+          if (!open) setActiveNoteId(null);
+        }}
+        onJumpToNote={(note) => {
+          const anchor = note.anchor;
+          const partIndex = parts.findIndex((candidate) =>
+            anchor.kind === "passage"
+              ? candidate.id === anchor.passageKey
+              : candidate.questions.some((question) => question.id === anchor.questionId),
+          );
+          if (partIndex >= 0) {
+            setActivePart(partIndex);
+            if (anchor.kind === "question") setActiveQuestionId(anchor.questionId);
+          }
+          setPendingAnnotationAnchor(anchor);
+        }}
       />
 
       <Dialog open={guideOpen} onOpenChange={setGuideOpen}>

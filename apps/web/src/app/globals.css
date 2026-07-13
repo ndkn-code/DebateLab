@@ -70,6 +70,15 @@
   --color-reward-container: #FFF3CE;
   --color-on-reward: #102936;
 
+  /* Exam annotation palette. These are solid semantic tokens because themed
+     color utilities with /opacity bake the light literal into dark mode. */
+  --color-highlight-yellow: #FFE59A;
+  --color-highlight-green: #BDEEC8;
+  --color-highlight-blue: #BDEBF5;
+  --color-highlight-purple: #D9CCFF;
+  --color-highlight-orange: #FFD0B8;
+  --color-highlight-ink: #102936;
+
   --color-surface: #ffffff;
   --color-surface-dim: #F3FCFE;
   --color-surface-bright: #ffffff;
@@ -333,6 +342,13 @@
     --color-reward-dim: #FFD166;
     --color-reward-container: #3D2F00;
     --color-on-reward: #102936;
+
+    --color-highlight-yellow: #66551F;
+    --color-highlight-green: #245C38;
+    --color-highlight-blue: #164F60;
+    --color-highlight-purple: #4D3D75;
+    --color-highlight-orange: #6B3B27;
+    --color-highlight-ink: #F3FCFE;
 
     --color-surface: #0A2730;
     --color-surface-dim: #06151A;

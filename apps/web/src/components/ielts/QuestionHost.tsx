@@ -17,6 +17,7 @@ import {
   type IeltsRendererContext,
 } from "./question-renderer-registry";
 import { ensureIeltsTaskRenderersRegistered } from "./questions/register-task-renderers";
+import { QuestionHighlighter } from "./QuestionHighlighter";
 
 // Register the Writing/Speaking capture surfaces before any renderer is resolved.
 ensureIeltsTaskRenderersRegistered();
@@ -29,6 +30,7 @@ export function QuestionHost({
   onChange,
   context,
   allowFlag = false,
+  onOpenNotes,
 }: {
   question: IeltsQuestionView;
   number: number;
@@ -37,6 +39,7 @@ export function QuestionHost({
   onChange: (value: unknown) => void;
   context?: IeltsRendererContext;
   allowFlag?: boolean;
+  onOpenNotes?: (noteId: string) => void;
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
   const objective = isObjectiveQuestionType(question.questionType);
@@ -77,7 +80,7 @@ export function QuestionHost({
             </button>
           ) : null}
         </div>
-        <div className="min-w-0 flex-1">
+        <QuestionHighlighter questionId={question.id} onOpenNotes={onOpenNotes}>
           {objective ? (
             renderer
           ) : (
@@ -92,7 +95,7 @@ export function QuestionHost({
               <div className="mt-3">{renderer}</div>
             </>
           )}
-        </div>
+        </QuestionHighlighter>
       </div>
     </div>
   );

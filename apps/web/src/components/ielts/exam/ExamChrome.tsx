@@ -6,6 +6,7 @@ import type {
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
+import type { MockHighlightColor } from "@/lib/stores/mockAnnotationsStore";
 import type {
   MockQuestionCounts,
   MockQuestionStatus,
@@ -13,16 +14,31 @@ import type {
 import { QuestionNavigator } from "../QuestionNavigator";
 import { SectionTimer } from "../SectionTimer";
 import { ExamButton } from "./ExamButton";
+import { ExamAnnotationToolbar } from "./ExamAnnotationToolbar";
 
-function ExamToolbar() {
+interface AnnotationToolbarProps {
+  highlightMode: boolean;
+  selectedColor: MockHighlightColor;
+  noteCount: number;
+  onToggleHighlightMode: () => void;
+  onSelectHighlightColor: (color: MockHighlightColor) => void;
+  onOpenNotes: () => void;
+}
+
+function ExamToolbar(props: AnnotationToolbarProps) {
   return (
     <div
       data-exam-toolbar="reserved"
-      className="hidden min-h-10 min-w-10 items-center gap-2 rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-3 text-on-surface-variant lg:flex"
-      aria-label="Exam annotation tools"
+      className="hidden lg:block"
     >
-      <ProductIcon name="highlighter" size="sm" aria-hidden="true" />
-      <span className="sr-only">Reserved for highlight and note tools</span>
+      <ExamAnnotationToolbar
+        highlightMode={props.highlightMode}
+        selectedColor={props.selectedColor}
+        noteCount={props.noteCount}
+        onToggleHighlightMode={props.onToggleHighlightMode}
+        onSelectColor={props.onSelectHighlightColor}
+        onOpenNotes={props.onOpenNotes}
+      />
     </div>
   );
 }
@@ -43,6 +59,12 @@ export function ExamSectionHeader({
   onResume,
   onOpenGuide,
   onSwitchSection,
+  highlightMode,
+  selectedHighlightColor,
+  noteCount,
+  onToggleHighlightMode,
+  onSelectHighlightColor,
+  onOpenNotes,
 }: {
   testTitle: string;
   sectionLabel: string;
@@ -59,11 +81,17 @@ export function ExamSectionHeader({
   onResume: () => void;
   onOpenGuide: () => void;
   onSwitchSection: (index: number) => void;
+  highlightMode: boolean;
+  selectedHighlightColor: MockHighlightColor;
+  noteCount: number;
+  onToggleHighlightMode: () => void;
+  onSelectHighlightColor: (color: MockHighlightColor) => void;
+  onOpenNotes: () => void;
 }) {
   return (
     <header className="z-20 shrink-0 border-b border-outline-variant bg-surface/95 shadow-sm backdrop-blur">
-      <div className="flex min-h-16 items-center gap-3 px-3 py-2 sm:px-5">
-        <div className="min-w-0 flex-1">
+      <div className="flex min-h-16 items-center gap-1 px-3 py-2 sm:gap-3 sm:px-5">
+        <div className="hidden min-w-0 flex-1 sm:block">
           <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
             {testTitle}
           </h1>
@@ -71,7 +99,7 @@ export function ExamSectionHeader({
             {sectionLabel} · Section {activeSectionIndex + 1} of {sections.length}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:shrink-0 sm:gap-2">
           <SectionTimer
             timing={timing}
             onExpire={onExpire}
@@ -86,7 +114,25 @@ export function ExamSectionHeader({
             <ProductIcon name={paused ? "play" : "pause"} size="sm" weight="bold" />
             <span className="hidden sm:inline">{paused ? "Resume" : "Pause"}</span>
           </ExamButton>
-          <ExamToolbar />
+          <div className="lg:hidden">
+            <ExamAnnotationToolbar
+              compact
+              highlightMode={highlightMode}
+              selectedColor={selectedHighlightColor}
+              noteCount={noteCount}
+              onToggleHighlightMode={onToggleHighlightMode}
+              onSelectColor={onSelectHighlightColor}
+              onOpenNotes={onOpenNotes}
+            />
+          </div>
+          <ExamToolbar
+            highlightMode={highlightMode}
+            selectedColor={selectedHighlightColor}
+            noteCount={noteCount}
+            onToggleHighlightMode={onToggleHighlightMode}
+            onSelectHighlightColor={onSelectHighlightColor}
+            onOpenNotes={onOpenNotes}
+          />
           <button
             type="button"
             onClick={onOpenGuide}

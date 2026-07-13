@@ -26,10 +26,27 @@ export interface HighlightSegment {
   highlight: Highlight | null;
 }
 
+export interface AnnotationRange {
+  start: number;
+  end: number;
+}
+
+export type NoteAnchor =
+  | { kind: "passage"; passageKey: string; range: AnnotationRange }
+  | { kind: "question"; questionId: string; range: AnnotationRange };
+
+export interface Note {
+  id: string;
+  quote: string;
+  body: string;
+  anchor: NoteAnchor;
+}
+
 interface MockAnnotationsState {
   activeAttemptId: string | null;
   highlights: Record<string, Highlight[]>;
   flags: Record<string, true>;
+  notes: Record<string, Note[]>;
   eliminations: Record<string, Set<string>>;
   hydrateAttempt: (attemptId: string) => void;
   clearActiveAttempt: () => void;
@@ -41,6 +58,9 @@ interface MockAnnotationsState {
   ) => Highlight | null;
   removeHighlight: (passageKey: string, highlightId: string) => void;
   clearHighlights: (passageKey: string) => void;
+  addNote: (anchorKey: string, quote: string, anchor: NoteAnchor) => Note | null;
+  editNote: (anchorKey: string, noteId: string, body: string) => void;
+  removeNote: (anchorKey: string, noteId: string) => void;
   toggleFlag: (questionId: string) => void;
   clearFlag: (questionId: string) => void;
   toggleElimination: (questionId: string, optionId: string) => void;
@@ -112,23 +132,72 @@ function sanitizeFlagRecord(value: unknown, attemptId: string): Record<string, t
   return output;
 }
 
+function sanitizeRange(value: unknown): AnnotationRange | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const range = normalizedRange(Number(candidate.start), Number(candidate.end));
+  return range ? { start: range[0], end: range[1] } : null;
+}
+
+function sanitizeNote(value: unknown): Note | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.id !== "string" || candidate.id.length === 0) return null;
+  if (typeof candidate.quote !== "string" || typeof candidate.body !== "string") return null;
+  if (!candidate.anchor || typeof candidate.anchor !== "object") return null;
+  const rawAnchor = candidate.anchor as Record<string, unknown>;
+  const range = sanitizeRange(rawAnchor.range);
+  if (!range) return null;
+  if (rawAnchor.kind === "passage" && typeof rawAnchor.passageKey === "string") {
+    return {
+      id: candidate.id,
+      quote: candidate.quote,
+      body: candidate.body,
+      anchor: { kind: "passage", passageKey: rawAnchor.passageKey, range },
+    };
+  }
+  if (rawAnchor.kind === "question" && typeof rawAnchor.questionId === "string") {
+    return {
+      id: candidate.id,
+      quote: candidate.quote,
+      body: candidate.body,
+      anchor: { kind: "question", questionId: rawAnchor.questionId, range },
+    };
+  }
+  return null;
+}
+
+function sanitizeNoteRecord(value: unknown, attemptId: string): Record<string, Note[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const prefix = attemptPrefix(attemptId);
+  const output: Record<string, Note[]> = {};
+  for (const [key, rawNotes] of Object.entries(value as Record<string, unknown>)) {
+    if (!key.startsWith(prefix) || !Array.isArray(rawNotes)) continue;
+    const notes = rawNotes.map(sanitizeNote).filter((note): note is Note => note !== null);
+    if (notes.length > 0) output[key] = notes;
+  }
+  return output;
+}
+
 function readPersistedAnnotations(attemptId: string): {
   highlights: Record<string, Highlight[]>;
   flags: Record<string, true>;
+  notes: Record<string, Note[]>;
 } {
-  if (!canUseStorage()) return { highlights: {}, flags: {} };
+  if (!canUseStorage()) return { highlights: {}, flags: {}, notes: {} };
   try {
     const raw = window.localStorage.getItem(storageKey(attemptId));
-    if (!raw) return { highlights: {}, flags: {} };
+    if (!raw) return { highlights: {}, flags: {}, notes: {} };
     const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return { highlights: {}, flags: {} };
+    if (!parsed || typeof parsed !== "object") return { highlights: {}, flags: {}, notes: {} };
     const record = parsed as Record<string, unknown>;
     return {
       highlights: sanitizeHighlightRecord(record.highlights, attemptId),
       flags: sanitizeFlagRecord(record.flags, attemptId),
+      notes: sanitizeNoteRecord(record.notes, attemptId),
     };
   } catch {
-    return { highlights: {}, flags: {} };
+    return { highlights: {}, flags: {}, notes: {} };
   }
 }
 
@@ -155,6 +224,13 @@ function flagsForAttempt(
   );
 }
 
+function notesForAttempt(notes: Record<string, Note[]>, attemptId: string): Record<string, Note[]> {
+  const prefix = attemptPrefix(attemptId);
+  return Object.fromEntries(
+    Object.entries(notes).filter(([key, value]) => key.startsWith(prefix) && value.length > 0),
+  );
+}
+
 function omitAttemptSets(
   eliminations: Record<string, Set<string>>,
   attemptId: string,
@@ -169,6 +245,7 @@ function persistAnnotationsNow(
   attemptId: string,
   highlights: Record<string, Highlight[]>,
   flags: Record<string, true>,
+  notes: Record<string, Note[]>,
 ): void {
   if (persistTimer) {
     clearTimeout(persistTimer);
@@ -178,7 +255,12 @@ function persistAnnotationsNow(
   try {
     const scopedHighlights = highlightsForAttempt(highlights, attemptId);
     const scopedFlags = flagsForAttempt(flags, attemptId);
-    if (Object.keys(scopedHighlights).length === 0 && Object.keys(scopedFlags).length === 0) {
+    const scopedNotes = notesForAttempt(notes, attemptId);
+    if (
+      Object.keys(scopedHighlights).length === 0 &&
+      Object.keys(scopedFlags).length === 0 &&
+      Object.keys(scopedNotes).length === 0
+    ) {
       window.localStorage.removeItem(storageKey(attemptId));
       return;
     }
@@ -188,6 +270,7 @@ function persistAnnotationsNow(
         version: STORAGE_VERSION,
         highlights: scopedHighlights,
         flags: scopedFlags,
+        notes: scopedNotes,
       }),
     );
   } catch {
@@ -200,18 +283,19 @@ function scheduleAnnotationPersist(
   attemptId: string,
   highlights: Record<string, Highlight[]>,
   flags: Record<string, true>,
+  notes: Record<string, Note[]>,
 ): void {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    persistAnnotationsNow(attemptId, highlights, flags);
+    persistAnnotationsNow(attemptId, highlights, flags, notes);
   }, MOCK_ANNOTATION_PERSIST_DEBOUNCE_MS);
 }
 
-function createHighlightId(): string {
+function createAnnotationId(prefix: "highlight" | "note"): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  return `highlight-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function normalizedRange(start: number, end: number): [number, number] | null {
@@ -275,6 +359,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
   activeAttemptId: null,
   highlights: {},
   flags: {},
+  notes: {},
   eliminations: {},
 
   hydrateAttempt: (attemptId) =>
@@ -290,6 +375,10 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
           ...state.flags,
           ...persisted.flags,
         },
+        notes: {
+          ...state.notes,
+          ...persisted.notes,
+        },
         eliminations:
           state.activeAttemptId && state.activeAttemptId !== attemptId
             ? omitAttemptSets(state.eliminations, state.activeAttemptId)
@@ -300,7 +389,12 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
   clearActiveAttempt: () =>
     set((state) => {
       if (!state.activeAttemptId) return state;
-      persistAnnotationsNow(state.activeAttemptId, state.highlights, state.flags);
+      persistAnnotationsNow(
+        state.activeAttemptId,
+        state.highlights,
+        state.flags,
+        state.notes,
+      );
       return {
         activeAttemptId: null,
         eliminations: omitAttemptSets(state.eliminations, state.activeAttemptId),
@@ -314,7 +408,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
     const [from, to] = range;
     const key = mockAnnotationKey(attemptId, passageKey);
     const highlight: Highlight = {
-      id: createHighlightId(),
+      id: createAnnotationId("highlight"),
       start: from,
       end: to,
       color,
@@ -325,7 +419,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
         [key]: [...(state.highlights[key] ?? []), highlight],
       },
     }));
-    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
     return highlight;
   },
 
@@ -342,7 +436,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       else delete highlights[key];
       return { highlights };
     });
-    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
   },
 
   clearHighlights: (passageKey) => {
@@ -354,7 +448,54 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       delete highlights[key];
       return { highlights };
     });
-    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
+  },
+
+  addNote: (anchorKey, quote, anchor) => {
+    const attemptId = get().activeAttemptId;
+    const trimmedQuote = quote.trim();
+    if (!attemptId || trimmedQuote.length === 0) return null;
+    const key = mockAnnotationKey(attemptId, anchorKey);
+    const note: Note = {
+      id: createAnnotationId("note"),
+      quote: trimmedQuote,
+      body: "",
+      anchor,
+    };
+    set((state) => ({
+      notes: { ...state.notes, [key]: [...(state.notes[key] ?? []), note] },
+    }));
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
+    return note;
+  },
+
+  editNote: (anchorKey, noteId, body) => {
+    const attemptId = get().activeAttemptId;
+    if (!attemptId) return;
+    const key = mockAnnotationKey(attemptId, anchorKey);
+    set((state) => ({
+      notes: {
+        ...state.notes,
+        [key]: (state.notes[key] ?? []).map((note) =>
+          note.id === noteId ? { ...note, body } : note,
+        ),
+      },
+    }));
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
+  },
+
+  removeNote: (anchorKey, noteId) => {
+    const attemptId = get().activeAttemptId;
+    if (!attemptId) return;
+    const key = mockAnnotationKey(attemptId, anchorKey);
+    set((state) => {
+      const notes = { ...state.notes };
+      const remaining = (notes[key] ?? []).filter((note) => note.id !== noteId);
+      if (remaining.length > 0) notes[key] = remaining;
+      else delete notes[key];
+      return { notes };
+    });
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
   },
 
   toggleFlag: (questionId) => {
@@ -367,7 +508,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       else flags[key] = true;
       return { flags };
     });
-    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
   },
 
   clearFlag: (questionId) => {
@@ -380,7 +521,7 @@ export const useMockAnnotationsStore = create<MockAnnotationsState>((set, get) =
       delete flags[key];
       return { flags };
     });
-    scheduleAnnotationPersist(attemptId, get().highlights, get().flags);
+    scheduleAnnotationPersist(attemptId, get().highlights, get().flags, get().notes);
   },
 
   toggleElimination: (questionId, optionId) => {
