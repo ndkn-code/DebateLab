@@ -18,6 +18,10 @@ import {
 } from "@/lib/practice-analysis/request";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  ensureAiWorkflowRun,
+  isDurableAiWorkflowsEnabled,
+} from "@/lib/ai/workflow-runs";
 
 export const maxDuration = 20;
 
@@ -143,6 +147,13 @@ export async function POST(req: NextRequest) {
       input,
       { debugId }
     );
+
+    if (isDurableAiWorkflowsEnabled()) {
+      await ensureAiWorkflowRun({
+        userId: attempt.user_id,
+        source: { kind: "practice_analysis", analysisJobId: job.id },
+      });
+    }
 
     await recordAnalyticsEvent(writeClient, authUser.id, {
       eventName: "ai_feedback_requested",

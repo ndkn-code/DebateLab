@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
 import { createClient } from "@/lib/supabase/server";
 import { getAnalyticsPageData } from "@/lib/api/analytics-page";
 import {
@@ -299,7 +300,7 @@ async function getCachedOrGeneratedInsights(params: {
     featureAdoption: params.featureAdoption,
   });
 
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEYS) {
     return {
       cards: fallbackCards,
       generatedAt: now.toISOString(),
@@ -313,22 +314,30 @@ async function getCachedOrGeneratedInsights(params: {
   const startedAt = Date.now();
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const geminiModel = genAI.getGenerativeModel({ model });
-    const result = await geminiModel.generateContent(prompt);
-    const text = result.response.text().trim();
-    const normalizedText = text
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "");
+    const result = await generateStructured({
+      task: "onboarding_feedback",
+      prompt,
+      schema: z.record(z.string(), z.unknown()),
+      context: {
+        task: "onboarding_feedback",
+        sourceRoute: "admin-user-analytics",
+        outputType: "admin_ai_insights",
+        userId: params.targetUserId,
+        deadlineAt: Date.now() + 10_000,
+        idempotencyKey: cacheKey,
+        metadata: { adminId: params.adminId, range: params.range },
+      },
+      policy: { candidates: [{ provider: "gemini", model }], temperature: 0.2, maxOutputTokens: 700 },
+    });
+    const normalizedText = JSON.stringify(result.output);
     const cards = parseAdminInsightJson(normalizedText);
-    const outputTokens = estimateTokens(normalizedText);
+    const outputTokens = result.usage.outputTokens ?? estimateTokens(normalizedText);
     const inputTokens = estimateTokens(prompt);
 
     await params.supabase.from("api_usage").insert({
       user_id: params.targetUserId,
       service: "gemini_admin_insights",
-      model,
+      model: result.model,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       duration_ms: Date.now() - startedAt,
@@ -346,7 +355,7 @@ async function getCachedOrGeneratedInsights(params: {
         scope: "admin_user_analytics",
         target_user_id: params.targetUserId,
         range_key: params.range,
-        model,
+        model: result.model,
         prompt_hash: promptHash,
         insights: { insights: cards },
         expires_at: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
@@ -360,7 +369,7 @@ async function getCachedOrGeneratedInsights(params: {
       cards,
       generatedAt: now.toISOString(),
       cached: false,
-      model,
+      model: result.model,
       fallback: false,
     };
   } catch (error) {

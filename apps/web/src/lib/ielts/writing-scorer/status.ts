@@ -76,6 +76,9 @@ export function decideWritingScoringAction(params: {
     dbDeliveryCount: 0,
     maxAttempts: IELTS_WRITING_MAX_ATTEMPTS,
     queueDeliveryCount: params.queueDeliveryCount,
+    // The legacy queue path has no separate persisted provider-attempt count.
+    // Durable workflow retries are tracked independently when that path is on.
+    maxQueueDeliveries: IELTS_WRITING_MAX_ATTEMPTS,
     startedAt: params.updatedAt,
     nowMs: params.nowMs,
     staleProcessingMs: IELTS_WRITING_STALE_SCORING_MS,

@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
-import Groq from "groq-sdk";
+import { z } from "zod";
+import { generateStructured, generateText, streamText } from "@/lib/ai/core";
+import { searchKnowledge } from "@/lib/ai/knowledge";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
 import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
@@ -7,10 +9,6 @@ import {
   requireRequestAuth,
   unauthorizedTextResponse,
 } from "@/lib/api/request-auth";
-import {
-  getCoachContextEnvelope,
-  getCoachProfile,
-} from "@/lib/api/coach-profile";
 import {
   coercePracticeLanguage,
   getPracticeLanguageConfig,
@@ -25,18 +23,8 @@ import { decideCoachIntent, type CoachIntentDecision } from "@/lib/coach/intent"
 import { pruneCoachMetadata } from "@/lib/coach/metadata";
 import {
   createDebateCorpusRetrievalMetadata,
-  retrieveDebateCorpusContext,
   type DebateCorpusRetrievalResult,
 } from "@/lib/corpus/retrieval";
-import {
-  classifyGeminiError,
-  getGeminiClientForSlot,
-  getGeminiKeyCooldowns,
-  recordGeminiKeyFailure,
-  recordGeminiKeySuccess,
-  selectGeminiKeyAttempts,
-  shouldTryNextGeminiKey,
-} from "@/lib/gemini/key-pool";
 import type {
   CoachModelRoute,
   CoachMessageMetadata,
@@ -146,15 +134,10 @@ function normalizeContextType(context?: string) {
   return context === "dashboard-home" ? "coach-home" : context;
 }
 
-function getGroq() {
-  return new Groq({
-    apiKey: process.env.GROQ_API_KEY!,
-  });
-}
-
 const GROQ_COACH_MODEL = "llama-3.3-70b-versatile";
 const GEMINI_DEEP_COACH_MODEL = "gemini-3.1-flash-lite";
 const CHAT_PROVIDER_SOURCE_ROUTE = "/api/chat";
+const CoachMetadataSchema = z.record(z.string(), z.unknown());
 
 function parseChatRequest(body: JsonRecord): ChatRequest {
   const message = getString(body, "message", {
@@ -495,8 +478,24 @@ async function generateCoachMessageMetadata({
   if (!assistantText.trim()) return null;
 
   try {
-    const startedAt = Date.now();
-    const result = await getGroq().chat.completions.create({
+    const result = await generateStructured({
+      task: "coach_metadata",
+      prompt: "",
+      schema: CoachMetadataSchema,
+      context: {
+        task: "coach_metadata",
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+        outputType: "coach_metadata",
+        userId,
+        deadlineAt: Date.now() + 18_000,
+        idempotencyKey: `coach-metadata:${userId ?? "anonymous"}:${assistantText.slice(0, 80)}`,
+        metadata: {
+          coachIntent: routeIntent.intent,
+          coachIntentReason: routeIntent.reason,
+          coachModelRoute: modelRoute,
+          coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+        },
+      },
       messages: [
         {
           role: "system",
@@ -558,14 +557,8 @@ Assistant reply to structure:
 ${assistantText}`,
         },
       ],
-      model: GROQ_COACH_MODEL,
-      temperature: 0.2,
-      max_tokens: 900,
-      response_format: { type: "json_object" },
     });
-
-    const raw = result.choices[0]?.message?.content ?? "";
-    const parsed = parseJsonObject(raw) as Record<string, unknown> | null;
+    const parsed = result.output;
     const normalizedMetadata = normalizeMetadata(parsed, {
       assistantText,
       studentMessage,
@@ -578,31 +571,6 @@ ${assistantText}`,
         })
       : null;
 
-    await recordAiProviderRequest({
-      provider: "groq",
-      model: GROQ_COACH_MODEL,
-      status: "success",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_metadata",
-      userId,
-      latencyMs: Date.now() - startedAt,
-      finishReason: result.choices[0]?.finish_reason ?? null,
-      usage: {
-        inputTokens: result.usage?.prompt_tokens,
-        outputTokens: result.usage?.completion_tokens,
-        totalTokens: result.usage?.total_tokens,
-      },
-      metadata: {
-        coachIntent: routeIntent.intent,
-        coachIntentReason: routeIntent.reason,
-        coachModelRoute: modelRoute,
-        coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
-        metadataOriginalBlockCount: pruned?.audit.originalBlockCount ?? 0,
-        metadataKeptBlockCount: pruned?.audit.keptBlockCount ?? 0,
-        metadataRejectedBlockCount: pruned?.audit.rejectedBlockCount ?? 0,
-        metadataPruneReasons: pruned?.audit.reasons ?? {},
-      },
-    });
     const metadata = pruned?.metadata ?? null;
     if (!metadata) return null;
     return {
@@ -622,22 +590,6 @@ ${assistantText}`,
       firstTokenLatencyMs: firstTokenLatencyMs ?? null,
     };
   } catch (metadataError) {
-    await recordAiProviderRequest({
-      provider: "groq",
-      model: GROQ_COACH_MODEL,
-      status: "error",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_metadata",
-      userId,
-      errorCode: "COACH_METADATA_FAILED",
-      errorMessage:
-        metadataError instanceof Error ? metadataError.message : String(metadataError),
-      metadata: {
-        coachIntent: routeIntent.intent,
-        coachIntentReason: routeIntent.reason,
-        coachModelRoute: modelRoute,
-      },
-    });
     if (process.env.NODE_ENV === "development") {
       console.error("Coach metadata generation failed:", metadataError);
     }
@@ -713,148 +665,6 @@ function buildCoachSystemPrompt(params: {
     .join("\n\n");
 }
 
-function getGeminiUsage(usage: {
-  promptTokenCount?: number;
-  candidatesTokenCount?: number;
-  totalTokenCount?: number;
-} | null | undefined) {
-  return {
-    inputTokens: usage?.promptTokenCount,
-    outputTokens: usage?.candidatesTokenCount,
-    totalTokens: usage?.totalTokenCount,
-  };
-}
-
-function getGeminiCoachErrorCode(error: unknown) {
-  const kind = classifyGeminiError(error);
-  if (kind === "rate_limit") return "RATE_LIMIT_OR_QUOTA";
-  if (kind === "service_unavailable") return "GEMINI_SERVICE_UNAVAILABLE";
-  if (kind === "access_denied") return "GEMINI_ACCESS_DENIED";
-  return "GEMINI_COACH_FAILED";
-}
-
-async function streamGeminiCoachResponse(params: {
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  userId: string;
-  modelRoute: CoachModelRoute;
-  routeIntent: CoachIntentDecision;
-  corpusRetrieval: DebateCorpusRetrievalResult | null;
-  onText: (text: string) => void;
-}) {
-  const prompt = params.messages
-    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
-    .join("\n\n");
-  const attempts = selectGeminiKeyAttempts(
-    `${GEMINI_DEEP_COACH_MODEL}:${params.userId}:${params.routeIntent.intent}:${prompt.slice(
-      0,
-      256
-    )}`
-  );
-  let lastError: unknown = null;
-
-  for (let index = 0; index < attempts.length; index += 1) {
-    const attempt = attempts[index];
-    const startedAt = Date.now();
-    let fullText = "";
-    let emittedText = false;
-    let usage:
-      | {
-          promptTokenCount?: number;
-          candidatesTokenCount?: number;
-          totalTokenCount?: number;
-        }
-      | null = null;
-
-    try {
-      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
-        model: GEMINI_DEEP_COACH_MODEL,
-        generationConfig: {
-          temperature: 0.35,
-          maxOutputTokens: 1600,
-        },
-      });
-      const result = await model.generateContentStream(prompt);
-
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (!text) continue;
-        emittedText = true;
-        fullText += text;
-        params.onText(text);
-      }
-
-      const finalResponse = await result.response;
-      usage = finalResponse.usageMetadata ?? usage;
-      recordGeminiKeySuccess(attempt.slot);
-      await recordAiProviderRequest({
-        provider: "google",
-        model: GEMINI_DEEP_COACH_MODEL,
-        status: "success",
-        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-        outputType: "coach_deep_review",
-        userId: params.userId,
-        latencyMs: Date.now() - startedAt,
-        finishReason:
-          finalResponse.candidates?.[0]?.finishReason ??
-          (fullText.length > 0 ? "STOP" : null),
-        usage: getGeminiUsage(usage),
-        metadata: {
-          coachIntent: params.routeIntent.intent,
-          coachIntentReason: params.routeIntent.reason,
-          coachModelRoute: params.modelRoute,
-          coachCorpusRetrievedCount: params.corpusRetrieval?.items.length ?? 0,
-          keySlot: attempt.slot,
-          keyFallbackCount: attempt.fallbackCount,
-          keyCooldownSkippedCount: attempt.skippedCooldownCount,
-          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
-        },
-      });
-      return fullText;
-    } catch (error) {
-      lastError = error;
-      const cooldown = recordGeminiKeyFailure(attempt.slot, error);
-      await recordAiProviderRequest({
-        provider: "google",
-        model: GEMINI_DEEP_COACH_MODEL,
-        status: "error",
-        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-        outputType: "coach_deep_review",
-        userId: params.userId,
-        latencyMs: Date.now() - startedAt,
-        errorCode: getGeminiCoachErrorCode(error),
-        errorMessage: error instanceof Error ? error.message : String(error),
-        metadata: {
-          coachIntent: params.routeIntent.intent,
-          coachIntentReason: params.routeIntent.reason,
-          coachModelRoute: params.modelRoute,
-          geminiErrorKind: classifyGeminiError(error),
-          keySlot: attempt.slot,
-          keyFallbackCount: attempt.fallbackCount,
-          keyCooldownSkippedCount: attempt.skippedCooldownCount,
-          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
-          keyCooldownUntil: cooldown?.until ?? null,
-          emittedText,
-          activeKeyCooldowns: getGeminiKeyCooldowns().map((item) => ({
-            slot: item.slot,
-            reason: item.reason,
-            until: item.until,
-            failureCount: item.failureCount,
-          })),
-        },
-      });
-      if (
-        emittedText ||
-        !shouldTryNextGeminiKey(error) ||
-        index === attempts.length - 1
-      ) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
-
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireRequestAuth(req, { allowDevBypass: false });
@@ -905,15 +715,23 @@ export async function POST(req: NextRequest) {
     let corpusRetrieval: DebateCorpusRetrievalResult | null = null;
 
     try {
-      const coachProfile = await getCoachProfile(user.id, practiceLanguage);
-      const envelope = await getCoachContextEnvelope({
+      const learnerHistory = await searchKnowledge({
+        collection: "learner_history",
+        purpose: "coaching",
+        language: practiceLanguage,
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
         userId: user.id,
-        profile: coachProfile,
         contextType: normalizedContext,
         contextId,
-        message,
-        practiceLanguage,
+        query: message,
       });
+      const envelope = learnerHistory.data as {
+        mode?: string;
+        focusTitle?: string;
+        focusSummary?: string;
+        promptContext?: string;
+      } | null;
+      if (!envelope) throw new Error(learnerHistory.skippedReason || "coach context unavailable");
       coachMetadataContext = {
         mode: envelope.mode,
         focusTitle: envelope.focusTitle,
@@ -946,12 +764,14 @@ RULES FOR THIS CONTEXT:
     }
 
     if (routeIntent.corpusPurpose) {
-      corpusRetrieval = await retrieveDebateCorpusContext({
-        purpose: routeIntent.corpusPurpose,
-        practiceLanguage,
+      const debateKnowledge = await searchKnowledge({
+        collection: "debate",
+        purpose: "coaching",
+        language: practiceLanguage,
         practiceTrack: "debate",
+        debatePurpose: routeIntent.corpusPurpose,
         topic: coachPromptContext.focusTitle || message,
-        transcript: buildCoachRagQuery({
+        query: buildCoachRagQuery({
           message,
           focusTitle: coachPromptContext.focusTitle,
           focusSummary: coachPromptContext.focusSummary,
@@ -963,6 +783,7 @@ RULES FOR THIS CONTEXT:
         userId: user.id,
         sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
       });
+      corpusRetrieval = debateKnowledge.data as DebateCorpusRetrievalResult;
     }
 
     systemPrompt = buildCoachSystemPrompt({
@@ -1040,112 +861,61 @@ RULES FOR THIS CONTEXT:
     let fullResponse = "";
     let finishReason: string | null = null;
     let firstTokenLatencyMs: number | null = null;
+    let activeProvider = "groq";
+    let activeModel = chatModel;
+    let activeTraceId: string | null = null;
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
+          const coreContext = {
+            task: "coach_chat" as const,
+            sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+            outputType: modelRoute === "visual_explainer" ? "coach_visual_prompt" : "coach_chat",
+            userId: user.id,
+            deadlineAt: Date.now() + 45_000,
+            idempotencyKey: `coach-chat:${conversationId}:${history.length}`,
+            metadata: {
+              coachIntent: routeIntent.intent,
+              coachIntentReason: routeIntent.reason,
+              coachModelRoute: modelRoute,
+              coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+              coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+            },
+          };
           if (modelRoute === "gemini_deep_review") {
-            try {
-              fullResponse = await streamGeminiCoachResponse({
-                messages,
-                userId: user.id,
-                modelRoute,
-                routeIntent,
-                corpusRetrieval,
-                onText: (text) => {
-                  if (firstTokenLatencyMs == null) {
-                    firstTokenLatencyMs = Date.now() - streamStartTime;
-                  }
-                  fullResponse += text;
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        text,
-                        conversationId,
-                        coachIntent: routeIntent.intent,
-                      })}\n\n`
-                    )
-                  );
-                },
-              });
-              finishReason = "stop";
-            } catch (geminiError) {
-              if (process.env.NODE_ENV === "development") {
-                console.warn(
-                  "Gemini coach route failed; falling back to Groq:",
-                  geminiError instanceof Error
-                    ? geminiError.message
-                    : geminiError
-                );
-              }
-              fullResponse = "";
-            }
-          }
-
-          if (fullResponse.length === 0) {
-            const groqStartedAt = Date.now();
-            const chatCompletion = await getGroq().chat.completions.create({
+            const generation = await generateText({
+              task: "coach_chat",
               messages,
-              model: chatModel,
-              temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7,
-              max_tokens: 1600,
-              stream: true,
+              context: coreContext,
+              policy: {
+                candidates: [
+                  { provider: "gemini", model: GEMINI_DEEP_COACH_MODEL },
+                  { provider: "groq", model: chatModel },
+                ],
+                temperature: 0.35,
+              },
             });
-            for await (const chunk of chatCompletion) {
-              const choice = chunk.choices[0];
-              const text = choice?.delta?.content || "";
-              if (choice?.finish_reason) {
-                finishReason = choice.finish_reason;
-              }
-              if (text) {
-                if (firstTokenLatencyMs == null) {
-                  firstTokenLatencyMs = Date.now() - streamStartTime;
-                }
-                fullResponse += text;
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      text,
-                      conversationId,
-                      coachIntent: routeIntent.intent,
-                    })}\n\n`
-                  )
-                );
-              }
+            activeProvider = generation.provider;
+            activeModel = generation.model;
+            activeTraceId = generation.traceId;
+            firstTokenLatencyMs = Date.now() - streamStartTime;
+            fullResponse = generation.output;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: fullResponse, conversationId, coachIntent: routeIntent.intent })}\n\n`));
+          } else {
+            for await (const text of streamText({
+              task: "coach_chat",
+              messages,
+              context: coreContext,
+              policy: { temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7 },
+            })) {
+              if (firstTokenLatencyMs == null) firstTokenLatencyMs = Date.now() - streamStartTime;
+              fullResponse += text;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text, conversationId, coachIntent: routeIntent.intent })}\n\n`));
             }
-
-            await recordAiProviderRequest({
-              provider: "groq",
-              model: chatModel,
-              status: "success",
-              sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-              outputType:
-                modelRoute === "visual_explainer"
-                  ? "coach_visual_prompt"
-                  : "coach_chat",
-              userId: user.id,
-              latencyMs: Date.now() - groqStartedAt,
-              finishReason,
-              usage: {
-                outputTokens: Math.ceil(fullResponse.length / 4),
-                totalTokens: Math.ceil(
-                  (fullResponse.length +
-                    messages.reduce((sum, item) => sum + item.content.length, 0)) /
-                    4
-                ),
-              },
-              metadata: {
-                coachIntent: routeIntent.intent,
-                coachIntentReason: routeIntent.reason,
-                coachModelRoute: modelRoute,
-                coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
-                coachCorpusCandidateCount:
-                  corpusRetrieval?.candidateItems.length ?? 0,
-                firstTokenLatencyMs,
-              },
-            });
           }
+          finishReason = "stop";
 
           const metadata = ENABLE_COACH_METADATA
             ? await generateCoachMessageMetadata({
@@ -1194,13 +964,13 @@ RULES FOR THIS CONTEXT:
             distinctId: user.id,
             event: "$ai_generation",
             properties: {
-              $ai_provider: "groq",
-              $ai_model: chatModel,
+              $ai_provider: activeProvider === "gemini" ? "google" : activeProvider,
+              $ai_model: activeModel,
               $ai_output_tokens: Math.ceil(fullResponse.length / 4),
               $ai_latency: Date.now() - streamStartTime,
               $ai_is_error: false,
               $ai_finish_reason: finishReason,
-              $ai_trace_id: crypto.randomUUID(),
+              $ai_trace_id: activeTraceId ?? crypto.randomUUID(),
               route: "/api/chat",
               coach_intent: routeIntent.intent,
               coach_model_route: modelRoute,
@@ -1299,20 +1069,26 @@ async function generateTitle(
   userId?: string | null
 ) {
   try {
-    const startedAt = Date.now();
-    const result = await getGroq().chat.completions.create({
+    const result = await generateText({
+      task: "coach_title",
       messages: [
         {
           role: "user",
           content: `Generate a short 3-5 word title in ${practiceLanguage === "vi" ? "Vietnamese" : "English"} for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation:\n\n"${firstMessage}"`,
         },
       ],
-      model: GROQ_COACH_MODEL,
-      temperature: 0.3,
-      max_tokens: 20,
+      context: {
+        task: "coach_title",
+        sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+        outputType: "coach_title",
+        userId,
+        deadlineAt: Date.now() + 8_000,
+        idempotencyKey: `coach-title:${conversationId}`,
+        metadata: { conversationId },
+      },
     });
 
-    const title = (result.choices[0]?.message?.content ?? "")
+    const title = result.output
       .trim()
       .slice(0, 100);
 
@@ -1322,34 +1098,7 @@ async function generateTitle(
         .update({ title })
         .eq("id", conversationId);
     }
-    await recordAiProviderRequest({
-      provider: "groq",
-      model: GROQ_COACH_MODEL,
-      status: "success",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_title",
-      userId,
-      latencyMs: Date.now() - startedAt,
-      finishReason: result.choices[0]?.finish_reason ?? null,
-      usage: {
-        inputTokens: result.usage?.prompt_tokens,
-        outputTokens: result.usage?.completion_tokens,
-        totalTokens: result.usage?.total_tokens,
-      },
-      metadata: { conversationId },
-    });
   } catch (error) {
-    await recordAiProviderRequest({
-      provider: "groq",
-      model: GROQ_COACH_MODEL,
-      status: "error",
-      sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-      outputType: "coach_title",
-      userId,
-      errorCode: "COACH_TITLE_FAILED",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      metadata: { conversationId },
-    });
     // Non-critical, ignore
   }
 }

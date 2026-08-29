@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
 import {
   requireRequestAuth,
   unauthorizedTextResponse,
@@ -9,25 +11,12 @@ import {
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
-import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
-import {
-  extractJsonObjectFromText,
-  normalizeCoachVisualExplainerSpec,
-} from "@/lib/coach/visualization";
-import {
-  classifyGeminiError,
-  getGeminiClientForSlot,
-  getGeminiKeyCooldowns,
-  runWithGeminiKeyPool,
-} from "@/lib/gemini/key-pool";
+import { normalizeCoachVisualExplainerSpec } from "@/lib/coach/visualization";
 import type { CoachMessageMetadata } from "@/types";
 
 export const maxDuration = 45;
 
-const PRIMARY_VISUAL_MODEL =
-  process.env.GEMINI_VISUAL_PLANNER_MODEL || "gemini-3.1-flash-lite";
-const PRIMARY_GEMMA_VISUAL_MODEL = "gemma-4-31b-it";
-const FALLBACK_GEMMA_VISUAL_MODEL = "gemma-4-26b-a4b-it";
+const VisualPlannerSchema = z.record(z.string(), z.unknown());
 
 function parseRequest(body: JsonRecord) {
   const messageId = getString(body, "messageId", {
@@ -90,116 +79,6 @@ Assistant answer to visualize:
 ${params.assistantText.slice(0, 5000)}`;
 }
 
-async function planVisual(params: {
-  modelName: string;
-  prompt: string;
-  userId: string;
-  messageId: string;
-  modelFallbackCount: number;
-}) {
-  return runWithGeminiKeyPool({
-    seed: `coach-visual:${params.userId}:${params.messageId}:${params.modelName}`,
-    run: async (attempt) => {
-      const startedAt = Date.now();
-      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
-        model: params.modelName,
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-          maxOutputTokens: 900,
-        },
-      });
-      const result = await model.generateContent(params.prompt);
-      await recordAiProviderRequest({
-        provider: "google",
-        model: params.modelName,
-        status: "success",
-        sourceRoute: "/api/chat/visualize",
-        outputType: "coach_visual_planner",
-        userId: params.userId,
-        latencyMs: Date.now() - startedAt,
-        finishReason: result.response.candidates?.[0]?.finishReason ?? null,
-        usage: {
-          inputTokens: result.response.usageMetadata?.promptTokenCount,
-          outputTokens: result.response.usageMetadata?.candidatesTokenCount,
-          totalTokens: result.response.usageMetadata?.totalTokenCount,
-        },
-        metadata: {
-          messageId: params.messageId,
-          plannerModelFallbackCount: params.modelFallbackCount,
-          keySlot: attempt.slot,
-          keyFallbackCount: attempt.fallbackCount,
-          keyCooldownSkippedCount: attempt.skippedCooldownCount,
-          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
-        },
-      });
-      return result.response.text();
-    },
-    onError: async (error, attempt, cooldown) => {
-      await recordAiProviderRequest({
-        provider: "google",
-        model: params.modelName,
-        status: "error",
-        sourceRoute: "/api/chat/visualize",
-        outputType: "coach_visual_planner",
-        userId: params.userId,
-        latencyMs: null,
-        errorCode: getVisualPlannerErrorCode(error),
-        errorMessage: error instanceof Error ? error.message : String(error),
-        metadata: {
-          messageId: params.messageId,
-          plannerModelFallbackCount: params.modelFallbackCount,
-          geminiErrorKind: classifyGeminiError(error),
-          keySlot: attempt.slot,
-          keyFallbackCount: attempt.fallbackCount,
-          keyCooldownSkippedCount: attempt.skippedCooldownCount,
-          keyCooldownSkippedSlots: attempt.skippedCooldownSlots,
-          keyCooldownUntil: cooldown?.until ?? null,
-          activeKeyCooldowns: getGeminiKeyCooldowns().map((item) => ({
-            slot: item.slot,
-            reason: item.reason,
-            until: item.until,
-            failureCount: item.failureCount,
-          })),
-        },
-      });
-    },
-  });
-}
-
-function getVisualPlannerErrorCode(error: unknown) {
-  const kind = classifyGeminiError(error);
-  if (kind === "rate_limit") return "RATE_LIMIT_OR_QUOTA";
-  if (kind === "service_unavailable") return "GEMINI_SERVICE_UNAVAILABLE";
-  if (kind === "access_denied") return "GEMINI_ACCESS_DENIED";
-  return "COACH_VISUAL_PLANNER_FAILED";
-}
-
-async function recordInvalidVisualPlan(params: {
-  modelName: string;
-  userId: string;
-  messageId: string;
-  modelFallbackCount: number;
-  error: unknown;
-}) {
-  await recordAiProviderRequest({
-    provider: "google",
-    model: params.modelName,
-    status: "error",
-    sourceRoute: "/api/chat/visualize",
-    outputType: "coach_visual_planner",
-    userId: params.userId,
-    latencyMs: null,
-    errorCode: "COACH_VISUAL_SCHEMA_INVALID",
-    errorMessage: params.error instanceof Error ? params.error.message : String(params.error),
-    metadata: {
-      messageId: params.messageId,
-      plannerModelFallbackCount: params.modelFallbackCount,
-      providerCallSucceeded: true,
-    },
-  });
-}
-
 function inferLanguage(text: string): "vi" | "en" {
   return /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i.test(
     text
@@ -259,40 +138,30 @@ export async function POST(req: NextRequest) {
       languageHint: inferLanguage(`${previousUserText ?? ""}\n${message.content}`),
     });
 
-    const plannerModels = [
-      PRIMARY_VISUAL_MODEL,
-      PRIMARY_GEMMA_VISUAL_MODEL,
-      FALLBACK_GEMMA_VISUAL_MODEL,
-    ];
-    let lastError: unknown = null;
-    for (const [modelFallbackCount, modelName] of plannerModels.entries()) {
-      try {
-        const raw = await planVisual({
-          modelName,
+    try {
+        const plan = await generateStructured({
+          task: "coach_visualization",
           prompt,
-          userId: user.id,
-          messageId: message.id,
-          modelFallbackCount,
+          schema: VisualPlannerSchema,
+          context: {
+            task: "coach_visualization",
+            sourceRoute: "/api/chat/visualize",
+            outputType: "coach_visual_planner",
+            userId: user.id,
+            deadlineAt: Date.now() + 35_000,
+            idempotencyKey: `coach-visual:${message.id}`,
+            metadata: { messageId: message.id },
+          },
         });
         const visualExplainer = normalizeCoachVisualExplainerSpec(
-          extractJsonObjectFromText(raw),
+          plan.output,
           {
             sourceMessageId: message.id,
-            plannerModel: modelName,
+            plannerModel: plan.model,
           }
         );
         if (!visualExplainer) {
-          const schemaError = new Error(
-            "Planner returned invalid visual explainer JSON"
-          );
-          await recordInvalidVisualPlan({
-            modelName,
-            userId: user.id,
-            messageId: message.id,
-            modelFallbackCount,
-            error: schemaError,
-          });
-          throw schemaError;
+          throw new Error("Planner returned invalid visual explainer JSON");
         }
         const metadata: CoachMessageMetadata = {
           renderVersion: 1,
@@ -303,27 +172,19 @@ export async function POST(req: NextRequest) {
           autoVisualize: false,
           visualExplainer,
           visualTemplate: visualExplainer.template,
-          visualPlannerModel: modelName,
+          visualPlannerModel: plan.model,
         };
         await supabase
           .from("chat_messages")
           .update({ metadata })
           .eq("id", message.id);
         return NextResponse.json({ visualExplainer, metadata });
-      } catch (error) {
-        lastError = error;
-      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not create visual explainer" },
+        { status: 502 }
+      );
     }
-
-    return NextResponse.json(
-      {
-        error:
-          lastError instanceof Error
-            ? lastError.message
-            : "Could not create visual explainer",
-      },
-      { status: 502 }
-    );
   } catch (error) {
     if (error instanceof RequestValidationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

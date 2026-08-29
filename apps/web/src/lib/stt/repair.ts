@@ -1,6 +1,9 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
+import { getGeminiApiKeys } from "@/lib/gemini/key-pool";
 import type {
   PracticeTranscriptionAlternative,
   PracticeTranscriptionArtifact,
@@ -10,11 +13,6 @@ import type {
   PracticeTranscriptionWarning,
 } from "@thinkfy/shared/practice";
 import type { MotionBrief, PracticeLanguage, PracticeTrack } from "@/types";
-import {
-  getGeminiApiKeys,
-  getGeminiClientForSlot,
-  runWithGeminiKeyPool,
-} from "@/lib/gemini/key-pool";
 import { getSttConfig } from "./config";
 import { getSttWordCount } from "./consensus";
 
@@ -308,22 +306,23 @@ export async function repairJudgeTranscript(
     };
   }
 
-  const runRepair = runWithGeminiKeyPool({
-    seed: `${rawTranscriptHash}:stt-repair:${config.repairModel}`,
-    run: async (attempt) => {
-      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
-        model: config.repairModel,
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: "application/json",
-        },
-      });
-      const result = await model.generateContent(buildRepairPrompt(input));
-      return result.response.text();
-    },
-  });
-
-  const text = await withTimeout(runRepair, config.repairTimeoutMs, () => "");
+  const text = await withTimeout(
+    generateStructured({
+      task: "stt_transcript_repair",
+      prompt: buildRepairPrompt(input),
+      schema: z.record(z.string(), z.unknown()),
+      context: {
+        task: "stt_transcript_repair",
+        sourceRoute: "stt-transcript-repair",
+        outputType: "stt_transcript_repair",
+        deadlineAt: Date.now() + config.repairTimeoutMs,
+        idempotencyKey: `stt-repair:${rawTranscriptHash}`,
+      },
+      policy: { candidates: [{ provider: "gemini", model: config.repairModel }], temperature: 0 },
+    }).then((result) => JSON.stringify(result.output)),
+    config.repairTimeoutMs,
+    () => ""
+  );
   const parsed = text ? parseJsonObject(text) : null;
 
   if (!parsed) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
@@ -10,6 +11,13 @@ import {
 } from "@/lib/api/request-validation";
 
 export const maxDuration = 15;
+
+const OnboardingFeedbackSchema = z.object({
+  score: z.number().finite(),
+  strength: z.string().min(1).max(400),
+  improvement: z.string().min(1).max(400),
+  encouragement: z.string().min(1).max(400),
+}).strict();
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,17 +68,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.5,
-        maxOutputTokens: 300,
-      },
-    });
-
     const prompt = `You are a warm, encouraging speaking coach giving quick feedback on a student's first 45-second warm-up speaking sample.
 Treat this as a low-stakes speaking warm-up, not a full debate evaluation.
 Topic: ${topic}
@@ -89,39 +86,35 @@ Focus on clarity, structure, confidence, and understandable English.
 Be encouraging — this is their first try. Score generously (60-85 range for any reasonable attempt).
 Keep all responses under 20 words each.`;
 
-    const startTime = Date.now();
-    const result = await model.generateContent(prompt);
-    const latency = Date.now() - startTime;
-    const text = result.response.text();
-    const usage = result.response.usageMetadata;
+    const result = await generateStructured({
+      task: "onboarding_feedback",
+      prompt,
+      schema: OnboardingFeedbackSchema,
+      context: {
+        task: "onboarding_feedback",
+        sourceRoute: "/api/onboarding-feedback",
+        outputType: "onboarding_feedback",
+        userId: user.id,
+        deadlineAt: Date.now() + 10_000,
+        metadata: { topic, position },
+      },
+    });
 
     getPostHogServer().capture({
       distinctId: user.id,
       event: "$ai_generation",
       properties: {
-        $ai_provider: "google",
-        $ai_model: modelName,
-        $ai_input_tokens: usage?.promptTokenCount,
-        $ai_output_tokens: usage?.candidatesTokenCount,
-        $ai_latency: latency,
+        $ai_provider: result.provider === "gemini" ? "google" : result.provider,
+        $ai_model: result.model,
+        $ai_input_tokens: result.usage.inputTokens,
+        $ai_output_tokens: result.usage.outputTokens,
+        $ai_latency: result.latencyMs,
         $ai_is_error: false,
-        $ai_trace_id: crypto.randomUUID(),
+        $ai_trace_id: result.traceId,
         route: "/api/onboarding-feedback",
       },
     });
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // Try to extract JSON from response
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        data = JSON.parse(match[0]);
-      } else {
-        throw new Error("Invalid JSON response");
-      }
-    }
+    const data = result.output;
 
     return NextResponse.json({
       score: Math.min(100, Math.max(0, data.score ?? 70)),

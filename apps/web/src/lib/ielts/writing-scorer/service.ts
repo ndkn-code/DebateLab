@@ -1,6 +1,5 @@
 import "server-only";
 
-import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { parseInput } from "@/lib/api/boundary";
@@ -22,6 +21,10 @@ import {
   persistWritingScore,
 } from "@/lib/api/ielts/writing-responses-repository";
 import { enqueueIeltsWritingScoring } from "@/lib/queues/ielts-writing";
+import {
+  ensureAiWorkflowRun,
+  isDurableAiWorkflowsEnabled,
+} from "@/lib/ai/workflow-runs";
 import type { IeltsWritingQueueMessage } from "./constants";
 import { buildWritingScorerPrompt } from "./prompt";
 import { runWritingModel } from "./provider";
@@ -48,31 +51,6 @@ export interface SubmitWritingResponseResult {
   writingResponseId: string;
   status: string;
   usage: { used: number; limit: number | null };
-}
-
-export function scheduleIeltsWritingScoringFallback(
-  message: IeltsWritingQueueMessage,
-  reason: "submit" | "poll",
-): void {
-  try {
-    after(async () => {
-      try {
-        await runIeltsWritingScoringJob(message, { deliveryCount: 1 });
-      } catch (error) {
-        console.error("IELTS writing fallback scoring failed", {
-          writingResponseId: message.writingResponseId,
-          reason,
-          error,
-        });
-      }
-    });
-  } catch (error) {
-    console.warn("IELTS writing fallback could not be scheduled", {
-      writingResponseId: message.writingResponseId,
-      reason,
-      error,
-    });
-  }
 }
 
 /**
@@ -108,11 +86,16 @@ export async function submitWritingResponseForScoring(params: {
     writingResponseId: response.id,
     userId: params.userId,
   };
-  scheduleIeltsWritingScoringFallback(message, "submit");
+  if (isDurableAiWorkflowsEnabled()) {
+    await ensureAiWorkflowRun({
+      userId: response.user_id,
+      source: { kind: "ielts_writing_score", writingResponseId: response.id },
+    });
+  }
   try {
     await enqueueIeltsWritingScoring(message);
   } catch (error) {
-    console.error("IELTS writing queue enqueue failed; fallback scheduled", {
+    console.error("IELTS writing queue enqueue failed", {
       writingResponseId: response.id,
       error,
     });
@@ -133,15 +116,15 @@ export async function submitWritingResponseForScoring(params: {
 export async function runIeltsWritingScoringJob(
   message: IeltsWritingQueueMessage,
   metadata: { deliveryCount: number },
-): Promise<void> {
+): Promise<"completed" | "ignored" | "lease_active"> {
   const admin = createTypedAdminClient();
   const context = await loadWritingScoringContext(
     admin,
     message.writingResponseId,
   );
-  if (!context) return; // response gone → ack
+  if (!context) return "ignored"; // response gone → ack
   const { response, question } = context;
-  if (isTerminalWritingStatus(response.status)) return; // already final
+  if (isTerminalWritingStatus(response.status)) return "ignored"; // already final
 
   const decision = decideWritingScoringAction({
     status: response.status,
@@ -153,9 +136,9 @@ export async function runIeltsWritingScoringJob(
       writingResponseId: response.id,
       retryable: false,
     });
-    return;
+    return "ignored";
   }
-  if (decision.action === "skip") return;
+  if (decision.action === "skip") return "lease_active";
 
   const provider = getIeltsWritingScoreProvider();
   const claimed = await claimWritingResponseForScoring(admin, {
@@ -164,7 +147,7 @@ export async function runIeltsWritingScoringJob(
     providerLabel: getIeltsWritingProviderLabel(provider),
     modelName: getIeltsWritingModelName(provider),
   });
-  if (!claimed) return; // another worker won the claim
+  if (!claimed) return "lease_active"; // another worker won the claim
 
   try {
     const grounding = await loadWritingExemplars(admin, {
@@ -203,6 +186,7 @@ export async function runIeltsWritingScoringJob(
       trigger: "writing_scored",
       source: { type: "writing_response", id: response.id },
     });
+    return "completed";
   } catch (error) {
     await markWritingScoringFailed(admin, {
       writingResponseId: response.id,

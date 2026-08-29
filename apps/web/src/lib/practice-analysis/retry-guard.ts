@@ -21,6 +21,8 @@ export function getPracticeAnalysisRetryDecision(params: {
   dbDeliveryCount: number | null | undefined;
   maxAttempts: number | null | undefined;
   queueDeliveryCount: number | null | undefined;
+  /** Delivery leases can expire without a provider attempt; keep this wider. */
+  maxQueueDeliveries?: number;
   startedAt: string | null | undefined;
   nowMs?: number;
   staleProcessingMs?: number;
@@ -33,7 +35,11 @@ export function getPracticeAnalysisRetryDecision(params: {
     return { action: "fail", reason: "db_retry_limit_exceeded" };
   }
 
-  if (queueDeliveryCount > maxAttempts) {
+  const maxQueueDeliveries = Math.max(
+    maxAttempts,
+    params.maxQueueDeliveries ?? 10
+  );
+  if (queueDeliveryCount > maxQueueDeliveries) {
     return { action: "fail", reason: "queue_retry_limit_exceeded" };
   }
 
@@ -47,10 +53,10 @@ export function getPracticeAnalysisRetryDecision(params: {
     return { action: "skip", reason: "processing_not_stale" };
   }
 
-  const deliveryCount = Math.max(queueDeliveryCount, dbDeliveryCount + 1);
-  if (deliveryCount > maxAttempts) {
-    return { action: "fail", reason: "queue_retry_limit_exceeded" };
-  }
+  // A queue delivery is not necessarily an AI-provider attempt. In particular,
+  // a duplicate received while another worker holds the lease must not consume
+  // the learner's three scoring attempts.
+  const deliveryCount = dbDeliveryCount + 1;
 
   if (params.jobStatus === "processing") {
     return {

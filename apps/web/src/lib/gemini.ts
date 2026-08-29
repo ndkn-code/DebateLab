@@ -2523,7 +2523,7 @@ function clampSectionScores(parsed: DebateScore) {
   parsed.totalScore = clampNumber(categoryTotal, 0, 100);
 }
 
-function normalizeDebateScore(
+export function normalizeDebateScore(
   parsed: DebateScore,
   params: {
     practiceTrack?: PracticeTrack;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeDebate } from "@/lib/gemini";
+import { generatePracticeFeedback } from "@/lib/ai/core/legacy";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
@@ -7,8 +7,8 @@ import { createScoreCalibrationMetadata } from "@/lib/ai/score-calibration";
 import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
-  retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
+import { searchKnowledge } from "@/lib/ai/knowledge";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
@@ -16,11 +16,18 @@ import {
   shouldConsumeUserRateLimit,
 } from "@/lib/api/request-auth";
 import {
+  attachQueueMessageId,
   createPracticeAnalysisRecords,
+  getRecentActivePracticeAnalysis,
   markPracticeAnalysisCompleted,
   markPracticeAnalysisFailed,
   markPracticeAnalysisProcessing,
 } from "@/lib/practice-analysis/service";
+import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
+import {
+  ensureAiWorkflowRun,
+  isDurableAiWorkflowsEnabled,
+} from "@/lib/ai/workflow-runs";
 import { parseTranscriptionArtifact } from "@/lib/practice-analysis/request";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
 import { selectTranscriptForJudging } from "@/lib/stt/repair";
@@ -296,7 +303,7 @@ export async function POST(req: NextRequest) {
     const hasConfiguredProvider =
       configuredProvider === "deepseek"
         ? Boolean(process.env.DEEPSEEK_API_KEY)
-        : Boolean(process.env.GEMINI_API_KEY);
+        : Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS);
 
     if (!hasConfiguredProvider) {
       console.error(JSON.stringify({
@@ -362,6 +369,149 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Compatibility cutover: this legacy endpoint used to run the entire
+    // grading pipeline inside one request. When durable workflows are enabled,
+    // preserve the request validation contract but return the canonical async
+    // job envelope instead. Existing clients can poll /api/analysis-jobs/:id.
+    if (isDurableAiWorkflowsEnabled() && shouldPersistAnalysis) {
+      const writeClient = tryCreateAdminClient() ?? supabase;
+      const practiceInput = {
+        transcript,
+        topic,
+        side,
+        speechType: speechType || "Opening Statement",
+        timeLimit: timeLimit || 2,
+        actualDuration: actualDuration || 0,
+        practiceTrack: practiceTrack || "debate",
+        practiceLanguage,
+        isFullRound: Boolean(isFullRound),
+        rounds,
+        motionBrief,
+        debateMemory,
+        transcription,
+        prepNotes,
+        mode:
+          practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
+            ? "full"
+            : "quick",
+        prepTime: 0,
+        speechTime: Math.round((timeLimit || 2) * 60),
+        topicCategory: "Practice",
+        topicDifficulty: "intermediate",
+      } as const;
+      const existing = await getRecentActivePracticeAnalysis(
+        writeClient,
+        authUser.id,
+        practiceInput
+      );
+      if (existing) {
+        await ensureAiWorkflowRun({
+          userId: existing.attempt.user_id,
+          source: { kind: "practice_analysis", analysisJobId: existing.job.id },
+        });
+        let queueMessageId = existing.job.queue_message_id;
+        if (existing.job.status === "queued" && !queueMessageId) {
+          const queued = await enqueuePracticeAnalysis({
+            jobId: existing.job.id,
+            attemptId: existing.attempt.id,
+            userId: authUser.id,
+          });
+          queueMessageId = queued.messageId;
+          await attachQueueMessageId(writeClient, existing.job.id, queueMessageId).catch(
+            () => undefined
+          );
+        }
+        await recordAnalyticsEvent(writeClient, authUser.id, {
+          eventName: "ai_feedback_duplicate_reused",
+          featureArea: "ai_feedback",
+          metadata: {
+            topic,
+            side,
+            speech_type: practiceInput.speechType,
+            practice_track: practiceInput.practiceTrack,
+            practice_language: practiceLanguage,
+            practice_attempt_id: existing.attempt.id,
+            analysis_job_id: existing.job.id,
+            debug_id: requestId,
+          },
+        });
+        return NextResponse.json(
+          {
+            attemptId: existing.attempt.id,
+            jobId: existing.job.id,
+            status: existing.job.status,
+            idempotencyKey: existing.idempotencyKey,
+            queueMessageId,
+            reusedExisting: true,
+          },
+          { status: 202, headers: { Deprecation: "true" } }
+        );
+      }
+
+      const { attempt, job, idempotencyKey } = await createPracticeAnalysisRecords(
+        writeClient,
+        authUser.id,
+        practiceInput,
+        { debugId: requestId }
+      );
+      await ensureAiWorkflowRun({
+        userId: attempt.user_id,
+        source: { kind: "practice_analysis", analysisJobId: job.id },
+      });
+      await recordAnalyticsEvent(writeClient, authUser.id, {
+        eventName: "ai_feedback_requested",
+        featureArea: "ai_feedback",
+        metadata: {
+          topic,
+          side,
+          speech_type: practiceInput.speechType,
+          practice_track: practiceInput.practiceTrack,
+          practice_language: practiceLanguage,
+          word_count: wordCount,
+          stt_provider: transcription?.provider,
+          stt_warnings: transcription?.warnings,
+          practice_attempt_id: attempt.id,
+          analysis_job_id: job.id,
+          debug_id: requestId,
+        },
+      });
+      try {
+        const queued = await enqueuePracticeAnalysis({
+          jobId: job.id,
+          attemptId: attempt.id,
+          userId: authUser.id,
+        });
+        await attachQueueMessageId(writeClient, job.id, queued.messageId).catch(
+          () => undefined
+        );
+        return NextResponse.json(
+          {
+            attemptId: attempt.id,
+            jobId: job.id,
+            status: "queued",
+            idempotencyKey,
+            queueMessageId: queued.messageId,
+          },
+          { status: 202, headers: { Deprecation: "true" } }
+        );
+      } catch (error) {
+        await markPracticeAnalysisFailed(writeClient, {
+          jobId: job.id,
+          attemptId: attempt.id,
+          errorCode: "QUEUE_ENQUEUE_FAILED",
+          errorMessage: error instanceof Error ? error.message : "Failed to enqueue analysis.",
+        }).catch(() => undefined);
+        return NextResponse.json(
+          {
+            error: "We saved your transcript, but could not queue analysis yet. Please try again in a moment.",
+            attemptId: attempt.id,
+            jobId: job.id,
+          },
+          { status: 503, headers: { Deprecation: "true" } }
+        );
+      }
     }
 
     if (shouldPersistAnalysis) {
@@ -441,13 +591,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const corpusRetrieval = await retrieveDebateCorpusContext({
-      purpose: "judging",
-      practiceLanguage,
+    const debateKnowledge = await searchKnowledge({
+      collection: "debate",
+      purpose: "grading",
+      debatePurpose: "judging",
+      language: practiceLanguage,
       practiceTrack: practiceTrack || "debate",
       topic,
       side,
-      transcript: judgingTranscript,
+      query: judgingTranscript,
       roundsText: rounds?.map(
         (round) => round.transcript || round.aiResponse || ""
       ),
@@ -455,6 +607,7 @@ export async function POST(req: NextRequest) {
       sourceRoute: "/api/analyze",
       supabase: adminClient ?? undefined,
     });
+    const corpusRetrieval = debateKnowledge.data;
 
     // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -467,7 +620,7 @@ export async function POST(req: NextRequest) {
       });
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await Promise.race([
-        analyzeDebate({
+        generatePracticeFeedback({
           transcript: judgingTranscript,
           topic,
           side,

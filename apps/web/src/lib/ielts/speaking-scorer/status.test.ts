@@ -81,7 +81,7 @@ assert.deepEqual(
   ["processing"],
 );
 
-// exhausted queue deliveries -> fail (max attempts = 3)
+// Legacy queue path has no separate provider-attempt counter; cap deliveries.
 const exhausted = decideSpeakingScoringAction({
   status: "pending",
   updatedAt: null,

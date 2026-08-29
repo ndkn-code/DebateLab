@@ -3,6 +3,7 @@ import type { VercelRegion } from "@vercel/queue";
 
 import type { IeltsSpeakingQueueMessage } from "@/lib/ielts/speaking-scorer/constants";
 import { runIeltsSpeakingScoringJob } from "@/lib/ielts/speaking-scorer/service";
+import { launchIeltsSpeakingScoreWorkflow } from "@/lib/ai/workflow-launcher";
 
 /**
  * Async worker for IELTS Speaking scoring (WS-3.2). Reuses the same Vercel Queue
@@ -21,8 +22,24 @@ const queue = new QueueClient({
 
 export const POST = queue.handleCallback<IeltsSpeakingQueueMessage>(
   async (message, metadata) => {
-    await runIeltsSpeakingScoringJob(message, {
+    const workflowRunId = await launchIeltsSpeakingScoreWorkflow({
+      speakingResponseId: message.speakingResponseId,
+      durationSeconds: message.durationSeconds,
+    });
+    if (workflowRunId) return;
+
+    const outcome = await runIeltsSpeakingScoringJob(message, {
       deliveryCount: metadata.deliveryCount,
     });
+    if (outcome === "lease_active") {
+      throw new Error("IELTS_SPEAKING_SCORING_LEASE_ACTIVE");
+    }
+  },
+  {
+    visibilityTimeoutSeconds: 360,
+    retry: (_error, metadata) => {
+      if (metadata.deliveryCount >= 10) return { acknowledge: true };
+      return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
+    },
   },
 );

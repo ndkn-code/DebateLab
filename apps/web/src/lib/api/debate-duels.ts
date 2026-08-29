@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { judgeDebateDuel } from "@/lib/gemini";
+import { judgeDebateDuel } from "@/lib/ai/core";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import {

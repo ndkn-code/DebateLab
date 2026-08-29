@@ -1,6 +1,5 @@
 import "server-only";
 
-import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { parseInput } from "@/lib/api/boundary";
@@ -29,6 +28,10 @@ import {
 } from "@/lib/api/ielts/speaking-responses-repository";
 import { enqueueIeltsSpeakingScoring } from "@/lib/queues/ielts-speaking";
 import {
+  ensureAiWorkflowRun,
+  isDurableAiWorkflowsEnabled,
+} from "@/lib/ai/workflow-runs";
+import {
   IELTS_SPEAKING_AUDIO_BUCKET,
   type IeltsSpeakingQueueMessage,
 } from "./constants";
@@ -55,31 +58,6 @@ export interface SubmitSpeakingResponseResult {
   speakingResponseId: string;
   status: string;
   usage: { used: number; limit: number | null };
-}
-
-export function scheduleIeltsSpeakingScoringFallback(
-  message: IeltsSpeakingQueueMessage,
-  reason: "submit" | "poll",
-): void {
-  try {
-    after(async () => {
-      try {
-        await runIeltsSpeakingScoringJob(message, { deliveryCount: 1 });
-      } catch (error) {
-        console.error("IELTS speaking fallback scoring failed", {
-          speakingResponseId: message.speakingResponseId,
-          reason,
-          error,
-        });
-      }
-    });
-  } catch (error) {
-    console.warn("IELTS speaking fallback could not be scheduled", {
-      speakingResponseId: message.speakingResponseId,
-      reason,
-      error,
-    });
-  }
 }
 
 /**
@@ -116,11 +94,16 @@ export async function submitSpeakingResponseForScoring(params: {
     userId: params.userId,
     durationSeconds: input.durationSeconds,
   };
+  if (isDurableAiWorkflowsEnabled()) {
+    await ensureAiWorkflowRun({
+      userId: response.user_id,
+      source: { kind: "ielts_speaking_score", speakingResponseId: response.id },
+    });
+  }
   try {
     await enqueueIeltsSpeakingScoring(message);
   } catch (error) {
-    scheduleIeltsSpeakingScoringFallback(message, "submit");
-    console.error("IELTS speaking queue enqueue failed; fallback scheduled", {
+    console.error("IELTS speaking queue enqueue failed", {
       speakingResponseId: response.id,
       error,
     });
@@ -185,15 +168,15 @@ function extractCueCardBullets(metadata: Json): string[] | undefined {
 export async function runIeltsSpeakingScoringJob(
   message: IeltsSpeakingQueueMessage,
   metadata: { deliveryCount: number },
-): Promise<void> {
+): Promise<"completed" | "ignored" | "lease_active"> {
   const admin = createTypedAdminClient();
   const context = await loadSpeakingScoringContext(
     admin,
     message.speakingResponseId,
   );
-  if (!context) return; // response gone → ack
+  if (!context) return "ignored"; // response gone → ack
   const { response, question } = context;
-  if (isTerminalSpeakingStatus(response.status)) return; // already final
+  if (isTerminalSpeakingStatus(response.status)) return "ignored"; // already final
 
   const decision = decideSpeakingScoringAction({
     status: response.status,
@@ -205,15 +188,15 @@ export async function runIeltsSpeakingScoringJob(
       speakingResponseId: response.id,
       retryable: false,
     });
-    return;
+    return "ignored";
   }
-  if (decision.action === "skip") return;
+  if (decision.action === "skip") return "lease_active";
 
   const claimed = await claimSpeakingResponseForScoring(admin, {
     speakingResponseId: response.id,
     allowedStatuses: claimableSpeakingStatuses(decision.allowedStatuses),
   });
-  if (!claimed) return; // another worker won the claim
+  if (!claimed) return "lease_active"; // another worker won the claim
 
   try {
     const partNumber = speakingPartNumberForQuestionType(
@@ -291,6 +274,7 @@ export async function runIeltsSpeakingScoringJob(
       trigger: "speaking_scored",
       source: { type: "speaking_response", id: response.id },
     });
+    return "completed";
   } catch (error) {
     await markSpeakingScoringFailed(admin, {
       speakingResponseId: response.id,

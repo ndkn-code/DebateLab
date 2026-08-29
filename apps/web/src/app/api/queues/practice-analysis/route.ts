@@ -15,8 +15,8 @@ import {
   createDebateCorpusRetrievalMetadata,
   type DebateCorpusRetrievalCacheEntry,
   linkDebateCorpusRetrievalLogToAiRun,
-  retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
+import { searchKnowledge } from "@/lib/ai/knowledge";
 import { evaluatePracticeFeedback } from "@/lib/practice-analysis/evaluators";
 import type {
   StagedGeminiCache,
@@ -33,6 +33,7 @@ import {
 import { getPracticeAnalysisRetryDecision } from "@/lib/practice-analysis/retry-guard";
 import type { PracticeAnalysisQueueMessage } from "@/lib/practice-analysis/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { launchPracticeAnalysisWorkflow } from "@/lib/ai/workflow-launcher";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
 import { selectTranscriptForJudging } from "@/lib/stt/repair";
 import { recordSttRepairShadowRun } from "@/lib/stt/shadow-runs";
@@ -99,6 +100,11 @@ function readStagedGeminiCache(
 
 export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
   async (message, metadata) => {
+    const workflowRunId = await launchPracticeAnalysisWorkflow({
+      analysisJobId: message.jobId,
+    });
+    if (workflowRunId) return;
+
     const supabase = createAdminClient();
     const { job, attempt } = await getAnalysisJobForProcessing(
       supabase,
@@ -150,7 +156,11 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     }
 
     if (retryDecision.action === "skip") {
-      return;
+      // Returning would acknowledge this at-least-once delivery. If the active
+      // worker was actually terminated, that acknowledgement would strand the
+      // job permanently. Let Queue retry after the lease guard has had time to
+      // become reclaimable instead.
+      throw new Error("PRACTICE_ANALYSIS_LEASE_ACTIVE");
     }
 
     const claimed = await markPracticeAnalysisProcessing(supabase, {
@@ -228,13 +238,15 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           : judgingTranscript !== input.transcript
             ? "repair_used_for_judge"
             : "baseline";
-      const corpusRetrieval = await retrieveDebateCorpusContext({
-        purpose: "judging",
-        practiceLanguage: input.practiceLanguage,
+      const debateKnowledge = await searchKnowledge({
+        collection: "debate",
+        purpose: "grading",
+        debatePurpose: "judging",
+        language: input.practiceLanguage,
         practiceTrack: input.practiceTrack,
         topic: input.topic,
         side: input.side,
-        transcript: judgingTranscript,
+        query: judgingTranscript,
         roundsText: input.rounds?.map(
           (round) => round.transcript || round.aiResponse || ""
         ),
@@ -247,6 +259,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           await persistJobResultPatch({ corpusRetrievalCache: entry });
         },
       });
+      const corpusRetrieval = debateKnowledge.data;
       if (input.providerAudit) {
         const providerAudit = input.providerAudit as typeof input.providerAudit & {
           stagedGeminiCache?: StagedGeminiCache;
@@ -484,9 +497,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     }
   },
   {
-    visibilityTimeoutSeconds: 120,
+    visibilityTimeoutSeconds: 360,
     retry: (_error, metadata) => {
-      if (metadata.deliveryCount >= 3) return { acknowledge: true };
+      if (metadata.deliveryCount >= 10) return { acknowledge: true };
       return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
     },
   }

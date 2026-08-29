@@ -79,7 +79,7 @@ assert.deepEqual(
   ["processing"],
 );
 
-// exhausted queue deliveries -> fail
+// Legacy queue path has no separate provider-attempt counter; cap deliveries.
 const exhausted = decideWritingScoringAction({
   status: "pending",
   updatedAt: null,

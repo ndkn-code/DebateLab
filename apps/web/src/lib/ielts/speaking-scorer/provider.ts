@@ -1,18 +1,12 @@
 import "server-only";
 
-import {
-  classifyGeminiError,
-  getGeminiApiKeys,
-  getGeminiClientForSlot,
-  runWithGeminiKeyPool,
-} from "@/lib/gemini/key-pool";
-import { createGroqChatCompletion, isGroqChatConfigured } from "@/lib/ai/groq";
-import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
+import { generateStructured } from "@/lib/ai/core";
+import { isGroqChatConfigured } from "@/lib/ai/groq";
+import { getGeminiApiKeys } from "@/lib/gemini/key-pool";
 import {
   ieltsSpeakingModelOutputSchema,
   type IeltsSpeakingModelOutput,
 } from "@/lib/scoring/ielts-speaking/result-schema";
-import { extractJsonObject } from "@/lib/ielts/writing-scorer/json";
 import {
   IELTS_SPEAKING_SCORE_OUTPUT_TYPE,
   IELTS_SPEAKING_SCORE_SOURCE_ROUTE,
@@ -26,16 +20,12 @@ import {
 } from "./provider-policy";
 
 /**
- * The actual scoring model call (WS-3.2). Cheap-first: Gemini Flash via the
- * key-pool (JSON mode) is primary; Groq (`llama-3.3-70b-versatile`) is the
- * configurable fallback — NOT DeepSeek. Each call is metered into
- * `ai_provider_requests`, and the raw JSON is validated against
- * {@link ieltsSpeakingModelOutputSchema} before it reaches the scorer. Mirrors
- * the Writing provider.
+ * Centralized IELTS Speaking model boundary. This preserves the existing
+ * Gemini-first/Groq-fallback product policy while delegating key rotation,
+ * deadlines, JSON repair, and provider audit to the AI core.
  */
 const MAX_OUTPUT_TOKENS = 3072;
 const TEMPERATURE = 0.2;
-const GROQ_TIMEOUT_MS = 45_000;
 
 export interface SpeakingModelAudit {
   userId: string | null;
@@ -48,116 +38,47 @@ export interface SpeakingModelResult {
   modelName: string;
 }
 
-function validate(text: string, label: string): IeltsSpeakingModelOutput {
-  return ieltsSpeakingModelOutputSchema.parse(extractJsonObject(text, label));
-}
-
-async function runViaGemini(
-  prompt: string,
-  audit: SpeakingModelAudit,
-): Promise<SpeakingModelResult> {
-  const modelName = getIeltsSpeakingGeminiModelName();
-  const providerLabel = getIeltsSpeakingGeminiProviderLabel();
-  return runWithGeminiKeyPool({
-    seed: `ielts-speaking:${audit.speakingResponseId ?? "anon"}`,
-    run: async (attempt) => {
-      const model = getGeminiClientForSlot(attempt.slot).getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: TEMPERATURE,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-        },
-      });
-      const startedAt = Date.now();
-      const result = await model.generateContent(prompt);
-      const latencyMs = Date.now() - startedAt;
-      await recordAiProviderRequest({
-        provider: "google",
-        model: modelName,
-        status: "success",
-        sourceRoute: IELTS_SPEAKING_SCORE_SOURCE_ROUTE,
-        outputType: IELTS_SPEAKING_SCORE_OUTPUT_TYPE,
-        userId: audit.userId,
-        latencyMs,
-        usage: {
-          inputTokens: result.response.usageMetadata?.promptTokenCount,
-          outputTokens: result.response.usageMetadata?.candidatesTokenCount,
-          totalTokens: result.response.usageMetadata?.totalTokenCount,
-        },
-        metadata: {
-          speakingResponseId: audit.speakingResponseId,
-          keySlot: attempt.slot,
-          keyFallbackCount: attempt.fallbackCount,
-        },
-      });
-      return {
-        output: validate(result.response.text(), "ielts_speaking_gemini"),
-        providerLabel,
-        modelName,
-      };
-    },
-    onError: async (error, attempt) => {
-      await recordAiProviderRequest({
-        provider: "google",
-        model: modelName,
-        status: "error",
-        sourceRoute: IELTS_SPEAKING_SCORE_SOURCE_ROUTE,
-        outputType: IELTS_SPEAKING_SCORE_OUTPUT_TYPE,
-        userId: audit.userId,
-        errorCode: classifyGeminiError(error),
-        errorMessage: error instanceof Error ? error.message : String(error),
-        metadata: {
-          speakingResponseId: audit.speakingResponseId,
-          keySlot: attempt.slot,
-        },
-      });
-    },
-  });
-}
-
-async function runViaGroq(
-  prompt: string,
-  audit: SpeakingModelAudit,
-): Promise<SpeakingModelResult> {
-  const result = await createGroqChatCompletion({
-    messages: [{ role: "user", content: prompt }],
-    responseFormat: "json_object",
-    temperature: TEMPERATURE,
-    maxTokens: MAX_OUTPUT_TOKENS,
-    timeoutMs: GROQ_TIMEOUT_MS,
-    userId: audit.userId,
-    sourceRoute: IELTS_SPEAKING_SCORE_SOURCE_ROUTE,
-    outputType: IELTS_SPEAKING_SCORE_OUTPUT_TYPE,
-    metadata: { speakingResponseId: audit.speakingResponseId },
-  });
-  return {
-    output: validate(result.content, "ielts_speaking_groq"),
-    providerLabel: IELTS_SPEAKING_GROQ_PROVIDER_LABEL,
-    modelName: getIeltsSpeakingGroqModelName(),
-  };
-}
-
 export async function runSpeakingModel(params: {
   prompt: string;
   audit: SpeakingModelAudit;
 }): Promise<SpeakingModelResult> {
-  const geminiReady = getGeminiApiKeys().length > 0;
-  const groqReady = isGroqChatConfigured();
-
-  if (geminiReady) {
-    try {
-      return await runViaGemini(params.prompt, params.audit);
-    } catch (error) {
-      if (!isIeltsSpeakingFallbackEnabled() || !groqReady) {
-        throw error;
-      }
-    }
-    return runViaGroq(params.prompt, params.audit);
+  const candidates = [] as Array<{ provider: "gemini" | "groq"; model: string }>;
+  if (getGeminiApiKeys().length > 0) {
+    candidates.push({ provider: "gemini", model: getIeltsSpeakingGeminiModelName() });
+  }
+  if (isIeltsSpeakingFallbackEnabled() && isGroqChatConfigured()) {
+    candidates.push({ provider: "groq", model: getIeltsSpeakingGroqModelName() });
+  }
+  if (candidates.length === 0) {
+    throw new Error("No AI provider configured for IELTS Speaking scoring");
   }
 
-  if (groqReady) {
-    return runViaGroq(params.prompt, params.audit);
-  }
-  throw new Error("No AI provider configured for IELTS Speaking scoring");
+  const result = await generateStructured({
+    task: "ielts_speaking_score",
+    prompt: params.prompt,
+    schema: ieltsSpeakingModelOutputSchema,
+    context: {
+      task: "ielts_speaking_score",
+      sourceRoute: IELTS_SPEAKING_SCORE_SOURCE_ROUTE,
+      outputType: IELTS_SPEAKING_SCORE_OUTPUT_TYPE,
+      userId: params.audit.userId,
+      idempotencyKey: params.audit.speakingResponseId ?? undefined,
+      entity: { speakingResponseId: params.audit.speakingResponseId ?? undefined },
+      metadata: { speakingResponseId: params.audit.speakingResponseId },
+    },
+    policy: {
+      candidates,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      temperature: TEMPERATURE,
+    },
+  });
+
+  return {
+    output: result.output,
+    providerLabel:
+      result.provider === "gemini"
+        ? getIeltsSpeakingGeminiProviderLabel()
+        : IELTS_SPEAKING_GROQ_PROVIDER_LABEL,
+    modelName: result.model,
+  };
 }

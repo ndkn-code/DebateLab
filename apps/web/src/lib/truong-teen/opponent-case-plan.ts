@@ -2,10 +2,8 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  createDeepSeekChatCompletion,
-  type DeepSeekMessage,
-} from "@/lib/ai/deepseek";
+import { z } from "zod";
+import { generateStructured, type AiPromptMessage } from "@/lib/ai/core";
 import type {
   AiDifficulty,
   MotionBrief,
@@ -34,7 +32,7 @@ export interface TruongTeenOpponentCasePlan {
   version: typeof TRUONG_TEEN_CASE_PLAN_VERSION;
   cacheKey: string;
   cacheHit: boolean;
-  generationSource: "cache" | "deepseek" | "fallback";
+  generationSource: "cache" | "deepseek" | "gemini" | "fallback";
   promptPrefixHash: string | null;
   motion: string;
   aiSide: "proposition" | "opposition";
@@ -605,7 +603,7 @@ function buildCasePlanMessages(params: {
   debateFormat: "rebuttal" | "closing";
   motionBrief?: MotionBrief;
   skeletons: TruongTeenCaseSkeletonReference[];
-}): DeepSeekMessage[] {
+}): AiPromptMessage[] {
   return [
     {
       role: "system",
@@ -671,10 +669,10 @@ function sanitizeClaim(value: unknown): TruongTeenCaseClaim | null {
     : null;
 }
 
-function parseGeneratedPlan(value: string) {
-  const trimmed = value.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  const parsed = JSON.parse(jsonMatch?.[0] ?? trimmed) as Record<string, unknown>;
+function parseGeneratedPlan(value: unknown) {
+  const parsed = typeof value === "string"
+    ? JSON.parse(value.trim().match(/\{[\s\S]*\}/)?.[0] ?? value.trim()) as Record<string, unknown>
+    : asRecord(value);
   const rawClaims =
     parsed.independentClaims ??
     parsed.independent_claims ??
@@ -699,6 +697,13 @@ function parseGeneratedPlan(value: string) {
     crystallization: readString(parsed.crystallization, 700),
   };
 }
+
+const CasePlanModelOutputSchema = z.object({
+  independentClaims: z.array(z.unknown()).min(1),
+  expectedRebuttalTargets: z.array(z.string()).optional(),
+  weighingHooks: z.array(z.string()).optional(),
+  crystallization: z.string().optional(),
+}).passthrough();
 
 export async function getTruongTeenOpponentCasePlan(
   params: GetCasePlanParams
@@ -738,26 +743,28 @@ export async function getTruongTeenOpponentCasePlan(
 
   const startedAt = Date.now();
   try {
-    const result = await createDeepSeekChatCompletion({
+    const result = await generateStructured({
+      task: "truong_teen_case_plan",
       messages,
-      thinking: { type: "disabled" },
-      responseFormat: "json_object",
-      maxTokens: 900,
-      temperature: 0.35,
-      timeoutMs: 9000,
-      userId: params.userId ?? undefined,
-      sourceRoute: `${params.sourceRoute}/case-plan`,
-      outputType: "rebuttal",
-      metadata: {
-        stage: "truong_teen_case_plan",
-        casePlanVersion: TRUONG_TEEN_CASE_PLAN_VERSION,
-        casePlanCacheKey: cacheKey,
-        casePlanPromptPrefixHash: promptPrefixHash,
-        exactMotionCaseSkeletonCount: skeletons.length,
-        exactMotionCaseSkeletonItemIds: skeletons.map((item) => item.itemId),
+      prompt: messages.map((message) => message.content).join("\n\n"),
+      schema: CasePlanModelOutputSchema,
+      context: {
+        task: "truong_teen_case_plan",
+        sourceRoute: `${params.sourceRoute}/case-plan`,
+        outputType: "rebuttal",
+        userId: params.userId ?? null,
+        deadlineAt: Date.now() + 9_000,
+        metadata: {
+          stage: "truong_teen_case_plan",
+          casePlanVersion: TRUONG_TEEN_CASE_PLAN_VERSION,
+          casePlanCacheKey: cacheKey,
+          casePlanPromptPrefixHash: promptPrefixHash,
+          exactMotionCaseSkeletonCount: skeletons.length,
+          exactMotionCaseSkeletonItemIds: skeletons.map((item) => item.itemId),
+        },
       },
     });
-    const parsed = parseGeneratedPlan(result.content);
+    const parsed = parseGeneratedPlan(result.output);
     if (parsed.independentClaims.length === 0) {
       throw new Error("CASE_PLAN_EMPTY_CLAIMS");
     }
@@ -766,7 +773,7 @@ export async function getTruongTeenOpponentCasePlan(
       version: TRUONG_TEEN_CASE_PLAN_VERSION,
       cacheKey,
       cacheHit: false,
-      generationSource: "deepseek",
+      generationSource: result.provider === "gemini" ? "gemini" : "deepseek",
       promptPrefixHash,
       motion: params.topic,
       aiSide: params.aiSide,
@@ -806,12 +813,12 @@ export async function getTruongTeenOpponentCasePlan(
         usedItemIds: skeletons.map((item) => item.itemId),
       },
       latencyMs: Date.now() - startedAt,
-      providerRequestIds: result.providerRequestId ? [result.providerRequestId] : [],
+      providerRequestIds: result.providerRequestIds,
       usage: {
-        inputTokens: result.usage?.prompt_tokens,
-        outputTokens: result.usage?.completion_tokens,
-        cacheHitTokens: result.usage?.prompt_cache_hit_tokens,
-        cacheMissTokens: result.usage?.prompt_cache_miss_tokens,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        cacheHitTokens: result.usage.cacheHitTokens,
+        cacheMissTokens: result.usage.cacheMissTokens,
       },
     };
     setCache(plan);

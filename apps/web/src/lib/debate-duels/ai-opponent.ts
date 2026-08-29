@@ -1,8 +1,8 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createDeepSeekChatCompletion } from "@/lib/ai/deepseek";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { DebateDuelSide, PracticeLanguage } from "@/types";
 
@@ -106,75 +106,25 @@ Return ONLY valid JSON: {"speech": "your spoken ${params.speechType} as plain te
   return { system, user };
 }
 
-function parseSpeech(raw: string): string {
-  const text = (raw ?? "").trim();
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed.speech === "string") return parsed.speech.trim();
-  } catch {
-    // Not clean JSON — fall through and salvage below.
-  }
-  return text
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/, "")
-    .trim();
-}
-
-async function generateWithGemini(system: string, user: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-  const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.7,
-      maxOutputTokens: 1600,
-    },
-  });
-  const result = await model.generateContent(`${system}\n\n${user}`);
-  return result.response.text().trim();
-}
+const DuelAiSpeechSchema = z.object({ speech: z.string().min(1).max(12_000) }).strict();
 
 export async function generateDuelAiSpeech(
   params: DuelAiSpeechParams
 ): Promise<{ transcript: string; model: string }> {
   const { system, user } = buildDuelAiPrompt(params);
-
-  try {
-    const result = await createDeepSeekChatCompletion({
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      thinking: { type: "disabled" },
-      responseFormat: "json_object",
-      maxTokens: 1600,
-      temperature: 0.7,
-      timeoutMs: 45000,
-      userId: params.userId,
+  const result = await generateStructured({
+    task: "duel_ai_speech",
+    prompt: `${system}\n\n${user}`,
+    schema: DuelAiSpeechSchema,
+    context: {
+      task: "duel_ai_speech",
       sourceRoute: "/api/debate-duels/[shareCode]/ai-turn",
       outputType: "rebuttal",
-      metadata: {
-        duelAiSpeech: true,
-        speechType: params.speechType,
-        aiSide: params.aiSide,
-      },
-    });
-    const transcript = parseSpeech(result.content);
-    if (transcript) return { transcript, model: result.model };
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Duel AI DeepSeek generation failed; trying Gemini:", error);
-    }
-  }
-
-  const transcript = parseSpeech(await generateWithGemini(system, user));
-  return {
-    transcript:
-      transcript || "[The AI opponent could not generate a speech this round.]",
-    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-  };
+      userId: params.userId,
+      deadlineAt: Date.now() + 45_000,
+      idempotencyKey: `duel-ai-speech:${params.userId}:${params.speechType}:${params.motion}`,
+      metadata: { duelAiSpeech: true, speechType: params.speechType, aiSide: params.aiSide },
+    },
+  });
+  return { transcript: result.output.speech.trim(), model: result.model };
 }

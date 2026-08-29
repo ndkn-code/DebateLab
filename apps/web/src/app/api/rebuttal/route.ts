@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
+import { generateStructured } from "@/lib/ai/core";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
 import {
@@ -19,19 +20,14 @@ import {
   type JsonRecord,
 } from "@/lib/api/request-validation";
 import { formatMotionBriefForPrompt } from "@/lib/motion-brief";
-import {
-  createDeepSeekChatCompletion,
-  createDeepSeekStreamingChatCompletion,
-  type DeepSeekMessage,
-  type DeepSeekUsage,
-} from "@/lib/ai/deepseek";
+import type { DeepSeekMessage } from "@/lib/ai/deepseek";
 import { recordAiQualityRun } from "@/lib/ai/quality";
 import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
 import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
-  retrieveDebateCorpusContext,
 } from "@/lib/corpus/retrieval";
+import { searchKnowledge } from "@/lib/ai/knowledge";
 import {
   getProviderLabel,
   getProviderModelName,
@@ -286,6 +282,8 @@ interface RebuttalGeneration {
   providerRequestIds?: string[];
 }
 
+const RebuttalModelSchema = z.record(z.string(), z.unknown());
+
 function modeFromRoundLabel(roundLabel: string) {
   return roundLabel.toLowerCase().includes("closing") ? "closing" : "rebuttal";
 }
@@ -368,83 +366,20 @@ async function generateGeminiRebuttal(
   timeoutMs: number,
   fallbackUsed = false
 ): Promise<RebuttalGeneration> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not configured");
-  }
-
-  const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.7,
-      maxOutputTokens,
-    },
-  });
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-  });
-
-  const startTime = Date.now();
-  let result;
-  try {
-    result = await Promise.race([
-      model.generateContent(prompt),
-      timeoutPromise,
-    ]);
-  } catch (error) {
-    await recordAiProviderRequest({
-      provider: "google",
-      model: modelName,
-      status: "error",
-      sourceRoute: "/api/rebuttal",
-      outputType: "rebuttal",
-      latencyMs: Date.now() - startTime,
-      errorCode: error instanceof Error && error.message === "TIMEOUT"
-        ? "TIMEOUT"
-        : "GEMINI_REBUTTAL_FAILED",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      metadata: {
-        maxOutputTokens,
-        timeoutMs,
-        fallbackUsed,
-      },
-    });
-    throw error;
-  }
-  const latency = Date.now() - startTime;
-  const usage = result.response.usageMetadata;
-  const providerRequestId = await recordAiProviderRequest({
-    provider: "google",
-    model: modelName,
-    status: "success",
-    sourceRoute: "/api/rebuttal",
-    outputType: "rebuttal",
-    latencyMs: latency,
-    usage: {
-      inputTokens: usage?.promptTokenCount,
-      outputTokens: usage?.candidatesTokenCount,
-      totalTokens: usage?.totalTokenCount,
-    },
-    metadata: {
-      maxOutputTokens,
-      timeoutMs,
-      fallbackUsed,
-    },
+  const result = await generateStructured({
+    task: "rebuttal", prompt, schema: RebuttalModelSchema,
+    context: { task: "rebuttal", sourceRoute: "/api/rebuttal", outputType: "rebuttal", deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs, fallbackUsed } },
+    policy: { candidates: [{ provider: "gemini", model: process.env.GEMINI_MODEL || "gemini-2.5-flash" }], maxOutputTokens, temperature: 0.7 },
   });
 
   return {
     provider: "gemini",
-    modelName,
-    text: result.response.text().trim(),
-    usage: {
-      inputTokens: usage?.promptTokenCount,
-      outputTokens: usage?.candidatesTokenCount,
-    },
-    latency,
+    modelName: result.model,
+    text: result.text,
+    usage: result.usage,
+    latency: result.latencyMs,
     fallbackUsed,
-    providerRequestIds: providerRequestId ? [providerRequestId] : [],
+    providerRequestIds: result.providerRequestIds,
   };
 }
 
@@ -454,39 +389,20 @@ async function generateDeepSeekRebuttal(
   timeoutMs: number,
   userId: string
 ): Promise<RebuttalGeneration> {
-  const startTime = Date.now();
-  const result = await createDeepSeekChatCompletion({
-    messages,
-    thinking: { type: "disabled" },
-    responseFormat: "json_object",
-    maxTokens: maxOutputTokens,
-    temperature: 0.7,
-    timeoutMs,
-    userId,
-    sourceRoute: "/api/rebuttal",
-    outputType: "rebuttal",
-    metadata: {
-      maxOutputTokens,
-      timeoutMs,
-    },
+  const result = await generateStructured({
+    task: "rebuttal", prompt: "", messages, schema: RebuttalModelSchema,
+    context: { task: "rebuttal", sourceRoute: "/api/rebuttal", outputType: "rebuttal", userId, deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs } },
+    policy: { candidates: [{ provider: "deepseek", model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash" }], maxOutputTokens, temperature: 0.7 },
   });
-  const latency = Date.now() - startTime;
-  const usage: DeepSeekUsage | undefined = result.usage;
 
   return {
     provider: "deepseek",
     modelName: result.model,
-    text: result.content,
-    usage: {
-      inputTokens: usage?.prompt_tokens,
-      outputTokens: usage?.completion_tokens,
-      cacheHitTokens: usage?.prompt_cache_hit_tokens,
-      cacheMissTokens: usage?.prompt_cache_miss_tokens,
-      reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens,
-    },
-    latency,
+    text: result.text,
+    usage: result.usage,
+    latency: result.latencyMs,
     fallbackUsed: false,
-    providerRequestIds: result.providerRequestId ? [result.providerRequestId] : [],
+    providerRequestIds: result.providerRequestIds,
   };
 }
 
@@ -560,42 +476,22 @@ async function generateDeepSeekStreamingRebuttal(
   userId: string,
   onDelta: (delta: string) => void | Promise<void>
 ): Promise<RebuttalGeneration & { firstTokenLatencyMs?: number | null }> {
-  const startTime = Date.now();
-  const result = await createDeepSeekStreamingChatCompletion({
-    messages,
-    thinking: { type: "disabled" },
-    responseFormat: "text",
-    maxTokens: maxOutputTokens,
-    temperature: 0.7,
-    timeoutMs,
-    userId,
-    sourceRoute: "/api/rebuttal/stream",
-    outputType: "rebuttal",
-    metadata: {
-      maxOutputTokens,
-      timeoutMs,
-      streamMode: "sse",
-    },
-    onDelta,
+  const result = await generateStructured({
+    task: "rebuttal", prompt: "", messages, schema: RebuttalModelSchema,
+    context: { task: "rebuttal", sourceRoute: "/api/rebuttal/stream", outputType: "rebuttal", userId, deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs, streamMode: "sse" } },
+    policy: { candidates: [{ provider: "deepseek", model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash" }], maxOutputTokens, temperature: 0.7 },
   });
-  const latency = Date.now() - startTime;
-  const usage: DeepSeekUsage | undefined = result.usage;
+  await onDelta(result.text);
 
   return {
     provider: "deepseek",
     modelName: result.model,
-    text: result.content,
-    usage: {
-      inputTokens: usage?.prompt_tokens,
-      outputTokens: usage?.completion_tokens,
-      cacheHitTokens: usage?.prompt_cache_hit_tokens,
-      cacheMissTokens: usage?.prompt_cache_miss_tokens,
-      reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens,
-    },
-    latency,
+    text: result.text,
+    usage: result.usage,
+    latency: result.latencyMs,
     fallbackUsed: false,
-    providerRequestIds: result.providerRequestId ? [result.providerRequestId] : [],
-    firstTokenLatencyMs: result.firstTokenLatencyMs,
+    providerRequestIds: result.providerRequestIds,
+    firstTokenLatencyMs: result.latencyMs,
   };
 }
 
@@ -758,14 +654,16 @@ export async function POST(req: NextRequest) {
       ? buildFuzzyEvidenceHintBlock(transcriptCorpus)
       : "";
     const adminClient = tryCreateAdminClient();
-    const [corpusRetrieval, opponentCasePlan] = await Promise.all([
-      retrieveDebateCorpusContext({
-        purpose: "rebuttal",
-        practiceLanguage,
+    const [debateKnowledge, opponentCasePlan] = await Promise.all([
+      searchKnowledge({
+        collection: "debate",
+        purpose: "opponent",
+        debatePurpose: "rebuttal",
+        language: practiceLanguage,
         practiceTrack: track,
         topic,
         side,
-        transcript: userTranscript,
+        query: userTranscript,
         roundsText: previousRounds?.map((round) => round.text),
         userId: auth.authSource === "dev-bypass" ? null : authUser.id,
         sourceRoute: "/api/rebuttal",
@@ -787,6 +685,7 @@ export async function POST(req: NextRequest) {
           })
         : Promise.resolve(null),
     ]);
+    const corpusRetrieval = debateKnowledge.data;
     corpusRagMetadata = createDebateCorpusRetrievalMetadata(corpusRetrieval);
     opponentCasePlanMetadata =
       createTruongTeenOpponentCasePlanMetadata(opponentCasePlan);
