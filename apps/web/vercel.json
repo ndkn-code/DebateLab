@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/cron/ai-workflow-reconcile",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }

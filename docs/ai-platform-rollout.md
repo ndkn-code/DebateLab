@@ -32,6 +32,10 @@ Writing. For each item, verify:
 - a forced transient provider failure retries and then succeeds;
 - a fatal input failure becomes `failed` and is not retried forever;
 - the reconciliation cron recovers a deliberately stale launch reservation;
+- on Vercel Hobby, the reconciliation cron is a once-daily safety sweep because
+  Hobby projects cannot schedule more frequent cron runs. Queue and Workflow
+  retries remain the primary recovery path. Use a Pro plan or an authenticated
+  external scheduler if recovery of orphaned launches must happen within minutes;
 - the learner cannot read another learner's workflow row.
 
 ## Production cutover
