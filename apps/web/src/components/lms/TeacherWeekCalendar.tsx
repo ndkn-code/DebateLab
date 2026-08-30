@@ -114,14 +114,14 @@ export function TeacherWeekCalendar({
   selectedClassId,
   selectedProgram,
   showClasses = false,
-  adminPreview = false,
+  isAdminPreview = false,
 }: {
   data: TeacherWeekView;
   locale: string;
   selectedClassId?: string;
   selectedProgram?: string;
   showClasses?: boolean;
-  adminPreview?: boolean;
+  isAdminPreview?: boolean;
 }) {
   const vi = locale === "vi";
   const days = Array.from({ length: 7 }, (_, index) =>
@@ -165,7 +165,7 @@ export function TeacherWeekCalendar({
   return (
     <ProductPageShell>
       <PageContainer size="data" className="py-4 lg:py-5">
-        {adminPreview ? (
+        {isAdminPreview ? (
           <div className="mb-3 flex flex-col gap-2 rounded-[10px] border border-primary/20 bg-primary-container/35 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-2">
               <ProductIcon

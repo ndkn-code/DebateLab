@@ -169,15 +169,13 @@ export function MockPreTestGuide({
     <section
       aria-label={showHeading ? undefined : copy.guideTitle}
       className={cn(
-        "w-full rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left shadow-token-card sm:p-4",
+        "w-full rounded-xl border border-outline-variant bg-surface-container-low p-3 text-left",
         className,
       )}
       data-ielts-exam="guide"
     >
       {showHeading ? (
-        <h2 className="text-sm font-bold text-on-surface sm:text-base">
-          {copy.label}
-        </h2>
+        <h2 className="type-title text-on-surface">{copy.guideTitle}</h2>
       ) : null}
       <motion.div
         initial={reducedMotion ? undefined : "hidden"}
@@ -200,16 +198,16 @@ export function MockPreTestGuide({
                     open: { opacity: 1, y: 0 },
                   }
             }
-            className="flex min-h-14 items-center gap-3 rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-on-surface"
+            className="flex min-h-12 items-center gap-3 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-on-surface"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-container text-primary">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-container text-primary">
               <ProductIcon name={item.icon} size="sm" weight="duotone" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-on-surface">
+              <span className="block type-label font-semibold text-on-surface">
                 {item.title}
               </span>
-              <span className="mt-0.5 block text-xs leading-5 text-on-surface-variant">
+              <span className="mt-0.5 block type-caption leading-5 text-on-surface-variant">
                 {item.description}
               </span>
             </span>

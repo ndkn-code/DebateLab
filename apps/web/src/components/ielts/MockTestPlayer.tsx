@@ -43,6 +43,27 @@ import {
 } from "./player-experience";
 
 type Phase = "intro" | "running" | "done";
+type PlayerActionSurface = "start" | "action";
+
+const SAFE_PLAYER_ERROR = {
+  en: {
+    start:
+      "We couldn’t start this practice right now. Your progress is safe. Try again or return to the test library.",
+    action:
+      "This action could not be completed. Try again. If it continues, share the support code with us.",
+  },
+  vi: {
+    start:
+      "Hiện chưa thể bắt đầu bài luyện. Tiến độ của bạn vẫn an toàn. Hãy thử lại hoặc quay về thư viện đề.",
+    action:
+      "Chưa thể hoàn tất thao tác này. Hãy thử lại. Nếu lỗi tiếp diễn, hãy gửi mã hỗ trợ cho chúng tôi.",
+  },
+} as const;
+
+const PLAYER_SUPPORT_CODE: Record<PlayerActionSurface, string> = {
+  start: "IELTS-START-01",
+  action: "IELTS-ACTION-01",
+};
 
 function playerLocale(locale: string): IeltsPlayerLocale {
   return locale === "vi" ? "vi" : "en";
@@ -109,6 +130,7 @@ export function MockTestPlayer({
   const [grade, setGrade] = useState<AttemptGrade | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [supportCode, setSupportCode] = useState<string | null>(null);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(
     new Map(),
@@ -136,21 +158,38 @@ export function MockTestPlayer({
   }, [attemptId, hydrateAnnotations, clearAnnotations]);
 
   const run = useCallback(
-    async (fn: () => Promise<void>) => {
+    async (
+      fn: () => Promise<void>,
+      surface: PlayerActionSurface = "action",
+    ) => {
       setBusy(true);
       setError(null);
+      setSupportCode(null);
       try {
         await fn();
       } catch (caught) {
-        console.error("[IELTS player] action failed", caught);
-        const message = t("toastActionFailed");
+        const code = PLAYER_SUPPORT_CODE[surface];
+        const message = SAFE_PLAYER_ERROR[locale][surface];
+        console.error("IELTS player action failed", {
+          cause: caught,
+          experience,
+          phase,
+          supportCode: code,
+        });
+        posthog.capture("ielts_player_action_failed", {
+          experience,
+          phase,
+          support_code: code,
+          surface,
+        });
         setError(message);
+        setSupportCode(code);
         showToast(message, "error");
       } finally {
         setBusy(false);
       }
     },
-    [t],
+    [experience, locale, phase],
   );
 
   const hydrate = (next: AttemptState) => {
@@ -226,7 +265,7 @@ export function MockTestPlayer({
           }),
         );
       }
-    });
+    }, "start");
 
   const handleSwitch = (index: number) =>
     run(async () => {
@@ -322,6 +361,7 @@ export function MockTestPlayer({
           locale={locale}
           busy={busy}
           error={error}
+          supportCode={supportCode}
           onStart={handleStart}
           backHref={returnHref ?? `/${params.locale}/ielts/tests`}
         />
@@ -351,12 +391,17 @@ export function MockTestPlayer({
       data-ielts-exam="player"
     >
       {error ? (
-        <p
+        <div
           role="alert"
           className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-[10px] border border-error/20 bg-error-container px-4 py-3 type-label text-error shadow-token-card"
         >
-          {error}
-        </p>
+          <p className="font-semibold">{error}</p>
+          {supportCode ? (
+            <p className="mt-1 type-caption text-on-surface-variant">
+              {locale === "vi" ? "Mã hỗ trợ" : "Support code"}: {supportCode}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {section ? (

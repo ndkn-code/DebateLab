@@ -309,9 +309,12 @@ export function DashboardSidebarRail({
               <ChevronRight className="h-4 w-4" />
             </button>
             {isAdmin ? (
-              <>
+              <div className="space-y-1" aria-label={tNav("workspaceModes")}>
                 <Link
                   href="/dashboard/admin"
+                  aria-current={
+                    pathname.startsWith("/dashboard/admin") ? "page" : undefined
+                  }
                   className={cn(
                     "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     pathname.startsWith("/dashboard/admin")
@@ -324,6 +327,11 @@ export function DashboardSidebarRail({
                 </Link>
                 <Link
                   href="/dashboard/teacher"
+                  aria-current={
+                    pathname.startsWith("/dashboard/teacher")
+                      ? "page"
+                      : undefined
+                  }
                   className={cn(
                     "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     pathname.startsWith("/dashboard/teacher")
@@ -337,7 +345,7 @@ export function DashboardSidebarRail({
                   />
                   <span>{tNav("teacherMode")}</span>
                 </Link>
-              </>
+              </div>
             ) : null}
             <NotificationCenter
               variant="sidebar"

@@ -146,8 +146,19 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
         },
       ]
     : []),
+  {
+    href: "/ielts/coach",
+    key: "ielts_coach",
+    icon: MessageCircle,
+    status: "live",
+  },
   { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
-  { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
+  {
+    href: "/ielts/profile",
+    key: "ielts_profile",
+    icon: UserRound,
+    status: "live",
+  },
 ];
 
 // IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
@@ -171,8 +182,9 @@ const IELTS_DASHBOARD_NAV_ITEMS: DashboardSidebarNavItem[] = [
         { key: "ielts_classes", href: "/ielts/classes", status: "live" },
       ] satisfies DashboardSidebarNavItem[])
     : []),
+  { key: "ielts_coach", href: "/ielts/coach", status: "live" },
+  { key: "ielts_profile", href: "/ielts/profile", status: "live" },
   { key: "resources", href: "/resources", status: "live" },
-  { key: "analytics", href: "/profile", status: "live" },
 ];
 
 function enrollmentVisible<T extends { requiresEnrollment?: boolean }>(
@@ -294,23 +306,48 @@ function NavContent({
       {/* Nav Links */}
       <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
         {isAdmin ? (
-          <Link
-            href="/dashboard/admin/overview"
-            onClick={onNavClick}
-            className={cn(
-              "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
-              collapsed && "justify-center px-0",
-              pathname.startsWith("/dashboard/admin")
-                ? "sidebar-nav-selected"
-                : "sidebar-nav-idle",
-            )}
-            title={collapsed ? t("switchToAdmin") : undefined}
-          >
-            <Shield className="h-5 w-5 shrink-0" />
-            {!collapsed ? (
-              <span className="truncate">{t("switchToAdmin")}</span>
-            ) : null}
-          </Link>
+          <div className="space-y-1" aria-label={t("workspaceModes")}>
+            <Link
+              href="/dashboard/admin/overview"
+              onClick={onNavClick}
+              aria-current={
+                pathname.startsWith("/dashboard/admin") ? "page" : undefined
+              }
+              className={cn(
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
+                collapsed && "justify-center px-0",
+                pathname.startsWith("/dashboard/admin")
+                  ? "sidebar-nav-selected"
+                  : "sidebar-nav-idle",
+              )}
+              title={collapsed ? t("switchToAdmin") : undefined}
+            >
+              <Shield className="h-5 w-5 shrink-0" />
+              {!collapsed ? (
+                <span className="truncate">{t("switchToAdmin")}</span>
+              ) : null}
+            </Link>
+            <Link
+              href="/dashboard/teacher"
+              onClick={onNavClick}
+              aria-current={
+                pathname.startsWith("/dashboard/teacher") ? "page" : undefined
+              }
+              className={cn(
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
+                collapsed && "justify-center px-0",
+                pathname.startsWith("/dashboard/teacher")
+                  ? "sidebar-nav-selected"
+                  : "sidebar-nav-idle",
+              )}
+              title={collapsed ? t("teacherMode") : undefined}
+            >
+              <GraduationCap className="h-5 w-5 shrink-0" />
+              {!collapsed ? (
+                <span className="truncate">{t("teacherMode")}</span>
+              ) : null}
+            </Link>
+          </div>
         ) : null}
         {navItems.map((item) => {
           const href = item.href;
@@ -426,7 +463,9 @@ function NavContent({
             <DropdownMenuItem
               onClick={() => {
                 onNavClick?.();
-                router.push("/profile");
+                router.push(
+                  currentSubject === "ielts" ? "/ielts/profile" : "/profile",
+                );
               }}
             >
               <User className="h-4 w-4" />
@@ -435,12 +474,25 @@ function NavContent({
             <DropdownMenuItem
               onClick={() => {
                 onNavClick?.();
-                router.push("/settings");
+                router.push(
+                  currentSubject === "ielts" ? "/ielts/settings" : "/settings",
+                );
               }}
             >
               <Settings className="h-4 w-4" />
               {t("settings")}
             </DropdownMenuItem>
+            {profile?.role === "admin" && (
+              <DropdownMenuItem
+                onClick={() => {
+                  onNavClick?.();
+                  router.push("/dashboard/teacher");
+                }}
+              >
+                <GraduationCap className="h-4 w-4" />
+                {t("teacherMode")}
+              </DropdownMenuItem>
+            )}
             {profile?.role === "admin" && (
               <DropdownMenuItem
                 onClick={() => {

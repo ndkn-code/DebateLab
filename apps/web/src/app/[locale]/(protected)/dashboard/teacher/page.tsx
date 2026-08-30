@@ -45,7 +45,7 @@ export default async function TeacherWorkspacePage({
       selectedClassId={filters.classId || undefined}
       selectedProgram={filters.program || undefined}
       showClasses={filters.view === "classes"}
-      adminPreview={!TEACHER_WORKSPACE_V1}
+      isAdminPreview={isAdminPreview}
     />
   );
 }

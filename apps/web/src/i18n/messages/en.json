@@ -286,6 +286,7 @@
       "switchToAdmin": "Switch to Administration",
       "adminShort": "Admin",
       "teacherMode": "Teacher mode",
+      "workspaceModes": "Workspace modes",
       "mode_switcher": "Switch subject and language",
       "subject": "Subject",
       "language": "Language",
