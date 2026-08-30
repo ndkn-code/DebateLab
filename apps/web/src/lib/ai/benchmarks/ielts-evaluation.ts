@@ -21,6 +21,8 @@ export const IELTS_EVALUATION_OUTPUT_TYPES = [
 export interface IeltsProviderTelemetryRow {
   id: string;
   output_type: string | null;
+  model?: string | null;
+  rubric_version?: string | number | null;
   status: "success" | "error";
   latency_ms: number | null;
   estimated_cost_usd: number | string | null;
@@ -44,6 +46,8 @@ export interface IeltsWorkflowTelemetryRow {
   workflow_attempt_count: number;
   provider_attempt_count: number;
   updated_at: string;
+  model?: string | null;
+  rubric_version?: string | number | null;
   last_error_code?: string | null;
 }
 
@@ -53,6 +57,28 @@ export interface IeltsTeacherDeltaObservation {
   criterion: string;
   aiBand: number;
   teacherBand: number;
+  model?: string | null;
+  rubricVersion?: string | number | null;
+}
+
+export interface IeltsEvaluationGroupMetrics {
+  key: string;
+  model: string;
+  rubricVersion: string;
+  benchmarkObservationCount: number;
+  driftMeanSignedError: number | null;
+  driftWithinHalfBandRate: number | null;
+  workflowRunCount: number;
+  workflowFailureCount: number;
+  workflowRetryCount: number;
+  providerRequestCount: number;
+  providerFailureCount: number;
+  totalCostUsd: number;
+  medianLatencyMs: number | null;
+  teacherDeltaCount: number;
+  teacherOverrideCount: number;
+  teacherOverrideRate: number | null;
+  criterionDisagreementRate: number | null;
 }
 
 export interface IeltsEvaluationMetrics {
@@ -89,11 +115,17 @@ export interface IeltsEvaluationMetrics {
   };
   teacherDelta: {
     count: number;
+    overrideCount: number;
+    overrideRate: number | null;
+    criterionDisagreementCount: number;
+    criterionDisagreementRate: number | null;
     meanSignedDelta: number | null;
     meanAbsoluteDelta: number | null;
     withinHalfBandRate: number | null;
     byCriterion: Record<string, { count: number; meanSignedDelta: number }>;
   };
+  /** Operational and calibration slices keyed by model + rubric version. */
+  grouped: IeltsEvaluationGroupMetrics[];
 }
 
 export interface IeltsEvaluationInput {
@@ -167,6 +199,22 @@ function isStaleNonterminal(
   return Number.isFinite(updatedAtMs) && updatedAtMs < staleBeforeMs;
 }
 
+function groupParts(
+  model: string | null | undefined,
+  rubricVersion: string | number | null | undefined,
+) {
+  const normalizedModel = model?.trim() || "unknown_model";
+  const normalizedRubric =
+    rubricVersion == null || String(rubricVersion).trim() === ""
+      ? "unknown_rubric"
+      : String(rubricVersion);
+  return {
+    model: normalizedModel,
+    rubricVersion: normalizedRubric,
+    key: `${normalizedModel}|${normalizedRubric}`,
+  };
+}
+
 /** Validates a model payload using the productive-skill benchmark contract. */
 export function isIeltsPredictionSchemaValid(
   skill: string,
@@ -229,6 +277,48 @@ export function summarizeIeltsEvaluation(
     byCriterion.set(row.criterion, values);
   }
 
+  const groupMap = new Map<
+    string,
+    {
+      model: string;
+      rubricVersion: string;
+      observations: BenchmarkObservation[];
+      workflows: IeltsWorkflowTelemetryRow[];
+      providers: IeltsProviderTelemetryRow[];
+      deltas: number[];
+    }
+  >();
+  const group = (
+    model: string | null | undefined,
+    rubric: string | number | null | undefined,
+  ) => {
+    const parts = groupParts(model, rubric);
+    const existing = groupMap.get(parts.key);
+    if (existing) return existing;
+    const created = {
+      model: parts.model,
+      rubricVersion: parts.rubricVersion,
+      observations: [],
+      workflows: [],
+      providers: [],
+      deltas: [],
+    };
+    groupMap.set(parts.key, created);
+    return created;
+  };
+  for (const row of observations) {
+    group(row.model, row.rubricVersion).observations.push(row);
+  }
+  for (const row of workflows) {
+    group(row.model, row.rubric_version).workflows.push(row);
+  }
+  for (const row of providerRequests) {
+    group(row.model, row.rubric_version).providers.push(row);
+  }
+  for (const row of teacherDeltas) {
+    group(row.model, row.rubricVersion).deltas.push(row.teacherBand - row.aiBand);
+  }
+
   const validCount = Math.max(
     0,
     Math.min(observations.length, input.schemaValidPredictionCount),
@@ -279,6 +369,14 @@ export function summarizeIeltsEvaluation(
     },
     teacherDelta: {
       count: signedDeltas.length,
+      overrideCount: signedDeltas.filter((value) => value !== 0).length,
+      overrideRate: signedDeltas.length
+        ? signedDeltas.filter((value) => value !== 0).length / signedDeltas.length
+        : null,
+      criterionDisagreementCount: signedDeltas.filter((value) => value !== 0).length,
+      criterionDisagreementRate: signedDeltas.length
+        ? signedDeltas.filter((value) => value !== 0).length / signedDeltas.length
+        : null,
       meanSignedDelta: signedDeltas.length
         ? signedDeltas.reduce((sum, value) => sum + value, 0) /
           signedDeltas.length
@@ -302,5 +400,52 @@ export function summarizeIeltsEvaluation(
         ]),
       ),
     },
+    grouped: [...groupMap.entries()]
+      .map(([key, item]) => {
+        const drift = item.observations.length
+          ? evaluateBenchmark(item.observations)
+          : null;
+        const providerCost = item.providers.reduce(
+          (sum, row) => sum + Math.max(0, numeric(row.estimated_cost_usd)),
+          0,
+        );
+        const providerLatencies = item.providers
+          .map((row) => row.latency_ms)
+          .filter(
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value) && value >= 0,
+          );
+        const workflowFailures = item.workflows.filter(
+          (row) => row.status === "failed" || row.status === "cancelled",
+        ).length;
+        const overrides = item.deltas.filter((value) => value !== 0).length;
+        return {
+          key,
+          model: item.model,
+          rubricVersion: item.rubricVersion,
+          benchmarkObservationCount: item.observations.length,
+          driftMeanSignedError: drift?.meanSignedError ?? null,
+          driftWithinHalfBandRate: drift?.withinHalfBandRate ?? null,
+          workflowRunCount: item.workflows.length,
+          workflowFailureCount: workflowFailures,
+          workflowRetryCount: item.workflows.filter(
+            (row) => row.workflow_attempt_count > 1,
+          ).length,
+          providerRequestCount: item.providers.length,
+          providerFailureCount: item.providers.filter((row) => row.status === "error")
+            .length,
+          totalCostUsd: Math.round(providerCost * 1_000_000) / 1_000_000,
+          medianLatencyMs: median(providerLatencies),
+          teacherDeltaCount: item.deltas.length,
+          teacherOverrideCount: overrides,
+          teacherOverrideRate: item.deltas.length
+            ? overrides / item.deltas.length
+            : null,
+          criterionDisagreementRate: item.deltas.length
+            ? overrides / item.deltas.length
+            : null,
+        };
+      })
+      .sort((left, right) => left.key.localeCompare(right.key)),
   };
 }

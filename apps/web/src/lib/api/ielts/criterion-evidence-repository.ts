@@ -32,6 +32,14 @@ type CriterionEvidenceInsert = {
   run_id: string;
   provider: string;
   model: string;
+  rubric_version: string;
+  prompt_version: string;
+  confidence: number;
+  workflow_attempt: number;
+  provider_attempt: number;
+  validated_output_snapshot: Json;
+  deterministic_hash: string;
+  source_response_revision: number;
   metadata: Json;
 };
 type CriterionEvidenceClient = {
@@ -67,6 +75,14 @@ function evidenceInsert(
     run_id: evidence.runId,
     provider: evidence.provider,
     model: evidence.model,
+    rubric_version: evidence.rubricVersion,
+    prompt_version: evidence.promptVersion,
+    confidence: evidence.confidence,
+    workflow_attempt: evidence.workflowAttempt,
+    provider_attempt: evidence.providerAttempt,
+    validated_output_snapshot: evidence.validatedOutputSnapshot,
+    deterministic_hash: evidence.deterministicHash,
+    source_response_revision: identity.revision,
     metadata: toJson({ contractVersion: evidence.gradingVersion }),
   };
 }

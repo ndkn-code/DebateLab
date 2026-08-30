@@ -20,6 +20,7 @@ import type {
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
 import { parseQuestionView } from "@/lib/ielts/question-types";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
+import { completeSimulationAttemptIfReady } from "./band-scores-repository";
 import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
 import { maybeReplanAfterEvidence } from "./replan-hook";
 
@@ -243,12 +244,9 @@ async function persist(
   // from all four skill bands so it stays correct as Writing/Speaking land.
   await recomputeAttemptOverallBand(admin, attempt.id, attempt.user_id);
 
-  const { error: attemptError } = await admin
-    .from("ielts_attempts")
-    .update({ status: "completed", completed_at: nowIso, updated_at: nowIso })
-    .eq("id", attempt.id);
-  if (attemptError)
-    throw new Error(`grade(attempt status): ${attemptError.message}`);
+  // Writing is required for simulation completion; Speaking remains optional.
+  // The Writing scorer invokes the same gate after its band lands.
+  await completeSimulationAttemptIfReady(admin, attempt.id);
 }
 
 /** Grade an attempt's objective responses and persist results + bands. */

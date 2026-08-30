@@ -87,6 +87,10 @@ export async function ieltsSpeakingScoreWorkflow(
         runId: input.workflowRunId,
         provider: generated.provider,
         model: generated.model,
+        rubricVersion: "ielts-speaking-rubric-v1",
+        promptVersion: "ielts_speaking_scorer@1",
+        confidence: 0.5,
+        validatedOutputSnapshot: generated.output as unknown as import("@/types/supabase").Json,
       },
     });
     if (adjudicated.gradingMetadata)
@@ -100,6 +104,10 @@ export async function ieltsSpeakingScoreWorkflow(
             runId: input.workflowRunId,
             provider: adjudicated.provider,
             model: adjudicated.model,
+            rubricVersion: "ielts-speaking-rubric-v1",
+            promptVersion: "ielts_speaking_adjudication@1",
+            confidence: 0.7,
+            validatedOutputSnapshot: adjudicated.output as unknown as import("@/types/supabase").Json,
           },
         }),
       );

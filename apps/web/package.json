@@ -43,7 +43,7 @@
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",
     "test:ai-quality": "tsx src/lib/ai/quality-model.test.ts",
     "test:ai-coach": "tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/metadata.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts",
-    "test:ai-platform": "NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/ai/core/core.test.ts src/lib/ai/core/legacy.test.ts src/lib/ai/knowledge/service.test.ts src/lib/ai/knowledge/runtime.test.ts src/lib/ai/knowledge/english-debate.test.ts src/lib/ai/benchmarks/evaluate.test.ts src/lib/ai/benchmarks/ielts-evaluation.test.ts src/lib/ielts/criterion-evidence-contract.test.ts src/lib/ielts/scoring-adjudication.test.ts src/lib/ielts/scoring-run-status.test.ts src/workflows/ai/workflow-contract.test.ts",
+    "test:ai-platform": "NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/ai/core/core.test.ts src/lib/ai/core/legacy.test.ts src/lib/ai/knowledge/service.test.ts src/lib/ai/knowledge/runtime.test.ts src/lib/ai/knowledge/english-debate.test.ts src/lib/ai/benchmarks/evaluate.test.ts src/lib/ai/benchmarks/ielts-evaluation.test.ts src/lib/ielts/criterion-evidence-contract.test.ts src/lib/ielts/scoring-adjudication.test.ts src/lib/ielts/scoring-run-status.test.ts src/lib/ielts/simulation-completion.test.ts src/workflows/ai/workflow-contract.test.ts",
     "ai:grading-gate": "NODE_OPTIONS='--conditions=react-server' tsx src/scripts/ai-grading-release-gate.ts",
     "ai:import-grading-evaluations": "NODE_OPTIONS='--conditions=react-server' tsx src/scripts/ai-grading-evaluations-import.ts",
     "ai:knowledge-ingest": "NODE_OPTIONS='--conditions=react-server' tsx src/scripts/ai-knowledge-ingest.ts",

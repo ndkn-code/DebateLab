@@ -85,6 +85,10 @@ export async function ieltsWritingScoreWorkflow(
         runId: input.workflowRunId,
         provider: generated.provider,
         model: generated.model,
+        rubricVersion: "ielts-writing-rubric-v1",
+        promptVersion: "ielts_writing_scorer@1",
+        confidence: 0.5,
+        validatedOutputSnapshot: generated.output as unknown as import("@/types/supabase").Json,
       },
     });
     if (adjudicated.gradingMetadata)
@@ -98,6 +102,10 @@ export async function ieltsWritingScoreWorkflow(
             runId: input.workflowRunId,
             provider: adjudicated.provider,
             model: adjudicated.model,
+            rubricVersion: "ielts-writing-rubric-v1",
+            promptVersion: "ielts_writing_adjudication@1",
+            confidence: 0.7,
+            validatedOutputSnapshot: adjudicated.output as unknown as import("@/types/supabase").Json,
           },
         }),
       );

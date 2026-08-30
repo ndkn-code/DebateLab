@@ -306,6 +306,10 @@ export async function runIeltsWritingScoringJob(
         runId: provisional.traceId,
         provider: provisional.providerLabel,
         model: provisional.modelName,
+        rubricVersion: "ielts-writing-rubric-v1",
+        promptVersion: "ielts_writing_scorer@1",
+        confidence: 0.5,
+        validatedOutputSnapshot: provisional.output as unknown as Json,
       },
     });
     if (result !== provisional)
@@ -319,6 +323,10 @@ export async function runIeltsWritingScoringJob(
             runId: provisional.traceId,
             provider: result.providerLabel,
             model: result.modelName,
+            rubricVersion: "ielts-writing-rubric-v1",
+            promptVersion: "ielts_writing_adjudication@1",
+            confidence: 0.7,
+            validatedOutputSnapshot: result.output as unknown as Json,
           },
         }),
       );

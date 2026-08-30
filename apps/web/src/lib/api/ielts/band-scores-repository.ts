@@ -5,6 +5,7 @@ import { writingOverallBand } from "@/lib/scoring/ielts-writing/band-math";
 import { attemptSpeakingBand } from "@/lib/scoring/ielts-speaking/band-math";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
 import { recomputeEffectiveAttemptScores } from "./teacher-review-repository";
+import { evaluateSimulationCompletion } from "@/lib/ielts/simulation-completion";
 
 /**
  * Roll a scored attempt's Task 1 + Task 2 bands into the per-attempt
@@ -13,6 +14,44 @@ import { recomputeEffectiveAttemptScores } from "./teacher-review-repository";
  * the cross-skill `overall_band` are owned by the results layer (WS-2.2).
  */
 type TypedAdminClient = ReturnType<typeof createTypedAdminClient>;
+
+/** Mark a submitted simulation complete once R/L and required Writing exist. */
+export async function completeSimulationAttemptIfReady(
+  admin: TypedAdminClient,
+  attemptId: string,
+): Promise<boolean> {
+  const [{ data: attempt, error: attemptError }, { data: bands, error: bandError }] =
+    await Promise.all([
+      admin.from("ielts_attempts").select("status").eq("id", attemptId).maybeSingle(),
+      admin
+        .from("attempt_band_scores")
+        .select("listening_band, reading_band, writing_band, speaking_band, overall_band")
+        .eq("attempt_id", attemptId)
+        .maybeSingle(),
+    ]);
+  if (attemptError) throw new Error(`completeSimulationAttemptIfReady(attempt): ${attemptError.message}`);
+  if (bandError) throw new Error(`completeSimulationAttemptIfReady(bands): ${bandError.message}`);
+  if (!attempt || attempt.status !== "submitted") return false;
+
+  const decision = evaluateSimulationCompletion({
+    listeningBand: bands?.listening_band ?? null,
+    readingBand: bands?.reading_band ?? null,
+    writingBand: bands?.writing_band ?? null,
+    writingRequired: true,
+    speakingBand: bands?.speaking_band ?? null,
+    overallBand: bands?.overall_band ?? null,
+  });
+  if (!decision.attemptComplete) return false;
+
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("ielts_attempts")
+    .update({ status: "completed", completed_at: now, updated_at: now })
+    .eq("id", attemptId)
+    .eq("status", "submitted");
+  if (error) throw new Error(`completeSimulationAttemptIfReady(update): ${error.message}`);
+  return true;
+}
 
 export async function recomputeAttemptWritingBand(
   admin: TypedAdminClient,
@@ -55,6 +94,7 @@ export async function recomputeAttemptWritingBand(
   // partial review. Complete published teacher bands remain authoritative;
   // only missing AI portions change.
   await recomputeEffectiveAttemptScores(admin, attemptId);
+  await completeSimulationAttemptIfReady(admin, attemptId);
   return writingBand;
 }
 

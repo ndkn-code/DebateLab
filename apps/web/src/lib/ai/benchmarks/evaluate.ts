@@ -7,6 +7,8 @@ export interface BenchmarkObservation {
   predictedBand: number;
   taskType: string;
   accentGroup?: string | null;
+  model?: string | null;
+  rubricVersion?: string | number | null;
 }
 
 /** The label-side fields needed to prove the evaluation corpus is representative. */

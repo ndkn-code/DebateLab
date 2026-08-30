@@ -17,6 +17,7 @@ const context = {
   runId: "run-1",
   provider: "groq",
   model: "test-model",
+  validatedOutputSnapshot: { source: "test" },
 };
 
 function writingOutput() {
@@ -71,6 +72,9 @@ test("writing evidence emits the four normalized half-band criteria", () => {
     evidence.every((item) => item.stage === "provisional"),
     true,
   );
+  assert.equal(evidence[0].deterministicHash, evidence[1].deterministicHash);
+  assert.equal(evidence[0].rubricVersion, "ielts-rubric-v1");
+  assert.deepEqual(evidence[0].validatedOutputSnapshot, { source: "test" });
 });
 
 test("speaking evidence emits the four normalized half-band criteria", () => {
@@ -139,4 +143,10 @@ test("criterion evidence migration is private, immutable, and admits IELTS telem
   );
   assert.match(migration, /'ielts_writing_score_adjudication'/);
   assert.match(migration, /'ielts_speaking_score_adjudication'/);
+  assert.match(migration, /rubric_version text not null/);
+  assert.match(migration, /validated_output_snapshot jsonb not null/);
+  assert.match(migration, /deterministic_hash text not null/);
+  assert.match(migration, /source_response_revision integer not null/);
+  assert.match(migration, /create table if not exists public\.ielts_scoring_retry_events/);
+  assert.match(migration, /retry_ordinal integer not null check \(retry_ordinal between 1 and 3\)/);
 });
