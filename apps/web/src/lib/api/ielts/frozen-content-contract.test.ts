@@ -40,7 +40,10 @@ const blueprint = {
 const snapshot = buildMockStructureFromFrozenBlueprint(test, [blueprint]);
 // Mutating the authored source after freeze cannot affect the projected player
 // content because it is built only from the copied blueprint fields.
-const mutableSource = { title: "Original passage", body: "Original passage body" };
+const mutableSource = {
+  title: "Original passage",
+  body: "Original passage body",
+};
 mutableSource.title = "Edited passage";
 mutableSource.body = "Edited passage body";
 assert.equal(snapshot.questions[0]?.prompt, "Original prompt");
