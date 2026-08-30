@@ -44,6 +44,24 @@ revoke all on public.observability_bug_deliveries from anon, authenticated;
 grant all on public.observability_bug_incidents to service_role;
 grant all on public.observability_bug_deliveries to service_role;
 
+-- Explicit policies make the browser-role denial machine-verifiable. The Cloud Run
+-- worker uses service_role, which bypasses RLS and is additionally restricted by grants.
+create policy observability_bug_incidents_deny_browser_roles
+  on public.observability_bug_incidents
+  as restrictive
+  for all
+  to anon, authenticated
+  using (false)
+  with check (false);
+
+create policy observability_bug_deliveries_deny_browser_roles
+  on public.observability_bug_deliveries
+  as restrictive
+  for all
+  to anon, authenticated
+  using (false)
+  with check (false);
+
 create or replace function public.claim_observability_bug_incident(
   p_delivery_id text,
   p_fingerprint text,

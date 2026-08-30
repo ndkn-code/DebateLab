@@ -35,3 +35,15 @@ def test_rpcs_are_service_role_only() -> None:
     assert "revoke all on function public.claim_observability_bug_incident" in lowered
     assert "grant execute on function public.claim_observability_bug_incident" in lowered
     assert "to service_role" in lowered
+
+
+def test_registry_has_explicit_deny_all_browser_role_policies() -> None:
+    lowered = SQL.lower()
+    for table in ("observability_bug_incidents", "observability_bug_deliveries"):
+        policy = lowered.split(f"create policy {table}_deny_browser_roles", 1)[1].split(";", 1)[0]
+        assert f"on public.{table}" in policy
+        assert "as restrictive" in policy
+        assert "for all" in policy
+        assert "to anon, authenticated" in policy
+        assert "using (false)" in policy
+        assert "with check (false)" in policy
