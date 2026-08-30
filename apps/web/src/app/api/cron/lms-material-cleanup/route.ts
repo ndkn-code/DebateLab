@@ -23,15 +23,13 @@ export async function GET(request: NextRequest) {
     let removed = 0;
     let failed = 0;
     for (const row of rows) {
-      for (const bucket of [MATERIAL_BUCKETS.ingest, MATERIAL_BUCKETS.originals]) {
-        const bucketPaths = bucket === MATERIAL_BUCKETS.ingest ? [row.ingest_path] : [row.original_path];
-        const valid = bucketPaths.filter((path): path is string => typeof path === "string" && path.length > 0);
-        if (!valid.length) continue;
-        const result = await admin.storage.from(bucket).remove(valid);
-        if (result.error) failed += valid.length;
-        else removed += valid.length;
-      }
-      await markVersionExpired(admin, String(row.id));
+      const claimed = await markVersionExpired(admin, String(row.id), String(row.updated_at));
+      if (!claimed) continue;
+      const paths = [row.ingest_path].filter((path): path is string => typeof path === "string" && path.length > 0);
+      if (!paths.length) continue;
+      const result = await admin.storage.from(MATERIAL_BUCKETS.ingest).remove(paths);
+      if (result.error) failed += paths.length;
+      else removed += paths.length;
     }
     return NextResponse.json({ ok: true, processed: rows.length, removed, failed, cutoff });
   } catch (error) {

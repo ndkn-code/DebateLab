@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { randomUUID } from "node:crypto";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 import { materialIngestSchema } from "@/lib/api/class-lms/material-pipeline/contracts";
@@ -22,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     const parsed = materialIngestSchema.parse(await request.json());
     const actorId = await requireManager(auth, parsed.clubId, parsed.scopeClassId ?? null);
-    const result = await createMaterialIngest(auth.supabase, parsed, actorId || randomUUID());
+    const result = await createMaterialIngest(auth.supabase, parsed, actorId);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not prepare material upload.";

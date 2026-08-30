@@ -45,7 +45,11 @@ export async function prepareSharedMaterialUpload(raw: unknown) {
   const upload = await db.storage.from(reservation.bucketId).createSignedUploadUrl(reservation.storagePath);
   if (upload.error) throw new Error(`prepareSharedMaterialUpload: ${upload.error.message}`);
   return {
-    ...reservation,
+    materialId: reservation.materialId,
+    versionId: reservation.versionId,
+    bucketId: reservation.bucketId,
+    mimeType: reservation.mimeType,
+    sizeBytes: reservation.sizeBytes,
     token: upload.data.token,
     signedUrl: upload.data.signedUrl,
     expiresInSeconds: 15 * 60,

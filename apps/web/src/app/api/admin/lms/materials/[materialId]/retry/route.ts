@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 import { materialRetrySchema } from "@/lib/api/class-lms/material-pipeline/contracts";
-import { findVersionByIdempotency, getVersion, markVersionQueued } from "@/lib/api/class-lms/material-pipeline/repository";
+import { getVersion, markVersionQueued } from "@/lib/api/class-lms/material-pipeline/repository";
 import { enqueueMaterialProcessing } from "@/lib/queues/lms-materials";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +22,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ? await requireClassManager(auth.supabase as never, material.data.scope_class_id)
       : { userId: await requireClubOwner(auth.supabase as never, material.data.club_id) };
     if (!actor.userId) throw new Error("Forbidden");
+    if ("clubId" in actor && actor.clubId !== material.data.club_id) throw new Error("Material class does not belong to its organisation.");
     const key = `lms-material:${material.data.club_id}:${actor.userId}:${input.idempotencyKey}`;
-    const prior = await findVersionByIdempotency(auth.supabase, key);
-    if (prior) return NextResponse.json({ ok: true, versionId: prior.id, status: prior.status, replay: true });
+    if (version.status !== "failed" || !version.original_path) return NextResponse.json({ ok: false, error: "Only retryable conversion failures can be retried." }, { status: 409 });
     const queued = await markVersionQueued(auth.supabase, version.id, version.checksum_sha256 ?? "");
     if (!queued) return NextResponse.json({ ok: true, versionId: version.id, status: version.status, replay: true });
     await enqueueMaterialProcessing({ materialId, versionId: queued.id, idempotencyKey: key });

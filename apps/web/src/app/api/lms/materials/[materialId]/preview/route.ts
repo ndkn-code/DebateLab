@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const auth = await requireRequestAuth(request);
   if (!auth.ok) return auth.errorResponse;
   try {
-    await params;
+    const { materialId } = await params;
     const placementId = request.nextUrl.searchParams.get("placementId");
     const versionId = request.nextUrl.searchParams.get("versionId");
     const renditionId = request.nextUrl.searchParams.get("renditionId");
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const access = await auth.supabase.rpc("can_access_lms_material_preview", { p_placement_id: placementId, p_version_id: versionId, p_rendition_id: renditionId });
     if (access.error) throw new Error(access.error.message);
     if (access.data !== true) return NextResponse.json({ error: "Preview not available." }, { status: 404 });
-    const descriptor = await buildAuthorizedMaterialPreviewDescriptor({ placementId, versionId, renditionId });
+    const descriptor = await buildAuthorizedMaterialPreviewDescriptor({ materialId, placementId, versionId, renditionId });
     if (!descriptor) return NextResponse.json({ error: "Preview is not available yet." }, { status: 404 });
     return NextResponse.json({ ok: true, preview: descriptor });
   } catch (error) {

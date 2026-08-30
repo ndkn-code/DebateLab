@@ -25,8 +25,25 @@ import {
 } from "./repository";
 import { createVercelSandboxAdapter, type MaterialSandboxAdapter } from "./sandbox";
 import { buildDraftMaterialDocument } from "./manifest";
+import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 
 type RequestClient = SupabaseClient;
+
+export async function requireMaterialManager(client: RequestClient, materialId: string) {
+  const material = await client
+    .from("lms_materials")
+    .select("id, club_id, scope_class_id")
+    .eq("id", materialId)
+    .maybeSingle();
+  if (material.error) throw new Error(material.error.message);
+  if (!material.data) throw new Error("Material not found.");
+  if (material.data.scope_class_id) {
+    const context = await requireClassManager(client as never, material.data.scope_class_id);
+    if (context.clubId !== material.data.club_id) throw new Error("Material class does not belong to its organisation.");
+    return { ...material.data, actorId: context.userId };
+  }
+  return { ...material.data, actorId: await requireClubOwner(client as never, material.data.club_id) };
+}
 
 function storageObjectMetadata(value: unknown) {
   const row = value as { metadata?: Record<string, unknown> | null; owner?: string | null; owner_id?: string | null } | null;
@@ -68,6 +85,7 @@ export async function createMaterialIngest(client: RequestClient, input: Materia
 export async function finalizeMaterialIngest(client: RequestClient, ingestionId: string, expectedSha256?: string) {
   const version = await getVersion(client, ingestionId);
   if (!version) throw new Error("Material ingestion not found.");
+  await requireMaterialManager(client, version.material_id);
   if (version.status === "ready" || version.status === "queued" || version.status === "converting") return version;
   if (version.status !== "uploading" && version.status !== "failed") throw new Error("Material ingestion cannot be finalized in its current state.");
   if (!version.ingest_path) throw new Error("Material upload path is missing.");
@@ -134,13 +152,16 @@ export async function processMaterialVersion(versionId: string, adapter: Materia
 
 /** Service-role half of the preview boundary. The caller must first pass the
  * public.can_access_lms_material_preview RPC using the user's session client. */
-export async function buildAuthorizedMaterialPreviewDescriptor(input: { placementId: string; versionId: string; renditionId: string }) {
+export async function buildAuthorizedMaterialPreviewDescriptor(input: { materialId: string; placementId: string; versionId: string; renditionId: string }) {
   const admin = createAdminClient();
+  const version = await getVersion(admin, input.versionId);
+  if (!version || version.material_id !== input.materialId) return null;
   const rendition = await getRenditionById(admin, input.renditionId, input.versionId);
   if (!rendition || typeof rendition.path !== "string") return null;
   const signed = await admin.storage.from(MATERIAL_BUCKETS.previews).createSignedUrl(rendition.path, 120);
   if (signed.error) throw new Error(signed.error.message);
   return {
+    materialId: input.materialId,
     placementId: input.placementId,
     versionId: input.versionId,
     renditionId: input.renditionId,

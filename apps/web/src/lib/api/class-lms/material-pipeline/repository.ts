@@ -133,14 +133,15 @@ export async function getRenditionById(client: PipelineClient, renditionId: stri
 }
 
 export async function listStaleVersions(client: PipelineClient, before: string, limit: number) {
-  const result = await client.from(MATERIAL_TABLES.versions).select("id, material_id, ingest_bucket, ingest_path, original_bucket, original_path, processing_status").in("processing_status", ["uploading", "converting", "failed"]).lt("updated_at", before).order("updated_at", { ascending: true }).limit(limit);
+  const result = await client.from(MATERIAL_TABLES.versions).select("id, material_id, ingest_bucket, ingest_path, original_bucket, original_path, processing_status, updated_at").eq("processing_status", "uploading").lt("updated_at", before).order("updated_at", { ascending: true }).limit(limit);
   if (result.error) throw new Error(result.error.message);
   return (result.data ?? []) as Array<Record<string, unknown>>;
 }
 
-export async function markVersionExpired(client: PipelineClient, versionId: string) {
-  const result = await client.from(MATERIAL_TABLES.versions).update({ processing_status: "rejected", lease_token: null, lease_until: null, updated_at: new Date().toISOString() }).eq("id", versionId).in("processing_status", ["uploading", "converting", "failed"]);
+export async function markVersionExpired(client: PipelineClient, versionId: string, staleUpdatedAt: string) {
+  const result = await client.from(MATERIAL_TABLES.versions).update({ processing_status: "rejected", lease_token: null, lease_until: null, updated_at: new Date().toISOString() }).eq("id", versionId).eq("processing_status", "uploading").eq("updated_at", staleUpdatedAt).select("id").maybeSingle();
   if (result.error) throw new Error(result.error.message);
+  return Boolean(result.data);
 }
 
 export function leaseDurationSeconds() { return MATERIAL_LEASE_SECONDS; }

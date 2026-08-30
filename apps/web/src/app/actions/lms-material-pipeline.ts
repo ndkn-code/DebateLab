@@ -41,7 +41,8 @@ export async function retryLmsMaterialConversion(raw: unknown) {
   const result = await client.from("lms_materials").select("club_id, scope_class_id").eq("id", version.material_id).single();
   if (result.error || !result.data) throw new Error("Material not found.");
   const actorId = await actorFor(client, result.data.club_id, result.data.scope_class_id);
-  const queued = await client.from("lms_material_versions").update({ processing_status: "queued", failure_reason: null, updated_at: new Date().toISOString() }).eq("id", version.id).in("processing_status", ["failed", "rejected"]).select("*").maybeSingle();
+  if (version.status !== "failed" || !version.original_path) throw new Error("Only retryable conversion failures can be retried.");
+  const queued = await client.from("lms_material_versions").update({ processing_status: "queued", failure_reason: null, updated_at: new Date().toISOString() }).eq("id", version.id).eq("processing_status", "failed").not("original_path", "is", null).select("*").maybeSingle();
   if (queued.error) throw new Error(queued.error.message);
   if (!queued.data) return { materialId: version.material_id, versionId: version.id, status: version.status, replay: true };
   const idempotencyKey = `lms-material:${result.data.club_id}:${actorId}:${parsed.idempotencyKey}`;
