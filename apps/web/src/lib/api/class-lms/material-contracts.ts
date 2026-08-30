@@ -47,6 +47,12 @@ export const MATERIAL_RENDITION_KINDS = [
   "audio_stream",
 ] as const;
 
+export const MATERIAL_CONTENT_REVIEW_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+
 export type MaterialProcessingStatus =
   (typeof MATERIAL_PROCESSING_STATUSES)[number];
 export type MaterialPlacementStatus =
@@ -55,6 +61,8 @@ export type MaterialTargetType = (typeof MATERIAL_TARGET_TYPES)[number];
 export type MaterialRightsBasis = (typeof MATERIAL_RIGHTS_BASES)[number];
 export type MaterialRuleKind = (typeof MATERIAL_RULE_KINDS)[number];
 export type MaterialRenditionKind = (typeof MATERIAL_RENDITION_KINDS)[number];
+export type MaterialContentReviewStatus =
+  (typeof MATERIAL_CONTENT_REVIEW_STATUSES)[number];
 
 export const MATERIAL_DOCUMENT_MIME_TYPES = [
   "application/pdf",

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   loadLearnerMaterialsForWeek,
+  listManagerMaterials,
   parseLearnerMaterialRows,
   parseManagerMaterialPage,
   SHARED_MATERIAL_RPCS,
@@ -117,6 +118,34 @@ const fakeService = {
 };
 
 async function main() {
+  const managerRows = [
+    {
+      id: materialId,
+      version_id: versionId,
+      title: "Week 1 handout",
+      description: null,
+      processing_status: "ready",
+      content_review_status: "approved",
+      rights_approved: true,
+      version_number: 1,
+      created_at: "2026-09-01T10:00:00.000Z",
+      updated_at: "2026-09-02T10:00:00.000Z",
+      placements: [],
+    },
+  ];
+  const managerPage = await listManagerMaterials(
+    { limit: 1 },
+    {
+      rpc: async () => ({ data: managerRows, error: null }),
+    },
+  );
+  assert.equal(
+    managerPage.nextCursor,
+    `2026-09-02T10:00:00.000Z|${materialId}`,
+  );
+  assert.equal(managerPage.rows[0]?.contentReviewStatus, "approved");
+  assert.equal(managerPage.rows[0]?.rightsApproved, true);
+
   const loaded = await loadLearnerMaterialsForWeek(
     {
       classId: learnerProjection.class_id,

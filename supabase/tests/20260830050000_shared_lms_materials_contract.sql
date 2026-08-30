@@ -1,6 +1,6 @@
 -- Shared LMS materials contract and isolation checks.
 begin;
-select plan(15);
+select plan(21);
 
 select has_table('public', 'lms_materials', 'versioned shared materials table exists');
 select has_table('public', 'lms_material_versions', 'material versions table exists');
@@ -8,6 +8,9 @@ select has_table('public', 'lms_material_renditions', 'material renditions table
 select has_table('public', 'lms_material_placements', 'exact placement table exists');
 select has_table('public', 'lms_material_audiences', 'selected audience table exists');
 select has_table('public', 'lms_material_unlock_rules', 'AND unlock rule table exists');
+select ok(to_regprocedure('public.lms_review_material_content(uuid,uuid,text,text)') is not null, 'content review RPC exists');
+select ok(exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lms_material_versions' and column_name = 'content_review_status'), 'versioned content review status exists');
+select ok(exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lms_material_placements' and column_name = 'source_assignment_id'), 'placement compatibility column exists');
 
 do $$
 begin
@@ -69,8 +72,8 @@ insert into public.class_memberships (class_id, user_id, member_role, status, jo
 
 insert into public.lms_materials (id, club_id, scope_class_id, program_type, title, material_kind, status, rights_basis, rights_provenance, rights_approved_by, rights_approved_at, created_by)
 values ('10000000-0000-0000-0000-000000000301', '10000000-0000-0000-0000-000000000101', '10000000-0000-0000-0000-000000000201', 'ielts', 'Published handout', 'file', 'draft', 'original', 'Original work attested by creator.', '10000000-0000-0000-0000-000000000001', now(), '10000000-0000-0000-0000-000000000001');
-insert into public.lms_material_versions (id, material_id, version_number, processing_status, detected_mime_type, size_bytes, sha256, source_file_name, created_by)
-values ('10000000-0000-0000-0000-000000000401', '10000000-0000-0000-0000-000000000301', 1, 'uploading', 'application/pdf', 100, repeat('a', 64), 'handout.pdf', '10000000-0000-0000-0000-000000000001');
+insert into public.lms_material_versions (id, material_id, version_number, processing_status, content_review_status, detected_mime_type, size_bytes, sha256, source_file_name, created_by)
+values ('10000000-0000-0000-0000-000000000401', '10000000-0000-0000-0000-000000000301', 1, 'uploading', 'approved', 'application/pdf', 100, repeat('a', 64), 'handout.pdf', '10000000-0000-0000-0000-000000000001');
 insert into public.lms_material_renditions (id, version_id, rendition_kind, processing_status, bucket_id, storage_path, mime_type, size_bytes, sha256)
 values ('10000000-0000-0000-0000-000000000501', '10000000-0000-0000-0000-000000000401', 'pdf_preview', 'ready', 'lms-material-previews', '10000000-0000-0000-0000-000000000301/10000000-0000-0000-0000-000000000401/preview.pdf', 'application/pdf', 100, repeat('b', 64));
 update public.lms_material_versions set processing_status = 'ready' where id = '10000000-0000-0000-0000-000000000401';
@@ -81,6 +84,14 @@ values ('10000000-0000-0000-0000-000000000601', '10000000-0000-0000-0000-0000000
 update public.lms_materials set status = 'published', published_at = now() where id = '10000000-0000-0000-0000-000000000301';
 
 set local role authenticated;
+set local request.jwt.claim.sub = '10000000-0000-0000-0000-000000000001';
+select ok(public.lms_review_material_content('10000000-0000-0000-0000-000000000301', '10000000-0000-0000-0000-000000000401', 'rejected', 'Preview needs correction.'), 'authorized manager may reject a converted version');
+set local role postgres;
+select is((select content_review_status from public.lms_material_versions where id = '10000000-0000-0000-0000-000000000401'), 'rejected', 'content review decision is stored on the exact version');
+set local role authenticated;
+set local request.jwt.claim.sub = '10000000-0000-0000-0000-000000000001';
+select ok(public.lms_review_material_content('10000000-0000-0000-0000-000000000301', '10000000-0000-0000-0000-000000000401', 'approved', 'Corrected preview reviewed.'), 'authorized manager may approve the exact converted version');
+
 set local request.jwt.claim.sub = '10000000-0000-0000-0000-000000000002';
 select is((select count(*)::integer from public.load_lms_materials_for_user('10000000-0000-0000-0000-000000000201', current_date - 7, current_date + 7)), 1, 'active exact-class learner receives published material metadata');
 select ok(public.can_access_lms_material_preview('10000000-0000-0000-0000-000000000601', '10000000-0000-0000-0000-000000000401', '10000000-0000-0000-0000-000000000501'), 'active exact-class learner may request the pinned sanitized preview');

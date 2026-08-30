@@ -38,6 +38,7 @@ import {
   placeSharedLmsMaterial,
   prepareSharedMaterialUpload,
   publishSharedLmsMaterial,
+  reviewSharedLmsMaterialContent,
   withdrawSharedLmsMaterial,
 } from "@/app/actions/shared-lms-materials";
 import { finalizeLmsMaterialUpload } from "@/app/actions/lms-material-pipeline";
@@ -84,7 +85,10 @@ function matchesFilter(material: TeacherMaterialSummary, filter: StatusFilter) {
       material.processingStatus,
     );
   if (filter === "review")
-    return material.processingStatus === "ready" && !material.rightsApproved;
+    return (
+      material.processingStatus === "ready" &&
+      (!material.rightsApproved || material.contentReviewStatus !== "approved")
+    );
   if (filter === "failed")
     return ["failed", "rejected"].includes(material.processingStatus);
   return material.placements.some(
@@ -148,6 +152,9 @@ export function TeacherMaterialLibrary({
   const [approvedMaterialIds, setApprovedMaterialIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [contentApprovedVersionIds, setContentApprovedVersionIds] = useState<
+    Set<string>
+  >(() => new Set());
   const visible = useMemo(
     () =>
       materials.filter(
@@ -167,6 +174,10 @@ export function TeacherMaterialLibrary({
   const selectedRightsApproved = selected
     ? (selected.rightsApproved ?? approvedMaterialIds.has(selected.materialId))
     : null;
+  const selectedContentApproved = selected
+    ? selected.contentReviewStatus === "approved" ||
+      contentApprovedVersionIds.has(selected.versionId)
+    : false;
   const counts = {
     inProgress: materials.filter((item) => matchesFilter(item, "in_progress"))
       .length,
@@ -469,6 +480,20 @@ export function TeacherMaterialLibrary({
                     </p>
                   </div>
                 ) : null}
+                {selected.processingStatus === "ready" &&
+                !selectedContentApproved ? (
+                  <div className="flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container p-3 type-caption text-on-warning-container">
+                    <AlertTriangle
+                      className="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      {vi
+                        ? "Giáo viên phải kiểm tra và duyệt nội dung đã chuyển đổi trước khi xuất bản."
+                        : "A teacher must review and approve the converted learner content before publishing."}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="grid gap-2">
                   <Button
                     variant="outline"
@@ -481,6 +506,52 @@ export function TeacherMaterialLibrary({
                     <ShieldCheck aria-hidden="true" />
                     {copy.review}
                   </Button>
+                  {selected.processingStatus === "ready" ? (
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        setBusy(true);
+                        setMessage(null);
+                        try {
+                          await reviewSharedLmsMaterialContent({
+                            materialId: selected.materialId,
+                            versionId: selected.versionId,
+                            decision: "approved",
+                            note: vi
+                              ? "Giáo viên đã duyệt nội dung chuyển đổi."
+                              : "Teacher approved the converted learner content.",
+                          });
+                          setContentApprovedVersionIds((current) =>
+                            new Set(current).add(selected.versionId),
+                          );
+                          setMessage(
+                            vi
+                              ? "Đã duyệt nội dung cho học sinh."
+                              : "Learner content approved.",
+                          );
+                          router.refresh();
+                        } catch {
+                          setMessage(
+                            vi
+                              ? "Không thể duyệt nội dung."
+                              : "Could not approve the learner content.",
+                          );
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                      disabled={busy || selectedContentApproved}
+                    >
+                      <CheckCircle2 aria-hidden="true" />
+                      {selectedContentApproved
+                        ? vi
+                          ? "Nội dung đã duyệt"
+                          : "Content approved"
+                        : vi
+                          ? "Duyệt nội dung chuyển đổi"
+                          : "Approve converted content"}
+                    </Button>
+                  ) : null}
                   <Button
                     onClick={() => {
                       onPlaceRequest?.(selected.materialId);
@@ -523,7 +594,11 @@ export function TeacherMaterialLibrary({
                             setBusy(false);
                           }
                         }}
-                        disabled={busy || selectedRightsApproved !== true}
+                        disabled={
+                          busy ||
+                          selectedRightsApproved !== true ||
+                          !selectedContentApproved
+                        }
                       >
                         <CheckCircle2 aria-hidden="true" />
                         {copy.release}

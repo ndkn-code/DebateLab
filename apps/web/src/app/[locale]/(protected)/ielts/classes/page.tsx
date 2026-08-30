@@ -94,13 +94,19 @@ async function loadMaterialsByOccurrence({
   occurrences: StudentWeeklyOccurrence[];
 }): Promise<Record<string, LearnerMaterialProjection[]>> {
   try {
-    const rows = await loadMySharedMaterialsWeek({
-      from: startDate,
-      to: endDate,
-    });
+    const classIds = [...new Set(occurrences.map((item) => item.classId))];
+    const rows = (
+      await Promise.all(
+        classIds.map((classId) =>
+          loadMySharedMaterialsWeek({ classId, from: startDate, to: endDate }),
+        ),
+      )
+    ).flat();
     const grouped: Record<string, LearnerMaterialProjection[]> = {};
+    const seenPlacements = new Set<string>();
     for (const row of rows) {
-      if (!row.occurrenceId) continue;
+      if (!row.occurrenceId || seenPlacements.has(row.placementId)) continue;
+      seenPlacements.add(row.placementId);
       const material = toLearnerProjection(
         row,
         occurrences.find((item) => item.id === row.occurrenceId)?.lessonTitle ??

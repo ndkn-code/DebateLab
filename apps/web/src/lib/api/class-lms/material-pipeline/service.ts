@@ -30,6 +30,10 @@ import {
 } from "./sandbox";
 import { buildDraftMaterialDocument } from "./manifest";
 import {
+  MATERIAL_RENDITION_KINDS,
+  type MaterialPreviewDescriptor,
+} from "@/lib/api/class-lms/material-contracts";
+import {
   requireClassManager,
   requireClubOwner,
 } from "@/lib/api/class-manager-access";
@@ -350,7 +354,7 @@ export async function buildAuthorizedMaterialPreviewDescriptor(input: {
   placementId: string;
   versionId: string;
   renditionId: string;
-}) {
+}): Promise<MaterialPreviewDescriptor | null> {
   const admin = createAdminClient();
   const version = await getVersion(admin, input.versionId);
   if (!version || version.material_id !== input.materialId) return null;
@@ -362,20 +366,55 @@ export async function buildAuthorizedMaterialPreviewDescriptor(input: {
   if (
     !rendition ||
     typeof rendition.storage_path !== "string" ||
-    rendition.bucket_id !== MATERIAL_BUCKETS.previews
+    rendition.bucket_id !== MATERIAL_BUCKETS.previews ||
+    typeof rendition.rendition_kind !== "string" ||
+    rendition.rendition_kind === "original" ||
+    !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(
+      rendition.rendition_kind,
+    )
   )
     return null;
+  const material = await admin
+    .from("lms_materials")
+    .select("title")
+    .eq("id", input.materialId)
+    .maybeSingle();
+  if (material.error) throw new Error(material.error.message);
+  const title =
+    typeof material.data?.title === "string" && material.data.title.trim()
+      ? material.data.title
+      : version.source_file_name;
+  const pageNumber =
+    typeof rendition.page_number === "number" &&
+    Number.isInteger(rendition.page_number) &&
+    rendition.page_number > 0
+      ? rendition.page_number
+      : null;
   const signed = await admin.storage
     .from(MATERIAL_BUCKETS.previews)
     .createSignedUrl(rendition.storage_path, 120);
-  if (signed.error) throw new Error(signed.error.message);
+  if (signed.error || !signed.data?.signedUrl) {
+    if (signed.error) throw new Error(signed.error.message);
+    return null;
+  }
+  const signedAt = Date.now();
   return {
     materialId: input.materialId,
     placementId: input.placementId,
     versionId: input.versionId,
     renditionId: input.renditionId,
+    title,
+    renditionKind: rendition.rendition_kind as Exclude<
+      (typeof MATERIAL_RENDITION_KINDS)[number],
+      "original"
+    >,
     mimeType: String(rendition.mime_type ?? "text/plain"),
-    expiresAt: new Date(Date.now() + 120_000).toISOString(),
-    signedUrl: signed.data.signedUrl,
+    pageNumber,
+    viewerUrl: signed.data.signedUrl,
+    expiresAt: new Date(signedAt + 120_000).toISOString(),
+    watermark: {
+      learnerLabel: "Learner copy",
+      classLabel: "Class material",
+    },
   };
 }

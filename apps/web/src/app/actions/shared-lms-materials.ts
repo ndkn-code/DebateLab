@@ -18,6 +18,7 @@ import {
   loadLearnerMaterialsForWeek,
   placeSharedMaterial,
   publishSharedMaterial,
+  reviewSharedMaterialContent,
   prepareSharedMaterialUpload as prepareSharedMaterialUploadRpc,
   setSharedMaterialAudience,
   setSharedMaterialRights,
@@ -122,6 +123,24 @@ export async function approveSharedMaterialRights(raw: unknown) {
   requireSharedMaterials();
   const input = parseInput(rightsCommandSchema, raw);
   const result = await setSharedMaterialRights(input);
+  revalidatePath("/dashboard/teacher/materials");
+  return result;
+}
+
+export async function reviewSharedLmsMaterialContent(raw: unknown) {
+  requireSharedMaterials();
+  const input = parseInput(
+    z
+      .object({
+        materialId: z.string().uuid(),
+        versionId: z.string().uuid(),
+        decision: z.enum(["approved", "rejected"]),
+        note: z.string().trim().max(4_000).nullable().optional(),
+      })
+      .strict(),
+    raw,
+  );
+  const result = await reviewSharedMaterialContent(input);
   revalidatePath("/dashboard/teacher/materials");
   return result;
 }

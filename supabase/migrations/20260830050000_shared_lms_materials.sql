@@ -61,6 +61,10 @@ create table if not exists public.lms_material_versions (
   lease_expires_at timestamptz,
   error_code text,
   error_message text,
+  content_review_status text not null default 'pending' check (content_review_status in ('pending', 'approved', 'rejected')),
+  content_reviewer_id uuid references public.profiles(id) on delete set null,
+  content_reviewed_at timestamptz,
+  content_review_note text,
   native_document jsonb not null default '{}'::jsonb check (jsonb_typeof(native_document) = 'object'),
   created_by uuid not null references public.profiles(id) on delete restrict,
   created_at timestamptz not null default now(),
@@ -100,6 +104,7 @@ create table if not exists public.lms_material_placements (
   course_id uuid references public.courses(id) on delete cascade,
   occurrence_id uuid references public.lms_lesson_occurrences(id) on delete cascade,
   assignment_id uuid references public.club_assignments(id) on delete cascade,
+  source_assignment_id uuid references public.club_assignments(id) on delete set null,
   order_index integer not null default 0 check (order_index >= 0),
   required boolean not null default false,
   audience_mode text not null default 'all' check (audience_mode in ('all', 'selected')),
@@ -168,7 +173,7 @@ create table if not exists public.lms_material_audit_events (
   material_id uuid not null,
   entity_type text not null check (entity_type in ('material', 'version', 'rendition', 'placement', 'audience', 'unlock_rule', 'rights_approval')),
   entity_id uuid not null,
-  action text not null check (action in ('created', 'updated', 'published', 'withdrawn', 'archived', 'deleted', 'rights_approved', 'rights_rejected', 'rights_revoked', 'processing_failed')),
+  action text not null check (action in ('created', 'updated', 'published', 'withdrawn', 'archived', 'deleted', 'rights_approved', 'rights_rejected', 'rights_revoked', 'content_reviewed', 'processing_failed')),
   actor_id uuid references public.profiles(id) on delete set null,
   reason text,
   before_state jsonb,
@@ -197,6 +202,17 @@ returns boolean language sql stable security definer set search_path = public, p
     or exists (select 1 from public.club_memberships cm where cm.club_id = p_club_id and cm.user_id = p_user_id and cm.role = 'owner' and cm.status = 'active')
   );
 $$;
+
+create or replace function public.lms_review_material_content(p_material_id uuid, p_version_id uuid, p_status text, p_note text default null)
+returns boolean language plpgsql security definer set search_path = public, private as $$
+declare uid uuid := auth.uid();
+begin
+  if p_status not in ('approved', 'rejected') or uid is null or not private.can_manage_lms_material(p_material_id, uid)
+    or not exists (select 1 from public.lms_material_versions where id = p_version_id and material_id = p_material_id) then raise exception 'FORBIDDEN'; end if;
+  update public.lms_material_versions set content_review_status = p_status, content_reviewer_id = uid, content_reviewed_at = now(), content_review_note = nullif(btrim(p_note), ''), updated_at = now() where id = p_version_id;
+  insert into public.lms_material_audit_events(material_id, entity_type, entity_id, action, actor_id, reason, after_state) values (p_material_id, 'version', p_version_id, 'content_reviewed', uid, p_note, jsonb_build_object('content_review_status', p_status));
+  return true;
+end; $$;
 
 create or replace function private.can_manage_lms_material(p_material_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = public, private as $$
@@ -290,6 +306,13 @@ returns boolean language sql stable security definer set search_path = public, p
         and exists (
           select 1 from public.lms_material_placements p
           where p.material_id = m.id and p.status = 'published'
+            and exists (
+              select 1 from public.lms_material_versions v
+              where v.id = p.version_id and v.material_id = m.id
+                and v.processing_status = 'ready'
+                and v.content_review_status = 'approved'
+                and private.lms_material_version_rights_approved(v.id)
+            )
             and (p.release_at is null or p.release_at <= now())
             and (p.expires_at is null or p.expires_at > now())
             and private.lms_material_placement_unlocks_satisfied(p.id, p_user_id)
@@ -328,16 +351,17 @@ returns boolean language sql stable security definer set search_path = public, p
       and r.bucket_id = 'lms-material-previews'
       and r.processing_status = 'ready'
       and v.processing_status = 'ready'
+      and v.content_review_status = 'approved'
       and private.lms_material_version_rights_approved(v.id)
       and p.status = 'published' and m.status = 'published'
       and (p.release_at is null or p.release_at <= now())
       and (p.expires_at is null or p.expires_at > now())
       and private.lms_material_placement_unlocks_satisfied(p.id, auth.uid())
         and (p.audience_mode = 'all' or exists (select 1 from public.lms_material_audiences a where a.placement_id = p.id and a.user_id = auth.uid() and a.status = 'active'))
-        and ((p.target_type = 'class' and exists (select 1 from public.class_memberships cm where cm.class_id = p.class_id and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
-          or (p.target_type = 'course' and exists (select 1 from public.class_course_assignments cca join public.class_memberships cm on cm.class_id = cca.class_id where cca.course_id = p.course_id and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
-          or (p.target_type = 'occurrence' and exists (select 1 from public.lms_lesson_occurrences o join public.class_memberships cm on cm.class_id = o.class_id where o.id = p.occurrence_id and o.published_at is not null and o.status <> 'cancelled' and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
-          or (p.target_type = 'assignment' and exists (select 1 from public.club_assignments a join public.class_memberships cm on cm.class_id = a.class_id where a.id = p.assignment_id and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active')))
+        and ((p.target_type = 'class' and exists (select 1 from public.class_memberships cm join public.classes c on c.id = cm.class_id where cm.class_id = p.class_id and c.club_id = m.club_id and c.program_type = m.program_type and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
+          or (p.target_type = 'course' and exists (select 1 from public.class_course_assignments cca join public.classes c on c.id = cca.class_id join public.class_memberships cm on cm.class_id = c.id where cca.course_id = p.course_id and c.club_id = m.club_id and c.program_type = m.program_type and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
+          or (p.target_type = 'occurrence' and exists (select 1 from public.lms_lesson_occurrences o join public.classes c on c.id = o.class_id join public.class_memberships cm on cm.class_id = o.class_id where o.id = p.occurrence_id and o.club_id = m.club_id and c.program_type = m.program_type and o.published_at is not null and o.status <> 'cancelled' and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active'))
+          or (p.target_type = 'assignment' and exists (select 1 from public.club_assignments a join public.classes c on c.id = a.class_id join public.class_memberships cm on cm.class_id = a.class_id where a.id = p.assignment_id and a.club_id = m.club_id and c.program_type = m.program_type and cm.user_id = auth.uid() and cm.member_role = 'student' and cm.status = 'active')))
   );
 $$;
 
@@ -426,6 +450,7 @@ begin
       join public.lms_material_versions v on v.id = p.version_id and v.material_id = new.id
       where p.material_id = new.id and p.status = 'published'
         and v.processing_status = 'ready'
+        and v.content_review_status = 'approved'
         and private.lms_material_version_rights_approved(v.id)
         and exists (
           select 1 from public.lms_material_renditions r
@@ -648,10 +673,12 @@ language sql stable security definer set search_path = public, private as $$
     preview.id, preview.rendition_kind, preview.mime_type,
     nullif((preview.metadata ->> 'pageCount'), '')::integer, preview.page_number,
     coalesce(nullif(btrim(profile.display_name), ''), 'Learner'), c.title,
-    case when v.processing_status = 'ready' and private.lms_material_version_rights_approved(v.id)
+    case when v.processing_status = 'ready' and v.content_review_status = 'approved'
+      and private.lms_material_version_rights_approved(v.id)
       and (p.release_at is null or p.release_at <= now()) and (p.expires_at is null or p.expires_at > now())
       and private.lms_material_placement_unlocks_satisfied(p.id, auth.uid()) then v.native_document else null end,
     case when v.processing_status <> 'ready' or preview.id is null then 'processing'
+      when v.content_review_status <> 'approved' then 'locked'
       when p.release_at is not null and p.release_at > now() then 'locked'
       when p.expires_at is not null and p.expires_at <= now() then 'locked'
       when not private.lms_material_version_rights_approved(v.id) then 'locked'
@@ -659,6 +686,7 @@ language sql stable security definer set search_path = public, private as $$
       else 'available' end,
     array_remove(array[
       case when v.processing_status <> 'ready' or preview.id is null then 'processing' end,
+      case when v.content_review_status <> 'approved' then 'content_not_approved' end,
       case when p.release_at is not null and p.release_at > now() then 'not_released' end,
       case when p.expires_at is not null and p.expires_at <= now() then 'expired' end,
       case when not private.lms_material_version_rights_approved(v.id) then 'rights_not_approved' end,
@@ -815,6 +843,7 @@ declare uid uuid := auth.uid();
 begin
   if not exists (select 1 from public.lms_materials where id = p_material_id)
     or not private.can_manage_lms_material_placement(p_placement_id, uid) then raise exception 'FORBIDDEN'; end if;
+  if exists (select 1 from public.lms_material_placements p join public.lms_material_versions v on v.id = p.version_id where p.id = p_placement_id and p.material_id = p_material_id and v.content_review_status <> 'approved') then raise exception 'LMS_MATERIAL_NOT_READY'; end if;
   if not exists (select 1 from public.lms_material_placements p join public.lms_material_versions v on v.id = p.version_id where p.id = p_placement_id and p.material_id = p_material_id and v.processing_status = 'ready' and private.lms_material_version_rights_approved(v.id) and exists (select 1 from public.lms_material_renditions r where r.version_id = v.id and r.rendition_kind <> 'original' and r.bucket_id = 'lms-material-previews' and r.processing_status = 'ready')) then raise exception 'LMS_MATERIAL_NOT_READY'; end if;
   update public.lms_material_placements set status = 'published', updated_at = now() where id = p_placement_id and material_id = p_material_id;
   update public.lms_materials set status = 'published', published_at = coalesce(published_at, now()), updated_by = uid, updated_at = now() where id = p_material_id;
@@ -841,14 +870,20 @@ create or replace function public.lms_list_materials_manager(
   p_cursor text default null,
   p_limit integer default 50
 )
-returns table(id uuid, version_id uuid, title text, description text, processing_status text, version_number integer, created_at timestamptz, updated_at timestamptz, placements jsonb)
+returns table(id uuid, version_id uuid, title text, description text, processing_status text, version_number integer, content_review_status text, rights_approved boolean, created_at timestamptz, updated_at timestamptz, placements jsonb)
 language sql stable security definer set search_path = public, private as $$
-  select m.id, v.id, m.title, m.description, v.processing_status, v.version_number, m.created_at, m.updated_at,
+  select m.id, v.id, m.title, m.description, v.processing_status, v.version_number, v.content_review_status, private.lms_material_version_rights_approved(v.id), m.created_at, m.updated_at,
     coalesce((select jsonb_agg(to_jsonb(p) order by p.release_at nulls last, p.order_index, p.id) from public.lms_material_placements p where p.material_id = m.id and (p_status is null or p.status = p_status)
       and (p_class_id is null or p.class_id = p_class_id or exists (select 1 from public.lms_lesson_occurrences o where o.id = p.occurrence_id and o.class_id = p_class_id) or exists (select 1 from public.club_assignments a where a.id = p.assignment_id and a.class_id = p_class_id) or exists (select 1 from public.class_course_assignments cca where cca.class_id = p_class_id and cca.course_id = p.course_id))), '[]'::jsonb)
   from public.lms_materials m
   join lateral (select x.* from public.lms_material_versions x where x.material_id = m.id order by x.version_number desc, x.id desc limit 1) v on true
-  where (p_cursor is null or (p_cursor ~ '^[-0-9TZ:.+]+$' and m.updated_at < p_cursor::timestamptz))
+  where (p_cursor is null or (
+      p_cursor ~ '^[-0-9TZ:.+]+\|[0-9a-fA-F-]{36}$'
+      and (m.updated_at, m.id) < (
+        split_part(p_cursor, '|', 1)::timestamptz,
+        split_part(p_cursor, '|', 2)::uuid
+      )
+    ))
     and private.can_manage_lms_material(m.id, auth.uid())
     and (p_class_id is null or exists (select 1 from public.lms_material_placements p where p.material_id = m.id and (p.class_id = p_class_id or exists (select 1 from public.lms_lesson_occurrences o where o.id = p.occurrence_id and o.class_id = p_class_id) or exists (select 1 from public.club_assignments a where a.id = p.assignment_id and a.class_id = p_class_id) or exists (select 1 from public.class_course_assignments cca where cca.class_id = p_class_id and cca.course_id = p.course_id))) )
     and (p_course_id is null or exists (select 1 from public.lms_material_placements p where p.material_id = m.id and p.course_id = p_course_id))
@@ -870,6 +905,8 @@ revoke all on function public.lms_set_material_rights(uuid, uuid, jsonb) from pu
 grant execute on function public.lms_set_material_rights(uuid, uuid, jsonb) to authenticated;
 revoke all on function public.lms_publish_material(uuid, uuid) from public, anon;
 grant execute on function public.lms_publish_material(uuid, uuid) to authenticated;
+revoke all on function public.lms_review_material_content(uuid, uuid, text, text) from public, anon;
+grant execute on function public.lms_review_material_content(uuid, uuid, text, text) to authenticated;
 revoke all on function public.lms_withdraw_material(uuid, text) from public, anon;
 grant execute on function public.lms_withdraw_material(uuid, text) to authenticated;
 revoke all on function public.lms_list_materials_manager(uuid, uuid, text, text, integer) from public, anon;

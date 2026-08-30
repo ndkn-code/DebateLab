@@ -7,6 +7,12 @@ copies the object into `lms-material-originals`, removes the ingest object, and
 enqueues conversion. Conversion writes a plain-text draft preview into
 `lms-material-previews`.
 
+This first converter is a text-extraction MVP. PPTX and PDF files do not yet
+retain slide/page layout, images, tables, or animations. The teacher must
+explicitly approve each converted version before it can be published. A
+future visual-fidelity converter should emit sanitized page-image/PDF
+renditions without changing the learner authorization boundary.
+
 The entire server and presentation surface is fail-closed behind
 `SHARED_LMS_MATERIALS_V1` and `NEXT_PUBLIC_SHARED_LMS_MATERIALS_V1`.
 Conversion additionally requires `VERCEL_SANDBOX_API_URL` (HTTPS)

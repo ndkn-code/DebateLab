@@ -1,5 +1,6 @@
 import type {
   MaterialDocumentV1,
+  MaterialContentReviewStatus,
   MaterialPlacementStatus,
   MaterialPreviewDescriptor,
   MaterialProcessingStatus,
@@ -61,6 +62,7 @@ export type TeacherMaterialSummary = {
   mimeType: string | null;
   sizeBytes: number | null;
   processingStatus: MaterialProcessingStatus;
+  contentReviewStatus: MaterialContentReviewStatus;
   rightsBasis: MaterialRightsBasis | null;
   rightsApproved: boolean | null;
   updatedAt: string;

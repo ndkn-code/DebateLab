@@ -10,6 +10,7 @@ import {
   materialMaxBytesForMime,
   MATERIAL_RENDITION_KINDS,
   type MaterialAccessRule,
+  type MaterialContentReviewStatus,
   type MaterialPlacementInput,
   type MaterialPreviewDescriptor,
   type MaterialRightsBasis,
@@ -35,6 +36,7 @@ export const SHARED_MATERIAL_RPCS = {
   setAudience: "lms_set_material_audience",
   setRules: "lms_set_material_unlock_rules",
   setRights: "lms_set_material_rights",
+  reviewContent: "lms_review_material_content",
   publish: "lms_publish_material",
   withdraw: "lms_withdraw_material",
   listLearner: "load_lms_materials_for_user",
@@ -97,6 +99,8 @@ export interface ManagerMaterialRow {
   title: string;
   description: string | null;
   processingStatus: string;
+  contentReviewStatus: MaterialContentReviewStatus;
+  rightsApproved: boolean;
   versionNumber: number;
   createdAt: string;
   updatedAt: string;
@@ -166,6 +170,8 @@ const managerRowSchema = z
     title: z.string(),
     description: z.string().nullable().optional(),
     processing_status: z.string(),
+    content_review_status: z.enum(["pending", "approved", "rejected"]),
+    rights_approved: z.boolean(),
     version_number: z.number().int().nonnegative().optional(),
     created_at: z.string(),
     updated_at: z.string(),
@@ -260,6 +266,12 @@ function mapManagerRow(row: Raw): ManagerMaterialRow | null {
     title: text(row, "title"),
     description: nullableText(row, "description"),
     processingStatus: text(row, "processing_status", "processingStatus"),
+    contentReviewStatus: text(
+      row,
+      "content_review_status",
+      "contentReviewStatus",
+    ) as MaterialContentReviewStatus,
+    rightsApproved: bool(row, "rights_approved", "rightsApproved"),
     versionNumber: number(row, "version_number", "versionNumber"),
     createdAt: text(row, "created_at", "createdAt"),
     updatedAt: text(row, "updated_at", "updatedAt"),
@@ -385,14 +397,24 @@ export async function listManagerMaterials(
   client?: RpcClient,
 ): Promise<MaterialPage<ManagerMaterialRow>> {
   const db = await rpcClient(client);
+  const limit = Math.min(Math.max(Math.floor(params.limit ?? 50), 1), 100);
   const data = await invoke(db, SHARED_MATERIAL_RPCS.listManager, {
     p_class_id: params.classId ?? null,
     p_course_id: params.courseId ?? null,
     p_status: params.status ?? null,
     p_cursor: params.cursor ?? null,
-    p_limit: Math.min(Math.max(Math.floor(params.limit ?? 50), 1), 100),
+    p_limit: limit,
   });
-  return parseManagerMaterialPage(data);
+  const page = parseManagerMaterialPage(data);
+  const last = page.rows.at(-1);
+  return {
+    rows: page.rows,
+    nextCursor:
+      page.nextCursor ??
+      (page.rows.length === limit && last
+        ? `${last.updatedAt}|${last.id}`
+        : null),
+  };
 }
 
 export async function prepareSharedMaterialUpload(
@@ -455,6 +477,34 @@ export async function publishSharedMaterial(
   return invoke(db, SHARED_MATERIAL_RPCS.publish, {
     p_material_id: materialId,
     p_placement_id: placementId,
+  });
+}
+
+export async function reviewSharedMaterialContent(
+  input: {
+    materialId: string;
+    versionId: string;
+    decision: "approved" | "rejected";
+    note?: string | null;
+  },
+  client?: RpcClient,
+) {
+  const db = await rpcClient(client);
+  const parsed = z
+    .object({
+      materialId: z.string().uuid(),
+      versionId: z.string().uuid(),
+      decision: z.enum(["approved", "rejected"]),
+      note: z.string().trim().max(4_000).nullable().optional(),
+    })
+    .strict()
+    .safeParse(input);
+  if (!parsed.success) throw new Error("Invalid material content review.");
+  return invoke(db, SHARED_MATERIAL_RPCS.reviewContent, {
+    p_material_id: parsed.data.materialId,
+    p_version_id: parsed.data.versionId,
+    p_status: parsed.data.decision,
+    p_note: parsed.data.note ?? null,
   });
 }
 
