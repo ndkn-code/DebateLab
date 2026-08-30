@@ -128,6 +128,8 @@ const SpeakingFeedbackSchema = z
   })
   .catch({});
 
+const TeacherCriterionFeedbackSchema = z.record(z.string(), z.string()).catch({});
+
 function criterionRationale(
   criteria: Record<string, { rationale?: string }> | undefined,
   key: string,
@@ -191,13 +193,18 @@ function buildEssayParagraphs(
 
 function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
   const feedback = CriteriaFeedbackSchema.parse(task.criteriaFeedback ?? {});
+  const teacherFeedback = TeacherCriterionFeedbackSchema.parse(
+    task.teacherCriterionFeedback ?? {},
+  );
   const inlineCorrections = toInlineCorrections(task.inlineCorrections);
   const paragraphFeedback = toParagraphFeedback(task.paragraphFeedback);
   const criteria: CriterionScore[] = WRITING_CRITERIA.map((entry) => ({
     key: entry.key,
     label: entry.label,
     band: (task[entry.band] as number | null) ?? null,
-    rationale: criterionRationale(feedback.criteria, entry.key),
+    rationale:
+      teacherFeedback[entry.key]?.trim() ||
+      criterionRationale(feedback.criteria, entry.key),
   }));
   return {
     questionId: task.questionId,
@@ -220,6 +227,7 @@ function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
     modelAnswer: task.modelAnswer,
     feedbackLanguage: task.feedbackLanguage,
     gradingMetadata: task.gradingMetadata,
+    teacherCriterionFeedback: task.teacherCriterionFeedback,
   };
 }
 
@@ -274,11 +282,16 @@ function toPronunciationHeatmap(
 
 function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
   const feedback = SpeakingFeedbackSchema.parse(part.feedback ?? {});
+  const teacherFeedback = TeacherCriterionFeedbackSchema.parse(
+    part.teacherCriterionFeedback ?? {},
+  );
   const criteria: CriterionScore[] = SPEAKING_CRITERIA.map((entry) => ({
     key: entry.key,
     label: entry.label,
     band: (part[entry.band] as number | null) ?? null,
-    rationale: criterionRationale(feedback.criteria, entry.key),
+    rationale:
+      teacherFeedback[entry.key]?.trim() ||
+      criterionRationale(feedback.criteria, entry.key),
   }));
   return {
     questionId: part.questionId,
@@ -292,6 +305,7 @@ function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
     modelAnswer: part.modelAnswer,
     pronunciationHeatmap: toPronunciationHeatmap(part.phonemeReport),
     gradingMetadata: part.gradingMetadata,
+    teacherCriterionFeedback: part.teacherCriterionFeedback,
   };
 }
 

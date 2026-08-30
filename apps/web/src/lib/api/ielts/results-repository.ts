@@ -117,6 +117,7 @@ type PublishedReview = {
   speaking_response_id: string | null;
   revision: number;
   reviewer_note: string | null;
+  criterion_feedback: unknown;
 };
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
@@ -257,7 +258,7 @@ function mapWritingTask(
   row: WritingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
-  teacherFeedback: string | null,
+  review: PublishedReview | undefined,
 ): ResultsWritingTask {
   return {
     questionId: row.question_id,
@@ -277,7 +278,8 @@ function mapWritingTask(
     modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
-    teacherFeedback,
+    teacherFeedback: review?.reviewer_note ?? null,
+    teacherCriterionFeedback: review?.criterion_feedback ?? {},
   };
 }
 
@@ -285,7 +287,7 @@ function mapSpeakingPart(
   row: SpeakingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
-  teacherFeedback: string | null,
+  review: PublishedReview | undefined,
 ): ResultsSpeakingPart {
   return {
     questionId: row.question_id,
@@ -303,7 +305,8 @@ function mapSpeakingPart(
     modelAnswer: key?.model_answer ?? null,
     phonemeReport: row.phoneme_report,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
-    teacherFeedback,
+    teacherFeedback: review?.reviewer_note ?? null,
+    teacherCriterionFeedback: review?.criterion_feedback ?? {},
   };
 }
 
@@ -417,7 +420,7 @@ async function runAttemptReads(
       .maybeSingle(),
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
       .from("ielts_teacher_reviews")
-      .select("writing_response_id, speaking_response_id, revision, reviewer_note")
+      .select("writing_response_id, speaking_response_id, revision, reviewer_note, criterion_feedback")
       .eq("attempt_id", attemptId)
       .eq("status", "published")
       .order("published_at", { ascending: false }),
@@ -549,7 +552,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
     speakingParts: reads.speaking.map((row) =>
@@ -557,7 +560,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
   };

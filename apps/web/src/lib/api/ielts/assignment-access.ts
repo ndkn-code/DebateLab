@@ -60,13 +60,15 @@ export async function requireClubManager(
 
   const { data: membership } = await supabase
     .from("club_memberships")
-    .select("id")
+    .select("id, role")
     .eq("club_id", clubId)
     .eq("user_id", user.id)
     .eq("status", "active")
     .in("role", ["owner", "coach"])
     .maybeSingle();
-  if (membership) return user.id;
+  if (membership && (membership.role === "owner" || profile?.role === "teacher")) {
+    return user.id;
+  }
 
   if (isDevAdminBypassEnabled()) return user.id;
   throw new Error("Forbidden");
