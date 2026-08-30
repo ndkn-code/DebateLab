@@ -8,6 +8,7 @@ import type {
   TeacherWeekOccurrence,
   TeacherWeekView,
 } from "@/lib/api/class-lms/teacher-weekly-repository";
+import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
 
 const DAY_MS = 86_400_000;
 const GRID_START_HOUR = 7;
@@ -173,6 +174,15 @@ export function TeacherWeekCalendar({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {SHARED_LMS_MATERIALS_V1 ? (
+              <Link
+                href="/dashboard/teacher/materials"
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-outline-variant px-3 type-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <ProductIcon name="book" size="sm" />
+                {vi ? "Tài liệu" : "Materials"}
+              </Link>
+            ) : null}
             <Link
               href={currentViewHref}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-outline-variant px-3 type-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"

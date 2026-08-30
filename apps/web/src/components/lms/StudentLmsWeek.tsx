@@ -21,6 +21,8 @@ import type {
   StudentWeeklyLmsView,
   StudentWeeklyOccurrence,
 } from "@/lib/api/class-lms/student-weekly-repository";
+import { LearnerMaterials } from "@/components/materials/LearnerMaterials";
+import type { LearnerMaterialProjection } from "@/components/materials/material-ui-model";
 
 const DAY_MS = 86_400_000;
 
@@ -197,14 +199,16 @@ function AssignmentRow({
 function OccurrenceCard({
   occurrence,
   locale,
+  materials,
 }: {
   occurrence: StudentWeeklyOccurrence;
   locale: string;
+  materials: LearnerMaterialProjection[];
 }) {
   const vi = locale === "vi";
   const attendance = occurrence.attendance;
   return (
-    <article className="rounded-xl border border-outline-variant bg-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <article className="rounded-xl border border-outline-variant bg-surface p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
@@ -246,6 +250,12 @@ function OccurrenceCard({
           {vi ? "Lớp IELTS" : "IELTS class"}
         </span>
       </div>
+
+      {materials.length ? (
+        <div className="mt-4 border-t border-outline-variant pt-3">
+          <LearnerMaterials materials={materials} locale={locale} compact />
+        </div>
+      ) : null}
 
       {occurrence.resources.length > 0 ? (
         <section
@@ -334,10 +344,12 @@ export function StudentLmsWeek({
   data,
   locale,
   timezone,
+  materialsByOccurrence = {},
 }: {
   data: StudentWeeklyLmsView;
   locale: string;
   timezone: string;
+  materialsByOccurrence?: Record<string, LearnerMaterialProjection[]>;
 }) {
   const vi = locale === "vi";
   const dates = Array.from({ length: 7 }, (_, index) =>
@@ -439,6 +451,7 @@ export function StudentLmsWeek({
                         key={item.id}
                         occurrence={item}
                         locale={locale}
+                        materials={materialsByOccurrence[item.id] ?? []}
                       />
                     ))
                   ) : (
