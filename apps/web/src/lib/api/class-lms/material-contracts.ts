@@ -108,6 +108,7 @@ export const materialUploadInputSchema = z
     fileName: z.string().trim().min(1).max(200),
     mimeType: z.enum(MATERIAL_ALLOWED_MIME_TYPES),
     sizeBytes: z.number().int().positive(),
+    idempotencyKey: uuid.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

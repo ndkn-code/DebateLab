@@ -623,6 +623,7 @@ export function TeacherMaterialLibrary({
                         fileName: file.name,
                         mimeType: file.type,
                         sizeBytes: file.size,
+                        idempotencyKey: crypto.randomUUID(),
                       });
                       const payload = new FormData();
                       payload.append("cacheControl", "3600");

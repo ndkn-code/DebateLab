@@ -25,7 +25,7 @@ export const MATERIAL_MIME_TYPES = MATERIAL_ALLOWED_MIME_TYPES;
 const uuid = z.string().uuid();
 const safeText = (max: number) => z.string().trim().min(1).max(max);
 
-export const materialIngestSchema = materialUploadInputSchema.extend({
+export const materialIngestSchema = materialUploadInputSchema.safeExtend({
   title: safeText(200),
   description: z.string().trim().max(2_000).nullable().optional(),
   rights: materialRightsInputSchema.default({ basis: "unknown" }),
