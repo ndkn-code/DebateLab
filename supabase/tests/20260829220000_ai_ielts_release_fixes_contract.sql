@@ -1,4 +1,4 @@
--- Run after 20260829210000_ai_ielts_release_fixes.sql.
+-- Run after 20260829220000_ai_ielts_release_fixes.sql.
 begin;
 
 select plan(12);

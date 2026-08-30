@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "../../supabase/migrations/20260829210000_ai_ielts_release_fixes.sql",
+    "../../supabase/migrations/20260829220000_ai_ielts_release_fixes.sql",
   ),
   "utf8",
 );
