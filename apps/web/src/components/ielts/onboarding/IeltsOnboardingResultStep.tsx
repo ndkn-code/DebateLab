@@ -9,7 +9,10 @@ import {
 } from "@/lib/ielts/adaptive/contracts";
 import { BandGauge, BandMeter } from "@/components/ielts/band-visuals";
 import type { IeltsDiagnosticTestSummary } from "@/lib/api/ielts/study-plan-repository";
-import { targetBandForSkill, type IeltsBandTargets } from "@/lib/ielts/band-visuals";
+import {
+  targetBandForSkill,
+  type IeltsBandTargets,
+} from "@/lib/ielts/band-visuals";
 import {
   confidencePercent,
   predictionHasOverallEvidence,
@@ -107,7 +110,9 @@ export function IeltsOnboardingResultStep({
                 {t("no_prediction_title")}
               </p>
               <p className="type-body-sm text-on-surface-variant">
-                {prediction.nextBestDiagnostic.reasonEn}
+                {locale === "vi"
+                  ? prediction.nextBestDiagnostic.reasonVi
+                  : prediction.nextBestDiagnostic.reasonEn}
               </p>
               {diagnosticTest && diagnosticHref ? (
                 <Link

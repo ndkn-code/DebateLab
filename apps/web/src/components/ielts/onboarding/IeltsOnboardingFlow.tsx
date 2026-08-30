@@ -26,11 +26,7 @@ import { IeltsOnboardingGoalStep } from "./IeltsOnboardingGoalStep";
 import { IeltsOnboardingResultStep } from "./IeltsOnboardingResultStep";
 import { OnboardingHeader } from "./IeltsOnboardingShared";
 import { IeltsOnboardingWelcome } from "./IeltsOnboardingWelcome";
-import {
-  goalToState,
-  stateToGoal,
-  type PlanResult,
-} from "./types";
+import { goalToState, stateToGoal, type PlanResult } from "./types";
 
 export function IeltsOnboardingFlow({
   initialStep,
@@ -49,7 +45,8 @@ export function IeltsOnboardingFlow({
   const locale = useLocale();
   const [step, setStep] = useState<IeltsOnboardingStep>(initialStep);
   const [goal, setGoal] = useState(() => goalToState(initialGoal));
-  const [availableDiagnostic, setAvailableDiagnostic] = useState(diagnosticTest);
+  const [availableDiagnostic, setAvailableDiagnostic] =
+    useState(diagnosticTest);
   const [planResult, setPlanResult] = useState<PlanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -69,7 +66,12 @@ export function IeltsOnboardingFlow({
       : predictionHasOverallEvidence(initialPrediction);
 
   useEffect(() => {
-    if (step !== "result" || planResult || isPending || hasRequestedPlan.current) {
+    if (
+      step !== "result" ||
+      planResult ||
+      isPending ||
+      hasRequestedPlan.current
+    ) {
       return;
     }
     hasRequestedPlan.current = true;
@@ -81,7 +83,8 @@ export function IeltsOnboardingFlow({
         setAvailableDiagnostic(result.diagnosticTest);
         showToast(t("toast_plan_ready"), "success");
       } catch (caught) {
-        const message = caught instanceof Error ? caught.message : t("error_generic");
+        const message =
+          caught instanceof Error ? caught.message : t("error_generic");
         setError(message);
         showToast(message, "error");
       }
@@ -97,7 +100,8 @@ export function IeltsOnboardingFlow({
         setStep("diagnostic");
         showToast(t("toast_goal_saved"), "success");
       } catch (caught) {
-        const message = caught instanceof Error ? caught.message : t("error_generic");
+        const message =
+          caught instanceof Error ? caught.message : t("error_generic");
         setError(message);
         showToast(message, "error");
       }

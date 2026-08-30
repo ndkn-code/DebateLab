@@ -54,7 +54,9 @@ export function IeltsOnboardingDiagnosticStep({
             </p>
             <Link
               href="/ielts/tests"
-              className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "lg" }),
+              )}
             >
               {t("browse_tests")}
             </Link>

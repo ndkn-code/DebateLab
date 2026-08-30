@@ -4,17 +4,10 @@ import { ArrowRight } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import {
-  IELTS_SKILLS,
-  type IeltsSkill,
-} from "@/lib/ielts/adaptive/contracts";
+import { IELTS_SKILLS, type IeltsSkill } from "@/lib/ielts/adaptive/contracts";
 import { formatBand } from "@/lib/ielts/learner/summary";
 import { cn } from "@/lib/utils";
-import {
-  ChoiceGroup,
-  Field,
-  choiceClass,
-} from "./IeltsOnboardingShared";
+import { ChoiceGroup, Field, choiceClass } from "./IeltsOnboardingShared";
 import type { GoalState } from "./types";
 
 const MODULE_COPY = {
@@ -67,7 +60,10 @@ export function IeltsOnboardingGoalStep({
       const next = current.studyDays.includes(day)
         ? current.studyDays.filter((item) => item !== day)
         : [...current.studyDays, day].sort((a, b) => a - b);
-      return { ...current, studyDays: next.length > 0 ? next : current.studyDays };
+      return {
+        ...current,
+        studyDays: next.length > 0 ? next : current.studyDays,
+      };
     });
   };
 
@@ -88,14 +84,45 @@ export function IeltsOnboardingGoalStep({
           onSubmit();
         }}
       >
-        <fieldset className="grid gap-2">
-          <legend className="type-body-sm font-semibold text-on-surface">{moduleCopy.label}</legend>
+        <fieldset
+          className="grid gap-2"
+          role="radiogroup"
+          aria-label={moduleCopy.label}
+        >
+          <legend className="type-body-sm font-semibold text-on-surface">
+            {moduleCopy.label}
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {(["academic", "general"] as const).map((module) => {
               const selected = goal.module === module;
-              const title = module === "academic" ? moduleCopy.academic : moduleCopy.general;
-              const body = module === "academic" ? moduleCopy.academicBody : moduleCopy.generalBody;
-              return <button key={module} type="button" aria-pressed={selected} aria-selected={selected} onClick={() => setGoal((current) => ({ ...current, module }))} className={cn("min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", choiceClass(selected))}><span className="block type-body-sm font-semibold">{title}</span><span className="mt-0.5 block type-label text-on-surface-variant">{body}</span></button>;
+              const title =
+                module === "academic"
+                  ? moduleCopy.academic
+                  : moduleCopy.general;
+              const body =
+                module === "academic"
+                  ? moduleCopy.academicBody
+                  : moduleCopy.generalBody;
+              return (
+                <button
+                  key={module}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setGoal((current) => ({ ...current, module }))}
+                  className={cn(
+                    "min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    choiceClass(selected),
+                  )}
+                >
+                  <span className="block type-body-sm font-semibold">
+                    {title}
+                  </span>
+                  <span className="mt-0.5 block type-label text-on-surface-variant">
+                    {body}
+                  </span>
+                </button>
+              );
             })}
           </div>
         </fieldset>
