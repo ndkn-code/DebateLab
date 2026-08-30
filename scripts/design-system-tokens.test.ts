@@ -86,7 +86,7 @@ for (const mode of ["light", "dark"] as const) {
   const switchOffThumb = mode === "light" ? "#333333" : "#F5F5F2";
   assertContrast(mode, switchOnThumb, switchOnTrack, "web switch on", 3);
   assertContrast(mode, switchOffThumb, switchOffTrack, "web switch off", 3);
-  assert.equal(webTheme.webCssVariables["--color-background"], mode === "light" ? "#F5F5F2" : "#171715");
+  assert.equal(webTheme.webCssVariables["--color-background"], mode === "light" ? "#F5F5F2" : "#000000");
   assert.equal(webTheme.webCssVariables["--color-foreground"], mode === "light" ? "#333333" : "#F5F5F2");
   assert.equal(webTheme.components.badge.success.background, mode === "light" ? "#CAFACE" : "#183D27");
   assert.equal(webTheme.components.badge.success.text, webTheme.colors.successDim);

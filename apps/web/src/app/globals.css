@@ -907,12 +907,12 @@
 }
 
 .dark {
-  --color-background: #171715;
+  --color-background: #000000;
   --color-foreground: #F5F5F2;
   --color-primary: #F5F5F2;
   --color-primary-dim: #E2E2DE;
   --color-primary-depth: #B7B7B1;
-  --color-primary-container: #363633;
+  --color-primary-container: #181818;
   --color-primary-fixed: #F5F5F2;
   --color-on-primary: #242422;
   --color-on-primary-container: #F5F5F2;
@@ -939,67 +939,67 @@
   --color-on-reward: #242422;
   --color-on-error: #2B0A07;
   --color-on-info: #081A2D;
-  --color-surface: #242422;
-  --color-surface-dim: #171715;
-  --color-surface-bright: #2D2D2A;
+  --color-surface: #090909;
+  --color-surface-dim: #000000;
+  --color-surface-bright: #181818;
   --color-surface-tint: #F5F5F2;
-  --color-surface-variant: #2D2D2A;
-  --color-surface-container: #2D2D2A;
-  --color-surface-container-low: #20201E;
-  --color-surface-container-high: #363633;
-  --color-surface-container-highest: #41413D;
-  --color-surface-container-lowest: #1D1D1B;
+  --color-surface-variant: #111111;
+  --color-surface-container: #111111;
+  --color-surface-container-low: #070707;
+  --color-surface-container-high: #181818;
+  --color-surface-container-highest: #242424;
+  --color-surface-container-lowest: #050505;
   --color-on-surface: #F5F5F2;
   --color-on-surface-variant: #B7B7B1;
-  --color-outline: #5A5A55;
-  --color-outline-variant: #41413D;
-  --color-card: #242422;
+  --color-outline: #484848;
+  --color-outline-variant: #2A2A2A;
+  --color-card: #090909;
   --color-card-foreground: #F5F5F2;
-  --color-popover: #2D2D2A;
+  --color-popover: #111111;
   --color-popover-foreground: #F5F5F2;
-  --color-primary-foreground: #242422;
+  --color-primary-foreground: #090909;
   --color-secondary-foreground: #F5F5F2;
-  --color-muted: #2D2D2A;
+  --color-muted: #111111;
   --color-muted-foreground: #B7B7B1;
-  --color-accent: #363633;
+  --color-accent: #181818;
   --color-accent-foreground: #F5F5F2;
   --color-destructive: #F28B82;
-  --color-border: #41413D;
-  --color-input: #41413D;
+  --color-border: #2A2A2A;
+  --color-input: #2A2A2A;
   --color-ring: #5AA9FF;
-  --color-sidebar: #242422;
-  --color-sidebar-soft: #2D2D2A;
+  --color-sidebar: #050505;
+  --color-sidebar-soft: #111111;
   --color-sidebar-foreground: #F5F5F2;
   --color-sidebar-muted: #B7B7B1;
   --color-sidebar-accent: #5AA9FF;
   --button-primary-bg: #F5F5F2;
   --button-primary-highlight: #F5F5F2;
-  --button-primary-text: #242422;
+  --button-primary-text: #090909;
   --button-primary-shadow: #B7B7B1;
   --button-primary-hover-bg: #E2E2DE;
   --button-primary-pressed-bg: #B7B7B1;
-  --button-secondary-bg: #242422;
+  --button-secondary-bg: #090909;
   --button-secondary-text: #F5F5F2;
-  --button-secondary-border: #5A5A55;
+  --button-secondary-border: #484848;
   --button-secondary-shadow: transparent;
-  --button-secondary-hover-bg: #363633;
-  --button-secondary-pressed-bg: #41413D;
-  --card-bg: #242422;
-  --card-border: #41413D;
+  --button-secondary-hover-bg: #181818;
+  --button-secondary-pressed-bg: #242424;
+  --card-bg: #090909;
+  --card-border: #2A2A2A;
   --card-shadow: transparent;
-  --input-bg: #1D1D1B;
-  --input-border: #41413D;
+  --input-bg: #050505;
+  --input-border: #2A2A2A;
   --input-focus-border: #5AA9FF;
   --input-focus-ring: #5AA9FF;
-  --progress-track: #41413D;
+  --progress-track: #2A2A2A;
   --progress-fill: #5AA9FF;
   --progress-reward-fill: #E8AE32;
-  --sidebar-bg: #242422;
-  --sidebar-soft-bg: #2D2D2A;
+  --sidebar-bg: #050505;
+  --sidebar-soft-bg: #111111;
   --sidebar-text: #F5F5F2;
   --sidebar-muted-text: #B7B7B1;
   --sidebar-accent: #5AA9FF;
-  --sidebar-hover-bg: #363633;
+  --sidebar-hover-bg: #181818;
   --sidebar-selected-bg: #183D27;
   --sidebar-selected-text: #F5F5F2;
   --sidebar-selected-accent: #63D486;
@@ -1099,10 +1099,14 @@ body {
 .ring-ring { --tw-ring-color: var(--color-ring) !important; }
 
 @media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root) {
+    animation-duration: 650ms;
+  }
+
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 420ms;
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-duration: 650ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   ::view-transition-new(root) {
