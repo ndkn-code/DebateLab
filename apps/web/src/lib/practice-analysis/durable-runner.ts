@@ -14,7 +14,10 @@ import {
   getPracticeFeedbackModelProvider,
 } from "./constants";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { searchKnowledge } from "@/lib/ai/knowledge";
+import {
+  retrieveEnglishDebateKnowledge,
+  searchKnowledge,
+} from "@/lib/ai/knowledge";
 import { selectTranscriptForJudging } from "@/lib/stt/repair";
 
 /**
@@ -30,7 +33,7 @@ export async function prepareDurablePracticeAnalysis(params: {
   const { job, attempt } = await getAnalysisJobForProcessing(
     supabase,
     params.jobId,
-    params.attemptId
+    params.attemptId,
   );
   if (job.status === "completed" || attempt.status === "completed") {
     return { status: "already_completed" as const };
@@ -46,21 +49,41 @@ export async function prepareDurablePracticeAnalysis(params: {
     practiceLanguage: input.practiceLanguage,
     practiceTrack: input.practiceTrack,
   });
-  const knowledge = await searchKnowledge({
-    collection: "debate",
+  // English competitive debate has its own collection and embedding model. Do
+  // not route it through the Vietnamese Trường Teen corpus (and retain that
+  // exact legacy retrieval path for Vietnamese/speaking practice).
+  const englishKnowledge = await retrieveEnglishDebateKnowledge({
     purpose: "grading",
-    debatePurpose: "judging",
     language: input.practiceLanguage,
     practiceTrack: input.practiceTrack,
     topic: input.topic,
     side: input.side,
-    query: judgingTranscript,
-    roundsText: input.rounds?.map((round) => round.transcript || round.aiResponse || ""),
+    transcript: judgingTranscript,
+    roundsText: input.rounds?.map(
+      (round) => round.transcript || round.aiResponse || "",
+    ),
     userId: attempt.user_id,
     sourceRoute: "/workflows/ai/practice-analysis",
-    supabase,
   });
-  const retrieval = knowledge.data;
+  const knowledge = englishKnowledge
+    ? null
+    : await searchKnowledge({
+        collection: "debate",
+        purpose: "grading",
+        debatePurpose: "judging",
+        language: input.practiceLanguage,
+        practiceTrack: input.practiceTrack,
+        topic: input.topic,
+        side: input.side,
+        query: judgingTranscript,
+        roundsText: input.rounds?.map(
+          (round) => round.transcript || round.aiResponse || "",
+        ),
+        userId: attempt.user_id,
+        sourceRoute: "/workflows/ai/practice-analysis",
+        supabase,
+      });
+  const retrieval = knowledge?.data;
   return {
     status: "prepared" as const,
     attemptId: attempt.id,
@@ -70,12 +93,21 @@ export async function prepareDurablePracticeAnalysis(params: {
     input: {
       ...input,
       transcript: judgingTranscript,
-      corpusContext: retrieval.contextBlock,
+      corpusContext: englishKnowledge?.contextBlock ?? retrieval?.contextBlock,
       providerAudit: {
         sourceRoute: "/workflows/ai/practice-analysis",
         practiceAttemptId: attempt.id,
         analysisJobId: job.id,
-        metadata: { workflowRunId: params.workflowRunId },
+        metadata: {
+          workflowRunId: params.workflowRunId,
+          ...(englishKnowledge
+            ? {
+                knowledgeProvenance: englishKnowledge.provenance,
+                knowledgeEvidence: englishKnowledge.evidence,
+                knowledgeSkippedReason: englishKnowledge.skippedReason ?? null,
+              }
+            : {}),
+        },
       },
     },
   };
@@ -100,7 +132,7 @@ export async function persistDurablePracticeAnalysis(params: {
   const { job, attempt } = await getAnalysisJobForProcessing(
     supabase,
     params.jobId,
-    params.attemptId
+    params.attemptId,
   );
   if (job.status === "completed" || attempt.status === "completed") {
     return { status: "already_completed" as const };
@@ -142,12 +174,16 @@ export async function claimDurablePracticeAnalysis(params: {
   const { job, attempt } = await getAnalysisJobForProcessing(
     supabase,
     params.jobId,
-    params.attemptId
+    params.attemptId,
   );
   if (job.status === "completed" || attempt.status === "completed") {
     return { status: "already_completed" as const };
   }
-  if (job.status === "cancelled" || job.status === "failed" || attempt.status === "failed") {
+  if (
+    job.status === "cancelled" ||
+    job.status === "failed" ||
+    attempt.status === "failed"
+  ) {
     return { status: "terminal" as const };
   }
   // This is the retry-resume path after the claim step committed but a later
@@ -159,11 +195,16 @@ export async function claimDurablePracticeAnalysis(params: {
   const claimed = await markPracticeAnalysisProcessing(supabase, {
     jobId: job.id,
     attemptId: attempt.id,
-    deliveryCount: Math.min((job.delivery_count ?? 0) + 1, job.max_attempts || 3),
+    deliveryCount: Math.min(
+      (job.delivery_count ?? 0) + 1,
+      job.max_attempts || 3,
+    ),
     allowedStatuses: job.status === "queued" ? ["queued"] : ["processing"],
     maxAttempts: job.max_attempts || 3,
   });
-  return { status: claimed ? ("claimed" as const) : ("already_running" as const) };
+  return {
+    status: claimed ? ("claimed" as const) : ("already_running" as const),
+  };
 }
 
 export async function failDurablePracticeAnalysis(params: {

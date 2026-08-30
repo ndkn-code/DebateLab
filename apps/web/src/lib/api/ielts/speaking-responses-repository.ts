@@ -18,6 +18,10 @@ import {
   type NormalizedSpeakingScore,
 } from "@/lib/scoring/ielts-speaking/normalize";
 import { recordIeltsSpeakingScoreEvidence } from "./assess-score-evidence";
+import {
+  sanitizeLearnerGradingMetadata,
+  type LearnerGradingMetadata,
+} from "@/lib/ielts/scoring-adjudication";
 
 /**
  * Canonical data access for `speaking_responses` (WS-3.2).
@@ -160,6 +164,7 @@ export async function persistSpeakingScore(
     modelName: string;
     /** WS-3.3 phoneme report (jsonb). Augments Pronunciation; never the band itself. */
     phonemeReport?: Json;
+    gradingMetadata?: Json;
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -178,6 +183,9 @@ export async function persistSpeakingScore(
       feedback: toJson(buildSpeakingFeedback(score)),
       ...(params.phonemeReport !== undefined
         ? { phoneme_report: params.phonemeReport }
+        : {}),
+      ...(params.gradingMetadata !== undefined
+        ? { grading_metadata: params.gradingMetadata }
         : {}),
       model_provider: params.providerLabel,
       model_name: params.modelName,
@@ -230,6 +238,8 @@ export interface SpeakingResponseView {
   };
   feedback: Json;
   phonemeReport: Json;
+  /** Versioned scorer provenance and limitations; never contains answer keys. */
+  gradingMetadata: LearnerGradingMetadata | null;
   sttProvider: string | null;
   scoredAt: string | null;
 }
@@ -255,6 +265,7 @@ export function toSpeakingResponseView(
     },
     feedback: row.feedback,
     phonemeReport: row.phoneme_report,
+    gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
     sttProvider: row.stt_provider,
     scoredAt: row.scored_at,
   };

@@ -3,7 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getCoachContextEnvelope, getCoachProfile } from "@/lib/api/coach-profile";
+import {
+  getCoachContextEnvelope,
+  getCoachProfile,
+} from "@/lib/api/coach-profile";
 import { loadSpeakingExemplars } from "@/lib/corpus/ielts-speaking-exemplars";
 import { loadWritingExemplars } from "@/lib/corpus/ielts-exemplars";
 import {
@@ -45,26 +48,37 @@ const MAX_HIGHLIGHT_CHARS = 700;
 
 function compact(value: string, max = MAX_HIGHLIGHT_CHARS) {
   const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
+  return normalized.length > max
+    ? `${normalized.slice(0, max - 1)}…`
+    : normalized;
 }
 
 function hash(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
-function deadline<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+function deadline<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label}_deadline_exceeded`)), timeoutMs);
+      timer = setTimeout(
+        () => reject(new Error(`${label}_deadline_exceeded`)),
+        timeoutMs,
+      );
     }),
   ]).finally(() => {
     if (timer) clearTimeout(timer);
   });
 }
 
-function debateEvidence(retrieval: DebateCorpusRetrievalResult): KnowledgeEvidence[] {
+function debateEvidence(
+  retrieval: DebateCorpusRetrievalResult,
+): KnowledgeEvidence[] {
   return retrieval.items.map((item) => ({
     sourceId: item.item_id,
     version: item.canonical_match_key,
@@ -133,14 +147,17 @@ async function searchDebateLexically(
   // workflow table, so generated database types intentionally lag until the
   // migration is deployed and types are regenerated.
   const untyped = admin as SupabaseClient<any>;
-  const { data, error } = await untyped.rpc("search_debate_corpus_items_lexical", {
-    query_text: queryText,
-    match_count: Math.min(Math.max((request.limit ?? 8) * 2, 8), 24),
-    language: "vi",
-    usable_for: purposeToCorpusUsableFor(request.debatePurpose),
-    review_statuses: ["approved", "needs_review"],
-    min_confidence: 0.72,
-  });
+  const { data, error } = await untyped.rpc(
+    "search_debate_corpus_items_lexical",
+    {
+      query_text: queryText,
+      match_count: Math.min(Math.max((request.limit ?? 8) * 2, 8), 24),
+      language: "vi",
+      usable_for: purposeToCorpusUsableFor(request.debatePurpose),
+      review_statuses: ["approved", "needs_review"],
+      min_confidence: 0.72,
+    },
+  );
   if (error) throw new Error(`lexical_retrieval:${error.message}`);
   return normalizeLexicalRows(data);
 }
@@ -160,7 +177,9 @@ export function fuseDebateResults(
     scores.set(item.item_id, (scores.get(item.item_id) ?? 0) + 1 / (60 + rank));
   };
   semantic.candidateItems.forEach((item, index) => addRank(item, index + 1));
-  lexical.forEach((item, index) => addRank(item, item.lexical_rank || index + 1));
+  lexical.forEach((item, index) =>
+    addRank(item, item.lexical_rank || index + 1),
+  );
 
   const fused = [...byId.values()]
     .sort(
@@ -171,7 +190,8 @@ export function fuseDebateResults(
   const semanticApproved = new Set(semantic.items.map((item) => item.item_id));
   const lexicalApproved = new Set(lexical.map((item) => item.item_id));
   const items = fused.filter(
-    (item) => semanticApproved.has(item.item_id) || lexicalApproved.has(item.item_id),
+    (item) =>
+      semanticApproved.has(item.item_id) || lexicalApproved.has(item.item_id),
   );
 
   return {
@@ -260,7 +280,10 @@ async function searchIeltsExemplars(
         );
   const values = Object.values(data)
     .flatMap((value) => (Array.isArray(value) ? value : [value]))
-    .filter((value): value is string => typeof value === "string" && value.trim() !== "");
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim() !== "",
+    );
   const version =
     request.skill === "speaking"
       ? `${IELTS_SPEAKING_SCORER_BUNDLE_KEY}@${IELTS_SPEAKING_SCORER_BUNDLE_VERSION}`
@@ -292,7 +315,10 @@ async function searchIeltsExemplars(
 }
 
 function loadRubric(request: RubricKnowledgeRequest): KnowledgeResult {
-  const knownRubrics: Record<string, { bundle: string; bundleVersion: number }> = {
+  const knownRubrics: Record<
+    string,
+    { bundle: string; bundleVersion: number }
+  > = {
     debate_v1: {
       bundle: PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
       bundleVersion: PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
@@ -433,9 +459,22 @@ export async function searchKnowledge(
       cacheHit: false,
       latencyMs: 0,
       skippedReason:
-        error instanceof Error ? `knowledge_failed:${error.message}` : "knowledge_failed",
+        error instanceof Error
+          ? `knowledge_failed:${error.message}`
+          : "knowledge_failed",
     };
   }
 }
 
 export const DEFAULT_PRACTICE_RUBRIC_VERSION = PRACTICE_FEEDBACK_RUBRIC_VERSION;
+
+// Stable typed knowledge-tool surface. Re-exporting here keeps existing server
+// imports on the centralized service while the implementations live in the
+// generic runtime adapter.
+export {
+  getIeltsRubric,
+  findIeltsBandExamples,
+  findDebateArgumentPatterns,
+  findRebuttalAndWeighingExamples,
+  getStudentSkillHistory,
+} from "./tools";

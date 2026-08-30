@@ -1,0 +1,40 @@
+{
+  "collection": "debate.en.competitive",
+  "collectionVersion": 2,
+  "sources": [
+    {
+      "canonicalUrl": "https://www.wsdc.org/resources",
+      "publisher": "World Schools Debating Championships",
+      "title": "WSDC resources",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "candidate",
+      "metadata": {
+        "discoveryMethod": "exa",
+        "captureKind": "rules_or_adjudication_material",
+        "note": "Verify the exact resource, edition, and reuse rights before approval."
+      }
+    }
+  ],
+  "items": [
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdc.org/resources",
+      "itemType": "adjudication_pattern_candidate",
+      "insight": {
+        "format": "WSDC",
+        "qualityNotes": [
+          "Replace this placeholder with a reviewer-verified derived adjudication insight."
+        ]
+      },
+      "sourceLocator": "Verify exact page or timestamp before review",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": {
+        "rightsChecked": false,
+        "derivedOnly": true,
+        "noFullTranscript": true
+      }
+    }
+  ]
+}

@@ -30,17 +30,53 @@ import type {
   WritingTaskResult,
 } from "./types";
 
-const WRITING_CRITERIA: Array<{ key: string; label: string; band: keyof ResultsWritingTask }> = [
-  { key: "taskResponse", label: "Task Response / Achievement", band: "taskResponseBand" },
-  { key: "coherenceCohesion", label: "Coherence & Cohesion", band: "coherenceCohesionBand" },
-  { key: "lexicalResource", label: "Lexical Resource", band: "lexicalResourceBand" },
-  { key: "grammaticalRangeAccuracy", label: "Grammatical Range & Accuracy", band: "grammarBand" },
+const WRITING_CRITERIA: Array<{
+  key: string;
+  label: string;
+  band: keyof ResultsWritingTask;
+}> = [
+  {
+    key: "taskResponse",
+    label: "Task Response / Achievement",
+    band: "taskResponseBand",
+  },
+  {
+    key: "coherenceCohesion",
+    label: "Coherence & Cohesion",
+    band: "coherenceCohesionBand",
+  },
+  {
+    key: "lexicalResource",
+    label: "Lexical Resource",
+    band: "lexicalResourceBand",
+  },
+  {
+    key: "grammaticalRangeAccuracy",
+    label: "Grammatical Range & Accuracy",
+    band: "grammarBand",
+  },
 ];
 
-const SPEAKING_CRITERIA: Array<{ key: string; label: string; band: keyof ResultsSpeakingPart }> = [
-  { key: "fluencyCoherence", label: "Fluency & Coherence", band: "fluencyCoherenceBand" },
-  { key: "lexicalResource", label: "Lexical Resource", band: "lexicalResourceBand" },
-  { key: "grammaticalRangeAccuracy", label: "Grammatical Range & Accuracy", band: "grammarBand" },
+const SPEAKING_CRITERIA: Array<{
+  key: string;
+  label: string;
+  band: keyof ResultsSpeakingPart;
+}> = [
+  {
+    key: "fluencyCoherence",
+    label: "Fluency & Coherence",
+    band: "fluencyCoherenceBand",
+  },
+  {
+    key: "lexicalResource",
+    label: "Lexical Resource",
+    band: "lexicalResourceBand",
+  },
+  {
+    key: "grammaticalRangeAccuracy",
+    label: "Grammatical Range & Accuracy",
+    band: "grammarBand",
+  },
   { key: "pronunciation", label: "Pronunciation", band: "pronunciationBand" },
 ];
 
@@ -84,7 +120,10 @@ const SpeakingFeedbackSchema = z
   .object({
     summary: z.string().optional(),
     criteria: z
-      .record(z.string(), z.object({ rationale: z.string().optional() }).catch({}))
+      .record(
+        z.string(),
+        z.object({ rationale: z.string().optional() }).catch({}),
+      )
       .optional(),
   })
   .catch({});
@@ -119,7 +158,11 @@ function splitEssayParagraphs(essay: string): string[] {
     .filter(Boolean);
 }
 
-function matchesParagraph(value: number | null, index: number, total: number): boolean {
+function matchesParagraph(
+  value: number | null,
+  index: number,
+  total: number,
+): boolean {
   if (value === null) return false;
   if (value >= 1 && value <= total) return value === index + 1;
   if (value >= 0 && value < total) return value === index;
@@ -137,9 +180,12 @@ function buildEssayParagraphs(
     paragraph: index + 1,
     text,
     feedback:
-      paragraphFeedback.find((item) => matchesParagraph(item.paragraph, index, total)) ??
-      null,
-    corrections: corrections.filter((item) => matchesParagraph(item.paragraph, index, total)),
+      paragraphFeedback.find((item) =>
+        matchesParagraph(item.paragraph, index, total),
+      ) ?? null,
+    corrections: corrections.filter((item) =>
+      matchesParagraph(item.paragraph, index, total),
+    ),
   }));
 }
 
@@ -166,9 +212,14 @@ function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
     vietnameseSummary: feedback.vietnameseSummary?.trim() || null,
     inlineCorrections,
     paragraphFeedback,
-    essayParagraphs: buildEssayParagraphs(task.essay, inlineCorrections, paragraphFeedback),
+    essayParagraphs: buildEssayParagraphs(
+      task.essay,
+      inlineCorrections,
+      paragraphFeedback,
+    ),
     modelAnswer: task.modelAnswer,
     feedbackLanguage: task.feedbackLanguage,
+    gradingMetadata: task.gradingMetadata,
   };
 }
 
@@ -180,8 +231,10 @@ export function buildWritingResult(
   const results = tasks
     .map(toWritingTaskResult)
     .sort((a, b) => a.taskNumber - b.taskNumber);
-  const task1Band = results.find((task) => task.taskNumber === 1)?.taskBand ?? null;
-  const task2Band = results.find((task) => task.taskNumber === 2)?.taskBand ?? null;
+  const task1Band =
+    results.find((task) => task.taskNumber === 1)?.taskBand ?? null;
+  const task2Band =
+    results.find((task) => task.taskNumber === 2)?.taskBand ?? null;
   return {
     band: writingOverallBand({ task1Band, task2Band }),
     isComplete: results.every((task) => isTerminalWritingStatus(task.status)),
@@ -196,7 +249,9 @@ function heatmapLevel(accuracy: number) {
   return "focus";
 }
 
-function toPronunciationHeatmap(raw: unknown): SpeakingPronunciationHeatmap | null {
+function toPronunciationHeatmap(
+  raw: unknown,
+): SpeakingPronunciationHeatmap | null {
   const report = parsePhonemeReport(raw);
   if (!isScoredPhonemeReport(report) || report.words.length === 0) return null;
   return {
@@ -236,6 +291,7 @@ function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
     summary: feedback.summary?.trim() || null,
     modelAnswer: part.modelAnswer,
     pronunciationHeatmap: toPronunciationHeatmap(part.phonemeReport),
+    gradingMetadata: part.gradingMetadata,
   };
 }
 
@@ -254,7 +310,8 @@ export function buildSpeakingResult(
     scoredBands.length === 0
       ? null
       : roundToHalfBand(
-          scoredBands.reduce((sum, value) => sum + value, 0) / scoredBands.length,
+          scoredBands.reduce((sum, value) => sum + value, 0) /
+            scoredBands.length,
         );
   return {
     band,

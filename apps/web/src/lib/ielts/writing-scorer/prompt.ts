@@ -29,6 +29,8 @@ export interface WritingScorerPromptParams {
   wordCount: number;
   feedbackLanguage: "en" | "vi";
   grounding: WritingScorerGrounding;
+  /** Approved, versioned rubric/exemplar context from the generic knowledge layer. */
+  evidenceContext?: string;
 }
 
 const CRITERIA_DESCRIPTORS = `Score each of the four criteria 0-9 (half-bands allowed), applying the official 2024 public band descriptors:
@@ -109,7 +111,11 @@ CANDIDATE RESPONSE (${params.wordCount} words; ${taskLabel} expects at least ${m
 """
 ${params.essay}
 """
-${groundingSection(params.grounding)}
+${groundingSection(params.grounding)}${
+    params.evidenceContext
+      ? `\nAPPROVED IELTS KNOWLEDGE EVIDENCE\n${params.evidenceContext}\n`
+      : ""
+  }
 INSTRUCTIONS
 - Give an honest per-criterion band 0-9 (half-bands allowed) with a specific rationale for each. Be calibrated, not generous.
 - Identify concrete inline corrections (verbatim error span -> suggestion) tagged by errorType, each with a short explanation.
@@ -117,10 +123,10 @@ INSTRUCTIONS
 - Write a Band-9 model rewrite ("modelAnswer") of the candidate's essay answering the same prompt.
 - Do NOT output an overall band or the average of the criteria — the system computes the task band and the Task-2-weighted overall from your four sub-scores.
 ${
-    params.feedbackLanguage === "vi"
-      ? "- Write rationales/feedback in English, and provide a Vietnamese-language summary in vietnameseSummary (the learner is Vietnamese-first)."
-      : "- You may optionally add a Vietnamese-language summary in vietnameseSummary."
-  }
+  params.feedbackLanguage === "vi"
+    ? "- Write rationales/feedback in English, and provide a Vietnamese-language summary in vietnameseSummary (the learner is Vietnamese-first)."
+    : "- You may optionally add a Vietnamese-language summary in vietnameseSummary."
+}
 
 Return ONLY a JSON object with exactly this shape (no markdown, no commentary):
 ${jsonSkeleton(params.feedbackLanguage)}`;

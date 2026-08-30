@@ -59,6 +59,8 @@ export interface ResultsWritingTask {
   paragraphFeedback: unknown;
   modelAnswer: string | null;
   feedbackLanguage: string;
+  /** Versioned grader provenance for a future evidence/confidence presentation. */
+  gradingMetadata?: unknown;
 }
 
 export interface ResultsSpeakingPart {
@@ -76,6 +78,8 @@ export interface ResultsSpeakingPart {
   feedbackLanguage: string;
   modelAnswer: string | null;
   phonemeReport: unknown;
+  /** Versioned grader provenance for a future evidence/confidence presentation. */
+  gradingMetadata?: unknown;
 }
 
 export interface AttemptResultsInput {
@@ -229,6 +233,7 @@ export interface WritingTaskResult {
   essayParagraphs: WritingEssayParagraph[];
   modelAnswer: string | null;
   feedbackLanguage: string;
+  gradingMetadata?: unknown;
 }
 
 export interface WritingResult {
@@ -249,6 +254,7 @@ export interface SpeakingPartResult {
   summary: string | null;
   modelAnswer: string | null;
   pronunciationHeatmap: SpeakingPronunciationHeatmap | null;
+  gradingMetadata?: unknown;
 }
 
 export interface SpeakingResult {

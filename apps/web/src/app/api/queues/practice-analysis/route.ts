@@ -16,12 +16,14 @@ import {
   type DebateCorpusRetrievalCacheEntry,
   linkDebateCorpusRetrievalLogToAiRun,
 } from "@/lib/corpus/retrieval";
-import { searchKnowledge } from "@/lib/ai/knowledge";
+import {
+  createEnglishDebateKnowledgeMetadata,
+  retrieveEnglishDebateKnowledge,
+  searchKnowledge,
+  summarizeEnglishDebateKnowledge,
+} from "@/lib/ai/knowledge";
 import { evaluatePracticeFeedback } from "@/lib/practice-analysis/evaluators";
-import type {
-  StagedGeminiCache,
-  StagedGeminiCacheEntry,
-} from "@/lib/gemini";
+import type { StagedGeminiCache, StagedGeminiCacheEntry } from "@/lib/gemini";
 import { saveCompletedPracticeAttempt } from "@/lib/practice-analysis/persistence";
 import {
   getAnalysisJobForProcessing,
@@ -52,7 +54,7 @@ function getErrorMessage(error: unknown) {
 }
 
 function readCorpusRetrievalCache(
-  value: Record<string, unknown> | null
+  value: Record<string, unknown> | null,
 ): DebateCorpusRetrievalCacheEntry | null {
   const cache = value?.corpusRetrievalCache;
   if (!cache || typeof cache !== "object" || Array.isArray(cache)) return null;
@@ -66,7 +68,7 @@ function readCorpusRetrievalCache(
 }
 
 function readStagedGeminiCache(
-  value: Record<string, unknown> | null
+  value: Record<string, unknown> | null,
 ): StagedGeminiCache | undefined {
   const cache = value?.stagedGeminiCache;
   if (!cache || typeof cache !== "object" || Array.isArray(cache)) {
@@ -109,7 +111,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
     const { job, attempt } = await getAnalysisJobForProcessing(
       supabase,
       message.jobId,
-      message.attemptId
+      message.attemptId,
     );
 
     if (job.status === "completed" || attempt.status === "completed") {
@@ -174,7 +176,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       return;
     }
 
-    let effectiveProvider = getPracticeFeedbackModelProvider(attempt.practice_track);
+    let effectiveProvider = getPracticeFeedbackModelProvider(
+      attempt.practice_track,
+    );
     let effectiveModel = getPracticeFeedbackModelName(attempt.practice_track);
 
     try {
@@ -195,9 +199,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         },
       };
       let stagedGeminiCache = readStagedGeminiCache(job.result);
-      const persistJobResultPatch = async (
-        patch: Record<string, unknown>
-      ) => {
+      const persistJobResultPatch = async (patch: Record<string, unknown>) => {
         await supabase
           .from("analysis_jobs")
           .update({
@@ -223,8 +225,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           process.env.GEMINI_FLASH_LITE_MODEL ||
           "gemini-3.1-flash-lite";
       }
-      let corpusRetrievalCache =
-        readCorpusRetrievalCache(job.result);
+      let corpusRetrievalCache = readCorpusRetrievalCache(job.result);
       const judgingTranscript = selectTranscriptForJudging({
         transcript: input.transcript,
         transcription: input.transcription,
@@ -238,35 +239,69 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           : judgingTranscript !== input.transcript
             ? "repair_used_for_judge"
             : "baseline";
-      const debateKnowledge = await searchKnowledge({
-        collection: "debate",
+      // English debate deliberately does not fall through to the Vietnamese
+      // Trường Teen corpus. Vietnamese/speaking keep their existing cached
+      // retrieval and staged full-round behavior below.
+      const englishKnowledge = await retrieveEnglishDebateKnowledge({
         purpose: "grading",
-        debatePurpose: "judging",
         language: input.practiceLanguage,
         practiceTrack: input.practiceTrack,
         topic: input.topic,
         side: input.side,
-        query: judgingTranscript,
+        transcript: judgingTranscript,
         roundsText: input.rounds?.map(
-          (round) => round.transcript || round.aiResponse || ""
+          (round) => round.transcript || round.aiResponse || "",
         ),
         userId: attempt.user_id,
         sourceRoute: "/api/queues/practice-analysis",
-        supabase,
-        cacheEntry: corpusRetrievalCache,
-        onCacheEntry: async (entry) => {
-          corpusRetrievalCache = entry;
-          await persistJobResultPatch({ corpusRetrievalCache: entry });
-        },
       });
-      const corpusRetrieval = debateKnowledge.data;
+      const debateKnowledge = englishKnowledge
+        ? null
+        : await searchKnowledge({
+            collection: "debate",
+            purpose: "grading",
+            debatePurpose: "judging",
+            language: input.practiceLanguage,
+            practiceTrack: input.practiceTrack,
+            topic: input.topic,
+            side: input.side,
+            query: judgingTranscript,
+            roundsText: input.rounds?.map(
+              (round) => round.transcript || round.aiResponse || "",
+            ),
+            userId: attempt.user_id,
+            sourceRoute: "/api/queues/practice-analysis",
+            supabase,
+            cacheEntry: corpusRetrievalCache,
+            onCacheEntry: async (entry) => {
+              corpusRetrievalCache = entry;
+              await persistJobResultPatch({ corpusRetrievalCache: entry });
+            },
+          });
+      const corpusRetrieval = debateKnowledge?.data;
+      const corpusContext =
+        englishKnowledge?.contextBlock ?? corpusRetrieval?.contextBlock ?? "";
+      const corpusMetadata = englishKnowledge
+        ? createEnglishDebateKnowledgeMetadata(englishKnowledge)
+        : createDebateCorpusRetrievalMetadata(corpusRetrieval!);
+      const corpusSummary = englishKnowledge
+        ? summarizeEnglishDebateKnowledge(englishKnowledge)
+        : {
+            enabled: corpusRetrieval!.enabled,
+            retrievedCount: corpusRetrieval!.items.length,
+            candidateCount: corpusRetrieval!.candidateItems.length,
+            skippedReason: corpusRetrieval!.skippedReason,
+            topScore: corpusRetrieval!.topSimilarity,
+            relevanceGatePassed: corpusRetrieval!.relevanceGatePassed,
+          };
       if (input.providerAudit) {
-        const providerAudit = input.providerAudit as typeof input.providerAudit & {
-          stagedGeminiCache?: StagedGeminiCache;
-          onStagedGeminiCacheEntry?: (
-            entry: StagedGeminiCacheEntry
-          ) => void | Promise<void>;
-        };
+        const providerAudit =
+          input.providerAudit as typeof input.providerAudit & {
+            stagedGeminiCache?: StagedGeminiCache;
+            onStagedGeminiCacheEntry?: (
+              entry: StagedGeminiCacheEntry,
+            ) => void | Promise<void>;
+          };
         providerAudit.stagedGeminiCache = stagedGeminiCache;
         providerAudit.onStagedGeminiCacheEntry = async (entry) => {
           stagedGeminiCache = {
@@ -275,18 +310,26 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           };
           await persistJobResultPatch({ stagedGeminiCache });
         };
+        if (englishKnowledge) {
+          providerAudit.metadata = {
+            ...(providerAudit.metadata ?? {}),
+            knowledgeProvenance: englishKnowledge.provenance,
+            knowledgeEvidence: englishKnowledge.evidence,
+            knowledgeSkippedReason: englishKnowledge.skippedReason ?? null,
+          };
+        }
       }
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await evaluatePracticeFeedback(
         {
           ...input,
           transcript: judgingTranscript,
-          corpusContext: corpusRetrieval.contextBlock,
+          corpusContext,
         },
         attempt.user_id,
         (nextTelemetry) => {
           telemetry = nextTelemetry;
-        }
+        },
       );
       const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
       const modelName =
@@ -304,7 +347,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         : null;
       const scoreCalibration = createScoreCalibrationMetadata(
         feedback,
-        aiQualityTelemetry
+        aiQualityTelemetry,
       );
       const aiQualityRunId = aiQualityTelemetry
         ? await recordAiQualityRun(supabase, {
@@ -312,12 +355,15 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
             userId: attempt.user_id,
             outputType: "practice_judging",
             sourceRoute: "/api/queues/practice-analysis",
-            promptBundleKey: attempt.prompt_bundle_key ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
+            promptBundleKey:
+              attempt.prompt_bundle_key ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
             promptBundleVersion:
-              attempt.prompt_bundle_version ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
+              attempt.prompt_bundle_version ??
+              PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
             promptHash: attempt.prompt_hash,
             rubricKey: attempt.rubric_key,
-            rubricVersion: attempt.rubric_version ?? PRACTICE_FEEDBACK_RUBRIC_VERSION,
+            rubricVersion:
+              attempt.rubric_version ?? PRACTICE_FEEDBACK_RUBRIC_VERSION,
             practiceTrack: attempt.practice_track,
             practiceLanguage: attempt.practice_language,
             difficulty: attempt.ai_difficulty ?? attempt.topic_difficulty,
@@ -352,7 +398,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
                 transcriptionMetadata?.sttShadowProvider ?? null,
               sttShadowRejectedReason:
                 transcriptionMetadata?.sttShadowRejectedReason ?? null,
-              ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+              ...corpusMetadata,
               annotationAcceptedCount:
                 feedback.annotationMetadata?.acceptedCount ?? null,
               annotationRejectedCount:
@@ -365,9 +411,9 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           })
         : null;
       await linkDebateCorpusRetrievalLogToAiRun(
-        corpusRetrieval.logId,
+        corpusRetrieval?.logId,
         aiQualityRunId,
-        supabase
+        supabase,
       );
 
       await recordSttRepairShadowRun(supabase, {
@@ -396,7 +442,7 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           debugId,
           shadowVariant,
           repairUsedForJudge: judgingTranscript !== input.transcript,
-          corpusRetrievalLogId: corpusRetrieval.logId,
+          corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
           queueMessageId: metadata.messageId,
         },
       });
@@ -433,12 +479,13 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
           analysis_job_id: job.id,
           debug_id: debugId,
           queue_message_id: metadata.messageId,
-          corpus_rag_enabled: corpusRetrieval.enabled,
-          retrieved_corpus_count: corpusRetrieval.items.length,
-          candidate_corpus_count: corpusRetrieval.candidateItems.length,
-          corpus_rag_skipped_reason: corpusRetrieval.skippedReason,
-          corpus_rag_top_similarity: corpusRetrieval.topSimilarity,
-          corpus_rag_relevance_gate_passed: corpusRetrieval.relevanceGatePassed,
+          corpus_rag_enabled: corpusSummary.enabled,
+          retrieved_corpus_count: corpusSummary.retrievedCount,
+          candidate_corpus_count: corpusSummary.candidateCount,
+          corpus_rag_skipped_reason: corpusSummary.skippedReason,
+          corpus_rag_top_similarity: corpusSummary.topScore,
+          corpus_rag_relevance_gate_passed: corpusSummary.relevanceGatePassed,
+          knowledge_collection: englishKnowledge?.provenance.collection ?? null,
         },
       });
     } catch (error) {
@@ -448,14 +495,19 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         status: "error",
         sourceRoute: "/api/queues/practice-analysis",
         provider: effectiveProvider,
-        requestedProvider: getPracticeFeedbackModelProvider(attempt.practice_track),
+        requestedProvider: getPracticeFeedbackModelProvider(
+          attempt.practice_track,
+        ),
         model: effectiveModel,
-        promptBundleKey: attempt.prompt_bundle_key ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
+        promptBundleKey:
+          attempt.prompt_bundle_key ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
         promptBundleVersion:
-          attempt.prompt_bundle_version ?? PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
+          attempt.prompt_bundle_version ??
+          PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
         promptHash: attempt.prompt_hash,
         rubricKey: attempt.rubric_key,
-        rubricVersion: attempt.rubric_version ?? PRACTICE_FEEDBACK_RUBRIC_VERSION,
+        rubricVersion:
+          attempt.rubric_version ?? PRACTICE_FEEDBACK_RUBRIC_VERSION,
         practiceTrack: attempt.practice_track,
         practiceLanguage: attempt.practice_language,
         difficulty: attempt.ai_difficulty ?? attempt.topic_difficulty,
@@ -471,13 +523,11 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
         metadata: {
           queueMessageId: metadata.messageId,
           debugId:
-            typeof job.result?.debugId === "string"
-              ? job.result.debugId
-              : null,
+            typeof job.result?.debugId === "string" ? job.result.debugId : null,
           deliveryCount: metadata.deliveryCount,
           transcription: attempt.attempt_snapshot.analysisParams.transcription
             ? createTranscriptionQualityMetadata(
-                attempt.attempt_snapshot.analysisParams.transcription
+                attempt.attempt_snapshot.analysisParams.transcription,
               )
             : undefined,
         },
@@ -502,5 +552,5 @@ export const POST = queue.handleCallback<PracticeAnalysisQueueMessage>(
       if (metadata.deliveryCount >= 10) return { acknowledge: true };
       return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
     },
-  }
+  },
 );

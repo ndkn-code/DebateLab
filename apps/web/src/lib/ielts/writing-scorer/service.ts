@@ -8,6 +8,12 @@ import { createPaymentRepository } from "@/lib/api/payments-repository";
 import { meterFeature } from "@/lib/payments/meter";
 import { METERED_FEATURES } from "@/lib/payments/metering";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/types/supabase";
+import {
+  findIeltsBandExamples,
+  getIeltsRubric,
+  type KnowledgeResult,
+} from "@/lib/ai/knowledge";
 import { normalizeWritingScore } from "@/lib/scoring/ielts-writing/normalize";
 import { loadWritingExemplars } from "@/lib/corpus/ielts-exemplars";
 import { recomputeAttemptWritingBand } from "@/lib/api/ielts/band-scores-repository";
@@ -27,12 +33,15 @@ import {
 } from "@/lib/ai/workflow-runs";
 import type { IeltsWritingQueueMessage } from "./constants";
 import { buildWritingScorerPrompt } from "./prompt";
-import { runWritingModel } from "./provider";
+import { adjudicateWritingModel, runWritingModel } from "./provider";
 import {
-  getIeltsWritingModelName,
-  getIeltsWritingProviderLabel,
-  getIeltsWritingScoreProvider,
-} from "./provider-policy";
+  adjacentBands,
+  buildWritingAdjudicationPrompt,
+  createStagedGradingMetadata,
+  isIeltsEvidenceAdjudicationEnabled,
+  writingBands,
+} from "@/lib/ielts/scoring-adjudication";
+import { getIeltsWritingGroqModelName } from "./provider-policy";
 import {
   claimableWritingStatuses,
   decideWritingScoringAction,
@@ -51,6 +60,26 @@ export interface SubmitWritingResponseResult {
   writingResponseId: string;
   status: string;
   usage: { used: number; limit: number | null };
+}
+
+function resultCorpusVersion(result: KnowledgeResult): string | null {
+  if (
+    !result.data ||
+    typeof result.data !== "object" ||
+    Array.isArray(result.data)
+  ) {
+    return null;
+  }
+  const version = (result.data as { collectionVersion?: unknown })
+    .collectionVersion;
+  return typeof version === "string" ? version : null;
+}
+
+function joinKnowledgeContext(...results: KnowledgeResult[]): string {
+  return results
+    .map((result) => result.context)
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /**
@@ -140,20 +169,50 @@ export async function runIeltsWritingScoringJob(
   }
   if (decision.action === "skip") return "lease_active";
 
-  const provider = getIeltsWritingScoreProvider();
   const claimed = await claimWritingResponseForScoring(admin, {
     writingResponseId: response.id,
     allowedStatuses: claimableWritingStatuses(decision.allowedStatuses),
-    providerLabel: getIeltsWritingProviderLabel(provider),
-    modelName: getIeltsWritingModelName(provider),
+    providerLabel: "groq",
+    modelName: getIeltsWritingGroqModelName(),
   });
   if (!claimed) return "lease_active"; // another worker won the claim
 
   try {
-    const grounding = await loadWritingExemplars(admin, {
-      questionId: question.id,
-      questionType: question.question_type,
-    });
+    const [grounding, rubric, broadExamples] = await Promise.all([
+      loadWritingExemplars(admin, {
+        questionId: question.id,
+        questionType: question.question_type,
+      }),
+      getIeltsRubric({
+        purpose: "grading",
+        skill: "writing",
+        language: "en",
+        query: `Official IELTS Writing descriptors for ${question.question_type}`,
+        sourceRoute: "ielts_writing_score",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 8,
+      }),
+      findIeltsBandExamples({
+        purpose: "grading",
+        skill: "writing",
+        taskType: question.question_type,
+        criteria: [
+          "taskResponse",
+          "coherenceCohesion",
+          "lexicalResource",
+          "grammaticalRangeAccuracy",
+        ],
+        query: `${question.prompt}\n${response.essay}`,
+        questionId: question.id,
+        questionType: question.question_type,
+        language: "en",
+        sourceRoute: "ielts_writing_score",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 8,
+      }),
+    ]);
     const prompt = buildWritingScorerPrompt({
       taskNumber: writingTaskNumberForQuestionType(question.question_type),
       taskType: question.question_type,
@@ -162,16 +221,81 @@ export async function runIeltsWritingScoringJob(
       wordCount: response.word_count,
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
+      evidenceContext: joinKnowledgeContext(rubric, broadExamples),
     });
-    const result = await runWritingModel({
+    const provisional = await runWritingModel({
       prompt,
       audit: { userId: response.user_id, writingResponseId: response.id },
     });
+    let result = provisional;
+    let gradingMetadata: Json | undefined;
+    if (isIeltsEvidenceAdjudicationEnabled()) {
+      const adjacentExamples = await findIeltsBandExamples({
+        purpose: "grading",
+        skill: "writing",
+        taskType: question.question_type,
+        criteria: [
+          "taskResponse",
+          "coherenceCohesion",
+          "lexicalResource",
+          "grammaticalRangeAccuracy",
+        ],
+        targetBands: adjacentBands(writingBands(provisional.output)),
+        query: `${question.prompt}\n${response.essay}`,
+        questionId: question.id,
+        questionType: question.question_type,
+        language: "en",
+        sourceRoute: "ielts_writing_score_adjudication",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 12,
+      });
+      result = await adjudicateWritingModel({
+        prompt: buildWritingAdjudicationPrompt({
+          originalPrompt: prompt,
+          provisionalOutput: provisional.output,
+          evidenceContext: adjacentExamples.context,
+        }),
+        audit: { userId: response.user_id, writingResponseId: response.id },
+      });
+      const evidence = [
+        ...rubric.evidence,
+        ...broadExamples.evidence,
+        ...adjacentExamples.evidence,
+      ]
+        .filter(
+          (item, index, all) =>
+            all.findIndex(
+              (candidate) => candidate.sourceId === item.sourceId,
+            ) === index,
+        )
+        .map((item) => ({
+          sourceId: item.sourceId,
+          version: item.version,
+          itemType: item.itemType,
+          score: item.score,
+          reviewStatus: item.reviewStatus,
+          sourceLocator: item.sourceLocator,
+          authorityTier: item.authorityTier,
+          rightsStatus: item.rightsStatus,
+        }));
+      gradingMetadata = createStagedGradingMetadata({
+        evidence,
+        runId: response.id,
+        corpusVersion:
+          resultCorpusVersion(adjacentExamples) ??
+          resultCorpusVersion(broadExamples),
+        provisionalTraceId: provisional.traceId,
+        adjudicationTraceId: result.traceId,
+        retrievalSkippedReason: adjacentExamples.skippedReason,
+      }) as unknown as Json;
+    }
     await persistWritingScore(admin, {
       writingResponseId: response.id,
       score: normalizeWritingScore(result.output),
       providerLabel: result.providerLabel,
       modelName: result.modelName,
+      gradingMetadata,
     });
     await recomputeAttemptWritingBand(
       admin,

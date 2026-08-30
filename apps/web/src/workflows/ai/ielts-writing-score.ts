@@ -5,6 +5,7 @@ import {
   markWorkflowFailed,
   markWritingWorkflowFailure,
   claimIeltsWritingScore,
+  adjudicateIeltsWritingScore,
   generateIeltsWritingScore,
   persistIeltsWritingScore,
   prepareIeltsWritingScore,
@@ -12,6 +13,7 @@ import {
   replanWritingAttempt,
 } from "./steps";
 import { FatalError } from "workflow";
+import { isIeltsEvidenceAdjudicationEnabled } from "@/lib/ielts/scoring-adjudication";
 
 export interface IeltsWritingScoreWorkflowInput {
   workflowRunId: string;
@@ -21,14 +23,14 @@ export interface IeltsWritingScoreWorkflowInput {
 
 /** Durable IELTS writing scoring: scoring, band aggregation, then optional replan. */
 export async function ieltsWritingScoreWorkflow(
-  input: IeltsWritingScoreWorkflowInput
+  input: IeltsWritingScoreWorkflowInput,
 ) {
   "use workflow";
 
   const claimed = await claimWorkflowCore(
     input.workflowRunId,
     "writing_scoring",
-    input.launchToken
+    input.launchToken,
   );
   if (!claimed) return { status: "already_running" as const };
 
@@ -37,7 +39,10 @@ export async function ieltsWritingScoreWorkflow(
       writingResponseId: input.writingResponseId,
     });
     if (claim.status === "already_scored") {
-      await markWorkflowCoreCompleted(input.workflowRunId, "writing_already_scored");
+      await markWorkflowCoreCompleted(
+        input.workflowRunId,
+        "writing_already_scored",
+      );
       await markWorkflowCompleted(input.workflowRunId);
       return { status: "already_scored" as const };
     }
@@ -48,13 +53,29 @@ export async function ieltsWritingScoreWorkflow(
       userId: prepared.userId,
       prompt: prepared.prompt,
     });
+    const adjudicated = isIeltsEvidenceAdjudicationEnabled()
+      ? await adjudicateIeltsWritingScore({
+          workflowRunId: input.workflowRunId,
+          writingResponseId: prepared.writingResponseId,
+          userId: prepared.userId,
+          questionId: prepared.questionId,
+          questionType: prepared.questionType,
+          retrievalQuery: prepared.retrievalQuery,
+          prompt: prepared.prompt,
+          provisionalOutput: generated.output,
+          provisionalTraceId: generated.traceId,
+          baseEvidence: prepared.baseEvidence,
+          baseCorpusVersion: prepared.baseCorpusVersion,
+        })
+      : { ...generated, gradingMetadata: undefined };
     const scored = await persistIeltsWritingScore({
       writingResponseId: prepared.writingResponseId,
       attemptId: prepared.attemptId,
       userId: prepared.userId,
-      output: generated.output,
-      provider: generated.provider,
-      model: generated.model,
+      output: adjudicated.output,
+      provider: adjudicated.provider,
+      model: adjudicated.model,
+      gradingMetadata: adjudicated.gradingMetadata,
     });
     await recomputeWritingAttempt(scored.attemptId, scored.userId);
     await markWorkflowCoreCompleted(input.workflowRunId, "writing_scored");

@@ -1,7 +1,7 @@
 import type { AiTask, AiTaskPolicy } from "./contracts";
 
-const geminiModel = () => process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const groqModel = () => process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+const groqModel = () =>
+  process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
 const deepSeekModel = () => process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 
 /**
@@ -13,7 +13,12 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
   switch (task) {
     case "stt_transcript_repair":
       return {
-        candidates: [{ provider: "gemini", model: process.env.GEMINI_STT_REPAIR_MODEL || geminiModel() }],
+        candidates: [
+          {
+            provider: "groq",
+            model: process.env.GROQ_STT_REPAIR_MODEL || groqModel(),
+          },
+        ],
         attemptTimeoutMs: 15_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 4_096,
@@ -23,7 +28,10 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
     case "practice_judging":
       return {
         candidates: [
-          { provider: "gemini", model: process.env.GEMINI_FULL_ROUND_JUDGE_MODEL || geminiModel() },
+          {
+            provider: "groq",
+            model: process.env.GROQ_FULL_ROUND_JUDGE_MODEL || groqModel(),
+          },
           { provider: "deepseek", model: deepSeekModel() },
         ],
         attemptTimeoutMs: 35_000,
@@ -34,11 +42,13 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "ielts_speaking_score":
     case "ielts_writing_score":
+    case "ielts_speaking_adjudication":
+    case "ielts_writing_adjudication":
       return {
-        candidates: [
-          { provider: "gemini", model: geminiModel() },
-          { provider: "groq", model: groqModel() },
-        ],
+        // Student submissions may belong to minors. Gemini's current API terms
+        // prohibit use in services directed to, or likely accessed by, minors,
+        // so live grading deliberately has no Gemini candidate or fallback.
+        candidates: [{ provider: "groq", model: groqModel() }],
         attemptTimeoutMs: 35_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 4_096,
@@ -74,12 +84,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "coach_visualization":
       return {
-        candidates: [
-          { provider: "gemini", model: process.env.GEMINI_VISUAL_PLANNER_MODEL || "gemini-3.1-flash-lite" },
-          { provider: "gemini", model: "gemma-4-31b-it" },
-          { provider: "gemini", model: "gemma-4-26b-a4b-it" },
-          { provider: "groq", model: groqModel() },
-        ],
+        candidates: [{ provider: "groq", model: groqModel() }],
         attemptTimeoutMs: 20_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 1_200,
@@ -89,7 +94,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
     case "rebuttal":
       return {
         candidates: [
-          { provider: "gemini", model: geminiModel() },
+          { provider: "groq", model: groqModel() },
           { provider: "deepseek", model: deepSeekModel() },
         ],
         attemptTimeoutMs: 45_000,
@@ -102,7 +107,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       return {
         candidates: [
           { provider: "deepseek", model: deepSeekModel() },
-          { provider: "gemini", model: geminiModel() },
+          { provider: "groq", model: groqModel() },
         ],
         attemptTimeoutMs: 40_000,
         schemaRepairAttempts: 1,
@@ -111,15 +116,16 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         criticality: "critical",
       };
     case "duel_judging": {
-      const deepSeekPrimary = process.env.DEBATE_DUEL_JUDGE_PROVIDER === "deepseek";
+      const deepSeekPrimary =
+        process.env.DEBATE_DUEL_JUDGE_PROVIDER === "deepseek";
       return {
         candidates: deepSeekPrimary
           ? [
               { provider: "deepseek", model: deepSeekModel() },
-              { provider: "gemini", model: geminiModel() },
+              { provider: "groq", model: groqModel() },
             ]
           : [
-              { provider: "gemini", model: geminiModel() },
+              { provider: "groq", model: groqModel() },
               { provider: "deepseek", model: deepSeekModel() },
             ],
         attemptTimeoutMs: 45_000,
@@ -131,7 +137,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
     }
     case "onboarding_feedback":
       return {
-        candidates: [{ provider: "gemini", model: geminiModel() }],
+        candidates: [{ provider: "groq", model: groqModel() }],
         attemptTimeoutMs: 10_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 300,
@@ -140,10 +146,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "ielts_micro_drafts":
       return {
-        candidates: [
-          { provider: "gemini", model: geminiModel() },
-          { provider: "groq", model: groqModel() },
-        ],
+        candidates: [{ provider: "groq", model: groqModel() }],
         attemptTimeoutMs: 35_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 4_096,
@@ -154,7 +157,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       return {
         candidates: [
           { provider: "deepseek", model: deepSeekModel() },
-          { provider: "gemini", model: geminiModel() },
+          { provider: "groq", model: groqModel() },
         ],
         attemptTimeoutMs: 9_000,
         schemaRepairAttempts: 1,

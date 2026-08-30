@@ -216,6 +216,16 @@ export interface CoachMessageMetadata {
   coachCorpusRetrievedCount?: number;
   coachCorpusCandidateCount?: number;
   corpusRetrievalLogId?: string | null;
+  /** Compact evidence provenance for an English competitive-debate retrieval. */
+  coachCorpusCollection?: string;
+  coachCorpusEvidence?: Array<{
+    sourceId: string;
+    version: string;
+    itemType: string;
+    sourceLocator: string | null;
+    authorityTier: string | null;
+    score: number;
+  }>;
   visualTemplate?: CoachVisualTemplate;
   visualPlannerModel?: string;
   firstTokenLatencyMs?: number | null;

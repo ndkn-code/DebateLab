@@ -10,6 +10,11 @@ import { meterFeature } from "@/lib/payments/meter";
 import { METERED_FEATURES } from "@/lib/payments/metering";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/supabase";
+import {
+  findIeltsBandExamples,
+  getIeltsRubric,
+  type KnowledgeResult,
+} from "@/lib/ai/knowledge";
 import { normalizeSpeakingScore } from "@/lib/scoring/ielts-speaking/normalize";
 import { transcribePracticeAudio } from "@/lib/stt/transcription";
 import {
@@ -37,7 +42,14 @@ import {
 } from "./constants";
 import { extractPronunciationSignal } from "./phoneme-contract";
 import { buildSpeakingScorerPrompt } from "./prompt";
-import { runSpeakingModel } from "./provider";
+import { adjudicateSpeakingModel, runSpeakingModel } from "./provider";
+import {
+  adjacentBands,
+  buildSpeakingAdjudicationPrompt,
+  createStagedGradingMetadata,
+  isIeltsEvidenceAdjudicationEnabled,
+  speakingBands,
+} from "@/lib/ielts/scoring-adjudication";
 import {
   claimableSpeakingStatuses,
   decideSpeakingScoringAction,
@@ -153,9 +165,31 @@ function extractCueCardBullets(metadata: Json): string[] | undefined {
   const raw = record.cueCardBullets ?? record.bullets;
   if (!Array.isArray(raw)) return undefined;
   const bullets = raw
-    .filter((item): item is string => typeof item === "string" && item.trim() !== "")
+    .filter(
+      (item): item is string => typeof item === "string" && item.trim() !== "",
+    )
     .map((item) => item.trim());
   return bullets.length > 0 ? bullets : undefined;
+}
+
+function resultCorpusVersion(result: KnowledgeResult): string | null {
+  if (
+    !result.data ||
+    typeof result.data !== "object" ||
+    Array.isArray(result.data)
+  ) {
+    return null;
+  }
+  const version = (result.data as { collectionVersion?: unknown })
+    .collectionVersion;
+  return typeof version === "string" ? version : null;
+}
+
+function joinKnowledgeContext(...results: KnowledgeResult[]): string {
+  return results
+    .map((result) => result.context)
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /**
@@ -231,10 +265,44 @@ export async function runIeltsSpeakingScoringJob(
       practiceAttemptId: response.attempt_id,
     });
 
-    const grounding = await loadSpeakingExemplars(admin, {
-      questionId: question.id,
-      questionType: question.question_type,
-    });
+    const [grounding, rubric, broadExamples] = await Promise.all([
+      loadSpeakingExemplars(admin, {
+        questionId: question.id,
+        questionType: question.question_type,
+      }),
+      getIeltsRubric({
+        purpose: "grading",
+        skill: "speaking",
+        language: "en",
+        query: `Official IELTS Speaking descriptors for ${question.question_type}`,
+        sourceRoute: "ielts_speaking_score",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 8,
+      }),
+      findIeltsBandExamples({
+        purpose: "grading",
+        skill: "speaking",
+        taskType: question.question_type,
+        criteria: [
+          "fluencyCoherence",
+          "lexicalResource",
+          "grammaticalRangeAccuracy",
+          "pronunciation",
+        ],
+        query: `${question.prompt}\n${transcription.transcript}`,
+        questionId: question.id,
+        questionType: question.question_type,
+        language: "en",
+        sourceRoute: "ielts_speaking_score",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 8,
+      }),
+    ]);
+    const pronunciationSignal = extractPronunciationSignal(
+      pronunciation.report,
+    );
     const prompt = buildSpeakingScorerPrompt({
       partNumber,
       questionType: question.question_type,
@@ -246,12 +314,77 @@ export async function runIeltsSpeakingScoringJob(
       sttWarnings: transcription.warnings,
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
-      pronunciation: extractPronunciationSignal(pronunciation.report),
+      pronunciation: pronunciationSignal,
+      evidenceContext: joinKnowledgeContext(rubric, broadExamples),
     });
-    const result = await runSpeakingModel({
+    const provisional = await runSpeakingModel({
       prompt,
       audit: { userId: response.user_id, speakingResponseId: response.id },
     });
+    let result = provisional;
+    let gradingMetadata: Json | undefined;
+    if (isIeltsEvidenceAdjudicationEnabled()) {
+      const adjacentExamples = await findIeltsBandExamples({
+        purpose: "grading",
+        skill: "speaking",
+        taskType: question.question_type,
+        criteria: [
+          "fluencyCoherence",
+          "lexicalResource",
+          "grammaticalRangeAccuracy",
+          "pronunciation",
+        ],
+        targetBands: adjacentBands(speakingBands(provisional.output)),
+        query: `${question.prompt}\n${transcription.transcript}`,
+        questionId: question.id,
+        questionType: question.question_type,
+        language: "en",
+        sourceRoute: "ielts_speaking_score_adjudication",
+        userId: response.user_id,
+        supabase: admin,
+        limit: 12,
+      });
+      result = await adjudicateSpeakingModel({
+        prompt: buildSpeakingAdjudicationPrompt({
+          originalPrompt: prompt,
+          provisionalOutput: provisional.output,
+          evidenceContext: adjacentExamples.context,
+        }),
+        audit: { userId: response.user_id, speakingResponseId: response.id },
+      });
+      const evidence = [
+        ...rubric.evidence,
+        ...broadExamples.evidence,
+        ...adjacentExamples.evidence,
+      ]
+        .filter(
+          (item, index, all) =>
+            all.findIndex(
+              (candidate) => candidate.sourceId === item.sourceId,
+            ) === index,
+        )
+        .map((item) => ({
+          sourceId: item.sourceId,
+          version: item.version,
+          itemType: item.itemType,
+          score: item.score,
+          reviewStatus: item.reviewStatus,
+          sourceLocator: item.sourceLocator,
+          authorityTier: item.authorityTier,
+          rightsStatus: item.rightsStatus,
+        }));
+      gradingMetadata = createStagedGradingMetadata({
+        evidence,
+        runId: response.id,
+        corpusVersion:
+          resultCorpusVersion(adjacentExamples) ??
+          resultCorpusVersion(broadExamples),
+        provisionalTraceId: provisional.traceId,
+        adjudicationTraceId: result.traceId,
+        acousticEvidenceAvailable: Boolean(pronunciationSignal),
+        retrievalSkippedReason: adjacentExamples.skippedReason,
+      }) as unknown as Json;
+    }
     await persistSpeakingScore(admin, {
       speakingResponseId: response.id,
       transcript: transcription.transcript,
@@ -260,6 +393,7 @@ export async function runIeltsSpeakingScoringJob(
       providerLabel: result.providerLabel,
       modelName: result.modelName,
       phonemeReport: pronunciation.report as unknown as Json,
+      gradingMetadata,
     });
     await recomputeAttemptSpeakingBand(
       admin,

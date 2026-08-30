@@ -5,6 +5,7 @@ import {
   markWorkflowFailed,
   markSpeakingWorkflowFailure,
   claimIeltsSpeakingScore,
+  adjudicateIeltsSpeakingScore,
   generateIeltsSpeakingScore,
   persistIeltsSpeakingScore,
   prepareIeltsSpeakingScore,
@@ -12,6 +13,7 @@ import {
   replanSpeakingAttempt,
 } from "./steps";
 import { FatalError } from "workflow";
+import { isIeltsEvidenceAdjudicationEnabled } from "@/lib/ielts/scoring-adjudication";
 
 export interface IeltsSpeakingScoreWorkflowInput {
   workflowRunId: string;
@@ -22,14 +24,14 @@ export interface IeltsSpeakingScoreWorkflowInput {
 
 /** Durable IELTS speaking scoring: the score is persisted before optional replanning. */
 export async function ieltsSpeakingScoreWorkflow(
-  input: IeltsSpeakingScoreWorkflowInput
+  input: IeltsSpeakingScoreWorkflowInput,
 ) {
   "use workflow";
 
   const claimed = await claimWorkflowCore(
     input.workflowRunId,
     "speaking_scoring",
-    input.launchToken
+    input.launchToken,
   );
   if (!claimed) return { status: "already_running" as const };
 
@@ -38,7 +40,10 @@ export async function ieltsSpeakingScoreWorkflow(
       speakingResponseId: input.speakingResponseId,
     });
     if (claim.status === "already_scored") {
-      await markWorkflowCoreCompleted(input.workflowRunId, "speaking_already_scored");
+      await markWorkflowCoreCompleted(
+        input.workflowRunId,
+        "speaking_already_scored",
+      );
       await markWorkflowCompleted(input.workflowRunId);
       return { status: "already_scored" as const };
     }
@@ -49,6 +54,22 @@ export async function ieltsSpeakingScoreWorkflow(
       userId: prepared.userId,
       prompt: prepared.prompt,
     });
+    const adjudicated = isIeltsEvidenceAdjudicationEnabled()
+      ? await adjudicateIeltsSpeakingScore({
+          workflowRunId: input.workflowRunId,
+          speakingResponseId: prepared.speakingResponseId,
+          userId: prepared.userId,
+          questionId: prepared.questionId,
+          questionType: prepared.questionType,
+          retrievalQuery: prepared.retrievalQuery,
+          prompt: prepared.prompt,
+          provisionalOutput: generated.output,
+          provisionalTraceId: generated.traceId,
+          baseEvidence: prepared.baseEvidence,
+          baseCorpusVersion: prepared.baseCorpusVersion,
+          acousticEvidenceAvailable: prepared.acousticEvidenceAvailable,
+        })
+      : { ...generated, gradingMetadata: undefined };
     const scored = await persistIeltsSpeakingScore({
       speakingResponseId: prepared.speakingResponseId,
       attemptId: prepared.attemptId,
@@ -56,9 +77,10 @@ export async function ieltsSpeakingScoreWorkflow(
       transcript: prepared.transcript,
       sttProvider: prepared.sttProvider,
       phonemeReport: prepared.phonemeReport,
-      output: generated.output,
-      provider: generated.provider,
-      model: generated.model,
+      output: adjudicated.output,
+      provider: adjudicated.provider,
+      model: adjudicated.model,
+      gradingMetadata: adjudicated.gradingMetadata,
     });
     await recomputeSpeakingAttempt(scored.attemptId, scored.userId);
     await markWorkflowCoreCompleted(input.workflowRunId, "speaking_scored");

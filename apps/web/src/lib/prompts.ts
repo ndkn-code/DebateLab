@@ -1,8 +1,5 @@
 import { getPracticeLanguageConfig } from "@/lib/practice-language";
-import {
-  formatMotionBriefForPrompt,
-  getMotionBrief,
-} from "@/lib/motion-brief";
+import { formatMotionBriefForPrompt, getMotionBrief } from "@/lib/motion-brief";
 import { getDebateFeedbackDepthTarget } from "@/lib/feedback/depth";
 import { formatDebateMemoryForPrompt } from "@/lib/rebuttal/debate-continuity";
 import { normalizeRebuttalText } from "@/lib/rebuttal/structured-response";
@@ -42,7 +39,9 @@ interface AnalysisPromptParams {
   prepNotes?: string | null;
 }
 
-function buildPracticeLanguageInstructions(language?: PracticeLanguage): string {
+function buildPracticeLanguageInstructions(
+  language?: PracticeLanguage,
+): string {
   const config = getPracticeLanguageConfig(language);
 
   if (config.code === "vi") {
@@ -63,11 +62,17 @@ function buildPracticeLanguageInstructions(language?: PracticeLanguage): string 
 - Copy transcript quotes exactly as written.`;
 }
 
-function buildRoundsContext(rounds?: DebateRound[]): string {
+function buildRoundsContext(
+  rounds?: DebateRound[],
+  options?: { truongTeen?: boolean },
+): string {
   if (!rounds || rounds.length === 0) return "";
+  const formatDescription = options?.truongTeen
+    ? "a Trường Teen-style round with 5 rounds"
+    : "a multi-round competitive debate";
 
   return `\n## Debate Rounds
-This was a multi-round debate (Trường Teen style) with 5 rounds. The student's performance should be evaluated across ALL rounds.
+This was ${formatDescription}. The student's performance should be evaluated across ALL rounds.
 
 ${rounds
   .map((round) => {
@@ -346,7 +351,8 @@ function buildSpeakingAnalysisPrompt(params: AnalysisPromptParams): string {
     transcription,
     prepNotes,
   } = params;
-  const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
+  const languageInstructions =
+    buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
   const sttGuardrailContext = buildSttJudgeGuardrailBlock(transcription);
   const prepNotesContext = buildPrepNotesContext(prepNotes);
@@ -430,16 +436,20 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
     prepNotes,
   } = params;
 
-  const roundsContext = isFullRound ? buildRoundsContext(rounds) : "";
-  const languageInstructions = buildPracticeLanguageInstructions(practiceLanguage);
+  const languageInstructions =
+    buildPracticeLanguageInstructions(practiceLanguage);
   const languageConfig = getPracticeLanguageConfig(practiceLanguage);
   const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
     practiceLanguage,
     practiceTrack: "debate",
   });
+  const roundsContext = isFullRound
+    ? buildRoundsContext(rounds, { truongTeen: useTruongTeenPrompt })
+    : "";
   const transcriptCorpus = [
     transcript,
-    ...(rounds?.map((round) => round.transcript || round.aiResponse || "") ?? []),
+    ...(rounds?.map((round) => round.transcript || round.aiResponse || "") ??
+      []),
   ];
   const truongTeenJudgingContext = useTruongTeenPrompt
     ? buildTruongTeenJudgingPromptAddendum()
@@ -456,12 +466,12 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
         category: "Debate",
         difficulty: "intermediate",
       } satisfies DebateTopic,
-      practiceLanguage ?? "en"
+      practiceLanguage ?? "en",
     );
   const motionBriefContext = formatMotionBriefForPrompt(resolvedMotionBrief);
   const debateMemoryContext = formatDebateMemoryForPrompt(
     debateMemory,
-    resolvedMotionBrief
+    resolvedMotionBrief,
   );
   const depthTarget = getDebateFeedbackDepthTarget({
     isFullRound,
@@ -480,7 +490,11 @@ function buildDebateAnalysisPrompt(params: AnalysisPromptParams): string {
 - Motion: "${topic}"
 - Side: ${side === "proposition" ? "Proposition (FOR)" : "Opposition (AGAINST)"}
 - Speech Type: ${speechType}
-- Debate Format: Trường Teen-style practice round
+- Debate Format: ${
+    useTruongTeenPrompt
+      ? "Trường Teen-style practice round"
+      : "English competitive-debate practice (use retrieved format-specific rules when available)"
+  }
 - Time Limit: ${timeLimit} minutes
 - Actual Duration: ${actualDuration} seconds
 ${motionBriefContext}
@@ -669,10 +683,10 @@ function duelJudgmentJsonSchema(): string {
 }
 
 export function buildDuelJudgmentPrompt(
-  params: DuelJudgmentPromptParams
+  params: DuelJudgmentPromptParams,
 ): string {
   const languageInstructions = buildPracticeLanguageInstructions(
-    params.practiceLanguage
+    params.practiceLanguage,
   );
   const useTruongTeenPrompt = shouldUseTruongTeenPrompt({
     practiceLanguage: params.practiceLanguage,
@@ -682,11 +696,13 @@ export function buildDuelJudgmentPrompt(
     ? buildTruongTeenDuelJudgingPromptAddendum()
     : "";
   const evidenceHintContext = useTruongTeenPrompt
-    ? buildFuzzyEvidenceHintBlock(params.speeches.map((speech) => speech.transcript))
+    ? buildFuzzyEvidenceHintBlock(
+        params.speeches.map((speech) => speech.transcript),
+      )
     : "";
   const speechBlock = params.speeches
     .map(
-        (speech) => `### Round ${speech.roundNumber}: ${speech.label}
+      (speech) => `### Round ${speech.roundNumber}: ${speech.label}
 - Speech id: ${speech.id}
 - Side: ${speech.side}
 - Type: ${speech.speechType}
@@ -695,7 +711,7 @@ export function buildDuelJudgmentPrompt(
 
 """
 ${speech.transcript}
-"""`
+"""`,
     )
     .join("\n\n");
 

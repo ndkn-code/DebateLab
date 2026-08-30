@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { generateStructured, generateText, streamText } from "@/lib/ai/core";
-import { searchKnowledge } from "@/lib/ai/knowledge";
+import {
+  retrieveEnglishDebateKnowledge,
+  searchKnowledge,
+  type KnowledgeEvidence,
+} from "@/lib/ai/knowledge";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getPostHogServer } from "@/lib/posthog-server";
 import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
@@ -19,7 +23,10 @@ import {
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
-import { decideCoachIntent, type CoachIntentDecision } from "@/lib/coach/intent";
+import {
+  decideCoachIntent,
+  type CoachIntentDecision,
+} from "@/lib/coach/intent";
 import { pruneCoachMetadata } from "@/lib/coach/metadata";
 import {
   createDebateCorpusRetrievalMetadata,
@@ -125,7 +132,7 @@ interface ChatRequest {
 function isUuid(value?: string | null): value is string {
   if (!value) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+    value,
   );
 }
 
@@ -196,7 +203,7 @@ function cleanText(value: unknown, maxLength = 900) {
   const sentenceEnd = Math.max(
     clipped.lastIndexOf(". "),
     clipped.lastIndexOf("! "),
-    clipped.lastIndexOf("? ")
+    clipped.lastIndexOf("? "),
   );
 
   if (sentenceEnd > maxLength * 0.55) {
@@ -205,7 +212,9 @@ function cleanText(value: unknown, maxLength = 900) {
 
   const wordEnd = clipped.lastIndexOf(" ");
   const trimmed =
-    wordEnd > maxLength * 0.65 ? clipped.slice(0, wordEnd).trim() : clipped.trim();
+    wordEnd > maxLength * 0.65
+      ? clipped.slice(0, wordEnd).trim()
+      : clipped.trim();
 
   return `${trimmed.replace(/[.,;:!?-]+$/, "")}...`;
 }
@@ -236,8 +245,8 @@ function blockText(block: CoachResponseBlock) {
 function isUsefulTemplate(block: CoachResponseBlock) {
   return Boolean(
     block.body &&
-      block.body.length > 48 &&
-      TEMPLATE_PLACEHOLDER_PATTERN.test(block.body)
+    block.body.length > 48 &&
+    TEMPLATE_PLACEHOLDER_PATTERN.test(block.body),
   );
 }
 
@@ -272,25 +281,30 @@ function isUsefulOpeningFormula(block: CoachResponseBlock) {
   if (items.length !== 4) return false;
 
   const parts = items.map(getOpeningPart);
-  const partMap = new Map(parts.flatMap((part) => (part ? [[part.key, part.body]] : [])));
+  const partMap = new Map(
+    parts.flatMap((part) => (part ? [[part.key, part.body]] : [])),
+  );
 
   return (
     /\b(motion|topic)\b/.test(partMap.get("motion") ?? "") &&
     /\b(stance|side|support|oppose|position|proposition|opposition)\b/.test(
-      partMap.get("stance") ?? ""
+      partMap.get("stance") ?? "",
     ) &&
     /\b(reason|claim|because|mechanism|why|main)\b/.test(
-      partMap.get("thesis") ?? ""
+      partMap.get("thesis") ?? "",
     ) &&
     /\b(preview|argument|point|roadmap|show)\b/.test(
-      partMap.get("roadmap") ?? ""
+      partMap.get("roadmap") ?? "",
     )
   );
 }
 
 function isUsefulClarifyingQuestion(block: CoachResponseBlock) {
   const text = blockText(block);
-  return text.length >= 20 && (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"));
+  return (
+    text.length >= 20 &&
+    (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"))
+  );
 }
 
 function looksIncompleteStudentMessage(text?: string) {
@@ -314,7 +328,10 @@ function hasSpecificStudentMaterial(text?: string) {
   );
 }
 
-function normalizeBlock(value: unknown, index: number): CoachResponseBlock | null {
+function normalizeBlock(
+  value: unknown,
+  index: number,
+): CoachResponseBlock | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   const type = isCoachBlockType(raw.type) ? raw.type : null;
@@ -336,7 +353,10 @@ function normalizeBlock(value: unknown, index: number): CoachResponseBlock | nul
   if (block.type === "template" && !isUsefulTemplate(block)) {
     return null;
   }
-  if (block.type === "clarifying_question" && !isUsefulClarifyingQuestion(block)) {
+  if (
+    block.type === "clarifying_question" &&
+    !isUsefulClarifyingQuestion(block)
+  ) {
     return null;
   }
   if (block.type !== "clarifying_question" && isMissingContextBlock(block)) {
@@ -370,7 +390,7 @@ function normalizeAction(value: unknown): CoachSuggestedAction | null {
 
 function normalizeMetadata(
   value: unknown,
-  context: { assistantText?: string; studentMessage?: string } = {}
+  context: { assistantText?: string; studentMessage?: string } = {},
 ): CoachMessageMetadata | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
@@ -385,7 +405,7 @@ function normalizeMetadata(
 
   const needsMoreInfo = looksIncompleteStudentMessage(context.studentMessage);
   const clarifyingBlocks = blocks.filter(
-    (block) => block.type === "clarifying_question"
+    (block) => block.type === "clarifying_question",
   );
 
   if (needsMoreInfo) {
@@ -462,6 +482,8 @@ async function generateCoachMessageMetadata({
   routeIntent,
   modelRoute,
   corpusRetrieval,
+  corpusEvidence,
+  corpusProvenance,
   firstTokenLatencyMs,
 }: {
   assistantText: string;
@@ -473,6 +495,8 @@ async function generateCoachMessageMetadata({
   routeIntent: CoachIntentDecision;
   modelRoute: CoachModelRoute;
   corpusRetrieval: DebateCorpusRetrievalResult | null;
+  corpusEvidence?: KnowledgeEvidence[];
+  corpusProvenance?: Record<string, unknown> | null;
   firstTokenLatencyMs?: number | null;
 }): Promise<CoachMessageMetadata | null> {
   if (!assistantText.trim()) return null;
@@ -493,7 +517,8 @@ async function generateCoachMessageMetadata({
           coachIntent: routeIntent.intent,
           coachIntentReason: routeIntent.reason,
           coachModelRoute: modelRoute,
-          coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
+          coachCorpusRetrievedCount:
+            corpusRetrieval?.items.length ?? corpusEvidence?.length ?? 0,
         },
       },
       messages: [
@@ -580,13 +605,23 @@ ${assistantText}`,
         routeIntent.intent === "visual_explainer" ||
         Boolean(parsed?.visualizable),
       autoVisualize: routeIntent.intent === "visual_explainer",
-      visualPrompt:
-        cleanText(parsed?.visualPrompt, 220) ?? undefined,
+      visualPrompt: cleanText(parsed?.visualPrompt, 220) ?? undefined,
       coachIntent: routeIntent.intent,
       coachModelRoute: modelRoute,
-      coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
-      coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+      coachCorpusRetrievedCount:
+        corpusRetrieval?.items.length ?? corpusEvidence?.length ?? 0,
+      coachCorpusCandidateCount:
+        corpusRetrieval?.candidateItems.length ?? corpusEvidence?.length ?? 0,
       corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
+      coachCorpusCollection: corpusProvenance?.collection as string | undefined,
+      coachCorpusEvidence: corpusEvidence?.map((item) => ({
+        sourceId: item.sourceId,
+        version: item.version,
+        itemType: item.itemType,
+        sourceLocator: item.sourceLocator ?? null,
+        authorityTier: item.authorityTier ?? null,
+        score: item.score,
+      })),
       firstTokenLatencyMs: firstTokenLatencyMs ?? null,
     };
   } catch (metadataError) {
@@ -626,6 +661,7 @@ function buildCoachSystemPrompt(params: {
   systemPrompt: string;
   routeIntent: CoachIntentDecision;
   corpusContext?: string;
+  corpusKind?: "truong_teen" | "english_competitive";
 }) {
   const routingRules =
     params.routeIntent.intent === "deep_review"
@@ -658,7 +694,7 @@ function buildCoachSystemPrompt(params: {
     params.systemPrompt,
     routingRules,
     params.corpusContext
-      ? `${params.corpusContext}\nCOACH RAG RULES:\n- Treat the Trường Teen context as private coaching reference material.\n- Do not cite corpus item IDs to the student.\n- Do not present debater-mentioned evidence as independently verified fact.\n- Prefer transferable debate moves over memorized phrasing.`
+      ? `${params.corpusContext}\nCOACH RAG RULES:\n- Treat the ${params.corpusKind === "english_competitive" ? "English competitive-debate" : "Trường Teen"} context as private coaching reference material.\n- Do not cite corpus item IDs or source links to the student.\n- Do not present debater-mentioned evidence as independently verified fact.\n- Prefer transferable debate moves over memorized phrasing.`
       : "",
   ]
     .filter(Boolean)
@@ -688,12 +724,12 @@ export async function POST(req: NextRequest) {
             "Content-Type": "application/json",
             "Retry-After": String(rateLimit.retryAfterSeconds),
           },
-        }
+        },
       );
     }
 
     const body = parseChatRequest(
-      await readJsonObject(req, { maxBytes: 12 * 1024 })
+      await readJsonObject(req, { maxBytes: 12 * 1024 }),
     );
     const normalizedContext = normalizeContextType(body.context);
     const practiceLanguage = coercePracticeLanguage(body.practiceLanguage);
@@ -713,6 +749,13 @@ export async function POST(req: NextRequest) {
     });
     const modelRoute = getCoachModelRoute(routeIntent);
     let corpusRetrieval: DebateCorpusRetrievalResult | null = null;
+    let englishCorpusEvidence: KnowledgeEvidence[] = [];
+    let englishCorpusProvenance: Record<string, unknown> | null = null;
+    let corpusContext: string | undefined;
+    const coachCorpusRetrievedCount = () =>
+      corpusRetrieval?.items.length ?? englishCorpusEvidence.length;
+    const coachCorpusCandidateCount = () =>
+      corpusRetrieval?.candidateItems.length ?? englishCorpusEvidence.length;
 
     try {
       const learnerHistory = await searchKnowledge({
@@ -731,7 +774,10 @@ export async function POST(req: NextRequest) {
         focusSummary?: string;
         promptContext?: string;
       } | null;
-      if (!envelope) throw new Error(learnerHistory.skippedReason || "coach context unavailable");
+      if (!envelope)
+        throw new Error(
+          learnerHistory.skippedReason || "coach context unavailable",
+        );
       coachMetadataContext = {
         mode: envelope.mode,
         focusTitle: envelope.focusTitle,
@@ -764,32 +810,56 @@ RULES FOR THIS CONTEXT:
     }
 
     if (routeIntent.corpusPurpose) {
-      const debateKnowledge = await searchKnowledge({
-        collection: "debate",
+      const query = buildCoachRagQuery({
+        message,
+        focusTitle: coachPromptContext.focusTitle,
+        focusSummary: coachPromptContext.focusSummary,
+        promptContext: coachPromptContext.promptContext,
+      });
+      const englishKnowledge = await retrieveEnglishDebateKnowledge({
         purpose: "coaching",
         language: practiceLanguage,
         practiceTrack: "debate",
-        debatePurpose: routeIntent.corpusPurpose,
         topic: coachPromptContext.focusTitle || message,
-        query: buildCoachRagQuery({
-          message,
-          focusTitle: coachPromptContext.focusTitle,
-          focusSummary: coachPromptContext.focusSummary,
-          promptContext: coachPromptContext.promptContext,
-        }),
+        transcript: query,
         roundsText: coachPromptContext.focusSummary
           ? [coachPromptContext.focusSummary]
           : undefined,
         userId: user.id,
         sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
       });
-      corpusRetrieval = debateKnowledge.data as DebateCorpusRetrievalResult;
+      if (englishKnowledge) {
+        corpusContext = englishKnowledge.contextBlock;
+        englishCorpusEvidence = englishKnowledge.evidence;
+        englishCorpusProvenance = englishKnowledge.provenance;
+      } else {
+        const debateKnowledge = await searchKnowledge({
+          collection: "debate",
+          purpose: "coaching",
+          language: practiceLanguage,
+          practiceTrack: "debate",
+          debatePurpose: routeIntent.corpusPurpose,
+          topic: coachPromptContext.focusTitle || message,
+          query,
+          roundsText: coachPromptContext.focusSummary
+            ? [coachPromptContext.focusSummary]
+            : undefined,
+          userId: user.id,
+          sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
+        });
+        corpusRetrieval = debateKnowledge.data as DebateCorpusRetrievalResult;
+        corpusContext = corpusRetrieval.contextBlock;
+      }
     }
 
     systemPrompt = buildCoachSystemPrompt({
       systemPrompt,
       routeIntent,
-      corpusContext: corpusRetrieval?.contextBlock,
+      corpusContext,
+      corpusKind:
+        practiceLanguage === "en" && englishCorpusProvenance
+          ? "english_competitive"
+          : "truong_teen",
     });
 
     const chatModel = GROQ_COACH_MODEL;
@@ -809,7 +879,8 @@ RULES FOR THIS CONTEXT:
     } else {
       const insertData: Record<string, string> = {
         user_id: user.id,
-        title: practiceLanguage === "vi" ? "Cuộc hội thoại mới" : "New conversation",
+        title:
+          practiceLanguage === "vi" ? "Cuộc hội thoại mới" : "New conversation",
       };
       if (normalizedContext) insertData.context_type = normalizedContext;
       if (isUuid(contextId)) insertData.context_id = contextId;
@@ -821,7 +892,8 @@ RULES FOR THIS CONTEXT:
         .single();
 
       if (error) {
-        if (process.env.NODE_ENV === 'development') console.error("Failed to create conversation:", error);
+        if (process.env.NODE_ENV === "development")
+          console.error("Failed to create conversation:", error);
         throw new Error("Failed to create conversation");
       }
       conversationId = conv.id;
@@ -834,7 +906,8 @@ RULES FOR THIS CONTEXT:
       content: message.trim(),
     });
     if (msgError) {
-      if (process.env.NODE_ENV === 'development') console.error("Failed to save user message:", msgError);
+      if (process.env.NODE_ENV === "development")
+        console.error("Failed to save user message:", msgError);
       throw new Error("Failed to save message");
     }
 
@@ -848,7 +921,10 @@ RULES FOR THIS CONTEXT:
     const history = [...(historyRows ?? [])].reverse();
 
     // Build messages array for Groq (OpenAI-compatible format)
-    const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+    const messages: {
+      role: "system" | "user" | "assistant";
+      content: string;
+    }[] = [
       { role: "system", content: systemPrompt },
       ...(history ?? []).map((m) => ({
         role: m.role as "user" | "assistant",
@@ -872,7 +948,10 @@ RULES FOR THIS CONTEXT:
           const coreContext = {
             task: "coach_chat" as const,
             sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
-            outputType: modelRoute === "visual_explainer" ? "coach_visual_prompt" : "coach_chat",
+            outputType:
+              modelRoute === "visual_explainer"
+                ? "coach_visual_prompt"
+                : "coach_chat",
             userId: user.id,
             deadlineAt: Date.now() + 45_000,
             idempotencyKey: `coach-chat:${conversationId}:${history.length}`,
@@ -880,8 +959,11 @@ RULES FOR THIS CONTEXT:
               coachIntent: routeIntent.intent,
               coachIntentReason: routeIntent.reason,
               coachModelRoute: modelRoute,
-              coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
-              coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+              coachCorpusRetrievedCount: coachCorpusRetrievedCount(),
+              coachCorpusCandidateCount: coachCorpusCandidateCount(),
+              coachCorpusCollection:
+                englishCorpusProvenance?.collection ?? null,
+              coachCorpusEvidence: englishCorpusEvidence,
             },
           };
           if (modelRoute === "gemini_deep_review") {
@@ -902,17 +984,28 @@ RULES FOR THIS CONTEXT:
             activeTraceId = generation.traceId;
             firstTokenLatencyMs = Date.now() - streamStartTime;
             fullResponse = generation.output;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: fullResponse, conversationId, coachIntent: routeIntent.intent })}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ text: fullResponse, conversationId, coachIntent: routeIntent.intent })}\n\n`,
+              ),
+            );
           } else {
             for await (const text of streamText({
               task: "coach_chat",
               messages,
               context: coreContext,
-              policy: { temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7 },
+              policy: {
+                temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7,
+              },
             })) {
-              if (firstTokenLatencyMs == null) firstTokenLatencyMs = Date.now() - streamStartTime;
+              if (firstTokenLatencyMs == null)
+                firstTokenLatencyMs = Date.now() - streamStartTime;
               fullResponse += text;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text, conversationId, coachIntent: routeIntent.intent })}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ text, conversationId, coachIntent: routeIntent.intent })}\n\n`,
+                ),
+              );
             }
           }
           finishReason = "stop";
@@ -928,6 +1021,8 @@ RULES FOR THIS CONTEXT:
                 routeIntent,
                 modelRoute,
                 corpusRetrieval,
+                corpusEvidence: englishCorpusEvidence,
+                corpusProvenance: englishCorpusProvenance,
                 firstTokenLatencyMs,
               })
             : null;
@@ -940,9 +1035,21 @@ RULES FOR THIS CONTEXT:
               suggestedActions: [],
               coachIntent: routeIntent.intent,
               coachModelRoute: modelRoute,
-              coachCorpusRetrievedCount: corpusRetrieval?.items.length ?? 0,
-              coachCorpusCandidateCount: corpusRetrieval?.candidateItems.length ?? 0,
+              coachCorpusRetrievedCount: coachCorpusRetrievedCount(),
+              coachCorpusCandidateCount: coachCorpusCandidateCount(),
               corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
+              coachCorpusCollection:
+                typeof englishCorpusProvenance?.collection === "string"
+                  ? englishCorpusProvenance.collection
+                  : undefined,
+              coachCorpusEvidence: englishCorpusEvidence.map((item) => ({
+                sourceId: item.sourceId,
+                version: item.version,
+                itemType: item.itemType,
+                sourceLocator: item.sourceLocator ?? null,
+                authorityTier: item.authorityTier ?? null,
+                score: item.score,
+              })),
               firstTokenLatencyMs,
               visualizable: routeIntent.intent === "visual_explainer",
               autoVisualize: routeIntent.intent === "visual_explainer",
@@ -964,7 +1071,8 @@ RULES FOR THIS CONTEXT:
             distinctId: user.id,
             event: "$ai_generation",
             properties: {
-              $ai_provider: activeProvider === "gemini" ? "google" : activeProvider,
+              $ai_provider:
+                activeProvider === "gemini" ? "google" : activeProvider,
               $ai_model: activeModel,
               $ai_output_tokens: Math.ceil(fullResponse.length / 4),
               $ai_latency: Date.now() - streamStartTime,
@@ -984,7 +1092,7 @@ RULES FOR THIS CONTEXT:
               conversationId!,
               supabase,
               practiceLanguage,
-              user.id
+              user.id,
             );
           }
 
@@ -1001,13 +1109,25 @@ RULES FOR THIS CONTEXT:
                 corpusRetrieval: corpusRetrieval
                   ? createDebateCorpusRetrievalMetadata(corpusRetrieval)
                   : null,
-              })}\n\n`
-            )
+                knowledgeEvidence:
+                  englishCorpusEvidence.length > 0
+                    ? englishCorpusEvidence.map((item) => ({
+                        sourceId: item.sourceId,
+                        version: item.version,
+                        itemType: item.itemType,
+                        sourceLocator: item.sourceLocator ?? null,
+                        authorityTier: item.authorityTier ?? null,
+                        score: item.score,
+                      }))
+                    : null,
+              })}\n\n`,
+            ),
           );
           controller.close();
         } catch (err) {
           await recordAiProviderRequest({
-            provider: modelRoute === "gemini_deep_review" ? "google/groq" : "groq",
+            provider:
+              modelRoute === "gemini_deep_review" ? "google/groq" : "groq",
             model:
               modelRoute === "gemini_deep_review"
                 ? `${GEMINI_DEEP_COACH_MODEL}/${chatModel}`
@@ -1026,11 +1146,12 @@ RULES FOR THIS CONTEXT:
               firstTokenLatencyMs,
             },
           });
-          if (process.env.NODE_ENV === 'development') console.error("Stream error:", err);
+          if (process.env.NODE_ENV === "development")
+            console.error("Stream error:", err);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`
-            )
+              `data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`,
+            ),
           );
           controller.close();
         }
@@ -1051,10 +1172,11 @@ RULES FOR THIS CONTEXT:
         headers: { "Content-Type": "application/json" },
       });
     }
-    if (process.env.NODE_ENV === 'development') console.error("Chat API error:", error);
+    if (process.env.NODE_ENV === "development")
+      console.error("Chat API error:", error);
     return new Response(
       JSON.stringify({ error: "Something went wrong. Please try again." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 }
@@ -1066,7 +1188,7 @@ async function generateTitle(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   practiceLanguage: string,
-  userId?: string | null
+  userId?: string | null,
 ) {
   try {
     const result = await generateText({
@@ -1088,9 +1210,7 @@ async function generateTitle(
       },
     });
 
-    const title = result.output
-      .trim()
-      .slice(0, 100);
+    const title = result.output.trim().slice(0, 100);
 
     if (title) {
       await supabase

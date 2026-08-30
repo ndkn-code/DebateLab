@@ -9621,6 +9621,7 @@ export type Database = {
           created_at: string
           feedback: Json
           feedback_language: string
+          grading_metadata: Json
           fluency_coherence_band: number | null
           grammar_band: number | null
           id: string
@@ -9653,6 +9654,7 @@ export type Database = {
           created_at?: string
           feedback?: Json
           feedback_language?: string
+          grading_metadata?: Json
           fluency_coherence_band?: number | null
           grammar_band?: number | null
           id?: string
@@ -9685,6 +9687,7 @@ export type Database = {
           created_at?: string
           feedback?: Json
           feedback_language?: string
+          grading_metadata?: Json
           fluency_coherence_band?: number | null
           grammar_band?: number | null
           id?: string
@@ -10297,6 +10300,7 @@ export type Database = {
           criteria_feedback: Json
           essay: string
           feedback_language: string
+          grading_metadata: Json
           grammar_band: number | null
           id: string
           inline_corrections: Json
@@ -10330,6 +10334,7 @@ export type Database = {
           criteria_feedback?: Json
           essay?: string
           feedback_language?: string
+          grading_metadata?: Json
           grammar_band?: number | null
           id?: string
           inline_corrections?: Json
@@ -10363,6 +10368,7 @@ export type Database = {
           criteria_feedback?: Json
           essay?: string
           feedback_language?: string
+          grading_metadata?: Json
           grammar_band?: number | null
           id?: string
           inline_corrections?: Json

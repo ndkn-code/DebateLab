@@ -20,6 +20,7 @@ import type { Tables } from "@/types/supabase";
 import { parseQuestionView } from "@/lib/ielts/question-types/schemas";
 import { isObjectiveQuestionType } from "@/lib/ielts/question-types/registry";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
+import { sanitizeLearnerGradingMetadata } from "@/lib/ielts/scoring-adjudication";
 import type {
   AttemptResultsInput,
   IeltsSkillKey,
@@ -31,21 +32,85 @@ import type {
 const QUESTION_COLUMNS =
   "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, order_index";
 const WRITING_COLUMNS =
-  "question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language";
+  "question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language, grading_metadata";
 const SPEAKING_COLUMNS =
-  "question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report";
+  "question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report, grading_metadata";
 
-type ResponseRow = Pick<Tables<"ielts_question_responses">, "question_id" | "response" | "is_correct" | "awarded_points">;
-type KeyRow = Pick<Tables<"ielts_question_keys">, "question_id" | "correct_answer" | "accept_variants" | "explanation_en" | "explanation_vi" | "model_answer" | "examiner_notes">;
-type QuestionRow = Pick<Tables<"ielts_questions">, "id" | "question_type" | "skill" | "prompt" | "group_instructions" | "word_limit" | "max_points" | "options" | "visual" | "metadata" | "passage_id" | "listening_section_id">;
-type WritingRow = Pick<Tables<"writing_responses">, "question_id" | "task_number" | "status" | "essay" | "word_count" | "task_response_band" | "coherence_cohesion_band" | "lexical_resource_band" | "grammar_band" | "task_band" | "criteria_feedback" | "inline_corrections" | "paragraph_feedback" | "model_answer" | "feedback_language">;
-type SpeakingRow = Pick<Tables<"speaking_responses">, "question_id" | "part_number" | "status" | "transcript" | "fluency_coherence_band" | "lexical_resource_band" | "grammar_band" | "pronunciation_band" | "speaking_band" | "feedback" | "feedback_language" | "phoneme_report">;
+type ResponseRow = Pick<
+  Tables<"ielts_question_responses">,
+  "question_id" | "response" | "is_correct" | "awarded_points"
+>;
+type KeyRow = Pick<
+  Tables<"ielts_question_keys">,
+  | "question_id"
+  | "correct_answer"
+  | "accept_variants"
+  | "explanation_en"
+  | "explanation_vi"
+  | "model_answer"
+  | "examiner_notes"
+>;
+type QuestionRow = Pick<
+  Tables<"ielts_questions">,
+  | "id"
+  | "question_type"
+  | "skill"
+  | "prompt"
+  | "group_instructions"
+  | "word_limit"
+  | "max_points"
+  | "options"
+  | "visual"
+  | "metadata"
+  | "passage_id"
+  | "listening_section_id"
+>;
+type WritingRow = Pick<
+  Tables<"writing_responses">,
+  | "question_id"
+  | "task_number"
+  | "status"
+  | "essay"
+  | "word_count"
+  | "task_response_band"
+  | "coherence_cohesion_band"
+  | "lexical_resource_band"
+  | "grammar_band"
+  | "task_band"
+  | "criteria_feedback"
+  | "inline_corrections"
+  | "paragraph_feedback"
+  | "model_answer"
+  | "feedback_language"
+  | "grading_metadata"
+>;
+type SpeakingRow = Pick<
+  Tables<"speaking_responses">,
+  | "question_id"
+  | "part_number"
+  | "status"
+  | "transcript"
+  | "fluency_coherence_band"
+  | "lexical_resource_band"
+  | "grammar_band"
+  | "pronunciation_band"
+  | "speaking_band"
+  | "feedback"
+  | "feedback_language"
+  | "phoneme_report"
+  | "grading_metadata"
+>;
 type PassageRow = Pick<Tables<"passages">, "id" | "title" | "body">;
-type ListeningSectionRow = Pick<Tables<"listening_sections">, "id" | "title" | "script">;
+type ListeningSectionRow = Pick<
+  Tables<"listening_sections">,
+  "id" | "title" | "script"
+>;
 type ObjectiveSource = ResultsObjectiveQuestion["source"];
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
-function resolveConversionKey(metadata: Tables<"ielts_tests">["metadata"]): string {
+function resolveConversionKey(
+  metadata: Tables<"ielts_tests">["metadata"],
+): string {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     const value = (metadata as Record<string, unknown>).band_conversion_key;
     if (typeof value === "string" && value.length > 0) return value;
@@ -74,7 +139,9 @@ function buildObjectiveQuestions(
   passages: PassageRow[],
   listeningSections: ListeningSectionRow[],
 ): ResultsObjectiveQuestion[] {
-  const responseByQuestion = new Map(responses.map((row) => [row.question_id, row]));
+  const responseByQuestion = new Map(
+    responses.map((row) => [row.question_id, row]),
+  );
   const keyByQuestion = new Map(keys.map((row) => [row.question_id, row]));
   const passageById = new Map(passages.map((row) => [row.id, row]));
   const listeningById = new Map(listeningSections.map((row) => [row.id, row]));
@@ -85,7 +152,9 @@ function buildObjectiveQuestions(
         question,
         response: responseByQuestion.get(question.id),
         key: keyByQuestion.get(question.id),
-        passage: question.passage_id ? (passageById.get(question.passage_id) ?? null) : null,
+        passage: question.passage_id
+          ? (passageById.get(question.passage_id) ?? null)
+          : null,
         listening: question.listening_section_id
           ? (listeningById.get(question.listening_section_id) ?? null)
           : null,
@@ -102,7 +171,11 @@ function sourceForQuestion(
     return { kind: "reading", title: passage.title, text: passage.body };
   }
   if (question.skill === "listening" && listening) {
-    return { kind: "listening", title: listening.title, text: listening.script };
+    return {
+      kind: "listening",
+      title: listening.title,
+      text: listening.script,
+    };
   }
   return null;
 }
@@ -190,6 +263,7 @@ function mapWritingTask(
     paragraphFeedback: row.paragraph_feedback,
     modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
+    gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
   };
 }
 
@@ -213,6 +287,7 @@ function mapSpeakingPart(
     feedbackLanguage: row.feedback_language,
     modelAnswer: key?.model_answer ?? null,
     phonemeReport: row.phoneme_report,
+    gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
   };
 }
 
@@ -231,7 +306,15 @@ async function loadQuestionKeys(questionIds: string[]): Promise<KeyRow[]> {
 }
 
 type SessionClient = Awaited<ReturnType<typeof createTypedServerClient>>;
-type BandScoreRow = Pick<Tables<"attempt_band_scores">, "listening_raw" | "reading_raw" | "listening_band" | "reading_band" | "writing_band" | "speaking_band">;
+type BandScoreRow = Pick<
+  Tables<"attempt_band_scores">,
+  | "listening_raw"
+  | "reading_raw"
+  | "listening_band"
+  | "reading_band"
+  | "writing_band"
+  | "speaking_band"
+>;
 
 interface AttemptReads {
   bandScore: BandScoreRow | null;
@@ -263,45 +346,51 @@ async function runAttemptReads(
     writing,
     speaking,
   ] = await Promise.all([
-      supabase
-        .from("attempt_band_scores")
-        .select(
-          "listening_raw, reading_raw, listening_band, reading_band, writing_band, speaking_band",
-        )
-        .eq("attempt_id", attemptId)
-        .maybeSingle(),
-      supabase
-        .from("ielts_attempt_sections")
-        .select("skill, section_order")
-        .eq("attempt_id", attemptId)
-        .order("section_order"),
-      supabase
-        .from("ielts_question_responses")
-        .select("question_id, response, is_correct, awarded_points")
-        .eq("attempt_id", attemptId),
-      supabase
-        .from("ielts_questions")
-        .select(QUESTION_COLUMNS)
-        .eq("test_id", testId)
-        .order("order_index"),
-      supabase
-        .from("band_conversions")
-        .select("conversion_key, skill, module, band, raw_min, raw_max")
-        .in("conversion_key", [...new Set(["default", conversionKey])])
-        .in("skill", ["listening", "reading"]),
-      supabase
-        .from("passages")
-        .select("id, title, body")
-        .eq("test_id", testId)
-        .order("order_index"),
-      supabase
-        .from("listening_sections")
-        .select("id, title, script")
-        .eq("test_id", testId)
-        .order("section_number"),
-      supabase.from("writing_responses").select(WRITING_COLUMNS).eq("attempt_id", attemptId),
-      supabase.from("speaking_responses").select(SPEAKING_COLUMNS).eq("attempt_id", attemptId),
-    ]);
+    supabase
+      .from("attempt_band_scores")
+      .select(
+        "listening_raw, reading_raw, listening_band, reading_band, writing_band, speaking_band",
+      )
+      .eq("attempt_id", attemptId)
+      .maybeSingle(),
+    supabase
+      .from("ielts_attempt_sections")
+      .select("skill, section_order")
+      .eq("attempt_id", attemptId)
+      .order("section_order"),
+    supabase
+      .from("ielts_question_responses")
+      .select("question_id, response, is_correct, awarded_points")
+      .eq("attempt_id", attemptId),
+    supabase
+      .from("ielts_questions")
+      .select(QUESTION_COLUMNS)
+      .eq("test_id", testId)
+      .order("order_index"),
+    supabase
+      .from("band_conversions")
+      .select("conversion_key, skill, module, band, raw_min, raw_max")
+      .in("conversion_key", [...new Set(["default", conversionKey])])
+      .in("skill", ["listening", "reading"]),
+    supabase
+      .from("passages")
+      .select("id, title, body")
+      .eq("test_id", testId)
+      .order("order_index"),
+    supabase
+      .from("listening_sections")
+      .select("id, title, script")
+      .eq("test_id", testId)
+      .order("section_number"),
+    supabase
+      .from("writing_responses")
+      .select(WRITING_COLUMNS)
+      .eq("attempt_id", attemptId),
+    supabase
+      .from("speaking_responses")
+      .select(SPEAKING_COLUMNS)
+      .eq("attempt_id", attemptId),
+  ]);
 
   for (const result of [
     sections,
@@ -313,7 +402,8 @@ async function runAttemptReads(
     writing,
     speaking,
   ]) {
-    if (result.error) throw new Error(`loadAttemptResults: ${result.error.message}`);
+    if (result.error)
+      throw new Error(`loadAttemptResults: ${result.error.message}`);
   }
 
   return {
@@ -372,7 +462,9 @@ export async function loadAttemptResults(
     resolveConversionKey(test?.metadata ?? null),
   );
 
-  const questionById = new Map(reads.questions.map((question) => [question.id, question]));
+  const questionById = new Map(
+    reads.questions.map((question) => [question.id, question]),
+  );
   // Reveal keys only once the sitting has been submitted (never mid-attempt).
   const keys =
     attempt.status === "in_progress" || attempt.submitted_at === null
@@ -399,10 +491,18 @@ export async function loadAttemptResults(
     ),
     bandConversions: reads.conversions,
     writingTasks: reads.writing.map((row) =>
-      mapWritingTask(row, questionById.get(row.question_id), keyByQuestion.get(row.question_id)),
+      mapWritingTask(
+        row,
+        questionById.get(row.question_id),
+        keyByQuestion.get(row.question_id),
+      ),
     ),
     speakingParts: reads.speaking.map((row) =>
-      mapSpeakingPart(row, questionById.get(row.question_id), keyByQuestion.get(row.question_id)),
+      mapSpeakingPart(
+        row,
+        questionById.get(row.question_id),
+        keyByQuestion.get(row.question_id),
+      ),
     ),
   };
 }

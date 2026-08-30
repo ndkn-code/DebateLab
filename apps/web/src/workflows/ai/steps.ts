@@ -20,7 +20,10 @@ import {
   markWritingScoringFailed,
   persistWritingScore,
 } from "@/lib/api/ielts/writing-responses-repository";
-import { speakingPartNumberForQuestionType, writingTaskNumberForQuestionType } from "@/lib/api/ielts/schema";
+import {
+  speakingPartNumberForQuestionType,
+  writingTaskNumberForQuestionType,
+} from "@/lib/api/ielts/schema";
 import { transcribePracticeAudio } from "@/lib/stt/transcription";
 import {
   assessPronunciation,
@@ -28,6 +31,12 @@ import {
 } from "@/lib/ielts/pronunciation";
 import { loadSpeakingExemplars } from "@/lib/corpus/ielts-speaking-exemplars";
 import { loadWritingExemplars } from "@/lib/corpus/ielts-exemplars";
+import {
+  findIeltsBandExamples,
+  getIeltsRubric,
+  type KnowledgeEvidence,
+  type KnowledgeResult,
+} from "@/lib/ai/knowledge";
 import { extractPronunciationSignal } from "@/lib/ielts/speaking-scorer/phoneme-contract";
 import { buildSpeakingScorerPrompt } from "@/lib/ielts/speaking-scorer/prompt";
 import { buildWritingScorerPrompt } from "@/lib/ielts/writing-scorer/prompt";
@@ -35,10 +44,21 @@ import { normalizeSpeakingScore } from "@/lib/scoring/ielts-speaking/normalize";
 import { normalizeWritingScore } from "@/lib/scoring/ielts-writing/normalize";
 import { ieltsSpeakingModelOutputSchema } from "@/lib/scoring/ielts-speaking/result-schema";
 import { ieltsWritingModelOutputSchema } from "@/lib/scoring/ielts-writing/result-schema";
-import { recomputeAttemptSpeakingBand, recomputeAttemptWritingBand } from "@/lib/api/ielts/band-scores-repository";
+import {
+  recomputeAttemptSpeakingBand,
+  recomputeAttemptWritingBand,
+} from "@/lib/api/ielts/band-scores-repository";
 import { maybeReplanAfterEvidence } from "@/lib/api/ielts/replan-hook";
-import { claimableSpeakingStatuses, decideSpeakingScoringAction, isTerminalSpeakingStatus } from "@/lib/ielts/speaking-scorer/status";
-import { claimableWritingStatuses, decideWritingScoringAction, isTerminalWritingStatus } from "@/lib/ielts/writing-scorer/status";
+import {
+  claimableSpeakingStatuses,
+  decideSpeakingScoringAction,
+  isTerminalSpeakingStatus,
+} from "@/lib/ielts/speaking-scorer/status";
+import {
+  claimableWritingStatuses,
+  decideWritingScoringAction,
+  isTerminalWritingStatus,
+} from "@/lib/ielts/writing-scorer/status";
 import { IELTS_SPEAKING_AUDIO_BUCKET } from "@/lib/ielts/speaking-scorer/constants";
 import {
   claimDurablePracticeAnalysis,
@@ -47,15 +67,52 @@ import {
   persistDurablePracticeAnalysis,
   prepareDurablePracticeAnalysis,
 } from "@/lib/practice-analysis/durable-runner";
+import { getIeltsWritingGroqModelName } from "@/lib/ielts/writing-scorer/provider-policy";
 import {
-  getIeltsWritingModelName,
-  getIeltsWritingProviderLabel,
-  getIeltsWritingScoreProvider,
-} from "@/lib/ielts/writing-scorer/provider-policy";
+  adjacentBands,
+  buildSpeakingAdjudicationPrompt,
+  buildWritingAdjudicationPrompt,
+  createStagedGradingMetadata,
+  ieltsSpeakingAdjudicationOutputSchema,
+  ieltsWritingAdjudicationOutputSchema,
+  speakingBands,
+  writingBands,
+} from "@/lib/ielts/scoring-adjudication";
 import type { Json } from "@/types/supabase";
 
 type IeltsSpeakingModelOutput = z.infer<typeof ieltsSpeakingModelOutputSchema>;
 type IeltsWritingModelOutput = z.infer<typeof ieltsWritingModelOutputSchema>;
+
+function resultCorpusVersion(result: KnowledgeResult): string | null {
+  if (
+    !result.data ||
+    typeof result.data !== "object" ||
+    Array.isArray(result.data)
+  )
+    return null;
+  const version = (result.data as { collectionVersion?: unknown })
+    .collectionVersion;
+  return typeof version === "string" ? version : null;
+}
+
+function evidenceReferences(items: KnowledgeEvidence[]) {
+  return items
+    .filter(
+      (item, index, all) =>
+        all.findIndex((candidate) => candidate.sourceId === item.sourceId) ===
+        index,
+    )
+    .map((item) => ({
+      sourceId: item.sourceId,
+      version: item.version,
+      itemType: item.itemType,
+      score: item.score,
+      reviewStatus: item.reviewStatus,
+      sourceLocator: item.sourceLocator,
+      authorityTier: item.authorityTier,
+      rightsStatus: item.rightsStatus,
+    }));
+}
 
 function inferAudioContentType(path: string): string {
   if (/\.(m4a|mp4)$/i.test(path)) return "audio/mp4";
@@ -72,7 +129,9 @@ function extractCueCardBullets(metadata: Json): string[] | undefined {
   const raw = record.cueCardBullets ?? record.bullets;
   if (!Array.isArray(raw)) return undefined;
   const bullets = raw
-    .filter((item): item is string => typeof item === "string" && item.trim() !== "")
+    .filter(
+      (item): item is string => typeof item === "string" && item.trim() !== "",
+    )
     .map((item) => item.trim());
   return bullets.length > 0 ? bullets : undefined;
 }
@@ -80,10 +139,15 @@ function extractCueCardBullets(metadata: Json): string[] | undefined {
 export async function claimWorkflowCore(
   runId: string,
   phase: string,
-  launchToken: string
+  launchToken: string,
 ) {
   "use step";
-  return claimAiWorkflowRun({ id: runId, phase, leaseSeconds: 900, launchToken });
+  return claimAiWorkflowRun({
+    id: runId,
+    phase,
+    leaseSeconds: 900,
+    launchToken,
+  });
 }
 
 export async function markWorkflowCoreCompleted(runId: string, phase: string) {
@@ -111,14 +175,16 @@ export async function markWorkflowCompleted(runId: string) {
 export async function markWorkflowFailed(
   runId: string,
   message: string,
-  retryable: boolean
+  retryable: boolean,
 ) {
   "use step";
   await updateAiWorkflowRun({
     id: runId,
     status: "failed",
     phase: "failed",
-    errorCode: retryable ? "RETRYABLE_WORKFLOW_FAILED" : "FATAL_WORKFLOW_FAILED",
+    errorCode: retryable
+      ? "RETRYABLE_WORKFLOW_FAILED"
+      : "FATAL_WORKFLOW_FAILED",
     errorMessage: message,
     failed: true,
     expectedStatuses: ["starting", "running", "core_completed"],
@@ -139,14 +205,14 @@ export async function preparePracticeAnalysis(params: {
 }
 
 export async function generatePracticeAnalysis(
-  params: Parameters<typeof generateDurablePracticeFeedback>[0]
+  params: Parameters<typeof generateDurablePracticeFeedback>[0],
 ) {
   "use step";
   return generateDurablePracticeFeedback(params);
 }
 
 export async function persistPracticeAnalysis(
-  params: Parameters<typeof persistDurablePracticeAnalysis>[0]
+  params: Parameters<typeof persistDurablePracticeAnalysis>[0],
 ) {
   "use step";
   return persistDurablePracticeAnalysis(params);
@@ -187,11 +253,18 @@ export async function claimIeltsSpeakingScore(params: {
 }) {
   "use step";
   const admin = createTypedAdminClient();
-  const context = await loadSpeakingScoringContext(admin, params.speakingResponseId);
+  const context = await loadSpeakingScoringContext(
+    admin,
+    params.speakingResponseId,
+  );
   if (!context) throw new FatalError("Speaking response no longer exists");
   const { response } = context;
   if (isTerminalSpeakingStatus(response.status)) {
-    return { status: "already_scored" as const, attemptId: response.attempt_id, userId: response.user_id };
+    return {
+      status: "already_scored" as const,
+      attemptId: response.attempt_id,
+      userId: response.user_id,
+    };
   }
   const decision = decideSpeakingScoringAction({
     status: response.status,
@@ -223,7 +296,10 @@ export async function prepareIeltsSpeakingScore(params: {
 }) {
   "use step";
   const admin = createTypedAdminClient();
-  const context = await loadSpeakingScoringContext(admin, params.speakingResponseId);
+  const context = await loadSpeakingScoringContext(
+    admin,
+    params.speakingResponseId,
+  );
   if (!context) throw new FatalError("Speaking response no longer exists");
   const { response, question } = context;
 
@@ -233,9 +309,11 @@ export async function prepareIeltsSpeakingScore(params: {
   const { data, error } = await admin.storage
     .from(IELTS_SPEAKING_AUDIO_BUCKET)
     .download(response.audio_storage_path);
-  if (error || !data) throw new Error(`download speaking audio: ${error?.message ?? "no data"}`);
+  if (error || !data)
+    throw new Error(`download speaking audio: ${error?.message ?? "no data"}`);
   const audioBuffer = await data.arrayBuffer();
-  const contentType = data.type || inferAudioContentType(response.audio_storage_path);
+  const contentType =
+    data.type || inferAudioContentType(response.audio_storage_path);
   const durationSeconds = params.durationSeconds ?? 0;
   const transcription = await transcribePracticeAudio({
     audioBuffer,
@@ -246,7 +324,7 @@ export async function prepareIeltsSpeakingScore(params: {
     durationSeconds,
     practiceTrack: "speaking",
   });
-  const [pronunciation, grounding] = await Promise.all([
+  const [pronunciation, grounding, rubric, broadExamples] = await Promise.all([
     assessPronunciation({
       audio: audioBuffer,
       audioContentType: azurePronunciationContentType(contentType),
@@ -259,6 +337,40 @@ export async function prepareIeltsSpeakingScore(params: {
       questionId: question.id,
       questionType: question.question_type,
     }),
+    getIeltsRubric({
+      purpose: "grading",
+      skill: "speaking",
+      language: "en",
+      query: `Official IELTS Speaking descriptors for ${question.question_type}`,
+      sourceRoute: "/workflows/ai/ielts-speaking-score",
+      userId: response.user_id,
+      supabase: admin,
+      limit: 8,
+    }),
+    findIeltsBandExamples({
+      purpose: "grading",
+      skill: "speaking",
+      taskType: question.question_type,
+      criteria: [
+        "fluencyCoherence",
+        "lexicalResource",
+        "grammaticalRangeAccuracy",
+        "pronunciation",
+      ],
+      query: `${question.prompt}\n${transcription.transcript}`,
+      questionId: question.id,
+      questionType: question.question_type,
+      language: "en",
+      sourceRoute: "/workflows/ai/ielts-speaking-score",
+      userId: response.user_id,
+      supabase: admin,
+      limit: 8,
+    }),
+  ]);
+  const pronunciationSignal = extractPronunciationSignal(pronunciation.report);
+  const baseEvidence = evidenceReferences([
+    ...rubric.evidence,
+    ...broadExamples.evidence,
   ]);
   return {
     status: "prepared" as const,
@@ -268,6 +380,12 @@ export async function prepareIeltsSpeakingScore(params: {
     transcript: transcription.transcript,
     sttProvider: transcription.provider,
     phonemeReport: pronunciation.report as unknown as Json,
+    acousticEvidenceAvailable: Boolean(pronunciationSignal),
+    questionId: question.id,
+    questionType: question.question_type,
+    retrievalQuery: `${question.prompt}\n${transcription.transcript}`,
+    baseEvidence,
+    baseCorpusVersion: resultCorpusVersion(broadExamples),
     prompt: buildSpeakingScorerPrompt({
       partNumber: speakingPartNumberForQuestionType(question.question_type),
       questionType: question.question_type,
@@ -279,7 +397,10 @@ export async function prepareIeltsSpeakingScore(params: {
       sttWarnings: transcription.warnings,
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
-      pronunciation: extractPronunciationSignal(pronunciation.report),
+      pronunciation: pronunciationSignal,
+      evidenceContext: [rubric.context, broadExamples.context]
+        .filter(Boolean)
+        .join("\n\n"),
     }),
   };
 }
@@ -307,6 +428,82 @@ export async function generateIeltsSpeakingScore(params: {
   });
 }
 
+export async function adjudicateIeltsSpeakingScore(params: {
+  workflowRunId: string;
+  speakingResponseId: string;
+  userId: string;
+  questionId: string;
+  questionType: string;
+  retrievalQuery: string;
+  prompt: string;
+  provisionalOutput: IeltsSpeakingModelOutput;
+  provisionalTraceId: string;
+  baseEvidence: ReturnType<typeof evidenceReferences>;
+  baseCorpusVersion: string | null;
+  acousticEvidenceAvailable: boolean;
+}) {
+  "use step";
+  const admin = createTypedAdminClient();
+  const adjacent = await findIeltsBandExamples({
+    purpose: "grading",
+    skill: "speaking",
+    taskType: params.questionType,
+    criteria: [
+      "fluencyCoherence",
+      "lexicalResource",
+      "grammaticalRangeAccuracy",
+      "pronunciation",
+    ],
+    targetBands: adjacentBands(speakingBands(params.provisionalOutput)),
+    query: params.retrievalQuery,
+    questionId: params.questionId,
+    questionType: params.questionType as Parameters<
+      typeof findIeltsBandExamples
+    >[0]["questionType"],
+    language: "en",
+    sourceRoute: "/workflows/ai/ielts-speaking-score/adjudication",
+    userId: params.userId,
+    supabase: admin,
+    limit: 12,
+  });
+  const generated = await generateStructured({
+    task: "ielts_speaking_adjudication",
+    prompt: buildSpeakingAdjudicationPrompt({
+      originalPrompt: params.prompt,
+      provisionalOutput: params.provisionalOutput,
+      evidenceContext: adjacent.context,
+    }),
+    schema: ieltsSpeakingAdjudicationOutputSchema,
+    context: {
+      task: "ielts_speaking_adjudication",
+      sourceRoute: "/workflows/ai/ielts-speaking-score/adjudication",
+      outputType: "ielts_speaking_score_adjudication",
+      userId: params.userId,
+      idempotencyKey: `${params.workflowRunId}:adjudication`,
+      entity: { speakingResponseId: params.speakingResponseId },
+      metadata: { workflowRunId: params.workflowRunId },
+    },
+  });
+  const combinedEvidence = [
+    ...params.baseEvidence,
+    ...evidenceReferences(adjacent.evidence),
+  ].filter(
+    (item, index, all) =>
+      all.findIndex((candidate) => candidate.sourceId === item.sourceId) ===
+      index,
+  );
+  const gradingMetadata = createStagedGradingMetadata({
+    evidence: combinedEvidence,
+    runId: params.workflowRunId,
+    corpusVersion: resultCorpusVersion(adjacent) ?? params.baseCorpusVersion,
+    provisionalTraceId: params.provisionalTraceId,
+    adjudicationTraceId: generated.traceId,
+    acousticEvidenceAvailable: params.acousticEvidenceAvailable,
+    retrievalSkippedReason: adjacent.skippedReason,
+  });
+  return { ...generated, gradingMetadata: gradingMetadata as unknown as Json };
+}
+
 export async function persistIeltsSpeakingScore(params: {
   speakingResponseId: string;
   attemptId: string;
@@ -317,6 +514,7 @@ export async function persistIeltsSpeakingScore(params: {
   output: IeltsSpeakingModelOutput;
   provider: string;
   model: string;
+  gradingMetadata?: Json;
 }) {
   "use step";
   await persistSpeakingScore(createTypedAdminClient(), {
@@ -327,8 +525,13 @@ export async function persistIeltsSpeakingScore(params: {
     providerLabel: params.provider,
     modelName: params.model,
     phonemeReport: params.phonemeReport,
+    gradingMetadata: params.gradingMetadata,
   });
-  return { status: "scored" as const, attemptId: params.attemptId, userId: params.userId };
+  return {
+    status: "scored" as const,
+    attemptId: params.attemptId,
+    userId: params.userId,
+  };
 }
 
 /** Same checkpointing rule as speaking: acquire once, then do slow work. */
@@ -337,11 +540,18 @@ export async function claimIeltsWritingScore(params: {
 }) {
   "use step";
   const admin = createTypedAdminClient();
-  const context = await loadWritingScoringContext(admin, params.writingResponseId);
+  const context = await loadWritingScoringContext(
+    admin,
+    params.writingResponseId,
+  );
   if (!context) throw new FatalError("Writing response no longer exists");
   const { response } = context;
   if (isTerminalWritingStatus(response.status)) {
-    return { status: "already_scored" as const, attemptId: response.attempt_id, userId: response.user_id };
+    return {
+      status: "already_scored" as const,
+      attemptId: response.attempt_id,
+      userId: response.user_id,
+    };
   }
   const decision = decideWritingScoringAction({
     status: response.status,
@@ -349,7 +559,10 @@ export async function claimIeltsWritingScore(params: {
     queueDeliveryCount: 1,
   });
   if (decision.action === "fail") {
-    await markWritingScoringFailed(admin, { writingResponseId: response.id, retryable: false });
+    await markWritingScoringFailed(admin, {
+      writingResponseId: response.id,
+      retryable: false,
+    });
     throw new FatalError("Writing score retry limit exceeded");
   }
   if (decision.action === "skip") {
@@ -358,8 +571,8 @@ export async function claimIeltsWritingScore(params: {
   const claimed = await claimWritingResponseForScoring(admin, {
     writingResponseId: response.id,
     allowedStatuses: claimableWritingStatuses(decision.allowedStatuses),
-    providerLabel: getIeltsWritingProviderLabel(getIeltsWritingScoreProvider()),
-    modelName: getIeltsWritingModelName(getIeltsWritingScoreProvider()),
+    providerLabel: "groq",
+    modelName: getIeltsWritingGroqModelName(),
   });
   if (!claimed) throw new Error("Writing scoring claim was not acquired");
   return { status: "claimed" as const };
@@ -371,19 +584,61 @@ export async function prepareIeltsWritingScore(params: {
 }) {
   "use step";
   const admin = createTypedAdminClient();
-  const context = await loadWritingScoringContext(admin, params.writingResponseId);
+  const context = await loadWritingScoringContext(
+    admin,
+    params.writingResponseId,
+  );
   if (!context) throw new FatalError("Writing response no longer exists");
   const { response, question } = context;
 
-  const grounding = await loadWritingExemplars(admin, {
-    questionId: question.id,
-    questionType: question.question_type,
-  });
+  const [grounding, rubric, broadExamples] = await Promise.all([
+    loadWritingExemplars(admin, {
+      questionId: question.id,
+      questionType: question.question_type,
+    }),
+    getIeltsRubric({
+      purpose: "grading",
+      skill: "writing",
+      language: "en",
+      query: `Official IELTS Writing descriptors for ${question.question_type}`,
+      sourceRoute: "/workflows/ai/ielts-writing-score",
+      userId: response.user_id,
+      supabase: admin,
+      limit: 8,
+    }),
+    findIeltsBandExamples({
+      purpose: "grading",
+      skill: "writing",
+      taskType: question.question_type,
+      criteria: [
+        "taskResponse",
+        "coherenceCohesion",
+        "lexicalResource",
+        "grammaticalRangeAccuracy",
+      ],
+      query: `${question.prompt}\n${response.essay}`,
+      questionId: question.id,
+      questionType: question.question_type,
+      language: "en",
+      sourceRoute: "/workflows/ai/ielts-writing-score",
+      userId: response.user_id,
+      supabase: admin,
+      limit: 8,
+    }),
+  ]);
   return {
     status: "prepared" as const,
     attemptId: response.attempt_id,
     userId: response.user_id,
     writingResponseId: response.id,
+    questionId: question.id,
+    questionType: question.question_type,
+    retrievalQuery: `${question.prompt}\n${response.essay}`,
+    baseEvidence: evidenceReferences([
+      ...rubric.evidence,
+      ...broadExamples.evidence,
+    ]),
+    baseCorpusVersion: resultCorpusVersion(broadExamples),
     prompt: buildWritingScorerPrompt({
       taskNumber: writingTaskNumberForQuestionType(question.question_type),
       taskType: question.question_type,
@@ -392,6 +647,9 @@ export async function prepareIeltsWritingScore(params: {
       wordCount: response.word_count,
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
+      evidenceContext: [rubric.context, broadExamples.context]
+        .filter(Boolean)
+        .join("\n\n"),
     }),
   };
 }
@@ -413,10 +671,87 @@ export async function generateIeltsWritingScore(params: {
       outputType: "ielts_writing_score",
       userId: params.userId,
       idempotencyKey: params.workflowRunId,
-      entity: { speakingResponseId: undefined },
-      metadata: { workflowRunId: params.workflowRunId, writingResponseId: params.writingResponseId },
+      entity: { writingResponseId: params.writingResponseId },
+      metadata: {
+        workflowRunId: params.workflowRunId,
+        writingResponseId: params.writingResponseId,
+      },
     },
   });
+}
+
+export async function adjudicateIeltsWritingScore(params: {
+  workflowRunId: string;
+  writingResponseId: string;
+  userId: string;
+  questionId: string;
+  questionType: string;
+  retrievalQuery: string;
+  prompt: string;
+  provisionalOutput: IeltsWritingModelOutput;
+  provisionalTraceId: string;
+  baseEvidence: ReturnType<typeof evidenceReferences>;
+  baseCorpusVersion: string | null;
+}) {
+  "use step";
+  const admin = createTypedAdminClient();
+  const adjacent = await findIeltsBandExamples({
+    purpose: "grading",
+    skill: "writing",
+    taskType: params.questionType,
+    criteria: [
+      "taskResponse",
+      "coherenceCohesion",
+      "lexicalResource",
+      "grammaticalRangeAccuracy",
+    ],
+    targetBands: adjacentBands(writingBands(params.provisionalOutput)),
+    query: params.retrievalQuery,
+    questionId: params.questionId,
+    questionType: params.questionType as Parameters<
+      typeof findIeltsBandExamples
+    >[0]["questionType"],
+    language: "en",
+    sourceRoute: "/workflows/ai/ielts-writing-score/adjudication",
+    userId: params.userId,
+    supabase: admin,
+    limit: 12,
+  });
+  const generated = await generateStructured({
+    task: "ielts_writing_adjudication",
+    prompt: buildWritingAdjudicationPrompt({
+      originalPrompt: params.prompt,
+      provisionalOutput: params.provisionalOutput,
+      evidenceContext: adjacent.context,
+    }),
+    schema: ieltsWritingAdjudicationOutputSchema,
+    context: {
+      task: "ielts_writing_adjudication",
+      sourceRoute: "/workflows/ai/ielts-writing-score/adjudication",
+      outputType: "ielts_writing_score_adjudication",
+      userId: params.userId,
+      idempotencyKey: `${params.workflowRunId}:adjudication`,
+      entity: { writingResponseId: params.writingResponseId },
+      metadata: { workflowRunId: params.workflowRunId },
+    },
+  });
+  const combinedEvidence = [
+    ...params.baseEvidence,
+    ...evidenceReferences(adjacent.evidence),
+  ].filter(
+    (item, index, all) =>
+      all.findIndex((candidate) => candidate.sourceId === item.sourceId) ===
+      index,
+  );
+  const gradingMetadata = createStagedGradingMetadata({
+    evidence: combinedEvidence,
+    runId: params.workflowRunId,
+    corpusVersion: resultCorpusVersion(adjacent) ?? params.baseCorpusVersion,
+    provisionalTraceId: params.provisionalTraceId,
+    adjudicationTraceId: generated.traceId,
+    retrievalSkippedReason: adjacent.skippedReason,
+  });
+  return { ...generated, gradingMetadata: gradingMetadata as unknown as Json };
 }
 
 export async function persistIeltsWritingScore(params: {
@@ -426,6 +761,7 @@ export async function persistIeltsWritingScore(params: {
   output: IeltsWritingModelOutput;
   provider: string;
   model: string;
+  gradingMetadata?: Json;
 }) {
   "use step";
   await persistWritingScore(createTypedAdminClient(), {
@@ -433,8 +769,13 @@ export async function persistIeltsWritingScore(params: {
     score: normalizeWritingScore(params.output),
     providerLabel: params.provider,
     modelName: params.model,
+    gradingMetadata: params.gradingMetadata,
   });
-  return { status: "scored" as const, attemptId: params.attemptId, userId: params.userId };
+  return {
+    status: "scored" as const,
+    attemptId: params.attemptId,
+    userId: params.userId,
+  };
 }
 
 export async function markSpeakingWorkflowFailure(params: {
@@ -459,17 +800,34 @@ export async function markWritingWorkflowFailure(params: {
   });
 }
 
-export async function recomputeSpeakingAttempt(attemptId: string, userId: string) {
+export async function recomputeSpeakingAttempt(
+  attemptId: string,
+  userId: string,
+) {
   "use step";
-  await recomputeAttemptSpeakingBand(createTypedAdminClient(), attemptId, userId);
+  await recomputeAttemptSpeakingBand(
+    createTypedAdminClient(),
+    attemptId,
+    userId,
+  );
 }
 
-export async function recomputeWritingAttempt(attemptId: string, userId: string) {
+export async function recomputeWritingAttempt(
+  attemptId: string,
+  userId: string,
+) {
   "use step";
-  await recomputeAttemptWritingBand(createTypedAdminClient(), attemptId, userId);
+  await recomputeAttemptWritingBand(
+    createTypedAdminClient(),
+    attemptId,
+    userId,
+  );
 }
 
-export async function replanSpeakingAttempt(params: { userId: string; speakingResponseId: string }) {
+export async function replanSpeakingAttempt(params: {
+  userId: string;
+  speakingResponseId: string;
+}) {
   "use step";
   await maybeReplanAfterEvidence({
     client: createTypedAdminClient(),
@@ -479,7 +837,10 @@ export async function replanSpeakingAttempt(params: { userId: string; speakingRe
   });
 }
 
-export async function replanWritingAttempt(params: { userId: string; writingResponseId: string }) {
+export async function replanWritingAttempt(params: {
+  userId: string;
+  writingResponseId: string;
+}) {
   "use step";
   await maybeReplanAfterEvidence({
     client: createTypedAdminClient(),

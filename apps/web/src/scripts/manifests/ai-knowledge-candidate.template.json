@@ -1,0 +1,45 @@
+{
+  "collection": "ielts.writing",
+  "collectionVersion": 2,
+  "sources": [
+    {
+      "canonicalUrl": "https://ielts.org/for-test-takers/how-ielts-is-scored",
+      "publisher": "IELTS",
+      "title": "IELTS scoring information",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "candidate",
+      "metadata": {
+        "discoveryMethod": "exa",
+        "captureKind": "official_page",
+        "note": "Store only verified derived insights and permitted short excerpts."
+      }
+    }
+  ],
+  "items": [
+    {
+      "collection": "ielts.writing",
+      "sourceCanonicalUrl": "https://ielts.org/for-test-takers/how-ielts-is-scored",
+      "itemType": "rubric_descriptor_candidate",
+      "insight": {
+        "skill": "writing",
+        "taskType": "writing_task2_essay",
+        "criterion": "taskResponse",
+        "positiveEvidence": [
+          "Replace this placeholder with a reviewer-verified, derived rubric insight."
+        ],
+        "limitingEvidence": [],
+        "sourceAuthority": "official"
+      },
+      "criterion": "taskResponse",
+      "taskType": "writing_task2_essay",
+      "sourceLocator": "Verify exact section/page before review",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": {
+        "rightsChecked": false,
+        "derivedOnly": true
+      }
+    }
+  ]
+}

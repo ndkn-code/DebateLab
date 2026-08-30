@@ -4,6 +4,8 @@ export const AI_TASKS = [
   "practice_judging",
   "ielts_speaking_score",
   "ielts_writing_score",
+  "ielts_speaking_adjudication",
+  "ielts_writing_adjudication",
   "stt_transcript_repair",
   "coach_chat",
   "coach_metadata",

@@ -8,7 +8,12 @@ import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
 } from "@/lib/corpus/retrieval";
-import { searchKnowledge } from "@/lib/ai/knowledge";
+import {
+  createEnglishDebateKnowledgeMetadata,
+  retrieveEnglishDebateKnowledge,
+  searchKnowledge,
+  summarizeEnglishDebateKnowledge,
+} from "@/lib/ai/knowledge";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
@@ -60,7 +65,10 @@ import type {
   PracticeTrack,
 } from "@/types";
 import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
-import type { AnalysisJobRecord, PracticeAttemptRecord } from "@/lib/practice-analysis/types";
+import type {
+  AnalysisJobRecord,
+  PracticeAttemptRecord,
+} from "@/lib/practice-analysis/types";
 
 interface AnalyzeRequest {
   transcript: string;
@@ -86,9 +94,11 @@ function createAnalyzeRequestId() {
 function logAnalyzeRequest(
   requestId: string,
   event: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
 ) {
-  console.info(JSON.stringify({ scope: "api/analyze", requestId, event, ...metadata }));
+  console.info(
+    JSON.stringify({ scope: "api/analyze", requestId, event, ...metadata }),
+  );
 }
 
 function parseRound(value: unknown, index: number): DebateRound {
@@ -127,7 +137,9 @@ function parseRound(value: unknown, index: number): DebateRound {
 function readStringArray(value: unknown, maxItems: number, maxLength: number) {
   if (!Array.isArray(value)) return [];
   return value
-    .map((item) => (typeof item === "string" ? item.trim().slice(0, maxLength) : ""))
+    .map((item) =>
+      typeof item === "string" ? item.trim().slice(0, maxLength) : "",
+    )
     .filter(Boolean)
     .slice(0, maxItems);
 }
@@ -135,7 +147,8 @@ function readStringArray(value: unknown, maxItems: number, maxLength: number) {
 function parseMotionBrief(value: unknown): MotionBrief | undefined {
   if (!isPlainRecord(value)) return undefined;
   const keyTerms = readStringArray(value.keyTerms, 8, 240);
-  const scope = typeof value.scope === "string" ? value.scope.trim().slice(0, 1200) : "";
+  const scope =
+    typeof value.scope === "string" ? value.scope.trim().slice(0, 1200) : "";
   const propositionBurden =
     typeof value.propositionBurden === "string"
       ? value.propositionBurden.trim().slice(0, 1200)
@@ -149,7 +162,13 @@ function parseMotionBrief(value: unknown): MotionBrief | undefined {
       ? value.modelClarification.trim().slice(0, 1200)
       : "";
 
-  if (!keyTerms.length || !scope || !propositionBurden || !oppositionBurden || !modelClarification) {
+  if (
+    !keyTerms.length ||
+    !scope ||
+    !propositionBurden ||
+    !oppositionBurden ||
+    !modelClarification
+  ) {
     return undefined;
   }
 
@@ -225,13 +244,13 @@ function parseAnalyzeRequest(body: JsonRecord): AnalyzeRequest {
     body,
     "practiceTrack",
     ["speaking", "debate"] as const,
-    { defaultValue: "debate" }
+    { defaultValue: "debate" },
   ) as PracticeTrack;
   const practiceLanguage = getEnum(
     body,
     "practiceLanguage",
     ["en", "vi"] as const,
-    { defaultValue: "en" }
+    { defaultValue: "en" },
   ) as PracticeLanguage;
   const roundsValue = body.rounds;
   const rounds =
@@ -291,14 +310,16 @@ export async function POST(req: NextRequest) {
           {
             status: 429,
             headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-          }
+          },
         );
       }
     }
 
-    const body = parseAnalyzeRequest(await readJsonObject(req, { maxBytes: 96 * 1024 }));
+    const body = parseAnalyzeRequest(
+      await readJsonObject(req, { maxBytes: 96 * 1024 }),
+    );
     const configuredProvider = getPracticeFeedbackModelProvider(
-      body.practiceTrack || "debate"
+      body.practiceTrack || "debate",
     );
     const hasConfiguredProvider =
       configuredProvider === "deepseek"
@@ -306,15 +327,17 @@ export async function POST(req: NextRequest) {
         : Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS);
 
     if (!hasConfiguredProvider) {
-      console.error(JSON.stringify({
-        scope: "api/analyze",
-        requestId,
-        event: "missing_ai_provider_key",
-        provider: configuredProvider,
-      }));
+      console.error(
+        JSON.stringify({
+          scope: "api/analyze",
+          requestId,
+          event: "missing_ai_provider_key",
+          provider: configuredProvider,
+        }),
+      );
       return NextResponse.json(
         { error: "Something went wrong. Please try again." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -333,8 +356,7 @@ export async function POST(req: NextRequest) {
       debateMemory,
       transcription,
       prepNotes,
-    } =
-      body;
+    } = body;
 
     // Validate required fields
     if (!transcript || !topic || !side) {
@@ -345,7 +367,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         { error: "Missing required fields: transcript, topic, side" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -367,7 +389,7 @@ export async function POST(req: NextRequest) {
         {
           error: `Transcript too short (${wordCount} words). Minimum 20 words required.`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -393,7 +415,8 @@ export async function POST(req: NextRequest) {
         transcription,
         prepNotes,
         mode:
-          practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
+          practiceTrack === "debate" &&
+          (isFullRound || speechType.includes("Full Round"))
             ? "full"
             : "quick",
         prepTime: 0,
@@ -404,7 +427,7 @@ export async function POST(req: NextRequest) {
       const existing = await getRecentActivePracticeAnalysis(
         writeClient,
         authUser.id,
-        practiceInput
+        practiceInput,
       );
       if (existing) {
         await ensureAiWorkflowRun({
@@ -419,9 +442,11 @@ export async function POST(req: NextRequest) {
             userId: authUser.id,
           });
           queueMessageId = queued.messageId;
-          await attachQueueMessageId(writeClient, existing.job.id, queueMessageId).catch(
-            () => undefined
-          );
+          await attachQueueMessageId(
+            writeClient,
+            existing.job.id,
+            queueMessageId,
+          ).catch(() => undefined);
         }
         await recordAnalyticsEvent(writeClient, authUser.id, {
           eventName: "ai_feedback_duplicate_reused",
@@ -446,16 +471,17 @@ export async function POST(req: NextRequest) {
             queueMessageId,
             reusedExisting: true,
           },
-          { status: 202, headers: { Deprecation: "true" } }
+          { status: 202, headers: { Deprecation: "true" } },
         );
       }
 
-      const { attempt, job, idempotencyKey } = await createPracticeAnalysisRecords(
-        writeClient,
-        authUser.id,
-        practiceInput,
-        { debugId: requestId }
-      );
+      const { attempt, job, idempotencyKey } =
+        await createPracticeAnalysisRecords(
+          writeClient,
+          authUser.id,
+          practiceInput,
+          { debugId: requestId },
+        );
       await ensureAiWorkflowRun({
         userId: attempt.user_id,
         source: { kind: "practice_analysis", analysisJobId: job.id },
@@ -484,7 +510,7 @@ export async function POST(req: NextRequest) {
           userId: authUser.id,
         });
         await attachQueueMessageId(writeClient, job.id, queued.messageId).catch(
-          () => undefined
+          () => undefined,
         );
         return NextResponse.json(
           {
@@ -494,22 +520,26 @@ export async function POST(req: NextRequest) {
             idempotencyKey,
             queueMessageId: queued.messageId,
           },
-          { status: 202, headers: { Deprecation: "true" } }
+          { status: 202, headers: { Deprecation: "true" } },
         );
       } catch (error) {
         await markPracticeAnalysisFailed(writeClient, {
           jobId: job.id,
           attemptId: attempt.id,
           errorCode: "QUEUE_ENQUEUE_FAILED",
-          errorMessage: error instanceof Error ? error.message : "Failed to enqueue analysis.",
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Failed to enqueue analysis.",
         }).catch(() => undefined);
         return NextResponse.json(
           {
-            error: "We saved your transcript, but could not queue analysis yet. Please try again in a moment.",
+            error:
+              "We saved your transcript, but could not queue analysis yet. Please try again in a moment.",
             attemptId: attempt.id,
             jobId: job.id,
           },
-          { status: 503, headers: { Deprecation: "true" } }
+          { status: 503, headers: { Deprecation: "true" } },
         );
       }
     }
@@ -545,37 +575,45 @@ export async function POST(req: NextRequest) {
 
     const adminClient = tryCreateAdminClient();
     const writeClient = adminClient ?? supabase;
-    let durableAnalysis:
-      | { attempt: PracticeAttemptRecord; job: AnalysisJobRecord }
-      | null = null;
+    let durableAnalysis: {
+      attempt: PracticeAttemptRecord;
+      job: AnalysisJobRecord;
+    } | null = null;
     try {
       if (!shouldPersistAnalysis) {
-        throw new Error("Skipping durable analysis records for dev auth bypass");
+        throw new Error(
+          "Skipping durable analysis records for dev auth bypass",
+        );
       }
-      durableAnalysis = await createPracticeAnalysisRecords(writeClient, authUser.id, {
-        transcript,
-        topic,
-        side,
-        speechType: speechType || "Opening Statement",
-        timeLimit: timeLimit || 2,
-        actualDuration: actualDuration || 0,
-        practiceTrack: practiceTrack || "debate",
-        practiceLanguage,
-        isFullRound: Boolean(isFullRound),
-        rounds,
-        motionBrief,
-        debateMemory,
-        transcription,
-        prepNotes,
-        mode:
-          practiceTrack === "debate" && (isFullRound || speechType.includes("Full Round"))
-            ? "full"
-            : "quick",
-        prepTime: 0,
-        speechTime: Math.round((timeLimit || 2) * 60),
-        topicCategory: "Practice",
-        topicDifficulty: "intermediate",
-      });
+      durableAnalysis = await createPracticeAnalysisRecords(
+        writeClient,
+        authUser.id,
+        {
+          transcript,
+          topic,
+          side,
+          speechType: speechType || "Opening Statement",
+          timeLimit: timeLimit || 2,
+          actualDuration: actualDuration || 0,
+          practiceTrack: practiceTrack || "debate",
+          practiceLanguage,
+          isFullRound: Boolean(isFullRound),
+          rounds,
+          motionBrief,
+          debateMemory,
+          transcription,
+          prepNotes,
+          mode:
+            practiceTrack === "debate" &&
+            (isFullRound || speechType.includes("Full Round"))
+              ? "full"
+              : "quick",
+          prepTime: 0,
+          speechTime: Math.round((timeLimit || 2) * 60),
+          topicCategory: "Practice",
+          topicDifficulty: "intermediate",
+        },
+      );
       await markPracticeAnalysisProcessing(writeClient, {
         jobId: durableAnalysis.job.id,
         attemptId: durableAnalysis.attempt.id,
@@ -586,28 +624,60 @@ export async function POST(req: NextRequest) {
       if (shouldPersistAnalysis) {
         console.warn(
           "Failed to create durable sync analysis record",
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
       }
     }
 
-    const debateKnowledge = await searchKnowledge({
-      collection: "debate",
+    // Keep Vietnamese on the established Trường Teen retrieval/staged path.
+    // English debate must use only its isolated competitive-debate collection.
+    const englishKnowledge = await retrieveEnglishDebateKnowledge({
       purpose: "grading",
-      debatePurpose: "judging",
       language: practiceLanguage,
       practiceTrack: practiceTrack || "debate",
       topic,
       side,
-      query: judgingTranscript,
+      transcript: judgingTranscript,
       roundsText: rounds?.map(
-        (round) => round.transcript || round.aiResponse || ""
+        (round) => round.transcript || round.aiResponse || "",
       ),
       userId: shouldPersistAnalysis ? authUser.id : null,
       sourceRoute: "/api/analyze",
-      supabase: adminClient ?? undefined,
     });
-    const corpusRetrieval = debateKnowledge.data;
+    const debateKnowledge = englishKnowledge
+      ? null
+      : await searchKnowledge({
+          collection: "debate",
+          purpose: "grading",
+          debatePurpose: "judging",
+          language: practiceLanguage,
+          practiceTrack: practiceTrack || "debate",
+          topic,
+          side,
+          query: judgingTranscript,
+          roundsText: rounds?.map(
+            (round) => round.transcript || round.aiResponse || "",
+          ),
+          userId: shouldPersistAnalysis ? authUser.id : null,
+          sourceRoute: "/api/analyze",
+          supabase: adminClient ?? undefined,
+        });
+    const corpusRetrieval = debateKnowledge?.data;
+    const corpusContext =
+      englishKnowledge?.contextBlock ?? corpusRetrieval?.contextBlock ?? "";
+    const corpusMetadata = englishKnowledge
+      ? createEnglishDebateKnowledgeMetadata(englishKnowledge)
+      : createDebateCorpusRetrievalMetadata(corpusRetrieval!);
+    const corpusSummary = englishKnowledge
+      ? summarizeEnglishDebateKnowledge(englishKnowledge)
+      : {
+          enabled: corpusRetrieval!.enabled,
+          retrievedCount: corpusRetrieval!.items.length,
+          candidateCount: corpusRetrieval!.candidateItems.length,
+          skippedReason: corpusRetrieval!.skippedReason,
+          topScore: corpusRetrieval!.topSimilarity,
+          relevanceGatePassed: corpusRetrieval!.relevanceGatePassed,
+        };
 
     // Call Gemini with a server-side timeout that leaves a small response buffer.
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -620,35 +690,47 @@ export async function POST(req: NextRequest) {
       });
       let telemetry: AiQualityTelemetry | null = null;
       const feedback = await Promise.race([
-        generatePracticeFeedback({
-          transcript: judgingTranscript,
-          topic,
-          side,
-          speechType: speechType || "Opening Statement",
-          timeLimit: timeLimit || 2,
-          actualDuration: actualDuration || 0,
-          practiceTrack: practiceTrack || "debate",
-          practiceLanguage,
-          isFullRound,
-          rounds,
-          motionBrief,
-          debateMemory,
-          transcription,
-          prepNotes,
-          corpusContext: corpusRetrieval.contextBlock,
-          providerAudit: {
-            sourceRoute: "/api/analyze",
-            practiceAttemptId: durableAnalysis?.attempt.id,
-            analysisJobId: durableAnalysis?.job.id,
-            metadata: {
-              debugId: requestId,
-              sttRepair: transcription?.repair ?? null,
-              shadowVariant,
+        generatePracticeFeedback(
+          {
+            transcript: judgingTranscript,
+            topic,
+            side,
+            speechType: speechType || "Opening Statement",
+            timeLimit: timeLimit || 2,
+            actualDuration: actualDuration || 0,
+            practiceTrack: practiceTrack || "debate",
+            practiceLanguage,
+            isFullRound,
+            rounds,
+            motionBrief,
+            debateMemory,
+            transcription,
+            prepNotes,
+            corpusContext,
+            providerAudit: {
+              sourceRoute: "/api/analyze",
+              practiceAttemptId: durableAnalysis?.attempt.id,
+              analysisJobId: durableAnalysis?.job.id,
+              metadata: {
+                debugId: requestId,
+                sttRepair: transcription?.repair ?? null,
+                shadowVariant,
+                ...(englishKnowledge
+                  ? {
+                      knowledgeProvenance: englishKnowledge.provenance,
+                      knowledgeEvidence: englishKnowledge.evidence,
+                      knowledgeSkippedReason:
+                        englishKnowledge.skippedReason ?? null,
+                    }
+                  : {}),
+              },
             },
           },
-        }, authUser.id, (nextTelemetry) => {
-          telemetry = nextTelemetry;
-        }),
+          authUser.id,
+          (nextTelemetry) => {
+            telemetry = nextTelemetry;
+          },
+        ),
         timeoutPromise,
       ]);
 
@@ -659,7 +741,7 @@ export async function POST(req: NextRequest) {
         : null;
       const scoreCalibration = createScoreCalibrationMetadata(
         feedback,
-        aiQualityTelemetry
+        aiQualityTelemetry,
       );
       const aiQualityRunId =
         shouldPersistAnalysis && aiQualityTelemetry
@@ -668,7 +750,9 @@ export async function POST(req: NextRequest) {
               userId: authUser.id,
               outputType: "practice_judging",
               sourceRoute: "/api/analyze",
-              promptBundleKey: durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",
+              promptBundleKey:
+                durableAnalysis?.attempt.prompt_bundle_key ??
+                "practice_feedback",
               promptBundleVersion:
                 durableAnalysis?.attempt.prompt_bundle_version ?? null,
               promptHash: durableAnalysis?.attempt.prompt_hash ?? null,
@@ -694,7 +778,7 @@ export async function POST(req: NextRequest) {
                 speechType,
                 isFullRound,
                 roundCount: rounds?.length ?? 0,
-                ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+                ...corpusMetadata,
                 annotationAcceptedCount:
                   feedback.annotationMetadata?.acceptedCount ?? null,
                 annotationRejectedCount:
@@ -720,9 +804,9 @@ export async function POST(req: NextRequest) {
             })
           : null;
       await linkDebateCorpusRetrievalLogToAiRun(
-        corpusRetrieval.logId,
+        corpusRetrieval?.logId,
         aiQualityRunId,
-        adminClient ?? undefined
+        adminClient ?? undefined,
       );
       if (shouldPersistAnalysis) {
         await recordSttRepairShadowRun(writeClient, {
@@ -749,7 +833,7 @@ export async function POST(req: NextRequest) {
             aiQualityRunId,
             shadowVariant,
             repairUsedForJudge: judgingTranscript !== transcript,
-            corpusRetrievalLogId: corpusRetrieval.logId,
+            corpusRetrievalLogId: corpusRetrieval?.logId ?? null,
           },
         });
       }
@@ -766,12 +850,14 @@ export async function POST(req: NextRequest) {
             practice_language: practiceLanguage,
             model: modelUsed,
             debug_id: requestId,
-            corpus_rag_enabled: corpusRetrieval.enabled,
-            retrieved_corpus_count: corpusRetrieval.items.length,
-            candidate_corpus_count: corpusRetrieval.candidateItems.length,
-            corpus_rag_skipped_reason: corpusRetrieval.skippedReason,
-            corpus_rag_top_similarity: corpusRetrieval.topSimilarity,
-            corpus_rag_relevance_gate_passed: corpusRetrieval.relevanceGatePassed,
+            corpus_rag_enabled: corpusSummary.enabled,
+            retrieved_corpus_count: corpusSummary.retrievedCount,
+            candidate_corpus_count: corpusSummary.candidateCount,
+            corpus_rag_skipped_reason: corpusSummary.skippedReason,
+            corpus_rag_top_similarity: corpusSummary.topScore,
+            corpus_rag_relevance_gate_passed: corpusSummary.relevanceGatePassed,
+            knowledge_collection:
+              englishKnowledge?.provenance.collection ?? null,
           },
         });
       }
@@ -786,7 +872,7 @@ export async function POST(req: NextRequest) {
         }).catch((error) => {
           console.warn(
             "Failed to complete durable sync analysis record",
-            error instanceof Error ? error.message : error
+            error instanceof Error ? error.message : error,
           );
         });
       }
@@ -811,7 +897,8 @@ export async function POST(req: NextRequest) {
           provider: configuredProvider,
           requestedProvider: configuredProvider,
           model: getPracticeFeedbackModelName(practiceTrack || "debate"),
-          promptBundleKey: durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",
+          promptBundleKey:
+            durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",
           promptBundleVersion:
             durableAnalysis?.attempt.prompt_bundle_version ?? null,
           promptHash: durableAnalysis?.attempt.prompt_hash ?? null,
@@ -837,7 +924,7 @@ export async function POST(req: NextRequest) {
             speechType,
             isFullRound,
             roundCount: rounds?.length ?? 0,
-            ...createDebateCorpusRetrievalMetadata(corpusRetrieval),
+            ...corpusMetadata,
             transcription: transcription
               ? createTranscriptionQualityMetadata(transcription)
               : undefined,
@@ -852,13 +939,15 @@ export async function POST(req: NextRequest) {
           errorMessage: err instanceof Error ? err.message : String(err),
         }).catch(() => {});
       }
-      console.error(JSON.stringify({
-        scope: "api/analyze",
-        requestId,
-        event: "analysis_failed",
-        durationMs: Date.now() - startedAt,
-        message: err instanceof Error ? err.message : String(err),
-      }));
+      console.error(
+        JSON.stringify({
+          scope: "api/analyze",
+          requestId,
+          event: "analysis_failed",
+          durationMs: Date.now() - startedAt,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
 
       if (err instanceof Error) {
         if (err.message === "TIMEOUT") {
@@ -870,39 +959,52 @@ export async function POST(req: NextRequest) {
               error:
                 "Analysis is taking longer than expected. Your transcript is safe, so please try again in a moment.",
             },
-            { status: 504 }
+            { status: 504 },
           );
         }
-        if (err.message.includes("429") || err.message.includes("rate") || err.message.includes("quota")) {
+        if (
+          err.message.includes("429") ||
+          err.message.includes("rate") ||
+          err.message.includes("quota")
+        ) {
           return NextResponse.json(
-            { error: "Rate limit reached. Please wait a moment and try again." },
-            { status: 429 }
+            {
+              error: "Rate limit reached. Please wait a moment and try again.",
+            },
+            { status: 429 },
           );
         }
-        if (err.message.includes("Invalid response") || err.message.includes("JSON")) {
+        if (
+          err.message.includes("Invalid response") ||
+          err.message.includes("JSON")
+        ) {
           logAnalyzeRequest(requestId, "parse_failed", {
             message: err.message,
           });
           return NextResponse.json(
             { error: "Failed to parse AI response. Please try again." },
-            { status: 502 }
+            { status: 502 },
           );
         }
-        if (err.message.includes("API_KEY") || err.message.includes("401") || err.message.includes("403")) {
+        if (
+          err.message.includes("API_KEY") ||
+          err.message.includes("401") ||
+          err.message.includes("403")
+        ) {
           return NextResponse.json(
             { error: "Something went wrong. Please try again." },
-            { status: 401 }
+            { status: 401 },
           );
         }
         return NextResponse.json(
           { error: "Something went wrong. Please try again." },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
       return NextResponse.json(
         { error: "An unexpected error occurred during analysis." },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (err) {
@@ -913,16 +1015,18 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    console.error(JSON.stringify({
-      scope: "api/analyze",
-      requestId,
-      event: "unexpected_error",
-      durationMs: Date.now() - startedAt,
-      message: err instanceof Error ? err.message : String(err),
-    }));
+    console.error(
+      JSON.stringify({
+        scope: "api/analyze",
+        requestId,
+        event: "unexpected_error",
+        durationMs: Date.now() - startedAt,
+        message: err instanceof Error ? err.message : String(err),
+      }),
+    );
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

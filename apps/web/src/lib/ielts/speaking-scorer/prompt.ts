@@ -38,6 +38,8 @@ export interface SpeakingScorerPromptParams {
   sttWarnings?: string[];
   feedbackLanguage: "en" | "vi";
   grounding: SpeakingScorerGrounding;
+  /** Approved, versioned rubric/exemplar context from the generic knowledge layer. */
+  evidenceContext?: string;
   /** Azure phoneme signal (WS-3.3) when present; else Pronunciation is text-only. */
   pronunciation?: SpeakingPronunciationSignal | null;
 }
@@ -176,7 +178,11 @@ ${params.transcript}
 """
 ${speechRateLine(params)}
 ${transcriptionCaveat(params.sttWarnings)}
-${pronunciationSection(params.pronunciation)}${groundingSection(params.grounding)}
+${pronunciationSection(params.pronunciation)}${groundingSection(params.grounding)}${
+    params.evidenceContext
+      ? `\nAPPROVED IELTS KNOWLEDGE EVIDENCE\n${params.evidenceContext}\n`
+      : ""
+  }
 INSTRUCTIONS
 - Give an honest per-criterion band 0-9 (half-bands allowed) with a specific rationale for each. Be calibrated, not generous.
 - Point to the exact lines where marks were lost: each excerptFeedback item must quote a verbatim transcript span, name the criterion it hurts, the issue, and a stronger alternative.

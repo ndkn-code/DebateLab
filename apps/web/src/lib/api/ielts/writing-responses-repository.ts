@@ -18,6 +18,10 @@ import {
   type NormalizedWritingScore,
 } from "@/lib/scoring/ielts-writing/normalize";
 import { recordIeltsWritingScoreEvidence } from "./assess-score-evidence";
+import {
+  sanitizeLearnerGradingMetadata,
+  type LearnerGradingMetadata,
+} from "@/lib/ielts/scoring-adjudication";
 
 /**
  * Canonical data access for `writing_responses` (WS-3.1).
@@ -105,7 +109,10 @@ export async function getWritingResponseForUser(
 export async function loadWritingScoringContext(
   admin: TypedAdminClient,
   writingResponseId: string,
-): Promise<{ response: WritingResponseRow; question: IeltsQuestionRow } | null> {
+): Promise<{
+  response: WritingResponseRow;
+  question: IeltsQuestionRow;
+} | null> {
   const { data: response } = await admin
     .from("writing_responses")
     .select("*")
@@ -156,6 +163,7 @@ export async function persistWritingScore(
     score: NormalizedWritingScore;
     providerLabel: string;
     modelName: string;
+    gradingMetadata?: Json;
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -175,6 +183,9 @@ export async function persistWritingScore(
       model_answer: score.modelAnswer,
       model_provider: params.providerLabel,
       model_name: params.modelName,
+      ...(params.gradingMetadata !== undefined
+        ? { grading_metadata: params.gradingMetadata }
+        : {}),
       prompt_bundle_key: IELTS_WRITING_SCORER_BUNDLE_KEY,
       prompt_bundle_version: IELTS_WRITING_SCORER_BUNDLE_VERSION,
       scored_at: now,
@@ -226,6 +237,8 @@ export interface WritingResponseView {
   inlineCorrections: Json;
   paragraphFeedback: Json;
   modelAnswer: string | null;
+  /** Versioned scorer provenance and limitations; never contains answer keys. */
+  gradingMetadata: LearnerGradingMetadata | null;
   scoredAt: string | null;
 }
 
@@ -252,6 +265,7 @@ export function toWritingResponseView(
     inlineCorrections: row.inline_corrections,
     paragraphFeedback: row.paragraph_feedback,
     modelAnswer: row.model_answer,
+    gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
     scoredAt: row.scored_at,
   };
 }
