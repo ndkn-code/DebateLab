@@ -1,4 +1,6 @@
 export * from "./api-client";
+export * from "./coach";
+export * from "./courses";
 export * from "./dashboard";
 export * from "./design-system";
 export * from "./practice";

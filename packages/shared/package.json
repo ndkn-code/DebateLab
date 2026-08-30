@@ -31,6 +31,14 @@
     "./subject": {
       "types": "./src/subject/index.ts",
       "default": "./src/subject/index.ts"
+    },
+    "./coach": {
+      "types": "./src/coach.ts",
+      "default": "./src/coach.ts"
+    },
+    "./courses": {
+      "types": "./src/courses.ts",
+      "default": "./src/courses.ts"
     }
   },
   "scripts": {
