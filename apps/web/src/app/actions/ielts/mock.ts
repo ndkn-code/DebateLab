@@ -33,7 +33,7 @@ import { enqueueWritingResponseForScoring } from "@/lib/ielts/writing-scorer/ser
 
 type SessionClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
-function requireAttemptMutationsEnabled(): void {
+function requireNewAttemptsEnabled(): void {
   if (!IELTS_ENABLED || !IELTS_ASSESSMENT_MODES_V1) {
     throw new Error("IELTS assessment is not available.");
   }
@@ -60,7 +60,7 @@ async function ownAttemptState(attemptId: string): Promise<AttemptState> {
 
 /** Begin a sitting of a test: build the timed-section blueprint and persist it. */
 export async function startMockAttempt(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
+  requireNewAttemptsEnabled();
   const input = parseInput(StartMockAttemptSchema, raw);
   const { userId } = await requireSession();
 
@@ -85,7 +85,6 @@ export async function startMockAttempt(raw: unknown): Promise<AttemptState> {
 
 /** Re-read the caller's own attempt state (used to re-sync after expiry). */
 export async function getAttemptState(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SubmitAttemptSchema, raw);
   await requireSession();
   return ownAttemptState(input.attemptId);
@@ -93,7 +92,6 @@ export async function getAttemptState(raw: unknown): Promise<AttemptState> {
 
 /** Enter (start the server clock for) a section. Idempotent: resume-safe. */
 export async function enterSection(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
   const { supabase } = await requireSession();
   const { error } = await supabase.rpc("ielts_start_attempt_section_v2", {
@@ -106,7 +104,6 @@ export async function enterSection(raw: unknown): Promise<AttemptState> {
 
 /** Pause the section clock (freeze remaining time). */
 export async function pauseSection(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
   const { supabase } = await requireSession();
   const { error } = await supabase.rpc("ielts_pause_attempt_section_v2", {
@@ -119,7 +116,6 @@ export async function pauseSection(raw: unknown): Promise<AttemptState> {
 
 /** Resume a paused section (deadline pushed out by the frozen duration). */
 export async function resumeSection(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
   const { supabase } = await requireSession();
   const { error } = await supabase.rpc("ielts_resume_attempt_section_v2", {
@@ -134,7 +130,6 @@ export async function resumeSection(raw: unknown): Promise<AttemptState> {
 export async function saveResponse(
   raw: unknown,
 ): Promise<{ responseId: string }> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SaveResponseSchema, raw);
   const { supabase } = await requireSession();
   const { data, error } = await supabase.rpc(
@@ -152,7 +147,6 @@ export async function saveResponse(
 
 /** Submit (lock) a section. */
 export async function submitSection(raw: unknown): Promise<AttemptState> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
   const { supabase } = await requireSession();
   const { error } = await supabase.rpc("ielts_submit_attempt_section_v2", {
@@ -241,7 +235,6 @@ async function enqueueFrozenSimulationWriting(params: {
 export async function submitMockAttempt(
   raw: unknown,
 ): Promise<MockSubmitResult> {
-  requireAttemptMutationsEnabled();
   const input = parseInput(SubmitAttemptSchema, raw);
   const { supabase, userId } = await requireSession();
   const state = await ownAttemptState(input.attemptId); // RLS ownership gate before service-role write

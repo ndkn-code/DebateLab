@@ -30,6 +30,11 @@ assert.match(
 assert.match(action, /from\("ielts_attempt_question_blueprints"\)/);
 assert.match(action, /eq\("skill", "writing"\)/);
 assert.match(action, /parseWritingCaptureValue/);
+assert.equal(
+  (action.match(/requireNewAttemptsEnabled/g) ?? []).length,
+  2,
+  "feature flags gate the helper definition and new starts, not active attempts",
+);
 assert.match(bandRepository, /\.in\("status", \["submitted", "scoring"\]\)/);
 
 // Simulation does not expose the interactive Practice scoring control.
