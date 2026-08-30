@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen,
   BookOpenText,
+  CalendarDays,
   ChevronRight,
   ClipboardList,
   Clock3,
@@ -37,7 +38,7 @@ import type { AppLocale } from "@/lib/locale-switch";
 import type { Subject } from "@/lib/subject";
 
 export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
-  key: DashboardNavItem["key"] | "ielts_speaking";
+  key: DashboardNavItem["key"] | "ielts_speaking" | "ielts_classes";
 };
 
 function SpeakingRehearsalIcon({ className }: { className?: string }) {
@@ -58,6 +59,7 @@ const NAV_ICONS = {
   ielts_speaking: SpeakingRehearsalIcon,
   ielts_library: BookOpen,
   ielts_assigned: ClipboardList,
+  ielts_classes: CalendarDays,
   resources: BookOpenText,
 } as const;
 
@@ -154,6 +156,10 @@ export function DashboardSidebarRail({
     }
     if (item.key === "ielts_assigned") {
       return pathname.startsWith("/ielts/assigned");
+    }
+
+    if (item.key === "ielts_classes") {
+      return pathname.startsWith("/ielts/classes");
     }
 
     return pathname === item.href;

@@ -23,6 +23,7 @@ import {
   ClipboardList,
   Compass,
   BookOpenText,
+  CalendarDays,
 } from "@/components/ui/icons";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { OrbBalance } from "@/components/shared/orb-balance";
@@ -129,6 +130,12 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: ClipboardList,
     status: "live",
   },
+  {
+    href: "/ielts/classes",
+    key: "ielts_classes",
+    icon: CalendarDays,
+    status: "live",
+  },
   { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ];
@@ -149,6 +156,7 @@ const IELTS_DASHBOARD_NAV_ITEMS: DashboardSidebarNavItem[] = [
   },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
+  { key: "ielts_classes", href: "/ielts/classes", status: "live" },
   { key: "resources", href: "/resources", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
 ];
