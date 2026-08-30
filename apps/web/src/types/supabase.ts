@@ -35,31 +35,6 @@ export type IeltsMicroDraftActivityType = Extract<
 >;
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
   public: {
     Tables: {
       achievements: {
@@ -2241,6 +2216,7 @@ export type Database = {
           id: string;
           metadata: Json;
           notes: string | null;
+          occurrence_id: string | null;
           session_date: string;
           taken_by: string | null;
           title: string | null;
@@ -2253,6 +2229,7 @@ export type Database = {
           id?: string;
           metadata?: Json;
           notes?: string | null;
+          occurrence_id?: string | null;
           session_date: string;
           taken_by?: string | null;
           title?: string | null;
@@ -2265,6 +2242,7 @@ export type Database = {
           id?: string;
           metadata?: Json;
           notes?: string | null;
+          occurrence_id?: string | null;
           session_date?: string;
           taken_by?: string | null;
           title?: string | null;
@@ -2304,6 +2282,13 @@ export type Database = {
             columns: ["course_id"];
             isOneToOne: false;
             referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_attendance_sessions_occurrence_id_fkey";
+            columns: ["occurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "lms_lesson_occurrences";
             referencedColumns: ["id"];
           },
           {
@@ -2715,6 +2700,10 @@ export type Database = {
         Row: {
           assignment_id: string;
           class_id: string | null;
+          cleanup_attempts: number;
+          cleanup_last_error: string | null;
+          cleanup_status: string;
+          cleanup_updated_at: string | null;
           club_id: string;
           created_at: string;
           failure_reason: string | null;
@@ -2742,6 +2731,10 @@ export type Database = {
         Insert: {
           assignment_id: string;
           class_id?: string | null;
+          cleanup_attempts?: number;
+          cleanup_last_error?: string | null;
+          cleanup_status?: string;
+          cleanup_updated_at?: string | null;
           club_id: string;
           created_at?: string;
           failure_reason?: string | null;
@@ -2769,6 +2762,10 @@ export type Database = {
         Update: {
           assignment_id?: string;
           class_id?: string | null;
+          cleanup_attempts?: number;
+          cleanup_last_error?: string | null;
+          cleanup_status?: string;
+          cleanup_updated_at?: string | null;
           club_id?: string;
           created_at?: string;
           failure_reason?: string | null;
@@ -5444,6 +5441,156 @@ export type Database = {
           },
         ];
       };
+      ielts_attempt_question_blueprints: {
+        Row: {
+          attempt_id: string;
+          created_at: string;
+          group_instructions: string | null;
+          group_key: string | null;
+          id: string;
+          listening_section_id: string | null;
+          max_points: number;
+          metadata: Json;
+          options: Json;
+          passage_id: string | null;
+          prompt: string;
+          question_id: string;
+          question_order: number;
+          question_revision: number;
+          question_type: Database["public"]["Enums"]["ielts_question_type"];
+          section_id: string;
+          skill: Database["public"]["Enums"]["ielts_skill"];
+          source_updated_at: string;
+          test_id: string;
+          user_id: string;
+          visual: Json | null;
+          word_limit: number | null;
+        };
+        Insert: {
+          attempt_id: string;
+          created_at?: string;
+          group_instructions?: string | null;
+          group_key?: string | null;
+          id?: string;
+          listening_section_id?: string | null;
+          max_points: number;
+          metadata?: Json;
+          options?: Json;
+          passage_id?: string | null;
+          prompt: string;
+          question_id: string;
+          question_order: number;
+          question_revision?: number;
+          question_type: Database["public"]["Enums"]["ielts_question_type"];
+          section_id: string;
+          skill: Database["public"]["Enums"]["ielts_skill"];
+          source_updated_at: string;
+          test_id: string;
+          user_id: string;
+          visual?: Json | null;
+          word_limit?: number | null;
+        };
+        Update: {
+          attempt_id?: string;
+          created_at?: string;
+          group_instructions?: string | null;
+          group_key?: string | null;
+          id?: string;
+          listening_section_id?: string | null;
+          max_points?: number;
+          metadata?: Json;
+          options?: Json;
+          passage_id?: string | null;
+          prompt?: string;
+          question_id?: string;
+          question_order?: number;
+          question_revision?: number;
+          question_type?: Database["public"]["Enums"]["ielts_question_type"];
+          section_id?: string;
+          skill?: Database["public"]["Enums"]["ielts_skill"];
+          source_updated_at?: string;
+          test_id?: string;
+          user_id?: string;
+          visual?: Json | null;
+          word_limit?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ielts_attempt_question_blueprints_attempt_id_fkey";
+            columns: ["attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_attempts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_blueprints_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_blueprints_section_id_fkey";
+            columns: ["section_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_attempt_sections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_blueprints_test_id_fkey";
+            columns: ["test_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_tests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_blueprints_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ielts_attempt_question_keys: {
+        Row: {
+          accept_variants: Json;
+          attempt_id: string;
+          correct_answer: Json;
+          created_at: string;
+          question_id: string;
+        };
+        Insert: {
+          accept_variants?: Json;
+          attempt_id: string;
+          correct_answer?: Json;
+          created_at?: string;
+          question_id: string;
+        };
+        Update: {
+          accept_variants?: Json;
+          attempt_id?: string;
+          correct_answer?: Json;
+          created_at?: string;
+          question_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ielts_attempt_question_keys_attempt_id_fkey";
+            columns: ["attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_attempts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_keys_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ielts_attempt_sections: {
         Row: {
           attempt_id: string;
@@ -5536,6 +5683,7 @@ export type Database = {
           assessment_mode: Database["public"]["Enums"]["ielts_assessment_mode"];
           assignment_id: string | null;
           attempt_number: number;
+          blueprint_frozen_at: string | null;
           class_id: string | null;
           club_id: string | null;
           completed_at: string | null;
@@ -5557,6 +5705,7 @@ export type Database = {
           assessment_mode?: Database["public"]["Enums"]["ielts_assessment_mode"];
           assignment_id?: string | null;
           attempt_number?: number;
+          blueprint_frozen_at?: string | null;
           class_id?: string | null;
           club_id?: string | null;
           completed_at?: string | null;
@@ -5578,6 +5727,7 @@ export type Database = {
           assessment_mode?: Database["public"]["Enums"]["ielts_assessment_mode"];
           assignment_id?: string | null;
           attempt_number?: number;
+          blueprint_frozen_at?: string | null;
           class_id?: string | null;
           club_id?: string | null;
           completed_at?: string | null;
@@ -5704,6 +5854,111 @@ export type Database = {
             columns: ["test_id"];
             isOneToOne: false;
             referencedRelation: "ielts_tests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ielts_criterion_evidence: {
+        Row: {
+          attempt_id: string;
+          band: number;
+          created_at: string;
+          criterion: string;
+          grading_version: string;
+          id: string;
+          metadata: Json;
+          model: string;
+          provider: string;
+          question_id: string;
+          rationale: string;
+          response_id: string;
+          revision: number;
+          run_id: string;
+          skill: Database["public"]["Enums"]["ielts_skill"];
+          speaking_response_id: string | null;
+          stage: string;
+          trace_id: string;
+          user_id: string;
+          writing_response_id: string | null;
+        };
+        Insert: {
+          attempt_id: string;
+          band: number;
+          created_at?: string;
+          criterion: string;
+          grading_version: string;
+          id?: string;
+          metadata?: Json;
+          model: string;
+          provider: string;
+          question_id: string;
+          rationale: string;
+          response_id: string;
+          revision?: number;
+          run_id: string;
+          skill: Database["public"]["Enums"]["ielts_skill"];
+          speaking_response_id?: string | null;
+          stage: string;
+          trace_id: string;
+          user_id: string;
+          writing_response_id?: string | null;
+        };
+        Update: {
+          attempt_id?: string;
+          band?: number;
+          created_at?: string;
+          criterion?: string;
+          grading_version?: string;
+          id?: string;
+          metadata?: Json;
+          model?: string;
+          provider?: string;
+          question_id?: string;
+          rationale?: string;
+          response_id?: string;
+          revision?: number;
+          run_id?: string;
+          skill?: Database["public"]["Enums"]["ielts_skill"];
+          speaking_response_id?: string | null;
+          stage?: string;
+          trace_id?: string;
+          user_id?: string;
+          writing_response_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ielts_criterion_evidence_attempt_id_fkey";
+            columns: ["attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_attempts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_criterion_evidence_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "ielts_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_criterion_evidence_speaking_response_id_fkey";
+            columns: ["speaking_response_id"];
+            isOneToOne: false;
+            referencedRelation: "speaking_responses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_criterion_evidence_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ielts_criterion_evidence_writing_response_id_fkey";
+            columns: ["writing_response_id"];
+            isOneToOne: false;
+            referencedRelation: "writing_responses";
             referencedColumns: ["id"];
           },
         ];
@@ -7014,6 +7269,7 @@ export type Database = {
           club_id: string;
           coherence_cohesion_band: number | null;
           created_at: string;
+          criterion_feedback: Json;
           fluency_coherence_band: number | null;
           grammar_band: number | null;
           id: string;
@@ -7048,6 +7304,7 @@ export type Database = {
           club_id: string;
           coherence_cohesion_band?: number | null;
           created_at?: string;
+          criterion_feedback?: Json;
           fluency_coherence_band?: number | null;
           grammar_band?: number | null;
           id?: string;
@@ -7082,6 +7339,7 @@ export type Database = {
           club_id?: string;
           coherence_cohesion_band?: number | null;
           created_at?: string;
+          criterion_feedback?: Json;
           fluency_coherence_band?: number | null;
           grammar_band?: number | null;
           id?: string;
@@ -7961,6 +8219,164 @@ export type Database = {
           },
         ];
       };
+      lms_lesson_occurrences: {
+        Row: {
+          activity_id: string | null;
+          class_id: string;
+          class_schedule_id: string | null;
+          club_id: string;
+          course_id: string;
+          created_at: string;
+          created_by: string;
+          ends_at: string;
+          id: string;
+          lesson_id: string | null;
+          metadata: Json;
+          notes: string | null;
+          occurrence_date: string;
+          starts_at: string;
+          status: string;
+          timezone: string;
+          title: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          activity_id?: string | null;
+          class_id: string;
+          class_schedule_id?: string | null;
+          club_id: string;
+          course_id: string;
+          created_at?: string;
+          created_by: string;
+          ends_at: string;
+          id?: string;
+          lesson_id?: string | null;
+          metadata?: Json;
+          notes?: string | null;
+          occurrence_date: string;
+          starts_at: string;
+          status?: string;
+          timezone?: string;
+          title: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          activity_id?: string | null;
+          class_id?: string;
+          class_schedule_id?: string | null;
+          club_id?: string;
+          course_id?: string;
+          created_at?: string;
+          created_by?: string;
+          ends_at?: string;
+          id?: string;
+          lesson_id?: string | null;
+          metadata?: Json;
+          notes?: string | null;
+          occurrence_date?: string;
+          starts_at?: string;
+          status?: string;
+          timezone?: string;
+          title?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lms_lesson_occurrences_activity_id_fkey";
+            columns: ["activity_id"];
+            isOneToOne: false;
+            referencedRelation: "activities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_class_id_course_id_fkey";
+            columns: ["class_id", "course_id"];
+            isOneToOne: false;
+            referencedRelation: "class_course_assignments";
+            referencedColumns: ["class_id", "course_id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_class_list_rows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_class_schedule_id_fkey";
+            columns: ["class_schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "class_schedules";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_club_id_fkey";
+            columns: ["club_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_club_list_rows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_club_id_fkey";
+            columns: ["club_id"];
+            isOneToOne: false;
+            referencedRelation: "clubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_course_list_rows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_popular_courses";
+            referencedColumns: ["course_id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_lesson_id_fkey";
+            columns: ["lesson_id"];
+            isOneToOne: false;
+            referencedRelation: "lessons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_lesson_occurrences_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       lms_notifications: {
         Row: {
           body: string;
@@ -8006,6 +8422,154 @@ export type Database = {
           {
             foreignKeyName: "lms_notifications_recipient_id_fkey";
             columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      lms_occurrence_assignments: {
+        Row: {
+          added_by: string;
+          assignment_id: string;
+          created_at: string;
+          occurrence_id: string;
+          relation_type: string;
+        };
+        Insert: {
+          added_by: string;
+          assignment_id: string;
+          created_at?: string;
+          occurrence_id: string;
+          relation_type?: string;
+        };
+        Update: {
+          added_by?: string;
+          assignment_id?: string;
+          created_at?: string;
+          occurrence_id?: string;
+          relation_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lms_occurrence_assignments_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_assignments_assignment_id_fkey";
+            columns: ["assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_club_assignment_rows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_assignments_assignment_id_fkey";
+            columns: ["assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "club_assignments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_assignments_occurrence_id_fkey";
+            columns: ["occurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "lms_lesson_occurrences";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      lms_occurrence_resources: {
+        Row: {
+          added_by: string;
+          created_at: string;
+          occurrence_id: string;
+          order_index: number;
+          required: boolean;
+          resource_id: string;
+        };
+        Insert: {
+          added_by: string;
+          created_at?: string;
+          occurrence_id: string;
+          order_index?: number;
+          required?: boolean;
+          resource_id: string;
+        };
+        Update: {
+          added_by?: string;
+          created_at?: string;
+          occurrence_id?: string;
+          order_index?: number;
+          required?: boolean;
+          resource_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lms_occurrence_resources_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_resources_occurrence_id_fkey";
+            columns: ["occurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "lms_lesson_occurrences";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_resources_resource_id_fkey";
+            columns: ["resource_id"];
+            isOneToOne: false;
+            referencedRelation: "lms_resources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      lms_occurrence_roster_snapshots: {
+        Row: {
+          captured_at: string;
+          class_membership_id: string | null;
+          enrollment_status: string;
+          occurrence_id: string;
+          user_id: string;
+        };
+        Insert: {
+          captured_at?: string;
+          class_membership_id?: string | null;
+          enrollment_status?: string;
+          occurrence_id: string;
+          user_id: string;
+        };
+        Update: {
+          captured_at?: string;
+          class_membership_id?: string | null;
+          enrollment_status?: string;
+          occurrence_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lms_occurrence_roster_snapshots_class_membership_id_fkey";
+            columns: ["class_membership_id"];
+            isOneToOne: false;
+            referencedRelation: "class_memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_roster_snapshots_occurrence_id_fkey";
+            columns: ["occurrence_id"];
+            isOneToOne: false;
+            referencedRelation: "lms_lesson_occurrences";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lms_occurrence_roster_snapshots_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -10341,7 +10905,11 @@ export type Database = {
       speaking_responses: {
         Row: {
           attempt_id: string;
+          audio_mime_type: string | null;
+          audio_sha256: string | null;
+          audio_size_bytes: number | null;
           audio_storage_path: string | null;
+          audio_verified_at: string | null;
           created_at: string;
           feedback: Json;
           feedback_language: string;
@@ -10374,7 +10942,11 @@ export type Database = {
         };
         Insert: {
           attempt_id: string;
+          audio_mime_type?: string | null;
+          audio_sha256?: string | null;
+          audio_size_bytes?: number | null;
           audio_storage_path?: string | null;
+          audio_verified_at?: string | null;
           created_at?: string;
           feedback?: Json;
           feedback_language?: string;
@@ -10407,7 +10979,11 @@ export type Database = {
         };
         Update: {
           attempt_id?: string;
+          audio_mime_type?: string | null;
+          audio_sha256?: string | null;
+          audio_size_bytes?: number | null;
           audio_storage_path?: string | null;
+          audio_verified_at?: string | null;
           created_at?: string;
           feedback?: Json;
           feedback_language?: string;
@@ -12343,24 +12919,66 @@ export type Database = {
         Args: { p_amount?: number; p_response_id: string; p_user_id: string };
         Returns: number;
       };
+      ielts_create_attempt_with_blueprint: {
+        Args: {
+          p_assignment_id?: string;
+          p_attempt_number: number;
+          p_class_id?: string;
+          p_club_id?: string;
+          p_module: Database["public"]["Enums"]["ielts_module"];
+          p_sections: Json;
+          p_test_id: string;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
+      ielts_finalize_attempt: {
+        Args: { p_attempt_id: string };
+        Returns: string;
+      };
       ielts_pause_attempt_section: {
         Args: { p_section_id: string };
+        Returns: undefined;
+      };
+      ielts_pause_attempt_section_v2: {
+        Args: { p_attempt_id: string; p_section_id: string };
         Returns: undefined;
       };
       ielts_record_question_response: {
         Args: { p_question_id: string; p_response: Json; p_section_id: string };
         Returns: string;
       };
+      ielts_record_question_response_v2: {
+        Args: {
+          p_attempt_id: string;
+          p_question_id: string;
+          p_response: Json;
+          p_section_id: string;
+        };
+        Returns: string;
+      };
       ielts_resume_attempt_section: {
         Args: { p_section_id: string };
+        Returns: string;
+      };
+      ielts_resume_attempt_section_v2: {
+        Args: { p_attempt_id: string; p_section_id: string };
         Returns: string;
       };
       ielts_start_attempt_section: {
         Args: { p_section_id: string };
         Returns: string;
       };
+      ielts_start_attempt_section_v2: {
+        Args: { p_attempt_id: string; p_section_id: string };
+        Returns: string;
+      };
       ielts_submit_attempt_section: {
         Args: { p_section_id: string };
+        Returns: string;
+      };
+      ielts_submit_attempt_section_v2: {
+        Args: { p_attempt_id: string; p_section_id: string };
         Returns: string;
       };
       increment_ai_workflow_provider_attempt: {
@@ -12521,6 +13139,7 @@ export type Database = {
           club_id: string;
           coherence_cohesion_band: number | null;
           created_at: string;
+          criterion_feedback: Json;
           fluency_coherence_band: number | null;
           grammar_band: number | null;
           id: string;
@@ -12558,6 +13177,10 @@ export type Database = {
       qualify_and_credit_referral: {
         Args: { p_referee_id: string; p_transcript_word_count: number };
         Returns: undefined;
+      };
+      record_homework_cleanup_result: {
+        Args: { p_error?: string; p_submission_id: string; p_success: boolean };
+        Returns: string;
       };
       record_ielts_review_rating: {
         Args: {
@@ -12684,6 +13307,10 @@ export type Database = {
         Args: { p_requester_user_id: string; p_response: string };
         Returns: Json;
       };
+      retry_homework_submission: {
+        Args: { p_submission_id: string; p_user_id: string };
+        Returns: string;
+      };
       return_ielts_teacher_review: {
         Args: { p_actor_id?: string; p_note?: string; p_review_id: string };
         Returns: {
@@ -12693,6 +13320,7 @@ export type Database = {
           club_id: string;
           coherence_cohesion_band: number | null;
           created_at: string;
+          criterion_feedback: Json;
           fluency_coherence_band: number | null;
           grammar_band: number | null;
           id: string;
@@ -12782,6 +13410,7 @@ export type Database = {
           club_id: string;
           coherence_cohesion_band: number | null;
           created_at: string;
+          criterion_feedback: Json;
           fluency_coherence_band: number | null;
           grammar_band: number | null;
           id: string;
@@ -12993,6 +13622,55 @@ export type Database = {
           to: "ielts_questions";
           isOneToOne: true;
           isSetofReturn: false;
+        };
+      };
+      update_ielts_teacher_review_feedback: {
+        Args: {
+          p_actor_id?: string;
+          p_criterion_feedback: Json;
+          p_expected_revision: number;
+          p_review_id: string;
+        };
+        Returns: {
+          assignment_id: string | null;
+          attempt_id: string;
+          class_id: string;
+          club_id: string;
+          coherence_cohesion_band: number | null;
+          created_at: string;
+          criterion_feedback: Json;
+          fluency_coherence_band: number | null;
+          grammar_band: number | null;
+          id: string;
+          lexical_resource_band: number | null;
+          part_number: number | null;
+          pronunciation_band: number | null;
+          published_at: string | null;
+          returned_at: string | null;
+          returned_note: string | null;
+          review_kind: string;
+          reviewer_id: string;
+          reviewer_note: string | null;
+          revision: number;
+          revision_consumed_at: string | null;
+          revision_granted: number | null;
+          rubric_key: string;
+          rubric_version: number;
+          skill_band: number | null;
+          speaking_response_id: string | null;
+          status: string;
+          task_band: number | null;
+          task_number: number | null;
+          task_response_band: number | null;
+          updated_at: string;
+          user_id: string;
+          writing_response_id: string | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "ielts_teacher_reviews";
+          isOneToOne: false;
+          isSetofReturn: true;
         };
       };
       update_leaderboard_privacy_settings: {
@@ -13220,9 +13898,6 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ielts_accent: ["uk", "us", "aus", "other"],

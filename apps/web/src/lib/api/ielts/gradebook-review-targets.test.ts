@@ -18,16 +18,19 @@ const target: IeltsGradebookReviewTarget = {
     status: "draft",
     note: "Focus on task development.",
   },
-  criteria: [{
-    key: "taskResponse",
-    labelEn: "Task Response",
-    labelVi: "Trả lời yêu cầu đề",
-    aiBand: 6,
-    teacherBand: null,
-    effectiveBand: 6,
-    reviewStatus: "draft",
-    rationale: "Addresses the prompt.",
-  }],
+  media: null,
+  criteria: [
+    {
+      key: "taskResponse",
+      labelEn: "Task Response",
+      labelVi: "Trả lời yêu cầu đề",
+      aiBand: 6,
+      teacherBand: null,
+      effectiveBand: 6,
+      reviewStatus: "draft",
+      rationale: "Addresses the prompt.",
+    },
+  ],
 };
 
 assert.equal(target.responseKind, "writing");

@@ -31,7 +31,7 @@ function writingOutput() {
     inlineCorrections: [],
     paragraphFeedback: [],
     modelAnswer: "model answer",
-  } as const;
+  };
 }
 
 function speakingOutput() {
@@ -46,7 +46,7 @@ function speakingOutput() {
     strengths: [],
     improvements: [],
     excerptFeedback: [],
-  } as const;
+  };
 }
 
 test("writing evidence emits the four normalized half-band criteria", () => {
