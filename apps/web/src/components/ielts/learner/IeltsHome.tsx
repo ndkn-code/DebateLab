@@ -27,23 +27,25 @@ import { IeltsEntryTiles } from "./IeltsEntryTiles";
  * untouched — this only renders when the active subject is `ielts`
  * (gated by `IELTS_ENABLED`).
  */
-export function IeltsHome({
-  data,
-}: {
-  data: IeltsHomeData;
-}) {
+export function IeltsHome({ data }: { data: IeltsHomeData }) {
   const t = useTranslations("dashboard.ielts");
-  const targetBand = data.planSummary?.targetOverallBand ?? DEFAULT_IELTS_TARGET_BAND;
-  const predictionView = buildIeltsPredictionCardView(data.prediction, { targetBand });
+  const targetBand =
+    data.planSummary?.targetOverallBand ?? DEFAULT_IELTS_TARGET_BAND;
+  const predictionView = buildIeltsPredictionCardView(data.prediction, {
+    targetBand,
+  });
   const diagnosticReady = Boolean(data.diagnosticTest);
-  const totalMinutes = data.today.reduce((sum, item) => sum + item.estimatedMinutes, 0);
+  const totalMinutes = data.today.reduce(
+    (sum, item) => sum + item.estimatedMinutes,
+    0,
+  );
   const hasTests = data.featuredTests.length > 0;
   const hasAttempts = data.recentAttempts.length > 0;
 
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="data" className="flex flex-col gap-6 py-5 lg:py-6">
+        <PageContainer size="data" className="flex flex-col gap-7 py-6 lg:py-8">
           <header className="flex flex-col gap-1">
             <p className="type-eyebrow font-semibold uppercase text-primary">
               {t("eyebrow")}
@@ -55,63 +57,28 @@ export function IeltsHome({
             </h1>
           </header>
 
-          <section data-ielts-kpi-strip>
-            <div data-ielts-kpi>
-              <p className="type-caption font-medium text-on-surface-variant">
-                {t("predicted_title")}
-              </p>
-              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
-                {predictionView.overall.band === null
-                  ? "—"
-                  : predictionView.overall.band.toFixed(1)}
-              </p>
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.8fr)]">
+            <div className="flex min-w-0 flex-col gap-5">
+              <IeltsDailyLoopPanel
+                diagnosticReady={diagnosticReady}
+                hasGoal={data.hasGoal}
+                items={data.today}
+                overflowCount={data.todayOverflowCount}
+                retention={data.retention}
+                totalMinutes={totalMinutes}
+              />
+              <IeltsEntryTiles
+                isEnrolled={data.isEnrolledStudent}
+                reviewsDueCount={data.reviewsDueCount}
+                softenDueState={data.retention.isFirstRunGrace}
+              />
             </div>
-            <div data-ielts-kpi>
-              <p className="type-caption font-medium text-on-surface-variant">
-                {t("today_title")}
-              </p>
-              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
-                {data.todayDueCount}
-              </p>
-            </div>
-            <div data-ielts-kpi>
-              <p className="type-caption font-medium text-on-surface-variant">
-                {t("tile_review_title")}
-              </p>
-              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
-                {data.reviewsDueCount}
-              </p>
-            </div>
-            <div data-ielts-kpi>
-              <p className="type-caption font-medium text-on-surface-variant">
-                {t("library_title")}
-              </p>
-              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
-                {data.publishedCount}
-              </p>
-            </div>
-          </section>
-
-          <IeltsDailyLoopPanel
-            diagnosticReady={diagnosticReady}
-            hasGoal={data.hasGoal}
-            items={data.today}
-            overflowCount={data.todayOverflowCount}
-            retention={data.retention}
-            totalMinutes={totalMinutes}
-          />
-
-          <PredictedBandCard
-            view={predictionView}
-            planSummary={data.planSummary}
-            diagnosticReady={diagnosticReady}
-          />
-
-          <IeltsEntryTiles
-            isEnrolled={data.isEnrolledStudent}
-            reviewsDueCount={data.reviewsDueCount}
-            softenDueState={data.retention.isFirstRunGrace}
-          />
+            <PredictedBandCard
+              view={predictionView}
+              planSummary={data.planSummary}
+              diagnosticReady={diagnosticReady}
+            />
+          </div>
 
           {hasAttempts ? (
             <section className="flex flex-col gap-3">

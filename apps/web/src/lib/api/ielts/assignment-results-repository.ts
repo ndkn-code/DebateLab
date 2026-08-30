@@ -11,7 +11,10 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { IeltsServerClient } from "./assignment-access";
 import { requireClassManager } from "@/lib/api/class-manager-access";
-import { getClubIeltsAssignment, type IeltsMockAssignmentRow } from "./assignments-repository";
+import {
+  getClubIeltsAssignment,
+  type IeltsMockAssignmentRow,
+} from "./assignments-repository";
 import {
   deriveLearnerAssignmentProgress,
   summarizeAssignmentCompletion,
@@ -75,38 +78,56 @@ async function loadBands(
   const db = supabase as unknown as SupabaseClient;
   const [aiResult, effectiveResult] = await Promise.all([
     supabase
-    .from("attempt_band_scores")
-    .select("attempt_id, overall_band, listening_band, reading_band, writing_band, speaking_band")
-    .in("attempt_id", attemptIds),
-    db.from("ielts_effective_attempt_scores")
-      .select("attempt_id, overall_band, provisional_band, overall_is_provisional, score_source, listening_band, reading_band, writing_band, speaking_band")
+      .from("attempt_band_scores")
+      .select(
+        "attempt_id, overall_band, listening_band, reading_band, writing_band, speaking_band",
+      )
+      .in("attempt_id", attemptIds),
+    db
+      .from("ielts_effective_attempt_scores")
+      .select(
+        "attempt_id, overall_band, provisional_band, overall_is_provisional, score_source, listening_band, reading_band, writing_band, speaking_band",
+      )
       .in("attempt_id", attemptIds),
   ]);
   if (aiResult.error || effectiveResult.error) {
-    throw new Error(`assignment results bands: ${aiResult.error?.message ?? effectiveResult.error?.message}`);
+    throw new Error(
+      `assignment results bands: ${aiResult.error?.message ?? effectiveResult.error?.message}`,
+    );
   }
   const effectiveByAttempt = new Map(
-    ((effectiveResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.attempt_id), row]),
+    ((effectiveResult.data ?? []) as Array<Record<string, unknown>>).map(
+      (row) => [String(row.attempt_id), row],
+    ),
+  );
+  const aiByAttempt = new Map(
+    (aiResult.data ?? []).map((row) => [
+      row.attempt_id,
+      row as unknown as Record<string, unknown>,
+    ]),
   );
   return new Map(
-    (aiResult.data ?? []).map((row) => {
-      const projected = projectEffectiveBands(
-        effectiveByAttempt.get(row.attempt_id),
-        row as unknown as Record<string, unknown>,
-      );
+    attemptIds.flatMap((attemptId) => {
+      const aiRow = aiByAttempt.get(attemptId);
+      const effectiveRow = effectiveByAttempt.get(attemptId);
+      if (!aiRow && !effectiveRow) return [];
+      const projected = projectEffectiveBands(effectiveRow, aiRow);
       return [
-      row.attempt_id,
-      {
-        overall: projected.overallBand,
-        listening: projected.listeningBand,
-        reading: projected.readingBand,
-        writing: projected.writingBand,
-        speaking: projected.speakingBand,
-        provisional: projected.provisionalBand,
-        overallIsProvisional: projected.overallIsProvisional,
-        source: projected.scoreSource,
-      },
-    ];}),
+        [
+          attemptId,
+          {
+            overall: projected.overallBand,
+            listening: projected.listeningBand,
+            reading: projected.readingBand,
+            writing: projected.writingBand,
+            speaking: projected.speakingBand,
+            provisional: projected.provisionalBand,
+            overallIsProvisional: projected.overallIsProvisional,
+            source: projected.scoreSource,
+          },
+        ],
+      ];
+    }),
   );
 }
 
@@ -134,7 +155,10 @@ async function loadNames(userIds: string[]): Promise<Map<string, NameRecord>> {
 
 function bandFields(
   bands: BandSet | undefined,
-): Pick<StudentAssignmentResult, "listeningBand" | "readingBand" | "writingBand" | "speakingBand"> {
+): Pick<
+  StudentAssignmentResult,
+  "listeningBand" | "readingBand" | "writingBand" | "speakingBand"
+> {
   return {
     listeningBand: bands?.listening ?? null,
     readingBand: bands?.reading ?? null,
@@ -165,8 +189,12 @@ function toStudentResult(
     overallBand: bands.get(attempt.id)?.overall ?? null,
   }));
   const progress = deriveLearnerAssignmentProgress(summaries);
-  const resultAttempt = userAttempts.find((attempt) => attempt.id === progress.resultAttemptId);
-  const resultBands = progress.resultAttemptId ? bands.get(progress.resultAttemptId) : undefined;
+  const resultAttempt = userAttempts.find(
+    (attempt) => attempt.id === progress.resultAttemptId,
+  );
+  const resultBands = progress.resultAttemptId
+    ? bands.get(progress.resultAttemptId)
+    : undefined;
   return {
     userId,
     ...nameFields(names.get(userId)),
@@ -177,7 +205,7 @@ function toStudentResult(
     submittedAt: resultAttempt?.submitted_at ?? null,
     overallIsProvisional: resultBands?.overallIsProvisional ?? true,
     provisionalBand: resultBands?.provisional ?? null,
-    scoreSource: resultBands?.source ?? "ai",
+    scoreSource: resultBands?.source ?? "objective",
   };
 }
 
@@ -214,12 +242,18 @@ export async function getAssignmentResultsForManager(
     .eq("id", assignmentId)
     .eq("club_id", clubId)
     .maybeSingle();
-  if (scopeError) throw new Error(`assignment results scope: ${scopeError.message}`);
+  if (scopeError)
+    throw new Error(`assignment results scope: ${scopeError.message}`);
   if (!scope?.class_id) return null;
   const manager = await requireClassManager(supabase, scope.class_id);
-  if (manager.clubId !== clubId) throw new Error("Assignment is outside this organisation");
+  if (manager.clubId !== clubId)
+    throw new Error("Assignment is outside this organisation");
 
-  const assignment = await getClubIeltsAssignment(clubId, assignmentId, supabase);
+  const assignment = await getClubIeltsAssignment(
+    clubId,
+    assignmentId,
+    supabase,
+  );
   if (!assignment) return null;
 
   const { data: roster, error: rosterError } = await supabase
@@ -227,17 +261,22 @@ export async function getAssignmentResultsForManager(
     .select("user_id")
     .eq("class_id", assignment.classId)
     .eq("member_role", "student");
-  if (rosterError) throw new Error(`assignment results roster: ${rosterError.message}`);
+  if (rosterError)
+    throw new Error(`assignment results roster: ${rosterError.message}`);
   const studentIds = (roster ?? []).map((row) => row.user_id);
 
   const { data: attempts, error: attemptsError } = await supabase
     .from("ielts_attempts")
     .select("id, user_id, status, started_at, submitted_at")
     .eq("assignment_id", assignmentId);
-  if (attemptsError) throw new Error(`assignment results attempts: ${attemptsError.message}`);
+  if (attemptsError)
+    throw new Error(`assignment results attempts: ${attemptsError.message}`);
   const attemptRows = (attempts ?? []) as AttemptRow[];
 
-  const bands = await loadBands(supabase, attemptRows.map((attempt) => attempt.id));
+  const bands = await loadBands(
+    supabase,
+    attemptRows.map((attempt) => attempt.id),
+  );
   const names = await loadNames(studentIds);
 
   const students = buildStudentResults(studentIds, attemptRows, bands, names);

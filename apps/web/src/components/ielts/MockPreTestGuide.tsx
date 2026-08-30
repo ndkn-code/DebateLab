@@ -1,57 +1,173 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useTranslations } from "next-intl";
-import { ProductIcon, type ProductIconName } from "@/components/ui/product-icon";
+import {
+  ProductIcon,
+  type ProductIconName,
+} from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
+import {
+  IELTS_PLAYER_EXPERIENCE_COPY,
+  type IeltsPlayerExperience,
+  type IeltsPlayerLocale,
+} from "./player-experience";
 
-const GUIDE_ITEMS: Array<{
-  key: "highlight" | "eliminate" | "flag" | "navigator" | "review" | "pause" | "timer";
+type GuideItem = {
+  title: string;
+  description: string;
   icon: ProductIconName;
-}> = [
-  {
-    key: "highlight",
-    icon: "highlighter",
+};
+
+const GUIDE_ITEMS: Record<
+  IeltsPlayerLocale,
+  Record<IeltsPlayerExperience, GuideItem[]>
+> = {
+  en: {
+    exam_simulation: [
+      {
+        title: "Fixed section order",
+        description:
+          "Complete Listening, Reading, then Writing. Submitted sections cannot be reopened.",
+        icon: "listChecks",
+      },
+      {
+        title: "Highlight",
+        description: "Mark useful evidence in Reading passages while you work.",
+        icon: "highlighter",
+      },
+      {
+        title: "Flag and review",
+        description:
+          "Save uncertain questions and review them before submission.",
+        icon: "bookmark",
+      },
+      {
+        title: "Section timer",
+        description:
+          "The countdown stays visible. Listening audio plays once, and no feedback appears during the attempt.",
+        icon: "timer",
+      },
+    ],
+    guided_practice: [
+      {
+        title: "Work at your pace",
+        description: "Pause and revisit questions while building the skill.",
+        icon: "timer",
+      },
+      {
+        title: "Use learning support",
+        description:
+          "Use hints or feedback when the activity makes them available.",
+        icon: "info",
+      },
+      {
+        title: "Review the result",
+        description: "Check explanations and decide what to practise next.",
+        icon: "checkCircle",
+      },
+    ],
+    speaking_rehearsal: [
+      {
+        title: "Allow microphone access",
+        description:
+          "Your browser needs microphone permission to record an answer.",
+        icon: "micStage",
+      },
+      {
+        title: "Answer naturally",
+        description:
+          "Use the preparation cue, then record a complete spoken response.",
+        icon: "messageCircle",
+      },
+      {
+        title: "Use feedback carefully",
+        description:
+          "AI feedback supports practice; it is not an official IELTS result.",
+        icon: "info",
+      },
+    ],
   },
-  {
-    key: "eliminate",
-    icon: "eraser",
+  vi: {
+    exam_simulation: [
+      {
+        title: "Thứ tự phần thi cố định",
+        description:
+          "Làm lần lượt Nghe, Đọc rồi Viết. Không thể mở lại phần đã nộp.",
+        icon: "listChecks",
+      },
+      {
+        title: "Đánh dấu",
+        description: "Đánh dấu bằng chứng hữu ích trong bài Đọc khi làm bài.",
+        icon: "highlighter",
+      },
+      {
+        title: "Gắn cờ và xem lại",
+        description: "Lưu câu chưa chắc và xem lại trước khi nộp.",
+        icon: "bookmark",
+      },
+      {
+        title: "Đồng hồ từng phần",
+        description:
+          "Thời gian còn lại luôn hiển thị. Bản ghi Nghe chỉ phát một lần và không có phản hồi trong lúc làm bài.",
+        icon: "timer",
+      },
+    ],
+    guided_practice: [
+      {
+        title: "Làm theo nhịp của bạn",
+        description: "Tạm dừng và xem lại câu hỏi trong khi rèn kỹ năng.",
+        icon: "timer",
+      },
+      {
+        title: "Dùng hỗ trợ học tập",
+        description: "Dùng gợi ý hoặc phản hồi khi hoạt động có cung cấp.",
+        icon: "info",
+      },
+      {
+        title: "Xem lại kết quả",
+        description: "Đọc giải thích và chọn nội dung cần luyện tiếp.",
+        icon: "checkCircle",
+      },
+    ],
+    speaking_rehearsal: [
+      {
+        title: "Cho phép dùng micro",
+        description: "Trình duyệt cần quyền dùng micro để ghi âm câu trả lời.",
+        icon: "micStage",
+      },
+      {
+        title: "Trả lời tự nhiên",
+        description: "Dùng gợi ý chuẩn bị rồi ghi âm câu trả lời nói đầy đủ.",
+        icon: "messageCircle",
+      },
+      {
+        title: "Dùng phản hồi đúng cách",
+        description:
+          "Phản hồi AI hỗ trợ luyện tập, không phải kết quả IELTS chính thức.",
+        icon: "info",
+      },
+    ],
   },
-  {
-    key: "flag",
-    icon: "bookmark",
-  },
-  {
-    key: "navigator",
-    icon: "grid",
-  },
-  {
-    key: "review",
-    icon: "listChecks",
-  },
-  {
-    key: "pause",
-    icon: "pause",
-  },
-  {
-    key: "timer",
-    icon: "timer",
-  },
-];
+};
 
 export function MockPreTestGuide({
   className,
   showHeading = true,
+  experience = "exam_simulation",
+  locale = "en",
 }: {
   className?: string;
   showHeading?: boolean;
+  experience?: IeltsPlayerExperience;
+  locale?: IeltsPlayerLocale;
 }) {
-  const t = useTranslations("ielts.player.exam");
   const reducedMotion = useReducedMotion();
+  const copy = IELTS_PLAYER_EXPERIENCE_COPY[locale][experience];
+  const items = GUIDE_ITEMS[locale][experience];
 
   return (
     <section
-      aria-label={showHeading ? undefined : t("guideLabel")}
+      aria-label={showHeading ? undefined : copy.guideTitle}
       className={cn(
         "w-full rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left shadow-token-card sm:p-4",
         className,
@@ -60,7 +176,7 @@ export function MockPreTestGuide({
     >
       {showHeading ? (
         <h2 className="text-sm font-bold text-on-surface sm:text-base">
-          {t("guideLabel")}
+          {copy.label}
         </h2>
       ) : null}
       <motion.div
@@ -73,9 +189,9 @@ export function MockPreTestGuide({
         }}
         className={cn("grid gap-2", showHeading && "mt-3")}
       >
-        {GUIDE_ITEMS.map((item) => (
+        {items.map((item) => (
           <motion.div
-            key={item.key}
+            key={item.title}
             variants={
               reducedMotion
                 ? undefined
@@ -91,10 +207,10 @@ export function MockPreTestGuide({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-on-surface">
-                {t(`guide.${item.key}Title`)}
+                {item.title}
               </span>
               <span className="mt-0.5 block text-xs leading-5 text-on-surface-variant">
-                {t(`guide.${item.key}Body`)}
+                {item.description}
               </span>
             </span>
           </motion.div>

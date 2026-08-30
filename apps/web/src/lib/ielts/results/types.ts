@@ -64,6 +64,8 @@ export interface ResultsWritingTask {
   gradingMetadata?: unknown;
   /** Published teacher note; drafts are never included in learner reads. */
   teacherFeedback?: string | null;
+  /** Published teacher criterion comments; drafts are never projected. */
+  teacherCriterionFeedback?: unknown;
 }
 
 export interface ResultsSpeakingPart {
@@ -85,6 +87,8 @@ export interface ResultsSpeakingPart {
   gradingMetadata?: unknown;
   /** Published teacher note; drafts are never included in learner reads. */
   teacherFeedback?: string | null;
+  /** Published teacher criterion comments; drafts are never projected. */
+  teacherCriterionFeedback?: unknown;
 }
 
 export interface AttemptResultsInput {
@@ -244,6 +248,7 @@ export interface WritingTaskResult {
   modelAnswer: string | null;
   feedbackLanguage: string;
   gradingMetadata?: unknown;
+  teacherCriterionFeedback?: unknown;
 }
 
 export interface WritingResult {
@@ -265,6 +270,7 @@ export interface SpeakingPartResult {
   modelAnswer: string | null;
   pronunciationHeatmap: SpeakingPronunciationHeatmap | null;
   gradingMetadata?: unknown;
+  teacherCriterionFeedback?: unknown;
 }
 
 export interface SpeakingResult {

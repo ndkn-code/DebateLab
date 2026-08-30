@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import { getIeltsTestBySlug } from "@/lib/api/ielts/tests-repository";
-import { loadMockStructure } from "@/lib/api/ielts/mock-repository";
+import {
+  loadAttemptState,
+  loadMockStructure,
+} from "@/lib/api/ielts/mock-repository";
 import { isAssignmentStartableForTest } from "@/lib/api/ielts/learner-assignments-repository";
 import { MockTestPlayer } from "@/components/ielts/MockTestPlayer";
+import type { IeltsPlayerExperience } from "@/components/ielts/player-experience";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +24,28 @@ export default async function IeltsMockPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ assignment?: string; returnTo?: string }>;
+  searchParams: Promise<{
+    assignment?: string;
+    returnTo?: string;
+    attempt?: string;
+    experience?: string;
+  }>;
 }) {
   const { locale, slug } = await params;
-  const { assignment, returnTo } = await searchParams;
+  const {
+    assignment,
+    returnTo,
+    attempt: attemptId,
+    experience,
+  } = await searchParams;
   const test = await getIeltsTestBySlug(slug);
   if (!test) notFound();
 
-  const structure = await loadMockStructure(test.id);
+  const resumed = attemptId ? await loadAttemptState(attemptId) : null;
+  const structure =
+    resumed?.structure?.test.id === test.id
+      ? resumed.structure
+      : await loadMockStructure(test.id);
   if (!structure) notFound();
 
   // Only thread the assignment through when it is genuinely the learner's active
@@ -37,14 +55,29 @@ export default async function IeltsMockPage({
       ? assignment
       : undefined;
   const safeReturnTo =
-    returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("://")
+    returnTo &&
+    returnTo.startsWith("/") &&
+    !returnTo.startsWith("//") &&
+    !returnTo.includes("://")
       ? returnTo
       : undefined;
+  const playerExperience: IeltsPlayerExperience =
+    experience === "speaking_rehearsal" &&
+    test.skill === "speaking" &&
+    (test.kind === "skill_set" || test.kind === "drill")
+      ? "speaking_rehearsal"
+      : test.assessment_mode === "simulation"
+        ? "exam_simulation"
+        : "guided_practice";
 
   return (
     <main className="h-full min-h-0 w-full overflow-hidden">
       <MockTestPlayer
         structure={structure}
+        experience={playerExperience}
+        initialState={
+          resumed?.structure?.test.id === test.id ? resumed : undefined
+        }
         assignmentId={assignmentId}
         returnHref={safeReturnTo}
         returnLabel={

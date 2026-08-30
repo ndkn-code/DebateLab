@@ -15,12 +15,45 @@ import type { Tables } from "@/types/supabase";
 export const IELTS_ONBOARDING_HORIZON_DAYS = 14;
 export const IELTS_ONBOARDING_DEFAULT_DAILY_MINUTES = 45;
 export const IELTS_ONBOARDING_DEFAULT_STUDY_DAYS = [1, 2, 3, 4, 5] as const;
+export const IELTS_ONBOARDING_VERSION = 1;
+
+export const IeltsSelfReportedBandSchema = z.union([
+  z.literal("not_sure"),
+  z.number().min(4).max(9).multipleOf(0.5),
+]);
+export type IeltsSelfReportedBand = z.infer<typeof IeltsSelfReportedBandSchema>;
 
 export const IeltsOnboardingGoalInputSchema = IeltsGoalModelSchema;
+
+export const IeltsOnboardingGoalSubmissionSchema = z.object({
+  goal: IeltsOnboardingGoalInputSchema,
+  currentBand: IeltsSelfReportedBandSchema,
+});
 
 export type IeltsOnboardingGoalInput = z.infer<
   typeof IeltsOnboardingGoalInputSchema
 >;
+
+export function selfReportedBandFromPreferences(
+  preferences: unknown,
+): IeltsSelfReportedBand {
+  if (
+    !preferences ||
+    typeof preferences !== "object" ||
+    Array.isArray(preferences)
+  ) {
+    return "not_sure";
+  }
+  const answers = (preferences as Record<string, unknown>)
+    .ielts_onboarding_answers;
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+    return "not_sure";
+  }
+  const parsed = IeltsSelfReportedBandSchema.safeParse(
+    (answers as Record<string, unknown>).current_band,
+  );
+  return parsed.success ? parsed.data : "not_sure";
+}
 
 export type IeltsOnboardingStep = "welcome" | "goal" | "diagnostic" | "result";
 
@@ -87,7 +120,9 @@ export function goalFromStudyPlanRow(row: StudyPlanGoalRow): IeltsGoalModel {
     targetOverallBand: row.target_overall_band,
     targetSkillBands,
     targetTestDate: row.target_test_date,
-    focusSkills: row.focus_skills?.map((skill) => IeltsSkillSchema.parse(skill)),
+    focusSkills: row.focus_skills?.map((skill) =>
+      IeltsSkillSchema.parse(skill),
+    ),
     availability: {
       studyDays: row.study_days,
       dailyMinutes: row.daily_minutes,
@@ -101,7 +136,10 @@ export function goalFromStudyPlanRow(row: StudyPlanGoalRow): IeltsGoalModel {
 export function predictionHasOverallEvidence(
   prediction: IeltsBandPrediction,
 ): boolean {
-  return prediction.overall.band !== null && prediction.overall.status !== "diagnostic_needed";
+  return (
+    prediction.overall.band !== null &&
+    prediction.overall.status !== "diagnostic_needed"
+  );
 }
 
 export function completedSkillPredictions(

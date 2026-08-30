@@ -9,13 +9,12 @@ import {
   loadActiveIeltsStudyPlan,
 } from "@/lib/api/ielts/study-plan-repository";
 import { loadIeltsBandPrediction } from "@/lib/api/ielts/band-prediction-repository";
-import {
-  DEFAULT_IELTS_TARGET_BAND,
-} from "@/lib/ielts/adaptive/contracts";
+import { DEFAULT_IELTS_TARGET_BAND } from "@/lib/ielts/adaptive/contracts";
 import {
   defaultIeltsOnboardingGoal,
   goalFromStudyPlanRow,
   initialOnboardingStep,
+  selfReportedBandFromPreferences,
 } from "@/lib/ielts/onboarding/model";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
@@ -52,10 +51,16 @@ async function IeltsOnboardingPayload({
   if (!userId) redirect("/auth/login");
 
   const ieltsClient = devAuthBypassUser ? createTypedAdminClient() : supabase;
-  const [activePlan, diagnosticTest] = await Promise.all([
+  const [activePlan, diagnosticTest, profileResult] = await Promise.all([
     loadActiveIeltsStudyPlan(userId, ieltsClient),
     findQuickDiagnosticTest(ieltsClient),
+    ieltsClient
+      .from("profiles")
+      .select("preferences")
+      .eq("id", userId)
+      .single(),
   ]);
+  if (profileResult.error) throw new Error(profileResult.error.message);
   const targetBand =
     activePlan?.plan.target_overall_band ?? DEFAULT_IELTS_TARGET_BAND;
   const prediction = await loadIeltsBandPrediction(userId, {
@@ -67,7 +72,8 @@ async function IeltsOnboardingPayload({
     : defaultIeltsOnboardingGoal({
         todayIso: todayIso(),
         timezone:
-          Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Ho_Chi_Minh",
+          Intl.DateTimeFormat().resolvedOptions().timeZone ||
+          "Asia/Ho_Chi_Minh",
         feedbackLanguage: locale === "vi" ? "vi" : "en",
       });
   const returnTo = `/${locale}/ielts/onboarding?step=result`;
@@ -83,6 +89,9 @@ async function IeltsOnboardingPayload({
         requestedStep,
       })}
       initialGoal={initialGoal}
+      initialCurrentBand={selfReportedBandFromPreferences(
+        profileResult.data.preferences,
+      )}
       initialPrediction={prediction}
       diagnosticTest={diagnosticTest}
       diagnosticHref={diagnosticHref}

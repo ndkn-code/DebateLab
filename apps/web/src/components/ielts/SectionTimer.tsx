@@ -8,7 +8,6 @@
  * (the server already rejects any late write).
  */
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
 import {
   remainingSeconds,
   sectionStatus,
@@ -31,7 +30,6 @@ export function SectionTimer({
   onExpire?: () => void;
   onStatusChange?: (status: SectionRuntimeStatus) => void;
 }) {
-  const t = useTranslations("ielts.player.exam");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const expiredRef = useRef(false);
 
@@ -54,14 +52,22 @@ export function SectionTimer({
     if (status === "running") expiredRef.current = false;
   }, [status, onExpire, onStatusChange]);
 
+  const announcement = status === "expired"
+    ? "Time expired."
+    : status === "running" && remaining <= 60
+      ? "Approximately one minute remaining."
+      : status === "running" && remaining <= 300
+        ? "Approximately five minutes remaining."
+        : "";
+
   const low = ticking && remaining <= 60;
   const label =
     status === "paused"
-      ? t("timerPaused")
+      ? "Paused"
       : status === "submitted"
-        ? t("timerSubmitted")
+        ? "Submitted"
         : status === "not_started"
-          ? t("timerNotStarted")
+          ? "Not started"
           : formatClock(remaining);
 
   return (
@@ -71,13 +77,12 @@ export function SectionTimer({
           ? "bg-error-container text-error"
           : "bg-surface-container-high text-on-surface"
       }`}
-      role="timer"
-      aria-live="polite"
     >
       <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        {t("time")}
+        Time
       </span>
       {label}
+      <span className="sr-only" aria-live="polite">{announcement}</span>
     </div>
   );
 }

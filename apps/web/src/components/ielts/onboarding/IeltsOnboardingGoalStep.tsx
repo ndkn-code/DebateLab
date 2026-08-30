@@ -84,7 +84,7 @@ export function IeltsOnboardingGoalStep({
           onSubmit();
         }}
       >
-        <fieldset className="grid gap-2">
+        <fieldset className="grid gap-2" role="radiogroup">
           <legend className="type-body-sm font-semibold text-on-surface">
             {moduleCopy.label}
           </legend>
@@ -103,7 +103,8 @@ export function IeltsOnboardingGoalStep({
                 <button
                   key={module}
                   type="button"
-                  aria-pressed={selected}
+                  role="radio"
+                  aria-checked={selected}
                   onClick={() => setGoal((current) => ({ ...current, module }))}
                   className={cn(
                     "min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
@@ -122,7 +123,28 @@ export function IeltsOnboardingGoalStep({
           </div>
         </fieldset>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label={t("current_band")}>
+            <Select
+              value={String(goal.currentBand ?? "not_sure")}
+              onChange={(event) =>
+                setGoal((current) => ({
+                  ...current,
+                  currentBand:
+                    event.target.value === "not_sure"
+                      ? "not_sure"
+                      : Number(event.target.value),
+                }))
+              }
+            >
+              <option value="not_sure">{t("current_band_not_sure")}</option>
+              {BAND_OPTIONS.filter((band) => band >= 4).map((band) => (
+                <option key={band} value={band}>
+                  {formatBand(band)}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label={t("overall_target")}>
             <Select
               value={String(goal.targetOverallBand)}

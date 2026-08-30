@@ -16,9 +16,16 @@ const QUESTION_COLUMNS =
 
 export interface MockStructure {
   test: Tables<"ielts_tests">;
-  passages: Tables<"passages">[];
-  listeningSections: Tables<"listening_sections">[];
-  audioAssets: Tables<"audio_assets">[];
+  passages: Array<Pick<Tables<"passages">, "id" | "title" | "body" | "order_index">>;
+  listeningSections: Array<
+    Pick<
+      Tables<"listening_sections">,
+      "id" | "title" | "script" | "section_number" | "order_index" | "audio_asset_id"
+    >
+  >;
+  audioAssets: Array<
+    Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
+  >;
   questions: IeltsQuestionView[];
 }
 
@@ -27,6 +34,8 @@ export interface AttemptState {
   sections: Tables<"ielts_attempt_sections">[];
   responses: Tables<"ielts_question_responses">[];
   bandScore: Tables<"attempt_band_scores"> | null;
+  /** Frozen content used by the player after a snapshot-backed attempt starts. */
+  structure?: MockStructure;
 }
 
 /** Load a published test's full structure for the player (null if not visible). */
@@ -70,6 +79,152 @@ export async function loadMockStructure(
   };
 }
 
+export type FrozenBlueprintRow = Pick<
+  Tables<"ielts_attempt_question_blueprints">,
+  | "id"
+  | "question_id"
+  | "skill"
+  | "question_type"
+  | "question_order"
+  | "group_key"
+  | "group_instructions"
+  | "prompt"
+  | "options"
+  | "max_points"
+  | "word_limit"
+  | "visual"
+  | "metadata"
+  | "passage_id"
+  | "listening_section_id"
+  | "source_title"
+  | "source_body"
+  | "source_audio_asset_id"
+  | "source_audio_storage_path"
+  | "source_audio_version"
+  | "source_audio_status"
+  | "test_id"
+  | "source_updated_at"
+>;
+
+function questionFromFrozenBlueprint(row: FrozenBlueprintRow): IeltsQuestionView {
+  return toQuestionView({
+    id: row.question_id,
+    skill: row.skill,
+    question_type: row.question_type,
+    order_index: row.question_order,
+    group_key: row.group_key,
+    group_instructions: row.group_instructions,
+    prompt: row.prompt,
+    options: row.options,
+    max_points: row.max_points,
+    word_limit: row.word_limit,
+    visual: row.visual,
+    metadata: row.metadata,
+    passage_id: row.passage_id,
+    listening_section_id: row.listening_section_id,
+  });
+}
+
+/** Pure projection used by the loader and regression-tested without a DB. */
+export function buildMockStructureFromFrozenBlueprint(
+  test: Tables<"ielts_tests">,
+  blueprints: FrozenBlueprintRow[],
+): MockStructure {
+  const passages = new Map<
+    string,
+    Pick<Tables<"passages">, "id" | "title" | "body" | "order_index">
+  >();
+  const listeningSections = new Map<
+    string,
+    Pick<
+      Tables<"listening_sections">,
+      "id" | "title" | "script" | "section_number" | "order_index" | "audio_asset_id"
+    >
+  >();
+  const audioAssets = new Map<
+    string,
+    Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
+  >();
+  for (const row of blueprints) {
+    if (row.passage_id && row.source_body !== null) {
+      passages.set(row.passage_id, {
+        id: row.passage_id,
+        title: row.source_title ?? "",
+        body: row.source_body,
+        order_index: row.question_order,
+      });
+    }
+    if (row.listening_section_id && row.source_body !== null) {
+      if (!listeningSections.has(row.listening_section_id)) {
+        listeningSections.set(row.listening_section_id, {
+          id: row.listening_section_id,
+          title: row.source_title,
+          script: row.source_body,
+          section_number: row.question_order,
+          order_index: row.question_order,
+          audio_asset_id: row.source_audio_asset_id,
+        });
+      }
+      if (row.source_audio_asset_id) {
+        audioAssets.set(row.source_audio_asset_id, {
+          id: row.source_audio_asset_id,
+          status: row.source_audio_status as Tables<"audio_assets">["status"],
+          version: row.source_audio_version ?? 1,
+          storage_path: row.source_audio_storage_path,
+        });
+      }
+    }
+  }
+  return {
+    test,
+    passages: [...passages.values()].sort((a, b) => a.order_index - b.order_index),
+    listeningSections: [...listeningSections.values()].sort(
+      (a, b) => a.order_index - b.order_index,
+    ),
+    audioAssets: [...audioAssets.values()],
+    questions: blueprints.map(questionFromFrozenBlueprint),
+  };
+}
+
+/**
+ * Load the immutable structure belonging to an attempt. Frozen attempts never
+ * read mutable question, passage, listening, or audio rows. Legacy attempts
+ * fall back to the published test structure for compatibility.
+ */
+export async function loadAttemptStructure(
+  attemptId: string,
+): Promise<MockStructure | null> {
+  const supabase = await createTypedServerClient();
+  const { data: attempt, error: attemptError } = await supabase
+    .from("ielts_attempts")
+    .select("id, test_id, blueprint_frozen_at")
+    .eq("id", attemptId)
+    .maybeSingle();
+  if (attemptError) throw new Error(`loadAttemptStructure(attempt): ${attemptError.message}`);
+  if (!attempt) return null;
+
+  if (!attempt.blueprint_frozen_at) return loadMockStructure(attempt.test_id);
+
+  const [testResult, blueprintResult] = await Promise.all([
+    supabase.from("ielts_tests").select().eq("id", attempt.test_id).maybeSingle(),
+    supabase
+      .from("ielts_attempt_question_blueprints")
+      .select(
+        "id, question_id, skill, question_type, question_order, group_key, group_instructions, prompt, options, max_points, word_limit, visual, metadata, passage_id, listening_section_id, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status, test_id, source_updated_at",
+      )
+      .eq("attempt_id", attemptId)
+      .order("question_order"),
+  ]);
+  if (testResult.error) throw new Error(`loadAttemptStructure(test): ${testResult.error.message}`);
+  if (blueprintResult.error)
+    throw new Error(`loadAttemptStructure(blueprint): ${blueprintResult.error.message}`);
+  if (!testResult.data) return null;
+  const blueprints = (blueprintResult.data ?? []) as FrozenBlueprintRow[];
+  if (blueprints.length === 0) throw new Error("loadAttemptStructure: frozen blueprint missing");
+
+  return buildMockStructureFromFrozenBlueprint(testResult.data, blueprints);
+}
+
 /** Distinct skills that have authored questions in a test (drives the blueprint). */
 export async function getSkillsWithContent(testId: string): Promise<IeltsSkill[]> {
   const supabase = await createTypedServerClient();
@@ -94,7 +249,7 @@ export async function loadAttemptState(
   if (error) throw new Error(`loadAttemptState(attempt): ${error.message}`);
   if (!attempt) return null;
 
-  const [sections, responses, bandScore] = await Promise.all([
+  const [sections, responses, bandScore, structure] = await Promise.all([
     supabase
       .from("ielts_attempt_sections")
       .select()
@@ -106,6 +261,7 @@ export async function loadAttemptState(
       .select()
       .eq("attempt_id", attemptId)
       .maybeSingle(),
+    loadAttemptStructure(attemptId),
   ]);
 
   if (sections.error) throw new Error(`loadAttemptState(sections): ${sections.error.message}`);
@@ -117,5 +273,6 @@ export async function loadAttemptState(
     sections: sections.data ?? [],
     responses: responses.data ?? [],
     bandScore: bandScore.data,
+    structure: structure ?? undefined,
   };
 }

@@ -9,7 +9,10 @@
  */
 import { useId } from "react";
 import type { ComponentType, ReactElement } from "react";
-import { extractValue, extractValues } from "@/lib/scoring/ielts/answer-normalize";
+import {
+  extractValue,
+  extractValues,
+} from "@/lib/scoring/ielts/answer-normalize";
 import type {
   IeltsQuestionType,
   IeltsQuestionView,
@@ -27,9 +30,8 @@ import { LabelingRenderer } from "./questions/LabelingRenderer";
 import { MatchingRenderer } from "./questions/MatchingRenderer";
 import { MultiSelectRenderer } from "./questions/MultiSelectRenderer";
 import { SingleSelectRenderer } from "./questions/SingleSelectRenderer";
-import type {
-  IeltsRendererProps as ObjectiveRendererProps,
-} from "./questions/types";
+import type { IeltsRendererProps as ObjectiveRendererProps } from "./questions/types";
+import type { AssessmentMode } from "@/lib/ielts/assessment-mode";
 
 /**
  * Player context a registered task surface may need beyond the question itself —
@@ -38,6 +40,7 @@ import type {
  */
 export interface IeltsRendererContext {
   attemptId: string;
+  assessmentMode: AssessmentMode;
 }
 
 export interface IeltsRendererProps {
@@ -48,7 +51,9 @@ export interface IeltsRendererProps {
   context?: IeltsRendererContext;
 }
 
-export type IeltsQuestionRenderer = (props: IeltsRendererProps) => ReactElement | null;
+export type IeltsQuestionRenderer = (
+  props: IeltsRendererProps,
+) => ReactElement | null;
 
 const REGISTRY = new Map<IeltsQuestionType, IeltsQuestionRenderer>();
 
@@ -72,7 +77,9 @@ function coerceObjectiveAnswer(
 
   if (question.questionType === "mcq_multi") {
     const values = extractValues(value);
-    return values.length > 0 ? { values: { [DEFAULT_BLANK_ID]: values } } : null;
+    return values.length > 0
+      ? { values: { [DEFAULT_BLANK_ID]: values } }
+      : null;
   }
 
   const single = extractValue(value);
@@ -126,7 +133,9 @@ export function getIeltsQuestionRenderer(
   return REGISTRY.get(type) ?? FallbackQuestion;
 }
 
-export function isIeltsQuestionRendererRegistered(type: IeltsQuestionType): boolean {
+export function isIeltsQuestionRendererRegistered(
+  type: IeltsQuestionType,
+): boolean {
   return REGISTRY.has(type);
 }
 
@@ -165,7 +174,9 @@ function normalizeOptions(options: unknown): Choice[] {
     if (option && typeof option === "object") {
       const record = option as Record<string, unknown>;
       const value = String(record.value ?? record.id ?? record.key ?? index);
-      const label = String(record.label ?? record.text ?? record.value ?? value);
+      const label = String(
+        record.label ?? record.text ?? record.value ?? value,
+      );
       return { value, label };
     }
     return { value: String(index), label: String(index) };

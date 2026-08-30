@@ -21,6 +21,7 @@ import {
   Trophy,
   UserRound,
 } from "@/components/ui/icons";
+import { ProductIcon } from "@/components/ui/product-icon";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
@@ -35,6 +36,14 @@ import type { Profile } from "@/types/database";
 import type { AppLocale } from "@/lib/locale-switch";
 import type { Subject } from "@/lib/subject";
 
+export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
+  key: DashboardNavItem["key"] | "ielts_speaking";
+};
+
+function SpeakingRehearsalIcon({ className }: { className?: string }) {
+  return <ProductIcon name="micStage" weight="duotone" className={className} />;
+}
+
 const NAV_ICONS = {
   dashboard: Home,
   practice: Scale,
@@ -46,13 +55,14 @@ const NAV_ICONS = {
   analytics: UserRound,
   ielts_home: GraduationCap,
   ielts_learn: Compass,
+  ielts_speaking: SpeakingRehearsalIcon,
   ielts_library: BookOpen,
   ielts_assigned: ClipboardList,
   resources: BookOpenText,
 } as const;
 
 interface DashboardSidebarRailProps {
-  navItems: DashboardNavItem[];
+  navItems: DashboardSidebarNavItem[];
   referralCode: string | null;
   inviteReward: number;
   isAdmin: boolean;
@@ -78,7 +88,7 @@ export function DashboardSidebarRail({
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
 
-  const isActiveItem = (item: DashboardNavItem) => {
+  const isActiveItem = (item: DashboardSidebarNavItem) => {
     if (!item.href || item.status === "coming-soon") {
       return false;
     }
@@ -133,6 +143,10 @@ export function DashboardSidebarRail({
 
     if (item.key === "ielts_learn") {
       return pathname.startsWith("/ielts/learn");
+    }
+
+    if (item.key === "ielts_speaking") {
+      return pathname.startsWith("/ielts/speaking-rehearsal");
     }
 
     if (item.key === "ielts_library") {

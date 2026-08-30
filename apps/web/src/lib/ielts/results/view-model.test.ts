@@ -4,8 +4,22 @@ import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import type { AttemptResultsInput } from "./types";
 
 const conversions: BandConversionRow[] = [
-  { conversion_key: "default", skill: "listening", module: null, band: 7, raw_min: 30, raw_max: 31 },
-  { conversion_key: "default", skill: "reading", module: "academic", band: 6.5, raw_min: 27, raw_max: 29 },
+  {
+    conversion_key: "default",
+    skill: "listening",
+    module: null,
+    band: 7,
+    raw_min: 30,
+    raw_max: 31,
+  },
+  {
+    conversion_key: "default",
+    skill: "reading",
+    module: "academic",
+    band: 6.5,
+    raw_min: 27,
+    raw_max: 29,
+  },
 ];
 
 const input: AttemptResultsInput = {
@@ -83,11 +97,13 @@ assert.equal(vm.module, "academic");
 assert.equal(vm.overall.presentCount, 3);
 assert.equal(vm.overall.totalSkills, 4);
 assert.equal(vm.overall.isProvisional, true);
-// mean(7, 6.5, 7) = 6.833 -> 7.0
-assert.equal(vm.overall.band, 7);
+// A partial mean is never presented as the overall band.
+assert.equal(vm.overall.band, null);
 
 // Skill rows: writing scored from its task; speaking not attempted.
-const skillStatus = Object.fromEntries(vm.skills.map((s) => [s.skill, s.status]));
+const skillStatus = Object.fromEntries(
+  vm.skills.map((s) => [s.skill, s.status]),
+);
 assert.deepEqual(skillStatus, {
   listening: "scored",
   reading: "scored",
@@ -97,7 +113,10 @@ assert.deepEqual(skillStatus, {
 assert.equal(vm.skills.find((s) => s.skill === "writing")?.band, 7);
 
 // Breakdowns for the two objective skills.
-assert.deepEqual(vm.breakdowns.map((b) => b.skill), ["listening", "reading"]);
+assert.deepEqual(
+  vm.breakdowns.map((b) => b.skill),
+  ["listening", "reading"],
+);
 
 // Objective review present for listening.
 assert.equal(vm.objective.length, 1);

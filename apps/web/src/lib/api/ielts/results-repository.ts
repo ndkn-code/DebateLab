@@ -66,6 +66,29 @@ type QuestionRow = Pick<
   | "metadata"
   | "passage_id"
   | "listening_section_id"
+  | "order_index"
+>;
+type FrozenQuestionRow = Pick<
+  Tables<"ielts_attempt_question_blueprints">,
+  | "question_id"
+  | "question_type"
+  | "skill"
+  | "prompt"
+  | "group_instructions"
+  | "word_limit"
+  | "max_points"
+  | "options"
+  | "visual"
+  | "metadata"
+  | "passage_id"
+  | "listening_section_id"
+  | "question_order"
+  | "source_title"
+  | "source_body"
+  | "source_audio_asset_id"
+  | "source_audio_storage_path"
+  | "source_audio_version"
+  | "source_audio_status"
 >;
 type WritingRow = Pick<
   Tables<"writing_responses">,
@@ -117,6 +140,7 @@ type PublishedReview = {
   speaking_response_id: string | null;
   revision: number;
   reviewer_note: string | null;
+  criterion_feedback: unknown;
 };
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
@@ -257,7 +281,7 @@ function mapWritingTask(
   row: WritingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
-  teacherFeedback: string | null,
+  review: PublishedReview | undefined,
 ): ResultsWritingTask {
   return {
     questionId: row.question_id,
@@ -277,7 +301,8 @@ function mapWritingTask(
     modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
-    teacherFeedback,
+    teacherFeedback: review?.reviewer_note ?? null,
+    teacherCriterionFeedback: review?.criterion_feedback ?? {},
   };
 }
 
@@ -285,7 +310,7 @@ function mapSpeakingPart(
   row: SpeakingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
-  teacherFeedback: string | null,
+  review: PublishedReview | undefined,
 ): ResultsSpeakingPart {
   return {
     questionId: row.question_id,
@@ -303,20 +328,34 @@ function mapSpeakingPart(
     modelAnswer: key?.model_answer ?? null,
     phonemeReport: row.phoneme_report,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
-    teacherFeedback,
+    teacherFeedback: review?.reviewer_note ?? null,
+    teacherCriterionFeedback: review?.criterion_feedback ?? {},
   };
 }
 
-/** Service-role read of the secret keys (gated on proven ownership + status). */
-async function loadQuestionKeys(questionIds: string[]): Promise<KeyRow[]> {
+/** Service-role read of secret keys (gated on proven ownership + status). */
+async function loadQuestionKeys(params: {
+  questionIds: string[];
+  attemptId: string;
+  frozen: boolean;
+}): Promise<KeyRow[]> {
+  const { questionIds, attemptId, frozen } = params;
   if (questionIds.length === 0) return [];
   const admin = createTypedAdminClient();
-  const { data, error } = await admin
-    .from("ielts_question_keys")
-    .select(
-      "question_id, correct_answer, accept_variants, explanation_en, explanation_vi, model_answer, examiner_notes",
-    )
-    .in("question_id", questionIds);
+  const { data, error } = frozen
+    ? await admin
+        .from("ielts_attempt_question_keys")
+        .select(
+          "question_id, correct_answer, accept_variants, explanation_en, explanation_vi, model_answer, examiner_notes",
+        )
+        .eq("attempt_id", attemptId)
+        .in("question_id", questionIds)
+    : await admin
+        .from("ielts_question_keys")
+        .select(
+          "question_id, correct_answer, accept_variants, explanation_en, explanation_vi, model_answer, examiner_notes",
+        )
+        .in("question_id", questionIds);
   if (error) throw new Error(`loadAttemptResults(keys): ${error.message}`);
   return data ?? [];
 }
@@ -352,7 +391,21 @@ async function runAttemptReads(
   testId: string,
   attemptId: string,
   conversionKey: string,
+  frozen: boolean,
 ): Promise<AttemptReads> {
+  const questionRead = frozen
+    ? supabase
+        .from("ielts_attempt_question_blueprints")
+        .select(
+          "question_id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, question_order, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status",
+        )
+        .eq("attempt_id", attemptId)
+        .order("question_order")
+    : supabase
+        .from("ielts_questions")
+        .select(QUESTION_COLUMNS)
+        .eq("test_id", testId)
+        .order("order_index");
   const [
     bandScore,
     sections,
@@ -382,26 +435,26 @@ async function runAttemptReads(
       .from("ielts_question_responses")
       .select("question_id, response, is_correct, awarded_points")
       .eq("attempt_id", attemptId),
-    supabase
-      .from("ielts_questions")
-      .select(QUESTION_COLUMNS)
-      .eq("test_id", testId)
-      .order("order_index"),
+    questionRead,
     supabase
       .from("band_conversions")
       .select("conversion_key, skill, module, band, raw_min, raw_max")
       .in("conversion_key", [...new Set(["default", conversionKey])])
       .in("skill", ["listening", "reading"]),
-    supabase
-      .from("passages")
-      .select("id, title, body")
-      .eq("test_id", testId)
-      .order("order_index"),
-    supabase
-      .from("listening_sections")
-      .select("id, title, script")
-      .eq("test_id", testId)
-      .order("section_number"),
+    frozen
+      ? Promise.resolve({ data: [], error: null })
+      : supabase
+          .from("passages")
+          .select("id, title, body")
+          .eq("test_id", testId)
+          .order("order_index"),
+    frozen
+      ? Promise.resolve({ data: [], error: null })
+      : supabase
+          .from("listening_sections")
+          .select("id, title, script")
+          .eq("test_id", testId)
+          .order("section_number"),
     supabase
       .from("writing_responses")
       .select(WRITING_COLUMNS)
@@ -417,7 +470,7 @@ async function runAttemptReads(
       .maybeSingle(),
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
       .from("ielts_teacher_reviews")
-      .select("writing_response_id, speaking_response_id, revision, reviewer_note")
+      .select("writing_response_id, speaking_response_id, revision, reviewer_note, criterion_feedback")
       .eq("attempt_id", attemptId)
       .eq("status", "published")
       .order("published_at", { ascending: false }),
@@ -439,14 +492,53 @@ async function runAttemptReads(
       throw new Error(`loadAttemptResults: ${result.error.message}`);
   }
 
+  const questionRows = (questions.data ?? []) as Array<QuestionRow | FrozenQuestionRow>;
+  const frozenQuestions = frozen
+    ? (questionRows as FrozenQuestionRow[])
+    : [];
+  const mappedQuestions: QuestionRow[] = frozen
+    ? frozenQuestions.map((row) => ({
+        id: row.question_id,
+        question_type: row.question_type,
+        skill: row.skill,
+        prompt: row.prompt,
+        group_instructions: row.group_instructions,
+        word_limit: row.word_limit,
+        max_points: row.max_points,
+        options: row.options,
+        visual: row.visual,
+        metadata: row.metadata,
+        passage_id: row.passage_id,
+        listening_section_id: row.listening_section_id,
+        order_index: row.question_order,
+      }))
+    : (questionRows as QuestionRow[]);
+  const frozenPassages = new Map<string, PassageRow>();
+  const frozenListening = new Map<string, ListeningSectionRow>();
+  for (const row of frozenQuestions) {
+    if (row.passage_id && row.source_body !== null) {
+      frozenPassages.set(row.passage_id, {
+        id: row.passage_id,
+        title: row.source_title ?? "",
+        body: row.source_body,
+      });
+    }
+    if (row.listening_section_id && row.source_body !== null) {
+      frozenListening.set(row.listening_section_id, {
+        id: row.listening_section_id,
+        title: row.source_title,
+        script: row.source_body,
+      });
+    }
+  }
   return {
     bandScore: bandScore.data ?? null,
     sections: sections.data ?? [],
     responses: responses.data ?? [],
-    questions: questions.data ?? [],
+    questions: mappedQuestions,
     conversions: (conversions.data ?? []) as BandConversionRow[],
-    passages: passages.data ?? [],
-    listeningSections: listeningSections.data ?? [],
+    passages: frozen ? [...frozenPassages.values()] : passages.data ?? [],
+    listeningSections: frozen ? [...frozenListening.values()] : listeningSections.data ?? [],
     writing: writing.data ?? [],
     speaking: speaking.data ?? [],
     effectiveScore: (effectiveScore.data as Record<string, unknown> | null) ?? null,
@@ -478,7 +570,7 @@ export async function loadAttemptResults(
 
   const { data: attempt, error } = await supabase
     .from("ielts_attempts")
-    .select("id, user_id, test_id, module, status, submitted_at")
+    .select("id, user_id, test_id, module, status, submitted_at, blueprint_frozen_at")
     .eq("id", attemptId)
     .maybeSingle();
   if (error) throw new Error(`loadAttemptResults(attempt): ${error.message}`);
@@ -495,6 +587,7 @@ export async function loadAttemptResults(
     attempt.test_id,
     attemptId,
     resolveConversionKey(test?.metadata ?? null),
+    Boolean(attempt.blueprint_frozen_at),
   );
 
   const questionById = new Map(
@@ -504,7 +597,11 @@ export async function loadAttemptResults(
   const keys =
     attempt.status === "in_progress" || attempt.submitted_at === null
       ? []
-      : await loadQuestionKeys(reads.questions.map((question) => question.id));
+    : await loadQuestionKeys({
+        questionIds: reads.questions.map((question) => question.id),
+        attemptId,
+        frozen: Boolean(attempt.blueprint_frozen_at),
+      });
   const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
   const effective = projectEffectiveBands(
     reads.effectiveScore,
@@ -549,7 +646,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
     speakingParts: reads.speaking.map((row) =>
@@ -557,7 +654,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
   };

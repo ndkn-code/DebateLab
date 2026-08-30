@@ -115,14 +115,18 @@ assert.throws(() =>
   }),
 );
 
-// invalid: empty essay is rejected
-assert.throws(() =>
-  parseInput(CreateWritingResponseSchema, {
+// A blank task remains a real submitted exam response (practice UI prevents an
+// accidental blank coaching request, while Simulation must capture omissions).
+{
+  const input = parseInput(CreateWritingResponseSchema, {
     attemptId: "11111111-1111-4111-8111-111111111111",
     questionId: "22222222-2222-4222-8222-222222222222",
     essay: "",
-  }),
-);
+  });
+  const row = toWritingResponseInsert({ input, userId: "u-1", taskNumber: 1 });
+  assert.equal(row.word_count, 0);
+  assert.equal(row.essay, "");
+}
 
 // --- WS-3.2 speaking-response submission boundary ----------------------------
 // part number derives from the question type

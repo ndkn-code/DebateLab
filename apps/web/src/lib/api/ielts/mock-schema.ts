@@ -22,7 +22,7 @@ export type SectionActionInput = z.infer<typeof SectionActionSchema>;
 
 // Response envelopes are variform (per question type); cap the serialized size
 // so a forged client can't push an unbounded blob through the RPC.
-const MAX_RESPONSE_BYTES = 16 * 1024;
+const MAX_RESPONSE_BYTES = 64 * 1024;
 export const SaveResponseSchema = z.object({
   attemptId: z.string().uuid(),
   sectionId: z.string().uuid(),
@@ -38,6 +38,7 @@ export type SaveResponseInput = z.infer<typeof SaveResponseSchema>;
 
 export const SubmitAttemptSchema = z.object({
   attemptId: z.string().uuid(),
+  feedbackLanguage: z.enum(["en", "vi"]).default("en"),
 });
 export type SubmitAttemptInput = z.infer<typeof SubmitAttemptSchema>;
 

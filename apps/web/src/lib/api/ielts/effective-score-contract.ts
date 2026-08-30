@@ -1,4 +1,6 @@
-export type EffectiveScoreSource = "ai" | "teacher" | "mixed";
+import type { ScoreSource } from "@thinkfy/shared";
+
+export type EffectiveScoreSource = ScoreSource;
 
 export interface EffectiveBandProjection {
   listeningBand: number | null;
@@ -18,6 +20,22 @@ function band(row: ScoreRow, key: string): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+export function projectEffectiveScoreSource(
+  effective: ScoreRow,
+  source: ScoreRow,
+): EffectiveScoreSource {
+  if (
+    effective?.score_source === "teacher" ||
+    effective?.score_source === "mixed"
+  ) {
+    return "teacher_confirmed";
+  }
+  return band(source, "writing_band") !== null ||
+    band(source, "speaking_band") !== null
+    ? "ai_provisional"
+    : "objective";
+}
+
 /**
  * Prefer the materialized, teacher-aware score while preserving an AI-only
  * fallback for attempts created before the effective-score migration.
@@ -31,9 +49,12 @@ export function projectEffectiveBands(
   const readingBand = band(source, "reading_band");
   const writingBand = band(source, "writing_band");
   const speakingBand = band(source, "speaking_band");
-  const complete = [listeningBand, readingBand, writingBand, speakingBand].every(
-    (value) => value !== null,
-  );
+  const complete = [
+    listeningBand,
+    readingBand,
+    writingBand,
+    speakingBand,
+  ].every((value) => value !== null);
   const flagged = effective?.overall_is_provisional === true;
   return {
     listeningBand,
@@ -45,10 +66,6 @@ export function projectEffectiveBands(
       ? band(effective, "provisional_band")
       : band(ai, "overall_band"),
     overallIsProvisional: !complete || flagged,
-    scoreSource:
-      effective?.score_source === "teacher" ||
-      effective?.score_source === "mixed"
-        ? effective.score_source
-        : "ai",
+    scoreSource: projectEffectiveScoreSource(effective, source),
   };
 }

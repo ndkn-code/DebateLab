@@ -70,6 +70,22 @@ assert.equal(task1.essayParagraphs[0].feedback?.comment, "Clear intro");
 assert.equal(task1.essayParagraphs[0].corrections[0].suggestion, "are");
 assert.equal(task1.modelAnswer, "Band 9 rewrite.");
 
+// Published teacher criterion comments take precedence over AI rationale.
+const teacherProjected = buildWritingResult([
+  writingTask({
+    teacherCriterionFeedback: {
+      taskResponse: "Teacher: address the second part more directly.",
+    },
+    criteriaFeedback: {
+      criteria: { taskResponse: { rationale: "AI rationale." } },
+    },
+  }),
+]);
+assert.equal(
+  teacherProjected?.tasks[0].criteria[0].rationale,
+  "Teacher: address the second part more directly.",
+);
+
 // ---- Writing in progress: empty envelope degrades to nulls -----------------
 const scoring = buildWritingResult([
   writingTask({

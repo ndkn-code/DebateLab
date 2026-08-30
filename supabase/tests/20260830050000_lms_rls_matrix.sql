@@ -117,6 +117,25 @@ values
   ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-15', '2024-01-15 01:00+00', '2024-01-15 02:00+00', 'RLS A published', 'completed', '2024-01-10', '00000000-0000-0000-0000-000000000001'),
   ('00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-16', '2024-01-16 01:00+00', '2024-01-16 02:00+00', 'RLS A unpublished', 'scheduled', null, '00000000-0000-0000-0000-000000000001');
 
+-- Remove the learner after the first two Class A occurrences.  The trigger
+-- changes only those immutable snapshots to removed_after_occurrence.
+update public.class_memberships
+set status = 'removed', removed_at = '2024-02-01'
+where class_id = '00000000-0000-0000-0000-000000000201'
+  and user_id = '00000000-0000-0000-0000-000000000006'
+  and member_role = 'student';
+
+-- These rows are created after removal, so the removed learner is not in a
+-- future roster snapshot.
+insert into public.lms_lesson_occurrences (
+  id, club_id, class_id, course_id, lesson_id, occurrence_date,
+  starts_at, ends_at, title, status, published_at, created_by
+)
+values
+  ('00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2999-01-15', '2999-01-15 01:00+00', '2999-01-15 02:00+00', 'RLS A future', 'scheduled', '2024-01-10', '00000000-0000-0000-0000-000000000001'),
+  ('00000000-0000-0000-0000-000000000704', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-15', '2024-01-15 02:00+00', '2024-01-15 03:00+00', 'RLS B published', 'completed', '2024-01-10', '00000000-0000-0000-0000-000000000001'),
+  ('00000000-0000-0000-0000-000000000705', '00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-15', '2024-01-15 03:00+00', '2024-01-15 04:00+00', 'RLS Org B published', 'completed', '2024-01-10', '00000000-0000-0000-0000-000000000001');
+
 insert into public.lms_occurrence_assignments (occurrence_id, assignment_id, added_by)
 values
   ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000601', '00000000-0000-0000-0000-000000000001'),
@@ -144,25 +163,6 @@ values
   ('00000000-0000-0000-0000-000000000803', '00000000-0000-0000-0000-000000000005', 'present'),
   ('00000000-0000-0000-0000-000000000804', '00000000-0000-0000-0000-000000000007', 'present'),
   ('00000000-0000-0000-0000-000000000805', '00000000-0000-0000-0000-000000000008', 'present');
-
--- Remove the learner after the first two Class A occurrences.  The trigger
--- changes only those immutable snapshots to removed_after_occurrence.
-update public.class_memberships
-set status = 'removed', removed_at = '2024-02-01'
-where class_id = '00000000-0000-0000-0000-000000000201'
-  and user_id = '00000000-0000-0000-0000-000000000006'
-  and member_role = 'student';
-
--- These rows are created after removal, so the removed learner is not in a
--- future roster snapshot.
-insert into public.lms_lesson_occurrences (
-  id, club_id, class_id, course_id, lesson_id, occurrence_date,
-  starts_at, ends_at, title, status, published_at, created_by
-)
-values
-  ('00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2999-01-15', '2999-01-15 01:00+00', '2999-01-15 02:00+00', 'RLS A future', 'scheduled', '2024-01-10', '00000000-0000-0000-0000-000000000001'),
-  ('00000000-0000-0000-0000-000000000704', '00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-15', '2024-01-15 02:00+00', '2024-01-15 03:00+00', 'RLS B published', 'completed', '2024-01-10', '00000000-0000-0000-0000-000000000001'),
-  ('00000000-0000-0000-0000-000000000705', '00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000501', '2024-01-15', '2024-01-15 03:00+00', '2024-01-15 04:00+00', 'RLS Org B published', 'completed', '2024-01-10', '00000000-0000-0000-0000-000000000001');
 
 -- One published criterion-feedback row exercises the private source-table
 -- policy and the learner-visible published projection.
@@ -197,8 +197,7 @@ values (
 -- predicates.  Some local migration snapshots intentionally revoke their
 -- direct Data API grants, so provide the minimal predicate privileges only
 -- inside this rolled-back fixture; RLS remains the authorization boundary.
-grant select on public.class_memberships, public.class_attendance_sessions
-  to authenticated;
+grant select on public.class_memberships to authenticated;
 
 -- Every matrix read is made through the role/payload path used by PostgREST.
 set local role authenticated;
@@ -244,8 +243,8 @@ select is((select count(*)::integer from public.lms_lesson_occurrences), 2, 'Act
 select is((select count(*)::integer from public.lms_occurrence_assignments), 2, 'Active Class A student sees only published Class A assignment links');
 select is((select count(*)::integer from public.club_assignments), 1, 'Active Class A student sees only Class A assignment metadata');
 select is((select count(*)::integer from public.lms_occurrence_roster_snapshots), 3, 'Active student sees own snapshots only');
-select is((select count(*)::integer from public.class_attendance_sessions), 3, 'Active Class A student sees Class A attendance sessions');
-select is((select count(*)::integer from public.class_attendance_records), 3, 'Active student sees own Class A attendance rows only');
+select is((select count(*)::integer from public.class_attendance_sessions), 2, 'Active Class A student sees published Class A attendance sessions');
+select is((select count(*)::integer from public.class_attendance_records), 2, 'Active student sees own published Class A attendance rows only');
 select is((select count(*)::integer from public.ielts_teacher_reviews where status = 'published'), 1, 'Active student sees own published teacher feedback');
 
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000006';
@@ -253,8 +252,8 @@ select is((select count(*)::integer from public.lms_lesson_occurrences), 1, 'Rem
 select is((select count(*)::integer from public.lms_occurrence_assignments), 1, 'Removed student sees only historical published assignment link');
 select is((select count(*)::integer from public.club_assignments), 1, 'Removed student sees historical Class A assignment metadata');
 select is((select count(*)::integer from public.lms_occurrence_roster_snapshots), 2, 'Removed student sees own historical snapshots only');
-select is((select count(*)::integer from public.class_attendance_sessions), 2, 'Removed student sees sessions with historical own attendance');
-select is((select count(*)::integer from public.class_attendance_records), 2, 'Removed student sees own historical attendance rows only');
+select is((select count(*)::integer from public.class_attendance_sessions), 1, 'Removed student sees only published historical attendance sessions');
+select is((select count(*)::integer from public.class_attendance_records), 1, 'Removed student sees only own published historical attendance rows');
 select is((select count(*)::integer from public.ielts_teacher_reviews where status = 'published'), 0, 'Removed student cannot see another learner teacher feedback');
 
 rollback;

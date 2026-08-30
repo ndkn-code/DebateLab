@@ -47,10 +47,20 @@ function skillRow(
   derived: DerivedSkillBands,
 ): SkillBandRow {
   if (skill === "listening") {
-    return rowFor(skill, input.listeningBand, input.listeningRaw, objectiveStatus(input.listeningRaw));
+    return rowFor(
+      skill,
+      input.listeningBand,
+      input.listeningRaw,
+      objectiveStatus(input.listeningRaw),
+    );
   }
   if (skill === "reading") {
-    return rowFor(skill, input.readingBand, input.readingRaw, objectiveStatus(input.readingRaw));
+    return rowFor(
+      skill,
+      input.readingBand,
+      input.readingRaw,
+      objectiveStatus(input.readingRaw),
+    );
   }
   if (skill === "writing") {
     return rowFor(skill, derived.writingBand, null, derived.writingStatus);
@@ -99,11 +109,13 @@ export function buildOverallSummary(
     speaking: inTest.has("speaking") ? derived.speakingBand : null,
   });
   const totalSkills = input.skillsInTest.length;
+  const isProvisional =
+    result.presentCount < totalSkills || result.isProvisional;
   return {
-    band: result.band,
+    band: isProvisional ? null : result.band,
     presentCount: result.presentCount,
     totalSkills,
-    isProvisional: result.presentCount < totalSkills || result.isProvisional,
+    isProvisional,
   };
 }
 

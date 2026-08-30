@@ -15,7 +15,12 @@ import { z } from "zod";
 import type { TablesInsert, TablesUpdate } from "@/types/supabase";
 import { JsonSchema } from "./json";
 
-export const IELTS_SKILLS = ["listening", "reading", "writing", "speaking"] as const;
+export const IELTS_SKILLS = [
+  "listening",
+  "reading",
+  "writing",
+  "speaking",
+] as const;
 export const IELTS_MODULES = ["academic", "general_training"] as const;
 export const IELTS_TEST_KINDS = ["full_mock", "skill_set", "drill"] as const;
 export const IELTS_CONTENT_STATUSES = [
@@ -132,7 +137,8 @@ export function toIeltsTestUpdate(
   if (input.timeLimitSeconds !== undefined) {
     patch.time_limit_seconds = input.timeLimitSeconds ?? null;
   }
-  if (input.description !== undefined) patch.description = input.description ?? null;
+  if (input.description !== undefined)
+    patch.description = input.description ?? null;
   if (input.metadata !== undefined) patch.metadata = input.metadata;
   return patch;
 }
@@ -148,9 +154,7 @@ export const IELTS_WRITING_QUESTION_TYPES = [
 ] as const;
 
 /** Task number a writing question type maps to (Task 2 counts double). */
-export function writingTaskNumberForQuestionType(
-  questionType: string,
-): 1 | 2 {
+export function writingTaskNumberForQuestionType(questionType: string): 1 | 2 {
   return questionType === "writing_task2_essay" ? 2 : 1;
 }
 
@@ -163,7 +167,10 @@ export function countEssayWords(essay: string): number {
 export const CreateWritingResponseSchema = z.object({
   attemptId: z.string().uuid(),
   questionId: z.string().uuid(),
-  essay: z.string().min(1).max(20_000),
+  // A learner may legitimately leave an exam task blank. Practice UI still
+  // requires text before an explicit AI-coaching request, while Simulation
+  // records the frozen blank response so completion cannot silently skip it.
+  essay: z.string().max(20_000),
   feedbackLanguage: z.enum(IELTS_FEEDBACK_LANGUAGES).default("en"),
 });
 export type CreateWritingResponseInput = z.infer<

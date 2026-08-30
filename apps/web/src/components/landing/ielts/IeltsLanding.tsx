@@ -1,14 +1,16 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  BookOpen,
-  Clock3,
-  MessageCircle,
-  PenLine,
-  Target,
-  Volume2,
-} from "@/components/ui/icons";
+  ProductIcon,
+  type ProductIconName,
+} from "@/components/ui/product-icon";
 import { IELTS_LANDING_COPY, type IeltsLandingLocale } from "./copy";
+
+const SKILL_ICONS: readonly ProductIconName[] = [
+  "volume",
+  "book",
+  "penLine",
+  "messageCircle",
+];
 
 export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
   const c = IELTS_LANDING_COPY[locale];
@@ -43,7 +45,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 type-label font-semibold text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {c.primary}
-              <ArrowRight className="size-4" />
+              <ProductIcon name="arrowRight" size="sm" weight="bold" />
             </Link>
           </div>
           <p className="mt-3 type-label text-on-surface-variant">{c.note}</p>
@@ -51,7 +53,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
         <div className="rounded-xl border border-outline-variant bg-surface-container-low p-5 shadow-token-card">
           <div className="flex items-center justify-between border-b border-outline-variant pb-4">
             <div className="flex items-center gap-2">
-              <Target className="size-5 text-primary" />
+              <ProductIcon name="target" size="md" className="text-primary" />
               <span className="type-label font-semibold">Your IELTS path</span>
             </div>
             <span className="rounded-full bg-primary-container px-2.5 py-1 type-label font-semibold text-on-primary-container">
@@ -98,7 +100,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
                 className="rounded-xl border border-outline-variant bg-surface p-5"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <BookOpen className="size-5 text-primary" />
+                  <ProductIcon name="book" size="md" className="text-primary" />
                   <span className="type-label text-on-surface-variant">
                     {item.tag}
                   </span>
@@ -127,9 +129,17 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
             >
               <div className="flex items-center gap-3">
                 {i === 0 ? (
-                  <Clock3 className="size-5 text-primary" />
+                  <ProductIcon
+                    name="clock"
+                    size="md"
+                    className="text-primary"
+                  />
                 ) : (
-                  <Target className="size-5 text-primary" />
+                  <ProductIcon
+                    name="target"
+                    size="md"
+                    className="text-primary"
+                  />
                 )}
                 <h3 className="type-title font-bold">{title}</h3>
               </div>
@@ -146,11 +156,11 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
               key={skill}
               className="flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-3 type-label font-semibold"
             >
-              {[Volume2, BookOpen, PenLine, MessageCircle][i] &&
-                (() => {
-                  const Icon = [Volume2, BookOpen, PenLine, MessageCircle][i];
-                  return <Icon className="size-4 text-primary" />;
-                })()}
+              <ProductIcon
+                name={SKILL_ICONS[i]}
+                size="sm"
+                className="text-primary"
+              />
               {skill}
             </div>
           ))}

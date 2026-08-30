@@ -14,7 +14,14 @@ const conv = (
   band: number,
   raw_min: number,
   raw_max: number,
-): BandConversionRow => ({ conversion_key: "default", skill, module, band, raw_min, raw_max });
+): BandConversionRow => ({
+  conversion_key: "default",
+  skill,
+  module,
+  band,
+  raw_min,
+  raw_max,
+});
 
 const conversions: BandConversionRow[] = [
   conv("listening", null, 9, 39, 40),
@@ -74,12 +81,18 @@ assert.deepEqual(
 );
 
 // in_progress writing surfaces on the row.
-const progressing = buildSkillBandRows(input({}), { ...partial, writingStatus: "in_progress" });
-assert.equal(progressing.find((r) => r.skill === "writing")?.status, "in_progress");
+const progressing = buildSkillBandRows(input({}), {
+  ...partial,
+  writingStatus: "in_progress",
+});
+assert.equal(
+  progressing.find((r) => r.skill === "writing")?.status,
+  "in_progress",
+);
 
 // ---- Overall: provisional until all four land ------------------------------
 assert.deepEqual(buildOverallSummary(input({}), partial), {
-  band: 7,
+  band: null,
   presentCount: 2,
   totalSkills: 4,
   isProvisional: true,
@@ -91,10 +104,17 @@ assert.deepEqual(buildOverallSummary(input({}), full), {
   totalSkills: 4,
   isProvisional: false,
 });
-// Reading-only skill_set: overall is just that skill, still provisional.
+// Reading-only skill set exposes its skill band, never a partial overall.
 assert.deepEqual(
-  buildOverallSummary(input({ skillsInTest: ["reading"], listeningRaw: null, listeningBand: null }), partial),
-  { band: 7, presentCount: 1, totalSkills: 1, isProvisional: true },
+  buildOverallSummary(
+    input({
+      skillsInTest: ["reading"],
+      listeningRaw: null,
+      listeningBand: null,
+    }),
+    partial,
+  ),
+  { band: null, presentCount: 1, totalSkills: 1, isProvisional: true },
 );
 
 // ---- Raw→band breakdown ----------------------------------------------------
@@ -122,7 +142,9 @@ assert.equal(reading.rows.find((r) => r.isLearnerRow)?.band, 7);
 
 // No objective skills sat -> no breakdowns.
 assert.deepEqual(
-  buildBandBreakdowns(input({ skillsInTest: ["writing"], listeningRaw: null, readingRaw: null })),
+  buildBandBreakdowns(
+    input({ skillsInTest: ["writing"], listeningRaw: null, readingRaw: null }),
+  ),
   [],
 );
 

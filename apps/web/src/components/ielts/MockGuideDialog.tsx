@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MockPreTestGuide } from "./MockPreTestGuide";
+import {
+  IELTS_PLAYER_EXPERIENCE_COPY,
+  type IeltsPlayerLocale,
+} from "./player-experience";
+import { useIeltsPlayerExperience } from "./player-experience-context";
+import { useLocale } from "next-intl";
 
 export function MockGuideDialog({
   open,
@@ -17,7 +22,11 @@ export function MockGuideDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const t = useTranslations("ielts.player.exam");
+  const currentLocale = useLocale();
+  const locale: IeltsPlayerLocale = currentLocale === "vi" ? "vi" : "en";
+  const experience = useIeltsPlayerExperience();
+  const copy = IELTS_PLAYER_EXPERIENCE_COPY[locale][experience];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -26,11 +35,16 @@ export function MockGuideDialog({
       >
         <DialogHeader className="border-b border-outline-variant px-4 py-4 pr-12 sm:px-5">
           <DialogTitle className="text-base font-bold text-on-surface">
-            {t("guideLabel")}
+            {copy.guideTitle}
           </DialogTitle>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
-          <MockPreTestGuide showHeading={false} className="shadow-none" />
+          <MockPreTestGuide
+            showHeading={false}
+            className="shadow-none"
+            experience={experience}
+            locale={locale}
+          />
         </div>
         <DialogFooter className="mx-0 mb-0 rounded-none border-t border-outline-variant bg-surface px-4 py-3 sm:px-5">
           <button
@@ -38,7 +52,7 @@ export function MockGuideDialog({
             onClick={() => onOpenChange(false)}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
           >
-            {t("gotIt")}
+            {copy.guideClose}
           </button>
         </DialogFooter>
       </DialogContent>
