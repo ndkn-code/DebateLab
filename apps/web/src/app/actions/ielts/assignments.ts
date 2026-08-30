@@ -12,6 +12,7 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import { IELTS_ASSESSMENT_MODES_V1, IELTS_ENABLED } from "@/lib/features";
 import { requireClassManager } from "@/lib/api/class-manager-access";
 import { buildMockBlueprint } from "@/lib/ielts/mock-blueprint";
+import { canStartIeltsAssessment } from "@/lib/ielts/assessment-mode";
 import {
   ArchiveIeltsAssignmentSchema,
   AssignIeltsMockSchema,
@@ -80,14 +81,19 @@ export async function archiveIeltsAssignment(raw: unknown): Promise<void> {
  * the attempt is stamped with the club / class / assignment for the teacher view.
  */
 export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptState> {
-  if (!IELTS_ENABLED || !IELTS_ASSESSMENT_MODES_V1) {
-    throw new Error("IELTS assessment is not available.");
-  }
   const input = parseInput(StartAssignedAttemptSchema, raw);
   const resolved = await resolveAssignmentForStart(input.assignmentId);
 
   const structure = await loadMockStructure(resolved.testId);
   if (!structure) throw new Error("Test not available");
+  if (
+    !canStartIeltsAssessment(structure.test.assessment_mode, {
+      ieltsEnabled: IELTS_ENABLED,
+      assessmentModesEnabled: IELTS_ASSESSMENT_MODES_V1,
+    })
+  ) {
+    throw new Error("IELTS assessment is not available.");
+  }
 
   const skillsWithContent = await getSkillsWithContent(resolved.testId);
   const blueprint = buildMockBlueprint({

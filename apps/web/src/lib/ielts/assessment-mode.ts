@@ -3,6 +3,27 @@ import type { IeltsSkill } from "./mock-blueprint";
 
 export type { AssessmentMode } from "@thinkfy/shared";
 
+export interface IeltsAssessmentReleaseGates {
+  ieltsEnabled: boolean;
+  assessmentModesEnabled: boolean;
+}
+
+/**
+ * Practice is part of the base IELTS product and must remain startable when
+ * the product is enabled. The assessment-modes rollout flag only unlocks the
+ * stricter Simulation engine; otherwise a visible Practice card can render
+ * successfully and then fail every start request in production.
+ */
+export function canStartIeltsAssessment(
+  mode: AssessmentMode,
+  gates: IeltsAssessmentReleaseGates,
+): boolean {
+  return (
+    gates.ieltsEnabled &&
+    (mode === "practice" || gates.assessmentModesEnabled)
+  );
+}
+
 export const SIMULATION_SKILL_ORDER: readonly IeltsSkill[] = [
   "listening",
   "reading",

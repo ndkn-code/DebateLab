@@ -13,6 +13,7 @@ import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/supabase";
 import { IELTS_ASSESSMENT_MODES_V1, IELTS_ENABLED } from "@/lib/features";
 import { buildMockBlueprint } from "@/lib/ielts/mock-blueprint";
+import { canStartIeltsAssessment } from "@/lib/ielts/assessment-mode";
 import {
   SaveResponseSchema,
   SectionActionSchema,
@@ -33,8 +34,15 @@ import { enqueueWritingResponseForScoring } from "@/lib/ielts/writing-scorer/ser
 
 type SessionClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
-function requireNewAttemptsEnabled(): void {
-  if (!IELTS_ENABLED || !IELTS_ASSESSMENT_MODES_V1) {
+function requireNewAttemptsEnabled(
+  assessmentMode: "practice" | "simulation",
+): void {
+  if (
+    !canStartIeltsAssessment(assessmentMode, {
+      ieltsEnabled: IELTS_ENABLED,
+      assessmentModesEnabled: IELTS_ASSESSMENT_MODES_V1,
+    })
+  ) {
     throw new Error("IELTS assessment is not available.");
   }
 }
@@ -60,12 +68,12 @@ async function ownAttemptState(attemptId: string): Promise<AttemptState> {
 
 /** Begin a sitting of a test: build the timed-section blueprint and persist it. */
 export async function startMockAttempt(raw: unknown): Promise<AttemptState> {
-  requireNewAttemptsEnabled();
   const input = parseInput(StartMockAttemptSchema, raw);
   const { userId } = await requireSession();
 
   const structure = await loadMockStructure(input.testId);
   if (!structure) throw new Error("Test not available");
+  requireNewAttemptsEnabled(structure.test.assessment_mode);
 
   const skillsWithContent = await getSkillsWithContent(input.testId);
   const blueprint = buildMockBlueprint({

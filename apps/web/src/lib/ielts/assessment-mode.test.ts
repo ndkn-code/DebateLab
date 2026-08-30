@@ -1,10 +1,43 @@
 import assert from "node:assert/strict";
 import {
+  canStartIeltsAssessment,
   assessmentModeForTestKind,
   assessmentModePolicy,
   SIMULATION_SKILL_ORDER,
   SIMULATION_TIME_LIMITS,
 } from "./assessment-mode";
+
+assert.equal(
+  canStartIeltsAssessment("practice", {
+    ieltsEnabled: true,
+    assessmentModesEnabled: false,
+  }),
+  true,
+  "Practice remains available when the IELTS product is on",
+);
+assert.equal(
+  canStartIeltsAssessment("simulation", {
+    ieltsEnabled: true,
+    assessmentModesEnabled: false,
+  }),
+  false,
+  "Simulation stays fail-closed behind its rollout flag",
+);
+assert.equal(
+  canStartIeltsAssessment("simulation", {
+    ieltsEnabled: true,
+    assessmentModesEnabled: true,
+  }),
+  true,
+);
+assert.equal(
+  canStartIeltsAssessment("practice", {
+    ieltsEnabled: false,
+    assessmentModesEnabled: true,
+  }),
+  false,
+  "The product-level IELTS flag remains authoritative",
+);
 
 assert.equal(assessmentModeForTestKind("full_mock"), "simulation");
 assert.equal(assessmentModeForTestKind("skill_set"), "practice");
