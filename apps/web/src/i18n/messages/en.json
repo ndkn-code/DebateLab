@@ -2042,10 +2042,15 @@
         "delivered": "Delivered",
         "opened": "Opened",
         "clicked": "Clicked",
+        "queued": "Queued",
+        "delayed": "Delayed",
+        "bounced": "Bounced",
+        "complained": "Complained",
+        "notReported": "Not reported by this response",
         "deliveryRate": "Delivery rate",
         "openRate": "Open rate",
         "clickRate": "Click rate",
-        "risk": "Bounced, failed, or suppressed"
+        "risk": "Bounced, complained, failed, or suppressed"
       },
       "notices": {
         "saved": "Draft saved.",

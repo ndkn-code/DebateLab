@@ -127,6 +127,7 @@ export interface EmailTemplateVariables {
   oneClickUnsubscribeUrl?: string;
   supportEmail?: string;
   secondaryNote?: string;
+  whyReceived?: string;
 }
 
 export interface RenderedEmail {

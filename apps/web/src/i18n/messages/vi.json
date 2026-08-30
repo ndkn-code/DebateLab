@@ -2042,10 +2042,15 @@
         "delivered": "Đã nhận",
         "opened": "Đã mở",
         "clicked": "Đã nhấp",
+        "queued": "Đang chờ",
+        "delayed": "Bị trễ",
+        "bounced": "Bị trả lại",
+        "complained": "Bị báo cáo",
+        "notReported": "Phản hồi này chưa cung cấp số liệu",
         "deliveryRate": "Tỷ lệ nhận",
         "openRate": "Tỷ lệ mở",
         "clickRate": "Tỷ lệ nhấp",
-        "risk": "Trả lại, lỗi hoặc chặn"
+        "risk": "Trả lại, báo cáo, lỗi hoặc chặn"
       },
       "notices": {
         "saved": "Đã lưu bản nháp.",

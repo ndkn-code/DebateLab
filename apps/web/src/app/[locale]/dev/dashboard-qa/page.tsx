@@ -14,6 +14,7 @@ import type {
 import type { PracticeTrack } from "@/types/feedback";
 import { ProtectedShell } from "../../(protected)/protected-shell";
 import { DevQaToolbar, devQaActiveChipClass, devQaChipClass } from "../dev-v2";
+import type { NotificationInboxSnapshot } from "@/components/notifications/contracts";
 
 type DashboardQaState =
   | "normal"
@@ -63,6 +64,59 @@ function makeDate(daysAgo: number) {
   const date = new Date("2026-05-18T12:00:00.000Z");
   date.setDate(date.getDate() - daysAgo);
   return date.toISOString();
+}
+
+function makeNotificationInbox(locale: string): NotificationInboxSnapshot {
+  const vi = locale === "vi";
+  const now = new Date();
+  const earlier = new Date(now.getTime() - 86_400_000 * 2);
+  return {
+    unreadCount: 2,
+    events: [
+      {
+        id: "qa-feedback",
+        topic: "teacher_feedback",
+        messageClass: "optional",
+        title: vi ? "Giáo viên đã công bố phản hồi" : "Teacher feedback published",
+        body: vi
+          ? "Bài Writing Task 2 đã có nhận xét và bước luyện tiếp theo."
+          : "Your Writing Task 2 review and next step are ready.",
+        createdAt: now.toISOString(),
+        readAt: null,
+        deepLink: "/ielts/assigned",
+        objectType: "assignment",
+        objectId: "qa-writing-task-2",
+      },
+      {
+        id: "qa-class",
+        topic: "class_updates",
+        messageClass: "optional",
+        title: vi ? "Lịch lớp đã thay đổi" : "Class schedule changed",
+        body: vi
+          ? "Buổi luyện thứ Năm bắt đầu lúc 18:30."
+          : "Thursday practice now starts at 6:30 PM.",
+        createdAt: now.toISOString(),
+        readAt: null,
+        deepLink: "/ielts/classes",
+        objectType: "class",
+        objectId: "qa-class",
+      },
+      {
+        id: "qa-practice",
+        topic: "practice",
+        messageClass: "optional",
+        title: vi ? "Kế hoạch hôm nay đã sẵn sàng" : "Today’s plan is ready",
+        body: vi
+          ? "Một bài luyện nói 10 phút đang chờ bạn."
+          : "A focused 10-minute speaking drill is waiting.",
+        createdAt: earlier.toISOString(),
+        readAt: earlier.toISOString(),
+        deepLink: "/practice",
+        objectType: "plan",
+        objectId: "qa-plan",
+      },
+    ],
+  };
 }
 
 function makeRecommendedDrill(
@@ -373,8 +427,10 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
 }
 
 export default async function Page({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ state?: string | string[] }>;
 }) {
   const host = (await headers()).get("host") ?? "";
@@ -383,11 +439,13 @@ export default async function Page({
   }
 
   const state = getQaState((await searchParams).state);
+  const { locale } = await params;
   return (
     <ProtectedShell
       profile={QA_PROFILE}
       userEmail={QA_PROFILE.email}
       userId={QA_USER_ID}
+      notificationInbox={makeNotificationInbox(locale)}
     >
       <div className="border-b border-border bg-surface px-4 py-2 sm:px-6">
         <DevQaToolbar label="Dashboard fixture">
