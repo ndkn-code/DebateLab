@@ -56,10 +56,11 @@ function storageObjectMetadata(value: unknown) {
 }
 
 export async function createMaterialIngest(client: RequestClient, input: MaterialIngestInput, actorId: string) {
+  const admin = createAdminClient();
   const materialId = randomUUID();
   const versionId = randomUUID();
   const idempotencyKey = `lms-material:${input.clubId}:${actorId}:${input.idempotencyKey}`;
-  const existing = await findVersionByIdempotency(client, idempotencyKey);
+  const existing = await findVersionByIdempotency(admin, idempotencyKey);
   if (existing) {
     return { materialId: existing.material_id, versionId: existing.id, status: existing.status, upload: null, replay: true };
   }
@@ -69,7 +70,7 @@ export async function createMaterialIngest(client: RequestClient, input: Materia
   });
   let version;
   try {
-    version = await insertMaterialAndVersion(client, {
+    version = await insertMaterialAndVersion(admin, {
       materialId, versionId, clubId: input.clubId, scopeClassId: input.scopeClassId ?? null,
       actorId, title: input.title, description: input.description ?? null,
       rightsBasis: input.rights.basis, rightsSourceUrl: input.rights.sourceUrl ?? null, rightsHolder: input.rights.rightsHolder ?? null, licenseUrl: input.rights.licenseUrl ?? null, rightsNotes: input.rights.notes ?? null,
@@ -79,7 +80,7 @@ export async function createMaterialIngest(client: RequestClient, input: Materia
   } catch (error) {
     // The database unique constraint is the concurrency winner. A second
     // caller re-reads it instead of creating another reservation or charge.
-    const winner = await findVersionByIdempotency(client, idempotencyKey);
+    const winner = await findVersionByIdempotency(admin, idempotencyKey);
     if (winner) return { materialId: winner.material_id, versionId: winner.id, status: winner.status, upload: null, replay: true };
     throw error;
   }
@@ -92,14 +93,14 @@ export async function createMaterialIngest(client: RequestClient, input: Materia
 }
 
 export async function finalizeMaterialIngest(client: RequestClient, ingestionId: string, expectedSha256?: string) {
-  const version = await getVersion(client, ingestionId);
+  const admin = createAdminClient();
+  const version = await getVersion(admin, ingestionId);
   if (!version) throw new Error("Material ingestion not found.");
   await requireMaterialManager(client, version.material_id);
   if (version.status === "ready" || version.status === "queued" || version.status === "converting") return version;
   if (version.status !== "uploading" && version.status !== "failed") throw new Error("Material ingestion cannot be finalized in its current state.");
   if (!version.ingest_path) throw new Error("Material upload path is missing.");
 
-  const admin = createAdminClient();
   const objectResult = await admin.schema("storage").from("objects").select("name, owner, owner_id, metadata").eq("bucket_id", MATERIAL_BUCKETS.ingest).eq("name", version.ingest_path).maybeSingle();
   if (objectResult.error) throw new Error(objectResult.error.message);
   const object = storageObjectMetadata(objectResult.data);
@@ -118,9 +119,9 @@ export async function finalizeMaterialIngest(client: RequestClient, ingestionId:
     upsert: false,
   });
   if (copy.error && !copy.error.message.toLowerCase().includes("already exists")) throw new Error(copy.error.message);
-  const queued = await markVersionQueued(client, version.id, actualSha256);
-  if (!queued) return (await getVersion(client, version.id)) ?? version;
-  await client.from("lms_material_versions").update({ original_bucket: MATERIAL_BUCKETS.originals, original_path: originalPath, ingest_bucket: null, ingest_path: null, updated_at: new Date().toISOString() }).eq("id", version.id);
+  const queued = await markVersionQueued(admin, version.id, actualSha256);
+  if (!queued) return (await getVersion(admin, version.id)) ?? version;
+  await admin.from("lms_material_versions").update({ original_bucket: MATERIAL_BUCKETS.originals, original_path: originalPath, ingest_bucket: null, ingest_path: null, updated_at: new Date().toISOString() }).eq("id", version.id);
   await admin.storage.from(MATERIAL_BUCKETS.ingest).remove([version.ingest_path]);
   return { ...queued, original_bucket: MATERIAL_BUCKETS.originals, original_path: originalPath, ingest_bucket: null, ingest_path: null };
 }

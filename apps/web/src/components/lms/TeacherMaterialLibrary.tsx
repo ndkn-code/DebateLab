@@ -40,6 +40,7 @@ import {
   publishSharedLmsMaterial,
   withdrawSharedLmsMaterial,
 } from "@/app/actions/shared-lms-materials";
+import { finalizeLmsMaterialUpload } from "@/app/actions/lms-material-pipeline";
 
 type StatusFilter = "all" | "in_progress" | "review" | "published" | "failed";
 
@@ -632,6 +633,9 @@ export function TeacherMaterialLibrary({
                         body: payload,
                       });
                       if (!response.ok) throw new Error("material_upload_failed");
+                      await finalizeLmsMaterialUpload({
+                        ingestionId: reservation.versionId,
+                      });
                       setMessage(
                         vi
                           ? "Đã tải lên; tài liệu đang được xử lý."
@@ -802,8 +806,8 @@ export function TeacherMaterialLibrary({
                     setMessage(null);
                     try {
                       await placeSharedLmsMaterial({
-                        resourceId: workflowMaterial.materialId,
-                        resourceVersionId: workflowMaterial.versionId,
+                        materialId: workflowMaterial.materialId,
+                        versionId: workflowMaterial.versionId,
                         targetType: target.type,
                         [`${target.type}Id`]: target.id,
                         status: placementMode,

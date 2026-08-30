@@ -9,7 +9,7 @@ import {
 } from "./material-contracts";
 
 const clubId = "00000000-0000-4000-8000-000000000001";
-const resourceId = "00000000-0000-4000-8000-000000000002";
+const materialId = "00000000-0000-4000-8000-000000000002";
 const versionId = "00000000-0000-4000-8000-000000000003";
 const classId = "00000000-0000-4000-8000-000000000004";
 const assignmentId = "00000000-0000-4000-8000-000000000005";
@@ -44,8 +44,8 @@ assert.equal(
 );
 
 const placement = {
-  resourceId,
-  resourceVersionId: versionId,
+  materialId,
+  versionId,
   targetType: "class",
   classId,
   status: "published",
@@ -95,7 +95,7 @@ assert.equal(
         title: "Unit 1",
         blocks: [
           { id: "heading-1", type: "heading", level: 1, text: "Friends abroad" },
-          { id: "page-1", type: "page_preview", renditionId: resourceId, pageNumber: 1, alt: "Unit title slide" },
+          { id: "page-1", type: "page_preview", renditionId: materialId, pageNumber: 1, alt: "Unit title slide" },
         ],
       },
     ],

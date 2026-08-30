@@ -36,7 +36,7 @@ const audienceCommandSchema = z.object({ placementId: z.string().uuid(), classId
 const ruleCommandSchema = z.object({ placementId: z.string().uuid(), rules: z.array(materialAccessRuleSchema).max(20) }).strict();
 const rightsCommandSchema = z.object({ materialId: z.string().uuid(), versionId: z.string().uuid(), ...materialRightsInputSchema.shape }).strict();
 const learnerWeekSchema = z.object({ classId: z.string().uuid().optional(), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict();
-const materialVersionSchema = z.object({ materialId: z.string().uuid(), versionId: z.string().uuid() }).strict();
+const materialPublishSchema = z.object({ materialId: z.string().uuid(), placementId: z.string().uuid() }).strict();
 
 export async function prepareSharedMaterialUpload(raw: unknown) {
   const input = parseInput(materialUploadInputSchema, raw);
@@ -86,15 +86,15 @@ export async function approveSharedMaterialRights(raw: unknown) {
 }
 
 export async function publishSharedLmsMaterial(raw: unknown) {
-  const input = parseInput(materialVersionSchema, raw);
-  const result = await publishSharedMaterial(input.materialId, input.versionId);
+  const input = parseInput(materialPublishSchema, raw);
+  const result = await publishSharedMaterial(input.materialId, input.placementId);
   revalidatePath("/dashboard/teacher/materials");
   return result;
 }
 
 export async function withdrawSharedLmsMaterial(raw: unknown) {
-  const input = parseInput(z.object({ materialId: z.string().uuid(), placementId: z.string().uuid() }).strict(), raw);
-  const result = await withdrawSharedMaterial(input.materialId, input.placementId);
+  const input = parseInput(z.object({ placementId: z.string().uuid(), reason: z.string().trim().min(1).max(2_000) }).strict(), raw);
+  const result = await withdrawSharedMaterial(input.placementId, input.reason);
   revalidatePath("/dashboard/teacher/materials");
   return result;
 }

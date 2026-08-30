@@ -331,18 +331,18 @@ export async function prepareSharedMaterialUpload(input: unknown, client?: RpcCl
   return { materialId, versionId, bucketId, storagePath, mimeType, sizeBytes } satisfies MaterialUploadReservation;
 }
 
-export async function publishSharedMaterial(materialId: string, versionId: string, client?: RpcClient) {
-  const db = await rpcClient(client);
-  const parsed = z.object({ materialId: z.string().uuid(), versionId: z.string().uuid() }).safeParse({ materialId, versionId });
-  if (!parsed.success) throw new Error("Invalid material version.");
-  return invoke(db, SHARED_MATERIAL_RPCS.publish, { p_material_id: materialId, p_version_id: versionId });
-}
-
-export async function withdrawSharedMaterial(materialId: string, placementId: string, client?: RpcClient) {
+export async function publishSharedMaterial(materialId: string, placementId: string, client?: RpcClient) {
   const db = await rpcClient(client);
   const parsed = z.object({ materialId: z.string().uuid(), placementId: z.string().uuid() }).safeParse({ materialId, placementId });
   if (!parsed.success) throw new Error("Invalid material placement.");
-  return invoke(db, SHARED_MATERIAL_RPCS.withdraw, { p_material_id: materialId, p_placement_id: placementId });
+  return invoke(db, SHARED_MATERIAL_RPCS.publish, { p_material_id: materialId, p_placement_id: placementId });
+}
+
+export async function withdrawSharedMaterial(placementId: string, reason: string, client?: RpcClient) {
+  const db = await rpcClient(client);
+  const parsed = z.object({ placementId: z.string().uuid(), reason: z.string().trim().min(1).max(2_000) }).safeParse({ placementId, reason });
+  if (!parsed.success) throw new Error("Invalid material placement.");
+  return invoke(db, SHARED_MATERIAL_RPCS.withdraw, { p_placement_id: placementId, p_reason: parsed.data.reason });
 }
 
 export async function placeSharedMaterial(input: unknown, client?: RpcClient) {

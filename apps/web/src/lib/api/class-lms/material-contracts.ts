@@ -148,8 +148,8 @@ export const materialAccessRuleSchema = z.discriminatedUnion("kind", [
 
 export const materialPlacementInputSchema = z
   .object({
-    resourceId: uuid,
-    resourceVersionId: uuid,
+    materialId: uuid,
+    versionId: uuid,
     targetType: z.enum(MATERIAL_TARGET_TYPES),
     courseId: uuid.nullable().optional(),
     classId: uuid.nullable().optional(),

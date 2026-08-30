@@ -1,4 +1,5 @@
 import { TeacherMaterialLibrary } from "@/components/lms/TeacherMaterialLibrary";
+import { notFound } from "next/navigation";
 import type {
   LearnerMaterialProjection,
   TeacherMaterialSummary,
@@ -131,6 +132,7 @@ export default async function MaterialsQaPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
+  if (process.env.NODE_ENV === "production") notFound();
   const { locale } = await params;
   return (
     <TeacherMaterialLibrary

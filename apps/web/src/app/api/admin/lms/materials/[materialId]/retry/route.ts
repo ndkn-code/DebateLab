@@ -4,6 +4,7 @@ import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-a
 import { materialRetrySchema } from "@/lib/api/class-lms/material-pipeline/contracts";
 import { getVersion, markVersionQueued } from "@/lib/api/class-lms/material-pipeline/repository";
 import { enqueueMaterialProcessing } from "@/lib/queues/lms-materials";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { materialId } = await params;
     const input = materialRetrySchema.parse(await request.json());
-    const version = await getVersion(auth.supabase, input.versionId);
+    const admin = createAdminClient();
+    const version = await getVersion(admin, input.versionId);
     if (!version || version.material_id !== materialId) return NextResponse.json({ error: "Material version not found." }, { status: 404 });
     const material = await auth.supabase.from("lms_materials").select("id, club_id, scope_class_id").eq("id", materialId).maybeSingle();
     if (material.error) throw new Error(material.error.message);
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if ("clubId" in actor && actor.clubId !== material.data.club_id) throw new Error("Material class does not belong to its organisation.");
     const key = `lms-material:${material.data.club_id}:${actor.userId}:${input.idempotencyKey}`;
     if (version.status !== "failed" || !version.original_path) return NextResponse.json({ ok: false, error: "Only retryable conversion failures can be retried." }, { status: 409 });
-    const queued = await markVersionQueued(auth.supabase, version.id, version.checksum_sha256 ?? "");
+    const queued = await markVersionQueued(admin, version.id, version.checksum_sha256 ?? "");
     if (!queued) return NextResponse.json({ ok: true, versionId: version.id, status: version.status, replay: true });
     await enqueueMaterialProcessing({ materialId, versionId: queued.id, idempotencyKey: key });
     return NextResponse.json({ ok: true, versionId: queued.id, status: queued.status, replay: false });
