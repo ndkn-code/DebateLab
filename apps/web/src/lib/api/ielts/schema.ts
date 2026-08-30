@@ -13,6 +13,7 @@
  */
 import { z } from "zod";
 import type { TablesInsert, TablesUpdate } from "@/types/supabase";
+import { JsonSchema } from "./json";
 
 export const IELTS_SKILLS = ["listening", "reading", "writing", "speaking"] as const;
 export const IELTS_MODULES = ["academic", "general_training"] as const;
@@ -25,6 +26,7 @@ export const IELTS_CONTENT_STATUSES = [
   "archived",
 ] as const;
 export const IELTS_ACCENTS = ["uk", "us", "aus", "other"] as const;
+const MetadataSchema = z.record(z.string(), JsonSchema).default({});
 
 /**
  * The complete IELTS question-type taxonomy (mirrors the `ielts_question_type`
@@ -69,6 +71,7 @@ export const CreateIeltsTestSchema = z
     status: z.enum(IELTS_CONTENT_STATUSES).default("draft"),
     timeLimitSeconds: z.number().int().positive().nullish(),
     description: z.string().max(2000).nullish(),
+    metadata: MetadataSchema,
   })
   // Mirrors the DB CHECK (kind <> 'full_mock' or skill is null).
   .refine((v) => v.kind !== "full_mock" || v.skill == null, {
@@ -91,6 +94,7 @@ export function toIeltsTestInsert(
     status: input.status,
     time_limit_seconds: input.timeLimitSeconds ?? null,
     description: input.description ?? null,
+    metadata: input.metadata,
   };
 }
 
@@ -107,6 +111,7 @@ export const UpdateIeltsTestSchema = z
     skill: z.enum(IELTS_SKILLS).nullish(),
     timeLimitSeconds: z.number().int().positive().nullish(),
     description: z.string().max(2000).nullish(),
+    metadata: MetadataSchema.optional(),
   })
   .refine((v) => v.kind !== "full_mock" || v.skill == null, {
     message: "full_mock tests must not set a skill",
@@ -128,6 +133,7 @@ export function toIeltsTestUpdate(
     patch.time_limit_seconds = input.timeLimitSeconds ?? null;
   }
   if (input.description !== undefined) patch.description = input.description ?? null;
+  if (input.metadata !== undefined) patch.metadata = input.metadata;
   return patch;
 }
 

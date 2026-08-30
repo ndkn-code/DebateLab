@@ -46,6 +46,17 @@ export function questionCategory(type: IeltsQuestionType): QuestionCategory {
 type Add = (path: string, message: string) => void;
 
 const StringOrList = z.union([z.string(), z.array(z.string())]);
+const BlankValuePayload = z.union([z.string(), z.array(z.string())]);
+const CorrectAnswerPayload = z.union([
+  z.string(),
+  z.array(z.string()),
+  z.record(z.string(), BlankValuePayload),
+]);
+const AcceptVariantsPayload = z.union([
+  z.string(),
+  z.array(z.string()),
+  z.record(z.string(), z.array(z.string())),
+]);
 
 const MetadataSchema = z
   .record(z.string(), JsonSchema)
@@ -67,8 +78,8 @@ const BaseQuestion = z.object({
   wordLimit: z.number().int().positive().max(100).nullish(),
   visual: VisualSchema.nullish(),
   metadata: MetadataSchema,
-  correctAnswer: StringOrList.optional(),
-  acceptVariants: StringOrList.optional(),
+  correctAnswer: CorrectAnswerPayload.optional(),
+  acceptVariants: AcceptVariantsPayload.optional(),
   explanationEn: z.string().max(8000).nullish(),
   explanationVi: z.string().max(8000).nullish(),
   modelAnswer: z.string().max(20000).nullish(),
@@ -93,7 +104,7 @@ export interface NormalizedQuestionInput {
   visual: IeltsVisual | null;
   metadata: Record<string, Json>;
   correctAnswer: Json;
-  acceptVariants: string[];
+  acceptVariants: Json;
   explanationEn: string | null;
   explanationVi: string | null;
   modelAnswer: string | null;
@@ -107,6 +118,10 @@ export type NormalizedQuestionUpdate = NormalizedQuestionInput & {
 function toStringArray(value: string | string[] | undefined): string[] {
   if (value == null) return [];
   return Array.isArray(value) ? dedupeStrings(value) : splitPipeList(value);
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function validateConsistency(v: BaseQuestionInput, add: Add): void {
@@ -150,10 +165,26 @@ function requireToken(
 
 function normalizeCorrectAnswer(
   type: IeltsQuestionType,
-  raw: string | string[] | undefined,
+  raw: z.infer<typeof CorrectAnswerPayload> | undefined,
   add: Add,
 ): Json {
   if (questionCategory(type) !== "objective") return {};
+  if (isPlainRecord(raw)) {
+    const out: Record<string, string | string[]> = {};
+    for (const [blankId, value] of Object.entries(raw)) {
+      const cleanId = normalizeWhitespace(blankId);
+      if (!cleanId) continue;
+      if (Array.isArray(value)) {
+        out[cleanId] = dedupeStrings(value.map(normalizeWhitespace).filter(Boolean));
+      } else {
+        out[cleanId] = normalizeWhitespace(value);
+      }
+    }
+    if (Object.keys(out).length === 0) {
+      add("correctAnswer", `${type} requires a correct answer`);
+    }
+    return out as Json;
+  }
   if (type === "mcq_multi") {
     const arr = toStringArray(raw);
     if (arr.length === 0) add("correctAnswer", "mcq_multi needs at least one correct option");
@@ -170,6 +201,21 @@ function normalizeCorrectAnswer(
   }
   if (single.length === 0) add("correctAnswer", `${type} requires a correct answer`);
   return single;
+}
+
+function normalizeAcceptVariants(
+  raw: z.infer<typeof AcceptVariantsPayload> | undefined,
+): Json {
+  if (isPlainRecord(raw)) {
+    const out: Record<string, string[]> = {};
+    for (const [blankId, values] of Object.entries(raw)) {
+      const cleanId = normalizeWhitespace(blankId);
+      if (!cleanId || !Array.isArray(values)) continue;
+      out[cleanId] = dedupeStrings(values.map(normalizeWhitespace).filter(Boolean));
+    }
+    return out as Json;
+  }
+  return toStringArray(raw) as Json;
 }
 
 function trimToNull(value: string | null | undefined): string | null {
@@ -213,7 +259,7 @@ function normalizeQuestion(
     visual: v.visual ?? null,
     metadata: v.metadata,
     correctAnswer,
-    acceptVariants: toStringArray(v.acceptVariants),
+    acceptVariants: normalizeAcceptVariants(v.acceptVariants),
     explanationEn: trimToNull(v.explanationEn),
     explanationVi: trimToNull(v.explanationVi),
     modelAnswer: trimToNull(v.modelAnswer),

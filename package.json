@@ -37,6 +37,8 @@
     "test:ielts-lms-pilot": "npm run test:ielts-lms-pilot -w @thinkfy/web",
     "test:ielts-adaptive-contracts": "npm run test:ielts-adaptive-contracts -w @thinkfy/web",
     "test:ielts-writing-scorer": "npm run test:ielts-writing-scorer -w @thinkfy/web",
+    "ielts:gt:verify": "tsx --tsconfig apps/web/tsconfig.json scripts/ielts/verify-general-training-mocks.ts",
+    "ielts:gt:import": "tsx --tsconfig apps/web/tsconfig.json scripts/ielts/import-general-training-mocks.ts",
     "test:payments": "npm run test:payments -w @thinkfy/web",
     "test:coverage:critical": "npm run test:coverage:critical -w @thinkfy/web",
     "ci:checks": "tsx scripts/ci/run-checks.ts",

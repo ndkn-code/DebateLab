@@ -24,6 +24,10 @@ import {
   const input = parseInput(CreateIeltsTestSchema, {
     slug: "academic-mock-1",
     title: "Academic Mock 1",
+    metadata: {
+      band_conversion_key: "general_training",
+      provenance: { sourceBook: "Original Authoring" },
+    },
   });
   const row = toIeltsTestInsert(input);
   assert.equal(row.slug, "academic-mock-1");
@@ -32,6 +36,10 @@ import {
   assert.equal(row.status, "draft"); // default
   assert.equal(row.skill, null);
   assert.equal(row.time_limit_seconds, null);
+  assert.deepEqual(row.metadata, {
+    band_conversion_key: "general_training",
+    provenance: { sourceBook: "Original Authoring" },
+  });
 }
 
 // skill_set may carry a skill, and it round-trips into the insert row

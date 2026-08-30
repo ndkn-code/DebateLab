@@ -90,6 +90,27 @@ assert.throws(() =>
   assert.equal(q.wordLimit, 2);
 }
 
+// multi-blank object keys are preserved for matching/completion renderers
+{
+  const q = parseInput(CreateIeltsQuestionSchema, {
+    testId: TID,
+    skill: "reading",
+    questionType: "matching_features",
+    prompt: "Match each policy with the correct department.",
+    options: "Bookings|Payroll|Safety",
+    metadata: {
+      items: [
+        { id: "q1", text: "Handles overtime claims." },
+        { id: "q2", text: "Issues visitor passes." },
+      ],
+    },
+    correctAnswer: { q1: "1", q2: "2" },
+    acceptVariants: { q1: ["payroll"], q2: ["safety"] },
+  });
+  assert.deepEqual(q.correctAnswer, { q1: "1", q2: "2" });
+  assert.deepEqual(q.acceptVariants, { q1: ["payroll"], q2: ["safety"] });
+}
+
 // writing: no objective answer, model + examiner notes retained
 {
   const q = parseInput(CreateIeltsQuestionSchema, {
