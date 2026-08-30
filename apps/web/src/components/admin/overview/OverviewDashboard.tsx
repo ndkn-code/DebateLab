@@ -18,12 +18,12 @@ interface Props {
 
 const TrendChart = dynamic(
   () => import("./TrendChart").then((mod) => mod.TrendChart),
-  { ssr: false }
+  { ssr: false },
 );
 
 const ApiUsageChart = dynamic(
   () => import("./ApiUsageChart").then((mod) => mod.ApiUsageChart),
-  { ssr: false }
+  { ssr: false },
 );
 
 export function OverviewDashboard({ initialData }: Props) {
@@ -51,9 +51,13 @@ export function OverviewDashboard({ initialData }: Props) {
   useEffect(() => {
     const channel = supabase
       .channel("admin-sessions")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_sessions" }, () => {
-        refreshOnline();
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_sessions" },
+        () => {
+          refreshOnline();
+        },
+      )
       .subscribe();
 
     // Auto-refresh every 30s
@@ -66,7 +70,10 @@ export function OverviewDashboard({ initialData }: Props) {
   }, [supabase, refreshOnline]);
 
   const handleDateRange = (range: "7d" | "30d" | "90d") => {
-    posthog.capture("admin_overview_date_range_changed", { from: dateRange, to: range });
+    posthog.capture("admin_overview_date_range_changed", {
+      from: dateRange,
+      to: range,
+    });
     setDateRange(range);
   };
 
@@ -76,19 +83,35 @@ export function OverviewDashboard({ initialData }: Props) {
   const filteredSessions = data.session_trend.slice(-days);
   const rangeOptions = (["7d", "30d", "90d"] as const).map((range) => ({
     value: range,
-    label: t(range === "7d" ? "last7Days" : range === "30d" ? "last30Days" : "last90Days"),
+    label: t(
+      range === "7d"
+        ? "last7Days"
+        : range === "30d"
+          ? "last30Days"
+          : "last90Days",
+    ),
   }));
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <div className="mx-auto w-full max-w-[1680px] space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-outline-variant/70 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
-          <h1 className="type-heading-lg mt-1 font-medium text-on-surface">{t("title")}</h1>
-          <p className="mt-1 text-sm text-on-surface-variant">{t("subtitle")}</p>
+          <p className="type-eyebrow text-secondary">
+            {adminT("groups.operations")}
+          </p>
+          <h1 className="type-heading-lg mt-1 font-semibold tracking-tight text-on-surface">
+            {t("title")}
+          </h1>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            {t("subtitle")}
+          </p>
         </div>
-        <SegmentedRange value={dateRange} onChange={handleDateRange} options={rangeOptions} />
+        <SegmentedRange
+          value={dateRange}
+          onChange={handleDateRange}
+          options={rangeOptions}
+        />
       </div>
 
       {/* Stat cards */}
@@ -134,13 +157,21 @@ export function OverviewDashboard({ initialData }: Props) {
       <GlobalMap geoData={data.geo_distribution} />
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TrendChart title={t("userGrowth")} data={filteredGrowth} color="var(--chart-line-primary)" />
-        <TrendChart title={t("sessionTrend")} data={filteredSessions} color="var(--chart-line-secondary)" />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <TrendChart
+          title={t("userGrowth")}
+          data={filteredGrowth}
+          color="var(--chart-line-primary)"
+        />
+        <TrendChart
+          title={t("sessionTrend")}
+          data={filteredSessions}
+          color="var(--chart-line-secondary)"
+        />
       </div>
 
       {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <PopularCoursesList courses={data.popular_courses} />
         <ApiUsageChart data={data.api_usage} />
       </div>

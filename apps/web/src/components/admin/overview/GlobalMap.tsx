@@ -32,7 +32,7 @@ export function GlobalMap({ geoData }: Props) {
 
   if (geoData.length === 0) {
     return (
-      <ChartCard title="Global Users" bodyClassName="h-[300px]">
+      <ChartCard title="Global Users" bodyClassName="h-32">
         <ChartEmpty title="No geo data available yet" />
       </ChartCard>
     );

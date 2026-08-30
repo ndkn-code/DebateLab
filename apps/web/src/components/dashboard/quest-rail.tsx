@@ -143,8 +143,8 @@ function ReadinessCard({
   const streakValue = `${topBar.currentStreak} ${t("days")}`;
 
   return (
-    <RailCard testId="dashboard-level-card" className="p-3.5">
-      <div className="space-y-3">
+    <RailCard testId="dashboard-level-card" className="p-3">
+      <div className="space-y-2.5">
         <SignalRow
           icon={
             <SignalIcon tone="blue">
@@ -154,7 +154,7 @@ function ReadinessCard({
           label={t("today_goal_title")}
           value={goalValue}
         >
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1 flex items-center gap-2">
             <div
               className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-container-high"
               role="progressbar"
@@ -200,7 +200,7 @@ function ReadinessCard({
           detail={`${topBar.xpCurrent} / ${topBar.xpGoal} XP`}
         >
           <div
-            className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
+            className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={xpGoalMax}
@@ -236,7 +236,7 @@ function ReadinessCard({
           value={streakValue}
         >
           <div
-            className="mt-2 flex items-center gap-1.5"
+            className="mt-1.5 flex items-center gap-1.5"
             aria-label={t("active_days_this_week", { count: activeDays })}
           >
             {recentDays.map((entry) => {
@@ -373,14 +373,14 @@ function DailyQuestsCard({
   ];
 
   return (
-    <RailCard testId="dashboard-daily-quests" className="flex flex-col">
+    <RailCard testId="dashboard-daily-quests" className="flex flex-col p-3">
       <div className="flex items-center justify-between">
         <p className="type-body font-extrabold text-on-surface">
           {t("quests_title")}
         </p>
         <Zap className="h-[18px] w-[18px] text-reward" />
       </div>
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-2.5 flex flex-col gap-2.5">
         {quests.map((quest, index) => (
           <QuestRow key={quest.id} quest={quest} index={index} />
         ))}

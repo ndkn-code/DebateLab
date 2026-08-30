@@ -67,7 +67,10 @@ function useScrollBoundaryLock<T extends HTMLElement>() {
     const isAtTop = () => node.scrollTop <= 0;
     const isAtBottom = () =>
       Math.ceil(node.scrollTop + node.clientHeight) >= node.scrollHeight;
-    const canNestedScrollerMove = (target: EventTarget | null, deltaY: number) => {
+    const canNestedScrollerMove = (
+      target: EventTarget | null,
+      deltaY: number,
+    ) => {
       if (!(target instanceof HTMLElement)) return false;
 
       let current: HTMLElement | null = target;
@@ -168,7 +171,6 @@ export function ProtectedShell({
   const isPracticeSession = pathname?.includes("/practice/session");
   const isIeltsMock = pathname?.includes("/ielts/mock/");
   const isImmersive = isPracticeSession || isIeltsMock;
-  const isDashboardHome = /^\/[a-z]{2}\/dashboard\/?$/.test(pathname ?? "");
   const seasonReplayDismissalKey = useMemo(() => {
     if (!seasonReplayOutcome) return null;
     return getSeasonReplayDismissalKey(userId, seasonReplayOutcome);
@@ -247,12 +249,8 @@ export function ProtectedShell({
   }
 
   return (
-    <div
-      className={`thinkfy-v2-shell fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden overscroll-none bg-background p-0 md:p-3 ${
-        isDashboardHome ? "lg:p-4" : "lg:p-8 xl:p-12"
-      }`}
-    >
-      <div className="thinkfy-v2-app-frame relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-border bg-surface lg:flex-row">
+    <div className="thinkfy-v2-shell fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden overscroll-none bg-background p-0">
+      <div className="thinkfy-v2-app-frame relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface lg:flex-row">
         <Sidebar
           profile={profile}
           userEmail={userEmail}

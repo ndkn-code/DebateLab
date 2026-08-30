@@ -67,7 +67,8 @@ interface Props {
 const STATUS_BADGE_CLASS: Record<SupportReportStatus, string> = {
   new: "border-warning/25 bg-warning-container text-on-warning-container",
   triaged: "border-info/25 bg-info-container text-info",
-  in_progress: "border-primary/25 bg-primary-container text-on-primary-container",
+  in_progress:
+    "border-primary/25 bg-primary-container text-on-primary-container",
   resolved: "border-success/25 bg-success-container text-success-dim",
   closed: "border-outline-variant bg-surface-container text-on-surface-variant",
 };
@@ -117,7 +118,7 @@ function statusLabel(status: SupportReportStatus) {
 function shiftStatusCount(
   counts: Record<SupportReportStatus, number>,
   previous: SupportReportStatus,
-  next: SupportReportStatus
+  next: SupportReportStatus,
 ) {
   if (previous === next) return counts;
   return {
@@ -133,7 +134,7 @@ function StatusPill({ status }: { status: SupportReportStatus }) {
     <span
       className={cn(
         "inline-flex h-6 w-fit items-center gap-1.5 rounded-full border px-2 text-xs font-semibold",
-        STATUS_BADGE_CLASS[status]
+        STATUS_BADGE_CLASS[status],
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -157,7 +158,7 @@ function TextBadge({
           ? "border-error/20 bg-error-container text-error-dim"
           : tone === "source"
             ? "border-info/20 bg-info-container text-info"
-            : "border-outline-variant bg-surface-container text-on-surface-variant"
+            : "border-outline-variant bg-surface-container text-on-surface-variant",
       )}
     >
       <span className="truncate">{children}</span>
@@ -183,7 +184,7 @@ function FilterChip({
         "h-8 max-w-full rounded-full border px-3 text-xs font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98]",
         active
           ? "border-primary/25 bg-primary text-on-primary shadow-sm shadow-primary/20"
-          : "border-outline-variant/40 bg-background text-on-surface-variant hover:border-primary/30 hover:bg-primary-container"
+          : "border-outline-variant/40 bg-background text-on-surface-variant hover:border-primary/30 hover:bg-primary-container",
       )}
     >
       <span className="block truncate">{children}</span>
@@ -209,7 +210,10 @@ function FilterGroup({
         {label}
       </div>
       <div className="flex flex-wrap gap-2">
-        <FilterChip active={activeValue === "all"} onClick={() => onSelect("all")}>
+        <FilterChip
+          active={activeValue === "all"}
+          onClick={() => onSelect("all")}
+        >
           All
         </FilterChip>
         {values.map((value) => (
@@ -251,7 +255,7 @@ function DetailField({
       <div
         className={cn(
           "text-sm text-on-surface",
-          multiline ? "whitespace-pre-wrap leading-relaxed" : "truncate"
+          multiline ? "whitespace-pre-wrap leading-relaxed" : "truncate",
         )}
       >
         {value || "-"}
@@ -271,10 +275,12 @@ function ReportRow({
     <button
       type="button"
       onClick={onSelect}
-      className="grid w-full grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] items-center gap-3 border-b border-outline-variant/15 px-4 py-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container/60 hover:shadow-sm active:scale-[0.998]"
+      className="grid w-full grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] items-center gap-3 border-b border-outline-variant/20 px-4 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-surface-container/60 active:scale-[0.998]"
     >
       <div className="min-w-0">
-        <div className="truncate font-semibold text-on-surface">{report.title}</div>
+        <div className="truncate font-semibold text-on-surface">
+          {report.title}
+        </div>
         <div className="mt-1 flex flex-wrap gap-1.5">
           <TextBadge>{titleCase(report.issueType)}</TextBadge>
           <TextBadge tone="severity">{titleCase(report.severity)}</TextBadge>
@@ -327,7 +333,9 @@ function ReportCard({
       <div className="mt-4 grid gap-2 text-xs text-on-surface-variant">
         <div className="flex min-w-0 items-center gap-2">
           <User className="h-4 w-4 text-primary" />
-          <span className="truncate">{report.userEmail ?? "Unknown sender"}</span>
+          <span className="truncate">
+            {report.userEmail ?? "Unknown sender"}
+          </span>
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <Globe className="h-4 w-4 text-primary" />
@@ -365,7 +373,9 @@ function DetailDrawer({
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill status={report.status} />
                 <TextBadge>{titleCase(report.issueType)}</TextBadge>
-                <TextBadge tone="severity">{titleCase(report.severity)}</TextBadge>
+                <TextBadge tone="severity">
+                  {titleCase(report.severity)}
+                </TextBadge>
                 <TextBadge tone="source">{titleCase(report.source)}</TextBadge>
               </div>
               <SheetTitle className="mt-3 text-xl font-bold text-on-surface">
@@ -409,12 +419,18 @@ function DetailDrawer({
                 <DetailField label="Locale" value={report.locale} />
                 <DetailField label="Route" value={report.route} />
                 <DetailField label="Source" value={report.source} />
-                <DetailField label="Contact permission" value={report.contactPermission} />
+                <DetailField
+                  label="Contact permission"
+                  value={report.contactPermission}
+                />
                 <DetailField
                   label="Submitted"
                   value={formatDateTime(report.submittedAt ?? report.createdAt)}
                 />
-                <DetailField label="Updated" value={formatDateTime(report.updatedAt)} />
+                <DetailField
+                  label="Updated"
+                  value={formatDateTime(report.updatedAt)}
+                />
               </section>
 
               <section className="grid gap-3">
@@ -437,10 +453,19 @@ function DetailDrawer({
 
               <section className="grid gap-3 md:grid-cols-2">
                 <DetailField label="Tally event" value={report.tallyEventId} />
-                <DetailField label="Tally response" value={report.tallyResponseId} />
-                <DetailField label="Tally submission" value={report.tallySubmissionId} />
+                <DetailField
+                  label="Tally response"
+                  value={report.tallyResponseId}
+                />
+                <DetailField
+                  label="Tally submission"
+                  value={report.tallySubmissionId}
+                />
                 <DetailField label="Tally form" value={report.tallyFormId} />
-                <DetailField label="Tally form name" value={report.tallyFormName} />
+                <DetailField
+                  label="Tally form name"
+                  value={report.tallyFormName}
+                />
               </section>
 
               <section className="space-y-3">
@@ -456,13 +481,17 @@ function DetailDrawer({
                           ? attachment.name
                           : `Attachment ${index + 1}`;
                       const url =
-                        typeof attachment.url === "string" ? attachment.url : null;
+                        typeof attachment.url === "string"
+                          ? attachment.url
+                          : null;
                       return (
                         <div
                           key={`${label}-${index}`}
                           className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-outline-variant/25 bg-background px-3 py-2 text-sm"
                         >
-                          <span className="truncate text-on-surface">{label}</span>
+                          <span className="truncate text-on-surface">
+                            {label}
+                          </span>
                           {url && (
                             <a
                               href={url}
@@ -494,7 +523,9 @@ function DetailDrawer({
               </section>
 
               <section className="space-y-3">
-                <div className="text-sm font-bold text-on-surface">Hidden fields</div>
+                <div className="text-sm font-bold text-on-surface">
+                  Hidden fields
+                </div>
                 <JsonBlock value={report.hiddenFields} />
               </section>
 
@@ -531,7 +562,7 @@ export function SupportReportsDashboard({ data }: Props) {
 
   const selectedReport = useMemo(
     () => reports.find((report) => report.id === selectedReportId) ?? null,
-    [reports, selectedReportId]
+    [reports, selectedReportId],
   );
   const kpis = useMemo(() => {
     const summary = buildSupportReportStatusSummaryFromCounts(statusCounts);
@@ -545,7 +576,9 @@ export function SupportReportsDashboard({ data }: Props) {
     else next.set(key, value);
 
     const qs = next.toString();
-    router.push(qs ? `/dashboard/admin/reports?${qs}` : "/dashboard/admin/reports");
+    router.push(
+      qs ? `/dashboard/admin/reports?${qs}` : "/dashboard/admin/reports",
+    );
   }
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -561,11 +594,11 @@ export function SupportReportsDashboard({ data }: Props) {
     setPendingReportId(id);
     setReports((current) =>
       current.map((report) =>
-        report.id === id ? { ...report, status: nextStatus } : report
-      )
+        report.id === id ? { ...report, status: nextStatus } : report,
+      ),
     );
     setStatusCounts((current) =>
-      shiftStatusCount(current, previous.status, nextStatus)
+      shiftStatusCount(current, previous.status, nextStatus),
     );
 
     startTransition(async () => {
@@ -575,19 +608,21 @@ export function SupportReportsDashboard({ data }: Props) {
           status: nextStatus,
         });
         setReports((current) =>
-          current.map((report) => (report.id === id ? updated : report))
+          current.map((report) => (report.id === id ? updated : report)),
         );
         toast.success("Report status updated");
         router.refresh();
       } catch (error) {
         setReports((current) =>
-          current.map((report) => (report.id === id ? previous : report))
+          current.map((report) => (report.id === id ? previous : report)),
         );
         setStatusCounts((current) =>
-          shiftStatusCount(current, nextStatus, previous.status)
+          shiftStatusCount(current, nextStatus, previous.status),
         );
         toast.error(
-          error instanceof Error ? error.message : "Unable to update report status"
+          error instanceof Error
+            ? error.message
+            : "Unable to update report status",
         );
       } finally {
         setPendingReportId(null);
@@ -604,11 +639,13 @@ export function SupportReportsDashboard({ data }: Props) {
 
   return (
     <PageTransition className="min-h-full bg-background text-on-surface-variant">
-      <header className="border-b border-outline-variant bg-surface px-5 py-5 md:px-7">
+      <header className="border-b border-outline-variant/70 bg-background px-5 py-4 md:px-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
-            <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
+            <p className="type-eyebrow text-secondary">
+              {adminT("groups.operations")}
+            </p>
+            <h1 className="type-heading-lg mt-1 font-semibold tracking-tight text-on-surface">
               Question / Bug Reports
             </h1>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -628,7 +665,7 @@ export function SupportReportsDashboard({ data }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1440px] space-y-5 px-5 py-5 md:px-7 lg:py-7">
+      <main className="mx-auto w-full max-w-[1680px] space-y-4 px-5 py-4 md:px-7 lg:py-5">
         {data.loadError && (
           <div className="rounded-lg border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
             {data.loadError}
@@ -656,7 +693,7 @@ export function SupportReportsDashboard({ data }: Props) {
 
         <FadeInItem>
           <ChartCard
-            className="rounded-lg"
+            className="rounded-[10px] border border-outline-variant/50 shadow-none"
             title="Report filters"
             actions={
               <Badge variant="outline" className="h-6">
@@ -716,7 +753,7 @@ export function SupportReportsDashboard({ data }: Props) {
 
         <FadeInItem>
           <ChartCard
-            className="rounded-lg"
+            className="rounded-[10px] border border-outline-variant/50 shadow-none"
             title="Triage queue"
             actions={
               <div className="flex items-center gap-2">
@@ -744,7 +781,7 @@ export function SupportReportsDashboard({ data }: Props) {
             {reports.length ? (
               <>
                 <div className="hidden overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest md:block">
-                  <div className="grid min-w-[980px] grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] gap-3 border-b border-outline-variant/20 bg-surface-container px-4 py-2 type-caption font-semibold uppercase text-on-surface-variant">
+                  <div className="grid min-w-[980px] grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] gap-3 border-b border-outline-variant/30 bg-surface-container px-4 py-2 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
                     <div>Report</div>
                     <div>Sender</div>
                     <div>Source</div>

@@ -5,9 +5,9 @@ export type PageContainerSize = "focused" | "standard" | "wide" | "data";
 
 export const pageContainerSizeClassName: Record<PageContainerSize, string> = {
   focused: "max-w-3xl",
-  standard: "max-w-5xl 2xl:max-w-[1504px]",
-  wide: "max-w-6xl 2xl:max-w-[1680px]",
-  data: "max-w-7xl 2xl:max-w-[1800px]",
+  standard: "max-w-5xl 2xl:max-w-[1504px] 3xl:max-w-[1720px]",
+  wide: "max-w-6xl 2xl:max-w-[1680px] 3xl:max-w-[1960px]",
+  data: "max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px]",
 };
 
 interface PageContainerProps extends ComponentPropsWithoutRef<"div"> {
@@ -23,9 +23,9 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "mx-auto w-full px-4 py-6 sm:px-6 lg:px-8",
+        "mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 2xl:px-10",
         pageContainerSizeClassName[size],
-        className
+        className,
       )}
       {...props}
     >
@@ -49,8 +49,10 @@ export function ProductPageShell({
   );
 }
 
-export interface ProductPageHeaderProps
-  extends Omit<ComponentPropsWithoutRef<"header">, "title"> {
+export interface ProductPageHeaderProps extends Omit<
+  ComponentPropsWithoutRef<"header">,
+  "title"
+> {
   title: ReactNode;
   icon?: ReactNode;
   actions?: ReactNode;
@@ -67,7 +69,7 @@ export function ProductPageHeader({
     <header
       className={cn(
         "mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-        className
+        className,
       )}
       {...props}
     >

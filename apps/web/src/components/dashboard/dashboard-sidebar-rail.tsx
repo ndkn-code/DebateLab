@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen,
   BookOpenText,
@@ -75,6 +76,7 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [referralOpen, setReferralOpen] = useState(false);
   const pathname = usePathname();
+  const reducedMotion = useReducedMotion();
 
   const isActiveItem = (item: DashboardNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -221,11 +223,25 @@ export function DashboardSidebarRail({
                 href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "group flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
-                  isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
+                  "group relative isolate flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
+                  isActive ? "sidebar-nav-selected-motion" : "sidebar-nav-idle",
                 )}
               >
-                {content}
+                {isActive ? (
+                  <motion.span
+                    layoutId="dashboard-sidebar-active"
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : { type: "spring", stiffness: 500, damping: 35 }
+                    }
+                    className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-lg"
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <span className="relative z-10 flex min-w-0 flex-1 items-center justify-between">
+                  {content}
+                </span>
               </Link>
             );
           })}

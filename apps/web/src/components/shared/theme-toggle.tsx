@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useRef,
   useState,
   useSyncExternalStore,
   useTransition,
@@ -54,14 +55,15 @@ export function ThemeToggle({
   const { resolvedTheme, theme, setTheme } = useTheme();
   const [optimisticTheme, setOptimisticTheme] = useState<AppTheme | null>(null);
   const [isPending, startTransition] = useTransition();
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   const resolvedAppTheme = coerceAppTheme(
     useSyncExternalStore(
       subscribeToThemeSnapshot,
       () => resolvedTheme ?? theme ?? getDocumentTheme() ?? initialTheme,
-      () => initialTheme
+      () => initialTheme,
     ),
-    initialTheme
+    initialTheme,
   );
   const currentTheme = optimisticTheme ?? resolvedAppTheme;
   const nextTheme = getOppositeTheme(currentTheme);
@@ -73,8 +75,29 @@ export function ThemeToggle({
     if (isPending) return;
 
     const previousTheme = currentTheme;
-    setOptimisticTheme(nextTheme);
-    setTheme(nextTheme);
+    const rect = toggleRef.current?.getBoundingClientRect();
+    if (rect) {
+      document.documentElement.style.setProperty(
+        "--theme-toggle-x",
+        `${rect.left + rect.width / 2}px`,
+      );
+      document.documentElement.style.setProperty(
+        "--theme-toggle-y",
+        `${rect.top + rect.height / 2}px`,
+      );
+    }
+    const applyTheme = () => {
+      setOptimisticTheme(nextTheme);
+      setTheme(nextTheme);
+    };
+    if (
+      typeof document.startViewTransition === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      document.startViewTransition(applyTheme);
+    } else {
+      applyTheme();
+    }
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(APP_THEME_STORAGE_KEY, nextTheme);
@@ -119,6 +142,7 @@ export function ThemeToggle({
     onClick: handleToggle,
     onKeyDown: handleKeyDown,
     suppressHydrationWarning: true,
+    ref: toggleRef,
   };
 
   if (variant === "mobile") {
@@ -127,7 +151,7 @@ export function ThemeToggle({
         {...sharedProps}
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-sidebar-muted transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground disabled:opacity-60",
-          className
+          className,
         )}
       >
         <Icon className="h-5 w-5" />
@@ -141,7 +165,7 @@ export function ThemeToggle({
         {...sharedProps}
         className={cn(
           "inline-flex h-10 items-center gap-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface transition-colors hover:border-primary/35 hover:bg-surface-container-low",
-          className
+          className,
         )}
       >
         <Icon className="h-4 w-4 text-primary" />
@@ -156,7 +180,7 @@ export function ThemeToggle({
       className={cn(
         "flex h-8 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/85 transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground disabled:opacity-60",
         collapsed && "justify-center px-0",
-        className
+        className,
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />

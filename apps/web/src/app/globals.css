@@ -6,6 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --breakpoint-3xl: 120rem;
+
   --color-background: #F5F5F2;
   --color-foreground: #333333;
   --font-display: var(--font-inter), ui-sans-serif, sans-serif;
@@ -540,6 +542,15 @@
   .sidebar-nav-selected {
     background: var(--sidebar-selected-bg);
     color: var(--sidebar-selected-text);
+    box-shadow: 0 10px 22px -18px var(--sidebar-selected-shadow);
+  }
+
+  .sidebar-nav-selected-motion {
+    color: var(--sidebar-selected-text);
+  }
+
+  .sidebar-nav-active-marker {
+    background: var(--sidebar-selected-bg);
     box-shadow: 0 10px 22px -18px var(--sidebar-selected-shadow);
   }
 
@@ -1086,3 +1097,25 @@ body {
 .border-outline,
 .border-outline-variant { border-color: var(--color-outline-variant) !important; }
 .ring-ring { --tw-ring-color: var(--color-ring) !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  ::view-transition-new(root) {
+    animation-name: thinkfy-theme-reveal;
+  }
+}
+
+@keyframes thinkfy-theme-reveal {
+  from {
+    clip-path: circle(0% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+  }
+
+  to {
+    clip-path: circle(150% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+  }
+}

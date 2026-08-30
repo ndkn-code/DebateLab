@@ -77,7 +77,7 @@ export function DailyFocusHero({
       aria-labelledby="dashboard-daily-focus-title"
       className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none dark:border-outline-variant/70"
     >
-      <div className="relative grid min-h-[250px] items-center gap-4 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_210px] xl:gap-3">
+      <div className="relative grid min-h-[224px] items-center gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_180px] xl:gap-2">
         <div className="relative z-10 min-w-0">
           <span className="type-eyebrow inline-flex items-center gap-2 text-primary">
             <Target className="h-4 w-4" />
@@ -91,11 +91,11 @@ export function DailyFocusHero({
             {getPlanTitle(drill, t)}
           </h1>
 
-          <p className="type-body mt-1 line-clamp-1 max-w-[52ch] leading-5 text-on-surface-variant">
+          <p className="type-body-sm mt-1 line-clamp-1 max-w-[48ch] text-on-surface-variant">
             {getPlanDescription(drill, t)}
           </p>
 
-          <div className="mt-3 grid max-w-[52ch] grid-cols-3 gap-2.5">
+          <div className="mt-2.5 grid max-w-[48ch] grid-cols-3 gap-2">
             <HeroMetric
               icon={<Clock3 className="h-3.5 w-3.5" />}
               label={t("recommended_detail_time")}
@@ -134,7 +134,7 @@ export function DailyFocusHero({
           <Link
             href={drill.href}
             data-testid="dashboard-recommended-cta"
-            className="type-label mt-4 inline-flex h-8 min-w-[160px] items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
+            className="type-label mt-3 inline-flex h-8 min-w-[140px] items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           >
             {getPlanCtaLabel(drill, t)}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function DailyFocusHero({
         {/* Illustration slot */}
         <div
           data-testid="dashboard-recommended-illustration"
-          className="relative mx-auto hidden h-[210px] w-[210px] items-center justify-center xl:flex"
+          className="relative mx-auto hidden h-[180px] w-[180px] items-center justify-center xl:flex"
         >
           <motion.div
             animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
@@ -162,8 +162,8 @@ export function DailyFocusHero({
               width={512}
               height={512}
               priority
-              className="h-auto w-[190px] object-contain drop-shadow-token-card"
-              sizes="190px"
+              className="h-auto w-[164px] object-contain drop-shadow-token-card"
+              sizes="164px"
             />
           </motion.div>
           {/* sparkles */}

@@ -1,13 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Plus,
-  Trash2,
-} from "@/components/ui/icons";
+import { Plus, Trash2, ChevronDown } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { deleteConversationAction } from "@/app/[locale]/(protected)/chat/actions";
 import type { ConversationWithPreview } from "@/lib/api/chat";
@@ -30,7 +32,34 @@ function SidebarContent({
   onDelete,
 }: Omit<ConversationSidebarProps, "open" | "onOpenChange">) {
   const [isPending, startTransition] = useTransition();
+  const [showRepeated, setShowRepeated] = useState(false);
   const t = useTranslations("dashboard.chat");
+  const repeatedConversations = useMemo(() => {
+    const titleCounts = new Map<string, number>();
+    for (const conversation of conversations) {
+      const key = conversation.title?.trim().toLocaleLowerCase() ?? "";
+      titleCounts.set(key, (titleCounts.get(key) ?? 0) + 1);
+    }
+
+    return conversations.filter((conversation) => {
+      const key = conversation.title?.trim().toLocaleLowerCase() ?? "";
+      return !key || (titleCounts.get(key) ?? 0) > 1;
+    });
+  }, [conversations]);
+  const repeatedIds = useMemo(
+    () => new Set(repeatedConversations.map((conversation) => conversation.id)),
+    [repeatedConversations],
+  );
+  const visibleConversations = useMemo(
+    () =>
+      showRepeated
+        ? conversations
+        : conversations.filter(
+            (conversation) =>
+              !repeatedIds.has(conversation.id) || conversation.id === activeId,
+          ),
+    [activeId, conversations, repeatedIds, showRepeated],
+  );
 
   const handleDelete = (event: React.MouseEvent, id: string) => {
     event.stopPropagation();
@@ -55,11 +84,38 @@ function SidebarContent({
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {conversations.length === 0 ? (
           <div className="px-3 py-8">
-            <p className="text-sm leading-6 text-on-surface-variant">{t("sidebar_empty")}</p>
+            <p className="text-sm leading-6 text-on-surface-variant">
+              {t("sidebar_empty")}
+            </p>
           </div>
         ) : (
           <div className="space-y-1">
-            {conversations.map((conversation) => {
+            {repeatedConversations.length > 0 && !showRepeated ? (
+              <button
+                type="button"
+                onClick={() => setShowRepeated(true)}
+                aria-expanded={false}
+                className="flex min-h-9 w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-sm text-on-surface-variant transition-colors hover:bg-surface-container-low/70 hover:text-on-surface"
+              >
+                <span className="truncate">{t("new_conversation")}</span>
+                <span className="flex items-center gap-1 text-xs text-on-surface-variant/65">
+                  {repeatedConversations.length}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </span>
+              </button>
+            ) : null}
+            {showRepeated && repeatedConversations.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowRepeated(false)}
+                aria-expanded={true}
+                className="flex min-h-8 w-full items-center justify-between rounded-[10px] px-3 py-1.5 text-left text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low/70"
+              >
+                <span>{t("new_conversation")}</span>
+                <ChevronDown className="h-3.5 w-3.5 rotate-180" />
+              </button>
+            ) : null}
+            {visibleConversations.map((conversation) => {
               return (
                 <div
                   key={conversation.id}
@@ -67,7 +123,7 @@ function SidebarContent({
                     "group flex min-h-10 min-w-0 items-center gap-1 rounded-[10px] border transition-colors",
                     activeId === conversation.id
                       ? "border-primary/16 bg-primary/5 text-on-surface"
-                      : "border-transparent bg-transparent text-on-surface hover:border-outline-variant/14 hover:bg-surface-container-low/70"
+                      : "border-transparent bg-transparent text-on-surface hover:border-outline-variant/14 hover:bg-surface-container-low/70",
                   )}
                 >
                   <button

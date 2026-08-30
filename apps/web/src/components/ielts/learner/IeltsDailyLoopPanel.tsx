@@ -4,12 +4,7 @@ import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { thinkfyMotion } from "@thinkfy/shared/design-system";
 import { useTranslations } from "next-intl";
-import {
-  Flame,
-  Target,
-  Zap,
-  type LucideIcon,
-} from "@/components/ui/icons";
+import { Flame, Target, Zap, type LucideIcon } from "@/components/ui/icons";
 import { AnimatedNumber, SuccessCheck } from "@/components/motion";
 import { cn } from "@/lib/utils";
 import type { IeltsHomeRetentionView } from "@/lib/ielts/home/retention";
@@ -53,7 +48,10 @@ function MetricShell({
   children?: ReactNode;
 }) {
   return (
-    <article className="min-w-0 rounded-lg bg-surface-container-low p-4">
+    <article
+      className="min-w-0 rounded-lg border border-outline-variant bg-surface-container-low p-4"
+      data-ielts-metric
+    >
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -70,17 +68,21 @@ function MetricShell({
           <div className="mt-1 type-heading-md font-bold tabular-nums text-on-surface">
             {value}
           </div>
-          <p className="mt-1 type-caption font-medium text-on-surface-variant">
+          <p className="mt-1 type-caption font-medium text-on-surface-variant" data-ielts-metric-caption>
             {caption}
           </p>
         </div>
       </div>
-      {children ? <div className="mt-4">{children}</div> : null}
+      {children ? <div className="mt-2">{children}</div> : null}
     </article>
   );
 }
 
-function StreakDots({ dots }: { dots: IeltsHomeRetentionView["streak"]["dots"] }) {
+function StreakDots({
+  dots,
+}: {
+  dots: IeltsHomeRetentionView["streak"]["dots"];
+}) {
   return (
     <div className="grid grid-cols-7 gap-1.5" aria-hidden="true">
       {dots.map((dot) => (
@@ -114,7 +116,12 @@ function GoalRing({
 
   return (
     <div className="relative size-22 shrink-0">
-      <svg aria-hidden="true" className="size-full" focusable="false" viewBox="0 0 88 88">
+      <svg
+        aria-hidden="true"
+        className="size-full"
+        focusable="false"
+        viewBox="0 0 88 88"
+      >
         <circle
           cx={center}
           cy={center}
@@ -204,7 +211,7 @@ function DailyMetrics({ retention }: { retention: IeltsHomeRetentionView }) {
       : t("retention_xp_next", { count: retention.xp.xpToNextLevel });
 
   return (
-    <div className="mt-5 grid gap-3 lg:grid-cols-3">
+    <div className="mt-4 grid gap-3 lg:grid-cols-3" data-ielts-daily-metrics>
       <MetricShell
         caption={t(streakCaption(retention))}
         icon={Flame}
@@ -239,16 +246,11 @@ function DailyMetrics({ retention }: { retention: IeltsHomeRetentionView }) {
           )
         }
       >
-        <div className="flex items-center gap-3">
-          <GoalRing complete={goal.metGoal} progressPercent={goal.progressPercent} />
-          <p className="min-w-0 type-caption font-semibold text-on-surface-variant">
-            {goal.itemsPlannedToday > 0
-              ? t("retention_goal_items", {
-                  done: goal.itemsDoneToday,
-                  total: goal.itemsPlannedToday,
-                })
-              : t("retention_goal_first_session")}
-          </p>
+        <div className="flex items-center">
+          <GoalRing
+            complete={goal.metGoal}
+            progressPercent={goal.progressPercent}
+          />
         </div>
       </MetricShell>
 
@@ -260,7 +262,9 @@ function DailyMetrics({ retention }: { retention: IeltsHomeRetentionView }) {
         value={
           <span className="inline-flex items-baseline gap-1.5">
             <AnimatedNumber startOnMount value={retention.xp.lifetimeXp} />
-            <span className="type-caption font-semibold text-on-surface-variant">XP</span>
+            <span className="type-caption font-semibold text-on-surface-variant">
+              XP
+            </span>
           </span>
         }
       >

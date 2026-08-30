@@ -1,16 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import {
-  ChevronRight,
-  MessageSquareText,
-  Send,
-} from "@/components/ui/icons";
+import { MessageSquareText, Send } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Heading, Text } from "@/components/ui/typography";
 import { ChatBubble } from "./chat-bubble";
+import { CoachQuickActions } from "./coach-quick-actions";
 import { TypingIndicator } from "./typing-indicator";
 import type { ChatMessageLocal } from "./chat-shell";
 import type { CoachContextEnvelope } from "@/types";
@@ -43,34 +39,25 @@ function CoachEmptyState({
 
   return (
     <div className="flex w-full min-w-0 max-w-[620px] flex-col items-center px-4 py-7 text-center sm:px-6 sm:py-10">
-      <Image
-        src="/brand/thinkfy/thinkfy-mascot-book.png"
-        alt="Thinkfy AI Coach"
-        width={512}
-        height={654}
-        className="h-24 w-24 select-none object-contain drop-shadow-token-card sm:h-28 sm:w-28"
-        priority
-      />
-
-      <Heading level={2} as="h1" className="mt-5 max-w-[320px] text-balance font-semibold sm:max-w-full">
+      <Heading
+        level={2}
+        as="h1"
+        className="max-w-[420px] text-balance font-semibold"
+      >
         {t("welcome_title")}
       </Heading>
 
-      <div className="mt-7 w-full min-w-0 space-y-1.5">
-        {coachEnvelope.starterPrompts.slice(0, 5).map((prompt) => (
-          <button
-            key={prompt}
-            onClick={() => onPromptSelect(prompt)}
-            disabled={isLoading}
-            className="group flex min-h-10 w-full min-w-0 items-center justify-between gap-3 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-left transition-colors hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className="min-w-0 type-body-sm font-medium text-on-surface">
-              {prompt}
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant/55 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-          </button>
-        ))}
-      </div>
+      <p className="mt-2 max-w-[390px] text-sm text-on-surface-variant">
+        {t("input_placeholder")}
+      </p>
+      <CoachQuickActions
+        variant="general"
+        onSelect={onPromptSelect}
+        prompts={coachEnvelope.starterPrompts}
+        disabled={isLoading}
+        layout="cards"
+        className="mt-7"
+      />
     </div>
   );
 }
@@ -153,7 +140,7 @@ export function ChatArea({
       inputRef.current.style.height = "auto";
       inputRef.current.style.height = `${Math.min(
         inputRef.current.scrollHeight,
-        160
+        160,
       )}px`;
     });
   };
@@ -178,7 +165,8 @@ export function ChatArea({
   };
 
   const showWelcome = messages.length === 0 && !hasConversation;
-  const showConversationLoading = isLoading && hasConversation && messages.length === 0;
+  const showConversationLoading =
+    isLoading && hasConversation && messages.length === 0;
 
   return (
     <div className="relative flex min-w-0 flex-1 bg-transparent">
@@ -195,13 +183,15 @@ export function ChatArea({
           ref={scrollRef}
           className={cn(
             "flex-1 overflow-y-auto px-4 sm:px-6",
-            showWelcome ? "pb-4 pt-10 sm:pb-6 sm:pt-12" : "pb-4 pt-6 sm:pb-6 sm:pt-8"
+            showWelcome
+              ? "pb-4 pt-10 sm:pb-6 sm:pt-12"
+              : "pb-4 pt-6 sm:pb-6 sm:pt-8",
           )}
         >
           <div
             className={cn(
               "mx-auto w-full",
-              showWelcome ? "max-w-[680px]" : "max-w-[800px]"
+              showWelcome ? "max-w-[680px]" : "max-w-[800px]",
             )}
           >
             {loadError ? (
@@ -251,7 +241,7 @@ export function ChatArea({
 
         <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
           <div className="mx-auto w-full max-w-[720px]">
-            <div className="flex items-end gap-2.5 rounded-xl border border-outline-variant bg-surface px-3 py-2.5 shadow-none">
+            <div className="flex items-end gap-2.5 rounded-2xl border border-outline-variant/70 bg-surface px-3 py-2.5 shadow-[0_10px_36px_-24px_hsl(var(--primary)/0.55)] transition-shadow focus-within:border-primary/45 focus-within:shadow-[0_12px_42px_-20px_hsl(var(--primary)/0.4)]">
               <textarea
                 ref={inputRef}
                 value={input}

@@ -570,7 +570,10 @@ export function ChatShell({
   }, []);
 
   return (
-    <PageTransition className="flex h-full min-h-0 overflow-hidden bg-transparent">
+    <PageTransition
+      initial={false}
+      className="flex h-full min-h-0 overflow-hidden bg-transparent"
+    >
       <ConversationSidebar
         conversations={conversations}
         activeId={activeConversationId}

@@ -80,6 +80,7 @@ export function TrainingPath({
     () => new Map(metrics.map((metric) => [metric.key, metric])),
     [metrics],
   );
+  const activeKey = checkpoint ?? DASHBOARD_SKILL_ORDER[0];
 
   return (
     <section
@@ -96,7 +97,7 @@ export function TrainingPath({
         </h2>
       </div>
 
-      <div className="relative mt-4 overflow-hidden pb-1">
+      <div className="relative mt-3 overflow-hidden pb-0.5">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute left-[10%] right-[10%] top-7 border-t border-outline-variant"
@@ -110,7 +111,7 @@ export function TrainingPath({
             const Icon = SCORE_ICONS[key];
             const state = getNodeState(metric);
             const styles = NODE_STYLES[state];
-            const highlighted = checkpoint === key;
+            const highlighted = activeKey === key;
             const skillLabel = t(`skill_labels.${key}`);
             const score = formatScore(metric);
 
@@ -130,7 +131,10 @@ export function TrainingPath({
                         delay: index * 0.06,
                       }
                 }
-                className="relative z-10 flex min-w-0 justify-center"
+                className={cn(
+                  "relative z-10 flex min-w-0 justify-center transition-opacity",
+                  highlighted ? "opacity-100" : "opacity-55 grayscale",
+                )}
               >
                 <Link
                   href={getSkillHref(key)}

@@ -2,13 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import {
-  ArrowRight,
-  CalendarDays,
-  Check,
-  Clock3,
-  ListChecks,
-} from "@/components/ui/icons";
+import { ArrowRight, Check, Clock3 } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { IeltsHomeRetentionView } from "@/lib/ielts/home/retention";
@@ -32,7 +26,7 @@ function TodayItemRow({
   return (
     <Link
       href={item.launchHref}
-      className="group flex min-w-0 items-center gap-3 rounded-lg bg-surface-container-low px-3.5 py-3 transition-colors hover:bg-surface-container"
+      className="group flex min-w-0 items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 transition-colors hover:bg-surface-container"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-container-high text-on-surface-variant">
         <Icon className="size-5" aria-hidden />
@@ -52,7 +46,7 @@ function TodayItemRow({
             </span>
           ) : null}
         </span>
-        <span className="line-clamp-1 type-body-sm text-on-surface-variant">
+        <span className="line-clamp-1 type-body-sm text-on-surface-variant" data-ielts-task-rationale>
           {rationale}
         </span>
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 type-caption text-on-surface-variant">
@@ -71,65 +65,6 @@ function TodayItemRow({
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
       </span>
     </Link>
-  );
-}
-
-function NextAction({ retention }: { retention: IeltsHomeRetentionView }) {
-  const t = useTranslations("dashboard.ielts");
-  const locale = useLocale();
-  const title =
-    (locale === "vi" ? retention.nudge.nextTitleVi : retention.nudge.nextTitleEn) ??
-    t("retention_plan_empty");
-  const reviewLabel =
-    retention.nudge.reviewsDueCount > 0
-      ? retention.isFirstRunGrace
-        ? t("retention_reviews_ready_count", {
-            count: retention.nudge.reviewsDueCount,
-          })
-        : t("retention_reviews_due_count", {
-            count: retention.nudge.reviewsDueCount,
-          })
-      : t("retention_reviews_clear");
-
-  return (
-    <div className="flex min-w-0 flex-col justify-between gap-4 rounded-lg bg-surface-container-low p-4">
-      <div className="min-w-0">
-        <p className="type-caption font-semibold uppercase text-primary">
-          {t("daily_loop_next_label")}
-        </p>
-        <h3 className="mt-1 truncate type-title font-bold text-on-surface">{title}</h3>
-        <div className="mt-3 grid gap-2 type-caption font-semibold text-on-surface-variant">
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <ListChecks className="size-4 shrink-0 text-primary" aria-hidden />
-            <span className="truncate">{reviewLabel}</span>
-            {retention.nudge.showOverdueWarning ? (
-              <span className="shrink-0 rounded-full bg-error-container px-2 py-0.5 text-on-error-container">
-                {t("retention_reviews_overdue", {
-                  count: retention.nudge.reviewsOverdueCount,
-                })}
-              </span>
-            ) : null}
-          </span>
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <CalendarDays className="size-4 shrink-0 text-primary" aria-hidden />
-            <span className="truncate">
-              {retention.nudge.todayItemCount > 0
-                ? t("retention_plan_count", {
-                    count: retention.nudge.todayItemCount,
-                  })
-                : t("retention_plan_none_due")}
-            </span>
-          </span>
-        </div>
-      </div>
-      <Link
-        href={retention.nudge.nextHref}
-        className={cn(buttonVariants({ variant: "primary" }), "self-start")}
-      >
-        {t("today_start")}
-        <ArrowRight className="size-4" />
-      </Link>
-    </div>
   );
 }
 
@@ -168,7 +103,9 @@ function EmptyToday({
       </div>
       <Link
         href={href}
-        className={cn(buttonVariants({ variant: hasGoal ? "secondary" : "primary" }))}
+        className={cn(
+          buttonVariants({ variant: hasGoal ? "secondary" : "primary" }),
+        )}
       >
         {hasGoal
           ? t("cta_view_plan")
@@ -197,7 +134,7 @@ export function IeltsDailyTodaySection({
   const t = useTranslations("dashboard.ielts");
 
   return (
-    <div className="mt-5 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+    <div className="mt-4 min-w-0">
       <div className="min-w-0">
         <div className="flex min-w-0 flex-col gap-2.5">
           {items.length > 0 ? (
@@ -226,8 +163,6 @@ export function IeltsDailyTodaySection({
           </Link>
         ) : null}
       </div>
-
-      <NextAction retention={retention} />
     </div>
   );
 }
