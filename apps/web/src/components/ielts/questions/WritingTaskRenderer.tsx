@@ -48,10 +48,26 @@ function WritingScoreCard({ view }: { view: WritingResponseView }) {
   const t = useTranslations("ielts.player");
   const locale = useLocale();
   const rows: CaptureBandRow[] = [
-    { key: "tr", label: t("bands.taskResponse"), band: view.bands.taskResponse },
-    { key: "cc", label: t("bands.coherenceCohesion"), band: view.bands.coherenceCohesion },
-    { key: "lr", label: t("bands.lexicalResource"), band: view.bands.lexicalResource },
-    { key: "gr", label: t("bands.grammaticalRangeAccuracy"), band: view.bands.grammaticalRangeAccuracy },
+    {
+      key: "tr",
+      label: t("bands.taskResponse"),
+      band: view.bands.taskResponse,
+    },
+    {
+      key: "cc",
+      label: t("bands.coherenceCohesion"),
+      band: view.bands.coherenceCohesion,
+    },
+    {
+      key: "lr",
+      label: t("bands.lexicalResource"),
+      band: view.bands.lexicalResource,
+    },
+    {
+      key: "gr",
+      label: t("bands.grammaticalRangeAccuracy"),
+      band: view.bands.grammaticalRangeAccuracy,
+    },
   ];
   return (
     <CaptureBandResult
@@ -89,9 +105,15 @@ export function WritingTaskRenderer({
   );
 
   const attemptId = context?.attemptId ?? null;
+  const isSimulation = context?.assessmentMode === "simulation";
   const words = countWords(essay);
   const working = submitting || poll.pending;
-  const canSubmit = Boolean(attemptId) && !disabled && !submitting && words > 0;
+  const canSubmit =
+    !isSimulation &&
+    Boolean(attemptId) &&
+    !disabled &&
+    !submitting &&
+    words > 0;
 
   const handleEssay = (text: string) => {
     setEssay(text);
@@ -113,7 +135,8 @@ export function WritingTaskRenderer({
       onChange({ essay, writingResponseId: result.writingResponseId });
       showToast(t("writing.toastSubmitted"), "success");
     } catch (error) {
-      const limit = error instanceof CaptureRequestError && error.status === 402;
+      const limit =
+        error instanceof CaptureRequestError && error.status === 402;
       const key = limit ? "writing.limitReached" : "writing.failed";
       setErrorKey(key);
       showToast(t(key), "error");
@@ -132,22 +155,33 @@ export function WritingTaskRenderer({
         className="min-h-[40vh] w-full resize-y rounded-xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface placeholder:text-on-surface-variant disabled:opacity-60"
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <WordCount words={words} minWords={recommendedMinWords(question.questionType)} />
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="rounded-full bg-primary px-5 py-2 type-body-sm font-semibold text-on-primary disabled:opacity-50"
-        >
-          {poll.responseId ? t("writing.resubmit") : t("writing.submit")}
-        </button>
+        <WordCount
+          words={words}
+          minWords={recommendedMinWords(question.questionType)}
+        />
+        {isSimulation ? (
+          <span className="type-caption font-medium text-on-surface-variant">
+            {t("writing.simulationAutosave")}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="rounded-full bg-primary px-5 py-2 type-body-sm font-semibold text-on-primary disabled:opacity-50"
+          >
+            {poll.responseId ? t("writing.resubmit") : t("writing.submit")}
+          </button>
+        )}
       </div>
     </div>
   );
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="type-body-sm text-on-surface-variant">{t("writing.intro")}</p>
+      <p className="type-body-sm text-on-surface-variant">
+        {t(isSimulation ? "writing.simulationIntro" : "writing.intro")}
+      </p>
       {question.visual ? (
         <div className="grid items-start gap-5 lg:grid-cols-2">
           <QuestionVisual visual={question.visual} />
@@ -157,14 +191,18 @@ export function WritingTaskRenderer({
         editor
       )}
 
-      {errorKey ? <CaptureErrorNote message={t(errorKey)} /> : null}
-      {working ? (
+      {!isSimulation && errorKey ? (
+        <CaptureErrorNote message={t(errorKey)} />
+      ) : null}
+      {!isSimulation && working ? (
         <CaptureScoringNote
           title={submitting ? t("writing.submitting") : t("writing.scoring")}
           hint={t("writing.scoringHint")}
         />
       ) : null}
-      {poll.scored && poll.view ? <WritingScoreCard view={poll.view} /> : null}
+      {!isSimulation && poll.scored && poll.view ? (
+        <WritingScoreCard view={poll.view} />
+      ) : null}
     </div>
   );
 }

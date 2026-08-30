@@ -4027,6 +4027,8 @@
       },
       "writing": {
         "intro": "Viết bài làm của bạn bên dưới, sau đó gửi để AI chấm điểm band.",
+        "simulationIntro": "Viết bài làm bên dưới. Điểm và phản hồi sẽ được ẩn cho đến khi hoàn thành bài mô phỏng.",
+        "simulationAutosave": "Tự động lưu để nộp cuối bài",
         "placeholder": "Nhập bài viết của bạn tại đây…",
         "wordCount": "{count} từ",
         "recommendedMin": "nên viết từ {count} từ trở lên",

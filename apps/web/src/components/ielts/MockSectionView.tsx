@@ -324,6 +324,7 @@ export function MockSectionView({
               }
               hasStimulus={hasStimulus}
               attemptId={section.attempt_id}
+              assessmentMode={assessmentMode}
               numberOffset={numberOffset}
               disabled={disabled}
               responses={responses}

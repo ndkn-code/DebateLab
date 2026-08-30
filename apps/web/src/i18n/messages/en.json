@@ -4027,6 +4027,8 @@
       },
       "writing": {
         "intro": "Write your response below, then submit it for AI band scoring.",
+        "simulationIntro": "Write your response below. Scoring and feedback stay hidden until the simulation is finished.",
+        "simulationAutosave": "Autosaved for final submission",
         "placeholder": "Type your response here…",
         "wordCount": "{count, plural, one {# word} other {# words}}",
         "recommendedMin": "aim for {count}+ words",

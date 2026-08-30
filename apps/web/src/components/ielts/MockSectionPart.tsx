@@ -6,6 +6,7 @@ import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import { PassageHighlighter } from "./PassageHighlighter";
 import { QuestionHost } from "./QuestionHost";
 import type { MockPart } from "./mock-parts";
+import type { AssessmentMode } from "@/lib/ielts/assessment-mode";
 
 export function SectionStimulus({
   part,
@@ -33,6 +34,7 @@ export function SectionPart({
   stimulus,
   hasStimulus,
   attemptId,
+  assessmentMode,
   numberOffset,
   disabled,
   responses,
@@ -43,6 +45,7 @@ export function SectionPart({
   stimulus: ReactNode;
   hasStimulus: boolean;
   attemptId: string;
+  assessmentMode: AssessmentMode;
   numberOffset: number;
   disabled: boolean;
   responses: IeltsResponseMap;
@@ -67,7 +70,7 @@ export function SectionPart({
             value={responses[question.id]}
             disabled={disabled}
             onChange={(value) => onAnswer(question.id, value)}
-            context={{ attemptId }}
+            context={{ attemptId, assessmentMode }}
             allowFlag
             onOpenNotes={onOpenNotes}
           />

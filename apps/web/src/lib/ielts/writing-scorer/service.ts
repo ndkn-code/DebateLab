@@ -67,6 +67,11 @@ export interface SubmitWritingResponseResult {
   usage: { used: number; limit: number | null };
 }
 
+export interface EnqueueWritingResponseResult {
+  writingResponseId: string;
+  status: string;
+}
+
 function resultCorpusVersion(result: KnowledgeResult): string | null {
   if (
     !result.data ||
@@ -115,7 +120,31 @@ export async function submitWritingResponseForScoring(params: {
     );
   }
 
+  const queued = await enqueueWritingResponseForScoring({
+    raw: params.raw,
+    userId: params.userId,
+  });
+
+  return {
+    ...queued,
+    usage: { used: usage.usedCount, limit: usage.limitCount },
+  };
+}
+
+/**
+ * Persist and durably enqueue a Writing response without applying a second
+ * interactive usage charge. Simulation finalization uses this after the server
+ * has locked the attempt; learner-triggered Practice scoring meters first in
+ * `submitWritingResponseForScoring` above.
+ */
+export async function enqueueWritingResponseForScoring(params: {
+  raw: unknown;
+  userId: string;
+}): Promise<EnqueueWritingResponseResult> {
   const response = await createWritingResponse(params.raw, params.userId);
+  if (isTerminalWritingStatus(response.status)) {
+    return { writingResponseId: response.id, status: response.status };
+  }
   const message = {
     writingResponseId: response.id,
     userId: params.userId,
@@ -138,7 +167,6 @@ export async function submitWritingResponseForScoring(params: {
   return {
     writingResponseId: response.id,
     status: response.status,
-    usage: { used: usage.usedCount, limit: usage.limitCount },
   };
 }
 
