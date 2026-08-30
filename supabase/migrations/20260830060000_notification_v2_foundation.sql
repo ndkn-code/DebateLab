@@ -392,7 +392,7 @@ select 'legacy:lms:' || n.dedupe_key,
        'legacy_lms',
        n.title,
        n.body,
-       jsonb_build_object('legacyNotificationId', min(n.id), 'legacyDedupeKey', n.dedupe_key),
+       jsonb_build_object('legacyNotificationId', min(n.id::text)::uuid, 'legacyDedupeKey', n.dedupe_key),
        min(n.created_at)
 from public.lms_notifications n
 group by n.dedupe_key, n.event_type, n.title, n.body
