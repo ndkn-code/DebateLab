@@ -47,7 +47,7 @@
     },
     {
       "path": "/api/cron/homework-cleanup",
-      "schedule": "*/15 * * * *"
+      "schedule": "30 3 * * *"
     },
     {
       "path": "/api/cron/ai-workflow-reconcile",
