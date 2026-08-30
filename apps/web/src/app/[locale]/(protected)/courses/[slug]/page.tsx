@@ -45,10 +45,12 @@ export default async function CourseDetailPage({
 
   const subject = await getActiveSubject();
   if (!areStudentCoursesEnabled(subject)) {
-    redirect(profile.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
+    redirect(
+      profile.role === "admin" ? "/dashboard/admin/courses" : "/dashboard",
+    );
   }
   if (subject === "ielts" && !(await isEnrolledStudent(user.id))) {
-    redirect("/ielts");
+    redirect("/ielts/home");
   }
 
   const course = await getCourseReaderBySlug(slug, user.id, lessonSlug);

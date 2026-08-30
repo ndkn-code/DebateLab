@@ -40,7 +40,7 @@ export function IeltsOnboardingWelcome({
             <ArrowRight className="size-4" />
           </button>
           <Link
-            href="/ielts"
+            href="/ielts/home"
             className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
           >
             {t("back_home")}

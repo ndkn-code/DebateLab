@@ -55,7 +55,8 @@ export function IeltsStudyPlanView({
         await regenerateIeltsStudyPlanAction();
         showToast(t("regenerate_success"), "success");
       } catch (caught) {
-        const message = caught instanceof Error ? caught.message : t("error_generic");
+        const message =
+          caught instanceof Error ? caught.message : t("error_generic");
         setError(message);
         showToast(message, "error");
       }
@@ -76,7 +77,7 @@ export function IeltsStudyPlanView({
       <ProductPageShell>
         <PageContainer size="data" className="flex flex-col gap-5 py-5 lg:py-6">
           <Link
-            href="/ielts"
+            href="/ielts/home"
             className="inline-flex w-fit items-center gap-1 type-body-sm font-semibold text-on-surface-variant hover:text-on-surface"
           >
             <ArrowLeft className="size-4" />
@@ -150,7 +151,9 @@ export function IeltsStudyPlanView({
                     onClick={regenerate}
                     disabled={isRegenerating}
                     title={t("regenerate_hint")}
-                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+                    className={cn(
+                      buttonVariants({ variant: "secondary", size: "sm" }),
+                    )}
                   >
                     <RefreshCw
                       className={cn("size-4", isRegenerating && "animate-spin")}
@@ -170,7 +173,10 @@ export function IeltsStudyPlanView({
                   </p>
                   <Link
                     href="/ielts/onboarding"
-                    className={cn(buttonVariants({ variant: "primary" }), "mt-4")}
+                    className={cn(
+                      buttonVariants({ variant: "primary" }),
+                      "mt-4",
+                    )}
                   >
                     {t("needs_diagnostic_cta")}
                     <ArrowRight className="size-4" />
@@ -194,7 +200,10 @@ export function IeltsStudyPlanView({
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <StudyPlanReviewQueue view={view} />
-                <StudyPlanReassessment view={view} diagnosticHref={diagnosticHref} />
+                <StudyPlanReassessment
+                  view={view}
+                  diagnosticHref={diagnosticHref}
+                />
               </div>
 
               <StudyPlanRevisionLog view={view} />

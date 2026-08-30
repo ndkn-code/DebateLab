@@ -15,7 +15,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronDown, GraduationCap, Loader2 } from "@/components/ui/icons";
+import {
+  Check,
+  ChevronDown,
+  GraduationCap,
+  Loader2,
+} from "@/components/ui/icons";
 import { showToast } from "@/components/shared/toast";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import {
@@ -23,11 +28,7 @@ import {
   coerceAppLocale,
   type AppLocale,
 } from "@/lib/locale-switch";
-import {
-  coerceSubject,
-  getSubjectConfig,
-  type Subject,
-} from "@/lib/subject";
+import { coerceSubject, getSubjectConfig, type Subject } from "@/lib/subject";
 import { availableSubjects } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +101,7 @@ export function ModeSwitcher({
           await saveSubjectPreference(nextSubject);
           // Land on the subject's primary surface: the IELTS learner home for
           // IELTS, the debate dashboard otherwise.
-          router.push(nextSubject === "ielts" ? "/ielts" : "/dashboard");
+          router.push(nextSubject === "ielts" ? "/ielts/home" : "/dashboard");
           router.refresh();
         } catch {
           showToast(t("switch_subject_error"), "error");
@@ -120,7 +121,7 @@ export function ModeSwitcher({
           await saveDebateModePreference(nextLocale);
           const nextPath = buildLocaleSwitchPath(
             pathname,
-            new URLSearchParams(searchParams.toString())
+            new URLSearchParams(searchParams.toString()),
           );
 
           router.replace(nextPath, { locale: nextLocale });
@@ -142,14 +143,14 @@ export function ModeSwitcher({
           "group flex min-w-0 items-center justify-between gap-2 rounded-lg border text-left font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-sidebar-muted/35",
           isSidebar
             ? "h-10 w-full border-white/10 bg-white/[0.08] px-3 text-sm text-sidebar-foreground hover:bg-white/[0.12]"
-            : "h-10 flex-1 border-white/10 bg-white/[0.08] px-2.5 type-caption text-sidebar-foreground hover:bg-white/[0.12]"
+            : "h-10 flex-1 border-white/10 bg-white/[0.08] px-2.5 type-caption text-sidebar-foreground hover:bg-white/[0.12]",
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
           <GraduationCap
             className={cn(
               "shrink-0 text-sidebar-muted",
-              isSidebar ? "h-4.5 w-4.5" : "h-4 w-4"
+              isSidebar ? "h-4.5 w-4.5" : "h-4 w-4",
             )}
           />
           <span className="min-w-0 truncate">
@@ -185,7 +186,7 @@ export function ModeSwitcher({
                       "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
                       isSelected
                         ? "bg-surface-container-low text-on-surface"
-                        : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                        : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
                     )}
                   >
                     <span className="truncate">{subjectLabelFor(subject)}</span>
@@ -216,7 +217,7 @@ export function ModeSwitcher({
                   "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
                   isSelected
                     ? "bg-surface-container-low text-on-surface"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
                 )}
               >
                 <span className="truncate">{LOCALE_LABELS[locale]}</span>

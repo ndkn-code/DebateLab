@@ -15,7 +15,12 @@ import { createTypedAdminClient } from "@/lib/supabase/admin";
 const GradeIeltsReviewItemActionSchema = z.object({
   reviewItemId: PostgresUuidSchema,
   rating: z.enum(IELTS_REVIEW_RATINGS),
-  responseMs: z.number().int().nonnegative().max(24 * 60 * 60 * 1000).optional(),
+  responseMs: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(24 * 60 * 60 * 1000)
+    .optional(),
 });
 
 export async function gradeIeltsReviewItemAction(raw: unknown) {
@@ -40,7 +45,7 @@ export async function gradeIeltsReviewItemAction(raw: unknown) {
     createTypedAdminClient(),
   );
 
-  revalidatePath("/ielts");
+  revalidatePath("/ielts/home");
   revalidatePath("/ielts/review");
   revalidatePath("/ielts/study-plan");
 

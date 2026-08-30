@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { getIeltsHomeData } from "@/lib/api/ielts/learner-repository";
+import { loadActiveIeltsStudyPlan } from "@/lib/api/ielts/study-plan-repository";
 import { IeltsHome } from "@/components/ielts/learner/IeltsHome";
 import { IeltsHomeSkeleton } from "@/components/ielts/learner/IeltsHomeSkeleton";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 export const metadata = {
-  title: "IELTS",
+  title: "IELTS home",
 };
 
 export const dynamic = "force-dynamic";
@@ -22,25 +23,21 @@ async function resolveIeltsHomeUser() {
     ? null
     : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
-    redirect("/auth/login");
-  }
+  if (!user && !devAuthBypassUser) redirect("/auth/login?next=/ielts/home");
 
   const userId = user?.id ?? devAuthBypassUser?.id;
-  if (!userId) {
-    redirect("/auth/login");
-  }
+  if (!userId) redirect("/auth/login?next=/ielts/home");
 
-  return { user, devAuthBypassUser, userId };
+  return { supabase, devAuthBypassUser, userId };
 }
 
 async function IeltsHomePayload() {
-  const { devAuthBypassUser, userId } = await resolveIeltsHomeUser();
-  const data = await getIeltsHomeData(
-    userId,
-    devAuthBypassUser ? createTypedAdminClient() : undefined,
-  );
+  const { supabase, devAuthBypassUser, userId } = await resolveIeltsHomeUser();
+  const ieltsClient = devAuthBypassUser ? createTypedAdminClient() : supabase;
+  const activePlan = await loadActiveIeltsStudyPlan(userId, ieltsClient);
+  if (!activePlan) redirect("/ielts/onboarding");
 
+  const data = await getIeltsHomeData(userId, ieltsClient);
   return <IeltsHome data={data} />;
 }
 

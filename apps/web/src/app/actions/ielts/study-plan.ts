@@ -8,7 +8,7 @@ import { IeltsGoalModelSchema } from "@/lib/ielts/adaptive/contracts";
 
 function revalidateStudyPlan() {
   revalidatePath("/ielts/study-plan");
-  revalidatePath("/ielts");
+  revalidatePath("/ielts/home");
 }
 
 /**
@@ -20,7 +20,10 @@ function revalidateStudyPlan() {
 export async function updateIeltsStudyPlanGoalAction(raw: unknown) {
   const userId = await requireIeltsUserId();
   const goal = parseInput(IeltsGoalModelSchema, raw);
-  const result = await generateAndPersistIeltsStudyPlanForUser({ userId, goal });
+  const result = await generateAndPersistIeltsStudyPlanForUser({
+    userId,
+    goal,
+  });
   revalidateStudyPlan();
   return {
     ok: true as const,

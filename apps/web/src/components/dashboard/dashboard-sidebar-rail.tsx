@@ -138,7 +138,7 @@ export function DashboardSidebarRail({
     }
 
     if (item.key === "ielts_home") {
-      return pathname === "/ielts";
+      return pathname === "/ielts/home";
     }
 
     if (item.key === "ielts_learn") {

@@ -2,7 +2,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 import { updateSession } from "@/lib/supabase/middleware";
 import { getMaintenanceGateResponse } from "@/lib/maintenance/middleware";
-import { type NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -22,12 +22,18 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request);
   }
 
-  // Run intl middleware first (handles locale detection, redirects, rewrites)
-  const intlResponse = intlMiddleware(request);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-thinkfy-pathname", pathname);
+  const requestWithPath = new NextRequest(request, { headers: requestHeaders });
+
+  // Run intl middleware first (handles locale detection, redirects, rewrites).
+  // The path header lets the protected shell preserve the intended return URL
+  // without trusting a client-provided query parameter.
+  const intlResponse = intlMiddleware(requestWithPath);
 
   // Then run Supabase session update, passing the intl response to preserve
   // locale cookies/headers while adding Supabase session cookies
-  return await updateSession(request, intlResponse);
+  return await updateSession(requestWithPath, intlResponse);
 }
 
 export const config = {

@@ -171,7 +171,7 @@ export function IeltsOnboardingResultStep({
               </p>
             )}
             <Link
-              href="/ielts"
+              href="/ielts/home"
               className={cn(buttonVariants({ variant: "primary", size: "lg" }))}
             >
               {t("finish")}

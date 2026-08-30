@@ -22,7 +22,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
           thinkfy<span className="text-primary">.</span>
         </Link>
         <Link
-          href={href("/auth/login")}
+          href={href("/auth/login?next=/ielts")}
           className="rounded-lg border border-outline-variant px-4 py-2 type-label font-semibold hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {c.secondary}
@@ -41,7 +41,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
-              href={href("/auth/signup?product=ielts")}
+              href={href("/auth/login?next=/ielts/onboarding")}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 type-label font-semibold text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {c.primary}
@@ -54,7 +54,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
           <div className="flex items-center justify-between border-b border-outline-variant pb-4">
             <div className="flex items-center gap-2">
               <ProductIcon name="target" size="md" className="text-primary" />
-              <span className="type-label font-semibold">Your IELTS path</span>
+              <span className="type-label font-semibold">{c.pathLabel}</span>
             </div>
             <span className="rounded-full bg-primary-container px-2.5 py-1 type-label font-semibold text-on-primary-container">
               01 / 04
@@ -63,20 +63,14 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
           <div className="mt-5 space-y-3">
             <div className="rounded-lg border border-primary bg-primary-container p-4">
               <p className="type-label font-semibold uppercase text-primary">
-                Today
+                {c.todayLabel}
               </p>
-              <p className="mt-1 type-title font-semibold">
-                Set your goal and find your starting point
-              </p>
+              <p className="mt-1 type-title font-semibold">{c.todayTitle}</p>
               <p className="mt-1 type-body-sm text-on-surface-variant">
-                A short setup, then a focused next step.
+                {c.todayBody}
               </p>
             </div>
-            {[
-              "Choose Academic or General Training",
-              "Build your four-skill plan",
-              "Practice with confidence",
-            ].map((item, i) => (
+            {c.pathSteps.map((item, i) => (
               <div
                 key={item}
                 className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface px-4 py-3"
@@ -110,9 +104,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
                   {item.body}
                 </p>
                 <p className="mt-5 type-label font-semibold text-primary">
-                  {i === 0
-                    ? "Reading & Writing differ from General Training"
-                    : "Reading & Writing follow General Training"}
+                  {i === 0 ? c.academicDifference : c.generalDifference}
                 </p>
               </article>
             ))}

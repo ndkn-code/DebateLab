@@ -76,7 +76,12 @@ function SpeakingRehearsalIcon({ className }: { className?: string }) {
 }
 
 const NAV_ITEMS: readonly SidebarNavItem[] = [
-  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard, status: "live" },
+  {
+    href: "/dashboard",
+    key: "dashboard",
+    icon: LayoutDashboard,
+    status: "live",
+  },
   { href: "/practice", key: "practice", icon: Scale, status: "live" },
   {
     href: LEADERBOARDS_ENABLED ? "/leaderboards" : undefined,
@@ -93,7 +98,12 @@ const NAV_ITEMS: readonly SidebarNavItem[] = [
 // IELTS learner nav (WS-5.1) — used for the mobile sheet + legacy aside when the
 // active subject is `ielts`. Debate nav stays byte-identical (`NAV_ITEMS`).
 const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
-  { href: "/ielts", key: "ielts_home", icon: GraduationCap, status: "live" },
+  {
+    href: "/ielts/home",
+    key: "ielts_home",
+    icon: GraduationCap,
+    status: "live",
+  },
   {
     href: "/ielts/learn",
     key: "ielts_learn",
@@ -107,15 +117,25 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: SpeakingRehearsalIcon,
     status: "live",
   },
-  { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
-  { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
+  {
+    href: "/ielts/tests",
+    key: "ielts_library",
+    icon: BookOpen,
+    status: "live",
+  },
+  {
+    href: "/ielts/assigned",
+    key: "ielts_assigned",
+    icon: ClipboardList,
+    status: "live",
+  },
   { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ];
 
 // IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
 const IELTS_DASHBOARD_NAV_ITEMS: DashboardSidebarNavItem[] = [
-  { key: "ielts_home", href: "/ielts", status: "live" },
+  { key: "ielts_home", href: "/ielts/home", status: "live" },
   {
     key: "ielts_learn",
     href: "/ielts/learn",
@@ -170,9 +190,9 @@ function NavContent({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const t = useTranslations('dashboard.nav');
-  const tc = useTranslations('common');
-  const ts = useTranslations('dashboard.home');
+  const t = useTranslations("dashboard.nav");
+  const tc = useTranslations("common");
+  const ts = useTranslations("dashboard.home");
   const isAdmin = profile?.role === "admin";
   const canDuel = DUEL_ENABLED || isAdmin;
   const displayName =
@@ -194,7 +214,7 @@ function NavContent({
       <div
         className={cn(
           "flex h-14 shrink-0 items-center px-4",
-          collapsed ? "justify-center" : "gap-2"
+          collapsed ? "justify-center" : "gap-2",
         )}
       >
         {collapsed ? (
@@ -202,7 +222,11 @@ function NavContent({
         ) : (
           <>
             <LogoMark size="sm" variant="light" className="dark:hidden" />
-            <LogoMark size="sm" variant="dark" className="hidden dark:inline-flex" />
+            <LogoMark
+              size="sm"
+              variant="dark"
+              className="hidden dark:inline-flex"
+            />
           </>
         )}
       </div>
@@ -223,7 +247,7 @@ function NavContent({
         <div
           className={cn(
             "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-warning/25 bg-white/[0.08] px-3 py-2 text-sidebar-foreground",
-            collapsed && "justify-center px-2"
+            collapsed && "justify-center px-2",
           )}
         >
           <OrbBalance balance={profile.orb_balance} size="sm" />
@@ -244,17 +268,19 @@ function NavContent({
               collapsed && "justify-center px-0",
               pathname.startsWith("/dashboard/admin")
                 ? "sidebar-nav-selected"
-                : "sidebar-nav-idle"
+                : "sidebar-nav-idle",
             )}
             title={collapsed ? t("switchToAdmin") : undefined}
           >
             <Shield className="h-5 w-5 shrink-0" />
-            {!collapsed ? <span className="truncate">{t("switchToAdmin")}</span> : null}
+            {!collapsed ? (
+              <span className="truncate">{t("switchToAdmin")}</span>
+            ) : null}
           </Link>
         ) : null}
         {navItems.map((item) => {
           const href = item.href;
-          const isExactRoot = href === "/dashboard" || href === "/ielts";
+          const isExactRoot = href === "/dashboard" || href === "/ielts/home";
           const isActive = href
             ? pathname === href ||
               (item.key === "duel"
@@ -264,7 +290,9 @@ function NavContent({
           const Icon = item.icon;
           const label = item.key === "analytics" ? t("profile") : t(item.key);
           const isUnavailable =
-            item.status === "coming-soon" || !href || (item.key === "duel" && !canDuel);
+            item.status === "coming-soon" ||
+            !href ||
+            (item.key === "duel" && !canDuel);
           const content = (
             <>
               <Icon className="h-5 w-5 shrink-0" />
@@ -289,9 +317,11 @@ function NavContent({
                 aria-disabled="true"
                 className={cn(
                   "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75",
-                  collapsed && "justify-center px-0"
+                  collapsed && "justify-center px-0",
                 )}
-                title={collapsed ? `${label} - ${ts("coming_soon")}` : undefined}
+                title={
+                  collapsed ? `${label} - ${ts("coming_soon")}` : undefined
+                }
               >
                 {content}
               </div>
@@ -306,9 +336,7 @@ function NavContent({
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
                 collapsed && "justify-center px-0",
-                isActive
-                  ? "sidebar-nav-selected"
-                  : "sidebar-nav-idle"
+                isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
               )}
               title={collapsed ? label : undefined}
             >
@@ -333,7 +361,7 @@ function NavContent({
             className={cn(
               "flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-white/[0.08]",
               "sidebar-nav-action",
-              collapsed && "justify-center px-0"
+              collapsed && "justify-center px-0",
             )}
           >
             <Avatar size="sm">
@@ -356,24 +384,39 @@ function NavContent({
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" sideOffset={8}>
-            <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/profile'); }}>
+            <DropdownMenuItem
+              onClick={() => {
+                onNavClick?.();
+                router.push("/profile");
+              }}
+            >
               <User className="h-4 w-4" />
-              {t('profile')}
+              {t("profile")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/settings'); }}>
+            <DropdownMenuItem
+              onClick={() => {
+                onNavClick?.();
+                router.push("/settings");
+              }}
+            >
               <Settings className="h-4 w-4" />
-              {t('settings')}
+              {t("settings")}
             </DropdownMenuItem>
-            {profile?.role === 'admin' && (
-              <DropdownMenuItem onClick={() => { onNavClick?.(); router.push('/dashboard/admin'); }}>
+            {profile?.role === "admin" && (
+              <DropdownMenuItem
+                onClick={() => {
+                  onNavClick?.();
+                  router.push("/dashboard/admin");
+                }}
+              >
                 <Shield className="h-4 w-4" />
-                {t('switchToAdmin')}
+                {t("switchToAdmin")}
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onSignOut}>
               <LogOut className="h-4 w-4" />
-              {tc('sign_out')}
+              {tc("sign_out")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -392,7 +435,7 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const currentLocale = coerceAppLocale(useLocale());
-  const tc = useTranslations('common');
+  const tc = useTranslations("common");
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isAdmin = profile?.role === "admin";
   const canDuel = DUEL_ENABLED || isAdmin;
@@ -454,7 +497,7 @@ export function Sidebar({
           data-thinkfy-v2="sidebar"
           className={cn(
             "relative hidden h-dvh shrink-0 self-start flex-col overflow-hidden overscroll-none border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground transition-all duration-200 md:sticky md:top-0 md:flex",
-            collapsed ? "w-16" : "w-55"
+            collapsed ? "w-16" : "w-55",
           )}
         >
           <NavContent
@@ -476,7 +519,7 @@ export function Sidebar({
             <ChevronLeft
               className={cn(
                 "h-3.5 w-3.5 transition-transform",
-                collapsed && "rotate-180"
+                collapsed && "rotate-180",
               )}
             />
           </button>
@@ -484,7 +527,10 @@ export function Sidebar({
       )}
 
       {/* Mobile top bar + sheet */}
-      <div data-thinkfy-v2="mobile-bar" className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
+      <div
+        data-thinkfy-v2="mobile-bar"
+        className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden"
+      >
         <Sheet>
           <SheetTrigger
             aria-label={tc("navigation")}
@@ -497,7 +543,7 @@ export function Sidebar({
             className="w-55 border-sidebar-muted/15 bg-sidebar p-0 text-sidebar-foreground"
             showCloseButton={false}
           >
-            <SheetTitle className="sr-only">{tc('navigation')}</SheetTitle>
+            <SheetTitle className="sr-only">{tc("navigation")}</SheetTitle>
             <NavContent
               collapsed={false}
               profile={profile}

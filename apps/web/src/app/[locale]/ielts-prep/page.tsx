@@ -1,8 +1,10 @@
-import { setRequestLocale } from "next-intl/server";
-import { IeltsLanding } from "@/components/landing/ielts/IeltsLanding";
+import { redirect } from "next/navigation";
 
-export default async function IeltsPrepPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function IeltsPrepPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
-  setRequestLocale(locale);
-  return <IeltsLanding locale={locale === "vi" ? "vi" : "en"} />;
+  redirect(`/${locale}/ielts`);
 }

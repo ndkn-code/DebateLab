@@ -11,7 +11,10 @@ import {
   ListChecks,
 } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
-import { PageContainer, ProductPageShell } from "@/components/shared/product-layout";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { PageTransition } from "@/components/shared/page-motion";
 import { showToast } from "@/components/shared/toast";
 import { cn } from "@/lib/utils";
@@ -51,13 +54,17 @@ function BilingualBlock({
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
-          <p className="type-caption font-semibold text-on-surface-variant">EN</p>
+          <p className="type-caption font-semibold text-on-surface-variant">
+            EN
+          </p>
           <p className="mt-1 whitespace-pre-wrap type-body text-on-surface">
             {en || "—"}
           </p>
         </div>
         <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
-          <p className="type-caption font-semibold text-on-surface-variant">VI</p>
+          <p className="type-caption font-semibold text-on-surface-variant">
+            VI
+          </p>
           <p className="mt-1 whitespace-pre-wrap type-body text-on-surface">
             {vi || "—"}
           </p>
@@ -90,7 +97,10 @@ function ReviewCard({
     startedAt.current = Date.now();
   }, [item.id]);
 
-  const dueLabel = useMemo(() => formatDueAt(item.dueAt, locale), [item.dueAt, locale]);
+  const dueLabel = useMemo(
+    () => formatDueAt(item.dueAt, locale),
+    [item.dueAt, locale],
+  );
 
   async function grade(rating: IeltsReviewRating) {
     if (!revealed || saving) return;
@@ -179,7 +189,9 @@ function ReviewCard({
                   onClick={() => grade(rating)}
                   disabled={Boolean(saving)}
                   className={cn(
-                    buttonVariants({ variant: rating === "again" ? "secondary" : "primary" }),
+                    buttonVariants({
+                      variant: rating === "again" ? "secondary" : "primary",
+                    }),
                     "justify-center",
                   )}
                 >
@@ -206,9 +218,12 @@ export function IeltsReviewSession({ view }: { view: IeltsReviewSessionView }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="focused" className="flex flex-col gap-6 py-6 lg:py-8">
+        <PageContainer
+          size="focused"
+          className="flex flex-col gap-6 py-6 lg:py-8"
+        >
           <Link
-            href="/ielts"
+            href="/ielts/home"
             className="inline-flex items-center gap-1.5 self-start type-body-sm font-semibold text-on-surface-variant hover:text-on-surface"
           >
             <ArrowLeft className="size-4" />
@@ -243,7 +258,10 @@ export function IeltsReviewSession({ view }: { view: IeltsReviewSessionView }) {
                 {total > 0 ? t("done_body") : t("empty_body")}
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
-                <Link href="/ielts" className={cn(buttonVariants({ variant: "primary" }))}>
+                <Link
+                  href="/ielts/home"
+                  className={cn(buttonVariants({ variant: "primary" }))}
+                >
                   {t("cta_home")}
                 </Link>
                 <Link

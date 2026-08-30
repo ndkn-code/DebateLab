@@ -26,7 +26,8 @@ async function CoursesPayload() {
 
   if (!user && !devAuthBypassUser) redirect("/auth/login");
 
-  const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
+  const activeUserId =
+    user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
   const subject = await getActiveSubject();
 
   if (!areStudentCoursesEnabled(subject)) {
@@ -38,11 +39,13 @@ async function CoursesPayload() {
           .single()
       : { data: DEV_ADMIN_PROFILE };
 
-    redirect(profile?.role === "admin" ? "/dashboard/admin/courses" : "/dashboard");
+    redirect(
+      profile?.role === "admin" ? "/dashboard/admin/courses" : "/dashboard",
+    );
   }
 
   if (subject === "ielts" && !(await isEnrolledStudent(activeUserId))) {
-    redirect("/ielts");
+    redirect("/ielts/home");
   }
 
   // Dev seed content is debate-only; never seed it into the IELTS surface.

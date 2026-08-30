@@ -107,7 +107,7 @@ export async function saveIeltsOnboardingGoalAction(raw: unknown) {
     route: "/ielts/onboarding",
     metadata: { onboardingVersion: IELTS_ONBOARDING_VERSION },
   });
-  revalidatePath("/ielts");
+  revalidatePath("/ielts/home");
   revalidatePath("/ielts/onboarding");
   return {
     ok: true,
@@ -120,7 +120,7 @@ export async function generateIeltsOnboardingPlanAction() {
   const userId = await requireIeltsUserId();
   const result = await generateAndPersistIeltsStudyPlanForUser({ userId });
   await completeIeltsProfileOnboarding(userId);
-  revalidatePath("/ielts");
+  revalidatePath("/ielts/home");
   revalidatePath("/ielts/onboarding");
   return {
     ok: true,

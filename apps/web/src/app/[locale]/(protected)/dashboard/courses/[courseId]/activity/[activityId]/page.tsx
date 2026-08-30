@@ -18,7 +18,9 @@ export default async function ActivityPlayerPage({
   const { preview } = await searchParams;
   const previewMode = preview === "1";
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase
@@ -38,7 +40,7 @@ export default async function ActivityPlayerPage({
     !(previewMode && isAdmin) &&
     !(await isEnrolledStudent(user.id))
   ) {
-    redirect("/ielts");
+    redirect("/ielts/home");
   }
 
   const { data: course } = await supabase
@@ -48,7 +50,11 @@ export default async function ActivityPlayerPage({
     .single();
 
   if (!course) {
-    redirect(previewMode && isAdmin ? `/dashboard/admin/courses/${courseId}` : "/courses");
+    redirect(
+      previewMode && isAdmin
+        ? `/dashboard/admin/courses/${courseId}`
+        : "/courses",
+    );
   }
 
   if (previewMode && !isAdmin) {
@@ -121,7 +127,7 @@ export default async function ActivityPlayerPage({
         .eq("is_archived", false)
         .order("order_index");
       return { ...mod, activities: activities ?? [] };
-    })
+    }),
   );
 
   const currentModule = allModules.find((m) => m.id === activity.module_id) ?? {
@@ -134,17 +140,22 @@ export default async function ActivityPlayerPage({
   let completedActivityIds: string[] = [];
 
   if (!previewMode) {
-    const allActivityIds = allModules.flatMap((m) => m.activities.map((a) => a.id));
-    const { data: completedAttempts } = allActivityIds.length > 0
-      ? await supabase
-          .from("activity_attempts")
-          .select("activity_id")
-          .eq("user_id", user.id)
-          .not("completed_at", "is", null)
-          .in("activity_id", allActivityIds)
-      : { data: [] };
+    const allActivityIds = allModules.flatMap((m) =>
+      m.activities.map((a) => a.id),
+    );
+    const { data: completedAttempts } =
+      allActivityIds.length > 0
+        ? await supabase
+            .from("activity_attempts")
+            .select("activity_id")
+            .eq("user_id", user.id)
+            .not("completed_at", "is", null)
+            .in("activity_id", allActivityIds)
+        : { data: [] };
 
-    completedActivityIds = [...new Set((completedAttempts ?? []).map((a) => a.activity_id))];
+    completedActivityIds = [
+      ...new Set((completedAttempts ?? []).map((a) => a.activity_id)),
+    ];
   }
 
   return (

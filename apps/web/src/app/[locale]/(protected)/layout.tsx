@@ -1,11 +1,18 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
 import { getActiveSubject } from "@/lib/subject/server";
 import { LocalizedAppProviders } from "../localized-app-providers";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import {
+  DEV_ADMIN_PROFILE,
+  isDevAdminBypassEnabled,
+} from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
-import { IELTS_ENABLED, LEADERBOARD_SEASON_REPLAY_ENABLED } from "@/lib/features";
+import {
+  IELTS_ENABLED,
+  LEADERBOARD_SEASON_REPLAY_ENABLED,
+} from "@/lib/features";
 import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 import { getLeaderboardPageData } from "@/lib/leaderboards/data";
 import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
@@ -19,7 +26,7 @@ export const dynamic = "force-dynamic";
 
 async function getShellSeasonReplayOutcome(
   userId: string,
-  leaderboardLanguage: LeaderboardLanguage
+  leaderboardLanguage: LeaderboardLanguage,
 ): Promise<LeaderboardSeasonOutcome | null> {
   if (!LEADERBOARD_SEASON_REPLAY_ENABLED) {
     return null;
@@ -92,17 +99,22 @@ export default async function ProtectedLayout({
       );
     }
 
-    redirect("/auth/login");
+    const requestPath =
+      (await headers()).get("x-thinkfy-pathname") ?? "/dashboard";
+    const unlocalizedPath = requestPath.replace(/^\/(?:en|vi)(?=\/)/, "");
+    redirect(`/auth/login?next=${encodeURIComponent(unlocalizedPath)}`);
   }
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, handle, profile_status, role, onboarding_completed, preferences, orb_balance, referral_code, xp, level, selected_title")
+    .select(
+      "id, display_name, avatar_url, handle, profile_status, role, onboarding_completed, preferences, orb_balance, referral_code, xp, level, selected_title",
+    )
     .eq("id", user.id)
     .single();
   const seasonReplayOutcome = await getShellSeasonReplayOutcome(
     user.id,
-    leaderboardLanguage
+    leaderboardLanguage,
   );
 
   // Redirect to onboarding if profile missing or not completed
