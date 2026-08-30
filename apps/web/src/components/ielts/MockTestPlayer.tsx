@@ -8,10 +8,12 @@
  * minimal here (full review is WS-2.2).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
+import type {
+  MockStructure,
+  AttemptState,
+} from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
 import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
@@ -28,22 +30,25 @@ import {
 } from "@/app/actions/ielts/mock";
 import { startAssignedMockAttempt } from "@/app/actions/ielts/assignments";
 import { MockSectionView } from "./MockSectionView";
-import { MockPreTestGuide } from "./MockPreTestGuide";
+import { MockBandSummary, MockIntroCard } from "./MockPlayerStates";
+import {
+  IELTS_PLAYER_EXPERIENCE_COPY,
+  type IeltsPlayerExperience,
+  type IeltsPlayerLocale,
+} from "./player-experience";
+import { IeltsPlayerExperienceProvider } from "./player-experience-context";
 
 type Phase = "intro" | "running" | "done";
-const PILL = "rounded-full px-5 py-2 text-sm font-semibold";
-
-function bandText(band: number | null): string {
-  return band === null ? "—" : band.toFixed(1);
-}
 
 export function MockTestPlayer({
   structure,
   assignmentId,
+  experience = "exam_simulation",
   returnHref,
   returnLabel,
 }: {
   structure: MockStructure;
+  experience?: IeltsPlayerExperience;
   /** When present, the sitting is stamped to this class assignment (WS-5.3). */
   assignmentId?: string;
   /** Optional post-submit path used by onboarding diagnostics. */
@@ -51,6 +56,7 @@ export function MockTestPlayer({
   returnLabel?: string;
 }) {
   const params = useParams<{ locale: string }>();
+  const locale: IeltsPlayerLocale = params.locale === "vi" ? "vi" : "en";
   const router = useRouter();
   const t = useTranslations("ielts.player");
   const [phase, setPhase] = useState<Phase>("intro");
@@ -61,11 +67,17 @@ export function MockTestPlayer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(new Map());
+  const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(
+    new Map(),
+  );
   const lastAnswerToastAt = useRef(0);
   const answerSaveErrorShown = useRef(false);
-  const hydrateAnnotations = useMockAnnotationsStore((store) => store.hydrateAttempt);
-  const clearAnnotations = useMockAnnotationsStore((store) => store.clearActiveAttempt);
+  const hydrateAnnotations = useMockAnnotationsStore(
+    (store) => store.hydrateAttempt,
+  );
+  const clearAnnotations = useMockAnnotationsStore(
+    (store) => store.clearActiveAttempt,
+  );
 
   const sections = state?.sections ?? [];
   const section = sections[activeIndex];
@@ -77,51 +89,64 @@ export function MockTestPlayer({
     return () => clearAnnotations();
   }, [attemptId, hydrateAnnotations, clearAnnotations]);
 
-  const run = useCallback(async (fn: () => Promise<void>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await fn();
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : t("toastActionFailed");
-      setError(message);
-      showToast(message, "error");
-    } finally {
-      setBusy(false);
-    }
-  }, [t]);
+  const run = useCallback(
+    async (fn: () => Promise<void>) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await fn();
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : t("toastActionFailed");
+        setError(message);
+        showToast(message, "error");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [t],
+  );
 
   const hydrate = (next: AttemptState) => {
     setState(next);
     setResponses(
-      Object.fromEntries(next.responses.map((row) => [row.question_id, row.response])),
+      Object.fromEntries(
+        next.responses.map((row) => [row.question_id, row.response]),
+      ),
     );
   };
 
   // Persist one question's latest value; keep it pending on failure so a later
   // flush retries (the optimistic value stays on screen meanwhile).
-  const persistOne = useCallback(async (questionId: string) => {
-    const item = pending.current.get(questionId);
-    if (!item) return;
-    try {
-      await saveResponse({ sectionId: item.sectionId, questionId, response: item.value });
-      if (pending.current.get(questionId) === item) {
-        pending.current.delete(questionId);
-        answerSaveErrorShown.current = false;
-        const now = Date.now();
-        if (now - lastAnswerToastAt.current > 12000) {
-          lastAnswerToastAt.current = now;
-          showToast(t("toastAnswerSaved"), "success");
+  const persistOne = useCallback(
+    async (questionId: string) => {
+      const item = pending.current.get(questionId);
+      if (!item) return;
+      try {
+        await saveResponse({
+          sectionId: item.sectionId,
+          questionId,
+          response: item.value,
+        });
+        if (pending.current.get(questionId) === item) {
+          pending.current.delete(questionId);
+          answerSaveErrorShown.current = false;
+          const now = Date.now();
+          if (now - lastAnswerToastAt.current > 12000) {
+            lastAnswerToastAt.current = now;
+            showToast(t("toastAnswerSaved"), "success");
+          }
         }
+      } catch {
+        if (!answerSaveErrorShown.current) {
+          answerSaveErrorShown.current = true;
+          showToast(t("toastAnswerSaveFailed"), "warning");
+        }
+        /* keep pending for retry */
       }
-    } catch {
-      if (!answerSaveErrorShown.current) {
-        answerSaveErrorShown.current = true;
-        showToast(t("toastAnswerSaveFailed"), "warning");
-      }
-      /* keep pending for retry */
-    }
-  }, [t]);
+    },
+    [t],
+  );
 
   // Drain all debounced saves NOW — called before every state transition so no
   // just-typed answer is lost when a section/attempt is submitted.
@@ -141,7 +166,12 @@ export function MockTestPlayer({
       setPhase("running");
       const first = started.sections[0];
       if (first) {
-        setState(await enterSection({ attemptId: started.attempt.id, sectionId: first.id }));
+        setState(
+          await enterSection({
+            attemptId: started.attempt.id,
+            sectionId: first.id,
+          }),
+        );
       }
     });
 
@@ -172,7 +202,10 @@ export function MockTestPlayer({
 
   const sectionAction =
     (
-      action: (input: { attemptId: string; sectionId: string }) => Promise<AttemptState>,
+      action: (input: {
+        attemptId: string;
+        sectionId: string;
+      }) => Promise<AttemptState>,
       successMessage?: string,
     ) =>
     () => {
@@ -200,18 +233,32 @@ export function MockTestPlayer({
       setState(result.state);
       setGrade(result.grade);
       setPhase("done");
-      showToast(t("toastMockSubmitted"), "success");
+      showToast(
+        experience === "speaking_rehearsal"
+          ? IELTS_PLAYER_EXPERIENCE_COPY[locale][experience].submitted
+          : t("toastMockSubmitted"),
+        "success",
+      );
       // Diagnostic sittings (onboarding / study-plan) pass a returnHref and must
       // funnel back there — the plan, not the raw results page. Self-serve mocks
       // (no returnHref) go to full results.
-      router.push(returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`);
+      router.push(
+        returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`,
+      );
     });
   };
 
   if (phase === "intro") {
     return (
       <div className="flex h-full items-center justify-center overflow-y-auto px-4 py-8">
-        <IntroCard title={structure.test.title} busy={busy} error={error} onStart={handleStart} />
+        <MockIntroCard
+          title={structure.test.title}
+          experience={experience}
+          locale={locale}
+          busy={busy}
+          error={error}
+          onStart={handleStart}
+        />
       </div>
     );
   }
@@ -221,11 +268,13 @@ export function MockTestPlayer({
       ? `/${params.locale}/ielts/attempts/${attemptId}/results`
       : null;
     return (
-      <BandSummary
+      <MockBandSummary
         grade={grade}
         resultsHref={resultsHref}
         returnHref={returnHref}
         returnLabel={returnLabel}
+        experience={experience}
+        locale={locale}
       />
     );
   }
@@ -242,116 +291,29 @@ export function MockTestPlayer({
       ) : null}
 
       {section ? (
-        <MockSectionView
-          key={section.id}
-          section={section}
-          structure={structure}
-          responses={responses}
-          busy={busy}
-          testTitle={structure.test.title}
-          sections={sections}
-          activeSectionIndex={activeIndex}
-          onAnswer={handleAnswer}
-          onSwitchSection={handleSwitch}
-          onPause={sectionAction(pauseSection)}
-          onResume={sectionAction(resumeSection)}
-          onSubmitSection={sectionAction(submitSection, t("toastSectionSubmitted"))}
-          onExpire={handleExpire}
-          onFinish={handleFinish}
-        />
+        <IeltsPlayerExperienceProvider value={experience}>
+          <MockSectionView
+            key={section.id}
+            section={section}
+            structure={structure}
+            responses={responses}
+            busy={busy}
+            testTitle={structure.test.title}
+            sections={sections}
+            activeSectionIndex={activeIndex}
+            onAnswer={handleAnswer}
+            onSwitchSection={handleSwitch}
+            onPause={sectionAction(pauseSection)}
+            onResume={sectionAction(resumeSection)}
+            onSubmitSection={sectionAction(
+              submitSection,
+              t("toastSectionSubmitted"),
+            )}
+            onExpire={handleExpire}
+            onFinish={handleFinish}
+          />
+        </IeltsPlayerExperienceProvider>
       ) : null}
-    </div>
-  );
-}
-
-function IntroCard({
-  title,
-  busy,
-  error,
-  onStart,
-}: {
-  title: string;
-  busy: boolean;
-  error: string | null;
-  onStart: () => void;
-}) {
-  return (
-    <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-3xl border border-outline-variant bg-surface-container p-8 text-center">
-      <h1 className="text-xl font-bold text-on-surface">{title}</h1>
-      <p className="text-sm text-on-surface-variant">
-        Timed, exam-conditions mock. Reading, Writing, and Speaking can be paused;
-        Listening recordings play once without pause or replay.
-      </p>
-      <MockPreTestGuide />
-      {error ? <p className="text-sm text-error">{error}</p> : null}
-      <button
-        type="button"
-        onClick={onStart}
-        disabled={busy}
-        className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
-      >
-        {busy ? "Starting…" : "Start mock test"}
-      </button>
-    </div>
-  );
-}
-
-function BandSummary({
-  grade,
-  resultsHref,
-  returnHref,
-  returnLabel,
-}: {
-  grade: AttemptGrade;
-  resultsHref: string | null;
-  returnHref?: string;
-  returnLabel?: string;
-}) {
-  const rows: Array<[string, number | null, number | null]> = [
-    ["Listening", grade.listeningRaw, grade.bands.listeningBand],
-    ["Reading", grade.readingRaw, grade.bands.readingBand],
-  ];
-  return (
-    <div className="mx-auto flex max-w-lg flex-col gap-4 rounded-3xl border border-outline-variant bg-surface-container p-8">
-      <h1 className="text-center text-xl font-bold text-on-surface">Your band</h1>
-      <div className="rounded-3xl bg-primary p-6 text-center text-on-primary">
-        <p className="text-xs font-semibold uppercase tracking-wide">Overall (provisional)</p>
-        <p className="text-4xl font-extrabold">{bandText(grade.bands.overallBand)}</p>
-      </div>
-      <div className="flex flex-col gap-2">
-        {rows.map(([label, raw, band]) => (
-          <div
-            key={label}
-            className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-on-surface"
-          >
-            <span className="text-sm font-medium">{label}</span>
-            <span className="text-sm text-on-surface-variant">
-              {raw === null ? "—" : `${raw}/40`} · band{" "}
-              <span className="font-bold text-on-surface">{bandText(band)}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-      {resultsHref ? (
-        <Link
-          href={resultsHref}
-          className={`${PILL} bg-primary text-center text-on-primary`}
-        >
-          See full results &amp; review
-        </Link>
-      ) : null}
-      {returnHref ? (
-        <Link
-          href={returnHref}
-          className={`${PILL} bg-surface-container-high text-center text-on-surface`}
-        >
-          {returnLabel ?? "Continue"}
-        </Link>
-      ) : null}
-      <p className="text-center text-xs text-on-surface-variant">
-        Writing &amp; Speaking are scored separately and appear in your full
-        results as they finish.
-      </p>
     </div>
   );
 }

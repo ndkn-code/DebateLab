@@ -1,4 +1,5 @@
 import type { Tables } from "@/types/supabase";
+import { useLocale } from "next-intl";
 import type {
   SectionRuntimeStatus,
   SectionTimingState,
@@ -15,6 +16,11 @@ import { QuestionNavigator } from "../QuestionNavigator";
 import { SectionTimer } from "../SectionTimer";
 import { ExamButton } from "./ExamButton";
 import { ExamAnnotationToolbar } from "./ExamAnnotationToolbar";
+import {
+  IELTS_PLAYER_EXPERIENCE_COPY,
+  type IeltsPlayerLocale,
+} from "../player-experience";
+import { useIeltsPlayerExperience } from "../player-experience-context";
 
 interface AnnotationToolbarProps {
   highlightMode: boolean;
@@ -27,10 +33,7 @@ interface AnnotationToolbarProps {
 
 function ExamToolbar(props: AnnotationToolbarProps) {
   return (
-    <div
-      data-exam-toolbar="reserved"
-      className="hidden lg:block"
-    >
+    <div data-exam-toolbar="reserved" className="hidden lg:block">
       <ExamAnnotationToolbar
         highlightMode={props.highlightMode}
         selectedColor={props.selectedColor}
@@ -92,20 +95,27 @@ export function ExamSectionHeader({
   onSelectHighlightColor: (color: MockHighlightColor) => void;
   onOpenNotes: () => void;
 }) {
+  const currentLocale = useLocale();
+  const locale: IeltsPlayerLocale = currentLocale === "vi" ? "vi" : "en";
+  const experience = useIeltsPlayerExperience();
+  const experienceLabel =
+    IELTS_PLAYER_EXPERIENCE_COPY[locale][experience].label;
+
   return (
     <header className="z-20 shrink-0 border-b border-outline-variant bg-surface/95 shadow-sm backdrop-blur">
       <div className="flex min-h-16 items-center gap-1 px-3 py-2 sm:gap-3 sm:px-5">
         <div className="hidden min-w-0 flex-1 sm:block">
           <div className="flex min-w-0 items-center gap-2">
             <span className="type-caption shrink-0 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-extrabold uppercase tracking-wide text-on-surface-variant">
-              Exam Simulation
+              {experienceLabel}
             </span>
             <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
               {testTitle}
             </h1>
           </div>
           <p className="truncate text-xs font-bold text-on-surface-variant sm:text-sm">
-            {sectionLabel} · Section {activeSectionIndex + 1} of {sections.length}
+            {sectionLabel} · Section {activeSectionIndex + 1} of{" "}
+            {sections.length}
           </p>
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:shrink-0 sm:gap-2">
@@ -121,8 +131,14 @@ export function ExamSectionHeader({
               className="size-10 px-0 sm:w-auto sm:px-4"
               aria-label={paused ? "Resume section" : "Pause section"}
             >
-              <ProductIcon name={paused ? "play" : "pause"} size="sm" weight="bold" />
-              <span className="hidden sm:inline">{paused ? "Resume" : "Pause"}</span>
+              <ProductIcon
+                name={paused ? "play" : "pause"}
+                size="sm"
+                weight="bold"
+              />
+              <span className="hidden sm:inline">
+                {paused ? "Resume" : "Pause"}
+              </span>
             </ExamButton>
           ) : null}
           <div className="lg:hidden">
@@ -150,7 +166,7 @@ export function ExamSectionHeader({
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-haspopup="dialog"
             aria-expanded={guideOpen}
-            aria-label="Exam Simulation details"
+            aria-label={`${experienceLabel} details`}
           >
             <ProductIcon name="help" size="md" weight="bold" />
           </button>
@@ -169,7 +185,9 @@ export function ExamSectionHeader({
             key={candidate.id}
             type="button"
             onClick={() => onSwitchSection(index)}
-            disabled={busy || (sectionNavigationLocked && index !== activeSectionIndex)}
+            disabled={
+              busy || (sectionNavigationLocked && index !== activeSectionIndex)
+            }
             aria-current={index === activeSectionIndex ? "step" : undefined}
             className={cn(
               "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50",
@@ -180,7 +198,12 @@ export function ExamSectionHeader({
           >
             {candidate.label ?? candidate.skill}
             {candidate.submitted_at !== null ? (
-              <ProductIcon name="checkCircle" size="xs" weight="fill" aria-hidden="true" />
+              <ProductIcon
+                name="checkCircle"
+                size="xs"
+                weight="fill"
+                aria-hidden="true"
+              />
             ) : null}
           </button>
         ))}
@@ -191,8 +214,10 @@ export function ExamSectionHeader({
 
 function questionChipClass(status: MockQuestionStatus) {
   if (status.current) return "border-primary bg-primary text-on-primary";
-  if (status.flagged) return "border-warning bg-warning-container text-on-warning-container";
-  if (status.answered) return "border-success/40 bg-success-container text-on-success-container";
+  if (status.flagged)
+    return "border-warning bg-warning-container text-on-warning-container";
+  if (status.answered)
+    return "border-success/40 bg-success-container text-on-success-container";
   return "border-outline-variant bg-surface text-on-surface-variant hover:border-primary/50";
 }
 
@@ -231,7 +256,10 @@ export function ExamSectionFooter({
         <span className="shrink-0 text-xs font-extrabold text-on-surface-variant">
           Part {Math.max(1, activePartIndex + 1)}
         </span>
-        <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5" aria-label="Questions">
+        <div
+          className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5"
+          aria-label="Questions"
+        >
           {statuses.map((status) => (
             <button
               key={status.questionId}
@@ -271,7 +299,9 @@ export function ExamSectionFooter({
           </ExamButton>
           <ExamButton
             onClick={() => onSelectPart(activePartIndex + 1)}
-            disabled={busy || activePartIndex < 0 || activePartIndex >= partsLength - 1}
+            disabled={
+              busy || activePartIndex < 0 || activePartIndex >= partsLength - 1
+            }
             aria-label="Next part"
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
@@ -293,7 +323,9 @@ export function ExamSectionFooter({
             className="px-3 sm:px-4"
           >
             <ProductIcon name="listChecks" size="sm" weight="bold" />
-            <span className="hidden md:inline">Review &amp; submit section</span>
+            <span className="hidden md:inline">
+              Review &amp; submit section
+            </span>
             <span className="md:hidden">Review</span>
           </ExamButton>
           {isLastSection ? (

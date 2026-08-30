@@ -3,6 +3,7 @@ import { getIeltsTestBySlug } from "@/lib/api/ielts/tests-repository";
 import { loadMockStructure } from "@/lib/api/ielts/mock-repository";
 import { isAssignmentStartableForTest } from "@/lib/api/ielts/learner-assignments-repository";
 import { MockTestPlayer } from "@/components/ielts/MockTestPlayer";
+import type { IeltsPlayerExperience } from "@/components/ielts/player-experience";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,14 @@ export default async function IeltsMockPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ assignment?: string; returnTo?: string }>;
+  searchParams: Promise<{
+    assignment?: string;
+    returnTo?: string;
+    experience?: string;
+  }>;
 }) {
   const { locale, slug } = await params;
-  const { assignment, returnTo } = await searchParams;
+  const { assignment, returnTo, experience } = await searchParams;
   const test = await getIeltsTestBySlug(slug);
   if (!test) notFound();
 
@@ -40,11 +45,18 @@ export default async function IeltsMockPage({
     returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("://")
       ? returnTo
       : undefined;
+  const playerExperience: IeltsPlayerExperience =
+    experience === "speaking_rehearsal" &&
+    test.skill === "speaking" &&
+    (test.kind === "skill_set" || test.kind === "drill")
+      ? "speaking_rehearsal"
+      : "exam_simulation";
 
   return (
     <main className="h-full min-h-0 w-full overflow-hidden">
       <MockTestPlayer
         structure={structure}
+        experience={playerExperience}
         assignmentId={assignmentId}
         returnHref={safeReturnTo}
         returnLabel={

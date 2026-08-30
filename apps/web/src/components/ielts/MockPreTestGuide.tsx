@@ -1,48 +1,125 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ProductIcon, type ProductIconName } from "@/components/ui/product-icon";
+import {
+  ProductIcon,
+  type ProductIconName,
+} from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
+import {
+  IELTS_PLAYER_EXPERIENCE_COPY,
+  type IeltsPlayerExperience,
+  type IeltsPlayerLocale,
+} from "./player-experience";
 
-const GUIDE_ITEMS: Array<{
+type GuideItem = {
   title: string;
   description: string;
   icon: ProductIconName;
-}> = [
-  {
-    title: "Highlight",
-    description: "Mark useful evidence in passages while you read.",
-    icon: "highlighter",
+};
+
+const GUIDE_ITEMS: Record<
+  IeltsPlayerLocale,
+  Record<IeltsPlayerExperience, GuideItem[]>
+> = {
+  en: {
+    exam_simulation: [
+      {
+        title: "Highlight",
+        description: "Mark useful evidence in Reading passages while you work.",
+        icon: "highlighter",
+      },
+      {
+        title: "Flag and review",
+        description:
+          "Save uncertain questions and review them before submission.",
+        icon: "bookmark",
+      },
+      {
+        title: "Section timer",
+        description: "The countdown stays visible. Listening audio plays once.",
+        icon: "timer",
+      },
+    ],
+    speaking_rehearsal: [
+      {
+        title: "Allow microphone access",
+        description:
+          "Your browser needs microphone permission to record an answer.",
+        icon: "micStage",
+      },
+      {
+        title: "Answer naturally",
+        description:
+          "Use the preparation cue, then record a complete spoken response.",
+        icon: "messageCircle",
+      },
+      {
+        title: "Use feedback carefully",
+        description:
+          "AI feedback supports practice; it is not an official IELTS result.",
+        icon: "info",
+      },
+    ],
   },
-  {
-    title: "Flag",
-    description: "Save uncertain questions for review before submission.",
-    icon: "bookmark",
+  vi: {
+    exam_simulation: [
+      {
+        title: "Đánh dấu",
+        description: "Đánh dấu bằng chứng hữu ích trong bài Đọc khi làm bài.",
+        icon: "highlighter",
+      },
+      {
+        title: "Gắn cờ và xem lại",
+        description: "Lưu câu chưa chắc và xem lại trước khi nộp.",
+        icon: "bookmark",
+      },
+      {
+        title: "Đồng hồ từng phần",
+        description:
+          "Thời gian còn lại luôn hiển thị. Bản ghi Nghe chỉ phát một lần.",
+        icon: "timer",
+      },
+    ],
+    speaking_rehearsal: [
+      {
+        title: "Cho phép dùng micro",
+        description: "Trình duyệt cần quyền dùng micro để ghi âm câu trả lời.",
+        icon: "micStage",
+      },
+      {
+        title: "Trả lời tự nhiên",
+        description: "Dùng gợi ý chuẩn bị rồi ghi âm câu trả lời nói đầy đủ.",
+        icon: "messageCircle",
+      },
+      {
+        title: "Dùng phản hồi đúng cách",
+        description:
+          "Phản hồi AI hỗ trợ luyện tập, không phải kết quả IELTS chính thức.",
+        icon: "info",
+      },
+    ],
   },
-  {
-    title: "Navigate",
-    description: "Move between questions and see answered, open, and flagged items.",
-    icon: "grid",
-  },
-  {
-    title: "Section timer",
-    description: "The countdown stays visible while you work. Listening audio plays once.",
-    icon: "timer",
-  },
-];
+};
 
 export function MockPreTestGuide({
   className,
   showHeading = true,
+  experience = "exam_simulation",
+  locale = "en",
 }: {
   className?: string;
   showHeading?: boolean;
+  experience?: IeltsPlayerExperience;
+  locale?: IeltsPlayerLocale;
 }) {
   const reducedMotion = useReducedMotion();
+  const copy = IELTS_PLAYER_EXPERIENCE_COPY[locale][experience];
+  const items = GUIDE_ITEMS[locale][experience];
 
   return (
     <section
-      aria-label={showHeading ? undefined : "How this mock works"}
+      aria-label={showHeading ? undefined : copy.guideTitle}
       className={cn(
         "w-full rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left shadow-token-card sm:p-4",
         className,
@@ -51,7 +128,7 @@ export function MockPreTestGuide({
     >
       {showHeading ? (
         <h2 className="text-sm font-bold text-on-surface sm:text-base">
-          Exam Simulation
+          {copy.label}
         </h2>
       ) : null}
       <motion.div
@@ -64,7 +141,7 @@ export function MockPreTestGuide({
         }}
         className={cn("grid gap-2", showHeading && "mt-3")}
       >
-        {GUIDE_ITEMS.map((item) => (
+        {items.map((item) => (
           <motion.div
             key={item.title}
             variants={

@@ -24,6 +24,7 @@ import {
   Compass,
   BookOpenText,
 } from "@/components/ui/icons";
+import { ProductIcon } from "@/components/ui/product-icon";
 import { OrbBalance } from "@/components/shared/orb-balance";
 import {
   DropdownMenu,
@@ -49,7 +50,10 @@ import {
   areStudentCoursesEnabled,
 } from "@/lib/features";
 import type { Profile } from "@/types/database";
-import { DashboardSidebarRail } from "@/components/dashboard/dashboard-sidebar-rail";
+import {
+  DashboardSidebarRail,
+  type DashboardSidebarNavItem,
+} from "@/components/dashboard/dashboard-sidebar-rail";
 import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
@@ -66,6 +70,10 @@ type SidebarNavItem = {
   status: "live" | "coming-soon";
   requiresEnrollment?: boolean;
 };
+
+function SpeakingRehearsalIcon({ className }: { className?: string }) {
+  return <ProductIcon name="micStage" weight="duotone" className={className} />;
+}
 
 const NAV_ITEMS: readonly SidebarNavItem[] = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard, status: "live" },
@@ -93,6 +101,12 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
     status: "live",
     requiresEnrollment: true,
   },
+  {
+    href: "/ielts/speaking-rehearsal",
+    key: "ielts_speaking",
+    icon: SpeakingRehearsalIcon,
+    status: "live",
+  },
   { href: "/ielts/tests", key: "ielts_library", icon: BookOpen, status: "live" },
   { href: "/ielts/assigned", key: "ielts_assigned", icon: ClipboardList, status: "live" },
   { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
@@ -100,13 +114,18 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
 ];
 
 // IELTS learner nav for the modern dashboard rail (keyed by DashboardNavKey).
-const IELTS_DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
+const IELTS_DASHBOARD_NAV_ITEMS: DashboardSidebarNavItem[] = [
   { key: "ielts_home", href: "/ielts", status: "live" },
   {
     key: "ielts_learn",
     href: "/ielts/learn",
     status: "live",
     requiresEnrollment: true,
+  },
+  {
+    key: "ielts_speaking",
+    href: "/ielts/speaking-rehearsal",
+    status: "live",
   },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
@@ -403,7 +422,7 @@ export function Sidebar({
     { key: "analytics", href: "/profile", status: "live" },
     { key: "resources", href: "/resources", status: "live" },
   ];
-  const dashboardNavItems: DashboardNavItem[] =
+  const dashboardNavItems: DashboardSidebarNavItem[] =
     activeSubject === "ielts"
       ? enrollmentVisible(IELTS_DASHBOARD_NAV_ITEMS, isEnrolledIeltsStudent)
       : debateNavItems;

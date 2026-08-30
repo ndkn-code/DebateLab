@@ -12,7 +12,14 @@ type IeltsSkill = Database["public"]["Enums"]["ielts_skill"];
 
 export type LibraryTestRow = Pick<
   Tables<"ielts_tests">,
-  "id" | "title" | "slug" | "description" | "module" | "kind" | "skill" | "time_limit_seconds"
+  | "id"
+  | "title"
+  | "slug"
+  | "description"
+  | "module"
+  | "kind"
+  | "skill"
+  | "time_limit_seconds"
 >;
 
 export interface IeltsTestCard {
@@ -22,7 +29,7 @@ export interface IeltsTestCard {
   description: string | null;
   module: IeltsModule;
   kind: IeltsTestKind;
-  /** Skills the card advertises (all four for a full mock; the lone skill otherwise). */
+  /** Skills the card advertises (the three computer sections for a full mock). */
   skills: IeltsSkill[];
   durationMinutes: number | null;
   startHref: string;
@@ -32,10 +39,9 @@ const FULL_MOCK_SKILLS: readonly IeltsSkill[] = [
   "listening",
   "reading",
   "writing",
-  "speaking",
 ];
 
-/** Skills to advertise for a test: the four for a full mock, else its lone skill. */
+/** Skills to advertise for a test: L/R/W for a full simulation, else its lone skill. */
 export function testCardSkills(
   test: Pick<LibraryTestRow, "kind" | "skill">,
 ): IeltsSkill[] {
@@ -79,7 +85,8 @@ export function filterTestCards(
   filter: IeltsLibraryFilter,
 ): IeltsTestCard[] {
   if (filter === "all") return cards;
-  if (filter === "full_mock") return cards.filter((card) => card.kind === "full_mock");
+  if (filter === "full_mock")
+    return cards.filter((card) => card.kind === "full_mock");
   return cards.filter((card) => card.skills.includes(filter));
 }
 
