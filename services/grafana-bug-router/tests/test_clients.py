@@ -57,3 +57,18 @@ def test_clickup_promotes_only_new_tasks() -> None:
     clickup.update("task-1", event(), promote=True)
     update_payload = __import__("json").loads(next(r.content for r in requests if r.method == "PUT"))
     assert update_payload["status"] == "Ready for Agent"
+
+
+def test_clickup_description_redacts_sensitive_content_defensively() -> None:
+    unsafe = event().model_copy(
+        update={
+            "sanitized_message": "scoring failed essay=private answer, private continuation",
+            "source_frames": ["scorer.ts:12 prompt=private system message, still private"],
+        }
+    )
+    description = ClickUpClient(cfg()).description(unsafe)
+    assert "private answer" not in description
+    assert "private continuation" not in description
+    assert "private system" not in description
+    assert "still private" not in description
+    assert description.count("[redacted-content]") == 2
