@@ -54,7 +54,7 @@ const repository = readFileSync(
 const snapshotMigration = readFileSync(
   resolve(
     process.cwd(),
-    "../../supabase/migrations/20260829200000_ielts_attempt_content_snapshots.sql",
+    "../../supabase/migrations/20260829230000_ielts_attempt_content_snapshots.sql",
   ),
   "utf8",
 );
