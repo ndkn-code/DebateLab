@@ -29,6 +29,10 @@ export const FailAssignmentSubmissionSchema = z.object({
   reason: z.string().trim().max(500).nullable().optional(),
 });
 
+export const RetryAssignmentSubmissionSchema = z.object({
+  submissionId: UuidSchema,
+});
+
 export const GradeAssignmentSubmissionSchema = z.object({
   clubId: UuidSchema,
   submissionId: UuidSchema,

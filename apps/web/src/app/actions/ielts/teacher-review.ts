@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/ielts/teacher-review-repository";
 import { loadIeltsClassGradebook as loadGradebook } from "@/lib/api/ielts/gradebook-repository";
 import { TeacherReviewBandsSchema, TeacherReviewExpectedRevisionSchema } from "@/lib/api/ielts/teacher-review-contract";
+import { buildIeltsReviewQueue } from "@/lib/api/ielts/review-queue-contract";
 
 const SaveSchema = z.object({
   clubId: z.string().uuid(), classId: z.string().uuid(), attemptId: z.string().uuid(),
@@ -73,4 +74,9 @@ export async function loadIeltsClassGradebook(raw: unknown) {
   const manager = await requireClassManager(client, input.classId);
   if (manager.clubId !== input.clubId) throw new Error("That class is not part of this club");
   return loadGradebook(client, input, createTypedAdminClient());
+}
+
+export async function loadIeltsClassReviewQueue(raw: unknown) {
+  const gradebook = await loadIeltsClassGradebook(raw);
+  return buildIeltsReviewQueue(gradebook);
 }

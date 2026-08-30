@@ -8,6 +8,7 @@ import {
   GradeAssignmentSubmissionSchema,
   FailAssignmentSubmissionSchema,
   RecordAssignmentSubmissionFilesSchema,
+  RetryAssignmentSubmissionSchema,
   SubmitClubAssignmentSchema,
 } from "@/lib/api/club-homework-schema";
 import { getSessionUserId } from "@/lib/api/ielts/assignment-access";
@@ -305,6 +306,44 @@ export async function failClubAssignmentSubmission(raw: unknown) {
   });
   if (error || !failedId) throw new Error(error?.message ?? "Unable to cancel submission.");
   return { submissionId: failedId };
+}
+
+/** Resume the same failed reservation without consuming another attempt. */
+export async function retryClubAssignmentSubmission(raw: unknown) {
+  const input = parseInput(RetryAssignmentSubmissionSchema, raw);
+  const supabase = await createTypedServerClient();
+  const userId = await getSessionUserId(supabase);
+  const { data: retriedId, error: retryError } = await homeworkRpc(supabase).rpc<string>(
+    "retry_homework_submission",
+    { p_submission_id: input.submissionId, p_user_id: userId },
+  );
+  if (retryError || !retriedId) {
+    throw new Error(retryError?.message ?? "Unable to retry submission.");
+  }
+  const { data: files, error: filesError } = await supabase
+    .from("assignment_submission_files")
+    .select("storage_path, file_name, mime_type, size_bytes")
+    .eq("submission_id", retriedId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (filesError) throw new Error(filesError.message);
+  const uploadTargets = await Promise.all(
+    (files ?? []).map(async (file) => {
+      const { data, error } = await supabase.storage
+        .from(HOMEWORK_BUCKET)
+        .createSignedUploadUrl(file.storage_path);
+      if (error) throw new Error(error.message);
+      return {
+        storagePath: file.storage_path,
+        fileName: file.file_name,
+        mimeType: file.mime_type,
+        sizeBytes: file.size_bytes ?? 0,
+        token: data.token,
+        signedUrl: data.signedUrl,
+      };
+    }),
+  );
+  return { submissionId: retriedId, uploadTargets };
 }
 
 export async function gradeAssignmentSubmission(raw: unknown) {

@@ -14,6 +14,7 @@
 import type { IeltsQuestionView } from "@/lib/ielts/question-types/types";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import type { WritingResponseStatus } from "@/lib/ielts/writing-scorer/status";
+import type { EffectiveScoreSource } from "@/lib/api/ielts/effective-score-contract";
 
 export type IeltsSkillKey = "listening" | "reading" | "writing" | "speaking";
 export type IeltsModuleKey = "academic" | "general_training";
@@ -61,6 +62,8 @@ export interface ResultsWritingTask {
   feedbackLanguage: string;
   /** Versioned grader provenance for a future evidence/confidence presentation. */
   gradingMetadata?: unknown;
+  /** Published teacher note; drafts are never included in learner reads. */
+  teacherFeedback?: string | null;
 }
 
 export interface ResultsSpeakingPart {
@@ -80,6 +83,8 @@ export interface ResultsSpeakingPart {
   phonemeReport: unknown;
   /** Versioned grader provenance for a future evidence/confidence presentation. */
   gradingMetadata?: unknown;
+  /** Published teacher note; drafts are never included in learner reads. */
+  teacherFeedback?: string | null;
 }
 
 export interface AttemptResultsInput {
@@ -100,6 +105,11 @@ export interface AttemptResultsInput {
   readingBand: number | null;
   storedWritingBand: number | null;
   storedSpeakingBand: number | null;
+  /** Teacher-aware score authority. Partial averages are explicitly provisional. */
+  publishedOverallBand?: number | null;
+  provisionalBand?: number | null;
+  overallIsProvisional?: boolean;
+  scoreSource?: EffectiveScoreSource;
   objectiveQuestions: ResultsObjectiveQuestion[];
   bandConversions: BandConversionRow[];
   writingTasks: ResultsWritingTask[];

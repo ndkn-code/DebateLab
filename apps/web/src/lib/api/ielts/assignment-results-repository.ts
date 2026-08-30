@@ -18,6 +18,11 @@ import {
   type AttemptSummary,
   type LearnerAssignmentState,
 } from "@/lib/ielts/assignments/status";
+import {
+  projectEffectiveBands,
+  type EffectiveScoreSource,
+} from "./effective-score-contract";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface StudentAssignmentResult {
   userId: string;
@@ -31,6 +36,9 @@ export interface StudentAssignmentResult {
   speakingBand: number | null;
   resultAttemptId: string | null;
   submittedAt: string | null;
+  overallIsProvisional: boolean;
+  provisionalBand: number | null;
+  scoreSource: EffectiveScoreSource;
 }
 
 export interface AssignmentResults {
@@ -45,6 +53,9 @@ interface BandSet {
   reading: number | null;
   writing: number | null;
   speaking: number | null;
+  provisional: number | null;
+  overallIsProvisional: boolean;
+  source: EffectiveScoreSource;
 }
 
 interface AttemptRow {
@@ -60,22 +71,41 @@ async function loadBands(
   attemptIds: string[],
 ): Promise<Map<string, BandSet>> {
   if (attemptIds.length === 0) return new Map();
-  const { data, error } = await supabase
+  const db = supabase as unknown as SupabaseClient;
+  const [aiResult, effectiveResult] = await Promise.all([
+    supabase
     .from("attempt_band_scores")
     .select("attempt_id, overall_band, listening_band, reading_band, writing_band, speaking_band")
-    .in("attempt_id", attemptIds);
-  if (error) throw new Error(`assignment results bands: ${error.message}`);
+    .in("attempt_id", attemptIds),
+    db.from("ielts_effective_attempt_scores")
+      .select("attempt_id, overall_band, provisional_band, overall_is_provisional, score_source, listening_band, reading_band, writing_band, speaking_band")
+      .in("attempt_id", attemptIds),
+  ]);
+  if (aiResult.error || effectiveResult.error) {
+    throw new Error(`assignment results bands: ${aiResult.error?.message ?? effectiveResult.error?.message}`);
+  }
+  const effectiveByAttempt = new Map(
+    ((effectiveResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.attempt_id), row]),
+  );
   return new Map(
-    (data ?? []).map((row) => [
+    (aiResult.data ?? []).map((row) => {
+      const projected = projectEffectiveBands(
+        effectiveByAttempt.get(row.attempt_id),
+        row as unknown as Record<string, unknown>,
+      );
+      return [
       row.attempt_id,
       {
-        overall: row.overall_band,
-        listening: row.listening_band,
-        reading: row.reading_band,
-        writing: row.writing_band,
-        speaking: row.speaking_band,
+        overall: projected.overallBand,
+        listening: projected.listeningBand,
+        reading: projected.readingBand,
+        writing: projected.writingBand,
+        speaking: projected.speakingBand,
+        provisional: projected.provisionalBand,
+        overallIsProvisional: projected.overallIsProvisional,
+        source: projected.scoreSource,
       },
-    ]),
+    ];}),
   );
 }
 
@@ -144,6 +174,9 @@ function toStudentResult(
     ...bandFields(resultBands),
     resultAttemptId: progress.resultAttemptId,
     submittedAt: resultAttempt?.submitted_at ?? null,
+    overallIsProvisional: resultBands?.overallIsProvisional ?? true,
+    provisionalBand: resultBands?.provisional ?? null,
+    scoreSource: resultBands?.source ?? "ai",
   };
 }
 

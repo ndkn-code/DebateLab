@@ -22,6 +22,7 @@ import { parseQuestionView } from "@/lib/ielts/question-types/schemas";
 import { isObjectiveQuestionType } from "@/lib/ielts/question-types/registry";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import { sanitizeLearnerGradingMetadata } from "@/lib/ielts/scoring-adjudication";
+import { projectEffectiveBands } from "./effective-score-contract";
 import type {
   AttemptResultsInput,
   IeltsSkillKey,
@@ -33,9 +34,9 @@ import type {
 const QUESTION_COLUMNS =
   "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, order_index";
 const WRITING_COLUMNS =
-  "question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language, grading_metadata";
+  "id, revision, question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language, grading_metadata";
 const SPEAKING_COLUMNS =
-  "question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report, grading_metadata";
+  "id, revision, question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report, grading_metadata";
 
 type ResponseRow = Pick<
   Tables<"ielts_question_responses">,
@@ -68,6 +69,8 @@ type QuestionRow = Pick<
 >;
 type WritingRow = Pick<
   Tables<"writing_responses">,
+  | "id"
+  | "revision"
   | "question_id"
   | "task_number"
   | "status"
@@ -87,6 +90,8 @@ type WritingRow = Pick<
 >;
 type SpeakingRow = Pick<
   Tables<"speaking_responses">,
+  | "id"
+  | "revision"
   | "question_id"
   | "part_number"
   | "status"
@@ -107,6 +112,12 @@ type ListeningSectionRow = Pick<
   "id" | "title" | "script"
 >;
 type ObjectiveSource = ResultsObjectiveQuestion["source"];
+type PublishedReview = {
+  writing_response_id: string | null;
+  speaking_response_id: string | null;
+  revision: number;
+  reviewer_note: string | null;
+};
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
 function resolveConversionKey(
@@ -246,6 +257,7 @@ function mapWritingTask(
   row: WritingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
+  teacherFeedback: string | null,
 ): ResultsWritingTask {
   return {
     questionId: row.question_id,
@@ -265,6 +277,7 @@ function mapWritingTask(
     modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
+    teacherFeedback,
   };
 }
 
@@ -272,6 +285,7 @@ function mapSpeakingPart(
   row: SpeakingRow,
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
+  teacherFeedback: string | null,
 ): ResultsSpeakingPart {
   return {
     questionId: row.question_id,
@@ -289,6 +303,7 @@ function mapSpeakingPart(
     modelAnswer: key?.model_answer ?? null,
     phonemeReport: row.phoneme_report,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
+    teacherFeedback,
   };
 }
 
@@ -327,6 +342,8 @@ interface AttemptReads {
   listeningSections: ListeningSectionRow[];
   writing: WritingRow[];
   speaking: SpeakingRow[];
+  effectiveScore: Record<string, unknown> | null;
+  publishedReviews: PublishedReview[];
 }
 
 /** All learner-RLS reads for the attempt, run in parallel + error-checked. */
@@ -346,6 +363,8 @@ async function runAttemptReads(
     listeningSections,
     writing,
     speaking,
+    effectiveScore,
+    publishedReviews,
   ] = await Promise.all([
     supabase
       .from("attempt_band_scores")
@@ -391,6 +410,17 @@ async function runAttemptReads(
       .from("speaking_responses")
       .select(SPEAKING_COLUMNS)
       .eq("attempt_id", attemptId),
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
+      .from("ielts_effective_attempt_scores")
+      .select("listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source")
+      .eq("attempt_id", attemptId)
+      .maybeSingle(),
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
+      .from("ielts_teacher_reviews")
+      .select("writing_response_id, speaking_response_id, revision, reviewer_note")
+      .eq("attempt_id", attemptId)
+      .eq("status", "published")
+      .order("published_at", { ascending: false }),
   ]);
 
   for (const result of [
@@ -402,6 +432,8 @@ async function runAttemptReads(
     listeningSections,
     writing,
     speaking,
+    effectiveScore,
+    publishedReviews,
   ]) {
     if (result.error)
       throw new Error(`loadAttemptResults: ${result.error.message}`);
@@ -417,6 +449,8 @@ async function runAttemptReads(
     listeningSections: listeningSections.data ?? [],
     writing: writing.data ?? [],
     speaking: speaking.data ?? [],
+    effectiveScore: (effectiveScore.data as Record<string, unknown> | null) ?? null,
+    publishedReviews: (publishedReviews.data ?? []) as PublishedReview[],
   };
 }
 
@@ -472,6 +506,17 @@ export async function loadAttemptResults(
       ? []
       : await loadQuestionKeys(reads.questions.map((question) => question.id));
   const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
+  const effective = projectEffectiveBands(
+    reads.effectiveScore,
+    reads.bandScore as unknown as Record<string, unknown> | null,
+  );
+  const publishedReviewByResponse = new Map<string, PublishedReview>();
+  for (const review of reads.publishedReviews) {
+    const responseId = review.writing_response_id ?? review.speaking_response_id;
+    if (responseId && !publishedReviewByResponse.has(`${responseId}:${review.revision}`)) {
+      publishedReviewByResponse.set(`${responseId}:${review.revision}`, review);
+    }
+  }
 
   return {
     attemptId: attempt.id,
@@ -483,6 +528,14 @@ export async function loadAttemptResults(
     submittedAt: attempt.submitted_at,
     skillsInTest: skillsInTest(reads.sections),
     ...bandFields(reads.bandScore),
+    listeningBand: effective.listeningBand,
+    readingBand: effective.readingBand,
+    storedWritingBand: effective.writingBand,
+    storedSpeakingBand: effective.speakingBand,
+    publishedOverallBand: effective.overallBand,
+    provisionalBand: effective.provisionalBand,
+    overallIsProvisional: effective.overallIsProvisional,
+    scoreSource: effective.scoreSource,
     objectiveQuestions: buildObjectiveQuestions(
       reads.questions,
       reads.responses,
@@ -496,6 +549,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
       ),
     ),
     speakingParts: reads.speaking.map((row) =>
@@ -503,6 +557,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
+        publishedReviewByResponse.get(`${row.id}:${row.revision}`)?.reviewer_note ?? null,
       ),
     ),
   };

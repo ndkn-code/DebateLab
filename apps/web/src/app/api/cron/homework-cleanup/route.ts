@@ -44,17 +44,33 @@ export async function GET(request: NextRequest) {
     if (error) throw new Error(error.message);
 
     const rows = data ?? [];
+    let removedFiles = 0;
+    let failedFiles = 0;
     for (const row of rows) {
-      if (!row.removed_paths?.length) continue;
-      const { error: removeError } = await admin.storage
-        .from("assignment-submissions")
-        .remove(row.removed_paths);
-      if (removeError) throw new Error(removeError.message);
+      let cleanupError: string | null = null;
+      if (row.removed_paths?.length) {
+        const { error: removeError } = await admin.storage
+          .from("assignment-submissions")
+          .remove(row.removed_paths);
+        cleanupError = removeError?.message ?? null;
+        if (cleanupError) failedFiles += row.removed_paths.length;
+        else removedFiles += row.removed_paths.length;
+      }
+      const { error: recordError } = await rpcClient.rpc<string>(
+        "record_homework_cleanup_result",
+        {
+          p_submission_id: row.submission_id,
+          p_success: cleanupError === null,
+          p_error: cleanupError,
+        },
+      );
+      if (recordError) throw new Error(recordError.message);
     }
     return NextResponse.json({
       ok: true,
       processed: rows.length,
-      removedFiles: rows.reduce((total, row) => total + (row.removed_paths?.length ?? 0), 0),
+      removedFiles,
+      failedFiles,
     });
   } catch (error) {
     return NextResponse.json(
