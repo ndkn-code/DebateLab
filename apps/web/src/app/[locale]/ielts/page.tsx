@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { IeltsLanding } from "@/components/landing/ielts/IeltsLanding";
+import { getMarketingCopy } from "@/components/landing/marketing/copy";
 import { StructuredData } from "@/components/seo/structured-data";
 import { PublicSiteAnalytics } from "@/components/analytics/public-site-analytics";
 import {
@@ -8,6 +9,7 @@ import {
   asPublicLocale,
   publicPageMetadata,
 } from "@/lib/public-site";
+import { createTypedServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -42,25 +44,41 @@ export default async function IeltsLandingPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const landingLocale = asPublicLocale(locale);
+  const marketingCopy = getMarketingCopy("ielts", landingLocale);
+  const supabase = await createTypedServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <PublicSiteAnalytics locale={landingLocale} product="ielts">
       <StructuredData
-        value={{
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: "Thinkfy IELTS",
-          applicationCategory: "EducationalApplication",
-          operatingSystem: "Web",
-          url: `${PUBLIC_SITE_URL}/${landingLocale}/ielts`,
-          description:
-            landingLocale === "vi"
-              ? "Luyện IELTS bốn kỹ năng với lộ trình học thích ứng và phản hồi AI hỗ trợ."
-              : "Four-skill IELTS practice with an adaptive study path and AI-assisted feedback.",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        }}
+        value={[
+          {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "Thinkfy IELTS",
+            applicationCategory: "EducationalApplication",
+            operatingSystem: "Web",
+            url: `${PUBLIC_SITE_URL}/${landingLocale}/ielts`,
+            description:
+              landingLocale === "vi"
+                ? "Luyện IELTS bốn kỹ năng với lộ trình học thích ứng và phản hồi AI hỗ trợ."
+                : "Four-skill IELTS practice with an adaptive study path and AI-assisted feedback.",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: marketingCopy.faq.items.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: { "@type": "Answer", text: item.answer },
+            })),
+          },
+        ]}
       />
-      <IeltsLanding locale={landingLocale} />
+      <IeltsLanding locale={landingLocale} isLoggedIn={Boolean(user)} />
     </PublicSiteAnalytics>
   );
 }

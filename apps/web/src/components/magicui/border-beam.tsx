@@ -1,7 +1,6 @@
 "use client";
 
 import type { HTMLAttributes } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -19,7 +18,6 @@ export function BorderBeam({
   duration?: number;
   delay?: number;
 }) {
-  const reduceMotion = useReducedMotion();
   return (
     <div
       aria-hidden="true"
@@ -29,19 +27,14 @@ export function BorderBeam({
       )}
       {...props}
     >
-      <motion.div
-        className="absolute -inset-[75%]"
+      <div
+        className="absolute -inset-[75%] animate-spin motion-reduce:animate-none motion-reduce:rotate-[24deg]"
         style={{
           background:
             "conic-gradient(from 0deg, transparent 0 76%, var(--color-secondary) 84%, var(--color-success) 89%, transparent 96%)",
+          animationDuration: `${duration}s`,
+          animationDelay: `${delay}s`,
         }}
-        initial={{ rotate: reduceMotion ? 24 : 0 }}
-        animate={{ rotate: reduceMotion ? 24 : 360 }}
-        transition={
-          reduceMotion
-            ? { duration: 0 }
-            : { duration, delay, repeat: Infinity, ease: "linear" }
-        }
       />
       <div className="absolute inset-px rounded-[11px] bg-surface" />
     </div>

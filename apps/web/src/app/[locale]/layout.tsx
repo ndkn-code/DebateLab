@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { CookieConsentManager } from "@/components/legal/cookie-consent-manager";
+import { DocumentLanguage } from "@/components/shared/document-language";
 import { asPublicLocale } from "@/lib/public-site";
 
 type Props = {
@@ -24,6 +25,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <>
+      <DocumentLanguage locale={locale} />
       {children}
       <CookieConsentManager locale={asPublicLocale(locale)} />
     </>

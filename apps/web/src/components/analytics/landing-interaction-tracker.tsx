@@ -20,6 +20,8 @@ export function LandingInteractionTracker({
   product: LandingProduct;
 }) {
   useEffect(() => {
+    posthog.capture("landing_viewed", { product, locale });
+
     const handleClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -35,6 +37,7 @@ export function LandingInteractionTracker({
         locale,
         placement: element.dataset.landingPlacement || "unspecified",
         audience: element.dataset.landingAudience || undefined,
+        target_product: element.dataset.landingProductTarget || undefined,
       });
     };
 

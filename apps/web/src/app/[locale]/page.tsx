@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { createClient } from "@/lib/supabase/server";
+import { createTypedServerClient } from "@/lib/supabase/server";
 import { LandingV3 } from "@/components/landing/v3";
 import {
   getLandingV3Copy,
   type LandingLocale,
 } from "@/components/landing/v3/copy";
+import { getMarketingCopy } from "@/components/landing/marketing/copy";
 import { StructuredData } from "@/components/seo/structured-data";
 import { PublicSiteAnalytics } from "@/components/analytics/public-site-analytics";
 import {
@@ -52,8 +53,9 @@ export default async function Home({ params }: Props) {
   setRequestLocale(locale);
   const landingLocale: LandingLocale = locale === "en" ? "en" : "vi";
   const copy = getLandingV3Copy(landingLocale);
+  const marketingCopy = getMarketingCopy("debate", landingLocale);
 
-  const supabase = await createClient();
+  const supabase = await createTypedServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -81,6 +83,15 @@ export default async function Home({ params }: Props) {
                 ? "Nền tảng luyện tranh biện tiếng Anh với phản hồi AI hỗ trợ."
                 : "English debate practice with AI-assisted feedback.",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: marketingCopy.faq.items.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: { "@type": "Answer", text: item.answer },
+            })),
           },
         ]}
       />

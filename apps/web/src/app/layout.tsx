@@ -77,7 +77,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className="light scroll-smooth" suppressHydrationWarning>
+    <html lang="en" className="light scroll-smooth" suppressHydrationWarning>
       <head>
         <ThinkfyThemeVariables />
       </head>

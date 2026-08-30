@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import {
   PUBLIC_LOCALES,
-  PUBLIC_SITE_URL,
   absolutePublicUrl,
   legalPublicationReady,
 } from "@/lib/public-site";
@@ -42,18 +41,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
           languages: {
             vi: absolutePublicUrl("vi", page.path),
             en: absolutePublicUrl("en", page.path),
+            "x-default": absolutePublicUrl("vi", page.path),
           },
         },
       })),
   );
 
-  return [
-    ...localizedEntries,
-    {
-      url: PUBLIC_SITE_URL,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.4,
-    },
-  ];
+  return localizedEntries;
 }
