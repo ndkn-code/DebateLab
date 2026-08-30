@@ -79,6 +79,7 @@ import {
   writingBands,
 } from "@/lib/ielts/scoring-adjudication";
 import type { Json } from "@/types/supabase";
+import type { IeltsCriterionEvidenceContract } from "@/lib/ielts/criterion-evidence-contract";
 
 type IeltsSpeakingModelOutput = z.infer<typeof ieltsSpeakingModelOutputSchema>;
 type IeltsWritingModelOutput = z.infer<typeof ieltsWritingModelOutputSchema>;
@@ -515,6 +516,7 @@ export async function persistIeltsSpeakingScore(params: {
   provider: string;
   model: string;
   gradingMetadata?: Json;
+  criterionEvidence?: IeltsCriterionEvidenceContract[];
 }) {
   "use step";
   await persistSpeakingScore(createTypedAdminClient(), {
@@ -526,6 +528,7 @@ export async function persistIeltsSpeakingScore(params: {
     modelName: params.model,
     phonemeReport: params.phonemeReport,
     gradingMetadata: params.gradingMetadata,
+    criterionEvidence: params.criterionEvidence,
   });
   return {
     status: "scored" as const,
@@ -762,6 +765,7 @@ export async function persistIeltsWritingScore(params: {
   provider: string;
   model: string;
   gradingMetadata?: Json;
+  criterionEvidence?: IeltsCriterionEvidenceContract[];
 }) {
   "use step";
   await persistWritingScore(createTypedAdminClient(), {
@@ -770,6 +774,7 @@ export async function persistIeltsWritingScore(params: {
     providerLabel: params.provider,
     modelName: params.model,
     gradingMetadata: params.gradingMetadata,
+    criterionEvidence: params.criterionEvidence,
   });
   return {
     status: "scored" as const,

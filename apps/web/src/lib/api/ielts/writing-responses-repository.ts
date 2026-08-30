@@ -18,6 +18,8 @@ import {
   type NormalizedWritingScore,
 } from "@/lib/scoring/ielts-writing/normalize";
 import { recordIeltsWritingScoreEvidence } from "./assess-score-evidence";
+import { recordIeltsWritingCriterionEvidence } from "./criterion-evidence-repository";
+import type { IeltsCriterionEvidenceContract } from "@/lib/ielts/criterion-evidence-contract";
 import {
   sanitizeLearnerGradingMetadata,
   type LearnerGradingMetadata,
@@ -164,6 +166,7 @@ export async function persistWritingScore(
     providerLabel: string;
     modelName: string;
     gradingMetadata?: Json;
+    criterionEvidence?: IeltsCriterionEvidenceContract[];
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -199,6 +202,13 @@ export async function persistWritingScore(
     client: admin,
     writingResponseId: params.writingResponseId,
   });
+  if (params.criterionEvidence?.length) {
+    await recordIeltsWritingCriterionEvidence({
+      client: admin,
+      writingResponseId: params.writingResponseId,
+      evidence: params.criterionEvidence,
+    });
+  }
 }
 
 export async function markWritingScoringFailed(

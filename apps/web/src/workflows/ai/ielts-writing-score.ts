@@ -13,7 +13,15 @@ import {
   replanWritingAttempt,
 } from "./steps";
 import { FatalError } from "workflow";
-import { isIeltsEvidenceAdjudicationEnabled } from "@/lib/ielts/scoring-adjudication";
+import {
+  IELTS_GRADING_VERSION,
+  isIeltsEvidenceAdjudicationEnabled,
+} from "@/lib/ielts/scoring-adjudication";
+import {
+  buildWritingCriterionEvidence,
+  IELTS_PROVISIONAL_EVIDENCE_VERSION,
+} from "@/lib/ielts/criterion-evidence-contract";
+import { normalizeWritingScore } from "@/lib/scoring/ielts-writing/normalize";
 
 export interface IeltsWritingScoreWorkflowInput {
   workflowRunId: string;
@@ -68,6 +76,31 @@ export async function ieltsWritingScoreWorkflow(
           baseCorpusVersion: prepared.baseCorpusVersion,
         })
       : { ...generated, gradingMetadata: undefined };
+    const criterionEvidence = buildWritingCriterionEvidence({
+      score: normalizeWritingScore(generated.output),
+      context: {
+        stage: "provisional",
+        gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+        traceId: generated.traceId,
+        runId: input.workflowRunId,
+        provider: generated.provider,
+        model: generated.model,
+      },
+    });
+    if (adjudicated.gradingMetadata)
+      criterionEvidence.push(
+        ...buildWritingCriterionEvidence({
+          score: normalizeWritingScore(adjudicated.output),
+          context: {
+            stage: "adjudicated",
+            gradingVersion: IELTS_GRADING_VERSION,
+            traceId: adjudicated.traceId,
+            runId: input.workflowRunId,
+            provider: adjudicated.provider,
+            model: adjudicated.model,
+          },
+        }),
+      );
     const scored = await persistIeltsWritingScore({
       writingResponseId: prepared.writingResponseId,
       attemptId: prepared.attemptId,
@@ -76,6 +109,7 @@ export async function ieltsWritingScoreWorkflow(
       provider: adjudicated.provider,
       model: adjudicated.model,
       gradingMetadata: adjudicated.gradingMetadata,
+      criterionEvidence,
     });
     await recomputeWritingAttempt(scored.attemptId, scored.userId);
     await markWorkflowCoreCompleted(input.workflowRunId, "writing_scored");

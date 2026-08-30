@@ -18,6 +18,8 @@ import {
   type NormalizedSpeakingScore,
 } from "@/lib/scoring/ielts-speaking/normalize";
 import { recordIeltsSpeakingScoreEvidence } from "./assess-score-evidence";
+import { recordIeltsSpeakingCriterionEvidence } from "./criterion-evidence-repository";
+import type { IeltsCriterionEvidenceContract } from "@/lib/ielts/criterion-evidence-contract";
 import {
   sanitizeLearnerGradingMetadata,
   type LearnerGradingMetadata,
@@ -165,6 +167,7 @@ export async function persistSpeakingScore(
     /** WS-3.3 phoneme report (jsonb). Augments Pronunciation; never the band itself. */
     phonemeReport?: Json;
     gradingMetadata?: Json;
+    criterionEvidence?: IeltsCriterionEvidenceContract[];
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -202,6 +205,13 @@ export async function persistSpeakingScore(
     client: admin,
     speakingResponseId: params.speakingResponseId,
   });
+  if (params.criterionEvidence?.length) {
+    await recordIeltsSpeakingCriterionEvidence({
+      client: admin,
+      speakingResponseId: params.speakingResponseId,
+      evidence: params.criterionEvidence,
+    });
+  }
 }
 
 export async function markSpeakingScoringFailed(

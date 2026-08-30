@@ -38,9 +38,14 @@ import {
   adjacentBands,
   buildWritingAdjudicationPrompt,
   createStagedGradingMetadata,
+  IELTS_GRADING_VERSION,
   isIeltsEvidenceAdjudicationEnabled,
   writingBands,
 } from "@/lib/ielts/scoring-adjudication";
+import {
+  buildWritingCriterionEvidence,
+  IELTS_PROVISIONAL_EVIDENCE_VERSION,
+} from "@/lib/ielts/criterion-evidence-contract";
 import { getIeltsWritingGroqModelName } from "./provider-policy";
 import {
   claimableWritingStatuses,
@@ -227,6 +232,7 @@ export async function runIeltsWritingScoringJob(
       prompt,
       audit: { userId: response.user_id, writingResponseId: response.id },
     });
+    const provisionalScore = normalizeWritingScore(provisional.output);
     let result = provisional;
     let gradingMetadata: Json | undefined;
     if (isIeltsEvidenceAdjudicationEnabled()) {
@@ -290,12 +296,39 @@ export async function runIeltsWritingScoringJob(
         retrievalSkippedReason: adjacentExamples.skippedReason,
       }) as unknown as Json;
     }
+    const score = normalizeWritingScore(result.output);
+    const criterionEvidence = buildWritingCriterionEvidence({
+      score: provisionalScore,
+      context: {
+        stage: "provisional",
+        gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+        traceId: provisional.traceId,
+        runId: provisional.traceId,
+        provider: provisional.providerLabel,
+        model: provisional.modelName,
+      },
+    });
+    if (result !== provisional)
+      criterionEvidence.push(
+        ...buildWritingCriterionEvidence({
+          score,
+          context: {
+            stage: "adjudicated",
+            gradingVersion: IELTS_GRADING_VERSION,
+            traceId: result.traceId,
+            runId: provisional.traceId,
+            provider: result.providerLabel,
+            model: result.modelName,
+          },
+        }),
+      );
     await persistWritingScore(admin, {
       writingResponseId: response.id,
-      score: normalizeWritingScore(result.output),
+      score,
       providerLabel: result.providerLabel,
       modelName: result.modelName,
       gradingMetadata,
+      criterionEvidence,
     });
     await recomputeAttemptWritingBand(
       admin,

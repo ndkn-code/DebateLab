@@ -47,9 +47,14 @@ import {
   adjacentBands,
   buildSpeakingAdjudicationPrompt,
   createStagedGradingMetadata,
+  IELTS_GRADING_VERSION,
   isIeltsEvidenceAdjudicationEnabled,
   speakingBands,
 } from "@/lib/ielts/scoring-adjudication";
+import {
+  buildSpeakingCriterionEvidence,
+  IELTS_PROVISIONAL_EVIDENCE_VERSION,
+} from "@/lib/ielts/criterion-evidence-contract";
 import {
   claimableSpeakingStatuses,
   decideSpeakingScoringAction,
@@ -321,6 +326,7 @@ export async function runIeltsSpeakingScoringJob(
       prompt,
       audit: { userId: response.user_id, speakingResponseId: response.id },
     });
+    const provisionalScore = normalizeSpeakingScore(provisional.output);
     let result = provisional;
     let gradingMetadata: Json | undefined;
     if (isIeltsEvidenceAdjudicationEnabled()) {
@@ -385,15 +391,42 @@ export async function runIeltsSpeakingScoringJob(
         retrievalSkippedReason: adjacentExamples.skippedReason,
       }) as unknown as Json;
     }
+    const score = normalizeSpeakingScore(result.output);
+    const criterionEvidence = buildSpeakingCriterionEvidence({
+      score: provisionalScore,
+      context: {
+        stage: "provisional",
+        gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+        traceId: provisional.traceId,
+        runId: provisional.traceId,
+        provider: provisional.providerLabel,
+        model: provisional.modelName,
+      },
+    });
+    if (result !== provisional)
+      criterionEvidence.push(
+        ...buildSpeakingCriterionEvidence({
+          score,
+          context: {
+            stage: "adjudicated",
+            gradingVersion: IELTS_GRADING_VERSION,
+            traceId: result.traceId,
+            runId: provisional.traceId,
+            provider: result.providerLabel,
+            model: result.modelName,
+          },
+        }),
+      );
     await persistSpeakingScore(admin, {
       speakingResponseId: response.id,
       transcript: transcription.transcript,
       sttProvider: transcription.provider,
-      score: normalizeSpeakingScore(result.output),
+      score,
       providerLabel: result.providerLabel,
       modelName: result.modelName,
       phonemeReport: pronunciation.report as unknown as Json,
       gradingMetadata,
+      criterionEvidence,
     });
     await recomputeAttemptSpeakingBand(
       admin,

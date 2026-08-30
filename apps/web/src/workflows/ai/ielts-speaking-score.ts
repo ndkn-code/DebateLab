@@ -13,7 +13,15 @@ import {
   replanSpeakingAttempt,
 } from "./steps";
 import { FatalError } from "workflow";
-import { isIeltsEvidenceAdjudicationEnabled } from "@/lib/ielts/scoring-adjudication";
+import {
+  IELTS_GRADING_VERSION,
+  isIeltsEvidenceAdjudicationEnabled,
+} from "@/lib/ielts/scoring-adjudication";
+import {
+  buildSpeakingCriterionEvidence,
+  IELTS_PROVISIONAL_EVIDENCE_VERSION,
+} from "@/lib/ielts/criterion-evidence-contract";
+import { normalizeSpeakingScore } from "@/lib/scoring/ielts-speaking/normalize";
 
 export interface IeltsSpeakingScoreWorkflowInput {
   workflowRunId: string;
@@ -70,6 +78,31 @@ export async function ieltsSpeakingScoreWorkflow(
           acousticEvidenceAvailable: prepared.acousticEvidenceAvailable,
         })
       : { ...generated, gradingMetadata: undefined };
+    const criterionEvidence = buildSpeakingCriterionEvidence({
+      score: normalizeSpeakingScore(generated.output),
+      context: {
+        stage: "provisional",
+        gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+        traceId: generated.traceId,
+        runId: input.workflowRunId,
+        provider: generated.provider,
+        model: generated.model,
+      },
+    });
+    if (adjudicated.gradingMetadata)
+      criterionEvidence.push(
+        ...buildSpeakingCriterionEvidence({
+          score: normalizeSpeakingScore(adjudicated.output),
+          context: {
+            stage: "adjudicated",
+            gradingVersion: IELTS_GRADING_VERSION,
+            traceId: adjudicated.traceId,
+            runId: input.workflowRunId,
+            provider: adjudicated.provider,
+            model: adjudicated.model,
+          },
+        }),
+      );
     const scored = await persistIeltsSpeakingScore({
       speakingResponseId: prepared.speakingResponseId,
       attemptId: prepared.attemptId,
@@ -81,6 +114,7 @@ export async function ieltsSpeakingScoreWorkflow(
       provider: adjudicated.provider,
       model: adjudicated.model,
       gradingMetadata: adjudicated.gradingMetadata,
+      criterionEvidence,
     });
     await recomputeSpeakingAttempt(scored.attemptId, scored.userId);
     await markWorkflowCoreCompleted(input.workflowRunId, "speaking_scored");
