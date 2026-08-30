@@ -48,3 +48,28 @@ def test_sanitization_removes_pii_credentials_and_queries() -> None:
 def test_sanitization_bounds_and_normalizes_text() -> None:
     assert sanitize_text(" a\n b\x00 c ", 5) == "a b c"
     assert sanitize_text("x" * 20, 10) == "x" * 10
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "transcript=private spoken answer, still private",
+        "Essay: My full private response; do not retain",
+        'failure context {"prompt": "secret instructions, with commas", "route": "/practice"}',
+        "request_body={\"answer\":\"student content\"}",
+        "response-body: generated private feedback",
+        "RESPONSEBODY=private model output",
+    ],
+)
+def test_sensitive_keyed_content_is_fully_redacted(value: str) -> None:
+    sanitized = sanitize_text(value, 2000)
+    assert "[redacted-content]" in sanitized
+    for secret_fragment in (
+        "private spoken",
+        "full private",
+        "secret instructions",
+        "student content",
+        "generated private",
+        "private model",
+    ):
+        assert secret_fragment not in sanitized

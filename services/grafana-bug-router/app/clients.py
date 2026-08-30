@@ -8,6 +8,7 @@ import httpx
 
 from .config import WorkerConfig
 from .models import BugEventV1
+from .security import sanitize_text
 
 
 class RetryableDependencyError(RuntimeError):
@@ -125,7 +126,9 @@ class ClickUpClient:
         return ["grafana", "production-bug", event.severity, f"gf-{event.fingerprint[:16].lower()}"]
 
     def description(self, event: BugEventV1) -> str:
-        frames = "\n".join(f"- `{frame}`" for frame in event.source_frames) or "- Not available"
+        safe_frames = [safe for frame in event.source_frames if (safe := sanitize_text(frame, 300))]
+        frames = "\n".join(f"- `{frame}`" for frame in safe_frames) or "- Not available"
+        safe_message = sanitize_text(event.sanitized_message or event.error_title, 2000) or "Redacted error"
         fields = [
             f"<!-- {self._marker(event)} -->",
             "## Automated Grafana incident",
@@ -144,7 +147,7 @@ class ClickUpClient:
             f"**Debug ID:** `{event.debug_id or 'unavailable'}`",
             f"**Grafana:** {event.grafana_url}",
             "\n## Error",
-            event.sanitized_message or event.error_title,
+            safe_message,
             "\n## Original-source frames",
             frames,
             "\n_Sensitive content was removed before this task was created._",
@@ -167,11 +170,12 @@ class ClickUpClient:
         return None
 
     def create(self, event: BugEventV1) -> str:
+        safe_title = sanitize_text(event.error_title, 240) or "Grafana alert"
         response = self._request(
             "POST",
             f"/list/{self.cfg.clickup_list_id}/task",
             json={
-                "name": f"[{event.severity.upper()}] {event.error_title}"[:255],
+                "name": f"[{event.severity.upper()}] {safe_title}"[:255],
                 "description": self.description(event),
                 "status": self.cfg.clickup_ready_status if event.severity in {"p0", "p1"} else self.cfg.clickup_new_status,
                 "tags": self._tags(event),
@@ -187,8 +191,9 @@ class ClickUpClient:
         reopen: bool = False,
         promote: bool = False,
     ) -> None:
+        safe_title = sanitize_text(event.error_title, 240) or "Grafana alert"
         payload: dict[str, Any] = {
-            "name": f"[{event.severity.upper()}] {event.error_title}"[:255],
+            "name": f"[{event.severity.upper()}] {safe_title}"[:255],
             "description": self.description(event),
         }
         if reopen:

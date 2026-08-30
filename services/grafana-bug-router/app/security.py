@@ -14,6 +14,9 @@ TOKEN_RE = re.compile(
 JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")
 UUID_RE = re.compile(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b")
 LONG_ID_RE = re.compile(r"(?<=/)\d{6,}(?=/|$)")
+SENSITIVE_CONTENT_KEY_RE = re.compile(
+    r"(?i)(?:[\"']?)(transcript|essay|prompt|request[_-]?body|response[_-]?body|requestbody|responsebody)(?:[\"']?)\s*[:=]"
+)
 
 
 class SignatureError(ValueError):
@@ -50,6 +53,12 @@ def sanitize_text(value: str | None, limit: int) -> str | None:
     text = EMAIL_RE.sub("[redacted-email]", str(value))
     text = JWT_RE.sub("[redacted-token]", text)
     text = TOKEN_RE.sub("[redacted-secret]", text)
+    # Once a sensitive content key appears, discard the value and everything after it.
+    # Delimiter-based parsing is unsafe because essays/prompts routinely contain commas,
+    # semicolons, JSON, and newlines that could otherwise leave a partial value behind.
+    keyed_content = SENSITIVE_CONTENT_KEY_RE.search(text)
+    if keyed_content:
+        text = text[: keyed_content.start()] + f"{keyed_content.group(1)}=[redacted-content]"
     text = " ".join(text.replace("\x00", "").split())
     return text[:limit] or None
 

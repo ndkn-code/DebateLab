@@ -106,9 +106,14 @@ begin
      or v_delivery.environment <> p_environment then
     raise exception 'Delivery identity mismatch';
   end if;
-  if v_delivery.completed_at is not null
-     or (v_delivery.lease_expires_at is not null and v_delivery.lease_expires_at > now()) then
+  if v_delivery.completed_at is not null then
     return query select 'noop'::text, null::uuid, null::text, null::text, null::text;
+    return;
+  end if;
+  if v_delivery.lease_expires_at is not null and v_delivery.lease_expires_at > now() then
+    -- Never acknowledge an incomplete delivery. The current owner may have completed
+    -- the external ClickUp call but still be waiting to commit Supabase registration.
+    return query select 'defer'::text, null::uuid, null::text, null::text, null::text;
     return;
   end if;
 

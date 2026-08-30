@@ -57,6 +57,23 @@ def test_schema_rejects_unknown_fields(grafana_payload: dict) -> None:
         BugEventV1.model_validate(data)
 
 
+def test_sensitive_annotation_content_never_enters_bug_event(grafana_payload: dict) -> None:
+    grafana_payload["alerts"][0]["annotations"]["description"] = (
+        "analysis failed prompt=private student essay, with commas; token remains private"
+    )
+    grafana_payload["alerts"][0]["annotations"]["source_frames"] = json.dumps(
+        ["app/scorer.ts:42 request_body=private response text, more private text"]
+    )
+    event = transform_webhook(
+        GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
+    )[0]
+    serialized = event.model_dump_json(by_alias=True)
+    assert "private student" not in serialized
+    assert "private response" not in serialized
+    assert "more private" not in serialized
+    assert serialized.count("[redacted-content]") == 2
+
+
 @pytest.mark.parametrize("alerts", [[], [{}] * 101])
 def test_webhook_schema_enforces_alert_batch_bounds(grafana_payload: dict, alerts: list) -> None:
     grafana_payload["alerts"] = alerts
