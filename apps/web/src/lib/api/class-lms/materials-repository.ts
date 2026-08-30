@@ -11,6 +11,7 @@ import {
   MATERIAL_RENDITION_KINDS,
   type MaterialAccessRule,
   type MaterialPlacementInput,
+  type MaterialPreviewDescriptor,
   type MaterialRightsBasis,
   type MaterialRenditionKind,
 } from "./material-contracts";
@@ -95,8 +96,8 @@ export interface LearnerMaterialRow {
   versionId: string;
   title: string;
   description: string | null;
-  renditionKind: Exclude<MaterialRenditionKind, "original">;
-  signedUrl: string | null;
+  renditionKind: Exclude<MaterialRenditionKind, "original"> | null;
+  previews: MaterialPreviewDescriptor[];
   unlocked: boolean;
   blockedBy: MaterialAccessRule[];
   releaseAt: string | null;
@@ -232,20 +233,14 @@ function mapLearnerRow(row: Raw): LearnerMaterialRow | null {
   const versionId = text(row, "version_id", "versionId");
   const renditionKindValue = text(row, "preview_kind", "previewKind");
   const accessState = text(row, "access_state", "accessState") as LearnerMaterialRow["accessState"];
-  if (
-    !id ||
-    !placementId ||
-    !versionId ||
-    renditionKindValue === "original" ||
-    !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(
-      renditionKindValue,
-    )
-  ) return null;
-  const renditionKind = renditionKindValue as Exclude<
-    MaterialRenditionKind,
-    "original"
-  >;
+  if (!id || !placementId || !versionId || renditionKindValue === "original") return null;
   if (!["available", "locked", "processing"].includes(accessState)) return null;
+  const renditionKind = renditionKindValue
+    ? (MATERIAL_RENDITION_KINDS as readonly string[]).includes(renditionKindValue)
+      ? renditionKindValue as Exclude<MaterialRenditionKind, "original">
+      : null
+    : null;
+  if (accessState === "available" && !renditionKind) return null;
   return {
     id,
     placementId,
@@ -253,7 +248,9 @@ function mapLearnerRow(row: Raw): LearnerMaterialRow | null {
     title: text(row, "title"),
     description: nullableText(row, "description"),
     renditionKind,
-    signedUrl: nullableText(row, "signed_url", "signedUrl"),
+    previews: Array.isArray(row.previews)
+      ? row.previews.filter((value): value is MaterialPreviewDescriptor => Boolean(value) && typeof value === "object")
+      : [],
     unlocked: accessState === "available",
     blockedBy: Array.isArray(row.lock_reasons) ? row.lock_reasons.filter((value): value is MaterialAccessRule => materialAccessRuleSchema.safeParse(value).success) : [],
     releaseAt: nullableText(row, "release_at", "releaseAt"),
@@ -377,7 +374,7 @@ export async function setSharedMaterialRights(input: { materialId: string; versi
   return invoke(db, SHARED_MATERIAL_RPCS.setRights, { p_material_id: parsed.data.materialId, p_version_id: parsed.data.versionId, p_rights: rights });
 }
 
-async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStorageClient): Promise<string | null> {
+async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStorageClient): Promise<MaterialPreviewDescriptor | null> {
   // First ask the cookie-bound client to re-check exact placement/version/
   // rendition access. Only a service-role client may then read the path.
   if (text(row, "access_state", "accessState") !== "available") return null;
@@ -393,8 +390,27 @@ async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStor
   const result = await admin.from("lms_material_renditions").select("bucket_id, storage_path")
     .eq("id", renditionId).eq("version_id", text(row, "version_id", "versionId")).eq("rendition_kind", "preview").maybeSingle();
   if (result.error || !result.data || result.data.bucket_id !== "lms-material-previews" || !result.data.storage_path) return null;
+  const signedAt = Date.now();
   const signed = await admin.storage.from(result.data.bucket_id).createSignedUrl(result.data.storage_path, 120);
-  return signed.error ? null : signed.data?.signedUrl ?? null;
+  if (signed.error || !signed.data?.signedUrl) return null;
+  const renditionKind = text(row, "preview_kind", "previewKind");
+  if (renditionKind === "original" || !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(renditionKind)) return null;
+  return {
+    materialId: text(row, "material_id", "materialId"),
+    placementId: text(row, "placement_id", "placementId"),
+    versionId: text(row, "version_id", "versionId"),
+    renditionId,
+    title: text(row, "title"),
+    renditionKind: renditionKind as Exclude<MaterialRenditionKind, "original">,
+    mimeType: text(row, "preview_mime_type", "previewMimeType") || "application/octet-stream",
+    pageNumber: row.page_number === null || row.page_number === undefined ? null : number(row, "page_number", "pageNumber"),
+    viewerUrl: signed.data.signedUrl,
+    expiresAt: new Date(signedAt + 120_000).toISOString(),
+    watermark: {
+      learnerLabel: text(row, "watermark_learner_label", "watermarkLearnerLabel") || "Learner copy",
+      classLabel: text(row, "watermark_class_label", "watermarkClassLabel") || "Class material",
+    },
+  };
 }
 
 export async function listLearnerMaterials(params: { classId?: string; from: string; to: string }, client?: RpcClient, serviceClient?: MaterialStorageClient): Promise<MaterialPage<LearnerMaterialRow>> {
@@ -403,7 +419,8 @@ export async function listLearnerMaterials(params: { classId?: string; from: str
   if (!date.safeParse(params.from).success || !date.safeParse(params.to).success) throw new Error("Invalid material date range.");
   const data = await invoke(db, SHARED_MATERIAL_RPCS.listLearner, { p_class_id: params.classId ?? null, p_from: params.from, p_to: params.to });
   const rows = (await Promise.all(rawList(data).map(async (row) => {
-    const mapped = mapLearnerRow({ ...row, signed_url: await signPreview(db, row, serviceClient) });
+    const preview = await signPreview(db, row, serviceClient);
+    const mapped = mapLearnerRow({ ...row, previews: preview ? [preview] : [] });
     return mapped;
   }))).filter((row): row is LearnerMaterialRow => row !== null);
   return { rows, nextCursor: null };
@@ -425,5 +442,8 @@ export async function loadLearnerMaterialsForWeek(params: { classId?: string; fr
     p_from: params.from,
     p_to: params.to,
   });
-  return (await Promise.all(rawList(data).map(async (row) => mapLearnerRow({ ...row, signed_url: await signPreview(db, row, serviceClient) })))).filter((row): row is LearnerMaterialRow => row !== null);
+  return (await Promise.all(rawList(data).map(async (row) => {
+    const preview = await signPreview(db, row, serviceClient);
+    return mapLearnerRow({ ...row, previews: preview ? [preview] : [] });
+  }))).filter((row): row is LearnerMaterialRow => row !== null);
 }

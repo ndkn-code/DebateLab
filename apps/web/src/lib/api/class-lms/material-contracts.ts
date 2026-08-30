@@ -245,8 +245,11 @@ export type MaterialPreviewDescriptor = {
   materialId: string;
   placementId: string;
   versionId: string;
+  renditionId: string;
   title: string;
   renditionKind: Exclude<MaterialRenditionKind, "original">;
+  mimeType: string;
+  pageNumber?: number | null;
   viewerUrl: string;
   expiresAt: string;
   watermark: { learnerLabel: string; classLabel: string };
