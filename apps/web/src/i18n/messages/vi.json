@@ -1358,6 +1358,7 @@
         }
       },
       "input_placeholder": "Hỏi HLV AI bất cứ gì...",
+      "google_ai_consent": "Bạn có đồng ý dùng Google Gemini 3.5 Flash Lite để HLV AI trả lời nhanh hơn không? Tin nhắn và ngữ cảnh coaching liên quan sẽ được gửi tới Google để tạo câu trả lời. Chọn Hủy để tiếp tục dùng hệ thống dự phòng không phải Google.",
       "new_conversation": "Cuộc hội thoại mới",
       "conversations": "Hội thoại",
       "today": "Hôm nay",

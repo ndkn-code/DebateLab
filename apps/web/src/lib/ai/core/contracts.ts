@@ -88,6 +88,12 @@ export interface AiTextRequest {
   messages: AiPromptMessage[];
   context: AiExecutionContext;
   policy?: Partial<AiTaskPolicy>;
+  /** Streaming-only hook used to report the provider that emitted the answer. */
+  onProviderSelected?: (selection: {
+    provider: AiProvider;
+    model: string;
+    traceId: string;
+  }) => void;
 }
 
 export interface AiUsage {

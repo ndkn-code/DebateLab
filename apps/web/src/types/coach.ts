@@ -166,6 +166,7 @@ export type CoachRouteIntent =
   | "visual_explainer";
 
 export type CoachModelRoute =
+  | "gemini_general"
   | "groq_general"
   | "groq_corpus"
   | "gemini_deep_review"

@@ -1,8 +1,26 @@
 import type { AiTask, AiTaskPolicy } from "./contracts";
 
-const groqModel = () =>
-  process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+const groqModel = () => process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b";
+export const getGeminiCoachModel = () =>
+  process.env.GEMINI_COACH_MODEL || "gemini-3.5-flash-lite";
+export const getGroqCoachFallbackModel = () =>
+  process.env.GROQ_COACH_FALLBACK_MODEL || "openai/gpt-oss-20b";
 const deepSeekModel = () => process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+
+/** Gemini is only added after the product surface has collected consent. */
+export function getCoachChatCandidates(allowGemini: boolean) {
+  return allowGemini
+    ? [
+        { provider: "gemini" as const, model: getGeminiCoachModel() },
+        { provider: "groq" as const, model: getGroqCoachFallbackModel() },
+      ]
+    : [
+        {
+          provider: "groq" as const,
+          model: getGroqCoachFallbackModel(),
+        },
+      ];
+}
 
 /**
  * This is deliberately a small task registry, not an implicit provider default.
@@ -57,7 +75,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "coach_chat":
       return {
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: [{ provider: "groq", model: getGroqCoachFallbackModel() }],
         attemptTimeoutMs: 35_000,
         schemaRepairAttempts: 0,
         maxOutputTokens: 1_600,
@@ -66,7 +84,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "coach_metadata":
       return {
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: [{ provider: "groq", model: getGroqCoachFallbackModel() }],
         attemptTimeoutMs: 18_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 900,
@@ -75,7 +93,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "coach_title":
       return {
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: [{ provider: "groq", model: getGroqCoachFallbackModel() }],
         attemptTimeoutMs: 8_000,
         schemaRepairAttempts: 0,
         maxOutputTokens: 24,
@@ -84,7 +102,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "coach_visualization":
       return {
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: [{ provider: "groq", model: getGroqCoachFallbackModel() }],
         attemptTimeoutMs: 20_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 1_200,

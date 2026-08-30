@@ -20,7 +20,12 @@ import {
   coercePracticeLanguage,
   getPracticeLanguageConfig,
 } from "@/lib/practice-language";
-import type { CoachContextEnvelope, CoachProfile, PracticeLanguage } from "@/types";
+import type {
+  CoachContextEnvelope,
+  CoachProfile,
+  PracticeLanguage,
+} from "@/types";
+import { getGroqCoachFallbackModel } from "@/lib/ai/core/policies";
 
 export const MOBILE_COACH_MESSAGE_MAX_LENGTH = 4000;
 
@@ -45,7 +50,7 @@ export class MobileCoachApiError extends Error {
 export function isUuid(value?: string | null): value is string {
   if (!value) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+    value,
   );
 }
 
@@ -65,7 +70,7 @@ function getGroqClient() {
     throw new MobileCoachApiError(
       "Coach is unavailable because the chat provider is not configured.",
       502,
-      "coach_provider_unavailable"
+      "coach_provider_unavailable",
     );
   }
 
@@ -141,7 +146,7 @@ function mapMetadata(value: unknown) {
 
 function mapConversation(
   row: Record<string, unknown>,
-  preview?: string | null
+  preview?: string | null,
 ): MobileCoachConversationSummary {
   return {
     id: String(row.id),
@@ -212,15 +217,19 @@ function buildMobileCoachMetadata({
           ]
         : []),
     ],
-    suggestedActions: envelope.starterPrompts.slice(0, 3).map((prompt, index) => ({
-      label: index === 0 ? "Try this" : `Prompt ${index + 1}`,
-      prompt,
-      variant: index === 0 ? "primary" : "secondary",
-    })),
+    suggestedActions: envelope.starterPrompts
+      .slice(0, 3)
+      .map((prompt, index) => ({
+        label: index === 0 ? "Try this" : `Prompt ${index + 1}`,
+        prompt,
+        variant: index === 0 ? "primary" : "secondary",
+      })),
   };
 }
 
-export function toMobileCoachProfile(profile: CoachProfile): CoachProfileSummary {
+export function toMobileCoachProfile(
+  profile: CoachProfile,
+): CoachProfileSummary {
   return {
     displayName: profile.displayName,
     streak: profile.streak,
@@ -251,7 +260,7 @@ export function toMobileCoachProfile(profile: CoachProfile): CoachProfileSummary
 }
 
 export function toMobileCoachEnvelope(
-  envelope: CoachContextEnvelope
+  envelope: CoachContextEnvelope,
 ): CoachContextEnvelopeSummary {
   return {
     mode: envelope.mode,
@@ -279,7 +288,7 @@ export async function getMobileCoachHome({
 }) {
   const practiceLanguage = coercePracticeLanguage(
     practiceLanguageInput,
-    DEFAULT_PRACTICE_LANGUAGE
+    DEFAULT_PRACTICE_LANGUAGE,
   );
   const normalizedContext = normalizeMobileCoachContext(contextType);
   const profile = await getCoachProfile(userId, practiceLanguage, supabase);
@@ -304,11 +313,13 @@ export async function getMobileCoachHome({
 
 export async function listMobileCoachConversations(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
 ) {
   const { data, error } = await supabase
     .from("chat_conversations")
-    .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+    .select(
+      "id, user_id, title, context_type, context_id, created_at, updated_at",
+    )
     .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(30);
@@ -317,7 +328,7 @@ export async function listMobileCoachConversations(
     throw new MobileCoachApiError(
       "Unable to load coach conversations.",
       500,
-      "coach_conversations_unavailable"
+      "coach_conversations_unavailable",
     );
   }
 
@@ -341,7 +352,7 @@ export async function listMobileCoachConversations(
   }
 
   return rows.map((row) =>
-    mapConversation(row, previewByConversation.get(String(row.id)) ?? null)
+    mapConversation(row, previewByConversation.get(String(row.id)) ?? null),
   );
 }
 
@@ -356,7 +367,9 @@ export async function getMobileCoachConversation({
 }) {
   const { data: conversation, error: conversationError } = await supabase
     .from("chat_conversations")
-    .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+    .select(
+      "id, user_id, title, context_type, context_id, created_at, updated_at",
+    )
     .eq("id", conversationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -365,7 +378,7 @@ export async function getMobileCoachConversation({
     throw new MobileCoachApiError(
       "Unable to load coach conversation.",
       500,
-      "coach_conversation_unavailable"
+      "coach_conversation_unavailable",
     );
   }
 
@@ -384,7 +397,7 @@ export async function getMobileCoachConversation({
     throw new MobileCoachApiError(
       "Unable to load coach messages.",
       500,
-      "coach_messages_unavailable"
+      "coach_messages_unavailable",
     );
   }
 
@@ -414,7 +427,7 @@ export async function sendMobileCoachMessage({
 }): Promise<MobileCoachSendMessageResponse> {
   const practiceLanguage = coercePracticeLanguage(
     practiceLanguageInput,
-    DEFAULT_PRACTICE_LANGUAGE
+    DEFAULT_PRACTICE_LANGUAGE,
   );
   const normalizedContext = normalizeMobileCoachContext(context);
   const trimmedMessage = message.trim();
@@ -426,7 +439,7 @@ export async function sendMobileCoachMessage({
     throw new MobileCoachApiError(
       "Message is too long.",
       400,
-      "message_too_long"
+      "message_too_long",
     );
   }
 
@@ -438,13 +451,15 @@ export async function sendMobileCoachMessage({
       throw new MobileCoachApiError(
         "Conversation not found.",
         404,
-        "not_found"
+        "not_found",
       );
     }
 
     const { data: existingConversation } = await supabase
       .from("chat_conversations")
-      .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+      .select(
+        "id, user_id, title, context_type, context_id, created_at, updated_at",
+      )
       .eq("id", conversationId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -453,7 +468,7 @@ export async function sendMobileCoachMessage({
       throw new MobileCoachApiError(
         "Conversation not found.",
         404,
-        "not_found"
+        "not_found",
       );
     }
     conversation = existingConversation as Record<string, unknown>;
@@ -497,7 +512,7 @@ export async function sendMobileCoachMessage({
     profile,
   });
 
-  const chatModel = process.env.GROQ_CHAT_MODEL || "llama-3.3-70b-versatile";
+  const chatModel = getGroqCoachFallbackModel();
   const result = await getGroqClient().chat.completions.create({
     messages: [
       { role: "system", content: systemPrompt },
@@ -516,7 +531,7 @@ export async function sendMobileCoachMessage({
     throw new MobileCoachApiError(
       "Coach returned an empty response.",
       502,
-      "coach_empty_response"
+      "coach_empty_response",
     );
   }
 
@@ -531,14 +546,16 @@ export async function sendMobileCoachMessage({
     const { data: insertedConversation, error } = await supabase
       .from("chat_conversations")
       .insert(insertData)
-      .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+      .select(
+        "id, user_id, title, context_type, context_id, created_at, updated_at",
+      )
       .single();
 
     if (error || !insertedConversation) {
       throw new MobileCoachApiError(
         "Unable to create coach conversation.",
         500,
-        "coach_conversation_create_failed"
+        "coach_conversation_create_failed",
       );
     }
     conversation = insertedConversation as Record<string, unknown>;
@@ -566,7 +583,7 @@ export async function sendMobileCoachMessage({
     throw new MobileCoachApiError(
       "Unable to save coach messages.",
       500,
-      "coach_message_save_failed"
+      "coach_message_save_failed",
     );
   }
 
@@ -576,7 +593,9 @@ export async function sendMobileCoachMessage({
     .update({ updated_at: now })
     .eq("id", resolvedConversationId)
     .eq("user_id", userId)
-    .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+    .select(
+      "id, user_id, title, context_type, context_id, created_at, updated_at",
+    )
     .maybeSingle();
 
   const mappedConversation = mapConversation(
@@ -584,17 +603,21 @@ export async function sendMobileCoachMessage({
       ...conversation,
       updated_at: now,
     },
-    clipText(assistantText, 88)
+    clipText(assistantText, 88),
   );
-  const mappedMessages = (messageRows as Record<string, unknown>[]).map(mapMessage);
+  const mappedMessages = (messageRows as Record<string, unknown>[]).map(
+    mapMessage,
+  );
   const userMessage = mappedMessages.find((row) => row.role === "user");
-  const assistantMessage = mappedMessages.find((row) => row.role === "assistant");
+  const assistantMessage = mappedMessages.find(
+    (row) => row.role === "assistant",
+  );
 
   if (!userMessage || !assistantMessage) {
     throw new MobileCoachApiError(
       "Unable to save coach messages.",
       500,
-      "coach_message_save_failed"
+      "coach_message_save_failed",
     );
   }
 

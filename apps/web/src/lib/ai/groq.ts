@@ -8,7 +8,7 @@ import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
  * Minimal typed Groq chat-completion helper (cheap-first fallback layer).
  *
  * Groq is already wired for Whisper STT; this adds the OpenAI-compatible chat
- * path (`llama-3.3-70b-versatile` by default) for JSON scoring tasks, metered
+ * path (`openai/gpt-oss-120b` by default) for JSON scoring tasks, metered
  * into `ai_provider_requests` like the other providers. It lets IELTS cards use
  * Gemini Flash primary + Groq fallback (masterplan §11) WITHOUT DeepSeek.
  */
@@ -36,7 +36,7 @@ export interface GroqChatResult {
   finishReason?: string;
 }
 
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 const DEFAULT_TIMEOUT_MS = 45_000;
 const DEFAULT_TEMPERATURE = 0.2;
 

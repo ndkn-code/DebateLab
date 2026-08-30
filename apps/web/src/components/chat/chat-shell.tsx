@@ -9,7 +9,11 @@ import { PageTransition } from "@/components/shared/page-motion";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
-import type { CoachContextEnvelope, CoachMessageMetadata, CoachProfile } from "@/types";
+import type {
+  CoachContextEnvelope,
+  CoachMessageMetadata,
+  CoachProfile,
+} from "@/types";
 
 export interface ChatMessageLocal {
   id: string;
@@ -25,6 +29,7 @@ export interface ChatMessageLocal {
 
 const STREAM_REVEAL_INTERVAL_MS = 24;
 const STREAM_REVEAL_CHAR_BUDGET = 3;
+const GOOGLE_AI_CONSENT_STORAGE_KEY = "debatelab_google_ai_coach_consent_v1";
 
 function splitStreamingText(text: string) {
   return Array.from(text);
@@ -53,12 +58,13 @@ export function ChatShell({
   const practiceLanguage = coercePracticeLanguage(locale);
   const initialContextType = context ?? "coach-home";
   const [conversations, setConversations] = useState(initialConversations);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    initialConversationId ?? null
-  );
-  const [activeContextType, setActiveContextType] = useState(initialContextType);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(initialConversationId ?? null);
+  const [activeContextType, setActiveContextType] =
+    useState(initialContextType);
   const [activeContextId, setActiveContextId] = useState<string | null>(
-    contextId ?? null
+    contextId ?? null,
   );
   const [messages, setMessages] = useState<ChatMessageLocal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,9 +73,9 @@ export function ChatShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const [coachEnvelope, setCoachEnvelope] = useState(initialCoachEnvelope);
-  const [visualizingMessageId, setVisualizingMessageId] = useState<string | null>(
-    null
-  );
+  const [visualizingMessageId, setVisualizingMessageId] = useState<
+    string | null
+  >(null);
   const autoVisualizedMessageIdsRef = useRef<Set<string>>(new Set());
 
   const refreshCoachView = useCallback(
@@ -112,54 +118,55 @@ export function ChatShell({
         setIsInsightsLoading(false);
       }
     },
-    [practiceLanguage]
+    [practiceLanguage],
   );
 
   // Load messages when switching conversations
-  const loadConversation = useCallback(async (conversationId: string) => {
-    setActiveConversationId(conversationId);
-    setIsLoading(true);
-    setLoadError(false);
-    setSidebarOpen(false);
+  const loadConversation = useCallback(
+    async (conversationId: string) => {
+      setActiveConversationId(conversationId);
+      setIsLoading(true);
+      setLoadError(false);
+      setSidebarOpen(false);
 
-    try {
-      const res = await fetch(
-        `/api/chat/conversations/${conversationId}`
-      );
-      if (!res.ok) {
-        throw new Error("Failed to load conversation");
+      try {
+        const res = await fetch(`/api/chat/conversations/${conversationId}`);
+        if (!res.ok) {
+          throw new Error("Failed to load conversation");
+        }
+
+        const data = await res.json();
+        setMessages(
+          data.messages.map((m: ChatMessage) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            metadata: m.metadata,
+            status: "complete",
+            finalRenderMode: "markdown",
+            finishReason: null,
+            isTruncated: false,
+            created_at: m.created_at,
+          })),
+        );
+
+        const nextContextType = data.conversation.context_type ?? "coach-home";
+        const nextContextId = data.conversation.context_id ?? null;
+        setActiveContextType(nextContextType);
+        setActiveContextId(nextContextId);
+        void refreshCoachView({
+          nextContextType,
+          nextContextId,
+        });
+      } catch {
+        setMessages([]);
+        setLoadError(true);
+      } finally {
+        setIsLoading(false);
       }
-
-      const data = await res.json();
-      setMessages(
-        data.messages.map((m: ChatMessage) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          metadata: m.metadata,
-          status: "complete",
-          finalRenderMode: "markdown",
-          finishReason: null,
-          isTruncated: false,
-          created_at: m.created_at,
-        }))
-      );
-
-      const nextContextType = data.conversation.context_type ?? "coach-home";
-      const nextContextId = data.conversation.context_id ?? null;
-      setActiveContextType(nextContextType);
-      setActiveContextId(nextContextId);
-      void refreshCoachView({
-        nextContextType,
-        nextContextId,
-      });
-    } catch {
-      setMessages([]);
-      setLoadError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refreshCoachView]);
+    },
+    [refreshCoachView],
+  );
 
   // Start new conversation
   const handleNewChat = useCallback(() => {
@@ -170,11 +177,7 @@ export function ChatShell({
     setActiveContextType(initialContextType);
     setActiveContextId(contextId ?? null);
     setCoachEnvelope(initialCoachEnvelope);
-  }, [
-    contextId,
-    initialCoachEnvelope,
-    initialContextType,
-  ]);
+  }, [contextId, initialCoachEnvelope, initialContextType]);
 
   // Handle conversation deletion from sidebar
   const handleDeleteConversation = useCallback(
@@ -185,7 +188,7 @@ export function ChatShell({
         setMessages([]);
       }
     },
-    [activeConversationId]
+    [activeConversationId],
   );
 
   // Send a message
@@ -193,6 +196,35 @@ export function ChatShell({
     async (text: string) => {
       if (!text.trim()) return;
       const trimmedText = text.trim();
+      let googleAiConsent = false;
+      try {
+        const savedConsent = window.localStorage.getItem(
+          GOOGLE_AI_CONSENT_STORAGE_KEY,
+        );
+        const declinedThisSession =
+          window.sessionStorage.getItem(GOOGLE_AI_CONSENT_STORAGE_KEY) ===
+          "declined";
+        if (savedConsent !== "granted" && !declinedThisSession) {
+          const granted = window.confirm(t("google_ai_consent"));
+          if (granted) {
+            window.localStorage.setItem(
+              GOOGLE_AI_CONSENT_STORAGE_KEY,
+              "granted",
+            );
+            googleAiConsent = true;
+          } else {
+            window.sessionStorage.setItem(
+              GOOGLE_AI_CONSENT_STORAGE_KEY,
+              "declined",
+            );
+          }
+        } else {
+          googleAiConsent = savedConsent === "granted";
+        }
+      } catch {
+        // Storage may be unavailable in privacy mode. The privacy-safe Groq
+        // route remains available without sending the message to Google.
+      }
       setLoadError(false);
 
       // Add user message to UI
@@ -204,7 +236,9 @@ export function ChatShell({
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
-      posthog.capture("chat_message_sent", { message_length: trimmedText.length });
+      posthog.capture("chat_message_sent", {
+        message_length: trimmedText.length,
+      });
 
       void refreshCoachView({
         nextContextType: activeContextType,
@@ -234,6 +268,7 @@ export function ChatShell({
             context: activeContextType,
             contextId: activeContextId,
             practiceLanguage,
+            googleAiConsent,
           }),
         });
 
@@ -251,13 +286,11 @@ export function ChatShell({
         let newConversationId = activeConversationId;
         let streamTimer: ReturnType<typeof setTimeout> | null = null;
         let resolveStreamDrain: (() => void) | null = null;
-        let pendingFinal:
-          | {
-              assistantMessageId?: unknown;
-              metadata?: CoachMessageMetadata | null;
-              finishReason?: unknown;
-            }
-          | null = null;
+        let pendingFinal: {
+          assistantMessageId?: unknown;
+          metadata?: CoachMessageMetadata | null;
+          finishReason?: unknown;
+        } | null = null;
         const textQueue: string[] = [];
 
         const appendAssistantText = (chunk: string) => {
@@ -415,9 +448,7 @@ export function ChatShell({
                 if (newConversationId) {
                   // Add or update in sidebar
                   setConversations((prev) => {
-                    const exists = prev.find(
-                      (c) => c.id === newConversationId
-                    );
+                    const exists = prev.find((c) => c.id === newConversationId);
                     if (exists) {
                       return prev.map((c) =>
                         c.id === newConversationId
@@ -426,7 +457,7 @@ export function ChatShell({
                               updated_at: new Date().toISOString(),
                               preview: trimmedText,
                             }
-                          : c
+                          : c,
                       );
                     }
                     // New conversation
@@ -481,7 +512,7 @@ export function ChatShell({
       practiceLanguage,
       refreshCoachView,
       t,
-    ]
+    ],
   );
 
   const requestVisualize = useCallback(
@@ -510,8 +541,8 @@ export function ChatShell({
                   ...message,
                   metadata: data.metadata ?? message.metadata ?? null,
                 }
-              : message
-          )
+              : message,
+          ),
         );
       } catch (error) {
         console.error("Visual explainer error:", error);
@@ -525,14 +556,14 @@ export function ChatShell({
                     autoVisualize: false,
                   },
                 }
-              : message
-          )
+              : message,
+          ),
         );
       } finally {
         setVisualizingMessageId(null);
       }
     },
-    [activeConversationId]
+    [activeConversationId],
   );
 
   useEffect(() => {
@@ -545,7 +576,7 @@ export function ChatShell({
         Boolean(message.metadata?.autoVisualize) &&
         Boolean(message.metadata?.visualizable) &&
         !message.metadata?.visualExplainer &&
-        !autoVisualizedMessageIdsRef.current.has(message.id)
+        !autoVisualizedMessageIdsRef.current.has(message.id),
     );
 
     if (!nextMessage) return;

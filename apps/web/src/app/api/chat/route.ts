@@ -2,6 +2,11 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { generateStructured, generateText, streamText } from "@/lib/ai/core";
 import {
+  getCoachChatCandidates,
+  getGeminiCoachModel,
+  getGroqCoachFallbackModel,
+} from "@/lib/ai/core/policies";
+import {
   retrieveEnglishDebateKnowledge,
   searchKnowledge,
   type KnowledgeEvidence,
@@ -19,6 +24,7 @@ import {
 } from "@/lib/practice-language";
 import {
   getString,
+  getBoolean,
   readJsonObject,
   RequestValidationError,
   type JsonRecord,
@@ -127,6 +133,7 @@ interface ChatRequest {
   context?: string;
   contextId?: string;
   practiceLanguage?: string;
+  googleAiConsent: boolean;
 }
 
 function isUuid(value?: string | null): value is string {
@@ -141,7 +148,8 @@ function normalizeContextType(context?: string) {
   return context === "dashboard-home" ? "coach-home" : context;
 }
 
-const GROQ_COACH_MODEL = "llama-3.3-70b-versatile";
+const GROQ_COACH_MODEL = getGroqCoachFallbackModel();
+const GEMINI_GENERAL_COACH_MODEL = getGeminiCoachModel();
 const GEMINI_DEEP_COACH_MODEL = "gemini-3.1-flash-lite";
 const CHAT_PROVIDER_SOURCE_ROUTE = "/api/chat";
 const CoachMetadataSchema = z.record(z.string(), z.unknown());
@@ -164,12 +172,20 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
   const practiceLanguage = getString(body, "practiceLanguage", {
     maxLength: 8,
   });
+  const googleAiConsent = getBoolean(body, "googleAiConsent", false) ?? false;
 
   if (conversationId && !isUuid(conversationId)) {
     throw new RequestValidationError("conversationId is invalid.");
   }
 
-  return { message, conversationId, context, contextId, practiceLanguage };
+  return {
+    message,
+    conversationId,
+    context,
+    contextId,
+    practiceLanguage,
+    googleAiConsent,
+  };
 }
 
 const ENABLE_COACH_METADATA = process.env.ENABLE_COACH_METADATA !== "false";
@@ -632,11 +648,15 @@ ${assistantText}`,
   }
 }
 
-function getCoachModelRoute(intent: CoachIntentDecision): CoachModelRoute {
-  if (intent.intent === "deep_review") return "gemini_deep_review";
+function getCoachModelRoute(
+  intent: CoachIntentDecision,
+  googleAiConsent: boolean,
+): CoachModelRoute {
+  if (intent.intent === "deep_review")
+    return googleAiConsent ? "gemini_deep_review" : "groq_general";
   if (intent.intent === "visual_explainer") return "visual_explainer";
   if (intent.intent === "corpus_debate_help") return "groq_corpus";
-  return "groq_general";
+  return googleAiConsent ? "gemini_general" : "groq_general";
 }
 
 function buildCoachRagQuery(params: {
@@ -747,7 +767,7 @@ export async function POST(req: NextRequest) {
       message,
       contextType: normalizedContext,
     });
-    const modelRoute = getCoachModelRoute(routeIntent);
+    const modelRoute = getCoachModelRoute(routeIntent, body.googleAiConsent);
     let corpusRetrieval: DebateCorpusRetrievalResult | null = null;
     let englishCorpusEvidence: KnowledgeEvidence[] = [];
     let englishCorpusProvenance: Record<string, unknown> | null = null;
@@ -995,7 +1015,16 @@ RULES FOR THIS CONTEXT:
               messages,
               context: coreContext,
               policy: {
+                candidates:
+                  modelRoute === "gemini_general"
+                    ? getCoachChatCandidates(true)
+                    : getCoachChatCandidates(false),
                 temperature: modelRoute === "visual_explainer" ? 0.55 : 0.7,
+              },
+              onProviderSelected(selection) {
+                activeProvider = selection.provider;
+                activeModel = selection.model;
+                activeTraceId = selection.traceId;
               },
             })) {
               if (firstTokenLatencyMs == null)
@@ -1127,11 +1156,16 @@ RULES FOR THIS CONTEXT:
         } catch (err) {
           await recordAiProviderRequest({
             provider:
-              modelRoute === "gemini_deep_review" ? "google/groq" : "groq",
+              modelRoute === "gemini_deep_review" ||
+              modelRoute === "gemini_general"
+                ? "google/groq"
+                : "groq",
             model:
               modelRoute === "gemini_deep_review"
                 ? `${GEMINI_DEEP_COACH_MODEL}/${chatModel}`
-                : chatModel,
+                : modelRoute === "gemini_general"
+                  ? `${GEMINI_GENERAL_COACH_MODEL}/${chatModel}`
+                  : chatModel,
             status: "error",
             sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
             outputType: "coach_chat",
