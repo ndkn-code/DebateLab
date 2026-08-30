@@ -3687,8 +3687,6 @@
       "goal_title": "Your IELTS goal",
       "goal_body": "The default target is 6.5. Add skill-specific targets or focus skills when your exam requirement is uneven.",
       "overall_target": "Overall target band",
-      "current_band": "Current band",
-      "current_band_not_sure": "Not sure yet",
       "test_date": "Test date",
       "skill_targets": "Optional skill targets",
       "same_as_overall": "Same as overall",

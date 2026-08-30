@@ -5,7 +5,6 @@ import type {
 } from "@/lib/ielts/adaptive/contracts";
 import type { IeltsDiagnosticTestSummary } from "@/lib/api/ielts/study-plan-repository";
 import type { IeltsGeneratedStudyPlan } from "@/lib/ielts/study-plan";
-import type { IeltsSelfReportedBand } from "@/lib/ielts/onboarding/model";
 
 export type GoalState = {
   module: IeltsGoalModel["module"];
@@ -17,7 +16,6 @@ export type GoalState = {
   dailyMinutes: number;
   timezone: string;
   feedbackLanguage: "en" | "vi";
-  currentBand?: IeltsSelfReportedBand;
 };
 
 export type PlanResult = {
@@ -29,10 +27,7 @@ export type PlanResult = {
   diagnosticTest: IeltsDiagnosticTestSummary | null;
 };
 
-export function goalToState(
-  goal: IeltsGoalModel,
-  currentBand: IeltsSelfReportedBand = "not_sure",
-): GoalState {
+export function goalToState(goal: IeltsGoalModel): GoalState {
   return {
     module: goal.module,
     targetOverallBand: goal.targetOverallBand,
@@ -48,7 +43,6 @@ export function goalToState(
     dailyMinutes: goal.availability.dailyMinutes,
     timezone: goal.availability.timezone,
     feedbackLanguage: goal.feedbackLanguage,
-    currentBand,
   };
 }
 

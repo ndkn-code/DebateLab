@@ -10,7 +10,6 @@ import {
   goalFromStudyPlanRow,
   initialOnboardingStep,
   predictionHasOverallEvidence,
-  selfReportedBandFromPreferences,
 } from "./model";
 
 assert.equal(defaultTargetTestDate("2026-06-21"), "2026-09-19");
@@ -117,19 +116,5 @@ assert.equal(
 assert.equal(confidencePercent(0.556), 56);
 assert.equal(confidencePercent(2), 100);
 assert.equal(confidencePercent(-1), 0);
-
-assert.equal(selfReportedBandFromPreferences(null), "not_sure");
-assert.equal(
-  selfReportedBandFromPreferences({
-    ielts_onboarding_answers: { current_band: 6.5 },
-  }),
-  6.5,
-);
-assert.equal(
-  selfReportedBandFromPreferences({
-    ielts_onboarding_answers: { current_band: 6.25 },
-  }),
-  "not_sure",
-);
 
 console.log("ielts/onboarding/model.test.ts passed");
