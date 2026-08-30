@@ -870,9 +870,9 @@ create or replace function public.lms_list_materials_manager(
   p_cursor text default null,
   p_limit integer default 50
 )
-returns table(id uuid, version_id uuid, title text, description text, processing_status text, version_number integer, content_review_status text, rights_approved boolean, created_at timestamptz, updated_at timestamptz, placements jsonb)
+returns table(id uuid, version_id uuid, title text, description text, processing_status text, version_number integer, content_review_status text, rights_approved boolean, created_at timestamptz, updated_at timestamptz, native_document jsonb, placements jsonb)
 language sql stable security definer set search_path = public, private as $$
-  select m.id, v.id, m.title, m.description, v.processing_status, v.version_number, v.content_review_status, private.lms_material_version_rights_approved(v.id), m.created_at, m.updated_at,
+  select m.id, v.id, m.title, m.description, v.processing_status, v.version_number, v.content_review_status, private.lms_material_version_rights_approved(v.id), m.created_at, m.updated_at, v.native_document,
     coalesce((select jsonb_agg(to_jsonb(p) order by p.release_at nulls last, p.order_index, p.id) from public.lms_material_placements p where p.material_id = m.id and (p_status is null or p.status = p_status)
       and (p_class_id is null or p.class_id = p_class_id or exists (select 1 from public.lms_lesson_occurrences o where o.id = p.occurrence_id and o.class_id = p_class_id) or exists (select 1 from public.club_assignments a where a.id = p.assignment_id and a.class_id = p_class_id) or exists (select 1 from public.class_course_assignments cca where cca.class_id = p_class_id and cca.course_id = p.course_id))), '[]'::jsonb)
   from public.lms_materials m

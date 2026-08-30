@@ -345,11 +345,13 @@ export function StudentLmsWeek({
   locale,
   timezone,
   materialsByOccurrence = {},
+  generalMaterials = [],
 }: {
   data: StudentWeeklyLmsView;
   locale: string;
   timezone: string;
   materialsByOccurrence?: Record<string, LearnerMaterialProjection[]>;
+  generalMaterials?: LearnerMaterialProjection[];
 }) {
   const vi = locale === "vi";
   const dates = Array.from({ length: 7 }, (_, index) =>
@@ -467,6 +469,15 @@ export function StudentLmsWeek({
             <ExternalLink className="size-3.5" aria-hidden="true" />
           </Link>
         </section>
+
+        {generalMaterials.length ? (
+          <section
+            className="mt-3 rounded-[10px] border border-outline-variant bg-surface p-3"
+            aria-label={vi ? "Tài liệu lớp học" : "Class materials"}
+          >
+            <LearnerMaterials materials={generalMaterials} locale={locale} />
+          </section>
+        ) : null}
 
         <section className="mt-3" aria-labelledby="student-week-heading">
           <div className="flex flex-wrap items-center justify-between gap-2">

@@ -5,7 +5,10 @@ import type {
   TeacherMaterialSummary,
 } from "@/components/materials/material-ui-model";
 import { loadTeacherSharedMaterials } from "@/app/actions/shared-lms-materials";
-import type { MaterialProcessingStatus } from "@/lib/api/class-lms/material-contracts";
+import {
+  materialDocumentV1Schema,
+  type MaterialProcessingStatus,
+} from "@/lib/api/class-lms/material-contracts";
 import { loadTeacherLmsWeek } from "@/lib/api/class-lms/teacher-weekly-repository";
 import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
 import { createTypedServerClient } from "@/lib/supabase/server";
@@ -87,7 +90,9 @@ export default async function TeacherMaterialsPage({
       rightsApproved: item.rightsApproved,
       updatedAt: item.updatedAt,
       preview: null,
-      document: null,
+      document: materialDocumentV1Schema.safeParse(item.nativeDocument).success
+        ? materialDocumentV1Schema.parse(item.nativeDocument)
+        : null,
       renditions: [],
       placements: item.placements.map((placement) => ({
         id: placement.id,

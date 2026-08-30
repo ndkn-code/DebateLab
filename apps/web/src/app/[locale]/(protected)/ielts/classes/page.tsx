@@ -87,14 +87,18 @@ function toLearnerProjection(
 async function loadMaterialsByOccurrence({
   startDate,
   endDate,
+  classIds,
   occurrences,
 }: {
   startDate: string;
   endDate: string;
+  classIds: string[];
   occurrences: StudentWeeklyOccurrence[];
-}): Promise<Record<string, LearnerMaterialProjection[]>> {
+}): Promise<{
+  byOccurrence: Record<string, LearnerMaterialProjection[]>;
+  general: LearnerMaterialProjection[];
+}> {
   try {
-    const classIds = [...new Set(occurrences.map((item) => item.classId))];
     const rows = (
       await Promise.all(
         classIds.map((classId) =>
@@ -103,21 +107,26 @@ async function loadMaterialsByOccurrence({
       )
     ).flat();
     const grouped: Record<string, LearnerMaterialProjection[]> = {};
+    const general: LearnerMaterialProjection[] = [];
     const seenPlacements = new Set<string>();
     for (const row of rows) {
-      if (!row.occurrenceId || seenPlacements.has(row.placementId)) continue;
+      if (seenPlacements.has(row.placementId)) continue;
       seenPlacements.add(row.placementId);
       const material = toLearnerProjection(
         row,
         occurrences.find((item) => item.id === row.occurrenceId)?.lessonTitle ??
           null,
       );
-      (grouped[row.occurrenceId] ??= []).push(material);
+      if (row.occurrenceId) {
+        (grouped[row.occurrenceId] ??= []).push(material);
+      } else {
+        general.push(material);
+      }
     }
-    return grouped;
+    return { byOccurrence: grouped, general };
   } catch (error) {
     console.error("load learner materials for IELTS week failed", error);
-    return {};
+    return { byOccurrence: {}, general: [] };
   }
 }
 
@@ -151,20 +160,33 @@ export default async function IeltsClassesPage({
     startDate,
     endDate,
   });
-  const materialsByOccurrence = SHARED_LMS_MATERIALS_V1
+  const { data: membershipRows, error: membershipError } = await db
+    .from("class_memberships")
+    .select("class_id")
+    .eq("user_id", userId)
+    .eq("member_role", "student")
+    .eq("status", "active");
+  if (membershipError)
+    throw new Error(`load IELTS class memberships: ${membershipError.message}`);
+  const classIds = [
+    ...new Set((membershipRows ?? []).map((item) => item.class_id)),
+  ];
+  const materialGroups = SHARED_LMS_MATERIALS_V1
     ? await loadMaterialsByOccurrence({
         startDate,
         endDate,
+        classIds,
         occurrences: data.occurrences,
       })
-    : {};
+    : { byOccurrence: {}, general: [] };
 
   return (
     <StudentLmsWeek
       data={data}
       locale={locale}
       timezone={timezone}
-      materialsByOccurrence={materialsByOccurrence}
+      materialsByOccurrence={materialGroups.byOccurrence}
+      generalMaterials={materialGroups.general}
     />
   );
 }

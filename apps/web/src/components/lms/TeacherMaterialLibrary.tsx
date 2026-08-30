@@ -27,6 +27,7 @@ import {
 } from "@/components/shared/product-layout";
 import { materialCopy } from "@/components/materials/material-copy";
 import { ThinkfyMaterialViewer } from "@/components/materials/ThinkfyMaterialViewer";
+import { MaterialDocumentRenderer } from "@/components/materials/MaterialDocumentRenderer";
 import type {
   LearnerMaterialProjection,
   MaterialPlacementTarget,
@@ -494,6 +495,22 @@ export function TeacherMaterialLibrary({
                     </p>
                   </div>
                 ) : null}
+                {selected.document ? (
+                  <section
+                    className="max-h-[32rem] overflow-y-auto rounded-[10px] border border-outline-variant bg-background p-4"
+                    aria-label={
+                      vi
+                        ? "Nội dung chuyển đổi cần duyệt"
+                        : "Converted content to review"
+                    }
+                  >
+                    <MaterialDocumentRenderer
+                      document={selected.document}
+                      renditions={selected.renditions}
+                      locale={locale}
+                    />
+                  </section>
+                ) : null}
                 <div className="grid gap-2">
                   <Button
                     variant="outline"
@@ -540,7 +557,9 @@ export function TeacherMaterialLibrary({
                           setBusy(false);
                         }
                       }}
-                      disabled={busy || selectedContentApproved}
+                      disabled={
+                        busy || selectedContentApproved || !selected.document
+                      }
                     >
                       <CheckCircle2 aria-hidden="true" />
                       {selectedContentApproved

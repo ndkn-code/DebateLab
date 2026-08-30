@@ -101,6 +101,7 @@ export interface ManagerMaterialRow {
   processingStatus: string;
   contentReviewStatus: MaterialContentReviewStatus;
   rightsApproved: boolean;
+  nativeDocument: unknown;
   versionNumber: number;
   createdAt: string;
   updatedAt: string;
@@ -172,6 +173,7 @@ const managerRowSchema = z
     processing_status: z.string(),
     content_review_status: z.enum(["pending", "approved", "rejected"]),
     rights_approved: z.boolean(),
+    native_document: z.unknown().nullable().optional(),
     version_number: z.number().int().nonnegative().optional(),
     created_at: z.string(),
     updated_at: z.string(),
@@ -272,6 +274,7 @@ function mapManagerRow(row: Raw): ManagerMaterialRow | null {
       "contentReviewStatus",
     ) as MaterialContentReviewStatus,
     rightsApproved: bool(row, "rights_approved", "rightsApproved"),
+    nativeDocument: row.native_document ?? row.nativeDocument ?? null,
     versionNumber: number(row, "version_number", "versionNumber"),
     createdAt: text(row, "created_at", "createdAt"),
     updatedAt: text(row, "updated_at", "updatedAt"),
