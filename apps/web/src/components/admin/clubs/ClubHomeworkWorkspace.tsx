@@ -569,11 +569,11 @@ export function ClubHomeworkWorkspace({ data }: { data: HomeworkWorkspaceData })
     <main className="min-h-full bg-background px-4 py-5 text-on-surface sm:px-5 lg:px-6">
       <div className="mx-auto max-w-7xl">
         <Link
-          href={`/dashboard/clubs/${data.assignment.clubId}?tab=Assignments`}
+          href={data.mode === "student" ? "/ielts/classes" : `/dashboard/clubs/${data.assignment.clubId}?tab=Assignments`}
           className="inline-flex items-center gap-2 text-sm font-bold text-on-surface-variant"
         >
           <ChevronLeft className="h-4 w-4" />
-          Assignments
+          {data.mode === "student" ? "My classes" : "Assignments"}
         </Link>
 
         <header className="mt-4 border-b border-outline-variant pb-5">

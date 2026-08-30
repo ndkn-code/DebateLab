@@ -345,6 +345,7 @@ export async function markLmsNotificationRead(notificationId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(notificationId)) throw new Error("Invalid notification id");
   const { error } = await db.from("lms_notifications").update({ read_at: new Date().toISOString() }).eq("id", notificationId);
   if (error) throw new Error(error.message);
+  revalidatePath("/ielts/classes");
   return { ok: true, id: notificationId };
 }
 

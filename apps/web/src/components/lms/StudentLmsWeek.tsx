@@ -1,4 +1,5 @@
 import { Link } from "@/i18n/navigation";
+import { markLmsNotificationRead } from "@/app/actions/class-lms";
 import {
   BellRing,
   BookOpenText,
@@ -23,6 +24,11 @@ import type {
 
 const DAY_MS = 86_400_000;
 
+async function markNotificationRead(notificationId: string) {
+  "use server";
+  await markLmsNotificationRead(notificationId);
+}
+
 function addDays(value: string, days: number): string {
   return new Date(new Date(`${value}T12:00:00Z`).getTime() + days * DAY_MS)
     .toISOString()
@@ -39,18 +45,32 @@ function formatDate(
   );
 }
 
-function formatDateTime(value: string, locale: string) {
+function formatDateTime(value: string, locale: string, timezone: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: timezone,
   }).format(new Date(value));
 }
 
-function formatTime(value: string, locale: string) {
+function formatTime(value: string, locale: string, timezone: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: timezone,
   }).format(new Date(value));
+}
+
+function dateInTimezone(value: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone,
+  }).formatToParts(value);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function statusLabel(value: string | null, vi: boolean) {
@@ -117,16 +137,21 @@ function groupByDate(occurrences: StudentWeeklyOccurrence[]) {
 function AssignmentRow({
   assignment,
   locale,
+  timezone,
 }: {
   assignment: StudentWeeklyAssignment;
   locale: string;
+  timezone: string;
 }) {
   const vi = locale === "vi";
-  const submission = assignment.submissionState;
-  const status = statusLabel(submission ?? assignment.gradeStatus, vi);
+  const statusValue =
+    assignment.gradeStatus && assignment.gradeStatus !== "submitted"
+      ? assignment.gradeStatus
+      : assignment.submissionState;
+  const status = statusLabel(statusValue, vi);
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-outline-variant bg-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between">
+    <li className="flex flex-col gap-2 rounded-lg border border-outline-variant bg-surface-container-low p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="type-label font-semibold text-on-surface">
           {assignment.title}
@@ -134,24 +159,37 @@ function AssignmentRow({
         <p className="mt-1 type-caption text-on-surface-variant">
           {relationLabel(assignment.relationType, vi)}
           {assignment.dueAt
-            ? ` · ${vi ? "Hạn" : "Due"} ${formatDateTime(assignment.dueAt, locale)}`
+            ? ` · ${vi ? "Hạn" : "Due"} ${formatDateTime(assignment.dueAt, locale, timezone)}`
             : ""}
         </p>
       </div>
       <div className="flex items-center gap-2">
         <span
-          className={`rounded-full px-2 py-1 type-caption font-semibold ${statusTone(submission ?? assignment.gradeStatus)}`}
+          className={`rounded-full px-2 py-1 type-caption font-semibold ${statusTone(statusValue)}`}
         >
           {status}
         </span>
         <Link
-          href="/ielts/assigned"
-          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-outline-variant px-2.5 type-caption font-semibold text-primary hover:bg-surface-container"
+          href={`/dashboard/clubs/${assignment.clubId}/assignments/${assignment.id}`}
+          className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-outline-variant px-2.5 type-caption font-semibold text-primary hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {vi ? "Mở" : "Open"}
           <ExternalLink className="size-3.5" aria-hidden="true" />
         </Link>
       </div>
+      {assignment.feedback || assignment.score != null ? (
+        <div className="rounded-lg bg-success-container/45 px-3 py-2 type-caption text-on-success-container sm:basis-full">
+          {assignment.score != null ? (
+            <p className="font-semibold">
+              {vi ? "Điểm" : "Score"}: {assignment.score}
+              {assignment.scoreMax != null ? `/${assignment.scoreMax}` : ""}
+            </p>
+          ) : null}
+          {assignment.feedback ? (
+            <p className="mt-1 whitespace-pre-wrap">{assignment.feedback}</p>
+          ) : null}
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -172,8 +210,8 @@ function OccurrenceCard({
           <div className="flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
             <span className="inline-flex items-center gap-1 font-semibold text-primary">
               <Clock3 className="size-3.5" aria-hidden="true" />
-              {formatTime(occurrence.startsAt, locale)}–
-              {formatTime(occurrence.endsAt, locale)}
+              {formatTime(occurrence.startsAt, locale, occurrence.timezone)}–
+              {formatTime(occurrence.endsAt, locale, occurrence.timezone)}
             </span>
             <span aria-hidden="true">·</span>
             <span>{occurrence.timezone}</span>
@@ -228,7 +266,7 @@ function OccurrenceCard({
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-outline-variant px-3 type-body-sm text-primary hover:bg-surface-container"
+                      className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-outline-variant px-3 type-body-sm text-primary hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="min-w-0 truncate">{resource.title}</span>
                       <ExternalLink
@@ -263,6 +301,7 @@ function OccurrenceCard({
                 key={assignment.id}
                 assignment={assignment}
                 locale={locale}
+                timezone={occurrence.timezone}
               />
             ))}
           </ul>
@@ -294,16 +333,18 @@ function EmptyState({ vi }: { vi: boolean }) {
 export function StudentLmsWeek({
   data,
   locale,
+  timezone,
 }: {
   data: StudentWeeklyLmsView;
   locale: string;
+  timezone: string;
 }) {
   const vi = locale === "vi";
   const dates = Array.from({ length: 7 }, (_, index) =>
     addDays(data.range.startDate, index),
   );
   const grouped = groupByDate(data.occurrences);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateInTimezone(new Date(), timezone);
   const weekLabel = `${formatDate(data.range.startDate, locale, { month: "short", day: "numeric" })} – ${formatDate(data.range.endDate, locale, { month: "short", day: "numeric", year: "numeric" })}`;
   const weekQuery = (weekStart: string) =>
     `/ielts/classes?weekStart=${weekStart}`;
@@ -331,20 +372,20 @@ export function StudentLmsWeek({
             <Link
               href={weekQuery(addDays(data.range.startDate, -7))}
               aria-label={vi ? "Tuần trước" : "Previous week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container"
+              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
             </Link>
             <Link
               href="/ielts/classes"
-              className="inline-flex min-h-10 items-center rounded-lg border border-outline-variant px-3 type-label font-semibold hover:bg-surface-container"
+              className="inline-flex min-h-10 items-center rounded-lg border border-outline-variant px-3 type-label font-semibold hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Hôm nay" : "Today"}
             </Link>
             <Link
               href={weekQuery(addDays(data.range.startDate, 7))}
               aria-label={vi ? "Tuần sau" : "Next week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container"
+              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
@@ -357,7 +398,7 @@ export function StudentLmsWeek({
           </p>
           <Link
             href="/ielts/assigned"
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 type-label font-semibold text-on-primary hover:opacity-90"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 type-label font-semibold text-on-primary hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <ClipboardList className="size-4" aria-hidden="true" />
             {vi ? "Bài được giao" : "Assigned work"}
@@ -441,7 +482,11 @@ export function StudentLmsWeek({
                     </p>
                     {announcement.publishedAt ? (
                       <p className="mt-2 type-caption text-on-surface-variant">
-                        {formatDateTime(announcement.publishedAt, locale)}
+                        {formatDateTime(
+                          announcement.publishedAt,
+                          locale,
+                          timezone,
+                        )}
                       </p>
                     ) : null}
                   </li>
@@ -494,8 +539,25 @@ export function StudentLmsWeek({
                           {notification.body}
                         </p>
                         <p className="mt-2 type-caption text-on-surface-variant">
-                          {formatDateTime(notification.createdAt, locale)}
+                          {formatDateTime(
+                            notification.createdAt,
+                            locale,
+                            timezone,
+                          )}
                         </p>
+                        {!notification.readAt ? (
+                          <form
+                            action={markNotificationRead.bind(
+                              null,
+                              notification.id,
+                            )}
+                            className="mt-2"
+                          >
+                            <button className="min-h-10 rounded-lg border border-outline-variant px-2.5 type-caption font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                              {vi ? "Đánh dấu đã đọc" : "Mark as read"}
+                            </button>
+                          </form>
+                        ) : null}
                       </div>
                     </div>
                   </li>

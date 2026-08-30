@@ -48,6 +48,7 @@ import {
   DUEL_ENABLED,
   IELTS_ENABLED,
   LEADERBOARDS_ENABLED,
+  STUDENT_LMS_WORKSPACE_V1,
   areStudentCoursesEnabled,
 } from "@/lib/features";
 import type { Profile } from "@/types/database";
@@ -130,12 +131,16 @@ const IELTS_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: ClipboardList,
     status: "live",
   },
-  {
-    href: "/ielts/classes",
-    key: "ielts_classes",
-    icon: CalendarDays,
-    status: "live",
-  },
+  ...(STUDENT_LMS_WORKSPACE_V1
+    ? [
+        {
+          href: "/ielts/classes",
+          key: "ielts_classes",
+          icon: CalendarDays,
+          status: "live" as const,
+        },
+      ]
+    : []),
   { href: "/resources", key: "resources", icon: BookOpenText, status: "live" },
   { href: "/profile", key: "analytics", icon: UserRound, status: "live" },
 ];
@@ -156,7 +161,11 @@ const IELTS_DASHBOARD_NAV_ITEMS: DashboardSidebarNavItem[] = [
   },
   { key: "ielts_library", href: "/ielts/tests", status: "live" },
   { key: "ielts_assigned", href: "/ielts/assigned", status: "live" },
-  { key: "ielts_classes", href: "/ielts/classes", status: "live" },
+  ...(STUDENT_LMS_WORKSPACE_V1
+    ? ([
+        { key: "ielts_classes", href: "/ielts/classes", status: "live" },
+      ] satisfies DashboardSidebarNavItem[])
+    : []),
   { key: "resources", href: "/resources", status: "live" },
   { key: "analytics", href: "/profile", status: "live" },
 ];

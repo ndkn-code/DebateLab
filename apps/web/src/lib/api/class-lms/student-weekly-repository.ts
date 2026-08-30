@@ -18,12 +18,17 @@ export interface StudentWeeklyResource {
 
 export interface StudentWeeklyAssignment {
   id: string;
+  clubId: string;
   title: string;
   relationType: "prework" | "classwork" | "homework";
   dueAt: string | null;
   status: string;
   submissionState: string | null;
   gradeStatus: string | null;
+  score: number | null;
+  scoreMax: number | null;
+  feedback: string | null;
+  gradedAt: string | null;
 }
 
 export interface StudentWeeklyOccurrence {
@@ -94,7 +99,7 @@ export async function loadMyStudentLmsWeek(params: {
   const db = session as unknown as SupabaseClient;
   const { data: occurrenceData, error: occurrenceError } = await db
     .from("lms_lesson_occurrences")
-    .select("id, class_id, course_id, lesson_id, activity_id, occurrence_date, starts_at, ends_at, timezone, title, notes, status, published_at")
+    .select("id, club_id, class_id, course_id, lesson_id, activity_id, occurrence_date, starts_at, ends_at, timezone, title, notes, status, published_at")
     .gte("occurrence_date", params.startDate)
     .lte("occurrence_date", params.endDate)
     .not("published_at", "is", null)
@@ -129,7 +134,7 @@ export async function loadMyStudentLmsWeek(params: {
   const [resourcesResult, assignmentsResult, submissionsResult, attendanceResult] = await Promise.all([
     resourceIds.length ? db.from("lms_resources").select("id, title, kind, url, storage_path").in("id", resourceIds).eq("status", "published") : Promise.resolve({ data: [], error: null }),
     assignmentIds.length ? db.from("club_assignments").select("id, title, due_at, status").in("id", assignmentIds).eq("status", "active") : Promise.resolve({ data: [], error: null }),
-    assignmentIds.length ? db.from("club_assignment_submissions").select("assignment_id, submission_state, grade_status, created_at").eq("user_id", userId).in("assignment_id", assignmentIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length ? db.from("club_assignment_submissions").select("assignment_id, submission_state, grade_status, score, score_max, feedback, graded_at, created_at").eq("user_id", userId).in("assignment_id", assignmentIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
     sessionIds.length ? db.from("class_attendance_records").select("session_id, status").eq("user_id", userId).in("session_id", sessionIds) : Promise.resolve({ data: [], error: null }),
   ]);
   const childFailed = [resourcesResult, assignmentsResult, submissionsResult, attendanceResult].find((result) => result.error);
@@ -175,7 +180,7 @@ export async function loadMyStudentLmsWeek(params: {
         const assignment = assignmentMap.get(String(link.assignment_id));
         if (!assignment) return [];
         const submission = latestSubmission.get(String(assignment.id));
-        return [{ id: String(assignment.id), title: String(assignment.title), relationType: link.relation_type as StudentWeeklyAssignment["relationType"], dueAt: typeof assignment.due_at === "string" ? assignment.due_at : null, status: String(assignment.status), submissionState: submission ? String(submission.submission_state) : null, gradeStatus: submission ? String(submission.grade_status) : null }];
+        return [{ id: String(assignment.id), clubId: String(row.club_id), title: String(assignment.title), relationType: link.relation_type as StudentWeeklyAssignment["relationType"], dueAt: typeof assignment.due_at === "string" ? assignment.due_at : null, status: String(assignment.status), submissionState: submission ? String(submission.submission_state) : null, gradeStatus: submission ? String(submission.grade_status) : null, score: typeof submission?.score === "number" ? submission.score : null, scoreMax: typeof submission?.score_max === "number" ? submission.score_max : null, feedback: typeof submission?.feedback === "string" ? submission.feedback : null, gradedAt: typeof submission?.graded_at === "string" ? submission.graded_at : null }];
       }),
     };
   });
