@@ -129,6 +129,12 @@ export const ORGANIZATION_JOIN_CODES_ENABLED: boolean =
   isEnabled(process.env.NEXT_PUBLIC_ORGANIZATION_JOIN_CODES_ENABLED) ||
   isEnabled(process.env.ORGANIZATION_JOIN_CODES_ENABLED);
 
+/** Shared organization vocabulary and surfaces remain opt-in during rollout. */
+const organizationsV1Value =
+  process.env.NEXT_PUBLIC_ORGANIZATIONS_V1 ?? process.env.ORGANIZATIONS_V1;
+
+export const ORGANIZATIONS_V1: boolean = isEnabled(organizationsV1Value);
+
 export const LEADERBOARD_SOCIAL_SIGNALS_ENABLED: boolean =
   isEnabled(process.env.NEXT_PUBLIC_LEADERBOARD_SOCIAL_SIGNALS_ENABLED) ||
   isEnabled(process.env.LEADERBOARD_SOCIAL_SIGNALS_ENABLED);
