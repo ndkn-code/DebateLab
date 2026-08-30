@@ -35,6 +35,7 @@
     "test:ielts-capture": "npm run test:ielts-capture -w @thinkfy/web",
     "test:ielts-assignments": "npm run test:ielts-assignments -w @thinkfy/web",
     "test:ielts-lms-pilot": "npm run test:ielts-lms-pilot -w @thinkfy/web",
+    "test:lms-material-pipeline": "npm run test:lms-material-pipeline -w @thinkfy/web",
     "test:ielts-adaptive-contracts": "npm run test:ielts-adaptive-contracts -w @thinkfy/web",
     "test:ielts-writing-scorer": "npm run test:ielts-writing-scorer -w @thinkfy/web",
     "ielts:gt:verify": "tsx --tsconfig apps/web/tsconfig.json scripts/ielts/verify-general-training-mocks.ts",

@@ -30,6 +30,16 @@
           "initialDelaySeconds": 0
         }
       ]
+    },
+    "src/app/api/queues/lms-materials/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "lms-material-processing",
+          "retryAfterSeconds": 60,
+          "initialDelaySeconds": 0
+        }
+      ]
     }
   },
   "crons": [
@@ -52,6 +62,10 @@
     {
       "path": "/api/cron/ai-workflow-reconcile",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/lms-material-cleanup",
+      "schedule": "30 4 * * *"
     }
   ]
 }

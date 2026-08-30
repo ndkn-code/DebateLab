@@ -65,6 +65,18 @@ export const STUDENT_LMS_WORKSPACE_V1: boolean = isEnabled(
   studentLmsWorkspaceValue,
 );
 
+/**
+ * Secure, shared teaching materials remain fail-closed independently of the
+ * teacher/student workspace shells. The server-side value protects processing
+ * and authorization endpoints; the public value only controls presentation.
+ */
+const sharedLmsMaterialsValue =
+  process.env.NEXT_PUBLIC_SHARED_LMS_MATERIALS_V1 ??
+  process.env.SHARED_LMS_MATERIALS_V1;
+export const SHARED_LMS_MATERIALS_V1: boolean = isEnabled(
+  sharedLmsMaterialsValue,
+);
+
 /** Subjects a learner may switch to, given the launch flags. */
 export function availableSubjects(): Subject[] {
   return IELTS_ENABLED ? ["debate", "ielts"] : ["debate"];
