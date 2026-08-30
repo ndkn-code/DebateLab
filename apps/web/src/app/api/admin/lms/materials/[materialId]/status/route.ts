@@ -18,9 +18,10 @@ export async function GET(
   try {
     const { materialId } = await params;
     await requireMaterialManager(auth.supabase, materialId);
-    const material = await auth.supabase
+    const admin = createAdminClient();
+    const material = await admin
       .from("lms_materials")
-      .select("id, status, title, pinned_version_id")
+      .select("id, status, title")
       .eq("id", materialId)
       .maybeSingle();
     if (material.error) throw new Error(material.error.message);
@@ -29,13 +30,8 @@ export async function GET(
         { error: "Material not found." },
         { status: 404 },
       );
-    const versionId =
-      typeof material.data.pinned_version_id === "string"
-        ? material.data.pinned_version_id
-        : request.nextUrl.searchParams.get("versionId");
-    const version = versionId
-      ? await getVersion(createAdminClient(), versionId)
-      : null;
+    const versionId = request.nextUrl.searchParams.get("versionId");
+    const version = versionId ? await getVersion(admin, versionId) : null;
     if (version && version.material_id !== materialId)
       return NextResponse.json(
         { error: "Material version not found." },
@@ -53,7 +49,7 @@ export async function GET(
             id: version.id,
             status: version.status,
             attemptCount: version.processing_attempts,
-            failureReason: version.failure_reason,
+            failureReason: version.error_message,
             createdAt: version.created_at,
             updatedAt: version.updated_at,
           }

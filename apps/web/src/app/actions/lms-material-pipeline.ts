@@ -54,6 +54,8 @@ export async function finalizeLmsMaterialUpload(raw: unknown) {
   requireSharedMaterials();
   const client = await createClient();
   const parsed = materialFinalizeSchema.parse(raw);
+  const before = await getVersion(createAdminClient(), parsed.ingestionId);
+  if (!before) throw new Error("Material ingestion not found.");
   const result = await finalizeMaterialIngest(
     client,
     parsed.ingestionId,
@@ -79,7 +81,7 @@ export async function retryLmsMaterialConversion(raw: unknown) {
   const admin = createAdminClient();
   const version = await getVersion(admin, parsed.versionId);
   if (!version) throw new Error("Material version not found.");
-  const result = await client
+  const result = await admin
     .from("lms_materials")
     .select("club_id, scope_class_id")
     .eq("id", version.material_id)
@@ -96,7 +98,8 @@ export async function retryLmsMaterialConversion(raw: unknown) {
     .from("lms_material_versions")
     .update({
       processing_status: "queued",
-      failure_reason: null,
+      error_code: null,
+      error_message: null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", version.id)

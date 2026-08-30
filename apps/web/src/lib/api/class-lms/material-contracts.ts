@@ -108,7 +108,8 @@ export const materialUploadInputSchema = z
     fileName: z.string().trim().min(1).max(200),
     mimeType: z.enum(MATERIAL_ALLOWED_MIME_TYPES),
     sizeBytes: z.number().int().positive(),
-    idempotencyKey: uuid.optional(),
+    idempotencyKey: z.string().trim().min(8).max(200).optional(),
+    programType: z.enum(["ielts", "debate", "public_speaking"]).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -117,6 +118,13 @@ export const materialUploadInputSchema = z
         code: "custom",
         path: ["sizeBytes"],
         message: "Material exceeds the size limit for this file type.",
+      });
+    }
+    if (!value.scopeClassId && !value.programType) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["programType"],
+        message: "Organisation materials require a program type.",
       });
     }
   });
@@ -201,17 +209,94 @@ export const materialPlacementInputSchema = z
   });
 
 export const materialBlockSchema = z.discriminatedUnion("type", [
-  z.object({ id: z.string().min(1), type: z.literal("heading"), level: z.number().int().min(1).max(3), text: z.string() }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("paragraph"), text: z.string() }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("image"), renditionId: uuid, alt: z.string().max(1_000) }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("table"), rows: z.array(z.array(z.string())).max(200) }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("vocabulary"), terms: z.array(z.object({ term: z.string(), definition: z.string(), translation: z.string().nullable().optional() }).strict()).max(200) }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("instructions"), text: z.string() }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("audio"), renditionId: uuid, transcript: z.string().nullable().optional() }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("question"), prompt: z.string(), responseMode: z.enum(["none", "short_text", "long_text"]) }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("callout"), tone: z.enum(["info", "tip", "warning"]), text: z.string() }).strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("heading"),
+      level: z.number().int().min(1).max(3),
+      text: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("paragraph"),
+      text: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("image"),
+      renditionId: uuid,
+      alt: z.string().max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("table"),
+      rows: z.array(z.array(z.string())).max(200),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("vocabulary"),
+      terms: z
+        .array(
+          z
+            .object({
+              term: z.string(),
+              definition: z.string(),
+              translation: z.string().nullable().optional(),
+            })
+            .strict(),
+        )
+        .max(200),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("instructions"),
+      text: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("audio"),
+      renditionId: uuid,
+      transcript: z.string().nullable().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("question"),
+      prompt: z.string(),
+      responseMode: z.enum(["none", "short_text", "long_text"]),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("callout"),
+      tone: z.enum(["info", "tip", "warning"]),
+      text: z.string(),
+    })
+    .strict(),
   z.object({ id: z.string().min(1), type: z.literal("divider") }).strict(),
-  z.object({ id: z.string().min(1), type: z.literal("page_preview"), renditionId: uuid, pageNumber: z.number().int().positive(), alt: z.string().max(1_000) }).strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal("page_preview"),
+      renditionId: uuid,
+      pageNumber: z.number().int().positive(),
+      alt: z.string().max(1_000),
+    })
+    .strict(),
 ]);
 
 export const materialDocumentV1Schema = z
@@ -235,7 +320,9 @@ export const materialDocumentV1Schema = z
   .strict();
 
 export type MaterialAccessRule = z.infer<typeof materialAccessRuleSchema>;
-export type MaterialPlacementInput = z.infer<typeof materialPlacementInputSchema>;
+export type MaterialPlacementInput = z.infer<
+  typeof materialPlacementInputSchema
+>;
 export type MaterialDocumentV1 = z.infer<typeof materialDocumentV1Schema>;
 
 export function rightsRequireOwnerApproval(basis: MaterialRightsBasis) {

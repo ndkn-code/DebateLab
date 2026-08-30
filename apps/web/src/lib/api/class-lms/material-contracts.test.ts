@@ -17,6 +17,7 @@ const assignmentId = "00000000-0000-4000-8000-000000000005";
 assert.equal(
   materialUploadInputSchema.safeParse({
     clubId,
+    scopeClassId: classId,
     fileName: "unit-1.pptx",
     mimeType:
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -27,6 +28,7 @@ assert.equal(
 assert.equal(
   materialUploadInputSchema.safeParse({
     clubId,
+    scopeClassId: classId,
     fileName: "listening.mp3",
     mimeType: "audio/mpeg",
     sizeBytes: MATERIAL_AUDIO_MAX_BYTES,
@@ -36,6 +38,7 @@ assert.equal(
 assert.equal(
   materialUploadInputSchema.safeParse({
     clubId,
+    scopeClassId: classId,
     fileName: "too-large.pdf",
     mimeType: "application/pdf",
     sizeBytes: MATERIAL_DOCUMENT_MAX_BYTES + 1,

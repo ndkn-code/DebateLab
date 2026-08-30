@@ -42,13 +42,31 @@ export const SHARED_MATERIAL_RPCS = {
 
 type RpcResponse = { data: unknown; error: { message: string } | null };
 export type MaterialRpcClient = {
-  rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<RpcResponse>;
-  storage?: { from: (bucket: string) => { createSignedUrl: (path: string, expiresIn: number) => PromiseLike<{ data: { signedUrl?: string } | null; error: { message: string } | null }> } };
+  rpc: (
+    name: string,
+    args?: Record<string, unknown>,
+  ) => PromiseLike<RpcResponse>;
+  storage?: {
+    from: (bucket: string) => {
+      createSignedUrl: (
+        path: string,
+        expiresIn: number,
+      ) => PromiseLike<{
+        data: { signedUrl?: string } | null;
+        error: { message: string } | null;
+      }>;
+    };
+  };
 };
 type MaterialRenditionLookup = {
   eq: (column: string, value: string) => MaterialRenditionLookup;
   maybeSingle: () => PromiseLike<{
-    data: { bucket_id?: string; storage_path?: string } | null;
+    data: {
+      bucket_id?: string;
+      storage_path?: string;
+      rendition_kind?: string;
+      processing_status?: string;
+    } | null;
     error: { message: string } | null;
   }>;
 };
@@ -57,7 +75,17 @@ type MaterialStorageClient = {
   from: (table: string) => {
     select: (columns: string) => MaterialRenditionLookup;
   };
-  storage: { from: (bucket: string) => { createSignedUrl: (path: string, expiresIn: number) => PromiseLike<{ data: { signedUrl?: string } | null; error: { message: string } | null }> } };
+  storage: {
+    from: (bucket: string) => {
+      createSignedUrl: (
+        path: string,
+        expiresIn: number,
+      ) => PromiseLike<{
+        data: { signedUrl?: string } | null;
+        error: { message: string } | null;
+      }>;
+    };
+  };
 };
 type RpcClient = MaterialRpcClient;
 
@@ -131,23 +159,32 @@ export interface MaterialUploadReservation {
   sizeBytes: number;
 }
 
-const managerRowSchema = z.object({
-  id: z.string().uuid(),
-  version_id: z.string().uuid(),
-  title: z.string(),
-  description: z.string().nullable().optional(),
-  processing_status: z.string(),
-  version_number: z.number().int().nonnegative().optional(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  placements: z.array(z.record(z.string(), z.unknown())).optional(),
-}).passthrough();
+const managerRowSchema = z
+  .object({
+    id: z.string().uuid(),
+    version_id: z.string().uuid(),
+    title: z.string(),
+    description: z.string().nullable().optional(),
+    processing_status: z.string(),
+    version_number: z.number().int().nonnegative().optional(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    placements: z.array(z.record(z.string(), z.unknown())).optional(),
+  })
+  .passthrough();
 
 function rawList(value: unknown): Raw[] {
-  if (Array.isArray(value)) return value.filter((row): row is Raw => Boolean(row) && typeof row === "object");
+  if (Array.isArray(value))
+    return value.filter(
+      (row): row is Raw => Boolean(row) && typeof row === "object",
+    );
   if (value && typeof value === "object") {
     const rows = (value as Raw).rows;
-    return Array.isArray(rows) ? rows.filter((row): row is Raw => Boolean(row) && typeof row === "object") : [];
+    return Array.isArray(rows)
+      ? rows.filter(
+          (row): row is Raw => Boolean(row) && typeof row === "object",
+        )
+      : [];
   }
   return [];
 }
@@ -185,8 +222,16 @@ function parseRules(value: unknown): MaterialAccessRule[] {
   });
 }
 
-function mapPlacement(row: Raw, fallbackMaterialId: string, fallbackVersionId: string): MaterialPlacementView {
-  const targetType = text(row, "target_type", "targetType") as MaterialPlacementInput["targetType"];
+function mapPlacement(
+  row: Raw,
+  fallbackMaterialId: string,
+  fallbackVersionId: string,
+): MaterialPlacementView {
+  const targetType = text(
+    row,
+    "target_type",
+    "targetType",
+  ) as MaterialPlacementInput["targetType"];
   const targetId = text(row, `${targetType}_id`, "targetId");
   return {
     id: text(row, "id"),
@@ -218,12 +263,22 @@ function mapManagerRow(row: Raw): ManagerMaterialRow | null {
     versionNumber: number(row, "version_number", "versionNumber"),
     createdAt: text(row, "created_at", "createdAt"),
     updatedAt: text(row, "updated_at", "updatedAt"),
-    placements: Array.isArray(row.placements) ? row.placements.filter((item): item is Raw => Boolean(item) && typeof item === "object").map((item) => mapPlacement(item, materialId, versionId)) : [],
+    placements: Array.isArray(row.placements)
+      ? row.placements
+          .filter(
+            (item): item is Raw => Boolean(item) && typeof item === "object",
+          )
+          .map((item) => mapPlacement(item, materialId, versionId))
+      : [],
   };
 }
 
-export function parseManagerMaterialPage(value: unknown): MaterialPage<ManagerMaterialRow> {
-  const rows = rawList(value).map(mapManagerRow).filter((row): row is ManagerMaterialRow => row !== null);
+export function parseManagerMaterialPage(
+  value: unknown,
+): MaterialPage<ManagerMaterialRow> {
+  const rows = rawList(value)
+    .map(mapManagerRow)
+    .filter((row): row is ManagerMaterialRow => row !== null);
   return { rows, nextCursor: nextCursor(value) };
 }
 
@@ -232,12 +287,19 @@ function mapLearnerRow(row: Raw): LearnerMaterialRow | null {
   const placementId = text(row, "placement_id", "placementId");
   const versionId = text(row, "version_id", "versionId");
   const renditionKindValue = text(row, "preview_kind", "previewKind");
-  const accessState = text(row, "access_state", "accessState") as LearnerMaterialRow["accessState"];
-  if (!id || !placementId || !versionId || renditionKindValue === "original") return null;
+  const accessState = text(
+    row,
+    "access_state",
+    "accessState",
+  ) as LearnerMaterialRow["accessState"];
+  if (!id || !placementId || !versionId || renditionKindValue === "original")
+    return null;
   if (!["available", "locked", "processing"].includes(accessState)) return null;
   const renditionKind = renditionKindValue
-    ? (MATERIAL_RENDITION_KINDS as readonly string[]).includes(renditionKindValue)
-      ? renditionKindValue as Exclude<MaterialRenditionKind, "original">
+    ? (MATERIAL_RENDITION_KINDS as readonly string[]).includes(
+        renditionKindValue,
+      )
+      ? (renditionKindValue as Exclude<MaterialRenditionKind, "original">)
       : null
     : null;
   if (accessState === "available" && !renditionKind) return null;
@@ -249,49 +311,79 @@ function mapLearnerRow(row: Raw): LearnerMaterialRow | null {
     description: nullableText(row, "description"),
     renditionKind,
     previews: Array.isArray(row.previews)
-      ? row.previews.filter((value): value is MaterialPreviewDescriptor => Boolean(value) && typeof value === "object")
+      ? row.previews.filter(
+          (value): value is MaterialPreviewDescriptor =>
+            Boolean(value) && typeof value === "object",
+        )
       : [],
     unlocked: accessState === "available",
-    blockedBy: Array.isArray(row.lock_reasons) ? row.lock_reasons.filter((value): value is MaterialAccessRule => materialAccessRuleSchema.safeParse(value).success) : [],
+    blockedBy: Array.isArray(row.lock_reasons)
+      ? row.lock_reasons.filter(
+          (value): value is MaterialAccessRule =>
+            materialAccessRuleSchema.safeParse(value).success,
+        )
+      : [],
     releaseAt: nullableText(row, "release_at", "releaseAt"),
     expiresAt: nullableText(row, "expires_at", "expiresAt"),
     required: bool(row, "required"),
     orderIndex: number(row, "order_index", "orderIndex"),
-    targetType: text(row, "target_type", "targetType") as MaterialPlacementInput["targetType"],
+    targetType: text(
+      row,
+      "target_type",
+      "targetType",
+    ) as MaterialPlacementInput["targetType"],
     courseId: nullableText(row, "course_id", "courseId"),
     classId: nullableText(row, "class_id", "classId"),
     occurrenceId: nullableText(row, "occurrence_id", "occurrenceId"),
     assignmentId: nullableText(row, "assignment_id", "assignmentId"),
     processingStatus: text(row, "processing_status", "processingStatus"),
     accessState,
-    lockReasons: Array.isArray(row.lock_reasons) ? row.lock_reasons.filter((value): value is string => typeof value === "string") : [],
+    lockReasons: Array.isArray(row.lock_reasons)
+      ? row.lock_reasons.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [],
     previewMimeType: nullableText(row, "preview_mime_type", "previewMimeType"),
-    pageCount: row.page_count === null || row.page_count === undefined ? null : number(row, "page_count", "pageCount"),
+    pageCount:
+      row.page_count === null || row.page_count === undefined
+        ? null
+        : number(row, "page_count", "pageCount"),
     nativeDocument: row.native_document ?? row.nativeDocument ?? null,
   };
 }
 
 export function parseLearnerMaterialRows(value: unknown): LearnerMaterialRow[] {
-  return rawList(value).map(mapLearnerRow).filter((row): row is LearnerMaterialRow => row !== null);
+  return rawList(value)
+    .map(mapLearnerRow)
+    .filter((row): row is LearnerMaterialRow => row !== null);
 }
 
-async function invoke(client: RpcClient, name: string, args: Record<string, unknown>): Promise<unknown> {
+async function invoke(
+  client: RpcClient,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<unknown> {
   const result = await client.rpc(name, args);
   if (result.error) throw new Error(`${name}: ${result.error.message}`);
   return result.data;
 }
 
 function rpcClient(client?: RpcClient): Promise<RpcClient> {
-  return client ? Promise.resolve(client) : createTypedServerClient().then((value) => value as unknown as RpcClient);
+  return client
+    ? Promise.resolve(client)
+    : createTypedServerClient().then((value) => value as unknown as RpcClient);
 }
 
-export async function listManagerMaterials(params: {
-  classId?: string;
-  courseId?: string;
-  status?: MaterialPlacementInput["status"];
-  cursor?: string | null;
-  limit?: number;
-}, client?: RpcClient): Promise<MaterialPage<ManagerMaterialRow>> {
+export async function listManagerMaterials(
+  params: {
+    classId?: string;
+    courseId?: string;
+    status?: MaterialPlacementInput["status"];
+    cursor?: string | null;
+    limit?: number;
+  },
+  client?: RpcClient,
+): Promise<MaterialPage<ManagerMaterialRow>> {
   const db = await rpcClient(client);
   const data = await invoke(db, SHARED_MATERIAL_RPCS.listManager, {
     p_class_id: params.classId ?? null,
@@ -303,20 +395,32 @@ export async function listManagerMaterials(params: {
   return parseManagerMaterialPage(data);
 }
 
-export async function prepareSharedMaterialUpload(input: unknown, client?: RpcClient) {
+export async function prepareSharedMaterialUpload(
+  input: unknown,
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
   const parsed = materialUploadInputSchema.safeParse(input);
-  if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; "));
-  const raw = await invoke(db, SHARED_MATERIAL_RPCS.prepareUpload, { p_input: parsed.data });
+  if (!parsed.success)
+    throw new Error(
+      parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; "),
+    );
+  const raw = await invoke(db, SHARED_MATERIAL_RPCS.prepareUpload, {
+    p_input: parsed.data,
+  });
   const row = Array.isArray(raw) ? raw[0] : raw;
-  if (!row || typeof row !== "object") throw new Error("Material upload reservation was not returned.");
+  if (!row || typeof row !== "object")
+    throw new Error("Material upload reservation was not returned.");
   const value = row as Raw;
   const materialId = text(value, "material_id", "materialId");
   const versionId = text(value, "version_id", "versionId");
   const bucketId = text(value, "bucket_id", "bucketId");
   const storagePath = text(value, "storage_path", "storagePath");
   const mimeType = text(value, "mime_type", "mimeType") || parsed.data.mimeType;
-  const sizeBytes = number(value, "size_bytes", "sizeBytes") || parsed.data.sizeBytes;
+  const sizeBytes =
+    number(value, "size_bytes", "sizeBytes") || parsed.data.sizeBytes;
   if (
     !z.string().uuid().safeParse(materialId).success ||
     !z.string().uuid().safeParse(versionId).success ||
@@ -328,53 +432,148 @@ export async function prepareSharedMaterialUpload(input: unknown, client?: RpcCl
   ) {
     throw new Error("Invalid material upload reservation.");
   }
-  return { materialId, versionId, bucketId, storagePath, mimeType, sizeBytes } satisfies MaterialUploadReservation;
+  return {
+    materialId,
+    versionId,
+    bucketId,
+    storagePath,
+    mimeType,
+    sizeBytes,
+  } satisfies MaterialUploadReservation;
 }
 
-export async function publishSharedMaterial(materialId: string, placementId: string, client?: RpcClient) {
+export async function publishSharedMaterial(
+  materialId: string,
+  placementId: string,
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
-  const parsed = z.object({ materialId: z.string().uuid(), placementId: z.string().uuid() }).safeParse({ materialId, placementId });
+  const parsed = z
+    .object({ materialId: z.string().uuid(), placementId: z.string().uuid() })
+    .safeParse({ materialId, placementId });
   if (!parsed.success) throw new Error("Invalid material placement.");
-  return invoke(db, SHARED_MATERIAL_RPCS.publish, { p_material_id: materialId, p_placement_id: placementId });
+  return invoke(db, SHARED_MATERIAL_RPCS.publish, {
+    p_material_id: materialId,
+    p_placement_id: placementId,
+  });
 }
 
-export async function withdrawSharedMaterial(placementId: string, reason: string, client?: RpcClient) {
+export async function withdrawSharedMaterial(
+  placementId: string,
+  reason: string,
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
-  const parsed = z.object({ placementId: z.string().uuid(), reason: z.string().trim().min(1).max(2_000) }).safeParse({ placementId, reason });
+  const parsed = z
+    .object({
+      placementId: z.string().uuid(),
+      reason: z.string().trim().min(1).max(2_000),
+    })
+    .safeParse({ placementId, reason });
   if (!parsed.success) throw new Error("Invalid material placement.");
-  return invoke(db, SHARED_MATERIAL_RPCS.withdraw, { p_placement_id: placementId, p_reason: parsed.data.reason });
+  return invoke(db, SHARED_MATERIAL_RPCS.withdraw, {
+    p_placement_id: placementId,
+    p_reason: parsed.data.reason,
+  });
 }
 
 export async function placeSharedMaterial(input: unknown, client?: RpcClient) {
   const db = await rpcClient(client);
   const parsed = materialPlacementInputSchema.safeParse(input);
-  if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; "));
+  if (!parsed.success)
+    throw new Error(
+      parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; "),
+    );
   return invoke(db, SHARED_MATERIAL_RPCS.place, { p_input: parsed.data });
 }
 
-export async function setSharedMaterialAudience(input: { placementId: string; classId: string; userIds: string[] }, client?: RpcClient) {
+export async function setSharedMaterialAudience(
+  input: { placementId: string; classId: string; userIds: string[] },
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
-  const parsed = z.object({ placementId: z.string().uuid(), classId: z.string().uuid(), userIds: z.array(z.string().uuid()).max(500) }).strict().safeParse(input);
+  const parsed = z
+    .object({
+      placementId: z.string().uuid(),
+      classId: z.string().uuid(),
+      userIds: z.array(z.string().uuid()).max(500),
+    })
+    .strict()
+    .safeParse(input);
   if (!parsed.success) throw new Error("Invalid selected-student audience.");
-  return invoke(db, SHARED_MATERIAL_RPCS.setAudience, { p_placement_id: parsed.data.placementId, p_class_id: parsed.data.classId, p_user_ids: parsed.data.userIds });
+  return invoke(db, SHARED_MATERIAL_RPCS.setAudience, {
+    p_placement_id: parsed.data.placementId,
+    p_class_id: parsed.data.classId,
+    p_user_ids: parsed.data.userIds,
+  });
 }
 
-export async function setSharedMaterialRules(input: { placementId: string; rules: MaterialAccessRule[] }, client?: RpcClient) {
+export async function setSharedMaterialRules(
+  input: { placementId: string; rules: MaterialAccessRule[] },
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
-  const parsed = z.object({ placementId: z.string().uuid(), rules: z.array(materialAccessRuleSchema).max(20) }).strict().safeParse(input);
+  const parsed = z
+    .object({
+      placementId: z.string().uuid(),
+      rules: z.array(materialAccessRuleSchema).max(20),
+    })
+    .strict()
+    .safeParse(input);
   if (!parsed.success) throw new Error("Invalid material unlock rules.");
-  return invoke(db, SHARED_MATERIAL_RPCS.setRules, { p_placement_id: parsed.data.placementId, p_rules: parsed.data.rules });
+  return invoke(db, SHARED_MATERIAL_RPCS.setRules, {
+    p_placement_id: parsed.data.placementId,
+    p_rules: parsed.data.rules,
+  });
 }
 
-export async function setSharedMaterialRights(input: { materialId: string; versionId: string; basis: MaterialRightsBasis; sourceUrl?: string | null; rightsHolder?: string | null; licenseUrl?: string | null; notes?: string | null }, client?: RpcClient) {
+export async function setSharedMaterialRights(
+  input: {
+    materialId: string;
+    versionId: string;
+    basis: MaterialRightsBasis;
+    sourceUrl?: string | null;
+    rightsHolder?: string | null;
+    licenseUrl?: string | null;
+    notes?: string | null;
+  },
+  client?: RpcClient,
+) {
   const db = await rpcClient(client);
-  const parsed = z.object({ materialId: z.string().uuid(), versionId: z.string().uuid(), basis: z.string(), sourceUrl: z.string().url().nullable().optional(), rightsHolder: z.string().max(300).nullable().optional(), licenseUrl: z.string().url().nullable().optional(), notes: z.string().max(4_000).nullable().optional() }).strict().safeParse(input);
+  const parsed = z
+    .object({
+      materialId: z.string().uuid(),
+      versionId: z.string().uuid(),
+      basis: z.string(),
+      sourceUrl: z.string().url().nullable().optional(),
+      rightsHolder: z.string().max(300).nullable().optional(),
+      licenseUrl: z.string().url().nullable().optional(),
+      notes: z.string().max(4_000).nullable().optional(),
+    })
+    .strict()
+    .safeParse(input);
   if (!parsed.success) throw new Error("Invalid material rights approval.");
-  const rights = materialRightsInputSchema.parse({ basis: parsed.data.basis, sourceUrl: parsed.data.sourceUrl, rightsHolder: parsed.data.rightsHolder, licenseUrl: parsed.data.licenseUrl, notes: parsed.data.notes });
-  return invoke(db, SHARED_MATERIAL_RPCS.setRights, { p_material_id: parsed.data.materialId, p_version_id: parsed.data.versionId, p_rights: rights });
+  const rights = materialRightsInputSchema.parse({
+    basis: parsed.data.basis,
+    sourceUrl: parsed.data.sourceUrl,
+    rightsHolder: parsed.data.rightsHolder,
+    licenseUrl: parsed.data.licenseUrl,
+    notes: parsed.data.notes,
+  });
+  return invoke(db, SHARED_MATERIAL_RPCS.setRights, {
+    p_material_id: parsed.data.materialId,
+    p_version_id: parsed.data.versionId,
+    p_rights: rights,
+  });
 }
 
-async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStorageClient): Promise<MaterialPreviewDescriptor | null> {
+async function signPreview(
+  db: RpcClient,
+  row: Raw,
+  serviceClient?: MaterialStorageClient,
+): Promise<MaterialPreviewDescriptor | null> {
   // First ask the cookie-bound client to re-check exact placement/version/
   // rendition access. Only a service-role client may then read the path.
   if (text(row, "access_state", "accessState") !== "available") return null;
@@ -386,15 +585,35 @@ async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStor
     p_rendition_id: renditionId,
   });
   if (allowed !== true) return null;
-  const admin = serviceClient ?? (createTypedAdminClient() as unknown as MaterialStorageClient);
-  const result = await admin.from("lms_material_renditions").select("bucket_id, storage_path")
-    .eq("id", renditionId).eq("version_id", text(row, "version_id", "versionId")).eq("rendition_kind", "preview").maybeSingle();
-  if (result.error || !result.data || result.data.bucket_id !== "lms-material-previews" || !result.data.storage_path) return null;
+  const admin =
+    serviceClient ??
+    (createTypedAdminClient() as unknown as MaterialStorageClient);
+  const result = await admin
+    .from("lms_material_renditions")
+    .select("bucket_id, storage_path, rendition_kind, processing_status")
+    .eq("id", renditionId)
+    .eq("version_id", text(row, "version_id", "versionId"))
+    .maybeSingle();
+  if (
+    result.error ||
+    !result.data ||
+    result.data.bucket_id !== "lms-material-previews" ||
+    result.data.rendition_kind === "original" ||
+    result.data.processing_status !== "ready" ||
+    !result.data.storage_path
+  )
+    return null;
   const signedAt = Date.now();
-  const signed = await admin.storage.from(result.data.bucket_id).createSignedUrl(result.data.storage_path, 120);
+  const signed = await admin.storage
+    .from(result.data.bucket_id)
+    .createSignedUrl(result.data.storage_path, 120);
   if (signed.error || !signed.data?.signedUrl) return null;
   const renditionKind = text(row, "preview_kind", "previewKind");
-  if (renditionKind === "original" || !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(renditionKind)) return null;
+  if (
+    renditionKind === "original" ||
+    !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(renditionKind)
+  )
+    return null;
   return {
     materialId: text(row, "material_id", "materialId"),
     placementId: text(row, "placement_id", "placementId"),
@@ -402,27 +621,57 @@ async function signPreview(db: RpcClient, row: Raw, serviceClient?: MaterialStor
     renditionId,
     title: text(row, "title"),
     renditionKind: renditionKind as Exclude<MaterialRenditionKind, "original">,
-    mimeType: text(row, "preview_mime_type", "previewMimeType") || "application/octet-stream",
-    pageNumber: row.page_number === null || row.page_number === undefined ? null : number(row, "page_number", "pageNumber"),
+    mimeType:
+      text(row, "preview_mime_type", "previewMimeType") ||
+      "application/octet-stream",
+    pageNumber:
+      row.page_number === null || row.page_number === undefined
+        ? null
+        : number(row, "page_number", "pageNumber"),
     viewerUrl: signed.data.signedUrl,
     expiresAt: new Date(signedAt + 120_000).toISOString(),
     watermark: {
-      learnerLabel: text(row, "watermark_learner_label", "watermarkLearnerLabel") || "Learner copy",
-      classLabel: text(row, "watermark_class_label", "watermarkClassLabel") || "Class material",
+      learnerLabel:
+        text(row, "watermark_learner_label", "watermarkLearnerLabel") ||
+        "Learner copy",
+      classLabel:
+        text(row, "watermark_class_label", "watermarkClassLabel") ||
+        "Class material",
     },
   };
 }
 
-export async function listLearnerMaterials(params: { classId?: string; from: string; to: string }, client?: RpcClient, serviceClient?: MaterialStorageClient): Promise<MaterialPage<LearnerMaterialRow>> {
+export async function listLearnerMaterials(
+  params: { classId: string; from: string; to: string },
+  client?: RpcClient,
+  serviceClient?: MaterialStorageClient,
+): Promise<MaterialPage<LearnerMaterialRow>> {
   const db = await rpcClient(client);
   const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-  if (!date.safeParse(params.from).success || !date.safeParse(params.to).success) throw new Error("Invalid material date range.");
-  const data = await invoke(db, SHARED_MATERIAL_RPCS.listLearner, { p_class_id: params.classId ?? null, p_from: params.from, p_to: params.to });
-  const rows = (await Promise.all(rawList(data).map(async (row) => {
-    const preview = await signPreview(db, row, serviceClient);
-    const mapped = mapLearnerRow({ ...row, previews: preview ? [preview] : [] });
-    return mapped;
-  }))).filter((row): row is LearnerMaterialRow => row !== null);
+  if (
+    !date.safeParse(params.from).success ||
+    !date.safeParse(params.to).success
+  )
+    throw new Error("Invalid material date range.");
+  if (!z.string().uuid().safeParse(params.classId).success)
+    throw new Error("Invalid material class.");
+  const data = await invoke(db, SHARED_MATERIAL_RPCS.listLearner, {
+    p_class_id: params.classId,
+    p_from: params.from,
+    p_to: params.to,
+  });
+  const rows = (
+    await Promise.all(
+      rawList(data).map(async (row) => {
+        const preview = await signPreview(db, row, serviceClient);
+        const mapped = mapLearnerRow({
+          ...row,
+          previews: preview ? [preview] : [],
+        });
+        return mapped;
+      }),
+    )
+  ).filter((row): row is LearnerMaterialRow => row !== null);
   return { rows, nextCursor: null };
 }
 
@@ -433,17 +682,31 @@ export async function listLearnerMaterials(params: { classId?: string; from: str
  * rules before returning even published metadata. No storage path is accepted
  * from the projection; preview signing is a second guarded RPC.
  */
-export async function loadLearnerMaterialsForWeek(params: { classId?: string; from: string; to: string }, client?: RpcClient, serviceClient?: MaterialStorageClient): Promise<LearnerMaterialRow[]> {
+export async function loadLearnerMaterialsForWeek(
+  params: { classId: string; from: string; to: string },
+  client?: RpcClient,
+  serviceClient?: MaterialStorageClient,
+): Promise<LearnerMaterialRow[]> {
   const db = await rpcClient(client);
   const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-  if (!date.safeParse(params.from).success || !date.safeParse(params.to).success) throw new Error("Invalid material date range.");
+  if (
+    !date.safeParse(params.from).success ||
+    !date.safeParse(params.to).success
+  )
+    throw new Error("Invalid material date range.");
+  if (!z.string().uuid().safeParse(params.classId).success)
+    throw new Error("Invalid material class.");
   const data = await invoke(db, SHARED_MATERIAL_RPCS.listLearner, {
-    p_class_id: params.classId ?? null,
+    p_class_id: params.classId,
     p_from: params.from,
     p_to: params.to,
   });
-  return (await Promise.all(rawList(data).map(async (row) => {
-    const preview = await signPreview(db, row, serviceClient);
-    return mapLearnerRow({ ...row, previews: preview ? [preview] : [] });
-  }))).filter((row): row is LearnerMaterialRow => row !== null);
+  return (
+    await Promise.all(
+      rawList(data).map(async (row) => {
+        const preview = await signPreview(db, row, serviceClient);
+        return mapLearnerRow({ ...row, previews: preview ? [preview] : [] });
+      }),
+    )
+  ).filter((row): row is LearnerMaterialRow => row !== null);
 }

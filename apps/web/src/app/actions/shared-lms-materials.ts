@@ -57,12 +57,12 @@ const rightsCommandSchema = z
   .strict();
 const learnerWeekSchema = z
   .object({
-    classId: z.string().uuid().optional(),
+    classId: z.string().uuid(),
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })
   .strict();
-const materialPublishSchema = z
+const materialPlacementSchema = z
   .object({ materialId: z.string().uuid(), placementId: z.string().uuid() })
   .strict();
 
@@ -128,7 +128,7 @@ export async function approveSharedMaterialRights(raw: unknown) {
 
 export async function publishSharedLmsMaterial(raw: unknown) {
   requireSharedMaterials();
-  const input = parseInput(materialPublishSchema, raw);
+  const input = parseInput(materialPlacementSchema, raw);
   const result = await publishSharedMaterial(
     input.materialId,
     input.placementId,

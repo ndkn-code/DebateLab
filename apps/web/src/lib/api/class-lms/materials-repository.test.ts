@@ -38,17 +38,53 @@ const learnerProjection = {
   lock_reasons: [],
 };
 
-assert.equal(parseLearnerMaterialRows({ rows: [learnerProjection, { ...learnerProjection, preview_kind: "original" }] }).length, 1);
-assert.deepEqual(parseLearnerMaterialRows({ rows: [{ ...learnerProjection, access_state: "locked", lock_reasons: ["Complete the lesson"] }] })[0]?.previews, []);
-assert.equal(parseLearnerMaterialRows({ rows: [{ ...learnerProjection, access_state: "processing", preview_kind: null, preview_rendition_id: null }] }).length, 1);
-assert.deepEqual(parseManagerMaterialPage({ rows: [], next_cursor: "cursor-2" }).nextCursor, "cursor-2");
+assert.equal(
+  parseLearnerMaterialRows({
+    rows: [
+      learnerProjection,
+      { ...learnerProjection, preview_kind: "original" },
+    ],
+  }).length,
+  1,
+);
+assert.deepEqual(
+  parseLearnerMaterialRows({
+    rows: [
+      {
+        ...learnerProjection,
+        access_state: "locked",
+        lock_reasons: ["Complete the lesson"],
+      },
+    ],
+  })[0]?.previews,
+  [],
+);
+assert.equal(
+  parseLearnerMaterialRows({
+    rows: [
+      {
+        ...learnerProjection,
+        access_state: "processing",
+        preview_kind: null,
+        preview_rendition_id: null,
+      },
+    ],
+  }).length,
+  1,
+);
+assert.deepEqual(
+  parseManagerMaterialPage({ rows: [], next_cursor: "cursor-2" }).nextCursor,
+  "cursor-2",
+);
 
 const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
 const fakeClient: MaterialRpcClient = {
   rpc: async (name, args) => {
     calls.push({ name, args: args ?? {} });
-    if (name === SHARED_MATERIAL_RPCS.listLearner) return { data: [learnerProjection], error: null };
-    if (name === "can_access_lms_material_preview") return { data: true, error: null };
+    if (name === SHARED_MATERIAL_RPCS.listLearner)
+      return { data: [learnerProjection], error: null };
+    if (name === "can_access_lms_material_preview")
+      return { data: true, error: null };
     return { data: [], error: null };
   },
 };
@@ -59,6 +95,8 @@ const fakeRenditionLookup = {
     data: {
       bucket_id: "lms-material-previews",
       storage_path: `preview/${renditionId}.pdf`,
+      rendition_kind: "pdf_preview",
+      processing_status: "ready",
     },
     error: null,
   }),
@@ -68,20 +106,45 @@ const fakeService = {
   from: () => ({
     select: () => fakeRenditionLookup,
   }),
-  storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "https://signed.example/preview" }, error: null }) }) },
+  storage: {
+    from: () => ({
+      createSignedUrl: async () => ({
+        data: { signedUrl: "https://signed.example/preview" },
+        error: null,
+      }),
+    }),
+  },
 };
 
 async function main() {
-  const loaded = await loadLearnerMaterialsForWeek({ classId: learnerProjection.class_id, from: "2026-09-01", to: "2026-09-07" }, fakeClient, fakeService);
-  assert.equal(loaded[0]?.previews[0]?.viewerUrl, "https://signed.example/preview");
+  const loaded = await loadLearnerMaterialsForWeek(
+    {
+      classId: learnerProjection.class_id,
+      from: "2026-09-01",
+      to: "2026-09-07",
+    },
+    fakeClient,
+    fakeService,
+  );
+  assert.equal(
+    loaded[0]?.previews[0]?.viewerUrl,
+    "https://signed.example/preview",
+  );
   assert.equal(loaded[0]?.previews[0]?.renditionId, renditionId);
   assert.equal(typeof loaded[0]?.previews[0]?.expiresAt, "string");
   assert.equal(loaded[0]?.unlocked, true);
   assert.equal(calls[0]?.name, SHARED_MATERIAL_RPCS.listLearner);
-  assert.deepEqual(calls[0]?.args, { p_class_id: learnerProjection.class_id, p_from: "2026-09-01", p_to: "2026-09-07" });
+  assert.deepEqual(calls[0]?.args, {
+    p_class_id: learnerProjection.class_id,
+    p_from: "2026-09-01",
+    p_to: "2026-09-07",
+  });
   assert.equal(calls[1]?.args.p_rendition_id, renditionId);
   assert.equal(Object.hasOwn(loaded[0] ?? {}, "signedUrl"), false);
-  assert.equal(Object.hasOwn(loaded[0]?.previews[0] ?? {}, "storagePath"), false);
+  assert.equal(
+    Object.hasOwn(loaded[0]?.previews[0] ?? {}, "storagePath"),
+    false,
+  );
   console.log("shared LMS materials repository contracts passed");
 }
 

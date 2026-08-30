@@ -1,15 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireRequestAuth } from "@/lib/api/request-auth";
-import {
-  requireClassManager,
-  requireClubOwner,
-} from "@/lib/api/class-manager-access";
 import { materialRetrySchema } from "@/lib/api/class-lms/material-pipeline/contracts";
 import {
   getVersion,
   markVersionQueued,
 } from "@/lib/api/class-lms/material-pipeline/repository";
 import { enqueueMaterialProcessing } from "@/lib/queues/lms-materials";
+import { requireMaterialManager } from "@/lib/api/class-lms/material-pipeline/service";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
 
@@ -33,7 +30,7 @@ export async function POST(
         { error: "Material version not found." },
         { status: 404 },
       );
-    const material = await auth.supabase
+    const material = await admin
       .from("lms_materials")
       .select("id, club_id, scope_class_id")
       .eq("id", materialId)
@@ -44,21 +41,8 @@ export async function POST(
         { error: "Material not found." },
         { status: 404 },
       );
-    const actor = material.data.scope_class_id
-      ? await requireClassManager(
-          auth.supabase as never,
-          material.data.scope_class_id,
-        )
-      : {
-          userId: await requireClubOwner(
-            auth.supabase as never,
-            material.data.club_id,
-          ),
-        };
-    if (!actor.userId) throw new Error("Forbidden");
-    if ("clubId" in actor && actor.clubId !== material.data.club_id)
-      throw new Error("Material class does not belong to its organisation.");
-    const key = `lms-material:${material.data.club_id}:${actor.userId}:${input.idempotencyKey}`;
+    const actor = await requireMaterialManager(auth.supabase, materialId);
+    const key = `lms-material:${material.data.club_id}:${actor.actorId}:${input.idempotencyKey}`;
     if (version.status !== "failed" || !version.original_path)
       return NextResponse.json(
         {
@@ -70,7 +54,8 @@ export async function POST(
     const queued = await markVersionQueued(
       admin,
       version.id,
-      version.checksum_sha256 ?? "",
+      version.sha256 ?? "",
+      version.detected_mime_type ?? version.source_mime_type ?? "",
     );
     if (!queued)
       return NextResponse.json({
