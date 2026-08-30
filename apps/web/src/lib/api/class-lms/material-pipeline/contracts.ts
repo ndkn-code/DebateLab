@@ -164,15 +164,7 @@ export function createOpaqueStoragePath(input: {
   versionId: string;
   fileName: string;
 }) {
-  const extension =
-    input.fileName.match(/\.[a-z0-9]{1,12}$/i)?.[0].toLowerCase() ?? "";
-  const baseName =
-    input.fileName
-      .replace(/\.[^.]+$/, "")
-      .replace(/[^A-Za-z0-9._-]/g, "_")
-      .replace(/^\.+/, "")
-      .slice(0, 120) || "material";
-  return `${input.clubId}/${input.materialId}/${input.actorId}/${input.versionId}/${baseName}${extension}`;
+  return `${input.clubId}/${input.materialId}/${input.actorId}/${input.versionId}/${input.versionId}.bin`;
 }
 
 export function createPreviewStoragePath(
