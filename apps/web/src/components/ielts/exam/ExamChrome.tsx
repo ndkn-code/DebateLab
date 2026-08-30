@@ -172,7 +172,7 @@ export function ExamSectionHeader({
             disabled={busy || (sectionNavigationLocked && index !== activeSectionIndex)}
             aria-current={index === activeSectionIndex ? "step" : undefined}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition disabled:opacity-50",
+              "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50",
               index === activeSectionIndex
                 ? "bg-primary text-on-primary"
                 : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high",
@@ -258,7 +258,7 @@ export function ExamSectionFooter({
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5">
         <div className="flex items-center gap-2">
           <ExamButton
             onClick={() => onSelectPart(activePartIndex - 1)}
@@ -279,7 +279,7 @@ export function ExamSectionFooter({
             <ProductIcon name="chevronRight" size="sm" weight="bold" />
           </ExamButton>
         </div>
-        <div className="flex min-w-0 items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <QuestionNavigator
             sectionLabel={sectionLabel}
             statuses={statuses}
@@ -317,7 +317,7 @@ export function ExamSectionFooter({
             disabled={busy || submissionLocked}
             className="w-full"
           >
-            Finish test &amp; see band
+            Finish simulation
             <ProductIcon name="arrowRight" size="sm" weight="bold" />
           </ExamButton>
         </div>

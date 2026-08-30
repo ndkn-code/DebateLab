@@ -321,7 +321,7 @@ export function MockSectionView({
                   type="button"
                   onClick={() => selectPart(index)}
                   aria-current={index === activePartIndex ? "step" : undefined}
-                  className={`${PILL} shrink-0 ${
+                  className={`${PILL} shrink-0 min-h-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     index === activePartIndex
                       ? "bg-secondary text-on-secondary"
                       : "bg-surface-container text-on-surface-variant"

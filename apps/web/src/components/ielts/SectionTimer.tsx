@@ -31,7 +31,9 @@ export function SectionTimer({
   onStatusChange?: (status: SectionRuntimeStatus) => void;
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [announcement, setAnnouncement] = useState("");
   const expiredRef = useRef(false);
+  const announcedRef = useRef<string | null>(null);
 
   const status = sectionStatus(timing, nowMs);
   const remaining = remainingSeconds(timing, nowMs);
@@ -52,6 +54,23 @@ export function SectionTimer({
     if (status === "running") expiredRef.current = false;
   }, [status, onExpire, onStatusChange]);
 
+  useEffect(() => {
+    const threshold = status === "expired"
+      ? "expired"
+      : status === "running" && remaining <= 60
+        ? "1-minute"
+        : status === "running" && remaining <= 300
+          ? "5-minute"
+          : null;
+    if (threshold && announcedRef.current !== threshold) {
+      announcedRef.current = threshold;
+      setAnnouncement(
+        threshold === "expired" ? "Time expired." : `Approximately ${threshold === "1-minute" ? "one minute" : "five minutes"} remaining.`,
+      );
+    }
+    if (status === "running" && remaining > 300) announcedRef.current = null;
+  }, [remaining, status]);
+
   const low = ticking && remaining <= 60;
   const label =
     status === "paused"
@@ -69,12 +88,12 @@ export function SectionTimer({
           ? "bg-error-container text-error"
           : "bg-surface-container-high text-on-surface"
       }`}
-      aria-live="polite"
     >
       <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
         Time
       </span>
       {label}
+      <span className="sr-only" aria-live="polite">{announcement}</span>
     </div>
   );
 }
