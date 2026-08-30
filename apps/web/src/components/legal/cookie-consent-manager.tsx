@@ -6,20 +6,15 @@ import {
   ANALYTICS_COOKIE_MAX_AGE,
   ANALYTICS_COOKIE_NAME,
   getAnalyticsCookieValue,
-} from "@/lib/settings";
+  readAnalyticsConsentFromCookieHeader,
+} from "@/lib/analytics-consent";
 import type { PublicLocale } from "@/lib/public-site";
 import { saveAnalyticsConsentPreferenceAction } from "@/app/actions/analytics-consent";
 
 type ConsentState = "granted" | "denied" | null;
 
 function readConsent(): ConsentState {
-  const prefix = `${ANALYTICS_COOKIE_NAME}=`;
-  const value = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(prefix))
-    ?.slice(prefix.length);
-  return value === "granted" || value === "denied" ? value : null;
+  return readAnalyticsConsentFromCookieHeader(document.cookie);
 }
 
 function writeConsent(enabled: boolean) {

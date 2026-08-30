@@ -8,9 +8,12 @@ import {
 } from "@/lib/practice-durations";
 import type { PracticeLanguage } from "@/types";
 import type { AppTheme } from "@/lib/theme";
-
-export const ANALYTICS_COOKIE_NAME = "debatelab_analytics_consent";
-export const ANALYTICS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+export {
+  ANALYTICS_COOKIE_MAX_AGE,
+  ANALYTICS_COOKIE_NAME,
+  getAnalyticsCookieValue,
+  isAnalyticsEnabled,
+} from "@/lib/analytics-consent";
 export const SETTINGS_DRAFT_STORAGE_KEY = "debatelab-settings-draft";
 
 export const SUPPORTED_SETTINGS_LOCALES = ["vi", "en"] as const;
@@ -194,14 +197,6 @@ function coerceDifficulty(value: unknown, fallback: SettingsDifficulty) {
   return AI_DIFFICULTY_OPTIONS.includes(value as SettingsDifficulty)
     ? (value as SettingsDifficulty)
     : fallback;
-}
-
-export function getAnalyticsCookieValue(enabled: boolean) {
-  return enabled ? "granted" : "denied";
-}
-
-export function isAnalyticsEnabled(cookieValue?: string | null) {
-  return cookieValue === "granted";
 }
 
 export function serializeAvatarPreset(preset: AvatarPreset) {
