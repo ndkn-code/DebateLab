@@ -14,6 +14,10 @@ const url = buildTallyBugReportUrl("https://tally.so/embed/ODolq7", {
   userAgent: "Mozilla/5.0 Test Browser",
   viewport: "390x844",
   timestamp: "2026-05-21T16:00:00.000Z",
+  faroSessionId: "faro-session-123",
+  traceId: "trace-123",
+  releaseSha: "abcdef1234567890",
+  debugId: "debug-123",
 });
 
 assert.ok(url);
@@ -28,6 +32,10 @@ assert.equal(
 assert.equal(parsed.searchParams.get("email"), "learner+qa@example.com");
 assert.equal(parsed.searchParams.get("route"), "/dashboard?tab=home");
 assert.equal(parsed.searchParams.get("source"), "web_sidebar_help_support");
+assert.equal(parsed.searchParams.get("faroSessionId"), "faro-session-123");
+assert.equal(parsed.searchParams.get("traceId"), "trace-123");
+assert.equal(parsed.searchParams.get("releaseSha"), "abcdef1234567890");
+assert.equal(parsed.searchParams.get("debugId"), "debug-123");
 assert.equal(parsed.searchParams.get("hideTitle"), "1");
 assert.equal(parsed.searchParams.get("transparentBackground"), "1");
 

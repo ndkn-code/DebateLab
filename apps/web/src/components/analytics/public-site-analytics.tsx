@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PostHogPageview, PostHogProvider } from "@/app/posthog-provider";
+import { FaroProvider } from "@/app/faro-provider";
 import { LandingInteractionTracker } from "@/components/analytics/landing-interaction-tracker";
 import { ANALYTICS_COOKIE_NAME, isAnalyticsEnabled } from "@/lib/settings";
 import type { LandingProduct, PublicLocale } from "@/lib/public-site";
@@ -23,12 +24,14 @@ export async function PublicSiteAnalytics({
   if (!enabled) return children;
 
   return (
-    <PostHogProvider enabled>
-      <PostHogPageview enabled />
-      <LandingInteractionTracker locale={locale} product={product} />
-      {children}
-      <Analytics />
-      <SpeedInsights />
-    </PostHogProvider>
+    <FaroProvider enabled>
+      <PostHogProvider enabled>
+        <PostHogPageview enabled />
+        <LandingInteractionTracker locale={locale} product={product} />
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </PostHogProvider>
+    </FaroProvider>
   );
 }

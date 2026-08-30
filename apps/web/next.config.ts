@@ -6,6 +6,19 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
+function getConfiguredOrigin(value: string | undefined) {
+  if (!value?.trim()) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+const grafanaFaroOrigin = getConfiguredOrigin(
+  process.env.NEXT_PUBLIC_GRAFANA_FARO_COLLECTOR_URL
+);
+
 const connectSrc = [
   "'self'",
   "https://*.supabase.co",
@@ -18,6 +31,7 @@ const connectSrc = [
   "https://us-assets.i.posthog.com",
   "https://vitals.vercel-insights.com",
   "https://*.vercel-insights.com",
+  ...(grafanaFaroOrigin ? [grafanaFaroOrigin] : []),
   ...(isDevelopment
     ? [
         "http://127.0.0.1:54321",
@@ -49,6 +63,17 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   devIndicators: false,
   transpilePackages: ["@thinkfy/shared"],
+  // Maps are generated only for the authenticated post-build upload. The
+  // uploader removes them from .next before Vercel packages the deployment.
+  productionBrowserSourceMaps:
+    process.env.GRAFANA_FARO_SOURCE_MAPS_ENABLED === "true",
+  env: {
+    NEXT_PUBLIC_APP_RELEASE_SHA:
+      process.env.VERCEL_GIT_COMMIT_SHA ??
+      process.env.GITHUB_SHA ??
+      process.env.NEXT_PUBLIC_APP_RELEASE_SHA ??
+      "development",
+  },
   experimental: {
     optimizePackageImports: [
       "@phosphor-icons/react",

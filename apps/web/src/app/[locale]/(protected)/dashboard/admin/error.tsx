@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureHandledError } from "@/lib/observability/faro-client";
 
 export default function AdminError({
   error,
@@ -11,6 +12,11 @@ export default function AdminError({
 }) {
   useEffect(() => {
     console.error("Admin error:", error);
+    captureHandledError(
+      error,
+      { digest: error.digest, featureArea: "admin_dashboard" },
+      { type: "react_error_boundary" }
+    );
   }, [error]);
 
   return (

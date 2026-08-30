@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Link } from "@/i18n/navigation";
 import { ArrowLeft } from "@/components/ui/icons";
+import { captureHandledError } from "@/lib/observability/faro-client";
 
 export default function CourseEditorError({
   error,
@@ -13,6 +14,11 @@ export default function CourseEditorError({
 }) {
   useEffect(() => {
     console.error("Course editor error:", error);
+    captureHandledError(
+      error,
+      { digest: error.digest, featureArea: "admin_course_editor" },
+      { type: "react_error_boundary" }
+    );
   }, [error]);
 
   return (

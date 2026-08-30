@@ -191,7 +191,7 @@ const EN: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Optional analytics",
         paragraphs: [
-          "With consent, Thinkfy enables PostHog product analytics, Vercel Web Analytics, Speed Insights, and related performance measurements. These help us understand page use, conversion, errors, and responsiveness. Optional analytics are disabled unless consent is granted.",
+          "With consent, Thinkfy enables PostHog product analytics, Grafana error diagnostics, Vercel Web Analytics, Speed Insights, and related performance measurements. These help us understand page use, conversion, errors, and responsiveness. Optional analytics are disabled unless consent is granted.",
         ],
       },
       {
@@ -382,7 +382,7 @@ const VI: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Phân tích tùy chọn",
         paragraphs: [
-          "Khi bạn đồng ý, Thinkfy bật PostHog, Vercel Web Analytics, Speed Insights và đo lường hiệu năng liên quan để hiểu việc sử dụng, chuyển đổi, lỗi và tốc độ. Phân tích tùy chọn mặc định bị tắt cho đến khi có sự đồng ý.",
+          "Khi bạn đồng ý, Thinkfy bật phân tích sản phẩm PostHog, chẩn đoán lỗi Grafana, Vercel Web Analytics, Speed Insights và đo lường hiệu năng liên quan để hiểu việc sử dụng, chuyển đổi, lỗi và tốc độ. Phân tích tùy chọn mặc định bị tắt cho đến khi có sự đồng ý.",
         ],
       },
       {

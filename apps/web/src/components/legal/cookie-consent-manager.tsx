@@ -110,8 +110,8 @@ export function CookieConsentManager({
         </p>
         <p className="mt-1 type-body-sm text-on-surface-variant">
           {vi
-            ? "Thinkfy luôn dùng lưu trữ thiết yếu. Chúng tôi chỉ bật PostHog và đo hiệu năng sau khi bạn đồng ý."
-            : "Thinkfy always uses essential storage. We enable PostHog and performance measurement only after you consent."}{" "}
+            ? "Thinkfy luôn dùng lưu trữ thiết yếu. Chúng tôi chỉ bật PostHog, chẩn đoán lỗi Grafana và đo hiệu năng sau khi bạn đồng ý."
+            : "Thinkfy always uses essential storage. We enable PostHog, Grafana error diagnostics, and performance measurement only after you consent."}{" "}
           <Link
             className="text-secondary underline underline-offset-4"
             href={`/${locale}/cookies`}
