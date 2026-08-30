@@ -724,7 +724,7 @@ begin
   select material_key, c, null, nullif(p_input->>'programType', ''), coalesce(nullif(btrim(p_input->>'title'), ''), safe_name),
     case when mime like 'audio/%' then 'audio' else 'file' end, 'draft', uid, uid
   where class_key is null;
-  path := c::text || '/' || material_key::text || '/' || uid::text || '/' || version_key::text || '/' || safe_name;
+  path := c::text || '/' || material_key::text || '/' || uid::text || '/' || version_key::text || '/' || version_key::text || '.bin';
   insert into public.lms_material_versions(id, material_id, version_number, idempotency_key, processing_status, ingest_bucket, ingest_path, source_file_name, source_mime_type, size_bytes, created_by)
   values (version_key, material_key, 1, idem, 'uploading', 'lms-material-ingest', path, safe_name, mime, size_key, uid);
   return jsonb_build_object('materialId', material_key, 'versionId', version_key, 'bucketId', 'lms-material-ingest', 'storagePath', path, 'mimeType', mime, 'sizeBytes', size_key);

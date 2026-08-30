@@ -42,7 +42,7 @@ test("ingest schema enforces per-file limits and rejects unknown fields", () => 
   );
 });
 
-test("storage paths bind club, material, actor, version, and a safe filename", () => {
+test("storage paths bind scope IDs without exposing the uploaded filename", () => {
   const path = createOpaqueStoragePath({
     ...ids,
     scopeClassId: ids.classId,
@@ -51,9 +51,9 @@ test("storage paths bind club, material, actor, version, and a safe filename", (
   });
   assert.equal(
     path,
-    `${ids.clubId}/${ids.materialId}/00000000-0000-4000-8000-000000000005/${ids.versionId}/private_student_answers.pdf`,
+    `${ids.clubId}/${ids.materialId}/00000000-0000-4000-8000-000000000005/${ids.versionId}/${ids.versionId}.bin`,
   );
-  assert.doesNotMatch(path, /\s/);
+  assert.doesNotMatch(path, /private|student|answers/i);
 });
 
 test("lease claims are fail-closed for terminal and active work", () => {
