@@ -363,6 +363,13 @@ create trigger prevent_ai_knowledge_source_benchmark_leakage
   for each row execute function private.prevent_ai_knowledge_source_benchmark_leakage();
 
 alter table public.ai_knowledge_collection_versions enable row level security;
+drop policy if exists "Service role manages AI knowledge collection versions"
+  on public.ai_knowledge_collection_versions;
+create policy "Service role manages AI knowledge collection versions"
+  on public.ai_knowledge_collection_versions
+  for all to service_role
+  using (true)
+  with check (true);
 revoke all on public.ai_knowledge_collection_versions from anon, authenticated;
 grant all on public.ai_knowledge_collection_versions to service_role;
 revoke all on function public.prepare_ai_knowledge_collection_draft(text, integer, text, uuid)

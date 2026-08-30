@@ -32,7 +32,7 @@ function RailCard({
     <div
       data-testid={testId}
       className={cn(
-        "rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70",
+        "rounded-xl border border-outline-variant bg-surface p-3.5 shadow-none dark:border-outline-variant/70",
         className,
       )}
     >
@@ -66,7 +66,7 @@ function SignalIcon({
     <span
       aria-hidden="true"
       className={cn(
-        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
         tone === "blue" && "bg-primary-container text-primary",
         tone === "green" && "bg-success-container text-success-dim",
         tone === "amber" && "bg-warning-container text-reward-dim",
@@ -143,11 +143,8 @@ function ReadinessCard({
   const streakValue = `${topBar.currentStreak} ${t("days")}`;
 
   return (
-    <RailCard
-      testId="dashboard-level-card"
-      className="p-4 xl:min-h-[309px]"
-    >
-      <div className="space-y-3.5">
+    <RailCard testId="dashboard-level-card" className="p-3.5">
+      <div className="space-y-3">
         <SignalRow
           icon={
             <SignalIcon tone="blue">
@@ -376,17 +373,14 @@ function DailyQuestsCard({
   ];
 
   return (
-    <RailCard
-      testId="dashboard-daily-quests"
-      className="flex flex-col xl:min-h-[273px]"
-    >
+    <RailCard testId="dashboard-daily-quests" className="flex flex-col">
       <div className="flex items-center justify-between">
         <p className="type-body font-extrabold text-on-surface">
           {t("quests_title")}
         </p>
         <Zap className="h-[18px] w-[18px] text-reward" />
       </div>
-      <div className="mt-3.5 flex flex-1 flex-col justify-evenly gap-3">
+      <div className="mt-3 flex flex-col gap-3">
         {quests.map((quest, index) => (
           <QuestRow key={quest.id} quest={quest} index={index} />
         ))}

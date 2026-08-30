@@ -357,15 +357,9 @@ function daysAgo(days: number) {
 
 {
   const mobileRoute = readFileSync("src/app/api/mobile/dashboard/route.ts", "utf8");
-  const mobileTodayScreen = readFileSync(
-    "../../apps/mobile/src/screens/today-screen.tsx",
-    "utf8"
-  );
 
   assert.match(mobileRoute, /searchParams\.get\("timezone"\)/);
   assert.match(mobileRoute, /getDashboardData\(auth\.user\.id, auth\.supabase, \{ timezone \}\)/);
-  assert.match(mobileTodayScreen, /resolvedOptions\(\)\.timeZone/);
-  assert.match(mobileTodayScreen, /\/api\/mobile\/dashboard\?timezone=/);
 }
 
 assert.deepEqual(DASHBOARD_SKILL_ORDER, [

@@ -146,7 +146,7 @@ async function searchDebateLexically(
   // This RPC is introduced by the same forward-only migration as the durable
   // workflow table, so generated database types intentionally lag until the
   // migration is deployed and types are regenerated.
-  const untyped = admin as SupabaseClient<any>;
+  const untyped = admin as SupabaseClient;
   const { data, error } = await untyped.rpc(
     "search_debate_corpus_items_lexical",
     {

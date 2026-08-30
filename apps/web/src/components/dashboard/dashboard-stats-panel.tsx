@@ -13,7 +13,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, Sparkles, Zap } from "@/components/ui/icons";
+import { BellRing, Check, Sparkles, Zap } from "@/components/ui/icons";
 import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry, DashboardHomeData } from "@/lib/api/dashboard";
@@ -45,6 +45,19 @@ export function DashboardStatsPanel({
       data-testid="dashboard-stats-panel"
       className="flex flex-wrap items-center justify-end gap-1.5"
     >
+      <button
+        type="button"
+        aria-label="Notifications"
+        className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant/70 bg-surface/70 text-on-surface-variant transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <BellRing className="h-4 w-4" aria-hidden="true" />
+        {topBar.pendingNotifications > 0 ? (
+          <span
+            className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-surface"
+            aria-hidden="true"
+          />
+        ) : null}
+      </button>
       <StatCounter
         ariaLabel={t("stats.streak_aria")}
         dataTestId="dashboard-stats-streak"

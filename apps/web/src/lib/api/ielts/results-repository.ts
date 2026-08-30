@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- cohesive results projection and ownership boundary */
 /**
  * Results data access for a completed IELTS attempt (WS-2.2).
  *

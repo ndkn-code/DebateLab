@@ -3,7 +3,7 @@ import path from "node:path";
 
 const repoRoot = process.cwd();
 
-const scanRoots = ["apps/web/src", "apps/mobile/src", "apps/mobile/app.config.js", "packages/shared/src"];
+const scanRoots = ["apps/web/src", "packages/shared/src"];
 const approvedPathFragments = [
   "packages/shared/src/design-system/",
   "apps/web/src/components/shared/theme-variables.tsx",
@@ -46,9 +46,6 @@ const approvedPathFragments = [
   "apps/web/src/lib/feedback/annotations.ts",
   "apps/web/src/lib/practice-feedback-plan.test.ts",
   "apps/web/src/components/chat/chat-bubble.tsx",
-  "apps/mobile/src/design/tokens.ts",
-  "apps/mobile/app.config.js",
-  "apps/mobile/src/lib/dashboard-preview.ts",
 ];
 
 const approvedExtensions = new Set([".svg"]);

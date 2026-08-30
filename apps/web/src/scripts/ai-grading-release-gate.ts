@@ -1,5 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
-
 import {
   parseGradingPrediction,
   parseOperationalSafetyEvidence,
@@ -13,6 +11,7 @@ import {
   type BenchmarkObservation,
   type ReleaseGateResult,
 } from "@/lib/ai/benchmarks/evaluate";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -125,13 +124,6 @@ function operationalEvidence(rows: JsonRecord[]) {
 }
 
 async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRole) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required",
-    );
-  }
   const graderVersion = process.env.AI_GRADING_GATE_VERSION;
   const corpusVersion = Number(process.env.AI_GRADING_GATE_CORPUS_VERSION);
   if (
@@ -143,9 +135,7 @@ async function main() {
       "AI_GRADING_GATE_VERSION and a positive AI_GRADING_GATE_CORPUS_VERSION are required",
     );
   }
-  const client = createClient(url, serviceRole, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const client = createAdminClient();
   // The service-role process is the only component allowed to read these gold
   // labels. Nothing below emits a label or benchmark response to stdout.
   const { data, error } = await client

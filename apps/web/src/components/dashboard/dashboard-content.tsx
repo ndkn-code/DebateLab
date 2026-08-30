@@ -92,6 +92,17 @@ export function DashboardContent({
           size="data"
           className="flex flex-col py-5 pb-24 lg:px-6 lg:py-6 lg:pb-28"
         >
+          <div
+            className="mb-4 h-1 overflow-hidden rounded-full bg-outline-variant/30"
+            aria-label={t("daily_focus")}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              style={{
+                width: `${Math.min(100, Math.max(0, data.hero.todayGoal.progressPercent))}%`,
+              }}
+            />
+          </div>
           <div className="flex flex-wrap items-end justify-between gap-4 px-4 text-on-surface">
             <div className="min-w-0">
               <p className="type-heading-lg font-medium text-on-surface">
@@ -132,7 +143,6 @@ export function DashboardContent({
                 metrics={data.skillSnapshot.metrics}
                 checkpoint={checkpoint}
               />
-
             </div>
 
             {/* Right rail (stacks below main feed on mobile) */}

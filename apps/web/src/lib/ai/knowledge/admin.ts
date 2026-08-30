@@ -11,7 +11,7 @@ import {
   type KnowledgeCollectionKey,
 } from "./collections";
 
-type AdminClient = SupabaseClient<any>;
+type AdminClient = SupabaseClient;
 type ReviewStatus = (typeof KNOWLEDGE_REVIEW_STATUSES)[number];
 
 const REVIEWABLE_STATUSES = new Set<ReviewStatus>([

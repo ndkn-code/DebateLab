@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
@@ -11,6 +10,7 @@ import {
 } from "@/lib/ai/knowledge/ingestion";
 import { isKnowledgeCollectionKey } from "@/lib/ai/knowledge/collections";
 import { publishAiKnowledgeVersion } from "@/lib/ai/knowledge/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const UuidSchema = z.string().uuid();
 
@@ -83,13 +83,6 @@ async function main() {
       "--publish requires --embed so the published version is retrievable",
     );
   }
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRole) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required",
-    );
-  }
   const raw = await readFile(resolve(process.cwd(), args.manifest), "utf8");
   const manifest = ManifestSchema.parse(JSON.parse(raw));
   const plan = buildKnowledgeIngestionPlan({
@@ -99,9 +92,7 @@ async function main() {
     items: manifest.items,
     importKey: manifest.importKey,
   });
-  const client = createClient(url, serviceRole, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const client = createAdminClient();
   const ingested = await ingestKnowledgePlan({
     supabase: client,
     plan,

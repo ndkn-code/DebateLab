@@ -592,6 +592,16 @@ drop policy if exists "Admins view AI knowledge retrieval logs" on public.ai_kno
 create policy "Admins view AI knowledge retrieval logs" on public.ai_knowledge_retrieval_logs
   for select to authenticated
   using (private.is_admin((select auth.uid())));
+drop policy if exists "Service role manages AI grading benchmarks" on public.ai_grading_benchmarks;
+create policy "Service role manages AI grading benchmarks" on public.ai_grading_benchmarks
+  for all to service_role
+  using (true)
+  with check (true);
+drop policy if exists "Service role manages AI grading evaluations" on public.ai_grading_evaluations;
+create policy "Service role manages AI grading evaluations" on public.ai_grading_evaluations
+  for all to service_role
+  using (true)
+  with check (true);
 
 revoke all on public.ai_knowledge_collections from anon, authenticated;
 revoke all on public.ai_knowledge_sources from anon, authenticated;

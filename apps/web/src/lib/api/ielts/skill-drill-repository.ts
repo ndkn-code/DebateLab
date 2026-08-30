@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- cohesive skill-drill persistence boundary */
 import "server-only";
 
 import { randomUUID } from "node:crypto";

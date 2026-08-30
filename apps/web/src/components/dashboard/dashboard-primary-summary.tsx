@@ -24,11 +24,11 @@ function SummaryItem({
   }[tone];
 
   return (
-    <div className="min-w-0 flex-1 px-3 py-3 first:pl-0 last:pr-0 sm:px-4 sm:py-3.5">
+    <div className="min-w-0 flex-1 px-3 py-2.5 first:pl-0 last:pr-0 sm:px-4 sm:py-3">
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           aria-hidden="true"
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${toneClass}`}
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${toneClass}`}
         >
           {icon}
         </span>
@@ -42,7 +42,7 @@ function SummaryItem({
         </div>
       </div>
       {detail ? (
-        <p className="type-caption mt-2 truncate pl-9 text-on-surface-variant">
+        <p className="type-caption mt-1.5 truncate pl-10 text-on-surface-variant">
           {detail}
         </p>
       ) : null}

@@ -1,18 +1,16 @@
 # Thinkfy
 
-Thinkfy is an edtech platform for Vietnamese high school students to learn debate, practice public speaking, and get AI-powered coaching. The repo is now an npm workspace monorepo with the production Next.js web app, an Expo iOS app foundation, and shared TypeScript contracts.
+Thinkfy is an edtech platform for Vietnamese high school students to learn debate, practice public speaking, and get AI-powered coaching. This repository contains the production Next.js web app, its backend APIs, shared TypeScript contracts, and Supabase assets.
 
 ## Workspace Layout
 
 ```text
 apps/
   web/        Next.js app, API routes, server actions, web UI
-  mobile/     Expo React Native app, iOS native project
 packages/
-  shared/     Pure TypeScript contracts and helpers for web/mobile
+  shared/     Pure TypeScript contracts shared with API consumers
 supabase/     Database migrations and Supabase project assets
 docs/         Repo-level docs
-design-artifacts/
 ```
 
 ## Core Commands
@@ -30,15 +28,6 @@ npm run dev:web
 npm run lint:web
 npm run typecheck:web
 npm run build:web
-```
-
-Mobile:
-
-```bash
-npm run dev:mobile
-npm run ios:mobile
-npm run lint:mobile
-npm run typecheck:mobile
 ```
 
 Shared:
@@ -60,10 +49,6 @@ npm run test:practice-analysis
 Use the root `.env.example` as the source of truth.
 
 - Web local env: copy relevant values into `apps/web/.env.local`.
-- Mobile local env: copy the `EXPO_PUBLIC_*` values into `apps/mobile/.env.local`.
-- Mobile env details live in [docs/mobile-env.md](docs/mobile-env.md).
-
-Never expose server secrets through `EXPO_PUBLIC_*`.
 
 ## Web App
 
@@ -73,15 +58,10 @@ The web source moved from `src/` to `apps/web/src/`. The `@/*` alias still point
 
 ## Mobile App
 
-The mobile app lives in `apps/mobile` and uses:
-
-- Expo SDK 55
-- Expo Router
-- iOS bundle identifier `net.thinkfy.app`
-- URL scheme `thinkfy`
-- `@thinkfy/shared` for pure practice contracts
-
-Phase 1 is a foundation only. Auth, dashboard, practice, audio recording, transcription, and feedback implementation happen in later phases.
+The Expo/iOS app is maintained in the standalone local project at
+`/Users/jacknguyen/Developer/DebateLab-mobile`. This repository retains the
+`/api/mobile/*` backend endpoints and the shared request/response contracts the
+app consumes.
 
 ## Vercel Deployment
 

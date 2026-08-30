@@ -360,7 +360,7 @@ export async function ingestKnowledgePlan(params: {
   if (hasApprovedContent && !params.reviewedBy) {
     throw new Error("knowledge_approved_manifest_requires_reviewer");
   }
-  const client = params.supabase as SupabaseClient<any>;
+  const client = params.supabase as SupabaseClient;
   const collectionKey = params.plan.items[0]?.collection;
   if (!collectionKey) throw new Error("knowledge_manifest_has_no_items");
   const draftResult = await client.rpc(

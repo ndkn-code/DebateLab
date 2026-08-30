@@ -1,11 +1,10 @@
 import { readFile } from "node:fs/promises";
 
-import { createClient } from "@supabase/supabase-js";
-
 import {
   parseBenchmarkEvaluationImport,
   parseGradingPrediction,
 } from "@/lib/ai/benchmarks/contracts";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -16,12 +15,10 @@ function record(value: unknown): JsonRecord {
 }
 
 async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const filePath = process.env.AI_GRADING_EVALUATIONS_FILE;
-  if (!url || !serviceRole || !filePath) {
+  if (!filePath) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and AI_GRADING_EVALUATIONS_FILE are required",
+      "AI_GRADING_EVALUATIONS_FILE is required (along with the Supabase admin environment)",
     );
   }
   const parsed = parseBenchmarkEvaluationImport(
@@ -41,9 +38,7 @@ async function main() {
     );
   }
 
-  const client = createClient(url, serviceRole, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const client = createAdminClient();
   const benchmarkKeys = parsed.evaluations.map((entry) => entry.benchmarkKey);
   // Do not select protected_label here. The runner only needs the task skill
   // to validate a model output, preserving service-role-only gold labels.

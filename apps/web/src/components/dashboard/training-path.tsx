@@ -85,7 +85,7 @@ export function TrainingPath({
     <section
       data-testid="dashboard-training-map"
       aria-labelledby="dashboard-training-map-heading"
-      className="min-h-[148px] rounded-xl border border-outline-variant bg-surface px-4 py-3 shadow-none dark:border-outline-variant/70 sm:min-h-[156px]"
+      className="rounded-xl border border-outline-variant bg-surface px-4 py-3 shadow-none dark:border-outline-variant/70"
     >
       <div className="flex items-center justify-between">
         <h2
@@ -96,14 +96,14 @@ export function TrainingPath({
         </h2>
       </div>
 
-      <div className="relative mt-3 overflow-hidden">
+      <div className="relative mt-4 overflow-hidden pb-1">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[10%] right-[10%] top-5 border-t-2 border-dashed border-outline-variant"
+          className="pointer-events-none absolute left-[10%] right-[10%] top-7 border-t border-outline-variant"
         />
         <ol
           aria-label={t("training_map")}
-          className="relative grid grid-cols-5 items-start gap-1 px-1"
+          className="relative grid grid-cols-5 items-start gap-0 px-1"
         >
           {DASHBOARD_SKILL_ORDER.map((key, index) => {
             const metric = metricsByKey.get(key) ?? null;
@@ -140,19 +140,34 @@ export function TrainingPath({
                 >
                   <span
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:scale-105",
-                      styles.circle,
+                      "relative flex h-14 w-14 items-center justify-center rounded-full p-[4px] transition-transform group-hover:scale-105",
+                      state === "empty"
+                        ? "bg-surface-container-high text-on-surface-variant"
+                        : state === "strong"
+                          ? "bg-success text-success"
+                          : state === "mid"
+                            ? "bg-primary text-primary"
+                            : "bg-warning text-warning",
                       highlighted && "ring-4 ring-primary/15",
                     )}
+                    style={
+                      metric && metric.coverage > 0
+                        ? {
+                            background: `conic-gradient(currentColor ${Math.max(8, Math.min(100, metric.value))}%, var(--color-surface-container-high) 0)`,
+                          }
+                        : undefined
+                    }
                   >
-                    <Icon aria-hidden="true" className="h-5 w-5" />
+                    <span className="flex h-full w-full items-center justify-center rounded-full bg-surface">
+                      <Icon aria-hidden="true" className="h-[18px] w-[18px]" />
+                    </span>
                   </span>
                   <span className="type-caption mt-1 max-w-full truncate font-semibold text-on-surface">
                     {skillLabel}
                   </span>
                   <span
                     className={cn(
-                      "type-caption mt-0.5 rounded-[6px] px-2 py-0.5 font-semibold tabular-nums",
+                      "type-caption mt-0.5 font-semibold tabular-nums",
                       styles.chip,
                     )}
                   >

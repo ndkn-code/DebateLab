@@ -323,7 +323,7 @@ async function rpcRows(
   name: string,
   args: Record<string, unknown>,
 ) {
-  const result = await (client as SupabaseClient<any>).rpc(name, args);
+  const result = await (client as SupabaseClient).rpc(name, args);
   if (result.error) throw new Error(`${name}:${result.error.message}`);
   return Array.isArray(result.data) ? result.data : [];
 }
@@ -335,7 +335,7 @@ async function logRetrieval(
   latencyMs: number,
 ) {
   try {
-    const typed = client as SupabaseClient<any>;
+    const typed = client as SupabaseClient;
     const { data: collection } = await typed
       .from("ai_knowledge_collections")
       .select("id")
