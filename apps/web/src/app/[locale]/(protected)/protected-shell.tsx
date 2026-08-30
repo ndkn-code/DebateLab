@@ -36,7 +36,7 @@ interface ProtectedShellProps {
   notificationInbox?: NotificationInboxSnapshot;
   notificationOperations?: Pick<
     NotificationUiOperations,
-    "markRead" | "markAllRead" | "muteObject"
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
 }
 

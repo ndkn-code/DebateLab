@@ -192,7 +192,7 @@ interface SidebarProps {
   notificationInbox?: NotificationInboxSnapshot;
   notificationOperations?: Pick<
     NotificationUiOperations,
-    "markRead" | "markAllRead" | "muteObject"
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
 }
 
@@ -219,7 +219,7 @@ function NavContent({
   notificationInbox?: NotificationInboxSnapshot;
   notificationOperations?: Pick<
     NotificationUiOperations,
-    "markRead" | "markAllRead" | "muteObject"
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
 }) {
   const pathname = usePathname();

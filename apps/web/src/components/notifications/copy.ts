@@ -1,5 +1,5 @@
 import type {
-  EmailDeliveryMode,
+  NotificationCadence,
   NotificationInboxFilter,
   NotificationTopic,
 } from "./contracts";
@@ -17,9 +17,13 @@ const copy = {
       earlier: "Earlier",
       emptyTitle: "You’re all caught up",
       emptyBody: "New learning and class updates will appear here.",
+      loading: "Loading notifications…",
+      loadError: "Notifications couldn’t be loaded.",
+      retry: "Try again",
       markRead: "Mark as read",
       mute: "Mute updates about this item",
-      muted: "Updates muted",
+      muted: "Updates about this item muted",
+      mutedLabel: "Muted",
       open: "Open update",
       filters: {
         all: "All",
@@ -31,7 +35,7 @@ const copy = {
     settings: {
       title: "Notifications",
       description:
-        "Choose which updates reach you and how optional email is bundled.",
+        "Choose which updates reach you and when optional email is delivered.",
       reviewTitle: "Review your notification choices",
       reviewBody:
         "We carried over your previous email setting. Check the topics below when it’s convenient.",
@@ -54,6 +58,7 @@ const copy = {
       start: "Starts",
       end: "Ends",
       save: "Save notification preferences",
+      loading: "Loading your notification preferences…",
       saved: "Notification preferences saved",
       saveError: "Couldn’t save notification preferences. Try again.",
       wiring:
@@ -91,10 +96,10 @@ const copy = {
       } satisfies Record<NotificationTopic, [string, string]>,
       cadenceLabels: {
         immediate: "Immediate",
-        daily: "Daily digest",
-        weekly: "Weekly digest",
+        daily: "Daily delivery",
+        weekly: "Weekly delivery",
         off: "Off",
-      } satisfies Record<EmailDeliveryMode, string>,
+      } satisfies Record<NotificationCadence, string>,
     },
   },
   vi: {
@@ -107,9 +112,13 @@ const copy = {
       earlier: "Trước đó",
       emptyTitle: "Bạn đã xem hết",
       emptyBody: "Cập nhật mới về học tập và lớp học sẽ xuất hiện tại đây.",
+      loading: "Đang tải thông báo…",
+      loadError: "Không thể tải thông báo.",
+      retry: "Thử lại",
       markRead: "Đánh dấu đã đọc",
       mute: "Tắt cập nhật về mục này",
-      muted: "Đã tắt cập nhật",
+      muted: "Đã tắt cập nhật về mục này",
+      mutedLabel: "Đã tắt",
       open: "Mở cập nhật",
       filters: {
         all: "Tất cả",
@@ -121,7 +130,7 @@ const copy = {
     settings: {
       title: "Thông báo",
       description:
-        "Chọn cập nhật nào sẽ đến với bạn và cách gộp email tùy chọn.",
+        "Chọn cập nhật nào sẽ đến với bạn và thời điểm gửi email tùy chọn.",
       reviewTitle: "Xem lại lựa chọn thông báo",
       reviewBody:
         "Chúng tôi đã chuyển cài đặt email cũ của bạn. Bạn có thể kiểm tra từng chủ đề khi thuận tiện.",
@@ -144,6 +153,7 @@ const copy = {
       start: "Bắt đầu",
       end: "Kết thúc",
       save: "Lưu tùy chọn thông báo",
+      loading: "Đang tải tùy chọn thông báo…",
       saved: "Đã lưu tùy chọn thông báo",
       saveError: "Không thể lưu tùy chọn thông báo. Hãy thử lại.",
       wiring: "Tùy chọn thông báo đã sẵn sàng để kết nối dịch vụ.",
@@ -180,10 +190,10 @@ const copy = {
       } satisfies Record<NotificationTopic, [string, string]>,
       cadenceLabels: {
         immediate: "Ngay lập tức",
-        daily: "Tổng hợp hằng ngày",
-        weekly: "Tổng hợp hằng tuần",
+        daily: "Gửi hằng ngày",
+        weekly: "Gửi hằng tuần",
         off: "Tắt",
-      } satisfies Record<EmailDeliveryMode, string>,
+      } satisfies Record<NotificationCadence, string>,
     },
   },
 } as const;

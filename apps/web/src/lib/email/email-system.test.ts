@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { evaluateEmailCandidatesForProfile } from "@/lib/email/eligibility";
 import {
   buildTemplateVariables,
+  EMAIL_ACCESSIBLE_PALETTE,
   renderThinkfyEmail,
 } from "@/lib/email/templates";
 import { __emailDispatchInternals } from "@/lib/email/dispatch";
@@ -27,6 +28,59 @@ import type {
 import { EMAIL_TEMPLATE_KEYS } from "@/lib/email/types";
 
 const TODAY_VN = "2026-05-16";
+
+function contrastRatio(foreground: string, background: string) {
+  function luminance(hex: string) {
+    const channels = hex
+      .replace("#", "")
+      .match(/.{2}/g)!
+      .map((value) => Number.parseInt(value, 16) / 255)
+      .map((value) =>
+        value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+      );
+    return (
+      0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!
+    );
+  }
+  const first = luminance(foreground);
+  const second = luminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function assertAccessibleRenderedHtml(html: string, locale: "en" | "vi") {
+  assert.match(
+    html,
+    new RegExp(`<html[^>]*lang="${locale}"[^>]*dir="ltr"`, "i"),
+  );
+  assert.match(html, /name="color-scheme" content="light dark"/i);
+  assert.match(html, /prefers-color-scheme:\s*dark/i);
+  const tables = html.match(/<table\b[^>]*>/gi) ?? [];
+  assert.ok(tables.length > 0, "rendered email should contain layout tables");
+  assert.ok(
+    tables.every((table) => /role="presentation"/i.test(table)),
+    "every layout table must be hidden from the accessibility tree",
+  );
+  assert.match(html, new RegExp(EMAIL_ACCESSIBLE_PALETTE.primary, "i"));
+  assert.match(html, new RegExp(EMAIL_ACCESSIBLE_PALETTE.link, "i"));
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.surface,
+      EMAIL_ACCESSIBLE_PALETTE.primary,
+    ) >= 4.5,
+  );
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.muted,
+      EMAIL_ACCESSIBLE_PALETTE.surfaceAlt,
+    ) >= 4.5,
+  );
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.link,
+      EMAIL_ACCESSIBLE_PALETTE.surfaceAlt,
+    ) >= 4.5,
+  );
+}
 
 function baseProfile(overrides: Partial<EmailProfile> = {}): EmailProfile {
   return {
@@ -162,6 +216,7 @@ async function testTemplateRendering() {
       rendered.html,
       /href="\/(?:practice|courses|dashboard)/,
     );
+    assertAccessibleRenderedHtml(rendered.html, "vi");
   }
 
   const streak = buildTemplateVariables("streak_rescue", {
@@ -177,6 +232,7 @@ async function testTemplateRendering() {
 
   assert.equal(rendered.subject, "Streak còn cứu được hôm nay");
   assert.match(rendered.text, /Giữ streak/);
+  assert.match(rendered.html, /Đã học|Nghỉ/);
 
   const english = buildTemplateVariables("weekly_progress", {
     userName: "Minh",
@@ -188,6 +244,11 @@ async function testTemplateRendering() {
 
   assert.match(english.headline, /weekly progress/i);
   assert.equal(english.locale, "en");
+  const renderedEnglish = await renderThinkfyEmail({
+    subject: english.subject,
+    variables: english,
+  });
+  assertAccessibleRenderedHtml(renderedEnglish.html, "en");
 }
 
 function testEligibility() {

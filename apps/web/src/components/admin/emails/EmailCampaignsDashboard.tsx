@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   Loader2,
   Mail,
+  Pause,
+  Play,
   Send,
+  ShieldCheck,
   Users,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -31,9 +34,19 @@ interface Campaign {
   body: Record<string, unknown>;
   locale: EmailLocale;
   audience: EmailAudienceSegment;
-  status: "draft" | "scheduled" | "sending" | "sent" | "canceled";
+  status:
+    | "draft"
+    | "approved"
+    | "scheduled"
+    | "sending"
+    | "paused"
+    | "sent"
+    | "canceled";
   scheduledFor: string | null;
   sentCount: number;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  audienceSnapshotCount?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -311,6 +324,22 @@ export function EmailCampaignsDashboard() {
     }
   }
 
+  async function approve() {
+    if (!selectedId || !selected) return setError(t("errors.saveFirst"));
+    try {
+      await post({
+        action: "approve",
+        id: selectedId,
+        confirmationName,
+      });
+      setNotice(t("notices.approved"));
+      setConfirmationName("");
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("errors.action"));
+    }
+  }
+
   async function sendNow() {
     if (!selectedId || !selected) return setError(t("errors.saveFirst"));
     try {
@@ -339,6 +368,28 @@ export function EmailCampaignsDashboard() {
     }
   }
 
+  async function pause() {
+    if (!selectedId) return;
+    try {
+      await post({ action: "pause", id: selectedId });
+      setNotice(t("notices.paused"));
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("errors.action"));
+    }
+  }
+
+  async function resume() {
+    if (!selectedId) return;
+    try {
+      await post({ action: "resume", id: selectedId });
+      setNotice(t("notices.resumed"));
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("errors.action"));
+    }
+  }
+
   const chartData = useMemo(
     () => [
       { stage: t("results.sent"), value: results.sent },
@@ -348,6 +399,15 @@ export function EmailCampaignsDashboard() {
     ],
     [results, t],
   );
+  const statusLabels: Record<Campaign["status"], string> = {
+    draft: t("status.draft"),
+    approved: t("status.approved"),
+    scheduled: t("status.scheduled"),
+    sending: t("status.sending"),
+    paused: t("status.paused"),
+    sent: t("status.sent"),
+    canceled: t("status.canceled"),
+  };
 
   if (loading && campaigns.length === 0) {
     return (
@@ -383,7 +443,7 @@ export function EmailCampaignsDashboard() {
                   {campaign.name}
                 </span>
                 <span className="mt-2 flex items-center justify-between gap-2 text-xs text-on-surface-variant">
-                  <span className="capitalize">{campaign.status}</span>
+                  <span>{statusLabels[campaign.status]}</span>
                   <span>{campaign.sentCount.toLocaleString()}</span>
                 </span>
               </button>
@@ -404,7 +464,7 @@ export function EmailCampaignsDashboard() {
             </h2>
             {selected ? (
               <span className="rounded-full bg-surface-container px-3 py-1 text-xs font-bold capitalize text-on-surface-variant">
-                {selected.status}
+                {statusLabels[selected.status]}
               </span>
             ) : null}
           </div>
@@ -573,6 +633,48 @@ export function EmailCampaignsDashboard() {
           </div>
 
           {selected?.status === "draft" ? (
+            <div className="mt-6 rounded-[10px] border border-primary/20 bg-primary-container/35 p-4">
+              <div className="flex items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary-container text-primary">
+                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="type-label font-semibold text-on-surface">
+                    {t("approval.title")}
+                  </h3>
+                  <p className="mt-1 type-body-sm text-on-surface-variant">
+                    {t("approval.description", {
+                      count: recipientCount ?? 0,
+                    })}
+                  </p>
+                  <input
+                    aria-label={t("approval.confirm")}
+                    className={cn(inputClass, "mt-3")}
+                    placeholder={selected.name}
+                    value={confirmationName}
+                    onChange={(event) =>
+                      setConfirmationName(event.target.value)
+                    }
+                  />
+                  <Button
+                    className="mt-3"
+                    disabled={
+                      busy ||
+                      recipientCount == null ||
+                      recipientCount === 0 ||
+                      confirmationName !== selected.name
+                    }
+                    onClick={() => void approve()}
+                  >
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    {t("actions.approve")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {selected?.status === "approved" ? (
             <div className="mt-6 grid grid-cols-1 gap-4 border-t border-outline-variant/40 pt-5 lg:grid-cols-2">
               <div className="rounded-xl bg-surface-container-low p-4">
                 <h3 className="font-bold text-on-surface">
@@ -625,7 +727,29 @@ export function EmailCampaignsDashboard() {
               </div>
             </div>
           ) : selected && ["scheduled", "sending"].includes(selected.status) ? (
-            <div className="mt-6 border-t border-outline-variant/40 pt-5">
+            <div className="mt-6 flex flex-wrap gap-2 border-t border-outline-variant/40 pt-5">
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void pause()}
+              >
+                <Pause className="h-4 w-4" aria-hidden="true" />
+                {t("actions.pause")}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void cancel()}
+              >
+                {t("actions.cancel")}
+              </Button>
+            </div>
+          ) : selected?.status === "paused" ? (
+            <div className="mt-6 flex flex-wrap gap-2 border-t border-outline-variant/40 pt-5">
+              <Button disabled={busy} onClick={() => void resume()}>
+                <Play className="h-4 w-4" aria-hidden="true" />
+                {t("actions.resume")}
+              </Button>
               <Button
                 variant="destructive"
                 disabled={busy}

@@ -40,7 +40,7 @@ import { InfoHint } from "@/components/settings/info-hint";
 import { VoiceSettings } from "@/components/settings/voice-settings";
 import { NotificationPreferencesPanel } from "@/components/notifications/notification-preferences-panel";
 import type {
-  NotificationPreferenceV1,
+  NotificationPreferenceView,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
 import {
@@ -90,10 +90,10 @@ interface SettingsContentProps {
   organizationJoinCodesEnabled?: boolean;
   leaderboardPrivacyControlsEnabled?: boolean;
   leaderboardPrivacySettings?: LeaderboardPrivacySettings;
-  notificationPreferences?: NotificationPreferenceV1[];
+  notificationPreferences?: NotificationPreferenceView[];
   notificationPreferenceOperations?: Pick<
     NotificationUiOperations,
-    "updatePreferences"
+    "getPreferences" | "updatePreferences"
   >;
   notificationPreferenceReviewRequired?: boolean;
 }

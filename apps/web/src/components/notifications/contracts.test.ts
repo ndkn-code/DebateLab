@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import {
+  DEFAULT_EVENT_TYPES,
   NOTIFICATION_TOPICS,
   buildDefaultNotificationPreferences,
 } from "./contracts";
@@ -24,5 +25,20 @@ assert.ok(
 );
 assert.equal(getNotificationCopy("en").inbox.filters.unread, "Unread");
 assert.equal(getNotificationCopy("vi").inbox.filters.unread, "Chưa đọc");
+assert.deepEqual(DEFAULT_EVENT_TYPES.assignments, [
+  "assignment_published",
+  "assignment_due_soon",
+  "assignment_returned",
+  "resubmission_requested",
+  "result_published",
+]);
+assert.deepEqual(DEFAULT_EVENT_TYPES.class_updates, [
+  "class_announcement",
+  "club_invitation",
+]);
+assert.equal(
+  getNotificationCopy("en").settings.cadenceLabels.daily,
+  "Daily delivery",
+);
 
 console.log("notification UI contract tests passed");

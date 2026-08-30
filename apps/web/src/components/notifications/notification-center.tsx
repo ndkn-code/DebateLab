@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
@@ -23,13 +23,13 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  EMPTY_NOTIFICATION_INBOX,
-  type NotificationEventV1,
+  type NotificationInboxEvent,
   type NotificationInboxFilter,
   type NotificationInboxSnapshot,
   type NotificationUiOperations,
 } from "./contracts";
 import { getNotificationCopy, type NotificationLocale } from "./copy";
+import { notificationApiOperations } from "./notification-api";
 
 const LEARNING_TOPICS = new Set([
   "practice",
@@ -59,7 +59,7 @@ function formatTime(value: string, locale: NotificationLocale) {
 }
 
 function matchesFilter(
-  event: NotificationEventV1,
+  event: NotificationInboxEvent,
   filter: NotificationInboxFilter,
 ) {
   if (filter === "unread") return !event.readAt;
@@ -72,25 +72,53 @@ interface NotificationCenterProps {
   snapshot?: NotificationInboxSnapshot;
   operations?: Pick<
     NotificationUiOperations,
-    "markRead" | "markAllRead" | "muteObject"
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
   variant?: "sidebar" | "icon";
   className?: string;
 }
 
 export function NotificationCenter({
-  snapshot = EMPTY_NOTIFICATION_INBOX,
+  snapshot,
   operations,
   variant = "icon",
   className,
 }: NotificationCenterProps) {
   const locale = (useLocale() === "vi" ? "vi" : "en") as NotificationLocale;
   const copy = getNotificationCopy(locale).inbox;
-  const [events, setEvents] = useState(snapshot.events);
+  const activeOperations = operations ?? notificationApiOperations;
+  const [events, setEvents] = useState(snapshot?.events ?? []);
+  const [unreadCount, setUnreadCount] = useState(snapshot?.unreadCount ?? 0);
   const [filter, setFilter] = useState<NotificationInboxFilter>("all");
   const [announcement, setAnnouncement] = useState("");
+  const [loading, setLoading] = useState(!snapshot);
+  const [loadError, setLoadError] = useState(false);
 
-  const unreadCount = events.filter((event) => !event.readAt).length;
+  const loadInbox = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const next = await activeOperations.listInbox();
+      setEvents(next.events);
+      setUnreadCount(next.unreadCount);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOperations]);
+
+  useEffect(() => {
+    if (snapshot) {
+      setEvents(snapshot.events);
+      setUnreadCount(snapshot.unreadCount);
+      setLoading(false);
+      setLoadError(false);
+      return;
+    }
+    void loadInbox();
+  }, [loadInbox, snapshot]);
+
   const filtered = useMemo(
     () => events.filter((event) => matchesFilter(event, filter)),
     [events, filter],
@@ -98,7 +126,7 @@ export function NotificationCenter({
   const today = filtered.filter((event) => isToday(event.createdAt));
   const earlier = filtered.filter((event) => !isToday(event.createdAt));
 
-  async function markRead(event: NotificationEventV1) {
+  async function markRead(event: NotificationInboxEvent) {
     if (event.readAt) return;
     const readAt = new Date().toISOString();
     setEvents((current) =>
@@ -106,45 +134,50 @@ export function NotificationCenter({
         item.id === event.id ? { ...item, readAt } : item,
       ),
     );
+    setUnreadCount((current) => Math.max(0, current - 1));
     setAnnouncement(copy.markRead);
     try {
-      await operations?.markRead(event.id);
+      await activeOperations.markRead(event.id);
     } catch {
       setEvents((current) =>
         current.map((item) =>
           item.id === event.id ? { ...item, readAt: null } : item,
         ),
       );
+      setUnreadCount((current) => current + 1);
     }
   }
 
   async function markAllRead() {
     const readAt = new Date().toISOString();
     const previous = events;
+    const previousUnreadCount = unreadCount;
     setEvents((current) => current.map((event) => ({ ...event, readAt })));
+    setUnreadCount(0);
     setAnnouncement(copy.markAll);
     try {
-      await operations?.markAllRead();
+      await activeOperations.markAllRead();
     } catch {
       setEvents(previous);
+      setUnreadCount(previousUnreadCount);
     }
   }
 
-  async function muteObject(event: NotificationEventV1) {
-    if (!event.objectId || !event.objectType) return;
+  async function muteObject(event: NotificationInboxEvent) {
+    if (!event.objectType || !event.objectId) return;
     const previous = events;
     setEvents((current) =>
-      current.filter(
-        (item) =>
-          item.objectId !== event.objectId ||
-          item.objectType !== event.objectType,
+      current.map((item) =>
+        item.objectType === event.objectType && item.objectId === event.objectId
+          ? { ...item, muted: true }
+          : item,
       ),
     );
     setAnnouncement(copy.muted);
     try {
-      await operations?.muteObject({
-        objectId: event.objectId,
-        objectType: event.objectType,
+      await activeOperations.muteObject({
+        subjectType: event.objectType,
+        subjectId: event.objectId,
       });
     } catch {
       setEvents(previous);
@@ -255,7 +288,27 @@ export function NotificationCenter({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div
+              className="flex min-h-64 items-center justify-center px-8 type-body-sm text-on-surface-variant"
+              role="status"
+            >
+              {copy.loading}
+            </div>
+          ) : loadError ? (
+            <div className="flex min-h-64 flex-col items-center justify-center px-8 text-center">
+              <p className="type-body-sm text-on-surface-variant">
+                {copy.loadError}
+              </p>
+              <button
+                type="button"
+                onClick={() => void loadInbox()}
+                className="mt-3 inline-flex h-8 items-center rounded-[10px] px-3 type-label font-semibold text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                {copy.retry}
+              </button>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center px-8 text-center">
               <span className="flex size-10 items-center justify-center rounded-[10px] bg-secondary-container text-secondary-dim">
                 <Check className="h-5 w-5" aria-hidden="true" />
@@ -321,10 +374,10 @@ function NotificationGroup({
 }: {
   id: "today" | "earlier";
   title: string;
-  events: NotificationEventV1[];
+  events: NotificationInboxEvent[];
   locale: NotificationLocale;
-  onMarkRead: (event: NotificationEventV1) => void;
-  onMute: (event: NotificationEventV1) => void;
+  onMarkRead: (event: NotificationInboxEvent) => void;
+  onMute: (event: NotificationInboxEvent) => void;
 }) {
   const copy = getNotificationCopy(locale).inbox;
   if (events.length === 0) return null;
@@ -364,6 +417,11 @@ function NotificationGroup({
                 <span className="type-caption text-on-surface-variant">
                   {formatTime(event.createdAt, locale)}
                 </span>
+                {event.muted ? (
+                  <span className="inline-flex h-5 items-center rounded-[6px] bg-surface-container px-1.5 type-caption font-semibold text-on-surface-variant">
+                    {copy.mutedLabel}
+                  </span>
+                ) : null}
                 {event.deepLink ? (
                   <SheetClose
                     nativeButton={false}
@@ -391,7 +449,7 @@ function NotificationGroup({
                   <Check className="h-4 w-4" aria-hidden="true" />
                 </button>
               ) : null}
-              {event.objectId && event.objectType ? (
+              {event.objectType && event.objectId && !event.muted ? (
                 <button
                   type="button"
                   onClick={() => onMute(event)}

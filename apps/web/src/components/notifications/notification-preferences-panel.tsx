@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +17,12 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   buildDefaultNotificationPreferences,
-  type EmailDeliveryMode,
-  type NotificationPreferenceV1,
+  type NotificationCadence,
+  type NotificationPreferenceView,
   type NotificationUiOperations,
 } from "./contracts";
 import { getNotificationCopy, type NotificationLocale } from "./copy";
+import { notificationApiOperations } from "./notification-api";
 
 const TIMEZONES = [
   "America/New_York",
@@ -39,8 +40,11 @@ function browserTimezone() {
 
 interface NotificationPreferencesPanelProps {
   locale: NotificationLocale;
-  preferences?: NotificationPreferenceV1[];
-  operations?: Pick<NotificationUiOperations, "updatePreferences">;
+  preferences?: NotificationPreferenceView[];
+  operations?: Pick<
+    NotificationUiOperations,
+    "getPreferences" | "updatePreferences"
+  >;
   migratedPreferenceReviewRequired?: boolean;
   onReviewDismiss?: () => void;
 }
@@ -53,6 +57,7 @@ export function NotificationPreferencesPanel({
   onReviewDismiss,
 }: NotificationPreferencesPanelProps) {
   const copy = getNotificationCopy(locale).settings;
+  const activeOperations = operations ?? notificationApiOperations;
   const defaultPreferences = useMemo(
     () => buildDefaultNotificationPreferences(browserTimezone()),
     [],
@@ -64,6 +69,28 @@ export function NotificationPreferencesPanel({
   );
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(!preferences);
+
+  useEffect(() => {
+    if (preferences) return;
+    let active = true;
+    void activeOperations
+      .getPreferences()
+      .then((next) => {
+        if (!active) return;
+        setDraft(next);
+        setSaved(next);
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeOperations, preferences]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const optionalEmailEnabled = draft.some(
@@ -77,8 +104,8 @@ export function NotificationPreferencesPanel({
   );
 
   function updatePreference(
-    topic: NotificationPreferenceV1["topic"],
-    update: (current: NotificationPreferenceV1) => NotificationPreferenceV1,
+    topic: NotificationPreferenceView["topic"],
+    update: (current: NotificationPreferenceView) => NotificationPreferenceView,
   ) {
     setStatus("idle");
     setDraft((current) =>
@@ -89,7 +116,7 @@ export function NotificationPreferencesPanel({
   }
 
   function updateSchedule(
-    update: Pick<NotificationPreferenceV1, "timezone" | "quietHours">,
+    update: Pick<NotificationPreferenceView, "timezone" | "quietHours">,
   ) {
     setStatus("idle");
     setDraft((current) =>
@@ -117,11 +144,10 @@ export function NotificationPreferencesPanel({
   }
 
   function savePreferences() {
-    if (!operations) return;
     startTransition(async () => {
       setStatus("idle");
       try {
-        const next = await operations.updatePreferences(draft);
+        const next = await activeOperations.updatePreferences(draft);
         setDraft(next);
         setSaved(next);
         setStatus("saved");
@@ -130,6 +156,25 @@ export function NotificationPreferencesPanel({
         setStatus("error");
       }
     });
+  }
+
+  function updateCadence(
+    topic: NotificationPreferenceView["topic"],
+    mode: NotificationCadence,
+  ) {
+    setStatus("idle");
+    setDraft((current) =>
+      current.map((preference) => {
+        if (
+          ["daily", "weekly"].includes(mode) &&
+          ["daily", "weekly"].includes(preference.emailDeliveryMode)
+        ) {
+          return { ...preference, emailDeliveryMode: mode };
+        }
+        if (preference.topic !== topic) return preference;
+        return { ...preference, emailDeliveryMode: mode };
+      }),
+    );
   }
 
   return (
@@ -254,11 +299,10 @@ export function NotificationPreferencesPanel({
                   aria-label={`${title}: ${copy.cadence}`}
                   className="h-8 py-1 type-label"
                   onChange={(event) =>
-                    updatePreference(preference.topic, (current) => ({
-                      ...current,
-                      emailDeliveryMode: event.target
-                        .value as EmailDeliveryMode,
-                    }))
+                    updateCadence(
+                      preference.topic,
+                      event.target.value as NotificationCadence,
+                    )
                   }
                 >
                   {(["immediate", "daily", "weekly"] as const).map((mode) => (
@@ -367,7 +411,7 @@ export function NotificationPreferencesPanel({
           <Button
             type="button"
             onClick={savePreferences}
-            disabled={!dirty || isPending || !operations}
+            disabled={!dirty || isPending || loading}
             className="gap-2"
           >
             {isPending ? (
@@ -391,8 +435,8 @@ export function NotificationPreferencesPanel({
             ? copy.saved
             : status === "error"
               ? copy.saveError
-              : !operations
-                ? copy.wiring
+              : loading
+                ? copy.loading
                 : ""}
         </p>
       </div>

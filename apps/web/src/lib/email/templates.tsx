@@ -52,6 +52,8 @@ const palette = {
   coral: "#A12B20",
 };
 
+export const EMAIL_ACCESSIBLE_PALETTE = palette;
+
 function whyReceivedCopy(templateKey: EmailTemplateKey, locale: EmailLocale) {
   const en: Record<EmailTemplateKey, string> = {
     welcome: "You receive this because you created a Thinkfy account.",
@@ -460,6 +462,7 @@ function StatCell({
       }}
     >
       <table
+        role="presentation"
         width="100%"
         cellPadding="0"
         cellSpacing="0"
@@ -526,7 +529,13 @@ function Mascot({ mood }: { mood: EmailTemplateVariables["mascotMood"] }) {
         : palette.primary;
 
   return (
-    <table align="center" cellPadding="0" cellSpacing="0" border={0}>
+    <table
+      role="presentation"
+      align="center"
+      cellPadding="0"
+      cellSpacing="0"
+      border={0}
+    >
       <tbody>
         <tr>
           <td
@@ -908,6 +917,7 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                         }}
                       >
                         <table
+                          role="presentation"
                           width="100%"
                           cellPadding="0"
                           cellSpacing="0"
