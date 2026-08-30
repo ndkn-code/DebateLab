@@ -122,10 +122,14 @@ export function LegalDocumentPage({
               {locale === "vi" ? "Đơn vị" : "Operator"}
             </dt>
             <dd>{operator.name}</dd>
-            <dt className="font-semibold text-on-surface">
-              {locale === "vi" ? "Địa chỉ" : "Address"}
-            </dt>
-            <dd>{operator.address}</dd>
+            {operator.address ? (
+              <>
+                <dt className="font-semibold text-on-surface">
+                  {locale === "vi" ? "Địa chỉ" : "Address"}
+                </dt>
+                <dd>{operator.address}</dd>
+              </>
+            ) : null}
             <dt className="font-semibold text-on-surface">Email</dt>
             <dd>
               <a
@@ -140,6 +144,13 @@ export function LegalDocumentPage({
             </dt>
             <dd>{operator.governingLaw}</dd>
           </dl>
+          {kind === "terms" ? (
+            <p className="mt-4 type-body-sm leading-6 text-on-surface-variant">
+              {locale === "vi"
+                ? `Các điều khoản này chịu sự điều chỉnh của ${operator.governingLaw}. Tranh chấp sẽ được giải quyết theo thủ tục và tại cơ quan có thẩm quyền theo pháp luật áp dụng, sau khi các bên cố gắng giải quyết thiện chí.`
+                : `These terms are governed by ${operator.governingLaw}. Disputes will be handled through the procedures and competent authorities available under applicable law after the parties first attempt a good-faith resolution.`}
+            </p>
+          ) : null}
         </section>
         {kind === "cookies" ? (
           <CookieConsentManager locale={locale} mode="settings" />

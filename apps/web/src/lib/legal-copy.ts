@@ -27,7 +27,7 @@ const EN: Record<LegalDocumentKind, LegalDocument> = {
     effectiveLabel: "Effective date",
     effectiveDate: EFFECTIVE_DATE,
     draftNotice:
-      "Pre-launch legal draft. Operator identity, service address, and governing-law details must be completed and reviewed by qualified counsel before commercial launch.",
+      "Pre-launch legal draft. Operator identity and governing-law details must be completed and reviewed before commercial launch.",
     sections: [
       {
         title: "Who is responsible for your data",
@@ -142,7 +142,7 @@ const EN: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Paid features, refunds, and changes",
         paragraphs: [
-          "If paid features are introduced, price, billing period, renewal, cancellation, and refund terms will be shown before purchase. No purchase is authorized merely by accepting this draft. We may change or discontinue features while taking reasonable steps to protect active learners and required data access.",
+          "If paid features are introduced, price, billing period, renewal, cancellation, and refund terms will be shown for acceptance before purchase. We may change or discontinue features while taking reasonable steps to protect active learners and required data access.",
         ],
       },
       {
@@ -154,7 +154,7 @@ const EN: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Disclaimers and liability",
         paragraphs: [
-          "The service is provided on an as-available basis to the extent permitted by law. Nothing in these terms excludes rights or liabilities that cannot legally be excluded. Final warranty, liability, indemnity, and dispute language must be approved for the operator’s jurisdiction before commercial launch.",
+          "The service is provided on an as-available basis to the extent permitted by law. Nothing in these terms excludes consumer rights or liabilities that cannot legally be excluded. To the fullest extent permitted by law, Thinkfy is not responsible for indirect, incidental, special, or consequential losses arising from use of the service. This limitation does not apply where prohibited by law or to liability caused by fraud or willful misconduct.",
         ],
       },
       {
@@ -218,7 +218,7 @@ const VI: Record<LegalDocumentKind, LegalDocument> = {
     effectiveLabel: "Ngày hiệu lực",
     effectiveDate: "30 tháng 8 năm 2026",
     draftNotice:
-      "Bản dự thảo pháp lý trước khi ra mắt. Danh tính đơn vị vận hành, địa chỉ liên hệ và luật điều chỉnh phải được hoàn thiện và luật sư đủ năng lực rà soát trước khi thương mại hóa.",
+      "Bản dự thảo pháp lý trước khi ra mắt. Danh tính đơn vị vận hành và luật điều chỉnh phải được hoàn thiện và rà soát trước khi thương mại hóa.",
     sections: [
       {
         title: "Ai chịu trách nhiệm về dữ liệu",
@@ -333,7 +333,7 @@ const VI: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Tính năng trả phí, hoàn tiền và thay đổi",
         paragraphs: [
-          "Nếu có tính năng trả phí, giá, chu kỳ thanh toán, gia hạn, hủy và hoàn tiền sẽ được hiển thị trước khi mua. Việc chấp nhận bản dự thảo này không tự tạo giao dịch. Chúng tôi có thể thay đổi tính năng nhưng sẽ thực hiện các bước hợp lý để bảo vệ người học đang hoạt động và quyền truy cập dữ liệu bắt buộc.",
+          "Nếu có tính năng trả phí, giá, chu kỳ thanh toán, gia hạn, hủy và hoàn tiền sẽ được hiển thị để bạn chấp nhận trước khi mua. Chúng tôi có thể thay đổi tính năng nhưng sẽ thực hiện các bước hợp lý để bảo vệ người học đang hoạt động và quyền truy cập dữ liệu bắt buộc.",
         ],
       },
       {
@@ -345,7 +345,7 @@ const VI: Record<LegalDocumentKind, LegalDocument> = {
       {
         title: "Tuyên bố miễn trừ và trách nhiệm",
         paragraphs: [
-          "Dịch vụ được cung cấp theo khả năng sẵn có trong giới hạn pháp luật. Không nội dung nào loại trừ quyền hoặc trách nhiệm không thể bị loại trừ. Nội dung cuối cùng về bảo đảm, giới hạn trách nhiệm, bồi thường và tranh chấp phải được phê duyệt theo nơi hoạt động trước khi thương mại hóa.",
+          "Dịch vụ được cung cấp theo khả năng sẵn có trong giới hạn pháp luật. Không nội dung nào trong điều khoản này loại trừ quyền của người tiêu dùng hoặc trách nhiệm không thể bị loại trừ theo luật. Trong phạm vi tối đa pháp luật cho phép, Thinkfy không chịu trách nhiệm đối với tổn thất gián tiếp, ngẫu nhiên, đặc biệt hoặc hệ quả phát sinh từ việc sử dụng dịch vụ. Giới hạn này không áp dụng khi pháp luật cấm hoặc đối với trách nhiệm do gian lận hay hành vi cố ý gây ra.",
         ],
       },
       {

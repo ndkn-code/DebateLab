@@ -81,7 +81,6 @@ export function publicPageMetadata(input: {
 export function legalPublicationReady() {
   return Boolean(
     process.env.NEXT_PUBLIC_LEGAL_OPERATOR_NAME?.trim() &&
-    process.env.NEXT_PUBLIC_LEGAL_OPERATOR_ADDRESS?.trim() &&
     process.env.NEXT_PUBLIC_LEGAL_GOVERNING_LAW?.trim(),
   );
 }
@@ -90,9 +89,7 @@ export function legalOperatorDetails() {
   return {
     name:
       process.env.NEXT_PUBLIC_LEGAL_OPERATOR_NAME?.trim() || "Thinkfy operator",
-    address:
-      process.env.NEXT_PUBLIC_LEGAL_OPERATOR_ADDRESS?.trim() ||
-      "Operator address pending publication",
+    address: process.env.NEXT_PUBLIC_LEGAL_OPERATOR_ADDRESS?.trim() || null,
     governingLaw:
       process.env.NEXT_PUBLIC_LEGAL_GOVERNING_LAW?.trim() ||
       "Governing law pending legal review",
