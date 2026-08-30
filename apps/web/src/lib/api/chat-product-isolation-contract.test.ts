@@ -15,10 +15,6 @@ const detailRoute = readFileSync(
   resolve(root, "src/app/api/chat/conversations/[id]/route.ts"),
   "utf8",
 );
-const listRoute = readFileSync(
-  resolve(root, "src/app/api/chat/conversations/route.ts"),
-  "utf8",
-);
 const deleteAction = readFileSync(
   resolve(root, "src/app/[locale]/(protected)/chat/actions.ts"),
   "utf8",
@@ -49,8 +45,11 @@ assert.ok(
     .length >= 3,
   "detail and delete must verify and mutate only the active product",
 );
-assert.match(listRoute, /resolveServerActiveChatProduct/);
-assert.match(listRoute, /getConversations\(auth\.user\.id, productContext\)/);
+assert.match(
+  chatRepository,
+  /getConversations\([\s\S]*productContext: ChatProductContext = "debate"/,
+  "the existing server-side conversation loader must require an explicit product scope",
+);
 assert.match(deleteAction, /getActiveSubject/);
 assert.match(
   deleteAction,
