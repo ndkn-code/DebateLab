@@ -51,10 +51,7 @@ import {
   isIeltsEvidenceAdjudicationEnabled,
   speakingBands,
 } from "@/lib/ielts/scoring-adjudication";
-import {
-  buildSpeakingCriterionEvidence,
-  IELTS_PROVISIONAL_EVIDENCE_VERSION,
-} from "@/lib/ielts/criterion-evidence-contract";
+import { buildSpeakingRunCriterionEvidence } from "@/lib/ielts/criterion-evidence-contract";
 import {
   claimableSpeakingStatuses,
   decideSpeakingScoringAction,
@@ -392,31 +389,13 @@ export async function runIeltsSpeakingScoringJob(
       }) as unknown as Json;
     }
     const score = normalizeSpeakingScore(result.output);
-    const criterionEvidence = buildSpeakingCriterionEvidence({
-      score: provisionalScore,
-      context: {
-        stage: "provisional",
-        gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
-        traceId: provisional.traceId,
-        runId: provisional.traceId,
-        provider: provisional.providerLabel,
-        model: provisional.modelName,
-      },
+    const criterionEvidence = buildSpeakingRunCriterionEvidence({
+      provisionalScore,
+      finalScore: score,
+      provisional,
+      final: result,
+      adjudicatedVersion: IELTS_GRADING_VERSION,
     });
-    if (result !== provisional)
-      criterionEvidence.push(
-        ...buildSpeakingCriterionEvidence({
-          score,
-          context: {
-            stage: "adjudicated",
-            gradingVersion: IELTS_GRADING_VERSION,
-            traceId: result.traceId,
-            runId: provisional.traceId,
-            provider: result.providerLabel,
-            model: result.modelName,
-          },
-        }),
-      );
     await persistSpeakingScore(admin, {
       speakingResponseId: response.id,
       transcript: transcription.transcript,

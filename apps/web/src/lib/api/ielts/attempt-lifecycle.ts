@@ -27,6 +27,18 @@ export interface AttemptOrgContext {
   assignmentId: string | null;
 }
 
+function attemptOrgRpcArgs(org?: AttemptOrgContext): {
+  p_club_id?: string;
+  p_class_id?: string;
+  p_assignment_id?: string;
+} {
+  return {
+    p_club_id: org?.clubId ?? undefined,
+    p_class_id: org?.classId ?? undefined,
+    p_assignment_id: org?.assignmentId ?? undefined,
+  };
+}
+
 /** Create an attempt and its timed sections from a blueprint (service-role). */
 export async function createAttemptWithSections(params: {
   userId: string;
@@ -57,26 +69,28 @@ export async function createAttemptWithSections(params: {
         label: section.label,
         time_limit_seconds: section.timeLimitSeconds,
       })) as unknown as Json,
-      p_club_id: org?.clubId ?? null,
-      p_class_id: org?.classId ?? null,
-      p_assignment_id: org?.assignmentId ?? null,
+      ...attemptOrgRpcArgs(org),
     },
   );
   if (createError || !attemptId) {
-    throw new Error(`createAttempt: ${createError?.message ?? "no attempt returned"}`);
+    throw new Error(
+      `createAttempt: ${createError?.message ?? "no attempt returned"}`,
+    );
   }
   const { data: attempt, error: attemptError } = await admin
     .from("ielts_attempts")
     .select()
     .eq("id", attemptId)
     .single();
-  if (attemptError) throw new Error(`createAttempt(load): ${attemptError.message}`);
+  if (attemptError)
+    throw new Error(`createAttempt(load): ${attemptError.message}`);
   const { data: sections, error: sectionError } = await admin
     .from("ielts_attempt_sections")
     .select()
     .eq("attempt_id", attemptId)
     .order("section_order");
-  if (sectionError) throw new Error(`createAttemptSections(load): ${sectionError.message}`);
+  if (sectionError)
+    throw new Error(`createAttemptSections(load): ${sectionError.message}`);
   return { attempt, sections: sections ?? [] };
 }
 

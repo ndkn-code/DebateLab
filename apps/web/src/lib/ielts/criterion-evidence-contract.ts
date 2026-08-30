@@ -64,6 +64,12 @@ type EvidenceContext = {
   model: string;
 };
 
+type ScoringTrace = {
+  traceId: string;
+  providerLabel: string;
+  modelName: string;
+};
+
 export function buildWritingCriterionEvidence(params: {
   score: NormalizedWritingScore;
   context: EvidenceContext;
@@ -92,4 +98,39 @@ export function buildSpeakingCriterionEvidence(params: {
       ...params.context,
     }),
   );
+}
+
+export function buildSpeakingRunCriterionEvidence(params: {
+  provisionalScore: NormalizedSpeakingScore;
+  finalScore: NormalizedSpeakingScore;
+  provisional: ScoringTrace;
+  final: ScoringTrace;
+  adjudicatedVersion: string;
+}): IeltsCriterionEvidenceContract[] {
+  const evidence = buildSpeakingCriterionEvidence({
+    score: params.provisionalScore,
+    context: {
+      stage: "provisional",
+      gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+      traceId: params.provisional.traceId,
+      runId: params.provisional.traceId,
+      provider: params.provisional.providerLabel,
+      model: params.provisional.modelName,
+    },
+  });
+  if (params.final.traceId === params.provisional.traceId) return evidence;
+  evidence.push(
+    ...buildSpeakingCriterionEvidence({
+      score: params.finalScore,
+      context: {
+        stage: "adjudicated",
+        gradingVersion: params.adjudicatedVersion,
+        traceId: params.final.traceId,
+        runId: params.provisional.traceId,
+        provider: params.final.providerLabel,
+        model: params.final.modelName,
+      },
+    }),
+  );
+  return evidence;
 }

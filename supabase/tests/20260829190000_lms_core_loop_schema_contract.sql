@@ -1,6 +1,8 @@
 -- Run after 20260829190000_lms_core_loop_schema.sql.
 begin;
 
+select plan(1);
+
 do $$
 declare table_name text;
 begin
@@ -22,30 +24,30 @@ begin
   end loop;
 
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'class_attendance_sessions'
-      and column_name = 'occurrence_id'
+    select 1 from information_schema.columns as c
+    where c.table_schema = 'public' and c.table_name = 'class_attendance_sessions'
+      and c.column_name = 'occurrence_id'
   ) then
     raise exception 'Attendance occurrence link is missing';
   end if;
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'ielts_teacher_reviews'
-      and column_name = 'criterion_feedback' and data_type = 'jsonb'
+    select 1 from information_schema.columns as c
+    where c.table_schema = 'public' and c.table_name = 'ielts_teacher_reviews'
+      and c.column_name = 'criterion_feedback' and c.data_type = 'jsonb'
   ) then
     raise exception 'Criterion teacher feedback is missing';
   end if;
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'speaking_responses'
-      and column_name = 'audio_verified_at'
+    select 1 from information_schema.columns as c
+    where c.table_schema = 'public' and c.table_name = 'speaking_responses'
+      and c.column_name = 'audio_verified_at'
   ) then
     raise exception 'Verified speaking evidence metadata is missing';
   end if;
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'club_assignment_submissions'
-      and column_name = 'cleanup_status'
+    select 1 from information_schema.columns as c
+    where c.table_schema = 'public' and c.table_name = 'club_assignment_submissions'
+      and c.column_name = 'cleanup_status'
   ) then
     raise exception 'Homework cleanup observability is missing';
   end if;
@@ -106,5 +108,7 @@ begin
   end if;
 end;
 $$;
+
+select pass('LMS core-loop schema contract is satisfied');
 
 rollback;

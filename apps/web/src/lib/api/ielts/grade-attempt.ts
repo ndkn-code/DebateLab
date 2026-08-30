@@ -7,7 +7,7 @@
  */
 import "server-only";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
-import type { Tables } from "@/types/supabase";
+import type { Json, Tables } from "@/types/supabase";
 import {
   gradeObjectiveAttempt,
   type AttemptGrade,
@@ -27,7 +27,9 @@ type AdminClient = ReturnType<typeof createTypedAdminClient>;
 
 const OBJECTIVE_SKILLS = ["listening", "reading"] as const;
 
-function resolveConversionKey(metadata: Tables<"ielts_tests">["metadata"]): string {
+function resolveConversionKey(
+  metadata: Tables<"ielts_tests">["metadata"] | undefined,
+): string {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     const value = (metadata as Record<string, unknown>).band_conversion_key;
     if (typeof value === "string" && value.length > 0) return value;
@@ -43,6 +45,46 @@ interface GradingInputs {
   questions: GradableQuestion[];
   responseIdByQuestion: Map<string, string>;
   grade: AttemptGrade;
+}
+
+async function loadObjectiveKeys(params: {
+  admin: AdminClient;
+  attemptId: string;
+  questionIds: string[];
+  frozen: boolean;
+}): Promise<Map<string, ObjectiveKey>> {
+  if (params.questionIds.length === 0) return new Map();
+
+  let rows: Array<{
+    question_id: string;
+    correct_answer: Json;
+    accept_variants: Json;
+  }>;
+  if (params.frozen) {
+    const { data, error } = await params.admin
+      .from("ielts_attempt_question_keys")
+      .select("question_id, correct_answer, accept_variants")
+      .eq("attempt_id", params.attemptId)
+      .in("question_id", params.questionIds);
+    if (error) throw new Error(`grade(frozen keys): ${error.message}`);
+    rows = data ?? [];
+  } else {
+    const { data, error } = await params.admin
+      .from("ielts_question_keys")
+      .select("question_id, correct_answer, accept_variants")
+      .in("question_id", params.questionIds);
+    if (error) throw new Error(`grade(keys): ${error.message}`);
+    rows = data ?? [];
+  }
+  return new Map(
+    rows.map((key) => [
+      key.question_id,
+      {
+        correct_answer: key.correct_answer,
+        accept_variants: key.accept_variants,
+      },
+    ]),
+  );
 }
 
 async function loadAndGrade(
@@ -65,7 +107,7 @@ async function loadAndGrade(
     .select("metadata")
     .eq("id", attempt.test_id)
     .maybeSingle();
-  const conversionKey = resolveConversionKey(test?.metadata ?? null);
+  const conversionKey = resolveConversionKey(test?.metadata);
 
   const [snapshotRes, responseRes, bandRes] = await Promise.all([
     admin
@@ -86,8 +128,10 @@ async function loadAndGrade(
       .in("conversion_key", [...new Set(["default", conversionKey])])
       .in("skill", OBJECTIVE_SKILLS),
   ]);
-  if (snapshotRes.error) throw new Error(`grade(blueprint): ${snapshotRes.error.message}`);
-  if (responseRes.error) throw new Error(`grade(responses): ${responseRes.error.message}`);
+  if (snapshotRes.error)
+    throw new Error(`grade(blueprint): ${snapshotRes.error.message}`);
+  if (responseRes.error)
+    throw new Error(`grade(responses): ${responseRes.error.message}`);
   if (bandRes.error) throw new Error(`grade(bands): ${bandRes.error.message}`);
 
   const snapshotRows = snapshotRes.data ?? [];
@@ -98,7 +142,7 @@ async function loadAndGrade(
   // compatibility path. New attempts always have snapshot rows.
   const questionRows = snapshotRows.length
     ? snapshotRows.map((row) => ({ ...row, id: row.question_id }))
-    : (
+    : ((
         await admin
           .from("ielts_questions")
           .select(
@@ -106,7 +150,7 @@ async function loadAndGrade(
           )
           .eq("test_id", attempt.test_id)
           .in("skill", OBJECTIVE_SKILLS)
-      ).data ?? [];
+      ).data ?? []);
 
   const questions: GradableQuestion[] = questionRows.map((q) => {
     const view = parseQuestionView(q);
@@ -124,29 +168,12 @@ async function loadAndGrade(
 
   const responseRows = responseRes.data ?? [];
   const questionIds = questions.map((q) => q.id);
-  const keyRows = questionIds.length
-    ? snapshotRows.length
-      ? (
-          await admin
-            .from("ielts_attempt_question_keys")
-            .select("question_id, correct_answer, accept_variants")
-            .eq("attempt_id", attemptId)
-            .in("question_id", questionIds)
-        ).data ?? []
-      : (
-          await admin
-            .from("ielts_question_keys")
-            .select("question_id, correct_answer, accept_variants")
-            .in("question_id", questionIds)
-        ).data ?? []
-    : [];
-
-  const keys = new Map<string, ObjectiveKey>(
-    keyRows.map((k) => [
-      k.question_id,
-      { correct_answer: k.correct_answer, accept_variants: k.accept_variants },
-    ]),
-  );
+  const keys = await loadObjectiveKeys({
+    admin,
+    attemptId,
+    questionIds,
+    frozen: snapshotRows.length > 0,
+  });
   const responses = new Map<string, unknown>(
     responseRows.map((r) => [r.question_id, r.response]),
   );
@@ -162,7 +189,9 @@ async function loadAndGrade(
   return {
     attempt,
     questions,
-    responseIdByQuestion: new Map(responseRows.map((r) => [r.question_id, r.id])),
+    responseIdByQuestion: new Map(
+      responseRows.map((r) => [r.question_id, r.id]),
+    ),
     grade,
   };
 }
@@ -218,7 +247,8 @@ async function persist(
     .from("ielts_attempts")
     .update({ status: "completed", completed_at: nowIso, updated_at: nowIso })
     .eq("id", attempt.id);
-  if (attemptError) throw new Error(`grade(attempt status): ${attemptError.message}`);
+  if (attemptError)
+    throw new Error(`grade(attempt status): ${attemptError.message}`);
 }
 
 /** Grade an attempt's objective responses and persist results + bands. */
@@ -242,7 +272,8 @@ export async function gradeAttemptObjective(
       .select("status")
       .eq("id", attemptId)
       .maybeSingle();
-    if (existingError) throw new Error(`grade(state): ${existingError.message}`);
+    if (existingError)
+      throw new Error(`grade(state): ${existingError.message}`);
     if (!existing || !["scoring", "completed"].includes(existing.status)) {
       throw new Error("grade: attempt is not submitted");
     }

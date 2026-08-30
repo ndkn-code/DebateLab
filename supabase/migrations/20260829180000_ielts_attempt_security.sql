@@ -66,6 +66,14 @@ create table if not exists public.ielts_attempt_question_keys (
 alter table public.ielts_attempt_question_keys enable row level security;
 revoke all on public.ielts_attempt_question_keys from anon, authenticated;
 grant all on public.ielts_attempt_question_keys to service_role;
+drop policy if exists "Service role manages frozen IELTS answer keys"
+  on public.ielts_attempt_question_keys;
+create policy "Service role manages frozen IELTS answer keys"
+  on public.ielts_attempt_question_keys
+  for all
+  to service_role
+  using (true)
+  with check (true);
 
 -- The snapshot is intentionally append-only. A new attempt gets a new
 -- snapshot; changing an existing attempt's blueprint would invalidate grading.
