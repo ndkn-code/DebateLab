@@ -118,7 +118,7 @@ function mkActivity(
     activity_type: type,
     content: { sources: keys.map((subskillKey) => ({ subskillKey })) },
     phase: "practice",
-    duration_minutes: null,
+    duration_minutes: 0,
     order_index: order,
   };
 }

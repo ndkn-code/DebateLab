@@ -35,6 +35,31 @@ export type IeltsMicroDraftActivityType = Extract<
 >
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       achievements: {
@@ -84,11 +109,11 @@ export type Database = {
       }
       activities: {
         Row: {
-          activity_type: ActivityType
+          activity_type: string
           content: Json
           created_at: string
           description: string | null
-          duration_minutes: number | null
+          duration_minutes: number
           id: string
           is_archived: boolean
           metadata: Json
@@ -99,11 +124,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          activity_type: ActivityType
+          activity_type: string
           content?: Json
           created_at?: string
           description?: string | null
-          duration_minutes?: number | null
+          duration_minutes?: number
           id?: string
           is_archived?: boolean
           metadata?: Json
@@ -114,11 +139,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          activity_type?: ActivityType
+          activity_type?: string
           content?: Json
           created_at?: string
           description?: string | null
-          duration_minutes?: number | null
+          duration_minutes?: number
           id?: string
           is_archived?: boolean
           metadata?: Json
@@ -279,6 +304,113 @@ export type Database = {
           },
         ]
       }
+      ai_grading_benchmarks: {
+        Row: {
+          accent_group: string | null
+          band_or_score_range: string | null
+          benchmark_key: string
+          collection_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          protected_label: Json
+          skill: string
+          source_id: string | null
+          split: string
+          task_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_group?: string | null
+          band_or_score_range?: string | null
+          benchmark_key: string
+          collection_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          protected_label: Json
+          skill: string
+          source_id?: string | null
+          split?: string
+          task_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_group?: string | null
+          band_or_score_range?: string | null
+          benchmark_key?: string
+          collection_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          protected_label?: Json
+          skill?: string
+          source_id?: string | null
+          split?: string
+          task_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_benchmarks_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_benchmarks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_evaluations: {
+        Row: {
+          benchmark_id: string
+          corpus_version: number
+          created_at: string
+          grader_version: string
+          id: string
+          metrics: Json
+          prediction: Json
+          run_metadata: Json
+        }
+        Insert: {
+          benchmark_id: string
+          corpus_version: number
+          created_at?: string
+          grader_version: string
+          id?: string
+          metrics?: Json
+          prediction: Json
+          run_metadata?: Json
+        }
+        Update: {
+          benchmark_id?: string
+          corpus_version?: number
+          created_at?: string
+          grader_version?: string
+          id?: string
+          metrics?: Json
+          prediction?: Json
+          run_metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_evaluations_benchmark_id_fkey"
+            columns: ["benchmark_id"]
+            isOneToOne: false
+            referencedRelation: "ai_grading_benchmarks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_insights_cache: {
         Row: {
           cache_key: string
@@ -333,6 +465,469 @@ export type Database = {
           {
             foreignKeyName: "ai_insights_cache_target_user_id_fkey"
             columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_collection_versions: {
+        Row: {
+          collection_id: string
+          created_at: string
+          import_key: string | null
+          published_at: string | null
+          published_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          import_key?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          import_key?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_collection_versions_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_collection_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_collection_versions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_collection_versions_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_collections: {
+        Row: {
+          active_version: number
+          created_at: string
+          domain: string
+          embedding_dimensions: number
+          embedding_model: string
+          embedding_provider: string
+          id: string
+          is_active: boolean
+          language: string
+          retrieval_thresholds: Json
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active_version?: number
+          created_at?: string
+          domain: string
+          embedding_dimensions?: number
+          embedding_model: string
+          embedding_provider: string
+          id?: string
+          is_active?: boolean
+          language: string
+          retrieval_thresholds?: Json
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active_version?: number
+          created_at?: string
+          domain?: string
+          embedding_dimensions?: number
+          embedding_model?: string
+          embedding_provider?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          retrieval_thresholds?: Json
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_knowledge_embeddings: {
+        Row: {
+          collection_id: string
+          content_hash: string
+          created_at: string
+          dimensions: number
+          embedded_at: string
+          embedding: string
+          id: string
+          input_type: string
+          item_id: string
+          model: string
+          provider: string
+          token_count_estimate: number | null
+          updated_at: string
+        }
+        Insert: {
+          collection_id: string
+          content_hash: string
+          created_at?: string
+          dimensions?: number
+          embedded_at?: string
+          embedding: string
+          id?: string
+          input_type?: string
+          item_id: string
+          model: string
+          provider: string
+          token_count_estimate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          collection_id?: string
+          content_hash?: string
+          created_at?: string
+          dimensions?: number
+          embedded_at?: string
+          embedding?: string
+          id?: string
+          input_type?: string
+          item_id?: string
+          model?: string
+          provider?: string
+          token_count_estimate?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_embeddings_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_embeddings_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_items: {
+        Row: {
+          band_max: number | null
+          band_min: number | null
+          collection_id: string
+          collection_version: number
+          content_hash: string
+          created_at: string
+          criterion: string | null
+          embedding_text: string
+          external_key: string | null
+          format: string | null
+          id: string
+          item_kind: string
+          language: string
+          metadata: Json
+          permitted_excerpt: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          source_locator: string | null
+          structured_insight: Json
+          submitted_by: string | null
+          task_type: string | null
+          updated_at: string
+          usable_for: string[]
+        }
+        Insert: {
+          band_max?: number | null
+          band_min?: number | null
+          collection_id: string
+          collection_version: number
+          content_hash: string
+          created_at?: string
+          criterion?: string | null
+          embedding_text: string
+          external_key?: string | null
+          format?: string | null
+          id?: string
+          item_kind: string
+          language: string
+          metadata?: Json
+          permitted_excerpt?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          source_locator?: string | null
+          structured_insight?: Json
+          submitted_by?: string | null
+          task_type?: string | null
+          updated_at?: string
+          usable_for?: string[]
+        }
+        Update: {
+          band_max?: number | null
+          band_min?: number | null
+          collection_id?: string
+          collection_version?: number
+          content_hash?: string
+          created_at?: string
+          criterion?: string | null
+          embedding_text?: string
+          external_key?: string | null
+          format?: string | null
+          id?: string
+          item_kind?: string
+          language?: string
+          metadata?: Json
+          permitted_excerpt?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          source_locator?: string | null
+          structured_insight?: Json
+          submitted_by?: string | null
+          task_type?: string | null
+          updated_at?: string
+          usable_for?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_items_collection_version_fkey"
+            columns: ["collection_id", "collection_version"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collection_versions"
+            referencedColumns: ["collection_id", "version"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_items_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_items_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_retrieval_logs: {
+        Row: {
+          ai_quality_run_id: string | null
+          collection_id: string
+          created_at: string
+          dimensions: number
+          filters: Json
+          id: string
+          latency_ms: number | null
+          model: string
+          provider: string
+          query_hash: string
+          query_preview: string | null
+          relevance_measurements: Json
+          returned_evidence: Json
+          source_route: string | null
+          user_id: string | null
+          workflow_run_id: string | null
+        }
+        Insert: {
+          ai_quality_run_id?: string | null
+          collection_id: string
+          created_at?: string
+          dimensions?: number
+          filters?: Json
+          id?: string
+          latency_ms?: number | null
+          model: string
+          provider: string
+          query_hash: string
+          query_preview?: string | null
+          relevance_measurements?: Json
+          returned_evidence?: Json
+          source_route?: string | null
+          user_id?: string | null
+          workflow_run_id?: string | null
+        }
+        Update: {
+          ai_quality_run_id?: string | null
+          collection_id?: string
+          created_at?: string
+          dimensions?: number
+          filters?: Json
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          provider?: string
+          query_hash?: string
+          query_preview?: string | null
+          relevance_measurements?: Json
+          returned_evidence?: Json
+          source_route?: string | null
+          user_id?: string | null
+          workflow_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_retrieval_logs_ai_quality_run_id_fkey"
+            columns: ["ai_quality_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_quality_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_retrieval_logs_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_retrieval_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_retrieval_logs_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_sources: {
+        Row: {
+          authority_tier: string
+          canonical_url: string
+          captured_at: string
+          checksum: string
+          created_at: string
+          id: string
+          metadata: Json
+          publisher: string | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rights_status: string
+          submitted_by: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          authority_tier: string
+          canonical_url: string
+          captured_at?: string
+          checksum: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          publisher?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rights_status?: string
+          submitted_by?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authority_tier?: string
+          canonical_url?: string
+          captured_at?: string
+          checksum?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          publisher?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rights_status?: string
+          submitted_by?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_sources_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_sources_submitted_by_fkey"
+            columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -721,6 +1316,113 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_workflow_runs: {
+        Row: {
+          analysis_job_id: string | null
+          completed_at: string | null
+          core_completed_at: string | null
+          created_at: string
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          last_error_message: string | null
+          launch_token: string | null
+          lease_expires_at: string | null
+          phase: string
+          progress: Json
+          provider_attempt_count: number
+          speaking_response_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workflow_attempt_count: number
+          workflow_kind: string
+          workflow_run_id: string | null
+          writing_response_id: string | null
+        }
+        Insert: {
+          analysis_job_id?: string | null
+          completed_at?: string | null
+          core_completed_at?: string | null
+          created_at?: string
+          failed_at?: string | null
+          id?: string
+          idempotency_key: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          launch_token?: string | null
+          lease_expires_at?: string | null
+          phase?: string
+          progress?: Json
+          provider_attempt_count?: number
+          speaking_response_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          workflow_attempt_count?: number
+          workflow_kind: string
+          workflow_run_id?: string | null
+          writing_response_id?: string | null
+        }
+        Update: {
+          analysis_job_id?: string | null
+          completed_at?: string | null
+          core_completed_at?: string | null
+          created_at?: string
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          launch_token?: string | null
+          lease_expires_at?: string | null
+          phase?: string
+          progress?: Json
+          provider_attempt_count?: number
+          speaking_response_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workflow_attempt_count?: number
+          workflow_kind?: string
+          workflow_run_id?: string | null
+          writing_response_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_workflow_runs_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_workflow_runs_speaking_response_id_fkey"
+            columns: ["speaking_response_id"]
+            isOneToOne: false
+            referencedRelation: "speaking_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_workflow_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_workflow_runs_writing_response_id_fkey"
+            columns: ["writing_response_id"]
+            isOneToOne: false
+            referencedRelation: "writing_responses"
             referencedColumns: ["id"]
           },
         ]
@@ -7153,50 +7855,6 @@ export type Database = {
           },
         ]
       }
-      maintenance_settings: {
-        Row: {
-          banner_message_en: string
-          banner_message_vi: string
-          expected_done_at: string | null
-          full_message_en: string
-          full_message_vi: string
-          id: string
-          mode: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          banner_message_en: string
-          banner_message_vi: string
-          expected_done_at?: string | null
-          full_message_en: string
-          full_message_vi: string
-          id?: string
-          mode?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          banner_message_en?: string
-          banner_message_vi?: string
-          expected_done_at?: string | null
-          full_message_en?: string
-          full_message_vi?: string
-          id?: string
-          mode?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maintenance_settings_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       lms_announcements: {
         Row: {
           archived_at: string | null
@@ -7886,6 +8544,50 @@ export type Database = {
             columns: ["scope_class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_settings: {
+        Row: {
+          banner_message_en: string
+          banner_message_vi: string
+          expected_done_at: string | null
+          full_message_en: string
+          full_message_vi: string
+          id: string
+          mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          banner_message_en: string
+          banner_message_vi: string
+          expected_done_at?: string | null
+          full_message_en: string
+          full_message_vi: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          banner_message_en?: string
+          banner_message_vi?: string
+          expected_done_at?: string | null
+          full_message_en?: string
+          full_message_vi?: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -9196,6 +9898,13 @@ export type Database = {
             foreignKeyName: "resources_club_id_fkey"
             columns: ["club_id"]
             isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
@@ -9621,8 +10330,8 @@ export type Database = {
           created_at: string
           feedback: Json
           feedback_language: string
-          grading_metadata: Json
           fluency_coherence_band: number | null
+          grading_metadata: Json
           grammar_band: number | null
           id: string
           lexical_resource_band: number | null
@@ -9654,8 +10363,8 @@ export type Database = {
           created_at?: string
           feedback?: Json
           feedback_language?: string
-          grading_metadata?: Json
           fluency_coherence_band?: number | null
+          grading_metadata?: Json
           grammar_band?: number | null
           id?: string
           lexical_resource_band?: number | null
@@ -9687,8 +10396,8 @@ export type Database = {
           created_at?: string
           feedback?: Json
           feedback_language?: string
-          grading_metadata?: Json
           fluency_coherence_band?: number | null
+          grading_metadata?: Json
           grammar_band?: number | null
           id?: string
           lexical_resource_band?: number | null
@@ -11216,6 +11925,45 @@ export type Database = {
         Args: { p_target_user_id: string }
         Returns: Json
       }
+      claim_ai_workflow_run: {
+        Args: {
+          p_launch_token?: string
+          p_lease_seconds?: number
+          p_phase: string
+          p_run_id: string
+        }
+        Returns: {
+          analysis_job_id: string | null
+          completed_at: string | null
+          core_completed_at: string | null
+          created_at: string
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          last_error_message: string | null
+          launch_token: string | null
+          lease_expires_at: string | null
+          phase: string
+          progress: Json
+          provider_attempt_count: number
+          speaking_response_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workflow_attempt_count: number
+          workflow_kind: string
+          workflow_run_id: string | null
+          writing_response_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_workflow_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_club_join_code: {
         Args: { p_code: string }
         Returns: {
@@ -11600,6 +12348,40 @@ export type Database = {
         Args: { p_section_id: string }
         Returns: string
       }
+      increment_ai_workflow_provider_attempt: {
+        Args: { p_run_id: string }
+        Returns: {
+          analysis_job_id: string | null
+          completed_at: string | null
+          core_completed_at: string | null
+          created_at: string
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          last_error_message: string | null
+          launch_token: string | null
+          lease_expires_at: string | null
+          phase: string
+          progress: Json
+          provider_attempt_count: number
+          speaking_response_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workflow_attempt_count: number
+          workflow_kind: string
+          workflow_run_id: string | null
+          writing_response_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_workflow_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       increment_feature_usage: {
         Args: {
           p_amount: number
@@ -11677,6 +12459,19 @@ export type Database = {
           usable_for: string[]
         }[]
       }
+      prepare_ai_knowledge_collection_draft: {
+        Args: {
+          p_collection_slug: string
+          p_import_key: string
+          p_submitted_by?: string
+          p_version: number
+        }
+        Returns: {
+          collection_id: string
+          language: string
+          version: number
+        }[]
+      }
       process_debate_duel_forfeit_internal: {
         Args: { p_duel_id: string; p_forfeiter_user_id: string }
         Returns: boolean
@@ -11688,6 +12483,19 @@ export type Database = {
       process_debate_duel_rating_internal: {
         Args: { p_duel_id: string }
         Returns: boolean
+      }
+      publish_ai_knowledge_collection_version: {
+        Args: {
+          p_collection_slug: string
+          p_review_notes?: string
+          p_reviewer_id: string
+          p_version: number
+        }
+        Returns: {
+          collection_id: string
+          published_at: string
+          version: number
+        }[]
       }
       publish_ielts_teacher_review: {
         Args: { p_actor_id?: string; p_review_id: string }
@@ -11935,11 +12743,17 @@ export type Database = {
         Args: {
           p_actor_id?: string
           p_attempt_id: string
-          p_bands?: Json
           p_class_id: string
           p_club_id: string
+          p_coherence_cohesion?: number
+          p_expected_revision: number
+          p_fluency_coherence?: number
+          p_grammar?: number
+          p_lexical_resource?: number
+          p_pronunciation?: number
           p_reviewer_note?: string
           p_speaking_response_id?: string
+          p_task_response?: number
           p_writing_response_id?: string
         }
         Returns: {
@@ -11982,6 +12796,66 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      search_ai_knowledge_hybrid: {
+        Args: {
+          p_collection_slug: string
+          p_filters?: Json
+          p_match_count?: number
+          p_model: string
+          p_provider: string
+          p_query_embedding: string
+          p_query_text: string
+        }
+        Returns: {
+          authority_tier: string
+          band_max: number
+          band_min: number
+          canonical_url: string
+          collection_slug: string
+          collection_version: number
+          criterion: string
+          evidence_id: string
+          format: string
+          item_kind: string
+          lexical_score: number
+          permitted_excerpt: string
+          relevance_score: number
+          retrieval_limitations: string[]
+          semantic_similarity: number
+          source_id: string
+          source_locator: string
+          structured_insight: Json
+          task_type: string
+        }[]
+      }
+      search_debate_corpus_items_lexical: {
+        Args: {
+          language?: string
+          match_count?: number
+          min_confidence?: number
+          query_text: string
+          review_statuses?: string[]
+          usable_for?: string
+        }
+        Returns: {
+          canonical_match_id: string
+          canonical_match_key: string
+          confidence: number
+          content: Json
+          embedding_text: string
+          evidence_status: string
+          item_id: string
+          item_type: string
+          language: string
+          lexical_rank: number
+          lexical_score: number
+          motion_vi: string
+          review_status: string
+          side: string
+          similarity: number
+          usable_for: string[]
+        }[]
       }
       search_profile_discovery: {
         Args: { p_leaderboard_language?: string; p_query: string }
@@ -12323,6 +13197,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       ielts_accent: ["uk", "us", "aus", "other"],
