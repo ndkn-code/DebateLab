@@ -63,7 +63,7 @@ export async function prepareDurablePracticeAnalysis(params: {
       (round) => round.transcript || round.aiResponse || "",
     ),
     userId: attempt.user_id,
-    sourceRoute: "/workflows/ai/practice-analysis",
+    sourceRoute: "gcp:ai-grading-worker/practice-analysis",
   });
   const knowledge = englishKnowledge
     ? null
@@ -80,7 +80,7 @@ export async function prepareDurablePracticeAnalysis(params: {
           (round) => round.transcript || round.aiResponse || "",
         ),
         userId: attempt.user_id,
-        sourceRoute: "/workflows/ai/practice-analysis",
+        sourceRoute: "gcp:ai-grading-worker/practice-analysis",
         supabase,
       });
   const retrieval = knowledge?.data;
@@ -95,7 +95,7 @@ export async function prepareDurablePracticeAnalysis(params: {
       transcript: judgingTranscript,
       corpusContext: englishKnowledge?.contextBlock ?? retrieval?.contextBlock,
       providerAudit: {
-        sourceRoute: "/workflows/ai/practice-analysis",
+        sourceRoute: "gcp:ai-grading-worker/practice-analysis",
         practiceAttemptId: attempt.id,
         analysisJobId: job.id,
         metadata: {

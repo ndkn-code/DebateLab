@@ -18,9 +18,6 @@ export type AiWorkflowStatus =
   | "failed"
   | "cancelled";
 
-export const AI_WORKFLOW_MAX_ATTEMPTS = 3;
-export const RETRYABLE_WORKFLOW_FAILURE_CODE = "RETRYABLE_WORKFLOW_FAILED";
-
 export interface AiWorkflowRun {
   id: string;
   workflow_kind: AiWorkflowKind;
@@ -47,14 +44,10 @@ export interface AiWorkflowRun {
   failed_at: string | null;
 }
 
-type WorkflowSource =
+export type WorkflowSource =
   | { kind: "practice_analysis"; analysisJobId: string }
   | { kind: "ielts_speaking_score"; speakingResponseId: string }
   | { kind: "ielts_writing_score"; writingResponseId: string };
-
-export function isDurableAiWorkflowsEnabled(): boolean {
-  return process.env.AI_DURABLE_WORKFLOWS_ENABLED === "true";
-}
 
 function sourceId(source: WorkflowSource): string {
   if (source.kind === "practice_analysis") return source.analysisJobId;
@@ -68,8 +61,8 @@ export function createAiWorkflowIdempotencyKey(source: WorkflowSource): string {
 
 /**
  * Creates the product-facing record once per domain object. It intentionally
- * treats a concurrent unique-key insert as a read: Workflow launch can be
- * retried safely by an at-least-once queue delivery.
+ * treats a concurrent unique-key insert as a read: Pub/Sub publication can be
+ * retried safely by an at-least-once submission.
  */
 export async function ensureAiWorkflowRun(params: {
   source: WorkflowSource;
@@ -125,54 +118,6 @@ export async function ensureAiWorkflowRun(params: {
   return afterConflict as AiWorkflowRun;
 }
 
-export async function recordAiWorkflowLaunch(params: {
-  id: string;
-  workflowRunId: string;
-  launchToken: string;
-}): Promise<void> {
-  const { error } = await createAdminClient()
-    .from("ai_workflow_runs")
-    .update({
-      workflow_run_id: params.workflowRunId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.id)
-    .eq("launch_token", params.launchToken);
-  if (error) throw new Error(`record AI workflow launch: ${error.message}`);
-}
-
-export async function claimAiWorkflowRun(params: {
-  id: string;
-  phase: string;
-  leaseSeconds?: number;
-  launchToken?: string;
-}): Promise<AiWorkflowRun | null> {
-  const { data, error } = await createAdminClient().rpc(
-    "claim_ai_workflow_run",
-    {
-      p_run_id: params.id,
-      p_phase: params.phase,
-      p_lease_seconds: params.leaseSeconds ?? 900,
-      p_launch_token: params.launchToken ?? null,
-    }
-  );
-  if (error) throw new Error(`claim AI workflow run: ${error.message}`);
-  return Array.isArray(data) && data.length > 0
-    ? (data[0] as AiWorkflowRun)
-    : null;
-}
-
-export function isRetryableWorkflowFailure(run: Pick<
-  AiWorkflowRun,
-  "status" | "last_error_code" | "workflow_attempt_count"
->): boolean {
-  return (
-    run.status === "failed" &&
-    run.last_error_code === RETRYABLE_WORKFLOW_FAILURE_CODE &&
-    run.workflow_attempt_count < AI_WORKFLOW_MAX_ATTEMPTS
-  );
-}
-
 /**
  * Called immediately before an actual model-provider request. This is a
  * database-side increment so concurrent fallback/retry paths cannot lose a
@@ -190,45 +135,33 @@ export async function incrementAiWorkflowProviderAttempt(
   }
 }
 
-export async function updateAiWorkflowRun(params: {
+export async function markAiWorkflowRunPublished(params: {
   id: string;
-  status?: AiWorkflowStatus;
-  phase?: string;
-  progress?: Record<string, unknown>;
-  errorCode?: string | null;
-  errorMessage?: string | null;
-  coreCompleted?: boolean;
-  completed?: boolean;
-  failed?: boolean;
-  /**
-   * Prevent a late/retried workflow step from overwriting a terminal state.
-   * A guarded update that affects no rows is an expected idempotent no-op.
-   */
-  expectedStatuses?: AiWorkflowStatus[];
+  messageId: string;
 }): Promise<void> {
-  const now = new Date().toISOString();
-  const update = {
-    ...(params.status ? { status: params.status } : {}),
-    ...(params.phase ? { phase: params.phase } : {}),
-    ...(params.progress ? { progress: params.progress } : {}),
-    ...(params.errorCode !== undefined
-      ? { last_error_code: params.errorCode }
-      : {}),
-    ...(params.errorMessage !== undefined
-      ? { last_error_message: params.errorMessage?.slice(0, 1000) ?? null }
-      : {}),
-    ...(params.coreCompleted ? { core_completed_at: now } : {}),
-    ...(params.completed ? { completed_at: now, lease_expires_at: null } : {}),
-    ...(params.failed ? { failed_at: now, lease_expires_at: null } : {}),
-    updated_at: now,
-  };
-  let query = createAdminClient()
+  const { error } = await createAdminClient()
     .from("ai_workflow_runs")
-    .update(update)
-    .eq("id", params.id);
-  if (params.expectedStatuses?.length) {
-    query = query.in("status", params.expectedStatuses);
-  }
-  const { error } = await query;
-  if (error) throw new Error(`update AI workflow run: ${error.message}`);
+    .update({
+      backend: "gcp_pubsub",
+      backend_message_id: params.messageId,
+      published_at: new Date().toISOString(),
+      phase: "published",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.id)
+    .in("status", ["queued", "failed", "starting"]);
+  if (error) throw new Error(`mark AI workflow run published: ${error.message}`);
+}
+
+export async function markAiWorkflowRunPublishing(id: string): Promise<void> {
+  const { error } = await createAdminClient()
+    .from("ai_workflow_runs")
+    .update({
+      backend: "gcp_pubsub",
+      phase: "publishing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .in("status", ["queued", "failed", "starting"]);
+  if (error) throw new Error(`mark AI workflow run publishing: ${error.message}`);
 }

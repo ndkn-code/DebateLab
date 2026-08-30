@@ -31,8 +31,8 @@ import {
 import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
 import {
   ensureAiWorkflowRun,
-  isDurableAiWorkflowsEnabled,
 } from "@/lib/ai/workflow-runs";
+import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import { parseTranscriptionArtifact } from "@/lib/practice-analysis/request";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
 import { selectTranscriptForJudging } from "@/lib/stt/repair";
@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
     // grading pipeline inside one request. When durable workflows are enabled,
     // preserve the request validation contract but return the canonical async
     // job envelope instead. Existing clients can poll /api/analysis-jobs/:id.
-    if (isDurableAiWorkflowsEnabled() && shouldPersistAnalysis) {
+    if (isGcpAiGradingEnabled() && shouldPersistAnalysis) {
       const writeClient = tryCreateAdminClient() ?? supabase;
       const practiceInput = {
         transcript,
@@ -522,16 +522,9 @@ export async function POST(req: NextRequest) {
           },
           { status: 202, headers: { Deprecation: "true" } },
         );
-      } catch (error) {
-        await markPracticeAnalysisFailed(writeClient, {
-          jobId: job.id,
-          attemptId: attempt.id,
-          errorCode: "QUEUE_ENQUEUE_FAILED",
-          errorMessage:
-            error instanceof Error
-              ? error.message
-              : "Failed to enqueue analysis.",
-        }).catch(() => undefined);
+      } catch {
+        // Keep the source queued. The durable run was created before publish,
+        // so authenticated Cloud Scheduler can safely reconcile a lost ack.
         return NextResponse.json(
           {
             error:

@@ -1,12 +1,7 @@
 import "server-only";
 
 import type { z } from "zod";
-import { FatalError } from "workflow";
 import { generateStructured } from "@/lib/ai/core";
-import {
-  claimAiWorkflowRun,
-  updateAiWorkflowRun,
-} from "@/lib/ai/workflow-runs";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import {
   claimSpeakingResponseForScoring,
@@ -84,6 +79,14 @@ import type { IeltsCriterionEvidenceContract } from "@/lib/ielts/criterion-evide
 type IeltsSpeakingModelOutput = z.infer<typeof ieltsSpeakingModelOutputSchema>;
 type IeltsWritingModelOutput = z.infer<typeof ieltsWritingModelOutputSchema>;
 
+/** A permanent source/input failure that must not be redelivered by Pub/Sub. */
+export class AiGradingFatalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AiGradingFatalError";
+  }
+}
+
 function resultCorpusVersion(result: KnowledgeResult): string | null {
   if (
     !result.data ||
@@ -137,67 +140,11 @@ function extractCueCardBullets(metadata: Json): string[] | undefined {
   return bullets.length > 0 ? bullets : undefined;
 }
 
-export async function claimWorkflowCore(
-  runId: string,
-  phase: string,
-  launchToken: string,
-) {
-  "use step";
-  return claimAiWorkflowRun({
-    id: runId,
-    phase,
-    leaseSeconds: 900,
-    launchToken,
-  });
-}
-
-export async function markWorkflowCoreCompleted(runId: string, phase: string) {
-  "use step";
-  await updateAiWorkflowRun({
-    id: runId,
-    status: "core_completed",
-    phase,
-    coreCompleted: true,
-    expectedStatuses: ["running"],
-  });
-}
-
-export async function markWorkflowCompleted(runId: string) {
-  "use step";
-  await updateAiWorkflowRun({
-    id: runId,
-    status: "completed",
-    phase: "completed",
-    completed: true,
-    expectedStatuses: ["running", "core_completed"],
-  });
-}
-
-export async function markWorkflowFailed(
-  runId: string,
-  message: string,
-  retryable: boolean,
-) {
-  "use step";
-  await updateAiWorkflowRun({
-    id: runId,
-    status: "failed",
-    phase: "failed",
-    errorCode: retryable
-      ? "RETRYABLE_WORKFLOW_FAILED"
-      : "FATAL_WORKFLOW_FAILED",
-    errorMessage: message,
-    failed: true,
-    expectedStatuses: ["starting", "running", "core_completed"],
-  });
-}
-
 export async function preparePracticeAnalysis(params: {
   workflowRunId: string;
   analysisJobId: string;
   practiceAttemptId: string;
 }) {
-  "use step";
   return prepareDurablePracticeAnalysis({
     workflowRunId: params.workflowRunId,
     jobId: params.analysisJobId,
@@ -208,14 +155,12 @@ export async function preparePracticeAnalysis(params: {
 export async function generatePracticeAnalysis(
   params: Parameters<typeof generateDurablePracticeFeedback>[0],
 ) {
-  "use step";
   return generateDurablePracticeFeedback(params);
 }
 
 export async function persistPracticeAnalysis(
   params: Parameters<typeof persistDurablePracticeAnalysis>[0],
 ) {
-  "use step";
   return persistDurablePracticeAnalysis(params);
 }
 
@@ -223,7 +168,6 @@ export async function claimPracticeAnalysis(params: {
   analysisJobId: string;
   practiceAttemptId: string;
 }) {
-  "use step";
   return claimDurablePracticeAnalysis({
     jobId: params.analysisJobId,
     attemptId: params.practiceAttemptId,
@@ -235,7 +179,6 @@ export async function markPracticeWorkflowFailure(params: {
   practiceAttemptId: string;
   errorMessage: string;
 }) {
-  "use step";
   await failDurablePracticeAnalysis({
     jobId: params.analysisJobId,
     attemptId: params.practiceAttemptId,
@@ -252,13 +195,13 @@ export async function markPracticeWorkflowFailure(params: {
 export async function claimIeltsSpeakingScore(params: {
   speakingResponseId: string;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const context = await loadSpeakingScoringContext(
     admin,
     params.speakingResponseId,
   );
-  if (!context) throw new FatalError("Speaking response no longer exists");
+  if (!context)
+    throw new AiGradingFatalError("Speaking response no longer exists");
   const { response } = context;
   if (isTerminalSpeakingStatus(response.status)) {
     return {
@@ -277,7 +220,7 @@ export async function claimIeltsSpeakingScore(params: {
       speakingResponseId: response.id,
       retryable: false,
     });
-    throw new FatalError("Speaking score retry limit exceeded");
+    throw new AiGradingFatalError("Speaking score retry limit exceeded");
   }
   if (decision.action === "skip") {
     throw new Error("Speaking response is held by an active scoring lease");
@@ -295,17 +238,19 @@ export async function prepareIeltsSpeakingScore(params: {
   speakingResponseId: string;
   durationSeconds?: number;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const context = await loadSpeakingScoringContext(
     admin,
     params.speakingResponseId,
   );
-  if (!context) throw new FatalError("Speaking response no longer exists");
+  if (!context)
+    throw new AiGradingFatalError("Speaking response no longer exists");
   const { response, question } = context;
 
   if (!response.audio_storage_path) {
-    throw new FatalError("Speaking response has no audio storage path");
+    throw new AiGradingFatalError(
+      "Speaking response has no audio storage path",
+    );
   }
   const { data, error } = await admin.storage
     .from(IELTS_SPEAKING_AUDIO_BUCKET)
@@ -343,7 +288,7 @@ export async function prepareIeltsSpeakingScore(params: {
       skill: "speaking",
       language: "en",
       query: `Official IELTS Speaking descriptors for ${question.question_type}`,
-      sourceRoute: "/workflows/ai/ielts-speaking-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-speaking-score",
       userId: response.user_id,
       supabase: admin,
       limit: 8,
@@ -362,7 +307,7 @@ export async function prepareIeltsSpeakingScore(params: {
       questionId: question.id,
       questionType: question.question_type,
       language: "en",
-      sourceRoute: "/workflows/ai/ielts-speaking-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-speaking-score",
       userId: response.user_id,
       supabase: admin,
       limit: 8,
@@ -412,14 +357,13 @@ export async function generateIeltsSpeakingScore(params: {
   userId: string;
   prompt: string;
 }) {
-  "use step";
   return generateStructured({
     task: "ielts_speaking_score",
     prompt: params.prompt,
     schema: ieltsSpeakingModelOutputSchema,
     context: {
       task: "ielts_speaking_score",
-      sourceRoute: "/workflows/ai/ielts-speaking-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-speaking-score",
       outputType: "ielts_speaking_score",
       userId: params.userId,
       idempotencyKey: params.workflowRunId,
@@ -443,7 +387,6 @@ export async function adjudicateIeltsSpeakingScore(params: {
   baseCorpusVersion: string | null;
   acousticEvidenceAvailable: boolean;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const adjacent = await findIeltsBandExamples({
     purpose: "grading",
@@ -462,7 +405,7 @@ export async function adjudicateIeltsSpeakingScore(params: {
       typeof findIeltsBandExamples
     >[0]["questionType"],
     language: "en",
-    sourceRoute: "/workflows/ai/ielts-speaking-score/adjudication",
+    sourceRoute: "gcp:ai-grading-worker/ielts-speaking-score/adjudication",
     userId: params.userId,
     supabase: admin,
     limit: 12,
@@ -477,7 +420,7 @@ export async function adjudicateIeltsSpeakingScore(params: {
     schema: ieltsSpeakingAdjudicationOutputSchema,
     context: {
       task: "ielts_speaking_adjudication",
-      sourceRoute: "/workflows/ai/ielts-speaking-score/adjudication",
+      sourceRoute: "gcp:ai-grading-worker/ielts-speaking-score/adjudication",
       outputType: "ielts_speaking_score_adjudication",
       userId: params.userId,
       idempotencyKey: `${params.workflowRunId}:adjudication`,
@@ -518,7 +461,6 @@ export async function persistIeltsSpeakingScore(params: {
   gradingMetadata?: Json;
   criterionEvidence?: IeltsCriterionEvidenceContract[];
 }) {
-  "use step";
   await persistSpeakingScore(createTypedAdminClient(), {
     speakingResponseId: params.speakingResponseId,
     transcript: params.transcript,
@@ -541,13 +483,13 @@ export async function persistIeltsSpeakingScore(params: {
 export async function claimIeltsWritingScore(params: {
   writingResponseId: string;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const context = await loadWritingScoringContext(
     admin,
     params.writingResponseId,
   );
-  if (!context) throw new FatalError("Writing response no longer exists");
+  if (!context)
+    throw new AiGradingFatalError("Writing response no longer exists");
   const { response } = context;
   if (isTerminalWritingStatus(response.status)) {
     return {
@@ -566,7 +508,7 @@ export async function claimIeltsWritingScore(params: {
       writingResponseId: response.id,
       retryable: false,
     });
-    throw new FatalError("Writing score retry limit exceeded");
+    throw new AiGradingFatalError("Writing score retry limit exceeded");
   }
   if (decision.action === "skip") {
     throw new Error("Writing response is held by an active scoring lease");
@@ -585,13 +527,13 @@ export async function prepareIeltsWritingScore(params: {
   workflowRunId: string;
   writingResponseId: string;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const context = await loadWritingScoringContext(
     admin,
     params.writingResponseId,
   );
-  if (!context) throw new FatalError("Writing response no longer exists");
+  if (!context)
+    throw new AiGradingFatalError("Writing response no longer exists");
   const { response, question } = context;
 
   const [grounding, rubric, broadExamples] = await Promise.all([
@@ -604,7 +546,7 @@ export async function prepareIeltsWritingScore(params: {
       skill: "writing",
       language: "en",
       query: `Official IELTS Writing descriptors for ${question.question_type}`,
-      sourceRoute: "/workflows/ai/ielts-writing-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-writing-score",
       userId: response.user_id,
       supabase: admin,
       limit: 8,
@@ -623,7 +565,7 @@ export async function prepareIeltsWritingScore(params: {
       questionId: question.id,
       questionType: question.question_type,
       language: "en",
-      sourceRoute: "/workflows/ai/ielts-writing-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-writing-score",
       userId: response.user_id,
       supabase: admin,
       limit: 8,
@@ -663,14 +605,13 @@ export async function generateIeltsWritingScore(params: {
   userId: string;
   prompt: string;
 }) {
-  "use step";
   return generateStructured({
     task: "ielts_writing_score",
     prompt: params.prompt,
     schema: ieltsWritingModelOutputSchema,
     context: {
       task: "ielts_writing_score",
-      sourceRoute: "/workflows/ai/ielts-writing-score",
+      sourceRoute: "gcp:ai-grading-worker/ielts-writing-score",
       outputType: "ielts_writing_score",
       userId: params.userId,
       idempotencyKey: params.workflowRunId,
@@ -696,7 +637,6 @@ export async function adjudicateIeltsWritingScore(params: {
   baseEvidence: ReturnType<typeof evidenceReferences>;
   baseCorpusVersion: string | null;
 }) {
-  "use step";
   const admin = createTypedAdminClient();
   const adjacent = await findIeltsBandExamples({
     purpose: "grading",
@@ -715,7 +655,7 @@ export async function adjudicateIeltsWritingScore(params: {
       typeof findIeltsBandExamples
     >[0]["questionType"],
     language: "en",
-    sourceRoute: "/workflows/ai/ielts-writing-score/adjudication",
+    sourceRoute: "gcp:ai-grading-worker/ielts-writing-score/adjudication",
     userId: params.userId,
     supabase: admin,
     limit: 12,
@@ -730,7 +670,7 @@ export async function adjudicateIeltsWritingScore(params: {
     schema: ieltsWritingAdjudicationOutputSchema,
     context: {
       task: "ielts_writing_adjudication",
-      sourceRoute: "/workflows/ai/ielts-writing-score/adjudication",
+      sourceRoute: "gcp:ai-grading-worker/ielts-writing-score/adjudication",
       outputType: "ielts_writing_score_adjudication",
       userId: params.userId,
       idempotencyKey: `${params.workflowRunId}:adjudication`,
@@ -767,7 +707,6 @@ export async function persistIeltsWritingScore(params: {
   gradingMetadata?: Json;
   criterionEvidence?: IeltsCriterionEvidenceContract[];
 }) {
-  "use step";
   await persistWritingScore(createTypedAdminClient(), {
     writingResponseId: params.writingResponseId,
     score: normalizeWritingScore(params.output),
@@ -787,7 +726,6 @@ export async function markSpeakingWorkflowFailure(params: {
   speakingResponseId: string;
   retryable: boolean;
 }) {
-  "use step";
   await markSpeakingScoringFailed(createTypedAdminClient(), {
     speakingResponseId: params.speakingResponseId,
     retryable: params.retryable,
@@ -798,7 +736,6 @@ export async function markWritingWorkflowFailure(params: {
   writingResponseId: string;
   retryable: boolean;
 }) {
-  "use step";
   await markWritingScoringFailed(createTypedAdminClient(), {
     writingResponseId: params.writingResponseId,
     retryable: params.retryable,
@@ -809,7 +746,6 @@ export async function recomputeSpeakingAttempt(
   attemptId: string,
   userId: string,
 ) {
-  "use step";
   await recomputeAttemptSpeakingBand(
     createTypedAdminClient(),
     attemptId,
@@ -821,7 +757,6 @@ export async function recomputeWritingAttempt(
   attemptId: string,
   userId: string,
 ) {
-  "use step";
   await recomputeAttemptWritingBand(
     createTypedAdminClient(),
     attemptId,
@@ -833,7 +768,6 @@ export async function replanSpeakingAttempt(params: {
   userId: string;
   speakingResponseId: string;
 }) {
-  "use step";
   await maybeReplanAfterEvidence({
     client: createTypedAdminClient(),
     userId: params.userId,
@@ -846,7 +780,6 @@ export async function replanWritingAttempt(params: {
   userId: string;
   writingResponseId: string;
 }) {
-  "use step";
   await maybeReplanAfterEvidence({
     client: createTypedAdminClient(),
     userId: params.userId,

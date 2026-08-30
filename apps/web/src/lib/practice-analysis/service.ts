@@ -3,7 +3,6 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   PRACTICE_ANALYSIS_JOB_TYPE,
-  PRACTICE_ANALYSIS_QUEUE_TOPIC,
   PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
   PRACTICE_FEEDBACK_PROMPT_BUNDLE_VERSION,
   PRACTICE_FEEDBACK_RUBRIC_VERSION,
@@ -12,6 +11,7 @@ import {
   getPracticeFeedbackModelName,
   getRubricKeyForPracticeTrack,
 } from "./constants";
+import { AI_GRADING_TOPIC } from "@/lib/ai/grading/contracts";
 import { getPracticeFeedbackPromptManifest } from "./prompt-bundles";
 import {
   buildPracticeAttemptSnapshot,
@@ -129,7 +129,7 @@ export async function createPracticeAnalysisRecords(
     user_id: userId,
     job_type: PRACTICE_ANALYSIS_JOB_TYPE,
     status: "queued",
-    queue_topic: PRACTICE_ANALYSIS_QUEUE_TOPIC,
+    queue_topic: AI_GRADING_TOPIC,
     idempotency_key: idempotencyKey,
     input_hash: inputHash,
     prompt_hash: promptManifest.promptHash,

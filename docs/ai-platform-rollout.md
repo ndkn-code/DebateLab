@@ -1,22 +1,24 @@
 # AI analysis and knowledge platform rollout
 
 The centralized model layer is used by normal application code immediately.
-Durable grading is a separate cutover and stays disabled unless
-`AI_DURABLE_WORKFLOWS_ENABLED=true`.
+Durable grading is a separate cutover implemented by private Cloud Run and
+Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
+`gcp` or `legacy`.
 
 ## What must exist before durable or evidence-adjudicated grading is enabled
 
 1. Apply `supabase/migrations/20260829100000_ai_durable_workflows.sql` to the
    target environment, then apply
    `supabase/migrations/20260829110000_ai_knowledge_platform.sql` and
-   `supabase/migrations/20260829120000_ai_knowledge_operations.sql`. Regenerate
-   Supabase types afterward. All three migrations are forward-only.
+   `supabase/migrations/20260829120000_ai_knowledge_operations.sql`, followed by
+   `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql`. Regenerate
+   Supabase types afterward. All migrations are forward-only.
 2. Confirm the `ai_workflow_runs` row-level-security policy lets a learner read
    only their own runs and lets only the service role create or update runs.
    Confirm that benchmark labels, knowledge ingestion, and grading-authoritative
    retrieval are service-role-only.
 3. Configure the target Vercel environment with:
-   - `AI_DURABLE_WORKFLOWS_ENABLED=false` until every check below passes
+   - `AI_GRADING_BACKEND=legacy` until every check below passes
    - `IELTS_EVIDENCE_ADJUDICATION_ENABLED=false` until the pinned benchmark
      gate passes
    - `CRON_SECRET`
@@ -24,15 +26,18 @@ Durable grading is a separate cutover and stays disabled unless
    - `GROQ_API_KEY` for live grading
    - `VOYAGE_API_KEY` for the English debate and IELTS collections
    - `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` for pronunciation evidence
-   - the queue/workflow credentials already required by the project, including
-     `VERCEL_QUEUE_API_TOKEN` where the queue client requires it
-4. Import only rights-cleared sources. Grading-authoritative items must be
+   - the keyless WIF publisher variables in `.env.example`; never add a GCP
+     service-account JSON key to Vercel
+4. Provision and validate the private worker resources described in
+   `docs/ai-grading-gcp-runbook.md`. Vercel Workflow, grading queue consumers,
+   and a Vercel reconciliation cron are not part of this architecture.
+5. Import only rights-cleared sources. Grading-authoritative items must be
    approved and backed by official or qualified examiner/adjudicator sources.
    Publish an immutable collection version and record that version on every
    grading result.
-5. Populate a source-separated locked benchmark. Do not include knowledge from
+6. Populate a source-separated locked benchmark. Do not include knowledge from
    the same source in both the retrieval corpus and the evaluation split.
-6. Deploy a preview and leave production unchanged.
+7. Deploy the private worker and a web preview; leave production unchanged.
 
 ## Corpus operations
 
@@ -74,17 +79,15 @@ active retrieval evidence, so a holdout cannot leak into prompts.
 Run one item of each kind in preview: debate analysis, IELTS Speaking, and IELTS
 Writing. For each item, verify:
 
-- only one `ai_workflow_runs` row and one external workflow run are created;
-- a duplicate submission or queue delivery does not start duplicate grading;
-- status progresses through `queued`/`starting`, `running`, and `completed`;
+- only one `ai_workflow_runs` row and one checkpoint row are created;
+- a duplicate Pub/Sub delivery does not make a duplicate provider call;
+- status progresses through `queued`, `running`, and `completed`;
 - the domain result is persisted before optional replanning or enrichment;
-- a forced transient provider failure retries and then succeeds;
+- a persistence failure retries from the validated provider-output checkpoint;
 - a fatal input failure becomes `failed` and is not retried forever;
-- the reconciliation cron recovers a deliberately stale launch reservation;
-- on Vercel Hobby, the reconciliation cron is a once-daily safety sweep because
-  Hobby projects cannot schedule more frequent cron runs. Queue and Workflow
-  retries remain the primary recovery path. Use a Pro plan or an authenticated
-  external scheduler if recovery of orphaned launches must happen within minutes;
+- authenticated Cloud Scheduler recovers a deliberately expired worker lease;
+- a simulated provider-response/checkpoint crash becomes
+  `PROVIDER_OUTCOME_UNKNOWN` and does not silently make a second paid call;
 - the learner cannot read another learner's workflow row.
 
 For Speaking, deliberately remove the Azure credential for one preview run and
@@ -110,11 +113,11 @@ Never use AI-derived annotations as benchmark ground truth.
 ## Production cutover
 
 Enable `IELTS_EVIDENCE_ADJUDICATION_ENABLED=true` only after the pinned grading
-gate passes. Enable `AI_DURABLE_WORKFLOWS_ENABLED=true` only after the separate
-workflow preview checks pass. The switches are independent: the first restores
-the prior one-pass scorer; the second restores the legacy queue execution path.
-Do not roll back either forward-only database migration or delete versioned
-evidence.
+gate passes. Set `AI_GRADING_BACKEND=gcp` only after the Cloud Run/Pub/Sub smoke
+tests pass. `AI_GRADING_BACKEND=legacy` is the no-new-dispatch kill switch and
+keeps the existing `/api/analyze` compatibility scorer available; already saved
+GCP jobs remain recoverable after re-enable. Do not roll back forward-only
+database migrations or delete versioned evidence.
 
 ## Internal retrieval
 

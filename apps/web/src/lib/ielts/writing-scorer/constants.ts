@@ -1,7 +1,7 @@
 /**
  * Identifiers + plumbing constants for the IELTS Writing scorer (WS-3.1).
  *
- * The scorer reuses the repo's async machinery — Vercel Queue + the
+ * The scorer reuses the repo's async machinery — Cloud Run + Pub/Sub + the
  * practice-analysis retry-guard — but is fully isolated from the debate
  * `practice_attempts`/`analysis_jobs` substrate: the job lifecycle lives on the
  * typed `writing_responses` row (its `status` + `updated_at`), so debate stays
@@ -12,11 +12,12 @@
 export const IELTS_WRITING_SCORER_BUNDLE_KEY = "ielts_writing_scorer";
 export const IELTS_WRITING_SCORER_BUNDLE_VERSION = 1;
 
-/** Vercel Queue topic for async Writing scoring (separate from debate). */
-export const IELTS_WRITING_ANALYSIS_QUEUE_TOPIC = "ielts-writing-analysis";
+/** Shared reference-only Pub/Sub topic; the message kind isolates Writing. */
+export const IELTS_WRITING_ANALYSIS_QUEUE_TOPIC = "ai-grading-jobs";
 
 /** Telemetry tags for `ai_provider_requests`. */
-export const IELTS_WRITING_SCORE_SOURCE_ROUTE = "/api/queues/ielts-writing";
+export const IELTS_WRITING_SCORE_SOURCE_ROUTE =
+  "gcp:ai-grading-worker/ielts-writing-score";
 export const IELTS_WRITING_SCORE_OUTPUT_TYPE = "ielts_writing_score";
 
 /**

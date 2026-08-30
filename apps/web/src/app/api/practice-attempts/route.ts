@@ -10,7 +10,6 @@ import {
   attachQueueMessageId,
   createPracticeAnalysisRecords,
   getRecentActivePracticeAnalysis,
-  markPracticeAnalysisFailed,
 } from "@/lib/practice-analysis/service";
 import {
   getPracticeAnalysisWordCount,
@@ -20,8 +19,8 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   ensureAiWorkflowRun,
-  isDurableAiWorkflowsEnabled,
 } from "@/lib/ai/workflow-runs";
+import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 
 export const maxDuration = 20;
 
@@ -148,7 +147,7 @@ export async function POST(req: NextRequest) {
       { debugId }
     );
 
-    if (isDurableAiWorkflowsEnabled()) {
+    if (isGcpAiGradingEnabled()) {
       await ensureAiWorkflowRun({
         userId: attempt.user_id,
         source: { kind: "practice_analysis", analysisJobId: job.id },
@@ -198,15 +197,9 @@ export async function POST(req: NextRequest) {
         },
         { status: 202 }
       );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to enqueue analysis.";
-      await markPracticeAnalysisFailed(writeClient, {
-        jobId: job.id,
-        attemptId: attempt.id,
-        errorCode: "QUEUE_ENQUEUE_FAILED",
-        errorMessage: message,
-      }).catch(() => {});
+    } catch {
+      // The GCP publisher creates the durable run before external publish.
+      // Leave the source queued so Cloud Scheduler can reconcile a lost ack.
       return NextResponse.json(
         {
           error:

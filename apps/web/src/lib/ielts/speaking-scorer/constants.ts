@@ -1,7 +1,7 @@
 /**
  * Identifiers + plumbing constants for the IELTS Speaking scorer (WS-3.2).
  *
- * The scorer reuses the repo's async machinery — Vercel Queue + the
+ * The scorer reuses the repo's async machinery — Cloud Run + Pub/Sub + the
  * practice-analysis retry-guard — but is fully isolated from the debate
  * `practice_attempts`/`analysis_jobs` substrate: the job lifecycle lives on the
  * typed `speaking_responses` row (its `status` + `updated_at`), so debate stays
@@ -13,11 +13,12 @@
 export const IELTS_SPEAKING_SCORER_BUNDLE_KEY = "ielts_speaking_scorer";
 export const IELTS_SPEAKING_SCORER_BUNDLE_VERSION = 1;
 
-/** Vercel Queue topic for async Speaking scoring (separate from debate). */
-export const IELTS_SPEAKING_ANALYSIS_QUEUE_TOPIC = "ielts-speaking-analysis";
+/** Shared reference-only Pub/Sub topic; the message kind isolates Speaking. */
+export const IELTS_SPEAKING_ANALYSIS_QUEUE_TOPIC = "ai-grading-jobs";
 
 /** Telemetry tags for `ai_provider_requests`. */
-export const IELTS_SPEAKING_SCORE_SOURCE_ROUTE = "/api/queues/ielts-speaking";
+export const IELTS_SPEAKING_SCORE_SOURCE_ROUTE =
+  "gcp:ai-grading-worker/ielts-speaking-score";
 export const IELTS_SPEAKING_SCORE_OUTPUT_TYPE = "ielts_speaking_score";
 
 /**

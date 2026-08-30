@@ -20,7 +20,6 @@ import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
 import {
   attachQueueMessageId,
   createPracticeAnalysisRecords,
-  markPracticeAnalysisFailed,
 } from "@/lib/practice-analysis/service";
 import {
   getPracticeAnalysisWordCount,
@@ -341,15 +340,9 @@ export async function POST(req: NextRequest) {
         } satisfies MobilePracticeAttemptResponse,
         { status: 202 },
       );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to enqueue analysis.";
-      await markPracticeAnalysisFailed(writeClient, {
-        jobId: job.id,
-        attemptId: attempt.id,
-        errorCode: "QUEUE_ENQUEUE_FAILED",
-        errorMessage: message,
-      }).catch(() => {});
+    } catch {
+      // Keep the saved source queued; the GCP reconciler republishes durable
+      // runs whose initial Pub/Sub acknowledgement was lost.
       return NextResponse.json(
         {
           error:

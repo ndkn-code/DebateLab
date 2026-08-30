@@ -1,37 +1,6 @@
 {
   "regions": ["sin1"],
-  "functions": {
-    "src/app/api/queues/practice-analysis/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "practice-analysis",
-          "retryAfterSeconds": 60,
-          "initialDelaySeconds": 0
-        }
-      ]
-    },
-    "src/app/api/queues/ielts-writing/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "ielts-writing-analysis",
-          "retryAfterSeconds": 60,
-          "initialDelaySeconds": 0
-        }
-      ]
-    },
-    "src/app/api/queues/ielts-speaking/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "ielts-speaking-analysis",
-          "retryAfterSeconds": 60,
-          "initialDelaySeconds": 0
-        }
-      ]
-    }
-  },
+  "functions": {},
   "crons": [
     {
       "path": "/api/cron/smart-popups",
@@ -48,10 +17,6 @@
     {
       "path": "/api/cron/homework-cleanup",
       "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/ai-workflow-reconcile",
-      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/lms-material-cleanup",

@@ -29,8 +29,8 @@ import {
 import { enqueueIeltsWritingScoring } from "@/lib/queues/ielts-writing";
 import {
   ensureAiWorkflowRun,
-  isDurableAiWorkflowsEnabled,
 } from "@/lib/ai/workflow-runs";
+import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import type { IeltsWritingQueueMessage } from "./constants";
 import { buildWritingScorerPrompt } from "./prompt";
 import { adjudicateWritingModel, runWritingModel } from "./provider";
@@ -149,7 +149,7 @@ export async function enqueueWritingResponseForScoring(params: {
     writingResponseId: response.id,
     userId: params.userId,
   };
-  if (isDurableAiWorkflowsEnabled()) {
+  if (isGcpAiGradingEnabled()) {
     await ensureAiWorkflowRun({
       userId: response.user_id,
       source: { kind: "ielts_writing_score", writingResponseId: response.id },

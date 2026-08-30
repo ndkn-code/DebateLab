@@ -75,6 +75,8 @@
     "test:feedback-annotations": "npm run test:feedback-annotations -w @thinkfy/web",
     "test:ai-quality": "npm run test:ai-quality -w @thinkfy/web",
     "test:ai-coach": "npm run test:ai-coach -w @thinkfy/web",
+    "test:ai-grading-worker": "NODE_OPTIONS='--conditions=react-server' npm run test:ai-platform -w @thinkfy/web",
+    "typecheck:ai-grading-worker": "tsc --noEmit --project services/ai-grading-worker/tsconfig.json",
     "test:debate-corpus": "npm run test:debate-corpus -w @thinkfy/web",
     "test:corpus-importer": "npm run test:corpus-importer -w @thinkfy/web",
     "test:truong-teen": "npm run test:truong-teen -w @thinkfy/web",

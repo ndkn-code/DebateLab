@@ -34,8 +34,8 @@ import {
 import { enqueueIeltsSpeakingScoring } from "@/lib/queues/ielts-speaking";
 import {
   ensureAiWorkflowRun,
-  isDurableAiWorkflowsEnabled,
 } from "@/lib/ai/workflow-runs";
+import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import {
   IELTS_SPEAKING_AUDIO_BUCKET,
   type IeltsSpeakingQueueMessage,
@@ -108,7 +108,7 @@ export async function submitSpeakingResponseForScoring(params: {
     userId: params.userId,
     durationSeconds: input.durationSeconds,
   };
-  if (isDurableAiWorkflowsEnabled()) {
+  if (isGcpAiGradingEnabled()) {
     await ensureAiWorkflowRun({
       userId: response.user_id,
       source: { kind: "ielts_speaking_score", speakingResponseId: response.id },

@@ -23,11 +23,9 @@ import {
   reserveIeltsManualRetry,
   type IeltsScoringKind,
 } from "@/lib/api/ielts/manual-retry-repository";
-import { isDurableAiWorkflowsEnabled } from "@/lib/ai/workflow-runs";
-import {
-  launchIeltsSpeakingScoreWorkflow,
-  launchIeltsWritingScoreWorkflow,
-} from "@/lib/ai/workflow-launcher";
+import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
+import { enqueueIeltsSpeakingScoring } from "@/lib/queues/ielts-speaking";
+import { enqueueIeltsWritingScoring } from "@/lib/queues/ielts-writing";
 
 const SaveSchema = z.object({
   clubId: z.string().uuid(),
@@ -168,14 +166,14 @@ export async function loadIeltsClassReviewQueue(raw: unknown) {
 /** Reserve and launch the bounded, teacher-visible retry for an exhausted W/S score. */
 export async function retryIeltsScoringWorkflow(raw: unknown) {
   const input = parseInput(ManualRetrySchema, raw);
-  if (!isDurableAiWorkflowsEnabled())
+  if (!isGcpAiGradingEnabled())
     throw new Error("IELTS scoring retries are unavailable");
   const client = await createTypedServerClient();
   const manager = await requireClassManager(client, input.classId);
   if (manager.clubId !== input.clubId)
     throw new Error("That class is not part of this club");
   await assertAttemptScope(client, { ...input, assignmentId: undefined });
-  await assertResponseScope(client, input);
+  const response = await assertResponseScope(client, input);
 
   // This RPC is the transaction boundary. It consumes the single manual
   // retry, records the actor/idempotency key, and puts the existing durable
@@ -184,13 +182,15 @@ export async function retryIeltsScoringWorkflow(raw: unknown) {
     ...input,
     actorId: manager.userId,
   });
-  const workflowRunId =
+  const published =
     retry.responseKind === "writing"
-      ? await launchIeltsWritingScoreWorkflow({
+      ? await enqueueIeltsWritingScoring({
           writingResponseId: retry.responseId,
+          userId: response.user_id,
         })
-      : await launchIeltsSpeakingScoreWorkflow({
+      : await enqueueIeltsSpeakingScoring({
           speakingResponseId: retry.responseId,
+          userId: response.user_id,
         });
   revalidatePath(`/dashboard/clubs/${input.clubId}/ielts`);
   return {
@@ -198,7 +198,7 @@ export async function retryIeltsScoringWorkflow(raw: unknown) {
     responseId: retry.responseId,
     responseKind: retry.responseKind,
     responseRevision: retry.responseRevision,
-    workflowRunId,
+    workflowRunId: published.workflowRunId,
     manualRetryCount: retry.manualRetryCount,
     idempotentReplay: retry.idempotentReplay,
   };
@@ -219,7 +219,7 @@ async function assertResponseScope(
       : "speaking_responses";
   const { data, error } = await client
     .from(table)
-    .select("id, attempt_id, revision")
+    .select("id, attempt_id, revision, user_id")
     .eq("id", input.responseId)
     .maybeSingle();
   if (error) throw new Error(`load IELTS response: ${error.message}`);
@@ -227,4 +227,5 @@ async function assertResponseScope(
     throw new Error("IELTS response is outside this attempt");
   if (data.revision !== input.expectedRevision)
     throw new Error("IELTS response revision changed concurrently");
+  return data;
 }
