@@ -23,31 +23,26 @@ function base64UrlDecode(value: string) {
 }
 
 function getSecret() {
-  const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET?.trim();
-  if (secret) return secret;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("EMAIL_UNSUBSCRIBE_SECRET is required in production");
-  }
-  return "thinkfy-local-email-unsubscribe-secret";
+  return (
+    process.env.EMAIL_UNSUBSCRIBE_SECRET ||
+    process.env.RESEND_WEBHOOK_SECRET ||
+    process.env.RESEND_API_KEY ||
+    "thinkfy-local-email-unsubscribe-secret"
+  );
 }
 
 function sign(encodedPayload: string) {
-  return createHmac("sha256", getSecret())
-    .update(encodedPayload)
-    .digest("base64url");
+  return createHmac("sha256", getSecret()).update(encodedPayload).digest("base64url");
 }
 
 function safeEqual(left: string, right: string) {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 export function createUnsubscribeToken(
-  payload: Omit<EmailUnsubscribePayload, "exp"> & { exp?: number },
+  payload: Omit<EmailUnsubscribePayload, "exp"> & { exp?: number }
 ) {
   const fullPayload: EmailUnsubscribePayload = {
     ...payload,
@@ -60,23 +55,12 @@ export function createUnsubscribeToken(
 
 export function verifyUnsubscribeToken(token: string): EmailUnsubscribePayload {
   const [encodedPayload, signature] = token.split(".");
-  if (
-    !encodedPayload ||
-    !signature ||
-    !safeEqual(signature, sign(encodedPayload))
-  ) {
+  if (!encodedPayload || !signature || !safeEqual(signature, sign(encodedPayload))) {
     throw new Error("Invalid unsubscribe token");
   }
 
-  const payload = JSON.parse(
-    base64UrlDecode(encodedPayload),
-  ) as EmailUnsubscribePayload;
-  if (
-    !payload.email ||
-    !payload.userId ||
-    !payload.category ||
-    !payload.templateKey
-  ) {
+  const payload = JSON.parse(base64UrlDecode(encodedPayload)) as EmailUnsubscribePayload;
+  if (!payload.email || !payload.userId || !payload.category || !payload.templateKey) {
     throw new Error("Invalid unsubscribe payload");
   }
 
@@ -91,7 +75,7 @@ export function verifyUnsubscribeToken(token: string): EmailUnsubscribePayload {
 }
 
 export function buildUnsubscribeLinks(
-  payload: Omit<EmailUnsubscribePayload, "exp"> & { exp?: number },
+  payload: Omit<EmailUnsubscribePayload, "exp"> & { exp?: number }
 ) {
   const token = createUnsubscribeToken(payload);
   return {
@@ -101,10 +85,7 @@ export function buildUnsubscribeLinks(
   };
 }
 
-export function buildListUnsubscribeHeaders(
-  oneClickUrl: string,
-  supportEmail: string,
-) {
+export function buildListUnsubscribeHeaders(oneClickUrl: string, supportEmail: string) {
   return {
     "List-Unsubscribe": `<${oneClickUrl}>, <mailto:${supportEmail}?subject=Unsubscribe>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -151,8 +132,6 @@ export async function applyEmailUnsubscribe(input: {
     return;
   }
 
-  const { error } = await input.supabase
-    .from("email_suppressions")
-    .insert(patch);
+  const { error } = await input.supabase.from("email_suppressions").insert(patch);
   if (error) throw new Error(error.message);
 }

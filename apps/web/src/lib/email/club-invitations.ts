@@ -5,17 +5,14 @@ import {
   getReplyToEmailAddresses,
   getSenderEmailAddress,
   isEmailDryRun,
-  isEmailStreamEnabled,
+  isEmailSendingEnabled,
 } from "@/lib/email/config";
 import {
   applyEmailTemplateCopyOverrides,
   getOverrideForTemplate,
   loadActiveEmailTemplateOverrides,
 } from "@/lib/email/template-overrides";
-import {
-  buildTemplateVariables,
-  renderThinkfyEmail,
-} from "@/lib/email/templates";
+import { buildTemplateVariables, renderThinkfyEmail } from "@/lib/email/templates";
 import type { EmailLocale, EmailTemplateVariables } from "@/lib/email/types";
 
 let resendClient: Resend | null = null;
@@ -61,7 +58,7 @@ async function hasActiveSuppression(supabase: SupabaseClient, email: string) {
 async function updateEmailMessage(
   supabase: SupabaseClient,
   id: string,
-  patch: Record<string, unknown>,
+  patch: Record<string, unknown>
 ) {
   const { error } = await supabase
     .from("email_messages")
@@ -119,11 +116,9 @@ export async function sendClubInvitationEmail(input: {
   const overrides = await loadActiveEmailTemplateOverrides(input.supabase);
   const variables = applyEmailTemplateCopyOverrides(
     baseVariables,
-    getOverrideForTemplate(overrides, locale, templateKey)?.fields,
+    getOverrideForTemplate(overrides, locale, templateKey)?.fields
   );
-  const sendKey =
-    input.sendKey ??
-    `club_invitation:${input.invitationId}:${normalizeEmail(input.toEmail)}`;
+  const sendKey = input.sendKey ?? `club_invitation:${input.invitationId}:${normalizeEmail(input.toEmail)}`;
   const metadata = {
     clubId: input.clubId,
     invitationId: input.invitationId,
@@ -132,25 +127,7 @@ export async function sendClubInvitationEmail(input: {
   };
 
   if (await hasActiveSuppression(input.supabase, input.toEmail)) {
-    return {
-      sent: false,
-      skipped: true,
-      failed: false,
-      reason: "active_suppression",
-    };
-  }
-
-  if (!isEmailStreamEnabled("notifications")) {
-    return {
-      sent: false,
-      skipped: true,
-      failed: false,
-      reason: "emails_disabled",
-    };
-  }
-
-  if (isEmailDryRun()) {
-    return { sent: false, skipped: true, failed: false, reason: "dry_run" };
+    return { sent: false, skipped: true, failed: false, reason: "active_suppression" };
   }
 
   const { data: message, error: insertError } = await input.supabase
@@ -158,7 +135,7 @@ export async function sendClubInvitationEmail(input: {
     .insert({
       user_id: input.invitedUserId ?? null,
       to_email: normalizeEmail(input.toEmail),
-      from_email: getSenderEmailAddress("notifications"),
+      from_email: getSenderEmailAddress(),
       reply_to: getReplyToEmailAddresses(),
       template_key: templateKey,
       category: "system",
@@ -171,30 +148,33 @@ export async function sendClubInvitationEmail(input: {
         template: templateKey,
         category: "system",
         locale,
-        stream: "notifications",
       },
-      message_class: "operational",
-      sender_stream: "notifications",
-      metadata: {
-        ...metadata,
-        messageClass: "operational",
-        notificationTopic: "club_invitation",
-        senderStream: "notifications",
-      },
+      metadata,
     })
     .select("id")
     .single();
 
   if (insertError) {
     if (insertError.code === "23505") {
-      return {
-        sent: false,
-        skipped: true,
-        failed: false,
-        reason: "duplicate_send_key",
-      };
+      return { sent: false, skipped: true, failed: false, reason: "duplicate_send_key" };
     }
     throw new Error(insertError.message);
+  }
+
+  if (!isEmailSendingEnabled()) {
+    await updateEmailMessage(input.supabase, message.id as string, {
+      status: "skipped",
+      skip_reason: "emails_disabled",
+    });
+    return { sent: false, skipped: true, failed: false, reason: "emails_disabled" };
+  }
+
+  if (isEmailDryRun()) {
+    await updateEmailMessage(input.supabase, message.id as string, {
+      status: "skipped",
+      skip_reason: "dry_run",
+    });
+    return { sent: false, skipped: true, failed: false, reason: "dry_run" };
   }
 
   const resend = getResendClient();
@@ -204,12 +184,7 @@ export async function sendClubInvitationEmail(input: {
       error_message: "Resend client is not configured.",
       failed_at: new Date().toISOString(),
     });
-    return {
-      sent: false,
-      skipped: false,
-      failed: true,
-      reason: "missing_resend_client",
-    };
+    return { sent: false, skipped: false, failed: true, reason: "missing_resend_client" };
   }
 
   try {
@@ -221,7 +196,7 @@ export async function sendClubInvitationEmail(input: {
     const actualRecipient = testRecipient || input.toEmail;
     const response = await resend.emails.send(
       {
-        from: getSenderEmailAddress("notifications"),
+        from: getSenderEmailAddress(),
         to: [actualRecipient],
         replyTo: getReplyToEmailAddresses(),
         subject: rendered.subject,
@@ -233,7 +208,7 @@ export async function sendClubInvitationEmail(input: {
           { name: "locale", value: locale },
         ],
       },
-      { idempotencyKey: sendKey },
+      { idempotencyKey: sendKey }
     );
 
     if (response.error) throw new Error(response.error.message);
@@ -252,8 +227,7 @@ export async function sendClubInvitationEmail(input: {
 
     return { sent: true, skipped: false, failed: false, reason: null };
   } catch (error) {
-    const messageText =
-      error instanceof Error ? error.message : "Unknown send failure";
+    const messageText = error instanceof Error ? error.message : "Unknown send failure";
     await updateEmailMessage(input.supabase, message.id as string, {
       status: "failed",
       error_message: messageText,

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Clock3,
   Mail,
+  MousePointerClick,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -60,87 +62,12 @@ function formatDate(value: string | null) {
 function KpiIcon({ kpiKey }: { kpiKey: string }) {
   if (kpiKey === "sent") return <Send className="h-5 w-5" />;
   if (kpiKey === "delivered") return <CheckCircle2 className="h-5 w-5" />;
-  if (["failed", "bounced", "complained", "delayed"].includes(kpiKey))
+  if (kpiKey === "opened") return <Activity className="h-5 w-5" />;
+  if (kpiKey === "clicked") return <MousePointerClick className="h-5 w-5" />;
+  if (kpiKey === "failed" || kpiKey === "bounced")
     return <AlertTriangle className="h-5 w-5" />;
-  if (kpiKey === "queued") return <Clock3 className="h-5 w-5" />;
+  if (kpiKey === "suppressed") return <ShieldCheck className="h-5 w-5" />;
   return <Mail className="h-5 w-5" />;
-}
-
-type MonitorKpi = EmailAdminKpi & {
-  available: boolean;
-  status:
-    | "Current window"
-    | "Healthy"
-    | "Watch"
-    | "Action needed"
-    | "Not reported";
-};
-
-function buildMonitorKpis(data: EmailAdminDashboardData): MonitorKpi[] {
-  const metrics = new Map(data.kpis.map((kpi) => [kpi.key, kpi]));
-  const value = (key: string) => metrics.get(key)?.value;
-  const sent = value("sent") ?? 0;
-  function metric(
-    key: string,
-    label: string,
-    classify: (metricValue: number) => Pick<MonitorKpi, "tone" | "status">,
-  ): MonitorKpi {
-    const metricValue = value(key);
-    if (metricValue === undefined) {
-      return {
-        key,
-        label,
-        value: 0,
-        tone: "neutral",
-        available: false,
-        status: "Not reported",
-      };
-    }
-    return {
-      key,
-      label,
-      value: metricValue,
-      available: true,
-      ...classify(metricValue),
-    };
-  }
-
-  return [
-    metric("sent", "Sent", () => ({
-      tone: "neutral",
-      status: "Current window",
-    })),
-    metric("delivered", "Delivered", (metricValue) => {
-      const rate = sent > 0 ? (metricValue / sent) * 100 : 100;
-      if (rate >= 95) return { tone: "success", status: "Healthy" };
-      if (rate >= 90) return { tone: "warning", status: "Watch" };
-      return { tone: "error", status: "Action needed" };
-    }),
-    metric("queued", "Queued", (metricValue) =>
-      metricValue > 500
-        ? { tone: "error", status: "Action needed" }
-        : metricValue > 100
-          ? { tone: "warning", status: "Watch" }
-          : { tone: "success", status: "Healthy" },
-    ),
-    metric("delayed", "Delayed", (metricValue) =>
-      metricValue > 0
-        ? { tone: "warning", status: "Watch" }
-        : { tone: "success", status: "Healthy" },
-    ),
-    metric("bounced", "Bounced", (metricValue) => {
-      const rate = sent > 0 ? (metricValue / sent) * 100 : 0;
-      if (rate < 2) return { tone: "success", status: "Healthy" };
-      if (rate < 5) return { tone: "warning", status: "Watch" };
-      return { tone: "error", status: "Action needed" };
-    }),
-    metric("complained", "Complained", (metricValue) => {
-      const rate = sent > 0 ? (metricValue / sent) * 100 : 0;
-      if (rate < 0.1) return { tone: "success", status: "Healthy" };
-      if (rate < 0.3) return { tone: "warning", status: "Watch" };
-      return { tone: "error", status: "Action needed" };
-    }),
-  ];
 }
 
 export function EmailMonitorDashboard({ data }: Props) {
@@ -160,7 +87,6 @@ export function EmailMonitorDashboard({ data }: Props) {
       ),
     ),
   );
-  const monitorKpis = buildMonitorKpis(data);
 
   return (
     <AdminV2Frame>
@@ -225,11 +151,8 @@ export function EmailMonitorDashboard({ data }: Props) {
           <EmailCampaignsDashboard />
         ) : (
           <>
-            <section
-              aria-label="Email delivery metrics"
-              className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6"
-            >
-              {monitorKpis.map((kpi) => (
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7">
+              {data.kpis.map((kpi) => (
                 <div
                   key={kpi.key}
                   className="min-w-0 rounded-[10px] border border-outline-variant bg-surface p-3"
@@ -244,19 +167,22 @@ export function EmailMonitorDashboard({ data }: Props) {
                       {kpi.label}
                     </p>
                   </div>
-                  <p className="mt-2 type-heading-md font-semibold tabular-nums text-on-surface">
-                    {kpi.available ? kpi.value.toLocaleString() : "—"}
+                  <p className="mt-2 type-heading-md font-semibold text-on-surface">
+                    {kpi.value.toLocaleString()}
                   </p>
                   <p className="mt-1 type-caption font-medium text-on-surface-variant">
                     <span
-                      className={cn(
-                        kpi.tone === "success" && "text-secondary-dim",
-                        kpi.tone === "warning" && "text-warning-dim",
-                        kpi.tone === "error" && "text-error-dim",
-                      )}
+                      className={
+                        kpi.tone === "error" || kpi.tone === "warning"
+                          ? "text-error-dim"
+                          : "text-secondary-dim"
+                      }
                     >
-                      {kpi.status}
-                    </span>
+                      {kpi.tone === "error" || kpi.tone === "warning"
+                        ? "Risk tracked"
+                        : "Healthy"}
+                    </span>{" "}
+                    vs current window
                   </p>
                 </div>
               ))}
@@ -295,6 +221,12 @@ export function EmailMonitorDashboard({ data }: Props) {
                           }}
                         />
                         <span
+                          className="w-2 rounded-t bg-surface-container-high"
+                          style={{
+                            height: `${Math.max(3, (point.opened / maxTrend) * 100)}%`,
+                          }}
+                        />
+                        <span
                           className="w-2 rounded-t bg-error"
                           style={{
                             height: `${Math.max(3, (point.failed / maxTrend) * 100)}%`,
@@ -314,6 +246,10 @@ export function EmailMonitorDashboard({ data }: Props) {
                   <span className="inline-flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-secondary" />{" "}
                     Delivered
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-surface-container-high" />{" "}
+                    Opened
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-error" /> Failed

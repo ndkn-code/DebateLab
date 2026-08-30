@@ -2024,26 +2024,9 @@
       },
       "actions": {
         "save": "Save draft",
-        "approve": "Approve audience snapshot",
         "schedule": "Schedule",
         "send": "Send now",
-        "pause": "Pause delivery",
-        "resume": "Resume delivery",
         "cancel": "Cancel campaign"
-      },
-      "status": {
-        "draft": "Draft",
-        "approved": "Approved",
-        "scheduled": "Scheduled",
-        "sending": "Sending",
-        "paused": "Paused",
-        "sent": "Sent",
-        "canceled": "Canceled"
-      },
-      "approval": {
-        "title": "Approve this campaign",
-        "description": "Approval freezes the eligible audience at {count} recipients. Review the content and type the campaign name to continue.",
-        "confirm": "Confirm approval with campaign name"
       },
       "schedule": {
         "title": "Schedule delivery",
@@ -2059,24 +2042,16 @@
         "delivered": "Delivered",
         "opened": "Opened",
         "clicked": "Clicked",
-        "queued": "Queued",
-        "delayed": "Delayed",
-        "bounced": "Bounced",
-        "complained": "Complained",
-        "notReported": "Not reported by this response",
         "deliveryRate": "Delivery rate",
         "openRate": "Open rate",
         "clickRate": "Click rate",
-        "risk": "Bounced, complained, failed, or suppressed"
+        "risk": "Bounced, failed, or suppressed"
       },
       "notices": {
         "saved": "Draft saved.",
-        "approved": "Campaign approved and audience snapshot frozen.",
         "scheduled": "Campaign scheduled.",
         "sent": "Campaign batch completed.",
         "processing": "First batch sent; cron will continue processing.",
-        "paused": "Campaign delivery paused after the active lease.",
-        "resumed": "Campaign delivery resumed.",
         "canceled": "Campaign canceled; no further batches will send."
       },
       "errors": {

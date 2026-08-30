@@ -5,10 +5,9 @@ const STATUS_RANK: Record<EmailStatus, number> = {
   skipped: 0,
   scheduled: 1,
   sent: 2,
-  delayed: 3,
-  delivered: 4,
-  opened: 5,
-  clicked: 6,
+  delivered: 3,
+  opened: 4,
+  clicked: 5,
   failed: 10,
   bounced: 11,
   suppressed: 12,
@@ -18,7 +17,6 @@ const STATUS_RANK: Record<EmailStatus, number> = {
 const EVENT_STATUS: Record<string, EmailStatus> = {
   "email.scheduled": "scheduled",
   "email.sent": "sent",
-  "email.delivery_delayed": "delayed",
   "email.delivered": "delivered",
   "email.opened": "opened",
   "email.clicked": "clicked",
@@ -31,7 +29,6 @@ const EVENT_STATUS: Record<string, EmailStatus> = {
 const STATUS_TIMESTAMP: Partial<Record<EmailStatus, string>> = {
   sent: "sent_at",
   scheduled: "sent_at",
-  delayed: "delayed_at",
   delivered: "delivered_at",
   opened: "opened_at",
   clicked: "clicked_at",
@@ -84,7 +81,7 @@ export function getResendRecipientEmail(payload: Record<string, unknown>) {
 
 export function shouldApplyProviderStatus(
   currentStatus: EmailStatus | string | null | undefined,
-  nextStatus: EmailStatus,
+  nextStatus: EmailStatus
 ) {
   const current = (currentStatus ?? "queued") as EmailStatus;
   return (STATUS_RANK[nextStatus] ?? 0) >= (STATUS_RANK[current] ?? 0);
@@ -96,10 +93,7 @@ export function buildProviderStatusPatch(input: {
   now?: Date;
 }) {
   const nextStatus = EVENT_STATUS[input.eventType];
-  if (
-    !nextStatus ||
-    !shouldApplyProviderStatus(input.currentStatus, nextStatus)
-  ) {
+  if (!nextStatus || !shouldApplyProviderStatus(input.currentStatus, nextStatus)) {
     return {
       status: null,
       patch: {
@@ -113,7 +107,6 @@ export function buildProviderStatusPatch(input: {
   const patch: Record<string, unknown> = {
     status: nextStatus,
     last_provider_event: input.eventType,
-    last_provider_event_at: now,
     updated_at: now,
   };
   const timestampColumn = STATUS_TIMESTAMP[nextStatus];
@@ -126,11 +119,7 @@ export function buildProviderStatusPatch(input: {
 }
 
 export function isSuppressionEvent(eventType: string) {
-  return (
-    eventType === "email.bounced" ||
-    eventType === "email.complained" ||
-    eventType === "email.suppressed"
-  );
+  return eventType === "email.bounced" || eventType === "email.complained" || eventType === "email.suppressed";
 }
 
 export function getSuppressionReason(eventType: string) {

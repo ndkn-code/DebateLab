@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {
   buildSavedSettingsDraft,
   buildSettingsDraft,
-  draftToPreferences,
   type SettingsProfilePrivacy,
 } from "@/lib/settings";
 
@@ -36,7 +35,6 @@ assert.equal(draft.allowConnectionRequests, false);
 assert.equal(draft.searchableByHandle, false);
 assert.equal(draft.friendCodeDiscoveryEnabled, true);
 assert.equal(draft.analyticsCookiesEnabled, false);
-assert.equal(draft.emailNotifications, false);
 
 const savedDraft = buildSavedSettingsDraft({
   profilePrivacy: null,
@@ -51,17 +49,5 @@ assert.equal(savedDraft.achievementsVisibility, "connections");
 assert.equal(savedDraft.organizationVisibility, "connections");
 assert.equal(savedDraft.friendCodeDiscoveryEnabled, true);
 assert.equal(savedDraft.analyticsCookiesEnabled, false);
-
-const reminderOnlyPreferences = draftToPreferences(
-  { ...draft, emailNotifications: true },
-  { email_notifications: true, email_opt_in_scope: "reminders_only" },
-);
-assert.equal(reminderOnlyPreferences.email_opt_in_scope, "reminders_only");
-
-const newOptInPreferences = draftToPreferences(
-  { ...draft, emailNotifications: true },
-  {},
-);
-assert.equal(newOptInPreferences.email_opt_in_scope, "all");
 
 console.log("Settings model tests passed");

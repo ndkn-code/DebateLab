@@ -1,4 +1,4 @@
-import type { EmailLocale, EmailSenderStream } from "@/lib/email/types";
+import type { EmailLocale } from "@/lib/email/types";
 
 export const THINKFY_EMAIL_DOMAIN = "thinkfy.net";
 export const DEFAULT_EMAIL_TIME_ZONE = "Asia/Ho_Chi_Minh";
@@ -46,21 +46,10 @@ export function getEmailOneClickUnsubscribeUrl(token: string) {
   return `${getAppBaseUrl()}/api/email/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
-export function getSenderEmailAddress(
-  stream: EmailSenderStream = "notifications",
-) {
-  if (stream === "updates") {
-    return (
-      process.env.RESEND_LIFECYCLE_FROM?.trim() ||
-      process.env.SENDER_EMAIL_ADDRESS?.trim() ||
-      "Thinkfy Updates <hello@updates.thinkfy.net>"
-    );
-  }
-
+export function getSenderEmailAddress() {
   return (
-    process.env.RESEND_TRANSACTIONAL_FROM?.trim() ||
     process.env.SENDER_EMAIL_ADDRESS?.trim() ||
-    "Thinkfy Notifications <hello@notifications.thinkfy.net>"
+    "Thinkfy <hello@thinkfy.net>"
   );
 }
 
@@ -83,18 +72,7 @@ export function getEmailTestRecipient() {
 }
 
 export function isEmailSendingEnabled() {
-  return (
-    process.env.EMAILS_ENABLED !== "false" &&
-    Boolean(process.env.RESEND_API_KEY)
-  );
-}
-
-export function isEmailStreamEnabled(stream: EmailSenderStream) {
-  if (!isEmailSendingEnabled()) return false;
-  if (stream === "updates") {
-    return process.env.NOTIFICATIONS_V2_EMAIL_ENABLED === "true";
-  }
-  return process.env.TRANSACTIONAL_EMAILS_ENABLED !== "false";
+  return process.env.EMAILS_ENABLED !== "false" && Boolean(process.env.RESEND_API_KEY);
 }
 
 export function isEmailDryRun() {
@@ -103,8 +81,6 @@ export function isEmailDryRun() {
   return process.env.NODE_ENV !== "production";
 }
 
-export function resolveEmailLocale(
-  preferences: Record<string, unknown> | null,
-): EmailLocale {
+export function resolveEmailLocale(preferences: Record<string, unknown> | null): EmailLocale {
   return preferences?.preferred_locale === "en" ? "en" : DEFAULT_EMAIL_LOCALE;
 }

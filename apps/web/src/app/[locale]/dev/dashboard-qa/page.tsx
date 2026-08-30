@@ -14,7 +14,6 @@ import type {
 import type { PracticeTrack } from "@/types/feedback";
 import { ProtectedShell } from "../../(protected)/protected-shell";
 import { DevQaToolbar, devQaActiveChipClass, devQaChipClass } from "../dev-v2";
-import type { NotificationInboxSnapshot } from "@/components/notifications/contracts";
 
 type DashboardQaState =
   | "normal"
@@ -66,66 +65,8 @@ function makeDate(daysAgo: number) {
   return date.toISOString();
 }
 
-function makeNotificationInbox(locale: string): NotificationInboxSnapshot {
-  const vi = locale === "vi";
-  const now = new Date();
-  const earlier = new Date(now.getTime() - 86_400_000 * 2);
-  return {
-    unreadCount: 2,
-    events: [
-      {
-        id: "qa-feedback",
-        eventId: "qa-event-feedback",
-        eventType: "teacher.feedback_published",
-        topic: "teacher_feedback",
-        title: vi
-          ? "Giáo viên đã công bố phản hồi"
-          : "Teacher feedback published",
-        body: vi
-          ? "Bài Writing Task 2 đã có nhận xét và bước luyện tiếp theo."
-          : "Your Writing Task 2 review and next step are ready.",
-        createdAt: now.toISOString(),
-        readAt: null,
-        deepLink: "/ielts/assigned",
-        objectType: "assignment",
-        objectId: "qa-writing-task-2",
-      },
-      {
-        id: "qa-class",
-        eventId: "qa-event-class",
-        eventType: "class.schedule_changed",
-        topic: "class_updates",
-        title: vi ? "Lịch lớp đã thay đổi" : "Class schedule changed",
-        body: vi
-          ? "Buổi luyện thứ Năm bắt đầu lúc 18:30."
-          : "Thursday practice now starts at 6:30 PM.",
-        createdAt: now.toISOString(),
-        readAt: null,
-        deepLink: "/ielts/classes",
-        objectType: "class",
-        objectId: "qa-class",
-      },
-      {
-        id: "qa-practice",
-        eventId: "qa-event-practice",
-        eventType: "practice.plan_ready",
-        topic: "practice",
-        title: vi ? "Kế hoạch hôm nay đã sẵn sàng" : "Today’s plan is ready",
-        body: vi
-          ? "Một bài luyện nói 10 phút đang chờ bạn."
-          : "A focused 10-minute speaking drill is waiting.",
-        createdAt: earlier.toISOString(),
-        readAt: earlier.toISOString(),
-        deepLink: "/practice",
-        objectType: "plan",
-        objectId: "qa-plan",
-      },
-    ],
-  };
-}
-
 function makeRecommendedDrill(
-  overrides: Partial<DashboardRecommendedDrill> = {},
+  overrides: Partial<DashboardRecommendedDrill> = {}
 ): DashboardRecommendedDrill {
   return {
     key: "weakest-skill",
@@ -143,7 +84,7 @@ function makeRecommendedDrill(
 
 function makePlanItem(
   id: string,
-  overrides: Partial<DashboardTodayPlanItem>,
+  overrides: Partial<DashboardTodayPlanItem>
 ): DashboardTodayPlanItem {
   return {
     id,
@@ -189,8 +130,8 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
               scoreOutOf100: null,
               skillKey: undefined,
               track: "speaking",
-            })
-          : makeRecommendedDrill();
+          })
+        : makeRecommendedDrill();
 
   const todayPlanItems: DashboardTodayPlanItem[] = [
     ...(STUDENT_COURSES_ENABLED
@@ -236,10 +177,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
   const metrics = [
     { key: "clarity", value: 80 },
     { key: "logic", value: 73 },
-    {
-      key: "rebuttal",
-      value: state === "weak-debate" || state === "normal" ? 63 : 77,
-    },
+    { key: "rebuttal", value: state === "weak-debate" || state === "normal" ? 63 : 77 },
     { key: "evidence", value: 68 },
     { key: "delivery", value: state === "weak-speaking" ? 58 : 73 },
   ] as const;
@@ -305,10 +243,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       strongestSkill: hasActivity ? "clarity" : null,
       sourceSessions: hasActivity ? 6 : 0,
       confidence: hasActivity ? 58 : 0,
-      trackBreakdown: {
-        speaking: hasActivity ? 3 : 0,
-        debate: hasActivity ? 3 : 0,
-      },
+      trackBreakdown: { speaking: hasActivity ? 3 : 0, debate: hasActivity ? 3 : 0 },
       difficultyBreakdown: {
         topic: { beginner: 1, intermediate: 4, advanced: 1 },
         ai: { easy: 1, medium: 4, hard: 1, none: 0 },
@@ -371,69 +306,48 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
           },
         ]
       : [],
-    todayPlanItems:
-      state === "empty"
-        ? [
-            makePlanItem("start-speaking", {
-              key: "start-speaking",
-              href: "/practice?track=speaking",
-              detailHref: "/practice",
-              ctaKey: "start",
-              durationMinutes: 10,
-              context: null,
-              scoreOutOf100: null,
-              skillKey: undefined,
-              track: "speaking",
-            }),
-            makePlanItem("start-debate", {
-              key: "start-debate",
-              href: "/practice?track=debate",
-              detailHref: "/practice",
-              ctaKey: "start",
-              durationMinutes: 10,
-              context: null,
-              scoreOutOf100: null,
-              skillKey: undefined,
-              track: "debate",
-            }),
-            makePlanItem("coach-check", {
-              key: "coach-check",
-              href: "/chat?context=coach-home",
-              detailHref: "/chat?context=coach-home",
-              ctaKey: "ask-coach",
-              durationMinutes: 5,
-              context: null,
-              scoreOutOf100: null,
-              skillKey: undefined,
-              track: undefined,
-            }),
-          ]
-        : todayPlanItems,
+    todayPlanItems: state === "empty"
+      ? [
+          makePlanItem("start-speaking", {
+            key: "start-speaking",
+            href: "/practice?track=speaking",
+            detailHref: "/practice",
+            ctaKey: "start",
+            durationMinutes: 10,
+            context: null,
+            scoreOutOf100: null,
+            skillKey: undefined,
+            track: "speaking",
+          }),
+          makePlanItem("start-debate", {
+            key: "start-debate",
+            href: "/practice?track=debate",
+            detailHref: "/practice",
+            ctaKey: "start",
+            durationMinutes: 10,
+            context: null,
+            scoreOutOf100: null,
+            skillKey: undefined,
+            track: "debate",
+          }),
+          makePlanItem("coach-check", {
+            key: "coach-check",
+            href: "/chat?context=coach-home",
+            detailHref: "/chat?context=coach-home",
+            ctaKey: "ask-coach",
+            durationMinutes: 5,
+            context: null,
+            scoreOutOf100: null,
+            skillKey: undefined,
+            track: undefined,
+          }),
+        ]
+      : todayPlanItems,
     progress: [
-      {
-        key: "total-sessions",
-        value: hasActivity ? 20 : 0,
-        displayValue: hasActivity ? "20" : "0",
-        delta: hasActivity ? 1 : null,
-      },
-      {
-        key: "strong-rate",
-        value: hasActivity ? 70 : 0,
-        displayValue: hasActivity ? "70%" : "0%",
-        delta: hasActivity ? 4 : null,
-      },
-      {
-        key: "average-score",
-        value: hasActivity ? 72 : 0,
-        displayValue: hasActivity ? "72 /100" : "0 /100",
-        delta: hasActivity ? 2 : null,
-      },
-      {
-        key: "practice-time",
-        value: hasActivity ? 338 : 0,
-        displayValue: hasActivity ? "338 min" : "0 min",
-        delta: hasActivity ? 22 : null,
-      },
+      { key: "total-sessions", value: hasActivity ? 20 : 0, displayValue: hasActivity ? "20" : "0", delta: hasActivity ? 1 : null },
+      { key: "strong-rate", value: hasActivity ? 70 : 0, displayValue: hasActivity ? "70%" : "0%", delta: hasActivity ? 4 : null },
+      { key: "average-score", value: hasActivity ? 72 : 0, displayValue: hasActivity ? "72 /100" : "0 /100", delta: hasActivity ? 2 : null },
+      { key: "practice-time", value: hasActivity ? 338 : 0, displayValue: hasActivity ? "338 min" : "0 min", delta: hasActivity ? 22 : null },
     ],
     sidebarCards: {
       dailyGoal: {
@@ -446,24 +360,21 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       inviteOrbs: REFERRAL_REWARD_CREDITS,
       referralCode: QA_REFERRAL_CODE,
     },
-    courseContinuation:
-      state === "course" && STUDENT_COURSES_ENABLED
-        ? {
-            courseId: "qa-course",
-            title: "Persuasive Speaking 101",
-            category: "public-speaking",
-            progressPercent: 42,
-            href: "/courses",
-          }
-        : null,
+    courseContinuation: state === "course" && STUDENT_COURSES_ENABLED
+      ? {
+          courseId: "qa-course",
+          title: "Persuasive Speaking 101",
+          category: "public-speaking",
+          progressPercent: 42,
+          href: "/courses",
+        }
+      : null,
   };
 }
 
 export default async function Page({
-  params,
   searchParams,
 }: {
-  params: Promise<{ locale: string }>;
   searchParams: Promise<{ state?: string | string[] }>;
 }) {
   const host = (await headers()).get("host") ?? "";
@@ -472,32 +383,20 @@ export default async function Page({
   }
 
   const state = getQaState((await searchParams).state);
-  const { locale } = await params;
   return (
     <ProtectedShell
       profile={QA_PROFILE}
       userEmail={QA_PROFILE.email}
       userId={QA_USER_ID}
-      notificationInbox={makeNotificationInbox(locale)}
     >
       <div className="border-b border-border bg-surface px-4 py-2 sm:px-6">
         <DevQaToolbar label="Dashboard fixture">
-          {(
-            [
-              "normal",
-              "empty",
-              "course",
-              "weak-speaking",
-              "weak-debate",
-            ] as const
-          ).map((fixture) => (
+          {(["normal", "empty", "course", "weak-speaking", "weak-debate"] as const).map((fixture) => (
             <Link
               key={fixture}
               href={`?state=${fixture}`}
               aria-current={state === fixture ? "page" : undefined}
-              className={
-                state === fixture ? devQaActiveChipClass : devQaChipClass
-              }
+              className={state === fixture ? devQaActiveChipClass : devQaChipClass}
             >
               {fixture.replace("-", " ")}
             </Link>
@@ -505,15 +404,15 @@ export default async function Page({
         </DevQaToolbar>
       </div>
       <DashboardContent
-        data={makeDashboardData(state)}
-        displayName="Jensen Huang"
-        greetingKey={getTimeGreetingKey(
-          new Date("2026-05-18T12:00:00.000Z"),
-          "America/New_York",
-        )}
-        userId={QA_USER_ID}
-        showWelcome={false}
-      />
+          data={makeDashboardData(state)}
+          displayName="Jensen Huang"
+          greetingKey={getTimeGreetingKey(
+            new Date("2026-05-18T12:00:00.000Z"),
+            "America/New_York"
+          )}
+          userId={QA_USER_ID}
+          showWelcome={false}
+        />
     </ProtectedShell>
   );
 }

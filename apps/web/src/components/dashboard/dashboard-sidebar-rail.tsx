@@ -36,11 +36,6 @@ import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dial
 import type { Profile } from "@/types/database";
 import type { AppLocale } from "@/lib/locale-switch";
 import type { Subject } from "@/lib/subject";
-import { NotificationCenter } from "@/components/notifications/notification-center";
-import type {
-  NotificationInboxSnapshot,
-  NotificationUiOperations,
-} from "@/components/notifications/contracts";
 
 export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
   key: DashboardNavItem["key"] | "ielts_speaking" | "ielts_classes";
@@ -77,11 +72,6 @@ interface DashboardSidebarRailProps {
   userEmail: string | null;
   currentLocale: AppLocale;
   activeSubject: Subject;
-  notificationInbox?: NotificationInboxSnapshot;
-  notificationOperations?: Pick<
-    NotificationUiOperations,
-    "listInbox" | "markRead" | "markAllRead" | "muteObject"
-  >;
 }
 
 export function DashboardSidebarRail({
@@ -93,8 +83,6 @@ export function DashboardSidebarRail({
   userEmail,
   currentLocale,
   activeSubject,
-  notificationInbox,
-  notificationOperations,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
@@ -339,11 +327,6 @@ export function DashboardSidebarRail({
                 </Link>
               </>
             ) : null}
-            <NotificationCenter
-              variant="sidebar"
-              snapshot={notificationInbox}
-              operations={notificationOperations}
-            />
             <ThemeToggle />
             <Link
               href="/settings"
