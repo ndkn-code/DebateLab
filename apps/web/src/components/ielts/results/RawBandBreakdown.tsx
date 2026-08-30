@@ -15,7 +15,7 @@ function rawLabel(row: BandBreakdownRow): string {
 
 function BreakdownTable({ breakdown }: { breakdown: SkillBandBreakdown }) {
   return (
-    <details className="rounded-2xl border border-outline-variant bg-surface-container">
+    <details className="rounded-xl border border-outline-variant bg-surface-container">
       <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3">
         <span className="type-title text-on-surface">{breakdown.label} band scale</span>
         <span className="type-body-sm text-on-surface-variant tabular-nums">

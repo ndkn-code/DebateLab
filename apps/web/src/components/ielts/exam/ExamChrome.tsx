@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { Tables } from "@/types/supabase";
 import type {
   SectionRuntimeStatus,
@@ -92,18 +95,29 @@ export function ExamSectionHeader({
   onSelectHighlightColor: (color: MockHighlightColor) => void;
   onOpenNotes: () => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
+
   return (
     <header className="z-20 shrink-0 border-b border-outline-variant bg-surface/95 shadow-sm backdrop-blur">
-      <div className="flex min-h-16 items-center gap-1 px-3 py-2 sm:gap-3 sm:px-5">
-        <div className="hidden min-w-0 flex-1 sm:block">
-          <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
-            {testTitle}
-          </h1>
-          <p className="truncate text-xs font-bold text-on-surface-variant sm:text-sm">
-            {sectionLabel} · Section {activeSectionIndex + 1} of {sections.length}
-          </p>
+      <div className="flex min-h-16 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:gap-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="inline-flex h-7 shrink-0 items-center rounded-lg border border-primary/35 bg-primary-container px-2.5 text-xs font-extrabold uppercase tracking-wide text-on-primary-container">
+            {t("modeLabel")}
+          </span>
+          <div className="min-w-0">
+            <h1 className="hidden truncate text-sm font-extrabold text-on-surface sm:block sm:text-base">
+              {testTitle}
+            </h1>
+            <p className="truncate text-xs font-bold text-on-surface-variant sm:text-sm">
+              {t("sectionPosition", {
+                sectionLabel,
+                current: activeSectionIndex + 1,
+                total: sections.length,
+              })}
+            </p>
+          </div>
         </div>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:shrink-0 sm:gap-2">
+        <div className="flex w-full min-w-0 items-center justify-between gap-1 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-2">
           <SectionTimer
             timing={timing}
             onExpire={onExpire}
@@ -114,10 +128,12 @@ export function ExamSectionHeader({
               onClick={paused ? onResume : onPause}
               disabled={busy || locked}
               className="size-10 px-0 sm:w-auto sm:px-4"
-              aria-label={paused ? "Resume section" : "Pause section"}
+              aria-label={paused ? t("resumeSection") : t("pauseSection")}
             >
               <ProductIcon name={paused ? "play" : "pause"} size="sm" weight="bold" />
-              <span className="hidden sm:inline">{paused ? "Resume" : "Pause"}</span>
+              <span className="hidden sm:inline">
+                {paused ? t("resume") : t("pause")}
+              </span>
             </ExamButton>
           ) : null}
           <div className="lg:hidden">
@@ -142,10 +158,10 @@ export function ExamSectionHeader({
           <button
             type="button"
             onClick={onOpenGuide}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-haspopup="dialog"
             aria-expanded={guideOpen}
-            aria-label="How this mock works"
+            aria-label={t("guideLabel")}
           >
             <ProductIcon name="help" size="md" weight="bold" />
           </button>
@@ -157,7 +173,7 @@ export function ExamSectionHeader({
       </div>
       <nav
         className="flex gap-2 overflow-x-auto border-t border-outline-variant px-3 py-2 sm:px-5"
-        aria-label="Test sections"
+        aria-label={t("testSections")}
       >
         {sections.map((candidate, index) => (
           <button
@@ -173,7 +189,7 @@ export function ExamSectionHeader({
                 : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high",
             )}
           >
-            {candidate.label ?? candidate.skill}
+            {t(`skills.${candidate.skill}`)}
             {candidate.submitted_at !== null ? (
               <ProductIcon name="checkCircle" size="xs" weight="fill" aria-hidden="true" />
             ) : null}
@@ -220,20 +236,27 @@ export function ExamSectionFooter({
   onReview: () => void;
   onFinish: () => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
+
   return (
     <footer className="z-20 shrink-0 border-t border-outline-variant bg-surface/95 shadow-[0_-4px_16px_rgb(0_0_0/0.06)] backdrop-blur">
       <div className="flex min-w-0 items-center gap-2 border-b border-outline-variant px-3 py-2 sm:px-5">
         <span className="shrink-0 text-xs font-extrabold text-on-surface-variant">
-          Part {Math.max(1, activePartIndex + 1)}
+          {t("part", { number: Math.max(1, activePartIndex + 1) })}
         </span>
-        <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5" aria-label="Questions">
+        <div
+          className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1"
+          aria-label={t("questions")}
+        >
           {statuses.map((status) => (
             <button
               key={status.questionId}
               type="button"
               onClick={() => onJump(status.partIndex, status.questionId)}
               aria-current={status.current ? "true" : undefined}
-              aria-label={`Question ${status.number}, ${status.answered ? "answered" : "unanswered"}${status.flagged ? ", flagged" : ""}`}
+              aria-label={`${t("question", { number: status.number })}, ${
+                status.answered ? t("answered") : t("unanswered")
+              }${status.flagged ? `, ${t("flagged")}` : ""}`}
               className={cn(
                 "relative flex size-8 shrink-0 items-center justify-center rounded-lg border text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 questionChipClass(status),
@@ -258,19 +281,19 @@ export function ExamSectionFooter({
           <ExamButton
             onClick={() => onSelectPart(activePartIndex - 1)}
             disabled={busy || activePartIndex <= 0}
-            aria-label="Previous part"
+            aria-label={t("previousPart")}
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
             <ProductIcon name="chevronLeft" size="sm" weight="bold" />
-            <span className="hidden sm:inline">Previous</span>
+            <span className="hidden sm:inline">{t("previous")}</span>
           </ExamButton>
           <ExamButton
             onClick={() => onSelectPart(activePartIndex + 1)}
             disabled={busy || activePartIndex < 0 || activePartIndex >= partsLength - 1}
-            aria-label="Next part"
+            aria-label={t("nextPart")}
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="hidden sm:inline">{t("next")}</span>
             <ProductIcon name="chevronRight" size="sm" weight="bold" />
           </ExamButton>
         </div>
@@ -288,8 +311,8 @@ export function ExamSectionFooter({
             className="px-3 sm:px-4"
           >
             <ProductIcon name="listChecks" size="sm" weight="bold" />
-            <span className="hidden md:inline">Review &amp; submit section</span>
-            <span className="md:hidden">Review</span>
+            <span className="hidden md:inline">{t("reviewSubmitSection")}</span>
+            <span className="md:hidden">{t("review")}</span>
           </ExamButton>
           {isLastSection ? (
             <ExamButton
@@ -298,7 +321,7 @@ export function ExamSectionFooter({
               disabled={busy || submissionLocked}
               className="hidden sm:inline-flex"
             >
-              Finish test
+              {t("finishTest")}
               <ProductIcon name="arrowRight" size="sm" weight="bold" />
             </ExamButton>
           ) : null}
@@ -312,7 +335,7 @@ export function ExamSectionFooter({
             disabled={busy || submissionLocked}
             className="w-full"
           >
-            Finish test &amp; see band
+            {t("finishSeeBand")}
             <ProductIcon name="arrowRight" size="sm" weight="bold" />
           </ExamButton>
         </div>

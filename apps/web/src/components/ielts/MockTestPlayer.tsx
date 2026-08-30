@@ -275,12 +275,16 @@ function IntroCard({
   error: string | null;
   onStart: () => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
+
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-3xl border border-outline-variant bg-surface-container p-8 text-center">
+    <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-5 text-center sm:p-6">
+      <span className="inline-flex h-7 items-center rounded-lg border border-primary/35 bg-primary-container px-2.5 text-xs font-extrabold uppercase tracking-wide text-on-primary-container">
+        {t("modeLabel")}
+      </span>
       <h1 className="text-xl font-bold text-on-surface">{title}</h1>
       <p className="text-sm text-on-surface-variant">
-        Timed, exam-conditions mock. Reading, Writing, and Speaking can be paused;
-        Listening recordings play once without pause or replay.
+        {t("introBody")}
       </p>
       <MockPreTestGuide />
       {error ? <p className="text-sm text-error">{error}</p> : null}
@@ -290,7 +294,7 @@ function IntroCard({
         disabled={busy}
         className={`${PILL} bg-primary text-on-primary disabled:opacity-50`}
       >
-        {busy ? "Starting…" : "Start mock test"}
+        {busy ? t("starting") : t("startMock")}
       </button>
     </div>
   );
@@ -307,27 +311,32 @@ function BandSummary({
   returnHref?: string;
   returnLabel?: string;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const rows: Array<[string, number | null, number | null]> = [
-    ["Listening", grade.listeningRaw, grade.bands.listeningBand],
-    ["Reading", grade.readingRaw, grade.bands.readingBand],
+    [t("skills.listening"), grade.listeningRaw, grade.bands.listeningBand],
+    [t("skills.reading"), grade.readingRaw, grade.bands.readingBand],
   ];
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-4 rounded-3xl border border-outline-variant bg-surface-container p-8">
-      <h1 className="text-center text-xl font-bold text-on-surface">Your band</h1>
-      <div className="rounded-3xl bg-primary p-6 text-center text-on-primary">
-        <p className="text-xs font-semibold uppercase tracking-wide">Overall (provisional)</p>
+    <div className="mx-auto flex max-w-lg flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container p-5 sm:p-6">
+      <h1 className="text-center text-xl font-bold text-on-surface">{t("yourBand")}</h1>
+      <div className="rounded-xl bg-primary p-5 text-center text-on-primary">
+        <p className="text-xs font-semibold uppercase tracking-wide">
+          {t("overallProvisional")}
+        </p>
         <p className="text-4xl font-extrabold">{bandText(grade.bands.overallBand)}</p>
       </div>
       <div className="flex flex-col gap-2">
         {rows.map(([label, raw, band]) => (
           <div
             key={label}
-            className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-on-surface"
+            className="flex items-center justify-between rounded-lg bg-surface px-4 py-3 text-on-surface"
           >
             <span className="text-sm font-medium">{label}</span>
             <span className="text-sm text-on-surface-variant">
-              {raw === null ? "—" : `${raw}/40`} · band{" "}
-              <span className="font-bold text-on-surface">{bandText(band)}</span>
+              {raw === null ? "—" : `${raw}/40`} ·{" "}
+              <span className="font-bold text-on-surface">
+                {t("band", { band: bandText(band) })}
+              </span>
             </span>
           </div>
         ))}
@@ -337,7 +346,7 @@ function BandSummary({
           href={resultsHref}
           className={`${PILL} bg-primary text-center text-on-primary`}
         >
-          See full results &amp; review
+          {t("seeResults")}
         </Link>
       ) : null}
       {returnHref ? (
@@ -345,12 +354,11 @@ function BandSummary({
           href={returnHref}
           className={`${PILL} bg-surface-container-high text-center text-on-surface`}
         >
-          {returnLabel ?? "Continue"}
+          {returnLabel ?? t("continue")}
         </Link>
       ) : null}
       <p className="text-center text-xs text-on-surface-variant">
-        Writing &amp; Speaking are scored separately and appear in your full
-        results as they finish.
+        {t("asyncScoring")}
       </p>
     </div>
   );

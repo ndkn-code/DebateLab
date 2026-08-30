@@ -9,7 +9,7 @@ import {
 export function IeltsHomeSkeleton() {
   return (
     <ProductPageShell>
-      <PageContainer size="wide" className="flex flex-col gap-8 py-6 lg:py-8">
+      <PageContainer size="data" className="flex flex-col gap-6 py-5 lg:py-6">
         <header className="flex flex-col gap-2">
           <Shimmer className="h-4 w-16" rounded="rounded-sm" />
           <Shimmer className="h-9 w-full max-w-72" rounded="rounded-md" />

@@ -1,47 +1,40 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { ProductIcon, type ProductIconName } from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
 
 const GUIDE_ITEMS: Array<{
-  title: string;
-  description: string;
+  key: "highlight" | "eliminate" | "flag" | "navigator" | "review" | "pause" | "timer";
   icon: ProductIconName;
 }> = [
   {
-    title: "Highlight",
-    description: "Mark useful evidence in passages while you read.",
+    key: "highlight",
     icon: "highlighter",
   },
   {
-    title: "Eliminate",
-    description: "Cross out answer choices you know are wrong.",
+    key: "eliminate",
     icon: "eraser",
   },
   {
-    title: "Flag",
-    description: "Save uncertain questions for another look.",
+    key: "flag",
     icon: "bookmark",
   },
   {
-    title: "Navigator",
-    description: "Jump across questions and see answered, open, and flagged items.",
+    key: "navigator",
     icon: "grid",
   },
   {
-    title: "Review",
-    description: "Check the whole section before you confirm submit.",
+    key: "review",
     icon: "listChecks",
   },
   {
-    title: "Pause",
-    description: "Freeze the clock in Reading, Writing, and Speaking. Listening cannot be paused.",
+    key: "pause",
     icon: "pause",
   },
   {
-    title: "Timer",
-    description: "Each section runs on its own server clock.",
+    key: "timer",
     icon: "timer",
   },
 ];
@@ -53,11 +46,12 @@ export function MockPreTestGuide({
   className?: string;
   showHeading?: boolean;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const reducedMotion = useReducedMotion();
 
   return (
     <section
-      aria-label={showHeading ? undefined : "How this mock works"}
+      aria-label={showHeading ? undefined : t("guideLabel")}
       className={cn(
         "w-full rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left shadow-token-card sm:p-4",
         className,
@@ -66,7 +60,7 @@ export function MockPreTestGuide({
     >
       {showHeading ? (
         <h2 className="text-sm font-bold text-on-surface sm:text-base">
-          How this mock works
+          {t("guideLabel")}
         </h2>
       ) : null}
       <motion.div
@@ -81,7 +75,7 @@ export function MockPreTestGuide({
       >
         {GUIDE_ITEMS.map((item) => (
           <motion.div
-            key={item.title}
+            key={item.key}
             variants={
               reducedMotion
                 ? undefined
@@ -97,10 +91,10 @@ export function MockPreTestGuide({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-on-surface">
-                {item.title}
+                {t(`guide.${item.key}Title`)}
               </span>
               <span className="mt-0.5 block text-xs leading-5 text-on-surface-variant">
-                {item.description}
+                {t(`guide.${item.key}Body`)}
               </span>
             </span>
           </motion.div>

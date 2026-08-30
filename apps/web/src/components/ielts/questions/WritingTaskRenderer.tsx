@@ -129,7 +129,7 @@ export function WritingTaskRenderer({
         disabled={disabled || submitting}
         onChange={(event) => handleEssay(event.target.value)}
         placeholder={t("writing.placeholder")}
-        className="min-h-[40vh] w-full resize-y rounded-2xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface placeholder:text-on-surface-variant disabled:opacity-60"
+        className="min-h-[40vh] w-full resize-y rounded-xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface placeholder:text-on-surface-variant disabled:opacity-60"
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <WordCount words={words} minWords={recommendedMinWords(question.questionType)} />

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Bookmark,
@@ -76,6 +77,7 @@ export function SectionReviewSheet({
   onJump: (partIndex: number, questionId: string) => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const reducedMotion = useReducedMotion();
 
   return (
@@ -87,25 +89,25 @@ export function SectionReviewSheet({
       >
         <DialogHeader className="border-b border-outline-variant px-4 py-4 sm:px-5">
           <DialogTitle className="text-base font-bold text-on-surface">
-            Review {sectionLabel}
+            {t("reviewSection", { section: sectionLabel })}
           </DialogTitle>
           <div className="grid gap-2 pt-2 sm:grid-cols-3">
             <SummaryBadge
               tone="answered"
               icon={<CheckCircle2 className="size-4" aria-hidden="true" />}
-              label="Answered"
+              label={t("answered")}
               value={`${counts.answered}/${counts.total}`}
             />
             <SummaryBadge
               tone="unanswered"
               icon={<CircleAlert className="size-4" aria-hidden="true" />}
-              label="Unanswered"
+              label={t("unanswered")}
               value={counts.unanswered}
             />
             <SummaryBadge
               tone="flagged"
               icon={<Bookmark className="size-4" aria-hidden="true" />}
-              label="Flagged"
+              label={t("flagged")}
               value={counts.flagged}
             />
           </div>
@@ -146,7 +148,11 @@ export function SectionReviewSheet({
                     statusClass(status),
                     status.current && "ring-2 ring-primary/40",
                   )}
-                  aria-label={`Back to question ${status.number}, ${status.answered ? "answered" : "unanswered"}${status.flagged ? ", flagged" : ""}`}
+                  aria-label={t("backToQuestion", {
+                    number: status.number,
+                    status: status.answered ? t("answered") : t("unanswered"),
+                    flagged: status.flagged ? `, ${t("flagged")}` : "",
+                  })}
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-on-surface">
                     {status.number}
@@ -156,11 +162,11 @@ export function SectionReviewSheet({
                       {status.partTitle}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1.5 text-xs font-semibold">
-                      <span>{status.answered ? "Answered" : "No answer"}</span>
+                      <span>{status.answered ? t("answered") : t("noAnswer")}</span>
                       {status.flagged ? (
                         <span className="inline-flex items-center gap-1 text-warning">
                           <Bookmark className="size-3" aria-hidden="true" />
-                          Flagged
+                          {t("flagged")}
                         </span>
                       ) : null}
                     </span>
@@ -171,7 +177,7 @@ export function SectionReviewSheet({
             </motion.div>
           ) : (
             <p className="rounded-lg border border-dashed border-outline-variant bg-surface px-4 py-6 text-center text-sm text-on-surface-variant">
-              This section has no questions to review.
+              {t("noReviewQuestions")}
             </p>
           )}
         </div>
@@ -183,7 +189,7 @@ export function SectionReviewSheet({
             disabled={busy}
             className="rounded-full bg-surface-container-high px-5 py-2 text-sm font-semibold text-on-surface transition hover:bg-surface-container disabled:opacity-50"
           >
-            Keep working
+            {t("keepWorking")}
           </button>
           <button
             type="button"
@@ -194,7 +200,7 @@ export function SectionReviewSheet({
             disabled={busy || statuses.length === 0}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90 disabled:opacity-50"
           >
-            Confirm submit
+            {t("confirmSubmit")}
           </button>
         </DialogFooter>
       </DialogContent>

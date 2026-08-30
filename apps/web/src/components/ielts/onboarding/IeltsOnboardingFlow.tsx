@@ -107,7 +107,7 @@ export function IeltsOnboardingFlow({
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="wide" className="flex flex-col gap-6 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-4 py-4 lg:py-6">
           <OnboardingHeader step={step} />
 
           {error ? (

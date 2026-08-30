@@ -41,7 +41,10 @@ export function SessionTopBar({
           {topicTitle}
         </h1>
 
-        <div className="flex shrink-0 items-center gap-2 justify-self-end">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 justify-self-stretch sm:justify-self-end">
+          <span className="inline-flex h-8 items-center rounded-md border border-primary/30 bg-primary-container px-2.5 text-xs font-bold uppercase tracking-wide text-on-primary-container">
+            {t("session.practice_mode")}
+          </span>
           <span
             className={cn(
               "inline-flex h-8 items-center rounded-md px-2.5 text-xs font-semibold",

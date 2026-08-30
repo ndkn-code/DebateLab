@@ -52,7 +52,7 @@ export function IeltsOnboardingResultStep({
   const confidence = confidencePercent(prediction.overall.confidence);
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+    <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
       <div>
         <h2 className="type-heading-lg font-bold text-on-surface">
           {t("result_title")}
@@ -63,14 +63,14 @@ export function IeltsOnboardingResultStep({
       </div>
       <div className="grid gap-4">
         {isPending && !planResult ? (
-          <div className="rounded-lg border border-outline-variant bg-surface-container p-5">
+          <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
             <p className="type-body font-semibold text-on-surface">
               {t("generating_plan")}
             </p>
           </div>
         ) : null}
 
-        <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container p-5">
+        <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container p-4">
           <p className="type-body-sm font-semibold uppercase text-primary">
             {t("prediction_card")}
           </p>
@@ -128,7 +128,7 @@ export function IeltsOnboardingResultStep({
         </div>
 
         {planResult ? (
-          <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container p-5">
+          <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="type-body-sm font-semibold uppercase text-primary">
                 {t("today_preview")}

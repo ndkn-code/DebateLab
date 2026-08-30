@@ -47,8 +47,8 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
           {t("total_hours", { hours: totalHours })}
         </span>
       }
-      className="rounded-[2rem] p-5 sm:p-6"
-      bodyClassName="flex flex-col gap-5"
+      className="rounded-xl p-4 sm:p-5"
+      bodyClassName="flex flex-col gap-4"
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
@@ -57,14 +57,14 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
           format={(value) => `${Math.round(value)}/7`}
           icon={<CalendarDays className="h-4 w-4 text-primary" />}
           animate={false}
-          className="rounded-[1.25rem] p-3.5"
+          className="rounded-lg p-3"
         />
         <StatCard
           label={t("weekly_sessions_label")}
           value={totalSessions}
           icon={<Activity className="h-4 w-4 text-secondary" />}
           animate={false}
-          className="rounded-[1.25rem] p-3.5"
+          className="rounded-lg p-3"
         />
         <StatCard
           label={t("weekly_best_day_label")}
@@ -72,7 +72,7 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
           format={(value) => `${Math.round(value)} ${t("min")}`}
           icon={<TimerReset className="h-4 w-4 text-tertiary" />}
           animate={false}
-          className="rounded-[1.25rem] p-3.5"
+          className="rounded-lg p-3"
         />
       </div>
 
@@ -80,7 +80,7 @@ export function WeeklyChart({ stats }: WeeklyChartProps) {
         <ChartEmpty
           title={t("weekly_chart_empty_note")}
           description={t("weekly_chart_empty_subtitle")}
-          className="h-48 rounded-[1.5rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-4"
+          className="h-48 rounded-lg border border-dashed border-outline-variant/30 bg-surface-container-low px-4"
         />
       ) : (
         <div className="h-64">

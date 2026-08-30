@@ -19,14 +19,14 @@ export function DashboardFocusPanel({
   return (
     <Tabs
       defaultValue="practice"
-      className="min-w-0 rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6"
+      className="min-w-0 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-none sm:p-5"
     >
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="type-eyebrow text-primary">
             {t("focus_eyebrow")}
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-on-surface">
+          <h2 className="mt-1.5 text-xl font-semibold text-on-surface">
             {t("focus_title")}
           </h2>
         </div>

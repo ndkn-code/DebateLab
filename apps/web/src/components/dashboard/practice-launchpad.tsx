@@ -50,13 +50,13 @@ export function PracticeLaunchpad({
           <Link key={option.key} href={option.href}>
             <div
               className={cn(
-                "group h-full rounded-[1.5rem] border border-outline-variant/12 bg-surface-container-low transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-token-card",
+                "group h-full rounded-xl border border-outline-variant/30 bg-surface-container-low transition-colors hover:border-primary/35 hover:bg-surface-container",
                 embedded ? "p-4" : "p-4"
               )}
             >
               <div
                 className={cn(
-                  "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
+                  "mb-3 flex h-10 w-10 items-center justify-center rounded-lg",
                   option.accent
                 )}
               >
@@ -94,14 +94,14 @@ export function PracticeLaunchpad({
   }
 
   return (
-    <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-6 soft-shadow sm:p-7">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-none sm:p-5">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <span className="type-eyebrow inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             {t("launchpad_eyebrow")}
           </span>
-          <h2 className="mt-4 text-2xl font-semibold text-on-surface">
+          <h2 className="mt-3 text-xl font-semibold text-on-surface">
             {t("launchpad_title")}
           </h2>
         </div>

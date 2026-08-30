@@ -4,6 +4,7 @@ import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { writingOverallBand } from "@/lib/scoring/ielts-writing/band-math";
 import { attemptSpeakingBand } from "@/lib/scoring/ielts-speaking/band-math";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
+import { recomputeEffectiveAttemptScores } from "./teacher-review-repository";
 
 /**
  * Roll a scored attempt's Task 1 + Task 2 bands into the per-attempt
@@ -50,6 +51,10 @@ export async function recomputeAttemptWritingBand(
 
   // Fold the new Writing band into the cross-skill overall (WS-2.2).
   await recomputeAttemptOverallBand(admin, attemptId, userId);
+  // Refresh the teacher/LMS projection when AI scoring completes after a
+  // partial review. Complete published teacher bands remain authoritative;
+  // only missing AI portions change.
+  await recomputeEffectiveAttemptScores(admin, attemptId);
   return writingBand;
 }
 
@@ -95,5 +100,6 @@ export async function recomputeAttemptSpeakingBand(
   // Fold the new Speaking band into the cross-skill overall (WS-2.2) — mirrors
   // the Writing path so finishing Speaking keeps the stored overall_band current.
   await recomputeAttemptOverallBand(admin, attemptId, userId);
+  await recomputeEffectiveAttemptScores(admin, attemptId);
   return speakingBand;
 }

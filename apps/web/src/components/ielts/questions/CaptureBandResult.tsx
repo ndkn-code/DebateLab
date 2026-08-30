@@ -29,7 +29,7 @@ export function CaptureBandResult({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface-container-low p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
           {headlineLabel}
@@ -68,7 +68,7 @@ export function CaptureScoringNote({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-2xl bg-warning-container px-4 py-3 text-on-warning-container"
+      className="flex items-center gap-3 rounded-xl bg-warning-container px-4 py-3 text-on-warning-container"
       role="status"
       aria-live="polite"
     >
@@ -86,7 +86,7 @@ export function CaptureScoringNote({
 
 export function CaptureErrorNote({ message }: { message: string }) {
   return (
-    <p className="rounded-2xl bg-error-container px-4 py-3 type-body-sm text-error">
+    <p className="rounded-xl bg-error-container px-4 py-3 type-body-sm text-error">
       {message}
     </p>
   );

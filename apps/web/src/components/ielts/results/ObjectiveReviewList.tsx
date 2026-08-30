@@ -62,7 +62,7 @@ function SourceContext({ item }: { item: ObjectiveReviewItem }) {
 
 function ReviewRow({ item }: { item: ObjectiveReviewItem }) {
   return (
-    <li className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
+    <li className="rounded-xl border border-outline-variant bg-surface px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <p className="type-body-sm text-on-surface">
           <span className="font-semibold">{item.number}.</span> {item.prompt}
@@ -103,7 +103,7 @@ function ReviewSection({
   open: boolean;
 }) {
   return (
-    <details open={open} className="rounded-2xl border border-outline-variant bg-surface-container">
+    <details open={open} className="rounded-xl border border-outline-variant bg-surface-container">
       <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3">
         <span className="type-title text-on-surface">{section.label}</span>
         <span className="type-body-sm text-on-surface-variant tabular-nums">

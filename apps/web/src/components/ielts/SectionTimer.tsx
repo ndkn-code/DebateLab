@@ -8,6 +8,7 @@
  * (the server already rejects any late write).
  */
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   remainingSeconds,
   sectionStatus,
@@ -30,6 +31,7 @@ export function SectionTimer({
   onExpire?: () => void;
   onStatusChange?: (status: SectionRuntimeStatus) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const expiredRef = useRef(false);
 
@@ -55,11 +57,11 @@ export function SectionTimer({
   const low = ticking && remaining <= 60;
   const label =
     status === "paused"
-      ? "Paused"
+      ? t("timerPaused")
       : status === "submitted"
-        ? "Submitted"
+        ? t("timerSubmitted")
         : status === "not_started"
-          ? "Not started"
+          ? t("timerNotStarted")
           : formatClock(remaining);
 
   return (
@@ -69,10 +71,11 @@ export function SectionTimer({
           ? "bg-error-container text-error"
           : "bg-surface-container-high text-on-surface"
       }`}
+      role="timer"
       aria-live="polite"
     >
       <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        Time
+        {t("time")}
       </span>
       {label}
     </div>

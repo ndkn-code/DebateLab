@@ -74,7 +74,7 @@ function SpeakingCapture({
 
   if (recorder.status === "recording") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-outline-variant bg-surface-container px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <span className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
           <span className="size-2.5 animate-pulse rounded-full bg-error" aria-hidden="true" />
           {t("speaking.recording")} · {recorder.elapsedSeconds}s
@@ -92,7 +92,7 @@ function SpeakingCapture({
 
   if (recorder.result) {
     return (
-      <div className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container px-4 py-3">
+      <div className="flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
           {t("speaking.yourRecording")}
         </span>

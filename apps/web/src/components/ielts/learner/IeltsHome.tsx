@@ -43,7 +43,7 @@ export function IeltsHome({
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="wide" className="flex flex-col gap-8 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-6 py-5 lg:py-6">
           <header className="flex flex-col gap-1">
             <p className="type-eyebrow font-semibold uppercase text-primary">
               {t("eyebrow")}

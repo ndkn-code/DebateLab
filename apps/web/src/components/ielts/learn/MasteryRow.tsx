@@ -29,7 +29,7 @@ export function MasteryRow({
   const hasEvidence = mastery.evidenceCount > 0;
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container p-4">
+    <div className="flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface-container p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="type-body-sm font-semibold text-on-surface">

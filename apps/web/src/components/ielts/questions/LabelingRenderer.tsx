@@ -15,7 +15,7 @@ import { QuestionShell } from "./QuestionShell";
 
 function LabelBankLegend({ options }: { options: IeltsOption[] }) {
   return (
-    <ul className="flex flex-wrap gap-2 rounded-2xl bg-surface-container p-4">
+    <ul className="flex flex-wrap gap-2 rounded-xl bg-surface-container p-3">
       {options.map((option) => (
         <li key={option.id} className="rounded-lg bg-surface px-3 py-1">
           <Text variant="body-sm" className="text-on-surface">
@@ -78,7 +78,7 @@ export function LabelingRenderer({
           {hotspots.map((hotspot, index) => (
             <div
               key={hotspot.id}
-              className="flex min-w-0 items-center gap-3 rounded-2xl bg-surface-container p-3"
+              className="flex min-w-0 items-center gap-3 rounded-xl bg-surface-container p-3"
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-on-surface-variant">
                 {hotspot.label ?? index + 1}

@@ -20,7 +20,7 @@ export function UnitCard({ unit, index }: { unit: LearnUnit; index: number }) {
     <Link
       href={unit.href}
       className={cn(
-        "group flex flex-col gap-4 rounded-3xl border bg-surface-container p-5 transition-all hover:-translate-y-0.5 hover:shadow-token-card",
+        "group flex flex-col gap-3 rounded-xl border bg-surface-container p-4 transition-colors hover:border-primary/35 hover:bg-surface-container-low",
         unit.isRecommended ? "border-primary" : "border-outline-variant hover:border-primary",
       )}
     >
@@ -28,7 +28,7 @@ export function UnitCard({ unit, index }: { unit: LearnUnit; index: number }) {
         <span
           aria-hidden="true"
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-2xl type-title font-bold tabular-nums",
+            "flex size-10 shrink-0 items-center justify-center rounded-lg type-title font-bold tabular-nums",
             unit.isComplete
               ? "bg-success-container text-success-dim"
               : "bg-primary-container text-on-primary-container",

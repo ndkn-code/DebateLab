@@ -21,14 +21,14 @@ export function LessonRow({ lesson, index }: { lesson: LearnLesson; index: numbe
     <Link
       href={lesson.href}
       className={cn(
-        "group flex items-center gap-4 rounded-2xl border bg-surface-container p-4 transition-all hover:-translate-y-0.5 hover:shadow-token-card",
+        "group flex items-center gap-3 rounded-xl border bg-surface-container p-3 transition-colors hover:border-primary/35 hover:bg-surface-container-low",
         lesson.isRecommended ? "border-primary" : "border-outline-variant hover:border-primary",
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-2xl type-body-sm font-bold tabular-nums",
+          "flex size-10 shrink-0 items-center justify-center rounded-lg type-body-sm font-bold tabular-nums",
           lesson.isCompleted
             ? "bg-success-container text-success-dim"
             : lesson.isRecommended

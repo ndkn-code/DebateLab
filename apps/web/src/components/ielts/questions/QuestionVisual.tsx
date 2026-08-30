@@ -51,7 +51,7 @@ function ImageVisual({
         <img
           src={visual.url}
           alt={visual.alt ?? ""}
-          className="w-full rounded-2xl border border-outline-variant"
+          className="w-full rounded-xl border border-outline-variant"
         />
         {visual.hotspots.map((hotspot: IeltsImageHotspot, index) => (
           <span
@@ -80,7 +80,7 @@ function TableVisual({
   renderGap?: (gap: IeltsVisualGap) => React.ReactNode;
 }) {
   return (
-    <table className="min-w-full border-collapse overflow-hidden rounded-2xl">
+    <table className="min-w-full border-collapse overflow-hidden rounded-xl">
       {visual.caption ? (
         <caption className="mb-2 text-left">
           <Text variant="caption" className="text-on-surface-variant">
@@ -311,7 +311,7 @@ export function QuestionVisual({
       <section
         aria-label="Figure description"
         className={cn(
-          "rounded-2xl border border-outline-variant bg-surface-container p-5",
+          "rounded-xl border border-outline-variant bg-surface-container p-4",
           className,
         )}
       >
@@ -327,7 +327,7 @@ export function QuestionVisual({
     <div
       className={cn(
         framed
-          ? "max-w-full overflow-x-auto rounded-2xl border border-outline-variant bg-surface p-4 pb-5"
+          ? "max-w-full overflow-x-auto rounded-xl border border-outline-variant bg-surface p-3 pb-4"
           : visual.kind === "table"
             ? "overflow-x-auto pb-1"
             : "",

@@ -147,7 +147,7 @@ function WritingTaskCard({ task }: { task: WritingTaskResult }) {
   const hasSubmissionReview = Boolean(task.prompt || task.essay.trim());
   const grading = gradingPresentationFromResult(task);
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface-container p-4">
+    <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="type-title text-on-surface">Task {task.taskNumber}</h3>
         <span className="type-body-sm text-on-surface-variant">
@@ -288,7 +288,7 @@ function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
   const hasTranscript = part.transcript.trim().length > 0;
   const grading = gradingPresentationFromResult(part);
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface-container p-4">
+    <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="type-title text-on-surface">{label}</h3>
         <span className="type-body-sm text-on-surface-variant">

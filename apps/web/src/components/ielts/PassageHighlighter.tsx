@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
 import {
@@ -73,6 +74,7 @@ export function PassageHighlighter({
   body: string;
   onOpenNotes?: (noteId: string) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const activeAttemptId = useMockAnnotationsStore((state) => state.activeAttemptId);
   const highlights = useMockAnnotationsStore((state) =>
     activeAttemptId
@@ -91,7 +93,7 @@ export function PassageHighlighter({
   );
 
   return (
-    <article className="max-h-[60vh] overflow-y-auto rounded-3xl border border-outline-variant bg-surface-container p-5 text-sm leading-relaxed text-on-surface">
+    <article className="max-h-[60vh] overflow-y-auto rounded-xl border border-outline-variant bg-surface-container p-4 text-sm leading-relaxed text-on-surface">
       <h3 className="mb-3 text-base font-bold">{title}</h3>
       <div
         data-annotation-kind="passage"
@@ -104,7 +106,7 @@ export function PassageHighlighter({
               <span
                 role="button"
                 tabIndex={0}
-                title="Remove highlight"
+                title={t("removeHighlight")}
                 data-highlight-id={segment.highlight.id}
                 onClick={(event) => {
                   if (hasActiveSelection()) return;
@@ -131,8 +133,8 @@ export function PassageHighlighter({
                 key={note.id}
                 type="button"
                 data-annotation-ui
-                aria-label="Open anchored note"
-                title="Open note"
+                aria-label={t("openAnchoredNote")}
+                title={t("openNote")}
                 onClick={() => onOpenNotes?.(note.id)}
                 className="mx-0.5 inline-flex size-4 items-center justify-center rounded-full bg-secondary align-super text-on-secondary shadow-[0_0_0_2px_var(--color-surface-container)] transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >

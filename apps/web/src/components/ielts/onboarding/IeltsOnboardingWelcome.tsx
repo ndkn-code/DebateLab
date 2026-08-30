@@ -19,8 +19,8 @@ export function IeltsOnboardingWelcome({
   const t = useTranslations("ielts.onboarding");
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
-      <div className="flex flex-col justify-center gap-5">
+    <section className="grid gap-4 lg:grid-cols-[1fr_0.75fr]">
+      <div className="flex flex-col justify-center gap-4">
         <div className="inline-flex size-12 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
           <Target className="size-6" />
         </div>

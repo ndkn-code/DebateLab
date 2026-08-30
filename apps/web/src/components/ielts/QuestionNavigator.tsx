@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Bookmark,
   CheckCircle2,
@@ -58,6 +59,7 @@ export function QuestionNavigator({
   counts: MockQuestionCounts;
   onJump: (partIndex: number, questionId: string) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const [open, setOpen] = useState(false);
   const reducedMotion = useReducedMotion();
   const gridVariants = useMemo(
@@ -83,7 +85,10 @@ export function QuestionNavigator({
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-1.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container disabled:opacity-50"
-        aria-label={`Open question navigator: ${counts.answered} of ${counts.total} answered`}
+        aria-label={t("openNavigator", {
+          answered: counts.answered,
+          total: counts.total,
+        })}
       >
         <LayoutGrid className="size-4" aria-hidden="true" />
         <span>
@@ -102,19 +107,19 @@ export function QuestionNavigator({
           <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
             <LegendItem
               icon={<MapPin className="size-3.5 text-primary" aria-hidden="true" />}
-              label="Current"
+              label={t("current")}
             />
             <LegendItem
               icon={<CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />}
-              label="Answered"
+              label={t("answered")}
             />
             <LegendItem
               icon={<CircleAlert className="size-3.5 text-on-surface-variant" aria-hidden="true" />}
-              label="Unanswered"
+              label={t("unanswered")}
             />
             <LegendItem
               icon={<Bookmark className="size-3.5 text-warning" aria-hidden="true" />}
-              label="Flagged"
+              label={t("flagged")}
             />
           </div>
         </DialogHeader>
@@ -138,7 +143,9 @@ export function QuestionNavigator({
                 }}
                 className={cn(CHIP, chipClass(status))}
                 aria-current={status.current ? "true" : undefined}
-                aria-label={`Question ${status.number}, ${status.answered ? "answered" : "unanswered"}${status.flagged ? ", flagged" : ""}, ${status.partTitle}`}
+                aria-label={`${t("question", { number: status.number })}, ${
+                  status.answered ? t("answered") : t("unanswered")
+                }${status.flagged ? `, ${t("flagged")}` : ""}, ${status.partTitle}`}
               >
                 {status.number}
                 {status.current ? (

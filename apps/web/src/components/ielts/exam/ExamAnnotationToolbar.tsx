@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ProductIcon } from "@/components/ui/product-icon";
@@ -30,8 +31,10 @@ export function ExamAnnotationToolbar({
   onSelectColor,
   onOpenNotes,
 }: ExamAnnotationToolbarProps) {
+  const t = useTranslations("ielts.player.exam");
   const [colorsOpen, setColorsOpen] = useState(false);
   const selectedStyle = HIGHLIGHT_STYLES[selectedColor];
+  const selectedColorLabel = t(`colors.${selectedColor}`);
 
   return (
     <div
@@ -41,17 +44,18 @@ export function ExamAnnotationToolbar({
         compact && "p-0.5",
         !compact && "min-h-10",
       )}
-      aria-label="Exam annotation tools"
+      role="toolbar"
+      aria-label={t("annotationTools")}
     >
       <button
         type="button"
         onClick={onToggleHighlightMode}
         aria-pressed={highlightMode}
-        aria-label={highlightMode ? "Turn highlight mode off" : "Turn highlight mode on"}
-        title={highlightMode ? "Highlight mode on" : "Highlight mode off"}
+        aria-label={highlightMode ? t("highlightOff") : t("highlightOn")}
+        title={highlightMode ? t("highlightModeOn") : t("highlightModeOff")}
         className={cn(
           "flex items-center justify-center rounded-lg transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-7" : "size-8",
+          compact ? "size-10" : "size-8",
           highlightMode
             ? "bg-primary text-on-primary"
             : "text-on-surface-variant hover:bg-surface-container",
@@ -63,16 +67,16 @@ export function ExamAnnotationToolbar({
       <Popover open={colorsOpen} onOpenChange={setColorsOpen}>
         <PopoverTrigger
           type="button"
-          aria-label={`Highlight color: ${selectedStyle.label}`}
+          aria-label={t("highlightColor", { color: selectedColorLabel })}
           className={cn(
             "flex items-center justify-center rounded-lg hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            compact ? "size-7" : "size-8",
+            compact ? "size-10" : "size-8",
           )}
         >
           <span className={cn("size-4 rounded-full border border-outline", selectedStyle.className)} />
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-auto rounded-2xl p-2">
-          <div className="flex gap-1" aria-label="Highlight colors">
+        <PopoverContent align="end" className="w-auto rounded-xl p-2">
+          <div className="flex gap-1" role="group" aria-label={t("highlightColors")}>
             {MOCK_HIGHLIGHT_COLORS.map((color) => {
               const style = HIGHLIGHT_STYLES[color];
               return (
@@ -81,7 +85,9 @@ export function ExamAnnotationToolbar({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`${style.label} highlight`}
+                  aria-label={t("highlightColorOption", {
+                    color: t(`colors.${color}`),
+                  })}
                   aria-pressed={selectedColor === color}
                   onClick={() => {
                     onSelectColor(color);
@@ -103,11 +109,13 @@ export function ExamAnnotationToolbar({
       <button
         type="button"
         onClick={onOpenNotes}
-        aria-label={`Open exam notes${noteCount > 0 ? `, ${noteCount}` : ""}`}
-        title="Exam notes"
+        aria-label={
+          noteCount > 0 ? t("openNotesCount", { count: noteCount }) : t("openNotes")
+        }
+        title={t("examNotes")}
         className={cn(
           "relative flex items-center justify-center rounded-lg text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-7" : "size-8",
+          compact ? "size-10" : "size-8",
         )}
       >
         <ProductIcon name="fileText" size="sm" weight="bold" />

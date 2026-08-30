@@ -22,7 +22,7 @@ export function LearnUnitScreen({ view }: { view: LearnUnitView }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="standard" className="flex flex-col gap-6 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-4 py-5 lg:py-6">
           <Link
             href="/ielts/learn"
             className="inline-flex w-fit items-center gap-1.5 type-body-sm font-semibold text-on-surface-variant hover:text-on-surface"
@@ -31,7 +31,7 @@ export function LearnUnitScreen({ view }: { view: LearnUnitView }) {
             {t("back_to_path")}
           </Link>
 
-          <header className="flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container p-6">
+          <header className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5">
             <div className="flex flex-col gap-1">
               <p className="type-eyebrow font-semibold uppercase text-primary">{view.courseTitle}</p>
               <h1 className="type-heading-lg font-bold text-on-surface">{unit.title}</h1>

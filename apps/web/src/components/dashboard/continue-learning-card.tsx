@@ -58,8 +58,8 @@ export function ContinueLearningCard({
     return (
       <section
         className={cn(
-          "rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest soft-shadow",
-          compact ? "p-5" : "p-6 sm:p-7"
+          "rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-none",
+          compact ? "p-4" : "p-4 sm:p-5"
         )}
       >
         <div className="flex h-full flex-col justify-between gap-6">
@@ -99,7 +99,7 @@ export function ContinueLearningCard({
 
   if (compact) {
     return (
-      <section className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-low p-5">
+      <section className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="type-eyebrow text-primary">
@@ -115,7 +115,7 @@ export function ContinueLearningCard({
           </Badge>
         </div>
 
-        <div className="overflow-hidden rounded-[1.4rem] border border-outline-variant/15 bg-surface-container-lowest">
+        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest">
           <div className="grid gap-0 md:grid-cols-[180px_minmax(0,1fr)]">
             <div className="relative min-h-[180px] overflow-hidden">
               {featuredCourse.course_thumbnail_url ? (
@@ -134,7 +134,7 @@ export function ContinueLearningCard({
                     categoryMeta.gradient
                   )}
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-container-lowest/15 backdrop-blur-sm">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-surface-container-lowest/15 backdrop-blur-sm">
                     <Icon className="h-7 w-7" />
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export function ContinueLearningCard({
             {additionalCourses.map((course) => (
               <div
                 key={course.id}
-                className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-outline-variant/10 bg-surface-container-lowest p-3"
+                className="flex items-center justify-between gap-3 rounded-lg border border-outline-variant/25 bg-surface-container-lowest p-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-on-surface">
@@ -205,7 +205,7 @@ export function ContinueLearningCard({
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-[1.15rem] border border-dashed border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant">
+          <div className="mt-4 rounded-lg border border-dashed border-outline-variant/30 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface-variant">
             <span className="inline-flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               {t("single_active_course")}
@@ -217,7 +217,7 @@ export function ContinueLearningCard({
   }
 
   return (
-    <section className="rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6">
+    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-none sm:p-5">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="type-eyebrow text-primary">
@@ -236,7 +236,7 @@ export function ContinueLearningCard({
         </Badge>
       </div>
 
-      <div className="overflow-hidden rounded-[1.5rem] border border-outline-variant/15 bg-surface-container-low">
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-low">
         <div className="grid gap-0 lg:grid-cols-[0.88fr_1.12fr]">
           <div className="relative aspect-[16/10] overflow-hidden">
             {featuredCourse.course_thumbnail_url ? (
@@ -255,7 +255,7 @@ export function ContinueLearningCard({
                   categoryMeta.gradient
                 )}
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container-lowest/15 backdrop-blur-sm">
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-container-lowest/15 backdrop-blur-sm">
                   <Icon className="h-8 w-8" />
                 </div>
               </div>
@@ -307,7 +307,7 @@ export function ContinueLearningCard({
           {additionalCourses.map((course) => (
             <div
               key={course.id}
-              className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-outline-variant/10 bg-surface-container-low p-3.5"
+              className="flex items-center justify-between gap-3 rounded-lg border border-outline-variant/25 bg-surface-container-low p-3"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-on-surface">
@@ -334,7 +334,7 @@ export function ContinueLearningCard({
           ))}
         </div>
       ) : (
-        <div className="mt-4 rounded-[1.25rem] border border-dashed border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+        <div className="mt-4 rounded-lg border border-dashed border-outline-variant/30 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
           <span className="inline-flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             {t("single_active_course")}

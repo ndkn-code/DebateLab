@@ -54,7 +54,7 @@ export function IeltsOnboardingGoalStep({
   };
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+    <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
         <h2 className="type-heading-lg font-bold text-on-surface">
           {t("goal_title")}
@@ -64,7 +64,7 @@ export function IeltsOnboardingGoalStep({
         </p>
       </div>
       <form
-        className="grid gap-5"
+        className="grid gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit();

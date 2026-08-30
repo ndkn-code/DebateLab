@@ -8,6 +8,7 @@
  * enforces the same, this just keeps the UI honest.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import type { Tables } from "@/types/supabase";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type {
@@ -82,6 +83,8 @@ function SectionPart({
   onAnswer: (questionId: string, value: unknown) => void;
   onOpenNotes: (noteId: string) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
+
   return (
     <div className={hasStimulus ? "grid gap-5 lg:grid-cols-2" : "flex flex-col gap-3"}>
       {hasStimulus ? stimulus : null}
@@ -100,7 +103,7 @@ function SectionPart({
           />
         ))}
         {part.questions.length === 0 ? (
-          <p className="text-sm text-on-surface-variant">No questions in this part.</p>
+          <p className="text-sm text-on-surface-variant">{t("noQuestions")}</p>
         ) : null}
       </div>
     </div>
@@ -168,6 +171,7 @@ export function MockSectionView({
   onExpire,
   onFinish,
 }: Props) {
+  const t = useTranslations("ielts.player.exam");
   const [activePart, setActivePart] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState<string | null>(null);
@@ -191,7 +195,7 @@ export function MockSectionView({
   );
   const activePartIndex = boundedPartIndex(parts.length, activePart);
   const part = activePartIndex >= 0 ? parts[activePartIndex] : undefined;
-  const sectionLabel = section.label ?? section.skill;
+  const sectionLabel = t(`skills.${section.skill}`);
   const currentQuestionId = activeQuestionForPart(part, activeQuestionId);
   const noteCount = useMemo(() => {
     const prefix = `${section.attempt_id}:`;
@@ -314,7 +318,7 @@ export function MockSectionView({
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
         <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
           {parts.length > 1 ? (
-            <nav className="flex gap-2 overflow-x-auto" aria-label="Section parts">
+            <nav className="flex gap-2 overflow-x-auto px-0.5 py-1" aria-label={t("sectionParts")}>
               {parts.map((candidate, index) => (
                 <button
                   key={candidate.id}
@@ -335,7 +339,7 @@ export function MockSectionView({
 
           {paused ? (
             <p className="rounded-2xl bg-error-container px-4 py-3 text-sm font-medium text-error">
-              Paused — the clock is frozen. Resume to keep answering.
+              {t("pausedBody")}
             </p>
           ) : null}
 
@@ -368,7 +372,7 @@ export function MockSectionView({
               onOpenNotes={(noteId) => openNotes(noteId)}
             />
           ) : (
-            <p className="text-sm text-on-surface-variant">This section has no content yet.</p>
+            <p className="text-sm text-on-surface-variant">{t("noContent")}</p>
           )}
         </div>
       </main>

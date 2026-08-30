@@ -200,12 +200,17 @@
   box-shadow: none;
 }
 
-.root :global([data-ielts-metric-caption]) {
-  display: none;
-}
-
+.root :global([data-ielts-metric-caption]),
 .root :global([data-ielts-task-rationale]) {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .root :global([data-ielts-metric] .size-22) {

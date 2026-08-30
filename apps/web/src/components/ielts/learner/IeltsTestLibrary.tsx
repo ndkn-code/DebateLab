@@ -45,7 +45,7 @@ export function IeltsTestLibrary({ tests }: { tests: IeltsTestCard[] }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="wide" className="py-6 lg:py-8">
+        <PageContainer size="data" className="py-5 lg:py-6">
           <ProductPageHeader
             title={t("library_title")}
             icon={<GraduationCap />}

@@ -26,7 +26,7 @@ export function MatchingRenderer({
   return (
     <QuestionShell instructions={question.groupInstructions} prompt={question.prompt}>
       {/* Shared option bank */}
-      <ul className="flex flex-col gap-1.5 rounded-2xl bg-surface-container p-4">
+      <ul className="flex flex-col gap-1.5 rounded-xl bg-surface-container p-3">
         {question.options.map((option) => (
           <li key={option.id} className="flex gap-2">
             <Text variant="body-sm" className="font-bold text-on-surface">
@@ -47,7 +47,7 @@ export function MatchingRenderer({
           return (
             <div
               key={item.id}
-              className="grid gap-3 rounded-2xl border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center"
+              className="grid gap-3 rounded-xl border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center"
             >
               <div className="flex min-w-0 gap-3">
                 {item.label ? (

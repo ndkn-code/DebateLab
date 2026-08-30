@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { ProductIcon } from "@/components/ui/product-icon";
 import {
   type MockHighlightColor,
@@ -81,6 +82,7 @@ export function ExamSelectionPopup({
   selectedColor,
   onNoteCreated,
 }: ExamSelectionPopupProps) {
+  const t = useTranslations("ielts.player.exam");
   const [pending, setPending] = useState<PendingSelection | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const addHighlight = useMockAnnotationsStore((state) => state.addHighlight);
@@ -135,10 +137,10 @@ export function ExamSelectionPopup({
       ref={popupRef}
       data-annotation-ui
       role="toolbar"
-      aria-label="Selection actions"
+      aria-label={t("selectionActions")}
       style={{ left: pending.x, top: pending.y }}
       className={cn(
-        "fixed z-[2147483647] flex -translate-x-1/2 items-center gap-1 rounded-2xl border border-outline-variant bg-surface p-1.5 text-on-surface shadow-xl animate-in fade-in zoom-in-95 duration-150",
+        "fixed z-[2147483647] flex -translate-x-1/2 items-center gap-1 rounded-xl border border-outline-variant bg-surface p-1.5 text-on-surface shadow-xl animate-in fade-in zoom-in-95 duration-150",
         pending.above && "-translate-y-full",
       )}
       onMouseDown={(event) => event.preventDefault()}
@@ -158,7 +160,7 @@ export function ExamSelectionPopup({
         className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-extrabold transition hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
       >
         <span className={cn("size-3.5 rounded-full", colorStyle.className)} />
-        Highlight
+        {t("highlight")}
       </button>
       <span className="h-6 w-px bg-outline-variant" aria-hidden="true" />
       <button
@@ -171,7 +173,7 @@ export function ExamSelectionPopup({
         className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-extrabold transition hover:bg-secondary-container hover:text-on-secondary-container"
       >
         <ProductIcon name="fileText" size="sm" weight="bold" />
-        Note
+        {t("note")}
       </button>
     </div>,
     document.body,

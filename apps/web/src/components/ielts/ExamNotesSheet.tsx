@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { ProductIcon } from "@/components/ui/product-icon";
 import {
   Sheet,
@@ -18,16 +19,23 @@ interface NoteEntry {
   label: string;
 }
 
-function partLabels(parts: MockPart[]): Map<string, string> {
+function partLabels(
+  parts: MockPart[],
+  copy: {
+    questions: (first: number, last: number) => string;
+    taskNotes: string;
+    part: (part: number, range: string) => string;
+  },
+): Map<string, string> {
   const labels = new Map<string, string>();
   let numberOffset = 0;
   parts.forEach((part, partIndex) => {
     const first = numberOffset + 1;
     const last = numberOffset + part.questions.length;
     const range = part.questions.length > 0
-      ? `Questions ${first}\u2013${last}`
-      : "Task notes";
-    const label = `Part ${partIndex + 1} · ${range}`;
+      ? copy.questions(first, last)
+      : copy.taskNotes;
+    const label = copy.part(partIndex + 1, range);
     labels.set(part.id, label);
     part.questions.forEach((question) => labels.set(question.id, label));
     numberOffset = last;
@@ -50,11 +58,16 @@ export function ExamNotesSheet({
   onOpenChange: (open: boolean) => void;
   onJumpToNote: (note: Note) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const notes = useMockAnnotationsStore((state) => state.notes);
   const editNote = useMockAnnotationsStore((state) => state.editNote);
   const removeNote = useMockAnnotationsStore((state) => state.removeNote);
   const entries = useMemo(() => {
-    const labels = partLabels(parts);
+    const labels = partLabels(parts, {
+      questions: (first, last) => t("questionsRange", { first, last }),
+      taskNotes: t("taskNotes"),
+      part: (part, range) => t("partRange", { part, range }),
+    });
     const prefix = `${attemptId}:`;
     return Object.entries(notes).flatMap(([key, values]) => {
       if (!key.startsWith(prefix)) return [];
@@ -62,10 +75,10 @@ export function ExamNotesSheet({
       return values.map((note): NoteEntry => ({
         anchorKey,
         note,
-        label: labels.get(anchorKey) ?? "Exam notes",
+        label: labels.get(anchorKey) ?? t("examNotes"),
       }));
     });
-  }, [attemptId, notes, parts]);
+  }, [attemptId, notes, parts, t]);
 
   useEffect(() => {
     if (!open || !activeNoteId) return;
@@ -85,14 +98,14 @@ export function ExamNotesSheet({
       <SheetContent className="z-[1000] w-[min(92vw,26rem)] gap-0 border-outline-variant bg-surface p-0 sm:max-w-md">
         <SheetHeader className="border-b border-outline-variant px-5 py-4">
           <SheetTitle className="font-display text-lg font-extrabold text-on-surface">
-            Exam notes
+            {t("examNotes")}
           </SheetTitle>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
           {entries.length === 0 ? (
-            <div className="flex min-h-48 flex-col items-center justify-center rounded-3xl border border-dashed border-outline-variant bg-surface-container-low p-6 text-center">
+            <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-container-low p-5 text-center">
               <ProductIcon name="fileText" size="lg" className="text-primary" />
-              <p className="mt-3 text-sm font-bold text-on-surface">No notes yet</p>
+              <p className="mt-3 text-sm font-bold text-on-surface">{t("noNotes")}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -100,7 +113,7 @@ export function ExamNotesSheet({
                 <article
                   key={entry.note.id}
                   className={cn(
-                    "rounded-3xl border border-outline-variant bg-surface-container-low p-4 transition-shadow",
+                    "rounded-xl border border-outline-variant bg-surface-container-low p-4 transition-shadow",
                     activeNoteId === entry.note.id && "ring-2 ring-secondary",
                   )}
                 >
@@ -112,7 +125,7 @@ export function ExamNotesSheet({
                       className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-primary hover:bg-primary-container"
                     >
                       <ProductIcon name="mouseClick" size="xs" weight="bold" />
-                      Jump
+                      {t("jump")}
                     </button>
                   </div>
                   <blockquote className="mb-3 border-l-2 border-secondary pl-3 text-sm font-semibold text-on-surface">
@@ -122,9 +135,9 @@ export function ExamNotesSheet({
                     id={`exam-note-${entry.note.id}`}
                     value={entry.note.body}
                     onChange={(event) => editNote(entry.anchorKey, entry.note.id, event.target.value)}
-                    placeholder="Write your note…"
+                    placeholder={t("notePlaceholder")}
                     rows={4}
-                    className="w-full resize-y rounded-2xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary"
+                    className="w-full resize-y rounded-lg border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary"
                   />
                   <button
                     type="button"
@@ -132,7 +145,7 @@ export function ExamNotesSheet({
                     className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-extrabold tracking-wide text-error transition hover:bg-error-container"
                   >
                     <ProductIcon name="trash" size="xs" weight="bold" />
-                    DELETE
+                    {t("delete")}
                   </button>
                 </article>
               ))}

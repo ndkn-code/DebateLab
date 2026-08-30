@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ export function MockGuideDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -24,7 +26,7 @@ export function MockGuideDialog({
       >
         <DialogHeader className="border-b border-outline-variant px-4 py-4 pr-12 sm:px-5">
           <DialogTitle className="text-base font-bold text-on-surface">
-            How this mock works
+            {t("guideLabel")}
           </DialogTitle>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-5">
@@ -36,7 +38,7 @@ export function MockGuideDialog({
             onClick={() => onOpenChange(false)}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
           >
-            Got it
+            {t("gotIt")}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -28,7 +28,7 @@ export function LearnPathHome({ path }: { path: LearnPathView | null }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="wide" className="flex flex-col gap-8 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-6 py-5 lg:py-6">
           <header className="flex flex-col gap-1">
             <p className="type-eyebrow font-semibold uppercase text-primary">{t("eyebrow")}</p>
             <h1 className="type-heading-xl font-bold text-balance text-on-surface">
@@ -74,8 +74,8 @@ function PathBody({
   return (
     <>
       {/* Recommended-next / progress hero — the primary call to action. */}
-      <section className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container p-6 sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             {path.recommended ? (
               <>
@@ -114,7 +114,7 @@ function PathBody({
             )}
           </div>
 
-          <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl bg-primary-container px-7 py-5 text-center">
+          <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-lg bg-primary-container px-5 py-4 text-center">
             <span className="type-display-sm font-bold tabular-nums text-on-primary-container">
               {path.progressPercent}%
             </span>

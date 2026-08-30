@@ -74,7 +74,7 @@ export function IeltsStudyPlanView({
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="wide" className="flex flex-col gap-6 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-5 py-5 lg:py-6">
           <Link
             href="/ielts"
             className="inline-flex w-fit items-center gap-1 type-body-sm font-semibold text-on-surface-variant hover:text-on-surface"
@@ -90,7 +90,7 @@ export function IeltsStudyPlanView({
           ) : null}
 
           {view.status === "no_plan" ? (
-            <section className="rounded-lg border border-outline-variant bg-surface-container p-6 text-center shadow-token-card sm:p-8">
+            <section className="rounded-xl border border-outline-variant bg-surface-container p-5 text-center shadow-none sm:p-6">
               <span className="mx-auto inline-flex size-11 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
                 <GraduationCap className="size-6" />
               </span>
@@ -110,8 +110,8 @@ export function IeltsStudyPlanView({
             </section>
           ) : (
             <>
-              <section className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-5 shadow-token-card sm:p-6">
-                <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+              <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-4 shadow-none sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="type-label font-semibold uppercase text-primary">
                       {t("eyebrow")}
@@ -161,7 +161,7 @@ export function IeltsStudyPlanView({
               </section>
 
               {view.status === "needs_diagnostic" ? (
-                <section className="rounded-lg border border-warning bg-warning-container p-5">
+                <section className="rounded-lg border border-warning bg-warning-container p-4">
                   <h2 className="type-heading-sm font-bold text-on-warning-container">
                     {t("needs_diagnostic_title")}
                   </h2>
@@ -192,7 +192,7 @@ export function IeltsStudyPlanView({
               <StudyPlanCalendar view={view} />
               <StudyPlanForecast view={view} />
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <StudyPlanReviewQueue view={view} />
                 <StudyPlanReassessment view={view} diagnosticHref={diagnosticHref} />
               </div>

@@ -48,12 +48,12 @@ export function LessonCompletionScreen({
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="focused" className="flex flex-col gap-6 py-8 lg:py-12">
+        <PageContainer size="focused" className="flex flex-col gap-4 py-5 lg:py-6">
           {/* Celebration header */}
           <header className="flex flex-col items-center gap-3 text-center">
             <span
               aria-hidden="true"
-              className="flex size-16 items-center justify-center rounded-3xl bg-reward-container text-reward-dim"
+              className="flex size-14 items-center justify-center rounded-xl bg-reward-container text-reward-dim"
             >
               <Trophy className="size-8" />
             </span>
@@ -66,7 +66,7 @@ export function LessonCompletionScreen({
 
           {/* XP + score stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col items-center gap-1 rounded-3xl border border-outline-variant bg-surface-container p-5 text-center">
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-outline-variant bg-surface-container p-4 text-center">
               <span className="flex items-center gap-1 type-display-sm font-bold tabular-nums text-on-surface">
                 <Zap className="size-5 text-reward-dim" />
                 {result.xpEarned}
@@ -75,7 +75,7 @@ export function LessonCompletionScreen({
                 {t("xp_label")}
               </span>
             </div>
-            <div className="flex flex-col items-center gap-1 rounded-3xl border border-outline-variant bg-surface-container p-5 text-center">
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-outline-variant bg-surface-container p-4 text-center">
               <span className="type-display-sm font-bold tabular-nums text-on-surface">
                 {result.maxScore > 0 ? `${result.score}/${result.maxScore}` : "—"}
               </span>
@@ -86,7 +86,7 @@ export function LessonCompletionScreen({
           </div>
 
           {result.saveError ? (
-            <p className="rounded-2xl border border-warning/40 bg-warning-container px-4 py-3 type-body-sm text-on-warning-container">
+            <p className="rounded-xl border border-warning/40 bg-warning-container px-4 py-3 type-body-sm text-on-warning-container">
               {t("save_error")}
             </p>
           ) : null}
@@ -123,7 +123,7 @@ export function LessonCompletionScreen({
 
           {/* Feedback */}
           {overallFeedback ? (
-            <section className="flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container p-5">
+            <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4">
               <h2 className="type-title font-semibold text-on-surface">{t("feedback_title")}</h2>
               <p className="type-body-sm text-on-surface-variant">{overallFeedback}</p>
               {feedback && feedback.items.length > 0 ? (

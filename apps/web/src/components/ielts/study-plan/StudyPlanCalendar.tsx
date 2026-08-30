@@ -128,7 +128,7 @@ export function StudyPlanCalendar({ view }: { view: IeltsStudyPlanPageView }) {
     >
       <div className="grid gap-3">
         {calendar.overdue.length > 0 ? (
-          <div className="rounded-2xl border border-warning bg-warning-container p-3">
+          <div className="rounded-lg border border-warning bg-warning-container p-3">
             <p className="flex items-center gap-2 type-body-sm font-semibold text-on-warning-container">
               <AlertTriangle className="size-4" />
               {t("overdue_title")} ·{" "}
@@ -151,7 +151,7 @@ export function StudyPlanCalendar({ view }: { view: IeltsStudyPlanPageView }) {
             ) : null}
             <div
               className={cn(
-                "flex gap-3 rounded-2xl border p-3",
+                "flex gap-3 rounded-lg border p-3",
                 day.isToday
                   ? "border-primary bg-primary-container"
                   : "border-outline-variant bg-surface-container-low",
@@ -254,7 +254,7 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
           return (
             <div
               key={week.index}
-              className="rounded-2xl border border-outline-variant bg-surface-container-low p-4"
+              className="rounded-lg border border-outline-variant bg-surface-container-low p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="type-body-sm font-bold text-on-surface">

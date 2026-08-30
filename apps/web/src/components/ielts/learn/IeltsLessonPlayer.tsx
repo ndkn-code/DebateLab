@@ -129,7 +129,7 @@ export function IeltsLessonPlayer(props: IeltsLessonPlayerProps) {
 
   return (
     <ProductPageShell>
-      <PageContainer size="focused" className="flex flex-col gap-6 py-6 lg:py-8">
+      <PageContainer size="focused" className="flex flex-col gap-4 py-5 lg:py-6">
         <div className="flex items-center justify-between gap-3">
           <Link
             href={props.unitHref}
@@ -151,7 +151,7 @@ export function IeltsLessonPlayer(props: IeltsLessonPlayerProps) {
 
         <div
           aria-busy={saving}
-          className="rounded-3xl border border-outline-variant bg-surface-container p-5 sm:p-6"
+          className="rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5"
         >
           {Player ? (
             <Player content={props.content} onComplete={handleComplete} />

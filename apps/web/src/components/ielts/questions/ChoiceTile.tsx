@@ -200,7 +200,7 @@ export function ChoiceTile({
         disabled={selectionDisabled}
         onClick={handleSelect}
         className={cn(
-          "flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-colors",
+          "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
           eliminationEnabled && "pr-14",
           containerClasses(selected, state, dim, eliminated),
           dim && "opacity-70",

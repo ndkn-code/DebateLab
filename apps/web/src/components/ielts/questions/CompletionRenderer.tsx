@@ -18,7 +18,7 @@ type BlankStateFn = (blankId: string) => ChoiceState;
 /** Optional word bank shown above the gaps for word-list completion. */
 function BankLegend({ options }: { options: IeltsOption[] }) {
   return (
-    <ul className="flex flex-wrap gap-2 rounded-2xl bg-surface-container p-4">
+    <ul className="flex flex-wrap gap-2 rounded-xl bg-surface-container p-3">
       {options.map((option) => (
         <li key={option.id} className="rounded-lg bg-surface px-3 py-1">
           <Text variant="body-sm" className="text-on-surface">

@@ -15,7 +15,7 @@ export function IeltsOnboardingDiagnosticStep({
   const t = useTranslations("ielts.onboarding");
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+    <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
         <h2 className="type-heading-lg font-bold text-on-surface">
           {t("diagnostic_title")}
@@ -24,7 +24,7 @@ export function IeltsOnboardingDiagnosticStep({
           {t("diagnostic_body")}
         </p>
       </div>
-      <div className="rounded-lg border border-outline-variant bg-surface-container p-5">
+      <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
         {diagnosticTest && diagnosticHref ? (
           <div className="flex flex-col gap-4">
             <p className="type-body-sm font-semibold text-primary">
