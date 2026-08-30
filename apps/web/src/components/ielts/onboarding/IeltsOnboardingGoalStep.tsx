@@ -93,7 +93,7 @@ export function IeltsOnboardingGoalStep({
             {moduleCopy.label}
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
-            {(["academic", "general"] as const).map((module) => {
+            {(["academic", "general_training"] as const).map((module) => {
               const selected = goal.module === module;
               const title =
                 module === "academic"
