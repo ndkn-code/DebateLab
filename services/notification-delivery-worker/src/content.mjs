@@ -1,16 +1,35 @@
 const TEMPLATE_KEYS = new Set([
-  "welcome", "onboarding_nudge", "practice_reminder", "streak_rescue", "winback",
-  "weekly_progress", "achievement", "course_nudge", "club_invitation",
+  "welcome",
+  "onboarding_nudge",
+  "practice_reminder",
+  "streak_rescue",
+  "winback",
+  "weekly_progress",
+  "achievement",
+  "course_nudge",
+  "club_invitation",
 ]);
 
 const CATEGORIES = new Set([
-  "onboarding", "practice", "streak", "progress", "achievement", "course", "system",
+  "onboarding",
+  "practice",
+  "streak",
+  "progress",
+  "achievement",
+  "course",
+  "system",
 ]);
 
 const TEMPLATE_CATEGORIES = Object.freeze({
-  welcome: "onboarding", onboarding_nudge: "onboarding", practice_reminder: "practice",
-  streak_rescue: "streak", winback: "practice", weekly_progress: "progress",
-  achievement: "achievement", course_nudge: "course", club_invitation: "system",
+  welcome: "onboarding",
+  onboarding_nudge: "onboarding",
+  practice_reminder: "practice",
+  streak_rescue: "streak",
+  winback: "practice",
+  weekly_progress: "progress",
+  achievement: "achievement",
+  course_nudge: "course",
+  club_invitation: "system",
 });
 
 const EMAIL_COPY = Object.freeze({
@@ -30,8 +49,11 @@ const EMAIL_COPY = Object.freeze({
 
 export function escapeHtml(value) {
   return String(value ?? "")
-    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function safeUrl(value, fallback) {
@@ -49,27 +71,62 @@ function localeFor(recipient) {
 }
 
 export function buildEmailContent(event, recipient, _job, appBaseUrl) {
-  const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
+  const payload =
+    event.payload && typeof event.payload === "object" ? event.payload : {};
   const locale = localeFor(recipient);
   const copy = EMAIL_COPY[locale];
   const templateKey = TEMPLATE_KEYS.has(payload.templateKey)
     ? payload.templateKey
-    : TEMPLATE_KEYS.has(event.event_type) ? event.event_type : null;
-  if (!templateKey) throw new Error(`Notification event ${event.event_type} has no supported email template.`);
-  const category = CATEGORIES.has(payload.category) ? payload.category : TEMPLATE_CATEGORIES[templateKey] || "system";
-  const variables = payload.variables && typeof payload.variables === "object" && !Array.isArray(payload.variables)
-    ? payload.variables : {};
+    : TEMPLATE_KEYS.has(event.event_type)
+      ? event.event_type
+      : null;
+  if (!templateKey)
+    throw new Error(
+      `Notification event ${event.event_type} has no supported email template.`,
+    );
+  const category = CATEGORIES.has(payload.category)
+    ? payload.category
+    : TEMPLATE_CATEGORIES[templateKey] || "system";
+  const variables =
+    payload.variables &&
+    typeof payload.variables === "object" &&
+    !Array.isArray(payload.variables)
+      ? payload.variables
+      : {};
   const localizedPrefix = locale === "en" ? "en/" : "";
   const baseUrl = appBaseUrl.replace(/\/$/, "");
-  const ctaUrl = safeUrl(variables.ctaUrl, `${baseUrl}/${localizedPrefix}dashboard`);
-  const ctaLabel = typeof variables.ctaLabel === "string" && variables.ctaLabel.trim() ? variables.ctaLabel.trim() : copy.open;
-  const userName = recipient.display_name?.trim() || recipient.email?.split("@")[0] || (locale === "en" ? "there" : "bạn");
-  const headline = typeof variables.headline === "string" && variables.headline.trim() ? variables.headline : event.title;
-  const body = typeof variables.body === "string" && variables.body.trim() ? variables.body : event.body;
-  const preheader = typeof variables.preheader === "string" && variables.preheader.trim() ? variables.preheader : body;
-  const optionalMessage = event.message_class === "lifecycle" || event.message_class === "marketing";
-  const unsubscribeUrl = optionalMessage ? safeUrl(variables.unsubscribeUrl, `${baseUrl}/${localizedPrefix}settings`) : null;
-  const oneClickUnsubscribeUrl = optionalMessage ? safeUrl(variables.oneClickUnsubscribeUrl, null) : null;
+  const ctaUrl = safeUrl(
+    variables.ctaUrl,
+    `${baseUrl}/${localizedPrefix}dashboard`,
+  );
+  const ctaLabel =
+    typeof variables.ctaLabel === "string" && variables.ctaLabel.trim()
+      ? variables.ctaLabel.trim()
+      : copy.open;
+  const userName =
+    recipient.display_name?.trim() ||
+    recipient.email?.split("@")[0] ||
+    (locale === "en" ? "there" : "bạn");
+  const headline =
+    typeof variables.headline === "string" && variables.headline.trim()
+      ? variables.headline
+      : event.title;
+  const body =
+    typeof variables.body === "string" && variables.body.trim()
+      ? variables.body
+      : event.body;
+  const preheader =
+    typeof variables.preheader === "string" && variables.preheader.trim()
+      ? variables.preheader
+      : body;
+  const optionalMessage =
+    event.message_class === "lifecycle" || event.message_class === "marketing";
+  const unsubscribeUrl = optionalMessage
+    ? safeUrl(variables.unsubscribeUrl, `${baseUrl}/${localizedPrefix}settings`)
+    : null;
+  const oneClickUnsubscribeUrl = optionalMessage
+    ? safeUrl(variables.oneClickUnsubscribeUrl, null)
+    : null;
   const subject = event.title;
   const escapedBody = escapeHtml(body).replaceAll("\n", "<br>");
 
@@ -117,14 +174,32 @@ export function buildEmailContent(event, recipient, _job, appBaseUrl) {
 </html>`;
 
   const text = `${copy.greeting(userName)}\n\n${headline}\n\n${body}\n\n${ctaLabel}: ${ctaUrl}\n\n${copy.why}${unsubscribeUrl ? `\n\n${copy.manage}: ${unsubscribeUrl}` : ""}`;
-  return { templateKey, category, locale, subject, html, text, ctaUrl, unsubscribeUrl, oneClickUnsubscribeUrl };
+  return {
+    templateKey,
+    category,
+    locale,
+    subject,
+    html,
+    text,
+    ctaUrl,
+    unsubscribeUrl,
+    oneClickUnsubscribeUrl,
+  };
 }
 
 export function senderStreamForMessageClass(messageClass) {
-  return messageClass === "lifecycle" || messageClass === "marketing" ? "updates" : "notifications";
+  return messageClass === "lifecycle" || messageClass === "marketing"
+    ? "updates"
+    : "notifications";
 }
 
-export function isEmailAllowed({ event, settings, preference, emailSendingEnabled = true, updatesSendingEnabled = true }) {
+export function isEmailAllowed({
+  event,
+  settings,
+  preference,
+  emailSendingEnabled = true,
+  updatesSendingEnabled = true,
+}) {
   if (!emailSendingEnabled || preference?.enabled === false) return false;
   if (event.message_class === "transactional") return true;
   if (!updatesSendingEnabled) return false;
