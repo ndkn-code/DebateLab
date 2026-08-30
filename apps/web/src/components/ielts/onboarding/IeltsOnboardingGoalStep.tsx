@@ -17,6 +17,23 @@ import {
 } from "./IeltsOnboardingShared";
 import type { GoalState } from "./types";
 
+const MODULE_COPY = {
+  en: {
+    label: "Test type",
+    academic: "Academic",
+    academicBody: "For university study and professional registration.",
+    general: "General Training",
+    generalBody: "For migration, work, or study below degree level.",
+  },
+  vi: {
+    label: "Loại bài thi",
+    academic: "Academic",
+    academicBody: "Dành cho du học đại học và đăng ký nghề nghiệp.",
+    general: "General Training",
+    generalBody: "Dành cho định cư, công việc hoặc học dưới bậc đại học.",
+  },
+} as const;
+
 const BAND_OPTIONS = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9];
 const DAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -34,6 +51,7 @@ export function IeltsOnboardingGoalStep({
   onSubmit: () => void;
 }) {
   const t = useTranslations("ielts.onboarding");
+  const moduleCopy = MODULE_COPY[goal.feedbackLanguage];
 
   const toggleFocusSkill = (skill: IeltsSkill) => {
     setGoal((current) => ({
@@ -54,7 +72,7 @@ export function IeltsOnboardingGoalStep({
   };
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+    <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
         <h2 className="type-heading-lg font-bold text-on-surface">
           {t("goal_title")}
@@ -70,7 +88,19 @@ export function IeltsOnboardingGoalStep({
           onSubmit();
         }}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset className="grid gap-2">
+          <legend className="type-body-sm font-semibold text-on-surface">{moduleCopy.label}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(["academic", "general"] as const).map((module) => {
+              const selected = goal.module === module;
+              const title = module === "academic" ? moduleCopy.academic : moduleCopy.general;
+              const body = module === "academic" ? moduleCopy.academicBody : moduleCopy.generalBody;
+              return <button key={module} type="button" aria-pressed={selected} aria-selected={selected} onClick={() => setGoal((current) => ({ ...current, module }))} className={cn("min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", choiceClass(selected))}><span className="block type-body-sm font-semibold">{title}</span><span className="mt-0.5 block type-label text-on-surface-variant">{body}</span></button>;
+            })}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label={t("overall_target")}>
             <Select
               value={String(goal.targetOverallBand)}
@@ -102,7 +132,7 @@ export function IeltsOnboardingGoalStep({
           </Field>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <p className="type-body-sm font-semibold text-on-surface">
             {t("skill_targets")}
           </p>
@@ -139,6 +169,7 @@ export function IeltsOnboardingGoalStep({
               key={skill}
               type="button"
               onClick={() => toggleFocusSkill(skill)}
+              aria-pressed={goal.focusSkills.includes(skill)}
               className={choiceClass(goal.focusSkills.includes(skill))}
             >
               {t(`skills.${skill}`)}
@@ -153,6 +184,7 @@ export function IeltsOnboardingGoalStep({
                 key={day}
                 type="button"
                 onClick={() => toggleStudyDay(day)}
+                aria-pressed={goal.studyDays.includes(day)}
                 className={choiceClass(goal.studyDays.includes(day))}
               >
                 {t(`days.${day}`)}

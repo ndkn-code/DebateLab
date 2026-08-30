@@ -52,7 +52,7 @@ export function OnboardingHeader({
               )}
             >
               {done ? <CheckCircle2 className="size-4" /> : null}
-              {t(`steps.${item}`)}
+              <span aria-current={active ? "step" : undefined}>{t(`steps.${item}`)}</span>
             </li>
           );
         })}
