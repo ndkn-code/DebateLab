@@ -1,0 +1,22 @@
+import { QueueClient } from "@vercel/queue";
+import type { VercelRegion } from "@vercel/queue";
+import { processMaterialVersion } from "@/lib/api/class-lms/material-pipeline/service";
+import type { MaterialQueueMessage } from "@/lib/api/class-lms/material-pipeline/contracts";
+
+export const maxDuration = 60;
+
+const queue = new QueueClient({
+  region: (process.env.VERCEL_REGION || "sin1") as VercelRegion,
+  ...(process.env.VERCEL_QUEUE_API_TOKEN ? { deploymentId: null, token: process.env.VERCEL_QUEUE_API_TOKEN } : {}),
+});
+
+export const POST = queue.handleCallback<MaterialQueueMessage>(
+  async (message) => {
+    const result = await processMaterialVersion(message.versionId);
+    if (result === "lease_active") throw new Error("LMS_MATERIAL_LEASE_ACTIVE");
+  },
+  {
+    visibilityTimeoutSeconds: 900,
+    retry: (_error, metadata) => metadata.deliveryCount >= 5 ? { acknowledge: true } : { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) },
+  },
+);
