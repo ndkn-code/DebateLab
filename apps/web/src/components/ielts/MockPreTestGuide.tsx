@@ -15,33 +15,18 @@ const GUIDE_ITEMS: Array<{
     icon: "highlighter",
   },
   {
-    title: "Eliminate",
-    description: "Cross out answer choices you know are wrong.",
-    icon: "eraser",
-  },
-  {
     title: "Flag",
-    description: "Save uncertain questions for another look.",
+    description: "Save uncertain questions for review before submission.",
     icon: "bookmark",
   },
   {
-    title: "Navigator",
-    description: "Jump across questions and see answered, open, and flagged items.",
+    title: "Navigate",
+    description: "Move between questions and see answered, open, and flagged items.",
     icon: "grid",
   },
   {
-    title: "Review",
-    description: "Check the whole section before you confirm submit.",
-    icon: "listChecks",
-  },
-  {
-    title: "Pause",
-    description: "Freeze the clock in Reading, Writing, and Speaking. Listening cannot be paused.",
-    icon: "pause",
-  },
-  {
-    title: "Timer",
-    description: "Each section runs on its own server clock.",
+    title: "Section timer",
+    description: "The countdown stays visible while you work. Listening audio plays once.",
     icon: "timer",
   },
 ];
@@ -66,7 +51,7 @@ export function MockPreTestGuide({
     >
       {showHeading ? (
         <h2 className="text-sm font-bold text-on-surface sm:text-base">
-          How this mock works
+          Exam Simulation
         </h2>
       ) : null}
       <motion.div

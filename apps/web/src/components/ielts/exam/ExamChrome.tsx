@@ -96,9 +96,14 @@ export function ExamSectionHeader({
     <header className="z-20 shrink-0 border-b border-outline-variant bg-surface/95 shadow-sm backdrop-blur">
       <div className="flex min-h-16 items-center gap-1 px-3 py-2 sm:gap-3 sm:px-5">
         <div className="hidden min-w-0 flex-1 sm:block">
-          <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
-            {testTitle}
-          </h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 rounded-md border border-outline-variant bg-surface-container px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-on-surface-variant">
+              Exam Simulation
+            </span>
+            <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
+              {testTitle}
+            </h1>
+          </div>
           <p className="truncate text-xs font-bold text-on-surface-variant sm:text-sm">
             {sectionLabel} · Section {activeSectionIndex + 1} of {sections.length}
           </p>
@@ -142,10 +147,10 @@ export function ExamSectionHeader({
           <button
             type="button"
             onClick={onOpenGuide}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-haspopup="dialog"
             aria-expanded={guideOpen}
-            aria-label="How this mock works"
+            aria-label="Exam Simulation details"
           >
             <ProductIcon name="help" size="md" weight="bold" />
           </button>

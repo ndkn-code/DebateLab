@@ -51,7 +51,7 @@ export function ExamAnnotationToolbar({
         title={highlightMode ? "Highlight mode on" : "Highlight mode off"}
         className={cn(
           "flex items-center justify-center rounded-lg transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-7" : "size-8",
+          compact ? "size-10" : "size-8",
           highlightMode
             ? "bg-primary text-on-primary"
             : "text-on-surface-variant hover:bg-surface-container",
@@ -66,7 +66,7 @@ export function ExamAnnotationToolbar({
           aria-label={`Highlight color: ${selectedStyle.label}`}
           className={cn(
             "flex items-center justify-center rounded-lg hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            compact ? "size-7" : "size-8",
+            compact ? "size-10" : "size-8",
           )}
         >
           <span className={cn("size-4 rounded-full border border-outline", selectedStyle.className)} />
@@ -107,7 +107,7 @@ export function ExamAnnotationToolbar({
         title="Exam notes"
         className={cn(
           "relative flex items-center justify-center rounded-lg text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-7" : "size-8",
+          compact ? "size-10" : "size-8",
         )}
       >
         <ProductIcon name="fileText" size="sm" weight="bold" />
