@@ -47,7 +47,9 @@ interface TestMeta {
 }
 
 function unique(values: (string | null)[]): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+  return [
+    ...new Set(values.filter((value): value is string => Boolean(value))),
+  ];
 }
 
 async function loadClassTitles(
@@ -55,8 +57,12 @@ async function loadClassTitles(
   classIds: string[],
 ): Promise<Map<string, string | null>> {
   if (classIds.length === 0) return new Map();
-  const { data, error } = await supabase.from("classes").select("id, title").in("id", classIds);
-  if (error) throw new Error(`listLearnerAssignedTests classes: ${error.message}`);
+  const { data, error } = await supabase
+    .from("classes")
+    .select("id, title")
+    .in("id", classIds);
+  if (error)
+    throw new Error(`listLearnerAssignedTests classes: ${error.message}`);
   return new Map((data ?? []).map((row) => [row.id, row.title]));
 }
 
@@ -69,9 +75,13 @@ async function loadTestMeta(
     .from("ielts_tests")
     .select("id, title, slug, module")
     .in("id", testIds);
-  if (error) throw new Error(`listLearnerAssignedTests tests: ${error.message}`);
+  if (error)
+    throw new Error(`listLearnerAssignedTests tests: ${error.message}`);
   return new Map(
-    (data ?? []).map((row) => [row.id, { title: row.title, slug: row.slug, module: row.module }]),
+    (data ?? []).map((row) => [
+      row.id,
+      { title: row.title, slug: row.slug, module: row.module },
+    ]),
   );
 }
 
@@ -82,30 +92,51 @@ async function loadOwnEffectiveBands(
   if (attemptIds.length === 0) return new Map();
   const db = supabase as unknown as SupabaseClient;
   const [ai, effective] = await Promise.all([
-    supabase.from("attempt_band_scores")
-      .select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band")
+    supabase
+      .from("attempt_band_scores")
+      .select(
+        "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band",
+      )
       .in("attempt_id", attemptIds),
-    db.from("ielts_effective_attempt_scores")
-      .select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source")
+    db
+      .from("ielts_effective_attempt_scores")
+      .select(
+        "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source",
+      )
       .in("attempt_id", attemptIds),
   ]);
   if (ai.error || effective.error) {
-    throw new Error(`listLearnerAssignedTests bands: ${ai.error?.message ?? effective.error?.message}`);
+    throw new Error(
+      `listLearnerAssignedTests bands: ${ai.error?.message ?? effective.error?.message}`,
+    );
   }
   const effectiveByAttempt = new Map(
-    ((effective.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.attempt_id), row]),
+    ((effective.data ?? []) as Array<Record<string, unknown>>).map((row) => [
+      String(row.attempt_id),
+      row,
+    ]),
   );
-  return new Map((ai.data ?? []).map((row) => [
-    row.attempt_id,
-    projectEffectiveBands(
-      effectiveByAttempt.get(row.attempt_id),
+  const aiByAttempt = new Map(
+    (ai.data ?? []).map((row) => [
+      row.attempt_id,
       row as unknown as Record<string, unknown>,
-    ),
-  ]));
+    ]),
+  );
+  return new Map(
+    attemptIds.flatMap((attemptId) => {
+      const aiRow = aiByAttempt.get(attemptId);
+      const effectiveRow = effectiveByAttempt.get(attemptId);
+      return aiRow || effectiveRow
+        ? [[attemptId, projectEffectiveBands(effectiveRow, aiRow)]]
+        : [];
+    }),
+  );
 }
 
 /** The active IELTS mocks assigned to the learner's classes, with progress. */
-export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]> {
+export async function listLearnerAssignedTests(): Promise<
+  LearnerAssignedTest[]
+> {
   const supabase = await createTypedServerClient();
   const userId = await getSessionUserId(supabase);
 
@@ -125,12 +156,18 @@ export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]>
     .select("id, assignment_id, status, started_at")
     .eq("user_id", userId)
     .in("assignment_id", assignmentIds);
-  if (attemptsError) throw new Error(`listLearnerAssignedTests attempts: ${attemptsError.message}`);
+  if (attemptsError)
+    throw new Error(
+      `listLearnerAssignedTests attempts: ${attemptsError.message}`,
+    );
 
   const [classTitles, testMeta, bands] = await Promise.all([
     loadClassTitles(supabase, unique(assignments.map((row) => row.class_id))),
     loadTestMeta(supabase, unique(assignments.map((row) => row.ielts_test_id))),
-    loadOwnEffectiveBands(supabase, (attempts ?? []).map((attempt) => attempt.id)),
+    loadOwnEffectiveBands(
+      supabase,
+      (attempts ?? []).map((attempt) => attempt.id),
+    ),
   ]);
 
   const summariesByAssignment = new Map<string, AttemptSummary[]>();
@@ -147,18 +184,24 @@ export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]>
   }
 
   return assignments.map((row) => {
-    const test = row.ielts_test_id ? testMeta.get(row.ielts_test_id) : undefined;
-    const progress = deriveLearnerAssignmentProgress(summariesByAssignment.get(row.id) ?? []);
+    const test = row.ielts_test_id
+      ? testMeta.get(row.ielts_test_id)
+      : undefined;
+    const progress = deriveLearnerAssignmentProgress(
+      summariesByAssignment.get(row.id) ?? [],
+    );
     return {
       assignmentId: row.id,
       title: row.title,
       testTitle: test?.title ?? null,
       testSlug: test?.slug ?? null,
       testModule: test?.module ?? null,
-      className: row.class_id ? classTitles.get(row.class_id) ?? null : null,
+      className: row.class_id ? (classTitles.get(row.class_id) ?? null) : null,
       dueAt: row.due_at,
       progress,
-      resultScore: progress.resultAttemptId ? bands.get(progress.resultAttemptId) ?? null : null,
+      resultScore: progress.resultAttemptId
+        ? (bands.get(progress.resultAttemptId) ?? null)
+        : null,
     };
   });
 }
@@ -188,10 +231,16 @@ export async function resolveAssignmentForStart(
     .eq("assignment_type", "ielts_mock")
     .maybeSingle();
   if (error) throw new Error(`resolveAssignmentForStart: ${error.message}`);
-  if (!assignment || !assignment.ielts_test_id || !assignment.class_id || !assignment.club_id) {
+  if (
+    !assignment ||
+    !assignment.ielts_test_id ||
+    !assignment.class_id ||
+    !assignment.club_id
+  ) {
     throw new Error("Assignment not available");
   }
-  if (assignment.status !== "active") throw new Error("This assignment is no longer active");
+  if (assignment.status !== "active")
+    throw new Error("This assignment is no longer active");
 
   const { data: membership, error: membershipError } = await supabase
     .from("class_memberships")
@@ -201,7 +250,8 @@ export async function resolveAssignmentForStart(
     .eq("member_role", "student")
     .eq("status", "active")
     .maybeSingle();
-  if (membershipError) throw new Error(`resolveAssignmentForStart: ${membershipError.message}`);
+  if (membershipError)
+    throw new Error(`resolveAssignmentForStart: ${membershipError.message}`);
   if (!membership) throw new Error("You are not enrolled in this class");
 
   return {

@@ -18,7 +18,7 @@ test("teacher-aware effective score wins over the AI score", () => {
   );
   assert.equal(result.writingBand, 8);
   assert.equal(result.overallBand, 7.5);
-  assert.equal(result.scoreSource, "mixed");
+  assert.equal(result.scoreSource, "teacher_confirmed");
 });
 
 test("a partial average is never exposed as an official overall band", () => {
@@ -32,4 +32,16 @@ test("a partial average is never exposed as an official overall band", () => {
   assert.equal(result.overallBand, null);
   assert.equal(result.provisionalBand, 7);
   assert.equal(result.overallIsProvisional, true);
+  assert.equal(result.scoreSource, "objective");
+});
+
+test("AI writing remains explicitly provisional", () => {
+  const result = projectEffectiveBands(null, {
+    listening_band: 7,
+    reading_band: 7,
+    writing_band: 6.5,
+    speaking_band: null,
+    overall_band: 7,
+  });
+  assert.equal(result.scoreSource, "ai_provisional");
 });
