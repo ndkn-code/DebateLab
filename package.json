@@ -43,6 +43,8 @@
     "test:payments": "npm run test:payments -w @thinkfy/web",
     "test:coverage:critical": "npm run test:coverage:critical -w @thinkfy/web",
     "ci:checks": "tsx scripts/ci/run-checks.ts",
+    "test:bug-ops": "tsx --test scripts/bug-ops/core.test.ts scripts/ci/checks/vercel-function-budget.test.ts",
+    "bugops": "tsx scripts/bug-ops.ts",
     "selftest": "tsx scripts/ci/selftest.ts",
     "rls:audit:live": "tsx scripts/ci/checks/rls-coverage-live.ts",
     "db:types": "supabase gen types typescript --linked --schema public > apps/web/src/types/supabase.ts",
