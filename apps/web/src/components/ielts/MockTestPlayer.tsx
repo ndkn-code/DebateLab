@@ -46,11 +46,14 @@ function bandText(band: number | null): string {
 
 export function MockTestPlayer({
   structure,
+  initialState,
   assignmentId,
   returnHref,
   returnLabel,
 }: {
   structure: MockStructure;
+  /** Snapshot-backed state used when refreshing/resuming an existing sitting. */
+  initialState?: AttemptState;
   /** When present, the sitting is stamped to this class assignment (WS-5.3). */
   assignmentId?: string;
   /** Optional post-submit path used by onboarding diagnostics. */
@@ -60,9 +63,16 @@ export function MockTestPlayer({
   const params = useParams<{ locale: string }>();
   const router = useRouter();
   const t = useTranslations("ielts.player");
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [state, setState] = useState<AttemptState | null>(null);
-  const [responses, setResponses] = useState<IeltsResponseMap>({});
+  const [phase, setPhase] = useState<Phase>(initialState ? "running" : "intro");
+  const [state, setState] = useState<AttemptState | null>(initialState ?? null);
+  const [activeStructure, setActiveStructure] = useState<MockStructure>(
+    initialState?.structure ?? structure,
+  );
+  const [responses, setResponses] = useState<IeltsResponseMap>(() =>
+    Object.fromEntries(
+      (initialState?.responses ?? []).map((row) => [row.question_id, row.response]),
+    ),
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [grade, setGrade] = useState<AttemptGrade | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,7 +94,7 @@ export function MockTestPlayer({
   const section = sections[activeIndex];
   const attemptId = state?.attempt.id ?? null;
   const assessmentMode: AssessmentMode =
-    state?.attempt.assessment_mode ?? structure.test.assessment_mode;
+    state?.attempt.assessment_mode ?? activeStructure.test.assessment_mode;
   const modePolicy = assessmentModePolicy(assessmentMode);
 
   useEffect(() => {
@@ -113,6 +123,7 @@ export function MockTestPlayer({
 
   const hydrate = (next: AttemptState) => {
     setState(next);
+    if (next.structure) setActiveStructure(next.structure);
     setResponses(
       Object.fromEntries(
         next.responses.map((row) => [row.question_id, row.response]),
@@ -165,10 +176,15 @@ export function MockTestPlayer({
     run(async () => {
       const started = assignmentId
         ? await startAssignedMockAttempt({ assignmentId })
-        : await startMockAttempt({ testId: structure.test.id });
+        : await startMockAttempt({ testId: activeStructure.test.id });
       hydrate(started);
       setActiveIndex(0);
       setPhase("running");
+      // Keep the immutable attempt addressable so a refresh resumes against
+      // its snapshot instead of reconstructing from the live test.
+      router.replace(
+        `/${params.locale}/ielts/mock/${activeStructure.test.slug}?attempt=${started.attempt.id}`,
+      );
       const first = started.sections[0];
       if (first) {
         setState(
@@ -264,7 +280,7 @@ export function MockTestPlayer({
     return (
       <div className="flex h-full items-center justify-center overflow-y-auto px-4 py-8">
         <IntroCard
-          title={structure.test.title}
+          title={activeStructure.test.title}
           assessmentMode={assessmentMode}
           busy={busy}
           error={error}
@@ -303,10 +319,10 @@ export function MockTestPlayer({
         <MockSectionView
           key={section.id}
           section={section}
-          structure={structure}
+          structure={activeStructure}
           responses={responses}
           busy={busy}
-          testTitle={structure.test.title}
+          testTitle={activeStructure.test.title}
           sections={sections}
           assessmentMode={assessmentMode}
           activeSectionIndex={activeIndex}

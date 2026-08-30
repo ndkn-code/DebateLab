@@ -5461,6 +5461,12 @@ export type Database = {
           section_id: string;
           skill: Database["public"]["Enums"]["ielts_skill"];
           source_updated_at: string;
+          source_title: string | null;
+          source_body: string | null;
+          source_audio_asset_id: string | null;
+          source_audio_storage_path: string | null;
+          source_audio_version: number | null;
+          source_audio_status: string | null;
           test_id: string;
           user_id: string;
           visual: Json | null;
@@ -5485,6 +5491,12 @@ export type Database = {
           section_id: string;
           skill: Database["public"]["Enums"]["ielts_skill"];
           source_updated_at: string;
+          source_title?: string | null;
+          source_body?: string | null;
+          source_audio_asset_id?: string | null;
+          source_audio_storage_path?: string | null;
+          source_audio_version?: number | null;
+          source_audio_status?: string | null;
           test_id: string;
           user_id: string;
           visual?: Json | null;
@@ -5509,6 +5521,12 @@ export type Database = {
           section_id?: string;
           skill?: Database["public"]["Enums"]["ielts_skill"];
           source_updated_at?: string;
+          source_title?: string | null;
+          source_body?: string | null;
+          source_audio_asset_id?: string | null;
+          source_audio_storage_path?: string | null;
+          source_audio_version?: number | null;
+          source_audio_status?: string | null;
           test_id?: string;
           user_id?: string;
           visual?: Json | null;
@@ -5558,6 +5576,10 @@ export type Database = {
           attempt_id: string;
           correct_answer: Json;
           created_at: string;
+          explanation_en: string | null;
+          explanation_vi: string | null;
+          model_answer: string | null;
+          examiner_notes: string | null;
           question_id: string;
         };
         Insert: {
@@ -5565,6 +5587,10 @@ export type Database = {
           attempt_id: string;
           correct_answer?: Json;
           created_at?: string;
+          explanation_en?: string | null;
+          explanation_vi?: string | null;
+          model_answer?: string | null;
+          examiner_notes?: string | null;
           question_id: string;
         };
         Update: {
@@ -5572,6 +5598,10 @@ export type Database = {
           attempt_id?: string;
           correct_answer?: Json;
           created_at?: string;
+          explanation_en?: string | null;
+          explanation_vi?: string | null;
+          model_answer?: string | null;
+          examiner_notes?: string | null;
           question_id?: string;
         };
         Relationships: [
