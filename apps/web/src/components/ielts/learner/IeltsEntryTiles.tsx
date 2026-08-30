@@ -49,8 +49,8 @@ function IeltsLearnUpsellTile() {
   const t = useTranslations("dashboard.ielts");
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container p-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface">
+    <div className="flex min-h-11 items-center gap-3 rounded-xl border border-outline-variant bg-surface-container p-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-highest text-on-surface">
         <Brain className="size-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ export function IeltsEntryTiles({
 }) {
   const t = useTranslations("dashboard.ielts");
   return (
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <section className="grid gap-2 sm:grid-cols-2">
       {TILES.map(({ href, icon: Icon, titleKey, bodyKey }) => {
         if (href === "/ielts/learn" && !isEnrolled) {
           return <IeltsLearnUpsellTile key={href} />;
@@ -91,9 +91,9 @@ export function IeltsEntryTiles({
           <Link
             key={href}
             href={href}
-            className="group flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container p-4 transition-colors hover:border-primary hover:bg-surface-container-high"
+            className="group flex min-h-11 items-center gap-3 rounded-xl border border-outline-variant bg-surface-container p-3 transition-colors hover:border-primary/50 hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-container text-on-primary-container">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
               <Icon className="size-5" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
