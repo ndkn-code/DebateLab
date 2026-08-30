@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isEligibleIeltsClass, resolveClassManagerRole } from "./class-manager-model";
 
-test("class manager role requires teacher membership for coaches", () => {
+test("class manager role requires teacher membership for teachers", () => {
   assert.equal(
     resolveClassManagerRole({ isAdmin: false, clubRole: "coach", hasActiveTeacherMembership: false, profileRole: "teacher" }),
     null,
   );
   assert.equal(
     resolveClassManagerRole({ isAdmin: false, clubRole: "coach", hasActiveTeacherMembership: true, profileRole: "teacher" }),
-    "coach",
+    "teacher",
   );
 });
 
-test("demoting a coach profile revokes class access immediately", () => {
+test("demoting a teacher profile revokes class access immediately", () => {
   assert.equal(
     resolveClassManagerRole({ isAdmin: false, clubRole: "coach", hasActiveTeacherMembership: true, profileRole: "student" }),
     null,
@@ -28,6 +28,17 @@ test("owners and admins retain class access", () => {
   assert.equal(
     resolveClassManagerRole({ isAdmin: true, clubRole: null, hasActiveTeacherMembership: false, profileRole: "admin" }),
     "admin",
+  );
+  assert.equal(
+    resolveClassManagerRole({ isAdmin: false, clubRole: "admin", hasActiveTeacherMembership: false, profileRole: "student" }),
+    "admin",
+  );
+});
+
+test("legacy coach membership is accepted but returned as canonical teacher", () => {
+  assert.equal(
+    resolveClassManagerRole({ isAdmin: false, clubRole: "coach", hasActiveTeacherMembership: true, profileRole: "teacher" }),
+    "teacher",
   );
 });
 

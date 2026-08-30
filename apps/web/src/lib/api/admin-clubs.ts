@@ -24,6 +24,7 @@ import {
   summarizeRecurrence,
 } from "@/lib/api/admin-class-schedules-model";
 import type { AdminClassListRow } from "@/lib/types/admin-classes";
+import { normalizeOrganizationRole, organizationTypeFromLegacyClubType } from "@/lib/organizations/compatibility";
 import type {
   AdminClubAssignmentRow,
   AdminClubDetailData,
@@ -60,13 +61,18 @@ function numberOrNull(value: unknown) {
 }
 
 function toClubListRow(row: Record<string, unknown>): AdminClubListRow {
+  const legacyClubType = row.club_type === "center" || row.club_type === "independent" || row.club_type === "online"
+    ? row.club_type
+    : "school";
+  const organizationType = row.organization_type === "school" || row.organization_type === "club"
+    ? row.organization_type
+    : organizationTypeFromLegacyClubType(row.club_type);
   return {
     id: String(row.id),
     code: String(row.code ?? ""),
     name: String(row.name ?? "Untitled club"),
-    clubType: (row.club_type === "center" || row.club_type === "independent" || row.club_type === "online"
-      ? row.club_type
-      : "school") as ClubType,
+    organizationType,
+    clubType: legacyClubType as ClubType,
     city: (row.city as string | null | undefined) ?? null,
     country: String(row.country ?? "VN"),
     status: (row.status === "draft" || row.status === "archived" ? row.status : "active") as ClubStatus,
@@ -197,7 +203,7 @@ function toInvitationRow(row: Record<string, unknown>): AdminClubInvitation {
     id: String(row.id),
     clubId: String(row.club_id),
     email: String(row.email ?? ""),
-    role: row.role === "owner" || row.role === "coach" ? row.role : "student",
+    role: normalizeOrganizationRole(row.role, "student") ?? "student",
     status: normalizeInvitationStatus(row.status),
     expiresAt: String(row.expires_at ?? new Date().toISOString()),
     invitedBy: (row.invited_by as string | null | undefined) ?? null,
@@ -557,7 +563,7 @@ async function enrichMembers(supabase: Supabase, rows: Record<string, unknown>[]
       userId: String(row.user_id),
       displayName: String(profile?.display_name ?? profile?.email ?? "Student"),
       email: (profile?.email as string | null | undefined) ?? null,
-      role: row.role === "owner" || row.role === "coach" ? row.role : "student",
+      role: normalizeOrganizationRole(row.role, "student") ?? "student",
       status: row.status === "removed" ? "removed" : "active",
       joinedAt: String(row.joined_at ?? new Date().toISOString()),
     };
@@ -710,6 +716,7 @@ function devClub(state: ClubQaState): AdminClubListRow {
     id: DEV_CLUB_IDS[state],
     code: String(config[0]),
     name: String(config[1]),
+    organizationType: "school",
     clubType: "school",
     city: "Hanoi",
     country: "VN",
@@ -899,7 +906,7 @@ function buildDevInvitations(state: ClubQaState, clubId: string): AdminClubInvit
       id: "00000000-0000-4c15-8000-000000000001",
       clubId,
       email: "new.coach@debatelab.vn",
-      role: "coach",
+      role: "teacher",
       status: "pending",
       expiresAt: "2026-05-30T00:00:00.000Z",
       invitedBy: "00000000-0000-4000-8000-000000000001",
@@ -1056,7 +1063,7 @@ function buildDevMembers(state: ClubQaState): AdminClubMember[] {
       userId: "00000000-0000-4000-8000-000000000002",
       displayName: "Coach Linh",
       email: "linh@debatelab.vn",
-      role: "coach",
+      role: "teacher",
       status: "active",
       joinedAt: "2026-05-01T00:00:00.000Z",
     },

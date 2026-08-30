@@ -7,6 +7,7 @@ import {
   weekStartForTimezone,
 } from "@/lib/api/class-lms/weekly-model";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
 const OCCURRENCE_STATUSES = new Set(["scheduled", "cancelled", "completed"]);
 
@@ -56,7 +57,7 @@ export async function loadTeacherLmsWeek(params: {
       .select("club_id, role")
       .eq("user_id", actorId)
       .eq("status", "active")
-      .in("role", ["owner", "coach"]),
+      .in("role", ["owner", "admin", "teacher", "coach"]),
   ]);
   if (profileError || clubError) {
     throw new Error(
@@ -65,9 +66,13 @@ export async function loadTeacherLmsWeek(params: {
   }
 
   const isAdmin = profile?.role === "admin";
+  const isTeacherProfile = profile?.role === "teacher";
   const ownerClubIds = new Set(
     (clubMemberships ?? [])
-      .filter((row) => row.role === "owner")
+      .filter((row) => {
+        const role = normalizeOrganizationRole(row.role);
+        return role === "owner" || role === "admin";
+      })
       .map((row) => row.club_id),
   );
   const managerClubIds = [
@@ -84,7 +89,7 @@ export async function loadTeacherLmsWeek(params: {
     throw new Error(`loadTeacherLmsWeek classes: ${classError.message}`);
   }
 
-  const coachClassIds = new Set<string>();
+  const teacherClassIds = new Set<string>();
   if (!isAdmin) {
     const { data: teacherMemberships, error: teacherError } = await db
       .from("class_memberships")
@@ -97,14 +102,14 @@ export async function loadTeacherLmsWeek(params: {
         `loadTeacherLmsWeek memberships: ${teacherError.message}`,
       );
     }
-    for (const row of teacherMemberships ?? []) coachClassIds.add(row.class_id);
+    for (const row of teacherMemberships ?? []) teacherClassIds.add(row.class_id);
   }
 
   const managedClassRows = (candidateClasses ?? []).filter(
     (row) =>
       isAdmin ||
       ownerClubIds.has(row.club_id ?? "") ||
-      coachClassIds.has(row.id),
+      (isTeacherProfile && teacherClassIds.has(row.id)),
   );
   const classes = managedClassRows
     .map((row) => ({

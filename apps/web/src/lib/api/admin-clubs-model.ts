@@ -10,7 +10,6 @@ import type {
   AdminClubTrendPoint,
   ClubAssignmentInput,
   ClubAssignmentStatus,
-  ClubRole,
   SaveClubEventInput,
 } from "@/lib/types/admin-clubs";
 import {
@@ -19,9 +18,10 @@ import {
   summarizeRecurrence,
 } from "@/lib/api/admin-class-schedules-model";
 import type { ClassRecurrenceRule } from "@/lib/types/admin-classes";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
+import type { OrganizationRole } from "@/lib/organizations/contracts";
 
 const ASSIGNMENT_STATUSES = new Set<ClubAssignmentStatus>(["draft", "active", "archived"]);
-const CLUB_ROLES = new Set<ClubRole>(["owner", "coach", "student"]);
 const CLUB_EVENT_TYPES = new Set<ClubEventType>([
   "meeting",
   "workshop",
@@ -102,8 +102,10 @@ export function normalizeClubAssignmentStatus(value: unknown): ClubAssignmentSta
     : "draft";
 }
 
-export function normalizeClubRole(value: unknown): ClubRole {
-  return CLUB_ROLES.has(value as ClubRole) ? (value as ClubRole) : "student";
+export function normalizeClubRole(value: unknown): OrganizationRole {
+  // Unknown values fail closed to student, but known admin/teacher values must
+  // never be silently downgraded. Legacy coach is read as teacher.
+  return normalizeOrganizationRole(value, "student") ?? "student";
 }
 
 export function normalizeClubEventType(value: unknown): ClubEventType {

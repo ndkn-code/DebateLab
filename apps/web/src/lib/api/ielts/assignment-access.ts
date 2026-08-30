@@ -12,6 +12,7 @@ import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
 export type IeltsServerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
@@ -34,8 +35,9 @@ export async function getSessionUserId(supabase: IeltsServerClient): Promise<str
 }
 
 /**
- * Throw unless the caller is a platform admin or an active owner/coach of the
- * club. Returns the manager's user id on success.
+ * Throw unless the caller is a platform admin or an active organization
+ * owner/admin/teacher. Teachers are further restricted to explicitly assigned
+ * classes by the page/model layer.
  */
 export async function requireClubManager(
   supabase: IeltsServerClient,
@@ -64,9 +66,10 @@ export async function requireClubManager(
     .eq("club_id", clubId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .in("role", ["owner", "coach"])
+    .in("role", ["owner", "admin", "teacher", "coach"])
     .maybeSingle();
-  if (membership && (membership.role === "owner" || profile?.role === "teacher")) {
+  const role = normalizeOrganizationRole(membership?.role);
+  if (role === "owner" || role === "admin" || (role === "teacher" && profile?.role === "teacher")) {
     return user.id;
   }
 

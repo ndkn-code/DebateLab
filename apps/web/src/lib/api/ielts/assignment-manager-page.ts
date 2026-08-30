@@ -12,6 +12,7 @@ import { listClubIeltsAssignments, type IeltsMockAssignmentRow } from "./assignm
 import { loadIeltsClassStudyPlanForManager } from "./class-study-plan-repository";
 import { getPublishedIeltsTests } from "./tests-repository";
 import { filterAssignableIeltsClasses, type AssignableClass, type AssignableClassRow } from "./assignment-manager-model";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
 export type { AssignableClass } from "./assignment-manager-model";
 
@@ -55,10 +56,11 @@ export async function loadIeltsAssignmentsAdminPage(
       .maybeSingle(),
   ]);
 
+  const managerRole = normalizeOrganizationRole(clubMembership?.role);
   const managerScope = {
     actorId,
-    isAdmin: actorProfile?.role === "admin",
-    clubRole: clubMembership?.role ?? null,
+    isAdmin: actorProfile?.role === "admin" || managerRole === "admin" || managerRole === "owner",
+    clubRole: managerRole,
   };
 
   const [{ data: club, error: clubError }, classesRes, tests, assignments] = await Promise.all([
@@ -82,7 +84,7 @@ export async function loadIeltsAssignmentsAdminPage(
   }
   if (club?.id !== clubId) return null;
   let assignedClassIds: Set<string> | undefined;
-  if (managerScope.clubRole === "coach") {
+  if (!managerScope.isAdmin) {
     const assignedClassesRes = await supabase
       .from("class_memberships")
       .select("class_id")

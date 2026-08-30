@@ -27,6 +27,7 @@ import {
   requireClubOwner,
   requirePlatformAdmin,
 } from "@/lib/api/class-manager-access";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -350,14 +351,15 @@ export async function assignTeacherToClass(classId: string, userId: string) {
 
   const { data: clubMembership, error: clubMembershipError } = await supabase
     .from("club_memberships")
-    .select("id")
+    .select("id, role")
     .eq("club_id", classRow.club_id)
     .eq("user_id", userId)
     .eq("status", "active")
-    .in("role", ["owner", "coach"])
+    .in("role", ["owner", "admin", "teacher", "coach"])
     .maybeSingle();
   if (clubMembershipError) throw new Error(clubMembershipError.message);
-  if (!clubMembership && profile.role !== "admin") {
+  const organizationRole = normalizeOrganizationRole(clubMembership?.role);
+  if (profile.role !== "admin" && !["owner", "admin", "teacher"].includes(organizationRole ?? "")) {
     throw new Error("Teacher must be an active manager of this club");
   }
 

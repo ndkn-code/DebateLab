@@ -17,6 +17,7 @@ import {
   renderThinkfyEmail,
 } from "@/lib/email/templates";
 import type { EmailLocale, EmailTemplateVariables } from "@/lib/email/types";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
 let resendClient: Resend | null = null;
 
@@ -31,14 +32,17 @@ function normalizeEmail(email: string) {
 }
 
 function roleLabel(role: string, locale: EmailLocale) {
+  const canonicalRole = normalizeOrganizationRole(role, "student") ?? "student";
   if (locale === "vi") {
-    if (role === "owner") return "quản trị viên CLB";
-    if (role === "coach") return "huấn luyện viên";
+    if (canonicalRole === "owner") return "quản trị viên CLB";
+    if (canonicalRole === "admin") return "quản trị viên tổ chức";
+    if (canonicalRole === "teacher") return "giáo viên";
     return "thành viên";
   }
 
-  if (role === "owner") return "club admin";
-  if (role === "coach") return "coach";
+  if (canonicalRole === "owner") return "club admin";
+  if (canonicalRole === "admin") return "organization admin";
+  if (canonicalRole === "teacher") return "teacher";
   return "member";
 }
 
@@ -108,11 +112,12 @@ export async function sendClubInvitationEmail(input: {
 }) {
   const locale = input.locale ?? "vi";
   const templateKey = "club_invitation";
+  const canonicalRole = normalizeOrganizationRole(input.role, "student") ?? "student";
   const baseVariables = buildClubInvitationVariables({
     locale,
     inviteUrl: input.inviteUrl,
     clubName: input.clubName,
-    role: input.role,
+    role: canonicalRole,
     inviterName: input.inviterName,
     city: input.city,
   });

@@ -111,8 +111,19 @@ assert.equal(
     { email: "Coach@Example.com", role: "owner" },
     { email: "Coach@Example.com", role: "owner" },
     { email: "bad", role: "coach" },
+    { email: "admin@example.com", role: "admin" },
+    { email: "teacher@example.com", role: "teacher" },
   ]).length,
-  1
+  3
+);
+
+assert.deepEqual(
+  normalizeClubRecipients([
+    { email: "legacy@example.com", role: "coach" },
+    { email: "admin@example.com", role: "admin" },
+    { email: "teacher@example.com", role: "teacher" },
+  ]).map((recipient) => recipient.role),
+  ["teacher", "admin", "teacher"],
 );
 
 assert.deepEqual(

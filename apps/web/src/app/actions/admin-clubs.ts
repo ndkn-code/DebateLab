@@ -21,7 +21,8 @@ import {
   formatOrganizationJoinCode,
   normalizeOrganizationJoinCode,
 } from "@/lib/organizations/model";
-import { containsIlikePattern, mergeUniqueById } from "@/lib/supabase/search";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
+import { requireClassManager } from "@/lib/api/class-manager-access";
 import type {
   ClubAssignmentInput,
   ClubRecipientInput,
@@ -91,16 +92,82 @@ async function verifyClubManager(supabase: Supabase, clubId: string) {
 
   const { data: membership } = await supabase
     .from("club_memberships")
-    .select("id")
+    .select("id, role")
     .eq("club_id", clubId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .in("role", ["owner", "coach"])
+    .in("role", ["owner", "admin", "teacher", "coach"])
     .maybeSingle();
 
-  if (membership) return user.id;
+  const role = normalizeOrganizationRole(membership?.role);
+  if (role === "owner" || role === "admin") return user.id;
   if (isDevAdminBypassEnabled()) return user.id;
   throw new Error("Forbidden");
+}
+
+async function verifyClubOwner(supabase: Supabase, clubId: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
+      return DEV_ADMIN_PROFILE.id;
+    }
+    throw new Error("Unauthorized");
+  }
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return user.id;
+  const { data: membership, error } = await supabase
+    .from("club_memberships")
+    .select("role")
+    .eq("club_id", clubId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .in("role", ["owner", "admin", "teacher", "coach"])
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (normalizeOrganizationRole(membership?.role) === "owner") return user.id;
+  throw new Error("Forbidden");
+}
+
+async function verifyClubClassAccess(supabase: Supabase, clubId: string, classId: string) {
+  const { data: classRow, error } = await supabase
+    .from("classes")
+    .select("id, club_id")
+    .eq("id", classId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!classRow || classRow.club_id !== clubId) throw new Error("Class must belong to this organization.");
+  // Class manager authorization is class-scoped for teachers and organization-wide
+  // for owners/admins/platform admins.
+  return requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
+}
+
+async function verifyClubEventAccess(
+  supabase: Supabase,
+  input: { clubId: string; eventId?: string | null; classId?: string | null },
+) {
+  let existingClassId = input.classId ?? null;
+  if (input.eventId) {
+    // Scope the service-role lookup to the caller-supplied event id; the
+    // authorization decision still happens through the normal client below.
+    const { data: event, error } = await createAdminClient()
+      .from("club_events")
+      .select("club_id, class_id")
+      .eq("id", input.eventId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!event || event.club_id !== input.clubId) throw new Error("Event not found");
+    if (input.classId && event.class_id !== input.classId) {
+      throw new Error("Event cannot be moved between classes.");
+    }
+    existingClassId = event.class_id as string | null;
+  }
+
+  if (existingClassId) {
+    return verifyClubClassAccess(supabase, input.clubId, existingClassId);
+  }
+  return { userId: await verifyClubManager(supabase, input.clubId), role: "admin" as const };
 }
 
 function parseRecipients(formData: FormData) {
@@ -214,18 +281,18 @@ async function uploadClubLogo(input: {
 }
 
 async function findProfilesByEmail(emails: string[]) {
-  if (!emails.length) return new Map<string, { id: string; email: string | null; display_name: string | null }>();
+  if (!emails.length) return new Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>();
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")
-    .select("id, email, display_name")
+    .select("id, email, display_name, role")
     .in("email", emails);
   if (error) throw new Error(error.message);
 
   return new Map(
     (data ?? [])
       .filter((profile) => profile.email)
-      .map((profile) => [String(profile.email).toLowerCase(), profile as { id: string; email: string | null; display_name: string | null }])
+      .map((profile) => [String(profile.email).toLowerCase(), profile as { id: string; email: string | null; display_name: string | null; role: string | null }])
   );
 }
 
@@ -350,7 +417,7 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
 async function addExistingProfilesToClub(input: {
   clubId: string;
   recipients: ClubRecipientInput[];
-  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null }>;
+  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>;
   invitedBy: string;
 }): Promise<ClubRecipientResult[]> {
   const admin = createAdminClient();
@@ -417,6 +484,24 @@ async function addExistingProfilesToClub(input: {
       continue;
     }
 
+    if (recipient.role === "teacher" && profile.role === "student") {
+      const { error: promotionError } = await admin
+        .from("profiles")
+        .update({ role: "teacher", updated_at: new Date().toISOString() })
+        .eq("id", profile.id)
+        .eq("role", "student");
+      if (promotionError) {
+        results.push({
+          email: recipient.email,
+          role: recipient.role,
+          status: "failed",
+          userId: profile.id,
+          message: promotionError.message,
+        });
+        continue;
+      }
+    }
+
     results.push({
       email: recipient.email,
       role: recipient.role,
@@ -434,7 +519,7 @@ async function createAndSendInvitations(input: {
   clubName: string;
   city: string;
   recipients: ClubRecipientInput[];
-  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null }>;
+  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>;
   invitedBy: string;
 }): Promise<ClubRecipientResult[]> {
   const admin = createAdminClient();
@@ -455,9 +540,10 @@ async function createAndSendInvitations(input: {
       .select("id")
       .eq("club_id", input.clubId)
       .ilike("email", recipient.email)
-      .eq("role", recipient.role)
+      .in("role", recipient.role === "teacher" ? ["teacher", "coach"] : [recipient.role])
       .eq("status", "pending")
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(1);
 
     if (existing.error && existing.error.code !== "PGRST116") {
       results.push({
@@ -469,16 +555,18 @@ async function createAndSendInvitations(input: {
       continue;
     }
 
-    const invitationMutation = existing.data?.id
+    const existingInvitationId = existing.data?.[0]?.id as string | undefined;
+    const invitationMutation = existingInvitationId
       ? admin
           .from("club_invitations")
           .update({
+            role: recipient.role,
             token_hash: tokenHash,
             expires_at: expiresAt,
             invited_by: input.invitedBy,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", existing.data.id)
+          .eq("id", existingInvitationId)
           .select("id")
           .single()
       : admin
@@ -563,67 +651,10 @@ export async function searchProfilesForClub(query: string, clubId: string) {
       profile.email.toLowerCase().includes(term.toLowerCase())
     );
   }
-
-  const admin = createAdminClient();
-  const pattern = containsIlikePattern(term);
-  const [nameRes, emailRes] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, display_name, email, role")
-      .ilike("display_name", pattern)
-      .limit(12),
-    admin
-      .from("profiles")
-      .select("id, display_name, email, role")
-      .ilike("email", pattern)
-      .limit(12),
-  ]);
-
-  if (nameRes.error) throw new Error(nameRes.error.message);
-  if (emailRes.error) throw new Error(emailRes.error.message);
-
-  const profiles = mergeUniqueById([nameRes.data, emailRes.data], 12);
-  if (!profiles.length) return [];
-
-  const profileIds = profiles.map((profile) => profile.id as string);
-  const [currentClubRes, activeStudentClubRes] = await Promise.all([
-    admin
-      .from("club_memberships")
-      .select("user_id, role, status")
-      .eq("club_id", clubId)
-      .in("user_id", profileIds)
-      .eq("status", "active"),
-    admin
-      .from("club_memberships")
-      .select("user_id, club_id")
-      .in("user_id", profileIds)
-      .eq("role", "student")
-      .eq("status", "active"),
-  ]);
-
-  if (currentClubRes.error) throw new Error(currentClubRes.error.message);
-  if (activeStudentClubRes.error) throw new Error(activeStudentClubRes.error.message);
-
-  const currentClubUserIds = new Set((currentClubRes.data ?? []).map((row) => row.user_id as string));
-  const studentClubByUserId = new Map(
-    (activeStudentClubRes.data ?? []).map((row) => [row.user_id as string, row.club_id as string])
-  );
-
-  return profiles
-    .filter((profile) => !currentClubUserIds.has(profile.id as string))
-    .map((profile) => {
-      const activeClubId = studentClubByUserId.get(profile.id as string) ?? null;
-      return {
-        id: profile.id as string,
-        displayName: String(profile.display_name ?? profile.email ?? "Thinkfy member"),
-        email: (profile.email as string | null | undefined) ?? null,
-        role: String(profile.role ?? "student"),
-        blockedReason:
-          activeClubId && activeClubId !== clubId
-            ? "Already in another organization"
-            : null,
-      };
-    });
+  // Do not query profiles globally from this legacy action. A service-role
+  // search leaks account PII across organizations; the organization workflow
+  // must provide a dedicated org-scoped search/RPC before this is re-enabled.
+  throw new Error("Organization member search is not available yet.");
 }
 
 export async function addClubMember(input: {
@@ -632,8 +663,13 @@ export async function addClubMember(input: {
   role: ClubRole;
 }) {
   const supabase = await createClient();
-  const actorId = await verifyClubManager(supabase, input.clubId);
-  const role = input.role === "owner" || input.role === "coach" ? input.role : "student";
+  const role = normalizeOrganizationRole(input.role, "student") ?? "student";
+  // Ownership and administrator grants are privileged operations. A regular
+  // organization admin may add teachers/students but cannot create another
+  // owner/admin or transfer control.
+  const actorId = role === "owner" || role === "admin"
+    ? await verifyClubOwner(supabase, input.clubId)
+    : await verifyClubManager(supabase, input.clubId);
 
   if (await isDevClubBypassId(input.clubId)) {
     return { status: "added" as const };
@@ -643,8 +679,10 @@ export async function addClubMember(input: {
     await assertStudentCanJoinClub(input.userId, input.clubId);
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.from("club_memberships").upsert(
+  // Keep the mutation on the authenticated client so organization RLS remains
+  // the final boundary; this legacy action must not bypass it with a service
+  // role client.
+  const { error } = await supabase.from("club_memberships").upsert(
     {
       club_id: input.clubId,
       user_id: input.userId,
@@ -743,13 +781,15 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
   if (!validation.ok) {
     throw new Error(validation.reason);
   }
-  const managerId = await verifyClubManager(supabase, input.clubId);
+  const classId = cleanString(input.classId);
+  const managerId = classId
+    ? (await verifyClubClassAccess(supabase, input.clubId, classId)).userId
+    : await verifyClubManager(supabase, input.clubId);
 
   if (await isDevClubBypassId(input.clubId)) {
     return "00000000-0000-4c20-8000-000000000999";
   }
 
-  const classId = cleanString(input.classId);
   if (classId) {
     const { data: cohort, error: cohortError } = await supabase
       .from("classes")
@@ -799,15 +839,19 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
 
 export async function saveClubEvent(input: SaveClubEventInput) {
   const supabase = await createClient();
-  const actorId = await verifyClubManager(supabase, input.clubId);
   const validation = validateClubEventInput(input);
   if (!validation.ok) throw new Error(validation.reason);
+  const actorId = (await verifyClubEventAccess(supabase, {
+    clubId: input.clubId,
+    eventId: input.id,
+    classId: cleanString(input.classId),
+  })).userId;
 
   if (await isDevClubBypassId(input.clubId)) {
     return input.id ?? "dev-club-event";
   }
 
-  const admin = createAdminClient();
+  const admin = supabase;
   const classId = cleanString(input.classId);
 
   if (classId) {
@@ -864,11 +908,11 @@ export async function saveClubEvent(input: SaveClubEventInput) {
 
 export async function deleteClubEvent(clubId: string, eventId: string) {
   const supabase = await createClient();
-  await verifyClubManager(supabase, clubId);
+  await verifyClubEventAccess(supabase, { clubId, eventId });
 
   if (await isDevClubBypassId(clubId)) return;
 
-  const admin = createAdminClient();
+  const admin = supabase;
   const { error } = await admin
     .from("club_events")
     .update({ status: "archived", updated_at: new Date().toISOString() })
@@ -905,8 +949,31 @@ export async function claimClubInvitation(token: string) {
 
   if (error) throw new Error(error.message);
   if (!invitation) return { status: "not_found" as const };
+  const canonicalRole = normalizeOrganizationRole(invitation.role);
+  if (!canonicalRole) return { status: "not_found" as const };
+
+  const { data: organization, error: organizationError } = await admin
+    .from("clubs")
+    .select("status")
+    .eq("id", invitation.club_id)
+    .maybeSingle();
+  if (organizationError) throw new Error(organizationError.message);
+  // Invitations for draft/archived organizations must not be able to create
+  // memberships while setup or lifecycle changes are in progress.
+  if (!organization || organization.status !== "active") return { status: "not_found" as const };
+
   if (invitation.status === "accepted") {
-    return { status: "accepted" as const, clubId: invitation.club_id as string };
+    const { data: activeMembership } = await admin
+      .from("club_memberships")
+      .select("id")
+      .eq("club_id", invitation.club_id)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .in("role", ["owner", "admin", "teacher", "coach", "student"])
+      .maybeSingle();
+    return activeMembership
+      ? { status: "accepted" as const, clubId: invitation.club_id as string }
+      : { status: "revoked" as const };
   }
   if (invitation.status !== "pending") return { status: invitation.status as "revoked" | "expired" };
 
@@ -921,10 +988,11 @@ export async function claimClubInvitation(token: string) {
   const invitationEmail = normalizeEmailAddress(invitation.email);
   const profileEmail = normalizeEmailAddress(profile.email);
   if (!invitationEmail || !profileEmail || invitationEmail !== profileEmail) {
-    return { status: "email_mismatch" as const, expectedEmail: invitation.email as string };
+    // Do not disclose the invited address to a claimant who does not own it.
+    return { status: "email_mismatch" as const, expectedEmail: undefined };
   }
 
-  if (invitation.role === "student") {
+  if (canonicalRole === "student") {
     const activeClub = await findActiveStudentClub(user.id);
     if (activeClub?.club_id === invitation.club_id) {
       await admin
@@ -949,7 +1017,7 @@ export async function claimClubInvitation(token: string) {
     {
       club_id: invitation.club_id,
       user_id: user.id,
-      role: invitation.role,
+      role: canonicalRole,
       status: "active",
       removed_at: null,
       invited_by: invitation.invited_by,
@@ -958,6 +1026,23 @@ export async function claimClubInvitation(token: string) {
     { onConflict: "club_id,user_id,role" }
   );
   if (membershipError) throw new Error(membershipError.message);
+
+  if (canonicalRole === "teacher") {
+    const { data: currentProfile, error: currentProfileError } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (currentProfileError) throw new Error(currentProfileError.message);
+    if (currentProfile?.role === "student") {
+      const { error: promoteError } = await admin
+        .from("profiles")
+        .update({ role: "teacher", updated_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .eq("role", "student");
+      if (promoteError) throw new Error(promoteError.message);
+    }
+  }
 
   const { error: invitationError } = await admin
     .from("club_invitations")

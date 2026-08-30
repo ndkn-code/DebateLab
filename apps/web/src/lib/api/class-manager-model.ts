@@ -1,18 +1,27 @@
-export type ClassManagerRole = "admin" | "owner" | "coach";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
+import type { OrganizationRole } from "@/lib/organizations/contracts";
+
+/**
+ * A class manager is either a platform/org administrator, the organization
+ * owner, or a teacher assigned to the class. `coach` is accepted only as a
+ * legacy input value and is never returned from this module.
+ */
+export type ClassManagerRole = "admin" | "owner" | "teacher";
 
 export function resolveClassManagerRole(input: {
   isAdmin: boolean;
-  clubRole: "owner" | "coach" | null;
+  clubRole: OrganizationRole | "coach" | null;
   hasActiveTeacherMembership: boolean;
-  profileRole?: "student" | "teacher" | "admin" | null;
+  profileRole?: OrganizationRole | null;
 }): ClassManagerRole | null {
   if (input.isAdmin) return "admin";
-  if (input.clubRole === "owner") return "owner";
+  const role = normalizeOrganizationRole(input.clubRole);
+  if (role === "owner" || role === "admin") return role === "owner" ? "owner" : "admin";
   if (
-    input.clubRole === "coach" &&
+    role === "teacher" &&
     input.profileRole === "teacher" &&
     input.hasActiveTeacherMembership
-  ) return "coach";
+  ) return "teacher";
   return null;
 }
 

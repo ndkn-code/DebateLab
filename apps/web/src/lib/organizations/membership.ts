@@ -1,10 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OrganizationAffiliationSummary } from "@/lib/leaderboards/types";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import {
+  normalizeOrganizationRole,
+} from "@/lib/organizations/compatibility";
+import type { OrganizationRole } from "@/lib/organizations/contracts";
 
 type Supabase = SupabaseClient | {
   from: SupabaseClient["from"];
 };
+
+export type StoredOrganizationRole = OrganizationRole | "coach";
+
+/** Canonical role at the application boundary; legacy coach is read as teacher. */
+export function canonicalOrganizationRole(value: unknown): OrganizationRole | null {
+  return normalizeOrganizationRole(value);
+}
+
+export function isOrganizationWideManagerRole(value: unknown): boolean {
+  const role = canonicalOrganizationRole(value);
+  return role === "owner" || role === "admin";
+}
+
+export function isOrganizationTeacherRole(value: unknown): boolean {
+  return canonicalOrganizationRole(value) === "teacher";
+}
 
 function subtitleForClub(row: {
   club_type?: string | null;
@@ -76,10 +96,7 @@ export async function getUserOrganizationAffiliation(
       city: club.city as string | null,
     }),
     logoUrl: (club.logo_url as string | null | undefined) ?? null,
-    role:
-      membership.role === "owner" || membership.role === "coach"
-        ? membership.role
-        : "student",
+    role: "student",
     joinedAt: String(membership.joined_at ?? new Date().toISOString()),
     verificationMethod:
       typeof metadata.verification_method === "string"

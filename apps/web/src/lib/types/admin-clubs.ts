@@ -1,8 +1,10 @@
 import type { AdminClassListRow, ClassRecurrenceRule } from "@/lib/types/admin-classes";
 import type { LeaderboardSafetyAuditData } from "@/lib/leaderboards/types";
+import type { OrganizationRole, OrganizationStatus, OrganizationType } from "@/lib/organizations/contracts";
 
-export type ClubRole = "owner" | "coach" | "student";
-export type ClubStatus = "draft" | "active" | "archived";
+/** Legacy club-facing alias. `coach` is accepted on input during migration. */
+export type ClubRole = OrganizationRole | "coach";
+export type ClubStatus = OrganizationStatus;
 export type ClubType = "school" | "center" | "independent" | "online";
 export type ClubAssignmentStatus = "draft" | "active" | "archived";
 export type ClubAssignmentTrack = "debate" | "speaking" | "mun";
@@ -19,6 +21,7 @@ export interface AdminClubListRow {
   id: string;
   code: string;
   name: string;
+  organizationType: OrganizationType;
   clubType: ClubType;
   city: string | null;
   country: string;

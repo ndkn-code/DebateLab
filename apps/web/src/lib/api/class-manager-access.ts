@@ -3,6 +3,7 @@ import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 import { resolveClassManagerRole, type ClassManagerRole } from "./class-manager-model";
 
 export type ClassManagerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
@@ -37,7 +38,7 @@ export async function requirePlatformAdmin(supabase: ClassManagerClient) {
   throw new Error("Forbidden");
 }
 
-/** Owner-only access used to create a new club class before a class membership exists. */
+/** Organization owner/admin access used to create a class before a class membership exists. */
 export async function requireClubOwner(supabase: ClassManagerClient, clubId: string) {
   const userId = await currentUserId(supabase);
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
@@ -48,7 +49,7 @@ export async function requireClubOwner(supabase: ClassManagerClient, clubId: str
     .select("id")
     .eq("club_id", clubId)
     .eq("user_id", userId)
-    .eq("role", "owner")
+    .in("role", ["owner", "admin"])
     .eq("status", "active")
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -57,7 +58,7 @@ export async function requireClubOwner(supabase: ClassManagerClient, clubId: str
 }
 
 /**
- * Require admin, club owner, or a coach explicitly assigned to this class via an
+ * Require platform/org admin, owner, or a teacher explicitly assigned to this class via an
  * active teacher membership. The database helper in the class-manager migration
  * mirrors this rule for direct PostgREST writes.
  */
@@ -86,16 +87,22 @@ export async function requireClassManager(
     .eq("club_id", classRow.club_id)
     .eq("user_id", userId)
     .eq("status", "active")
-    .in("role", ["owner", "coach"])
-    .limit(2);
+    .in("role", ["owner", "admin", "teacher", "coach"]);
   if (membershipError) throw new Error(membershipError.message);
-  const membership = memberships?.find((row) => row.role === "owner") ?? memberships?.[0];
+  const membership = memberships
+    ?.map((row) => ({ ...row, role: normalizeOrganizationRole(row.role) }))
+    .filter((row): row is { role: "owner" | "admin" | "teacher" } => row.role !== null)
+    .sort((left, right) => {
+      const rank = { owner: 0, admin: 1, teacher: 2 } as const;
+      return rank[left.role] - rank[right.role];
+    })
+    .at(0);
   if (!membership) throw new Error("Forbidden");
-  if (membership.role === "owner") {
-    return { userId, classId, clubId: classRow.club_id, role: "owner" };
+  if (membership.role === "owner" || membership.role === "admin") {
+    return { userId, classId, clubId: classRow.club_id, role: membership.role };
   }
   // A class membership is an authorization grant, but it must not outlive the
-  // user's teacher profile. Demoting a coach therefore revokes access
+  // user's teacher profile. Demoting a teacher therefore revokes access
   // immediately even if cleanup of the membership row happens later.
   if (profile?.role !== "teacher") throw new Error("Forbidden");
 
@@ -110,11 +117,11 @@ export async function requireClassManager(
   if (teacherError) throw new Error(teacherError.message);
   const role = resolveClassManagerRole({
     isAdmin: false,
-    clubRole: membership.role === "coach" ? "coach" : null,
+    clubRole: membership.role,
     hasActiveTeacherMembership: Boolean(teacherMembership),
     profileRole: profile?.role ?? null,
   });
-  if (role !== "coach") throw new Error("Forbidden");
+  if (role !== "teacher") throw new Error("Forbidden");
   return { userId, classId, clubId: classRow.club_id, role };
 }
 
@@ -138,11 +145,15 @@ export async function requireClassManagerDashboard(supabase: ClassManagerClient)
     .select("club_id, role")
     .eq("user_id", userId)
     .eq("status", "active")
-    .in("role", ["owner", "coach"]);
+    .in("role", ["owner", "admin", "teacher", "coach"]);
   if (error) throw new Error(error.message);
-  if ((memberships ?? []).some((membership) => membership.role === "owner")) return userId;
+  if ((memberships ?? []).some((membership) => {
+    const role = normalizeOrganizationRole(membership.role);
+    return role === "owner" || role === "admin";
+  })) return userId;
 
   const clubIds = (memberships ?? []).map((membership) => membership.club_id);
+  const isTeacherProfile = profile?.role === "teacher";
   if (clubIds.length > 0) {
     const { data: teacherRows, error: teacherError } = await supabase
       .from("class_memberships")
@@ -159,7 +170,7 @@ export async function requireClassManagerDashboard(supabase: ClassManagerClient)
         .in("id", classIds)
         .in("club_id", clubIds);
       if (classError) throw new Error(classError.message);
-      if (classes?.length) return userId;
+      if (isTeacherProfile && classes?.length) return userId;
     }
   }
   throw new Error("Forbidden");
