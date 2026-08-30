@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import {
   DEFAULT_EVENT_TYPES,
   buildDefaultNotificationPreferences,
@@ -58,8 +60,9 @@ type ApiPayload = {
   settings?: ApiSettings;
   preferences?: ApiPreference[];
   mutes?: ApiMute[];
-  error?: string;
 };
+
+export type NotificationClientFactory = () => SupabaseClient;
 
 function asString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
@@ -119,7 +122,7 @@ function mapInboxItem(item: ApiInboxItem): NotificationInboxEvent | null {
   if (!nested) return null;
   const id = asString(item.id);
   const eventId = asString(item.event_id, asString(nested.id));
-  const eventType = asString(nested.event_type, "practice.reminder");
+  const eventType = asString(nested.event_type, "practice_reminder");
   if (!id || !eventId) return null;
   return {
     id,
@@ -140,19 +143,6 @@ function mapInboxItem(item: ApiInboxItem): NotificationInboxEvent | null {
     objectType: asString(nested.subject_type) || null,
     objectId: asString(nested.subject_id) || null,
   };
-}
-
-async function request(body?: Record<string, unknown>, query = "") {
-  const response = await fetch(`/api/notifications${query}`, {
-    method: body ? "PATCH" : "GET",
-    cache: "no-store",
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const payload = (await response.json()) as ApiPayload;
-  if (!response.ok)
-    throw new Error(payload.error || "Unable to update notifications.");
-  return payload;
 }
 
 function cadenceFor(
@@ -213,100 +203,263 @@ function mapPreferences(payload: ApiPayload): NotificationPreferenceView[] {
   });
 }
 
-export const notificationApiOperations: NotificationUiOperations = {
-  async listInbox(input) {
-    const params = new URLSearchParams({ limit: "50" });
-    if (input?.cursor) params.set("cursor", input.cursor);
-    const payload = await request(undefined, `?${params.toString()}`);
-    const activeMutes = (payload.mutes ?? []).filter((mute) => {
-      if (mute.channel !== "all" && mute.channel !== "in_app") return false;
-      return (
-        typeof mute.muted_until !== "string" ||
-        new Date(mute.muted_until).getTime() > Date.now()
+function errorMessage(error: { message?: string } | null, fallback: string) {
+  return error?.message || fallback;
+}
+
+async function authenticatedClient(clientFactory: NotificationClientFactory) {
+  const db = clientFactory();
+  const {
+    data: { user },
+    error,
+  } = await db.auth.getUser();
+  if (error || !user)
+    throw new Error(errorMessage(error, "Sign in to manage notifications."));
+  return { db, userId: user.id };
+}
+
+async function loadPayload(
+  clientFactory: NotificationClientFactory,
+  cursor?: string | null,
+): Promise<ApiPayload> {
+  const { db, userId } = await authenticatedClient(clientFactory);
+  const limit = 50;
+  let inboxQuery = db
+    .from("notification_inbox_items")
+    .select(
+      "id,event_id,state,read_at,archived_at,created_at,notification_events(id,event_type,title,body,importance,source,subject_type,subject_id,payload,created_at)",
+    )
+    .eq("recipient_id", userId)
+    .neq("state", "archived")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (cursor) inboxQuery = inboxQuery.lt("created_at", cursor);
+
+  const [inbox, unread, settings, preferences, mutes] = await Promise.all([
+    inboxQuery,
+    db
+      .from("notification_inbox_items")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_id", userId)
+      .eq("state", "unread"),
+    db
+      .from("notification_user_settings")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    db
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", userId)
+      .order("event_type"),
+    db
+      .from("notification_mutes")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false }),
+  ]);
+  const error =
+    inbox.error ||
+    unread.error ||
+    settings.error ||
+    preferences.error ||
+    mutes.error;
+  if (error) throw new Error(error.message);
+  const items = (inbox.data ?? []) as ApiInboxItem[];
+  return {
+    items,
+    unreadCount: unread.count ?? 0,
+    nextCursor:
+      items.length === limit
+        ? asString(items[items.length - 1]?.created_at) || null
+        : null,
+    settings: (settings.data ?? {
+      in_app_enabled: true,
+      email_enabled: false,
+      push_enabled: false,
+      digest_frequency: "none",
+      timezone: "Asia/Ho_Chi_Minh",
+      quiet_hours_start: null,
+      quiet_hours_end: null,
+    }) as ApiSettings,
+    preferences: (preferences.data ?? []) as ApiPreference[],
+    mutes: (mutes.data ?? []) as ApiMute[],
+  };
+}
+
+async function requireWrite(
+  promise: PromiseLike<{ error: { message?: string } | null }>,
+  fallback: string,
+) {
+  const result = await promise;
+  if (result.error) throw new Error(errorMessage(result.error, fallback));
+}
+
+export function createNotificationApiOperations(
+  clientFactory: NotificationClientFactory = () =>
+    createClient() as SupabaseClient,
+): NotificationUiOperations {
+  return {
+    async listInbox(input) {
+      const payload = await loadPayload(clientFactory, input?.cursor);
+      const activeMutes = (payload.mutes ?? []).filter((mute) => {
+        if (mute.channel !== "all" && mute.channel !== "in_app") return false;
+        return (
+          typeof mute.muted_until !== "string" ||
+          new Date(mute.muted_until).getTime() > Date.now()
+        );
+      });
+      return {
+        events: (payload.items ?? []).flatMap((item) => {
+          const mapped = mapInboxItem(item);
+          if (!mapped) return [];
+          return [
+            {
+              ...mapped,
+              muted: activeMutes.some(
+                (mute) =>
+                  mute.subject_type === mapped.objectType &&
+                  mute.subject_id === mapped.objectId,
+              ),
+            },
+          ];
+        }),
+        unreadCount: payload.unreadCount ?? 0,
+        nextCursor: payload.nextCursor ?? null,
+      } satisfies NotificationInboxSnapshot;
+    },
+    async getPreferences() {
+      return mapPreferences(await loadPayload(clientFactory));
+    },
+    async updatePreferences(preferences) {
+      const { db, userId } = await authenticatedClient(clientFactory);
+      const shared = preferences[0];
+      const digest = preferences.find((item) =>
+        ["daily", "weekly"].includes(item.emailDeliveryMode),
       );
-    });
-    return {
-      events: (payload.items ?? []).flatMap((item) => {
-        const mapped = mapInboxItem(item);
-        if (!mapped) return [];
-        return [
+      const now = new Date().toISOString();
+      await requireWrite(
+        db.from("notification_user_settings").upsert(
           {
-            ...mapped,
-            muted: activeMutes.some(
-              (mute) =>
-                mute.subject_type === mapped.objectType &&
-                mute.subject_id === mapped.objectId,
+            user_id: userId,
+            in_app_enabled: preferences.some((item) => item.channels.in_app),
+            email_enabled: preferences.some(
+              (item) => item.messageClass === "optional" && item.channels.email,
             ),
+            push_enabled: false,
+            digest_frequency: digest?.emailDeliveryMode ?? "none",
+            timezone: shared?.timezone ?? "Asia/Ho_Chi_Minh",
+            quiet_hours_start: shared?.quietHours.enabled
+              ? shared.quietHours.start
+              : null,
+            quiet_hours_end: shared?.quietHours.enabled
+              ? shared.quietHours.end
+              : null,
+            updated_at: now,
           },
-        ];
-      }),
-      unreadCount:
-        typeof payload.unreadCount === "number" ? payload.unreadCount : 0,
-      nextCursor: payload.nextCursor ?? null,
-    } satisfies NotificationInboxSnapshot;
-  },
-  async getPreferences() {
-    return mapPreferences(await request());
-  },
-  async updatePreferences(preferences) {
-    const shared = preferences[0];
-    const digest = preferences.find((item) =>
-      ["daily", "weekly"].includes(item.emailDeliveryMode),
-    );
-    await request({
-      action: "settings",
-      settings: {
-        inAppEnabled: preferences.some((item) => item.channels.in_app),
-        emailEnabled: preferences.some(
-          (item) => item.messageClass === "optional" && item.channels.email,
+          { onConflict: "user_id" },
         ),
-        pushEnabled: false,
-        digestFrequency: digest?.emailDeliveryMode ?? "none",
-        timezone: shared?.timezone ?? "Asia/Ho_Chi_Minh",
-        quietHoursStart: shared?.quietHours.enabled
-          ? shared.quietHours.start
-          : null,
-        quietHoursEnd: shared?.quietHours.enabled
-          ? shared.quietHours.end
-          : null,
-      },
-    });
-    await Promise.all(
-      preferences.flatMap((item) =>
-        item.eventTypes.flatMap((eventType) =>
-          (["in_app", "email"] as const).map((channel) =>
-            request({
-              action: "preference",
-              preference: {
-                eventType,
-                channel,
-                enabled:
-                  item.messageClass === "essential" || item.channels[channel],
-                frequency:
-                  channel === "email" &&
-                  ["daily", "weekly"].includes(item.emailDeliveryMode)
-                    ? "digest"
-                    : "immediate",
-              },
-            }),
+        "Unable to save notification settings.",
+      );
+
+      const profile = await db
+        .from("profiles")
+        .select("preferences")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profile.error) throw new Error(profile.error.message);
+      const legacy =
+        profile.data?.preferences &&
+        typeof profile.data.preferences === "object" &&
+        !Array.isArray(profile.data.preferences)
+          ? profile.data.preferences
+          : {};
+      await requireWrite(
+        db
+          .from("profiles")
+          .update({
+            preferences: {
+              ...legacy,
+              email_notifications: preferences.some(
+                (item) =>
+                  item.messageClass === "optional" && item.channels.email,
+              ),
+            },
+          })
+          .eq("id", userId),
+        "Unable to sync notification settings.",
+      );
+
+      await Promise.all(
+        preferences.flatMap((item) =>
+          item.eventTypes.flatMap((eventType) =>
+            (["in_app", "email"] as const).map((channel) =>
+              requireWrite(
+                db.from("notification_preferences").upsert(
+                  {
+                    user_id: userId,
+                    event_type: eventType,
+                    channel,
+                    enabled:
+                      item.messageClass === "essential" ||
+                      item.channels[channel],
+                    frequency:
+                      channel === "email" &&
+                      ["daily", "weekly"].includes(item.emailDeliveryMode)
+                        ? "digest"
+                        : "immediate",
+                    updated_at: now,
+                  },
+                  { onConflict: "user_id,event_type,channel" },
+                ),
+                "Unable to save a notification topic.",
+              ),
+            ),
           ),
         ),
-      ),
-    );
-    return mapPreferences(await request());
-  },
-  async markRead(notificationId) {
-    await request({ action: "mark_read", itemId: notificationId });
-  },
-  async markAllRead() {
-    await request({ action: "mark_all_read" });
-  },
-  async muteObject({ subjectType, subjectId, channel = "all" }) {
-    await request({
-      action: "mute_object",
-      subjectType,
-      subjectId,
-      channel,
-    });
-  },
-};
+      );
+      return mapPreferences(await loadPayload(clientFactory));
+    },
+    async markRead(notificationId) {
+      const { db, userId } = await authenticatedClient(clientFactory);
+      await requireWrite(
+        db
+          .from("notification_inbox_items")
+          .update({ state: "read", read_at: new Date().toISOString() })
+          .eq("id", notificationId)
+          .eq("recipient_id", userId),
+        "Unable to mark the notification as read.",
+      );
+    },
+    async markAllRead() {
+      const { db, userId } = await authenticatedClient(clientFactory);
+      await requireWrite(
+        db
+          .from("notification_inbox_items")
+          .update({ state: "read", read_at: new Date().toISOString() })
+          .eq("recipient_id", userId)
+          .eq("state", "unread"),
+        "Unable to mark notifications as read.",
+      );
+    },
+    async muteObject({ subjectType, subjectId, channel = "all" }) {
+      const { db, userId } = await authenticatedClient(clientFactory);
+      await requireWrite(
+        db.from("notification_mutes").upsert(
+          {
+            user_id: userId,
+            subject_type: subjectType,
+            subject_id: subjectId,
+            channel,
+            muted_until: null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,subject_type,subject_id,channel" },
+        ),
+        "Unable to mute this notification source.",
+      );
+    },
+  };
+}
+
+export const notificationApiOperations = createNotificationApiOperations();
