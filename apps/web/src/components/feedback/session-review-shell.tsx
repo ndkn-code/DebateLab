@@ -59,7 +59,7 @@ export function SessionReviewShell({
         <aside className="min-w-0 lg:sticky lg:top-5 lg:self-start lg:pt-[72px]">
           <nav
             aria-label={t("sections")}
-            className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto rounded-2xl border border-outline-variant bg-white p-2 shadow-token-card lg:flex-col lg:overflow-visible"
+            className="flex w-full min-w-0 max-w-full gap-1.5 overflow-x-auto rounded-[10px] border border-outline-variant bg-surface p-1.5 shadow-none lg:flex-col lg:overflow-visible"
           >
             {availableTabs.map(({ id, icon: Icon }) => {
               const isActive = resolvedActiveTab === id;
@@ -70,10 +70,10 @@ export function SessionReviewShell({
                   type="button"
                   onClick={() => setActiveTab(id)}
                   className={cn(
-                    "flex min-h-[48px] min-w-[132px] items-center gap-3 rounded-xl px-3 text-sm font-bold transition lg:min-w-0",
+                    "flex min-h-10 min-w-[132px] items-center gap-2 rounded-[7px] px-3 text-sm font-medium transition lg:min-w-0 focus-visible:ring-2 focus-visible:ring-ring",
                     isActive
-                      ? "bg-primary-container text-primary-dim"
-                      : "bg-white text-on-surface-variant hover:bg-background hover:text-on-surface"
+                      ? "bg-success-container text-on-surface"
+                      : "bg-surface text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >

@@ -6,23 +6,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] border border-transparent bg-clip-padding px-2.5 text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out outline-none select-none active:translate-y-px focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none aria-busy:opacity-70 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "btn-3d-primary bg-primary text-primary-foreground [a]:hover:bg-primary/90",
-        primary: "btn-3d-primary bg-primary text-primary-foreground [a]:hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground shadow-none hover:bg-primary-dim [a]:hover:bg-primary-dim",
+        primary: "bg-primary text-primary-foreground shadow-none hover:bg-primary-dim [a]:hover:bg-primary-dim",
         reward:
-          "btn-3d-reward bg-reward text-on-reward [a]:hover:bg-reward/85",
+          "bg-reward text-on-reward shadow-none hover:bg-reward-dim [a]:hover:bg-reward-dim",
         outline:
-          "btn-3d-secondary border-border bg-background text-primary-dim hover:bg-primary-container hover:text-primary-dim aria-expanded:bg-primary-container aria-expanded:text-primary-dim dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background text-primary-dim shadow-none hover:bg-primary-container hover:text-primary-dim aria-expanded:bg-primary-container aria-expanded:text-primary-dim dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
-          "btn-3d-secondary border-border bg-background text-primary-dim hover:bg-primary-container aria-expanded:bg-primary-container aria-expanded:text-primary-dim",
+          "border-border bg-background text-primary-dim shadow-none hover:bg-primary-container aria-expanded:bg-primary-container aria-expanded:text-primary-dim",
         ghost:
           "text-primary hover:bg-primary-container hover:text-primary-dim aria-expanded:bg-primary-container aria-expanded:text-primary-dim dark:hover:bg-muted/50",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+      link: "text-secondary-dim underline-offset-4 hover:underline",
       },
       size: {
         default:

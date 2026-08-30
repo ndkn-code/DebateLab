@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { updateCourse, createModule, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, AdminCourseModule, Activity } from "@/lib/types/admin";
 import { ModuleItem } from "./ModuleItem";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 interface Props {
   course: AdminCourse & { modules: (AdminCourseModule & { activities: Activity[] })[] };
@@ -77,6 +78,7 @@ export function CourseEditor({ course: initialCourse }: Props) {
   };
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 space-y-6">
       {/* Top bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -99,6 +101,7 @@ export function CourseEditor({ course: initialCourse }: Props) {
           </Link>
           <Link
             href={`/dashboard/admin/courses/${course.id}/settings`}
+            aria-label={t("settings")}
             className="flex items-center gap-1.5 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
           >
             <Settings className="h-4 w-4" />
@@ -224,5 +227,6 @@ export function CourseEditor({ course: initialCourse }: Props) {
         )}
       </div>
     </div>
+    </AdminV2Frame>
   );
 }

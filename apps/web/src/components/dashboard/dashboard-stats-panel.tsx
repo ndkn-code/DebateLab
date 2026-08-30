@@ -43,15 +43,15 @@ export function DashboardStatsPanel({
   return (
     <div
       data-testid="dashboard-stats-panel"
-      className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2"
+      className="flex flex-wrap items-center justify-end gap-1.5"
     >
       <StatCounter
         ariaLabel={t("stats.streak_aria")}
         dataTestId="dashboard-stats-streak"
         iconSrc={STREAK_ICON_SRC}
         iconClassName={cn(
-          "h-10 w-10 sm:h-11 sm:w-11",
-          topBar.currentStreak === 0 && "opacity-40 grayscale"
+          "h-6 w-6",
+          topBar.currentStreak === 0 && "opacity-40 grayscale",
         )}
         value={streakCount}
       >
@@ -66,7 +66,7 @@ export function DashboardStatsPanel({
         ariaLabel={t("stats.credits_aria")}
         dataTestId="dashboard-stats-credits"
         iconSrc={CREDIT_ICON_SRC}
-        iconClassName="h-10 w-10 sm:h-11 sm:w-11"
+        iconClassName="h-6 w-6"
         value={creditsCount}
       >
         <CreditsPopover
@@ -152,7 +152,7 @@ export function StatCounter({
         onMouseLeave={scheduleClose}
         onPointerLeave={scheduleClose}
         onPointerMove={openPopover}
-        className="group inline-flex h-12 min-w-0 items-center gap-2 rounded-full border border-transparent px-2.5 pr-3.5 text-left transition-all outline-none hover:-translate-y-0.5 hover:bg-surface-container-low hover:shadow-token-card focus-visible:ring-3 focus-visible:ring-ring/50 data-open:-translate-y-0.5 data-open:bg-surface-container-low data-open:shadow-token-card"
+        className="group inline-flex h-8 min-w-0 items-center gap-1 rounded-lg border border-outline-variant/70 bg-surface/70 px-1.5 pr-2 text-left transition-colors outline-none hover:bg-surface-container-low focus-visible:ring-3 focus-visible:ring-ring/50 data-open:bg-surface-container-low"
       >
         <Image
           src={iconSrc}
@@ -164,7 +164,10 @@ export function StatCounter({
           unoptimized
           aria-hidden="true"
         />
-        <Stat size="heading-lg" className="truncate font-extrabold leading-none text-on-surface">
+        <Stat
+          size="heading-lg"
+          className="truncate text-sm font-semibold leading-none tabular-nums text-on-surface"
+        >
           {value}
         </Stat>
       </PopoverTrigger>
@@ -226,8 +229,7 @@ function StreakPopover({
               const entry = weeklyStats[index];
               const isActive = Boolean(
                 entry &&
-                  (entry.practice_minutes > 0 ||
-                    entry.sessions_completed > 0)
+                (entry.practice_minutes > 0 || entry.sessions_completed > 0),
               );
 
               return (
@@ -240,7 +242,7 @@ function StreakPopover({
                       "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
                       isActive
                         ? "bg-reward text-on-reward shadow-token-card"
-                        : "bg-outline-variant/30 text-on-surface-variant"
+                        : "bg-outline-variant/30 text-on-surface-variant",
                     )}
                   >
                     {isActive ? (

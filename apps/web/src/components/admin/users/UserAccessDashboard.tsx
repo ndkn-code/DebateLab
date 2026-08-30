@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Award,
   BarChart3,
@@ -119,6 +120,7 @@ function subscriptionIsActive(subscription: SubscriptionRecord | null) {
 
 export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) {
   const router = useRouter();
+  const adminT = useTranslations("admin");
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [planFilter, setPlanFilter] = useState<PlanType | "all">("all");
@@ -182,11 +184,12 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
   };
 
   return (
-    <PageTransition className="min-h-full bg-surface-container text-on-surface-variant">
-      <header className="border-b border-outline-variant bg-white/90 px-5 py-5 backdrop-blur md:px-7">
+    <PageTransition className="min-h-full bg-background text-on-surface-variant">
+      <header className="border-b border-outline-variant bg-surface px-5 py-5 backdrop-blur md:px-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-normal text-on-surface-variant md:text-3xl">
+            <p className="type-eyebrow text-secondary">{adminT("groups.peoplePrograms")}</p>
+            <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
               Users & Access
             </h1>
             <p className="mt-1 text-sm text-on-surface-variant">
@@ -194,11 +197,11 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-9 gap-2 rounded-lg bg-surface-container-high px-4 text-white shadow-token-card transition-all hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-token-card active:scale-[0.98]">
+            <Button className="h-8 gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition-all hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
               <Sparkles className="h-4 w-4" />
               Invite User
             </Button>
-            <Button variant="outline" className="h-9 gap-2 rounded-lg border-outline-variant bg-white px-4 transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
+            <Button variant="outline" className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface px-3 text-sm transition-all hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
               <SlidersHorizontal className="h-4 w-4" />
               Export
             </Button>
@@ -206,15 +209,15 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
         </div>
       </header>
 
-      <main className="grid gap-6 px-5 py-5 2xl:grid-cols-[minmax(0,1fr)_350px] md:px-7">
+      <main className="mx-auto grid w-full max-w-[1440px] gap-5 px-5 py-5 2xl:grid-cols-[minmax(0,1fr)_350px] md:px-7 lg:py-7">
         <section className="min-w-0 space-y-5">
           {loadError ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-[10px] border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
               {loadError}
             </div>
           ) : null}
 
-          <StaggeredContainer className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StaggeredContainer className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[
               {
                 icon: Crown,
@@ -251,20 +254,20 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             ))}
           </StaggeredContainer>
 
-          <FadeInItem className="grid gap-3 rounded-lg border border-outline-variant bg-white p-4 shadow-token-card md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
+          <FadeInItem className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="h-10 rounded-lg border-outline-variant bg-white pl-9 text-sm"
+                className="h-8 rounded-[10px] border-outline-variant bg-surface pl-9 text-sm"
                 placeholder="Search users by name or email..."
               />
             </label>
             <Select
               value={roleFilter}
               onChange={(event) => setRoleFilter(event.target.value as UserRole | "all")}
-              className="h-10 rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Role: All</option>
               <option value="student">Student</option>
@@ -274,7 +277,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             <Select
               value={planFilter}
               onChange={(event) => setPlanFilter(event.target.value as PlanType | "all")}
-              className="h-10 rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Plan: All</option>
               <option value="free">Free</option>
@@ -286,19 +289,19 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               onChange={(event) =>
                 setEntitlementFilter(event.target.value as EntitlementSource | "all")
               }
-              className="h-10 rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Entitlement: All</option>
               <option value="beta_all_access">Beta all-access</option>
               <option value="subscription">Subscription</option>
               <option value="free">Free</option>
             </Select>
-            <Button variant="outline" className="h-10 rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
+            <Button variant="outline" className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
               Filters
             </Button>
           </FadeInItem>
 
-          <FadeInItem className="overflow-hidden rounded-lg border border-outline-variant bg-white shadow-token-card">
+          <FadeInItem className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface shadow-none">
             <div className="overflow-x-auto">
               <div className="min-w-[820px] 2xl:min-w-[980px]">
                 <div className="grid grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] border-b border-outline-variant bg-surface-container px-3 py-3 text-xs font-semibold text-on-surface-variant 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4">
@@ -394,14 +397,14 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <span>
                 Showing {filteredUsers.length === 0 ? 0 : 1} to {filteredUsers.length} of {users.length} users
               </span>
-              <span className="rounded-lg border border-outline-variant bg-white px-3 py-1 text-xs">
+              <span className="inline-flex h-5 items-center rounded-[6px] border border-outline-variant bg-surface px-2 text-xs">
                 250 / page
               </span>
             </div>
           </FadeInItem>
         </section>
 
-        <FadeInItem className="rounded-lg border border-outline-variant bg-white p-5 shadow-token-card 2xl:sticky 2xl:top-5 2xl:self-start">
+        <FadeInItem className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none 2xl:sticky 2xl:top-5 2xl:self-start">
           {selectedUser ? (
             <div className="space-y-5">
               <div className="flex items-start gap-4">
@@ -432,7 +435,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 onClick={() =>
                   router.push(`/dashboard/admin/users/${selectedUser.id}/analytics`)
                 }
-                className="h-10 w-full justify-center gap-2 rounded-lg bg-surface-container-high text-white transition-all hover:-translate-y-0.5 hover:bg-surface-container-high active:scale-[0.98]"
+                className="h-8 w-full justify-center gap-2 rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
               >
                 <BarChart3 className="h-4 w-4" />
                 View Analytics
@@ -448,7 +451,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     handleRoleChange(selectedUser.id, event.target.value as UserRole)
                   }
                   disabled={isPending}
-                  className="rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+                  className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
@@ -497,14 +500,14 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 </div>
               </div>
 
-              <div className="rounded-lg border border-outline-variant bg-white p-4">
+              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">Manual Grant</p>
                 <div className="mt-3 grid grid-cols-[1fr_92px] gap-2">
                   <Select
                     value={grantPlan}
                     onChange={(event) => setGrantPlan(event.target.value as PlanType)}
                     disabled={isPending}
-                    className="rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+                    className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
                     <option value="premium">Premium</option>
                     <option value="enterprise">Enterprise</option>
@@ -514,7 +517,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     value={String(grantMonths)}
                     onChange={(event) => setGrantMonths(Number(event.target.value))}
                     disabled={isPending}
-                    className="rounded-lg border-outline-variant bg-white transition-all hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.99]"
+                    className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
                     <option value="1">1 mo</option>
                     <option value="3">3 mo</option>
@@ -525,14 +528,14 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 <Button
                   onClick={() => handleGrant(selectedUser.id)}
                   disabled={isPending}
-                  className="mt-3 h-10 w-full rounded-lg bg-surface-container-high text-white transition-all hover:-translate-y-0.5 hover:bg-surface-container-high active:scale-[0.98]"
+                  className="mt-3 h-8 w-full rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                 >
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                   Manage Access
                 </Button>
               </div>
 
-              <div className="rounded-lg border border-outline-variant bg-white p-4">
+              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">Subscription Records</p>
                 <div className="mt-3 space-y-3">
                   {selectedUser.subscriptions.length > 0 ? (
@@ -562,7 +565,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 </div>
               </div>
 
-              <div className="rounded-lg border border-outline-variant bg-white p-4">
+              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">Feature Access</p>
                 <div className="mt-3 space-y-2 text-sm">
                   {["AI Feedback", "Advanced Analytics", "Custom Rubrics", "Premium Courses"].map((feature) => (
@@ -583,7 +586,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   selectedUser.latestSubscription?.id &&
                   handleCancel(selectedUser.latestSubscription.id)
                 }
-                className="h-11 w-full justify-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 transition-all hover:-translate-y-0.5 hover:bg-red-100 active:scale-[0.98]"
+                className="h-8 w-full justify-center gap-2 rounded-[10px] border border-error/20 bg-error-container text-error-dim transition-all hover:bg-error-container/80 focus-visible:ring-2 focus-visible:ring-error/30 active:translate-y-px"
               >
                 <XCircle className="h-4 w-4" />
                 Revoke Access
@@ -621,7 +624,7 @@ function MetricCard({
   } satisfies Record<typeof tone, string>;
 
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-outline-variant bg-white p-5 shadow-token-card transition-all duration-200 hover:-translate-y-1 hover:border-outline-variant hover:shadow-token-card">
+    <div className="flex items-center gap-4 rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none transition-all duration-150 hover:border-outline focus-within:ring-2 focus-within:ring-ring/30">
       <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-full", toneClasses[tone])}>
         <Icon className="h-6 w-6" />
       </div>

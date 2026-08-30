@@ -126,7 +126,7 @@ function normalizeDueAt(dueAt: string | null | undefined): string | null {
 /**
  * Canonical create path for an IELTS-mock club assignment. Asserts the mock is
  * published and the class belongs to the club; the insert itself is gated by the
- * `club_assignments` INSERT RLS policy (`can_manage_club`).
+ * class-specific `club_assignments` INSERT RLS policy.
  */
 export async function createIeltsMockAssignment(
   params: CreateIeltsMockAssignmentParams,
@@ -145,12 +145,15 @@ export async function createIeltsMockAssignment(
 
   const { data: cls, error: classError } = await supabase
     .from("classes")
-    .select("id, club_id")
+    .select("id, club_id, program_type")
     .eq("id", params.classId)
     .maybeSingle();
   if (classError) throw new Error(`createIeltsMockAssignment: ${classError.message}`);
   if (!cls || cls.club_id !== params.clubId) {
     throw new Error("That class is not part of this club");
+  }
+  if (cls.program_type !== "ielts") {
+    throw new Error("IELTS mocks can only be assigned to IELTS classes");
   }
 
   const { data, error } = await supabase

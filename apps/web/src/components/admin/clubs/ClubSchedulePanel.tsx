@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CalendarDays,
   CheckCircle2,
@@ -25,10 +26,10 @@ import {
 import {
   DEFAULT_CLASS_TIMEZONE,
   normalizeRecurrenceRule,
-  summarizeRecurrence,
 } from "@/lib/api/admin-class-schedules-model";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 import type {
   AdminClubDetailData,
   AdminClubEvent,
@@ -40,27 +41,18 @@ import type {
   RecurrenceWeekday,
 } from "@/lib/types/admin-classes";
 
-const WEEKDAYS: Array<{ value: RecurrenceWeekday; label: string }> = [
-  { value: "SU", label: "Sun" },
-  { value: "MO", label: "Mon" },
-  { value: "TU", label: "Tue" },
-  { value: "WE", label: "Wed" },
-  { value: "TH", label: "Thu" },
-  { value: "FR", label: "Fri" },
-  { value: "SA", label: "Sat" },
+const WEEKDAYS: Array<{ value: RecurrenceWeekday }> = [
+  { value: "SU" }, { value: "MO" }, { value: "TU" }, { value: "WE" },
+  { value: "TH" }, { value: "FR" }, { value: "SA" },
 ];
 
-const EVENT_TYPES: Array<{ value: ClubEventType; label: string }> = [
-  { value: "meeting", label: "Meeting" },
-  { value: "workshop", label: "Workshop" },
-  { value: "tournament", label: "Tournament" },
-  { value: "social", label: "Social" },
-  { value: "deadline", label: "Deadline" },
-  { value: "other", label: "Other" },
+const EVENT_TYPES: Array<{ value: ClubEventType }> = [
+  { value: "meeting" }, { value: "workshop" }, { value: "tournament" },
+  { value: "social" }, { value: "deadline" }, { value: "other" },
 ];
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -71,19 +63,42 @@ function formatTime(value: string) {
   return value.slice(0, 5);
 }
 
+function formatRecurrenceSummary(
+  rule: AdminClubEvent["recurrenceRule"],
+  startDate: string,
+  t: (key: string) => string,
+  locale: string,
+) {
+  if (rule.frequency === "none") return t("frequency.none");
+  const cadence = rule.interval > 1
+    ? `${t("every")} ${rule.interval} ${t(`units.${rule.frequency === "daily" ? "days" : rule.frequency === "weekly" ? "weeks" : "months"}`)}`
+    : t(`frequency.${rule.frequency}`);
+  const weekdayText = rule.frequency === "weekly" && rule.weekdays.length
+    ? ` ${t("on")} ${rule.weekdays.map((day) => t(`weekdays.${day}`)).join(", ")}`
+    : "";
+  const endText = rule.endMode === "on_date" && rule.until
+    ? ` ${t("until")} ${formatDate(rule.until, locale)}`
+    : rule.endMode === "after_occurrences" && rule.count
+      ? ` ${t("for")} ${rule.count} ${t(rule.count === 1 ? "occurrence" : "occurrences")}`
+      : "";
+  return `${cadence}${weekdayText} ${t("from")} ${formatDate(startDate, locale)}${endText}`;
+}
+
 export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
+  const t = useTranslations("admin.clubs.schedule");
+  const locale = useLocale();
   const [editingEvent, setEditingEvent] = useState<AdminClubEvent | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const upcoming = data.eventOccurrences.slice(0, 10);
   const eventMixData = useMemo(
     () =>
       EVENT_TYPES.map((eventType) => ({
-        type: eventType.label,
+        type: t(`eventTypes.${eventType.value}`),
         events: data.events.filter(
           (event) => event.eventType === eventType.value,
         ).length,
       })).filter((item) => item.events > 0),
-    [data.events],
+    [data.events, t],
   );
 
   function openEditor(event?: AdminClubEvent | null) {
@@ -96,21 +111,21 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           icon={<CalendarDays className="h-5 w-5" />}
-          label="Scheduled events"
+          label={t("scheduledEvents")}
           value={data.events.length}
           spark={eventMixData.map((item) => item.events)}
           sparkTone={1}
         />
         <StatCard
           icon={<Clock3 className="h-5 w-5" />}
-          label="Upcoming occurrences"
+          label={t("upcomingOccurrences")}
           value={upcoming.length}
           spark={upcoming.map((_, index) => index + 1)}
           sparkTone={3}
         />
         <StatCard
           icon={<Repeat2 className="h-5 w-5" />}
-          label="Linked cohorts"
+          label={t("linkedCohorts")}
           value={data.cohorts.length}
           spark={data.cohorts.map((cohort) => cohort.scheduleCount)}
           sparkTone={5}
@@ -122,11 +137,10 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant px-4 py-3">
             <div>
               <h2 className="text-base font-bold text-on-surface">
-                Club schedule
+                {t("title")}
               </h2>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Club-wide meetings, cohort-linked events, and exportable
-                calendar entries
+                {t("descriptionFull")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -143,7 +157,7 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
                 className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-bold text-on-primary"
               >
                 <Plus className="h-4 w-4" />
-                New event
+                {t("newTitle")}
               </button>
             </div>
           </div>
@@ -162,16 +176,16 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
                       {event.title}
                     </p>
                     <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 type-caption font-bold capitalize text-on-surface-variant">
-                      {event.eventType}
+                      {t(`eventTypes.${event.eventType}`)}
                     </span>
                   </div>
                   <p className="mt-1 truncate text-xs text-on-surface-variant">
-                    {event.classTitle ?? "Whole club"} ·{" "}
-                    {event.recurrenceSummary}
+                  {event.classTitle ?? t("wholeClub")} ·{" "}
+                    {formatRecurrenceSummary(event.recurrenceRule, event.startDate, t, locale)}
                   </p>
                 </div>
                 <div className="text-sm font-semibold text-on-surface-variant">
-                  {formatDate(event.startDate)}
+                  {formatDate(event.startDate, locale)}
                 </div>
                 <div className="text-sm font-semibold text-on-surface-variant">
                   {formatTime(event.startTime)}-{formatTime(event.endTime)}
@@ -182,10 +196,10 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
               <div className="px-4 py-16 text-center">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <p className="mt-3 text-sm font-bold text-on-surface">
-                  No club events yet
+                  {t("emptyTitle")}
                 </p>
                 <p className="mt-1 text-sm text-on-surface-variant">
-                  Create the first meeting or event for this club.
+                  {t("emptyDescription")}
                 </p>
               </div>
             )}
@@ -194,9 +208,9 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
 
         <aside className="space-y-4">
           <ChartCard
-            title="Event mix"
-            eyebrow="Schedule analytics"
-            subtitle="Active events by type."
+            title={t("eventMix")}
+            eyebrow={t("analytics")}
+            subtitle={t("eventMixDescription")}
           >
             {eventMixData.length ? (
               <div className="h-52">
@@ -217,15 +231,15 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
               </div>
             ) : (
               <ChartEmpty
-                title="No event mix yet"
-                description="Events appear here once the schedule is created."
+                title={t("eventMixEmpty")}
+                description={t("eventMixEmptyDescription")}
               />
             )}
           </ChartCard>
 
           <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
             <h2 className="text-base font-bold text-on-surface">
-              Next on calendar
+              {t("nextOnCalendar")}
             </h2>
             <div className="mt-3 space-y-3">
               {upcoming.map((occurrence) => (
@@ -239,7 +253,7 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
                   <div className="mt-2 space-y-1 text-xs text-on-surface-variant">
                     <span className="flex items-center gap-2">
                       <Clock3 className="h-4 w-4 text-primary" />
-                      {formatDate(occurrence.date)} ·{" "}
+                  {formatDate(occurrence.date, locale)} ·{" "}
                       {formatTime(occurrence.startsAt.split("T")[1] ?? "")}
                     </span>
                     {(occurrence.room || occurrence.location) && (
@@ -255,7 +269,7 @@ export function ClubSchedulePanel({ data }: { data: AdminClubDetailData }) {
               ))}
               {!upcoming.length && (
                 <p className="py-8 text-center text-sm text-on-surface-variant">
-                  No upcoming occurrences in range.
+                  {t("upcomingEmpty")}
                 </p>
               )}
             </div>
@@ -287,6 +301,7 @@ function ClubEventEditor({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const t = useTranslations("admin.clubs.schedule");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
@@ -320,6 +335,8 @@ function ClubEventEditor({
     event?.recurrenceRule.until ?? event?.endDate ?? today,
   );
   const [count, setCount] = useState(String(event?.recurrenceRule.count ?? 12));
+  const dialogRef = useAdminDialogFocus<HTMLFormElement>(true, onClose);
+  const locale = useLocale();
 
   const recurrenceRule = useMemo(
     () =>
@@ -337,10 +354,7 @@ function ClubEventEditor({
     [count, endMode, frequency, interval, startDate, until, weekdays],
   );
 
-  const recurrenceSummary = useMemo(
-    () => summarizeRecurrence(recurrenceRule, startDate),
-    [recurrenceRule, startDate],
-  );
+  const recurrenceSummary = formatRecurrenceSummary(recurrenceRule, startDate, t, locale);
 
   function toggleWeekday(day: RecurrenceWeekday) {
     setWeekdays((current) =>
@@ -376,7 +390,7 @@ function ClubEventEditor({
         setError(
           caught instanceof Error
             ? caught.message
-            : "Event could not be saved.",
+            : t("saveFailed"),
         );
       }
     });
@@ -394,32 +408,37 @@ function ClubEventEditor({
         setError(
           caught instanceof Error
             ? caught.message
-            : "Event could not be archived.",
+            : t("archiveFailed"),
         );
       }
     });
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-end bg-surface-container-high/30 backdrop-blur-sm sm:items-stretch">
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-surface-container-high/30 backdrop-blur-sm sm:items-stretch" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form
         onSubmit={submit}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="club-event-editor-title"
         className="flex max-h-[92dvh] w-full flex-col rounded-t-lg border border-outline-variant bg-surface-container-lowest shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:border-y-0 sm:border-r-0"
       >
         <div className="flex h-16 items-center justify-between border-b border-outline-variant px-5">
           <div>
-            <h2 className="text-lg font-bold text-on-surface">
-              {event ? "Edit event" : "New event"}
+            <h2 id="club-event-editor-title" className="text-lg font-bold text-on-surface">
+              {event ? t("editTitle") : t("newTitle")}
             </h2>
             <p className="text-xs text-on-surface-variant">
-              Club schedule entry
+              {t("description")}
             </p>
           </div>
           <button
             type="button"
+            autoFocus
             onClick={onClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container"
-            aria-label="Close event editor"
+            aria-label={t("close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -427,20 +446,20 @@ function ClubEventEditor({
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {error && (
-            <div className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface-variant">
+            <div role="alert" className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface-variant">
               {error}
             </div>
           )}
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Cohort
+              {t("cohort")}
             </span>
             <select
               value={classId}
               onChange={(changeEvent) => setClassId(changeEvent.target.value)}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
             >
-              <option value="">Whole club</option>
+              <option value="">{t("wholeClub")}</option>
               {cohorts.map((cohort) => (
                 <option key={cohort.id} value={cohort.id}>
                   {cohort.title}
@@ -450,20 +469,20 @@ function ClubEventEditor({
           </label>
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Title
+              {t("fieldTitle")}
             </span>
             <input
               value={title}
               onChange={(changeEvent) => setTitle(changeEvent.target.value)}
               required
-              placeholder="Weekly sparring round"
+              placeholder={t("titlePlaceholder")}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Type
+                {t("type")}
               </span>
               <select
                 value={eventType}
@@ -474,38 +493,38 @@ function ClubEventEditor({
               >
                 {EVENT_TYPES.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {t(`eventTypes.${item.value}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Room
+                {t("room")}
               </span>
               <input
                 value={room}
                 onChange={(changeEvent) => setRoom(changeEvent.target.value)}
-                placeholder="Room 204"
+                placeholder={t("roomPlaceholder")}
                 className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
               />
             </label>
           </div>
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Location
+              {t("location")}
             </span>
             <input
               value={location}
               onChange={(changeEvent) => setLocation(changeEvent.target.value)}
-              placeholder="Ha Noi campus"
+              placeholder={t("locationPlaceholder")}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <div className="grid grid-cols-3 gap-3">
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Date
+                {t("date")}
               </span>
               <input
                 type="date"
@@ -519,7 +538,7 @@ function ClubEventEditor({
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Start
+                {t("start")}
               </span>
               <input
                 type="time"
@@ -533,7 +552,7 @@ function ClubEventEditor({
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                End
+                {t("end")}
               </span>
               <input
                 type="time"
@@ -548,7 +567,7 @@ function ClubEventEditor({
           <section className="rounded-lg border border-outline-variant bg-background p-3">
             <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
               <Repeat2 className="h-4 w-4 text-primary" />
-              Repeat
+              {t("repeat")}
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <select
@@ -558,10 +577,10 @@ function ClubEventEditor({
                 }
                 className="h-10 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm outline-none focus:border-primary"
               >
-                <option value="none">Does not repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="none">{t("frequency.none")}</option>
+                <option value="daily">{t("frequency.daily")}</option>
+                <option value="weekly">{t("frequency.weekly")}</option>
+                <option value="monthly">{t("frequency.monthly")}</option>
               </select>
               <input
                 type="number"
@@ -588,7 +607,7 @@ function ClubEventEditor({
                         : "border-outline-variant bg-surface-container-lowest text-on-surface-variant",
                     )}
                   >
-                    {day.label}
+                    {t(`weekdays.${day.value}`)}
                   </button>
                 ))}
               </div>
@@ -602,9 +621,9 @@ function ClubEventEditor({
                   }
                   className="h-10 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm outline-none focus:border-primary"
                 >
-                  <option value="never">Never ends</option>
-                  <option value="on_date">Ends on date</option>
-                  <option value="after_occurrences">After count</option>
+                  <option value="never">{t("endMode.neverEnds")}</option>
+                  <option value="on_date">{t("endMode.onDate")}</option>
+                  <option value="after_occurrences">{t("endMode.afterCount")}</option>
                 </select>
                 {endMode === "on_date" ? (
                   <input
@@ -644,7 +663,7 @@ function ClubEventEditor({
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold text-on-surface-variant"
             >
               <Trash2 className="h-4 w-4" />
-              Archive
+              {t("archive")}
             </button>
           ) : (
             <span />
@@ -659,7 +678,7 @@ function ClubEventEditor({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {isPending ? "Saving..." : "Save event"}
+            {isPending ? t("saving") : t("save")}
           </button>
         </div>
       </form>

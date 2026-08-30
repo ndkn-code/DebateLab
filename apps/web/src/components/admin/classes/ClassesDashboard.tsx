@@ -40,6 +40,7 @@ import {
 } from "@/components/admin/classes/ScheduleTools";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 import type {
   AdminClassesPageData,
   AdminClassListRow,
@@ -199,7 +200,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
         </div>
         {item.attendanceRate30d != null && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-success">
+            <span className="font-semibold text-success-dim">
               {item.attendanceRate30d}%
             </span>
             <div className="h-1.5 flex-1 rounded-full bg-surface-container-high">
@@ -217,6 +218,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
 
 export function ClassesDashboard({ data, schedulesData }: Props) {
   const t = useTranslations("admin.classes");
+  const adminT = useTranslations("admin");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
@@ -224,6 +226,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
   const [editingSchedule, setEditingSchedule] =
     useState<AdminClassSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
+  const createDialogRef = useAdminDialogFocus<HTMLFormElement>(createOpen, () => setCreateOpen(false));
   const isSchedulesView = searchParams.get("view") === "schedules";
   const classChartData = useMemo(
     () =>
@@ -274,17 +277,18 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
   }
 
   return (
-    <PageTransition className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <PageTransition className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="flex flex-col gap-3 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-on-surface">
+          <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+          <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
             {t("title")}
           </h1>
         </div>
         {!isSchedulesView && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             <Plus className="h-4 w-4" />
             {t("newClass")}
@@ -292,11 +296,11 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         )}
       </div>
 
-      <FadeInItem className="mt-5 flex w-full overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1 shadow-sm sm:w-fit">
+      <FadeInItem className="mt-5 flex w-full overflow-hidden rounded-[10px] border border-outline-variant bg-surface p-1 shadow-none sm:w-fit">
         <Link
           href="/dashboard/admin/classes"
           className={cn(
-            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] sm:flex-none",
+            "flex h-8 min-w-32 flex-1 items-center justify-center gap-2 rounded-[6px] px-4 text-sm font-medium transition-all duration-150 hover:bg-surface-container sm:flex-none",
             !isSchedulesView
               ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
               : "text-on-surface-variant hover:bg-surface-container",
@@ -308,7 +312,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         <Link
           href="/dashboard/admin/classes?view=schedules"
           className={cn(
-            "flex h-10 min-w-32 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] sm:flex-none",
+            "flex h-8 min-w-32 flex-1 items-center justify-center gap-2 rounded-[6px] px-4 text-sm font-medium transition-all duration-150 hover:bg-surface-container sm:flex-none",
             isSchedulesView
               ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
               : "text-on-surface-variant hover:bg-surface-container",
@@ -332,7 +336,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
               {schedulesData.loadError}
             </div>
           )}
-          <StaggeredContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StaggeredContainer className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               icon={<CalendarDays className="h-5 w-5" />}
               label="Upcoming meetings"
@@ -368,7 +372,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         </div>
       ) : (
         <>
-          <StaggeredContainer className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <StaggeredContainer className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <StatCard
               icon={<Users className="h-5 w-5" />}
               label={t("kpis.totalClasses")}
@@ -529,6 +533,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             <div className="flex items-center gap-2">
               <Link
                 href={pageHref(Math.max(1, data.page - 1))}
+                aria-label="Previous page"
                 className={cn(
                   "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/30 bg-surface-container-lowest transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]",
                   data.page <= 1 && "pointer-events-none opacity-40",
@@ -555,7 +560,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
       )}
 
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm" onKeyDown={(event) => { if (event.key === "Escape") setCreateOpen(false); }}>
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -566,11 +571,15 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                 router.push(`/dashboard/admin/classes/${id}`);
               });
             }}
-            className="w-full max-w-xl rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-xl"
+            ref={createDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-class-dialog-title"
+            className="w-full max-w-xl rounded-[10px] border border-outline-variant bg-surface p-5 shadow-lg"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-on-surface">
+                <h2 id="create-class-dialog-title" className="text-lg font-bold text-on-surface">
                   {t("create.title")}
                 </h2>
                 <p className="text-sm text-on-surface-variant">
@@ -592,6 +601,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                 </span>
                 <input
                   name="title"
+                  autoFocus
                   required
                   className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
                 />

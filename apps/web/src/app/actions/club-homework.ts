@@ -1,14 +1,17 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { parseInput } from "@/lib/api/boundary";
 import {
   GradeAssignmentSubmissionSchema,
+  FailAssignmentSubmissionSchema,
   RecordAssignmentSubmissionFilesSchema,
   SubmitClubAssignmentSchema,
 } from "@/lib/api/club-homework-schema";
-import { getSessionUserId, requireClubManager } from "@/lib/api/ielts/assignment-access";
+import { getSessionUserId } from "@/lib/api/ielts/assignment-access";
+import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 import { createTypedServerClient } from "@/lib/supabase/server";
 
 const HOMEWORK_BUCKET = "assignment-submissions";
@@ -19,6 +22,19 @@ type HomeworkFileInput = {
   mimeType?: string | null;
   sizeBytes: number;
 };
+
+type HomeworkRpcClient = {
+  rpc<T>(name: string, args: Record<string, unknown>): Promise<{
+    data: T | null;
+    error: { message: string } | null;
+  }>;
+};
+
+type HomeworkFileIntent = HomeworkFileInput & { storagePath: string };
+
+function homeworkRpc(supabase: Awaited<ReturnType<typeof createTypedServerClient>>) {
+  return supabase as unknown as HomeworkRpcClient;
+}
 
 function fileExtension(fileName: string) {
   const sanitized = fileName.trim().toLowerCase();
@@ -91,6 +107,7 @@ export async function submitClubAssignment(raw: unknown) {
       .select("id")
       .eq("class_id", assignment.class_id)
       .eq("user_id", userId)
+      .eq("member_role", "student")
       .eq("status", "active")
       .maybeSingle();
     if (membershipError) throw new Error(membershipError.message);
@@ -115,73 +132,112 @@ export async function submitClubAssignment(raw: unknown) {
     throw new Error("Add text or at least one file before submitting.");
   }
 
-  const { data: previous, error: previousError } = await supabase
-    .from("club_assignment_submissions")
-    .select("id, grade_status")
-    .eq("assignment_id", assignment.id)
-    .eq("user_id", userId);
-  if (previousError) throw new Error(previousError.message);
+  const idempotencyKey = input.idempotencyKey ?? randomUUID();
+  const fileIntents: HomeworkFileIntent[] = input.files.map((file) => ({
+    ...file,
+    mimeType: file.mimeType ?? null,
+    storagePath: `${assignment.club_id}/${assignment.id}/${userId}/${randomUUID()}-${safeFileName(file.fileName)}`,
+  }));
+  const { data: submissionId, error: reserveError } = await homeworkRpc(supabase).rpc<string>(
+    "reserve_homework_submission",
+    {
+      p_assignment_id: assignment.id,
+      p_user_id: userId,
+      p_idempotency_key: idempotencyKey,
+      p_submission_text: submissionText || null,
+      p_file_intents: fileIntents,
+    },
+  );
+  if (reserveError || !submissionId) throw new Error(reserveError?.message ?? "Unable to reserve submission.");
 
-  const canResubmit = (previous ?? []).some((row) => row.grade_status === "resubmit_requested");
-  if (!canResubmit && (previous?.length ?? 0) >= assignment.required_attempts) {
-    throw new Error("You have already submitted the required attempts.");
+  const db = supabase as unknown as SupabaseClient;
+  const { data: reservedSubmission, error: reservedSubmissionError } = await db
+    .from("club_assignment_submissions")
+    .select("submission_state")
+    .eq("id", submissionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (reservedSubmissionError) throw new Error(reservedSubmissionError.message);
+  if (reservedSubmission?.submission_state === "failed") throw new Error("Submission has been cancelled.");
+  if (reservedSubmission?.submission_state === "submitted") {
+    return { submissionId, uploadTargets: [] };
   }
 
-  const uploadTargets = await Promise.all(
-    input.files.map(async (file) => {
-      const storagePath = `${assignment.club_id}/${assignment.id}/${userId}/${randomUUID()}-${safeFileName(file.fileName)}`;
-      const { data, error } = await supabase.storage
-        .from(HOMEWORK_BUCKET)
-        .createSignedUploadUrl(storagePath);
-      if (error) throw new Error(error.message);
-      return {
-        storagePath,
-        fileName: file.fileName,
-        mimeType: file.mimeType ?? null,
-        sizeBytes: file.sizeBytes,
-        token: data.token,
-        signedUrl: data.signedUrl,
-      };
-    }),
-  );
+  const { data: intents, error: intentsError } = await supabase
+    .from("assignment_submission_files")
+    .select("storage_path, file_name, mime_type, size_bytes")
+    .eq("submission_id", submissionId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (intentsError) throw new Error(intentsError.message);
 
-  const { data: submission, error } = await supabase
-    .from("club_assignment_submissions")
-    .insert({
-      assignment_id: assignment.id,
-      club_id: assignment.club_id,
-      class_id: assignment.class_id,
-      user_id: userId,
-      source_type: "homework",
-      source_id: null,
-      submission_text: submissionText || null,
-      status: "submitted",
-      grade_status: "submitted",
-      metadata: { file_count: input.files.length },
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
+  let uploadTargets: Array<{
+    storagePath: string;
+    fileName: string;
+    mimeType: string | null;
+    sizeBytes: number;
+    token: string;
+    signedUrl: string;
+  }>;
+  try {
+    uploadTargets = await Promise.all(
+      (intents ?? []).map(async (file) => {
+        const { data, error } = await supabase.storage
+          .from(HOMEWORK_BUCKET)
+          .createSignedUploadUrl(file.storage_path);
+        if (error) throw new Error(error.message);
+        return {
+          storagePath: file.storage_path,
+          fileName: file.file_name,
+          mimeType: file.mime_type,
+          sizeBytes: file.size_bytes ?? 0,
+          token: data.token,
+          signedUrl: data.signedUrl,
+        };
+      }),
+    );
+  } catch (error) {
+    await homeworkRpc(supabase).rpc<string>("fail_homework_submission", {
+      p_submission_id: submissionId,
+      p_user_id: userId,
+      p_reason: error instanceof Error ? error.message : "Upload reservation failed",
+    });
+    throw error;
+  }
+  const { error: uploadingError } = await homeworkRpc(supabase).rpc<string>("mark_homework_submission_uploading", {
+    p_submission_id: submissionId,
+    p_user_id: userId,
+  });
+  if (uploadingError) {
+    await homeworkRpc(supabase).rpc<string>("fail_homework_submission", {
+      p_submission_id: submissionId,
+      p_user_id: userId,
+      p_reason: uploadingError.message,
+    });
+    throw new Error(uploadingError.message);
+  }
 
   revalidatePath(`/dashboard/clubs/${assignment.club_id}`);
   revalidatePath(`/dashboard/clubs/${assignment.club_id}/assignments/${assignment.id}`);
-  return { submissionId: submission.id, uploadTargets };
+  return { submissionId, uploadTargets };
 }
 
 export async function recordAssignmentSubmissionFiles(raw: unknown) {
   const input = parseInput(RecordAssignmentSubmissionFilesSchema, raw);
-  if (input.files.length === 0) return;
-
   const supabase = await createTypedServerClient();
   const userId = await getSessionUserId(supabase);
-  const { data: submission, error: submissionError } = await supabase
+  const db = supabase as unknown as SupabaseClient;
+  const { data: submission, error: submissionError } = await db
     .from("club_assignment_submissions")
-    .select("id, assignment_id, club_id, user_id")
+    .select("id, assignment_id, club_id, user_id, submission_state")
     .eq("id", input.submissionId)
     .eq("user_id", userId)
     .maybeSingle();
   if (submissionError) throw new Error(submissionError.message);
   if (!submission) throw new Error("Submission not found.");
+  if (submission.submission_state === "submitted") return { submissionId: submission.id };
+  if (submission.submission_state === "failed") throw new Error("Submission has been cancelled.");
+  if (input.files.length === 0) throw new Error("File metadata is required to finalize this submission.");
 
   const assignment = await loadAssignmentForSubmit(supabase, submission.assignment_id);
   const allowedExt = allowedExtensions(assignment.submission_allowed_ext);
@@ -193,30 +249,67 @@ export async function recordAssignmentSubmissionFiles(raw: unknown) {
     allowedExt,
   });
 
-  const prefix = `${submission.club_id}/${submission.assignment_id}/${userId}/`;
-  const rows = input.files.map((file) => {
-    if (!file.storagePath.startsWith(prefix)) throw new Error("Invalid upload path.");
-    return {
-      submission_id: submission.id,
-      club_id: submission.club_id,
-      user_id: userId,
-      storage_path: file.storagePath,
-      file_name: file.fileName,
-      mime_type: file.mimeType ?? null,
-      size_bytes: file.sizeBytes,
-    };
-  });
+  const { data: expectedRows, error: expectedError } = await supabase
+    .from("assignment_submission_files")
+    .select("storage_path, file_name, mime_type, size_bytes")
+    .eq("submission_id", submission.id)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (expectedError) throw new Error(expectedError.message);
+  if ((expectedRows?.length ?? 0) !== input.files.length) throw new Error("File set does not match the reservation.");
 
-  const { error } = await supabase.from("assignment_submission_files").insert(rows);
-  if (error) throw new Error(error.message);
+  const expectedByPath = new Map((expectedRows ?? []).map((row) => [row.storage_path, row]));
+  const prefix = `${submission.club_id}/${submission.assignment_id}/${userId}/`;
+  for (const file of input.files) {
+    if (!file.storagePath.startsWith(prefix) || file.storagePath.includes("..")) {
+      throw new Error("Invalid upload path.");
+    }
+    const expected = expectedByPath.get(file.storagePath);
+    if (!expected || expected.file_name !== file.fileName || (expected.mime_type ?? null) !== (file.mimeType ?? null) || Number(expected.size_bytes ?? -1) !== file.sizeBytes) {
+      throw new Error("File metadata does not match the reservation.");
+    }
+  }
+
+  const { data: finalizedId, error: finalizeError } = await homeworkRpc(supabase).rpc<string>(
+    "finalize_homework_submission",
+    {
+      p_submission_id: submission.id,
+      p_user_id: userId,
+      p_storage_paths: input.files.map((file) => file.storagePath),
+    },
+  );
+  if (finalizeError || !finalizedId) throw new Error(finalizeError?.message ?? "Unable to finalize submission.");
 
   revalidatePath(`/dashboard/clubs/${submission.club_id}/assignments/${submission.assignment_id}`);
+  return { submissionId: finalizedId };
+}
+
+export async function failClubAssignmentSubmission(raw: unknown) {
+  const input = parseInput(FailAssignmentSubmissionSchema, raw);
+  const supabase = await createTypedServerClient();
+  const userId = await getSessionUserId(supabase);
+  const db = supabase as unknown as SupabaseClient;
+  const { data: files } = await db
+    .from("assignment_submission_files")
+    .select("storage_path, state")
+    .eq("submission_id", input.submissionId)
+    .eq("user_id", userId)
+    .eq("state", "pending");
+  if (files?.length) {
+    await supabase.storage.from(HOMEWORK_BUCKET).remove(files.map((file) => file.storage_path));
+  }
+  const { data: failedId, error } = await homeworkRpc(supabase).rpc<string>("fail_homework_submission", {
+    p_submission_id: input.submissionId,
+    p_user_id: userId,
+    p_reason: input.reason ?? null,
+  });
+  if (error || !failedId) throw new Error(error?.message ?? "Unable to cancel submission.");
+  return { submissionId: failedId };
 }
 
 export async function gradeAssignmentSubmission(raw: unknown) {
   const input = parseInput(GradeAssignmentSubmissionSchema, raw);
   const supabase = await createTypedServerClient();
-  const managerId = await requireClubManager(supabase, input.clubId);
 
   if (input.score != null && input.scoreMax != null && input.score > input.scoreMax) {
     throw new Error("Score cannot be greater than max score.");
@@ -224,27 +317,27 @@ export async function gradeAssignmentSubmission(raw: unknown) {
 
   const { data: submission, error: submissionError } = await supabase
     .from("club_assignment_submissions")
-    .select("id, assignment_id, club_id")
+    .select("id, assignment_id, club_id, class_id")
     .eq("id", input.submissionId)
     .eq("club_id", input.clubId)
     .maybeSingle();
   if (submissionError) throw new Error(submissionError.message);
   if (!submission) throw new Error("Submission not found.");
+  if (submission.class_id) {
+    await requireClassManager(supabase, submission.class_id);
+  } else {
+    await requireClubOwner(supabase, input.clubId);
+  }
 
-  const { error } = await supabase
-    .from("club_assignment_submissions")
-    .update({
-      grade_status: input.gradeStatus,
-      score: input.score ?? null,
-      score_max: input.scoreMax ?? null,
-      rubric_breakdown: input.rubricScores,
-      feedback: input.feedback?.trim() || null,
-      graded_by: managerId,
-      graded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.submissionId)
-    .eq("club_id", input.clubId);
+  const { error } = await homeworkRpc(supabase).rpc<string>("grade_homework_submission", {
+    p_submission_id: input.submissionId,
+    p_club_id: input.clubId,
+    p_grade_status: input.gradeStatus,
+    p_score: input.score ?? null,
+    p_score_max: input.scoreMax ?? null,
+    p_rubric_breakdown: input.rubricScores,
+    p_feedback: input.feedback?.trim() || null,
+  });
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/clubs/${input.clubId}`);

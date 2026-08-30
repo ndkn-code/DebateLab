@@ -1,32 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
-  BookOpen,
   ChevronRight,
   MessageSquareText,
-  Mic,
-  Scale,
   Sparkles,
-  Target,
-  Users2,
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { DashboardTodayPlanItem } from "@/lib/api/dashboard";
 import type { DashboardRecentItem } from "@thinkfy/shared/dashboard";
-import { getPlanReason, getPlanTitle, getPlanTrackLabel } from "./plan-copy";
-
-const TASK_ICONS = {
-  "continue-course": BookOpen,
-  "weakest-skill": Target,
-  "underused-track": Users2,
-  "review-feedback": MessageSquareText,
-  "start-speaking": Mic,
-  "start-debate": Scale,
-  "coach-check": Sparkles,
-} as const;
+import { getPlanTitle, getPlanTrackLabel } from "./plan-copy";
 
 function CardShell({
   title,
@@ -44,59 +29,75 @@ function CardShell({
   return (
     <section
       data-testid={testId}
-      className="flex min-w-0 flex-col rounded-[2rem] border border-outline-variant bg-surface p-5 shadow-token-card dark:border-outline-variant/70 sm:p-6"
+      className="flex min-w-0 flex-col rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70 xl:min-h-[280px]"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="type-title inline-flex items-center gap-2 font-extrabold text-on-surface">
+        <h2 className="type-title inline-flex items-center gap-2 font-semibold text-on-surface">
           <span className="text-primary">{icon}</span>
           {title}
         </h2>
         {action}
       </div>
-      <div className="mt-4 flex flex-1 flex-col gap-2.5">{children}</div>
+      <div className="mt-3 flex flex-1 flex-col">{children}</div>
     </section>
   );
 }
 
 export function NextMovesCard({ items }: { items: DashboardTodayPlanItem[] }) {
   const t = useTranslations("dashboard.home");
+  const nextItems = items.slice(0, 2);
 
   return (
     <CardShell
-      title={t("next_move")}
+      title={t("coming_up")}
       icon={<Sparkles className="h-[18px] w-[18px]" />}
       testId="dashboard-next-move"
     >
-      {items.map((item) => {
-        const Icon = TASK_ICONS[item.key];
-        const context =
-          item.context ??
-          (item.track
-            ? getPlanTrackLabel(item.track, t)
-            : t("recommended_context_fallback"));
+      <div role="list" className="relative divide-y divide-outline-variant/70">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-8 left-3 top-8 border-l border-dashed border-outline-variant"
+        />
+        {nextItems.map((item, index) => {
+          const context =
+            item.context ??
+            (item.track
+              ? getPlanTrackLabel(item.track, t)
+              : t("recommended_context_fallback"));
 
-        return (
-          <Link key={item.id} href={item.href} data-testid="dashboard-next-move-row">
-            <div className="group flex items-center gap-3 rounded-[1.25rem] border border-outline-variant bg-surface-container-low px-3.5 py-3 transition-all hover:-translate-y-0.5 hover:border-primary-fixed hover:shadow-token-card dark:border-outline-variant/60 dark:bg-surface-container-low">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="type-eyebrow block truncate text-primary">
-                  {getPlanReason(item, t)}
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              data-testid="dashboard-next-move-row"
+              role="listitem"
+              aria-posinset={index + 1}
+              aria-setsize={nextItems.length}
+            >
+              <div className="group flex min-h-[62px] items-center gap-3 py-2 transition-colors hover:bg-surface-container-low">
+                <span
+                  aria-hidden="true"
+                  className="type-caption relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary-container bg-primary-container font-semibold tabular-nums text-primary"
+                >
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="type-body-sm mt-0.5 block truncate font-extrabold text-on-surface">
-                  {getPlanTitle(item, t)}
+                <span className="min-w-0 flex-1">
+                  <span className="type-body-sm block truncate font-semibold text-on-surface">
+                    {getPlanTitle(item, t)}
+                  </span>
+                  <span className="type-caption mt-0.5 block truncate text-on-surface-variant">
+                    {t("next_move_meta", {
+                      duration: item.durationMinutes,
+                      context,
+                    })}
+                  </span>
                 </span>
-                <span className="type-caption block truncate font-semibold text-on-surface-variant">
-                  {t("next_move_meta", { duration: item.durationMinutes, context })}
-                </span>
-              </span>
-              <ChevronRight className="h-[18px] w-[18px] shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-            </div>
-          </Link>
-        );
-      })}
+                <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
     </CardShell>
   );
 }
@@ -114,8 +115,6 @@ export function RecentActivityCard({
   items: DashboardRecentItem[];
 }) {
   const t = useTranslations("dashboard.home");
-  const locale = useLocale();
-
   return (
     <CardShell
       title={t("recent_practice")}
@@ -141,7 +140,9 @@ export function RecentActivityCard({
             className="h-auto w-20 object-contain opacity-90"
             sizes="80px"
           />
-          <p className="type-body-sm font-extrabold text-on-surface">{t("first_debate")}</p>
+          <p className="type-body-sm font-extrabold text-on-surface">
+            {t("first_debate")}
+          </p>
           <p className="type-caption max-w-[24ch] text-on-surface-variant">
             {t("practice_get_feedback")}
           </p>
@@ -153,43 +154,54 @@ export function RecentActivityCard({
           </Link>
         </div>
       ) : (
-        items.slice(0, 3).map((item) => {
-          const date = new Date(item.createdAt).toLocaleDateString(locale, {
-            month: "short",
-            day: "numeric",
-          });
-          const row = (
-            <div className="group flex items-center gap-3 rounded-[1.25rem] border border-outline-variant bg-surface-container-low px-3.5 py-3 transition-all hover:-translate-y-0.5 hover:border-primary-fixed hover:shadow-token-card dark:border-outline-variant/60">
-              <span
+        <div
+          role="list"
+          className="overflow-hidden rounded-lg border border-outline-variant dark:border-outline-variant/60"
+        >
+          {items.slice(0, 5).map((item, index) => {
+            const row = (
+              <div
                 className={cn(
-                  "type-label flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-extrabold",
-                  scoreTone(item.scoreOutOf100)
+                  "group flex min-h-10 items-center gap-3 px-3 py-1.5 transition-colors hover:bg-surface-container-low",
+                  index < Math.min(items.length, 5) - 1 &&
+                    "border-b border-outline-variant dark:border-outline-variant/60",
                 )}
               >
-                {item.scoreOutOf100 != null ? Math.round(item.scoreOutOf100) : "—"}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="type-body-sm block truncate font-extrabold text-on-surface">
-                  {item.title}
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="type-body-sm block truncate font-medium text-on-surface">
+                    {item.title}
+                  </span>
                 </span>
-                <span className="type-caption block truncate font-semibold text-on-surface-variant">
-                  {date} · {item.subtitle}
+                <span
+                  className={cn(
+                    "type-caption flex h-6 min-w-8 shrink-0 items-center justify-center rounded-[6px] px-2 font-semibold tabular-nums",
+                    scoreTone(item.scoreOutOf100),
+                  )}
+                >
+                  {item.scoreOutOf100 != null
+                    ? Math.round(item.scoreOutOf100)
+                    : "—"}
                 </span>
-              </span>
-              {item.href ? (
-                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-              ) : null}
-            </div>
-          );
+                {item.href ? (
+                  <span className="inline-flex shrink-0 items-center gap-1 type-caption font-medium text-on-surface-variant group-hover:text-primary">
+                    {t("review")}
+                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                ) : null}
+              </div>
+            );
 
-          return item.href ? (
-            <Link key={item.id} href={item.href}>
-              {row}
-            </Link>
-          ) : (
-            <div key={item.id}>{row}</div>
-          );
-        })
+            return item.href ? (
+              <Link key={item.id} href={item.href} role="listitem">
+                {row}
+              </Link>
+            ) : (
+              <div key={item.id} role="listitem">
+                {row}
+              </div>
+            );
+          })}
+        </div>
       )}
     </CardShell>
   );

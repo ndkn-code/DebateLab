@@ -29,15 +29,16 @@ function HeadlineWords({
   highlight?: string;
   startDelay?: number;
 }) {
+  const reduceMotion = useReducedMotion();
   const words = text.split(" ");
   return (
     <span className="inline-block">
       {words.map((word, index) => (
         <motion.span
           key={`${word}-${index}`}
-          initial={{ opacity: 0, y: 34 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: startDelay + index * 0.08, ease: EASE_OUT }}
+          initial={reduceMotion ? false : { opacity: 0, y: 34 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.7, delay: startDelay + index * 0.08, ease: EASE_OUT }}
           className={cn(
             "mr-[0.24em] inline-block last:mr-0",
             highlight && highlight.includes(word.replace(/[.,!?]/g, "")) && "text-primary"
@@ -116,7 +117,7 @@ export function HeroSection({
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-[linear-gradient(180deg,#FFFFFF_0%,#F3FCFE_55%,#E5F8FC_100%)] px-6 pb-0 pt-32 md:px-8 md:pt-40"
+      className="relative overflow-hidden bg-background px-6 pb-0 pt-28 md:px-8 md:pt-32"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
         <Display size="xl">
@@ -126,18 +127,18 @@ export function HeroSection({
         </Display>
 
         <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5, ease: EASE_OUT }}
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.7, delay: 0.5, ease: EASE_OUT }}
           className="mt-7 max-w-[560px] text-pretty type-body-lg text-on-surface-variant"
         >
           {copy.hero.description}
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.64, ease: EASE_OUT }}
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.7, delay: 0.64, ease: EASE_OUT }}
           className="mt-9 flex flex-col items-center gap-4 sm:flex-row"
         >
           <PrimaryButton
@@ -149,9 +150,9 @@ export function HeroSection({
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.85 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={reduceMotion ? undefined : { opacity: 1 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.8, delay: 0.85 }}
           className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
         >
           <div className="flex items-center">
@@ -186,9 +187,9 @@ export function HeroSection({
       {/* Stage scene */}
       <motion.div
         style={{ y: sceneY }}
-        initial={{ opacity: 0, y: 60 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.9, ease: EASE_OUT }}
+        initial={reduceMotion ? false : { opacity: 0, y: 60 }}
+        animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.9, delay: 0.9, ease: EASE_OUT }}
         className="relative mx-auto mt-14 max-w-4xl md:mt-16"
       >
         {/* Spotlight */}
@@ -213,9 +214,9 @@ export function HeroSection({
         <div className="relative flex items-end justify-center">
           {/* Student debaters at the far sides (left/right crops of one square asset) */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.2, ease: EASE_OUT }}
+            initial={reduceMotion ? false : { opacity: 0, y: 40 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.8, delay: 1.2, ease: EASE_OUT }}
             className="absolute bottom-0 left-[2%] hidden h-[250px] w-[125px] overflow-hidden sm:block md:left-[8%] lg:left-[14%]"
           >
             <Image
@@ -230,9 +231,9 @@ export function HeroSection({
             />
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.35, ease: EASE_OUT }}
+            initial={reduceMotion ? false : { opacity: 0, y: 40 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.8, delay: 1.35, ease: EASE_OUT }}
             className="absolute bottom-0 right-[2%] hidden h-[250px] w-[125px] overflow-hidden sm:block md:right-[8%] lg:right-[14%]"
           >
             <Image

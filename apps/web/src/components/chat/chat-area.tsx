@@ -62,7 +62,7 @@ function CoachEmptyState({
             key={prompt}
             onClick={() => onPromptSelect(prompt)}
             disabled={isLoading}
-            className="group flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-outline-variant/14 bg-surface px-3.5 py-2.5 text-left transition-colors hover:border-primary/22 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group flex min-h-10 w-full min-w-0 items-center justify-between gap-3 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-left transition-colors hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="min-w-0 type-body-sm font-medium text-on-surface">
               {prompt}
@@ -181,7 +181,7 @@ export function ChatArea({
   const showConversationLoading = isLoading && hasConversation && messages.length === 0;
 
   return (
-    <div className="relative flex min-w-0 flex-1 bg-background">
+    <div className="relative flex min-w-0 flex-1 bg-transparent">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <button
           onClick={onOpenSidebar}
@@ -251,7 +251,7 @@ export function ChatArea({
 
         <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
           <div className="mx-auto w-full max-w-[720px]">
-            <div className="flex items-end gap-2.5 rounded-[18px] border border-outline-variant/16 bg-surface px-3 py-2.5 shadow-token-card">
+            <div className="flex items-end gap-2.5 rounded-xl border border-outline-variant bg-surface px-3 py-2.5 shadow-none">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -266,7 +266,7 @@ export function ChatArea({
                 onClick={() => handleSubmit()}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="h-9 w-9 shrink-0 rounded-xl bg-primary text-on-primary shadow-token-primary disabled:opacity-40"
+                className="h-8 w-8 shrink-0 rounded-[10px] bg-primary text-on-primary shadow-none disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </Button>

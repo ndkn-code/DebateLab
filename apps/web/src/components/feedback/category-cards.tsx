@@ -76,7 +76,7 @@ const speakingCategories: CategoryConfig[] = [
     label: "Persuasiveness",
     icon: Megaphone,
     maxScore: 10,
-    gradient: "from-[#fff9e5] to-[#fff9e5]/50",
+    gradient: "from-warning-container to-surface-container-lowest",
     barColor: "bg-surface-container-high",
     feedbackKey: "persuasionFeedback",
     subScores: [
@@ -135,7 +135,7 @@ const debateCategories: CategoryConfig[] = [
     label: "Persuasion & Weighing",
     icon: Megaphone,
     maxScore: 10,
-    gradient: "from-[#fff9e5] to-[#fff9e5]/50",
+    gradient: "from-warning-container to-surface-container-lowest",
     barColor: "bg-surface-container-high",
     feedbackKey: "persuasionFeedback",
     subScores: [
@@ -169,7 +169,7 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              "rounded-xl border border-outline-variant/10 bg-gradient-to-br p-5 transition-colors hover:border-outline-variant/30",
+              "rounded-[10px] border border-outline-variant bg-gradient-to-br p-4 transition-colors hover:border-outline",
               cat.gradient
             )}
           >

@@ -38,7 +38,7 @@ function ProgressRing({ progress }: { progress: number }) {
   const offset = circumference * (1 - progress / 100);
 
   return (
-    <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-token-card">
+    <div className="relative flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white">
       <svg
         width={size}
         height={size}
@@ -50,7 +50,7 @@ function ProgressRing({ progress }: { progress: number }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e1ebfb"
+          stroke="var(--color-surface-container-high)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -58,7 +58,7 @@ function ProgressRing({ progress }: { progress: number }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#00B8D9"
+          stroke="var(--color-primary)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -98,11 +98,11 @@ export function CourseCard({
   const cardContent = (
     <article
       className={cn(
-        "flex h-full flex-col rounded-[18px] border bg-white shadow-token-card transition-all duration-200",
+        "flex h-full flex-col rounded-[10px] border bg-white shadow-none transition-[border-color,background-color,transform] duration-150",
         course.status === "in-progress"
-          ? "border-outline-variant shadow-token-primary"
+          ? "border-primary/50"
           : "border-outline-variant",
-        !isMock && "hover:-translate-y-0.5 hover:border-outline-variant"
+        !isMock && "hover:-translate-y-0.5 hover:border-primary/40"
       )}
     >
       <div className="relative mx-3 mt-3 overflow-hidden rounded-[14px]">
@@ -110,11 +110,11 @@ export function CourseCard({
           <CourseArtwork variant={artworkVariant} />
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f1835]/28 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-surface-container/20" />
 
         <div
           className={cn(
-            "type-eyebrow absolute left-3 top-3 inline-flex rounded-full px-3 py-1 font-semibold shadow-token-card",
+            "type-caption absolute left-3 top-3 inline-flex h-5 items-center rounded-[6px] px-2 font-medium",
             STATUS_BADGE_STYLES[course.status]
           )}
         >
@@ -150,7 +150,7 @@ export function CourseCard({
 
           <span
             className={cn(
-              "type-label inline-flex shrink-0 rounded-[10px] px-4 py-2 shadow-token-primary",
+              "type-label inline-flex h-8 shrink-0 items-center rounded-[10px] px-3",
               actionClasses
             )}
           >

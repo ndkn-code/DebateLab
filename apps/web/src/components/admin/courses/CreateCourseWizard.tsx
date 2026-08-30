@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { Globe, Crown, Lock, ChevronRight, ChevronLeft } from "@/components/ui/icons";
 import { createCourse } from "@/app/actions/courses";
 import type { CourseVisibility } from "@/lib/types/admin";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 type FormData = {
   title: string;
@@ -55,6 +56,7 @@ export function CreateCourseWizard() {
   }
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto max-w-2xl px-4 py-10">
       {/* Step indicator */}
       <div className="flex items-center justify-center gap-2 mb-8">
@@ -215,5 +217,6 @@ export function CreateCourseWizard() {
         </div>
       </div>
     </div>
+    </AdminV2Frame>
   );
 }

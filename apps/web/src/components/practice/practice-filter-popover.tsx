@@ -100,7 +100,7 @@ export function PracticeFilterPopover({
             type="button"
             aria-label={t("filters")}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-2.5 rounded-2xl border bg-surface-container-lowest px-4 type-body-sm font-semibold transition-all hover:bg-surface-container active:scale-[0.97]",
+              "relative inline-flex h-12 shrink-0 items-center gap-2.5 rounded-[10px] border bg-surface-container-lowest px-4 type-body-sm font-semibold transition-all hover:bg-surface-container active:scale-[0.97]",
               activeFilterCount > 0
                 ? "border-primary/40 text-primary"
                 : "border-outline-variant text-on-surface-variant"

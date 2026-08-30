@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { getThinkfyTheme, type ThinkfyThemeMode } from "@thinkfy/shared/design-system";
+import {
+  getThinkfyTheme,
+  getThinkfyWebTheme,
+  type ThinkfyThemeMode,
+} from "@thinkfy/shared/design-system";
 
 function hexToRgb(hex: string) {
   const clean = hex.replace("#", "");
@@ -63,6 +67,36 @@ for (const mode of ["light", "dark"] as const) {
   assertContrast(mode, colors.onSuccess, colors.success, "success/onSuccess");
   assertContrast(mode, colors.onWarningContainer, colors.warningContainer, "warning container");
   assertContrast(mode, colors.errorDim, colors.errorContainer, "error container");
+
+  const webTheme = getThinkfyWebTheme(mode);
+  assert.equal(webTheme.geometry.buttonHeight, 32);
+  assert.equal(webTheme.geometry.buttonRadius, 10);
+  assert.equal(webTheme.geometry.dataRowHeight, 40);
+  assert.equal(webTheme.geometry.settingsRowHeight, 44);
+  assert.equal(webTheme.geometry.badgeHeight, 20);
+  assert.equal(webTheme.geometry.badgeRadius, 6);
+  assert.equal(webTheme.geometry.switchWidth, 24);
+  assert.equal(webTheme.geometry.switchHeight, 14);
+  assert.equal(webTheme.geometry.switchThumb, 10);
+  assert.equal(webTheme.geometry.switchHitTarget, 32);
+  assert.equal(webTheme.geometry.cardRadius, 10);
+  const switchOnTrack = mode === "light" ? "#0077E6" : "#5AA9FF";
+  const switchOnThumb = mode === "light" ? "#FFFFFF" : "#242422";
+  const switchOffTrack = mode === "light" ? "#E2E2DE" : "#41413D";
+  const switchOffThumb = mode === "light" ? "#333333" : "#F5F5F2";
+  assertContrast(mode, switchOnThumb, switchOnTrack, "web switch on", 3);
+  assertContrast(mode, switchOffThumb, switchOffTrack, "web switch off", 3);
+  assert.equal(webTheme.webCssVariables["--color-background"], mode === "light" ? "#F5F5F2" : "#171715");
+  assert.equal(webTheme.webCssVariables["--color-foreground"], mode === "light" ? "#333333" : "#F5F5F2");
+  assert.equal(webTheme.components.badge.success.background, mode === "light" ? "#CAFACE" : "#183D27");
+  assert.equal(webTheme.components.badge.success.text, webTheme.colors.successDim);
+  // The darker semantic token retains WCAG contrast on the fixed badge fill.
+  assertContrast(mode, webTheme.colors.successDim, webTheme.colors.successContainer, "web success copy");
+  assertContrast(mode, webTheme.colors.foreground, webTheme.colors.surface, "web surface/onSurface");
+  assertContrast(mode, webTheme.colors.muted, webTheme.colors.background, "web subtle text", 4.5);
+  assertContrast(mode, webTheme.colors.secondaryDim, webTheme.colors.surface, "web normal link text", 4.5);
+  assertContrast(mode, webTheme.colors.successDim, webTheme.colors.surface, "web normal success text", 4.5);
+  assertContrast(mode, webTheme.colors.secondaryDim, webTheme.colors.secondaryContainer, "web link container");
 }
 
 console.log("Design-system token tests passed.");

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Building2,
   CheckCircle2,
@@ -140,6 +141,7 @@ function Metric({
 export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const adminT = useTranslations("admin");
   const [createOpen, setCreateOpen] = useState(
     () => searchParams.get("create") === "1",
   );
@@ -154,12 +156,12 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
   );
 
   return (
-    <PageTransition className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <PageTransition className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-[1440px]">
+        <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="type-eyebrow text-primary">Club OS</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface">
+            <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+            <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
               Clubs
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">
@@ -170,12 +172,12 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCreateOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary shadow-sm shadow-token-card/20 transition hover:bg-primary-dim"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Plus className="h-4 w-4" />
               Create club
             </button>
-            <div className="flex h-10 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface-variant">
+            <div className="flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
               <ShieldCheck className="h-4 w-4 text-success" />
               {data.qaEnabled ? "QA/QC pipeline active" : "Data contract V1"}
             </div>
@@ -189,7 +191,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
                 key={state.key}
                 href={`/dashboard/admin/clubs?qa=${state.key}`}
                 className={cn(
-                  "rounded-lg border px-3 py-2 text-xs font-bold transition",
+                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   data.qaState === state.key
                     ? "border-primary bg-surface-container text-on-surface-variant"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50",
@@ -207,7 +209,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard
             icon={<Building2 className="h-5 w-5" />}
             label="Total clubs"
@@ -307,7 +309,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
               </p>
               <button
                 onClick={() => setCreateOpen(true)}
-                className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary shadow-sm shadow-token-card/20"
+                className="mt-5 inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <Plus className="h-4 w-4" />
                 Create club

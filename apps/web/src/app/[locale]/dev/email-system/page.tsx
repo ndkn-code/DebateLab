@@ -6,6 +6,7 @@ import { getEmailAdminFixtureData } from "@/lib/email/dev-fixtures";
 import { addDaysToDateKey } from "@/lib/email/time";
 import { EMAIL_TEMPLATE_KEYS, type EmailStreakDot, type EmailTemplateKey } from "@/lib/email/types";
 import { buildTemplateVariables, renderThinkfyEmail } from "@/lib/email/templates";
+import { DevQaFrame } from "../dev-v2";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -145,24 +146,17 @@ export default async function Page({ params }: Props) {
   ]);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-on-surface">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <p className="type-eyebrow text-primary-dim">Thinkfy email QA</p>
-          <h1 className="mt-2 text-3xl font-extrabold text-on-surface">Email system preview</h1>
-          <p className="mt-2 w-full max-w-[calc(100vw-2rem)] text-sm leading-6 text-on-surface-variant sm:max-w-3xl">
-            Development-only fixture page for visual QA of rendered lifecycle emails and the admin email monitor.
-          </p>
-        </div>
-      </div>
-
+    <DevQaFrame
+      title="Email system preview"
+      description="Development-only fixtures for lifecycle emails, the monitor, and streak correctness."
+    >
       <EmailMonitorDashboard data={getEmailAdminFixtureData()} />
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-extrabold text-on-surface">Rendered email templates</h2>
-            <p className="mt-1 w-full max-w-[calc(100vw-2rem)] text-sm text-on-surface-variant sm:max-w-none">
+            <h2 className="type-heading-md text-on-surface">Rendered email templates</h2>
+            <p className="mt-1 w-full max-w-[calc(100vw-2rem)] type-body-sm text-on-surface-variant sm:max-w-none">
               These iframes use the production renderer and Vietnamese default copy.
             </p>
           </div>
@@ -172,17 +166,19 @@ export default async function Page({ params }: Props) {
           {previews.map((preview) => (
             <article
               key={preview.templateKey}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-token-card sm:max-w-[430px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-[10px] border border-border bg-surface sm:max-w-[430px]"
             >
-              <div className="border-b border-outline-variant/40 px-5 py-4">
-                <h3 className="text-base font-bold text-on-surface">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="type-title font-semibold text-on-surface">
                   {preview.templateKey.replaceAll("_", " ")}
                 </h3>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{preview.subject}</p>
+                <p className="mt-1 truncate type-caption text-muted-foreground">{preview.subject}</p>
               </div>
               <iframe
                 title={`${preview.templateKey} email preview`}
                 srcDoc={preview.html}
+                sandbox=""
+                loading="lazy"
                 className="h-[760px] w-full bg-background"
               />
             </article>
@@ -192,8 +188,8 @@ export default async function Page({ params }: Props) {
 
       <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="mb-5">
-          <h2 className="text-2xl font-extrabold text-on-surface">Streak correctness fixtures</h2>
-          <p className="mt-1 w-full max-w-[calc(100vw-2rem)] text-sm text-on-surface-variant sm:max-w-none">
+          <h2 className="type-heading-md text-on-surface">Streak correctness fixtures</h2>
+          <p className="mt-1 w-full max-w-[calc(100vw-2rem)] type-body-sm text-on-surface-variant sm:max-w-none">
             Mobile Gmail-style previews for active, at-risk, zero, and repaired streak states.
           </p>
         </div>
@@ -202,21 +198,23 @@ export default async function Page({ params }: Props) {
           {streakCases.map((preview) => (
             <article
               key={preview.key}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-token-card sm:max-w-[390px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-[10px] border border-border bg-surface sm:max-w-[390px]"
             >
-              <div className="border-b border-outline-variant/40 px-5 py-4">
-                <h3 className="text-base font-bold text-on-surface">{preview.label}</h3>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{preview.subject}</p>
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="type-title font-semibold text-on-surface">{preview.label}</h3>
+                <p className="mt-1 truncate type-caption text-muted-foreground">{preview.subject}</p>
               </div>
               <iframe
                 title={`${preview.key} streak email preview`}
                 srcDoc={preview.html}
+                sandbox=""
+                loading="lazy"
                 className="h-[720px] w-full bg-background"
               />
             </article>
           ))}
         </div>
       </section>
-    </main>
+    </DevQaFrame>
   );
 }

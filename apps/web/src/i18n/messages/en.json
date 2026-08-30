@@ -303,7 +303,7 @@
       "ielts_library": "Test Library",
       "ielts_assigned": "Assigned"
     },
-      "ielts": {
+    "ielts": {
       "eyebrow": "IELTS",
       "greeting": "Hi, {name}",
       "greeting_fallback": "Hi there",
@@ -806,7 +806,18 @@
           "title": "Practice Time (7D)",
           "subtitle": "Last 7 days"
         }
-      }
+      },
+      "today_sprint": "Today's sprint",
+      "coming_up": "Coming up",
+      "practice_path": "Your Practice Path",
+      "summary_done": "Done this week",
+      "summary_sessions": "{count, plural, one {# session} other {# sessions}}",
+      "summary_mastery": "Mastery",
+      "summary_mastery_detail": "Your current skill baseline",
+      "summary_pace": "On pace",
+      "summary_on_track": "You're on track",
+      "summary_minutes_left": "{count} min to goal",
+      "summary_pace_detail": "Based on your weekly commitment"
     },
     "support": {
       "trigger_label": "Help & Support",
@@ -1717,6 +1728,11 @@
       "avatar_too_large": "Choose an avatar image smaller than 8 MB.",
       "history_cleared": "{count, plural, =0 {Solo practice history was already empty.} one {Cleared # solo practice session.} other {Cleared # solo practice sessions.}}",
       "history_error": "Unable to clear solo practice history right now."
+    },
+    "visibility_options": {
+      "only_me": "Only me",
+      "friends": "Friends",
+      "everyone": "Everyone"
     }
   },
   "achievements": {
@@ -1825,8 +1841,8 @@
       "uiShowcase": "UI Showcase",
       "corpus": "Corpus",
       "users": "Users & Access",
-    "reports": "Reports",
-    "referrals": "Referrals",
+      "reports": "Reports",
+      "referrals": "Referrals",
       "classes": "Classes",
       "clubs": "Clubs",
       "emails": "Emails",
@@ -1840,135 +1856,272 @@
       "duels": "Duels",
       "motions": "Motions"
     },
-  "vocabulary": {
-    "eyebrow": "Reusable curriculum",
-    "title": "Vocabulary bank",
-    "description": "Manage reusable IELTS and debate terms for course flashcards and vocabulary drills.",
-    "create": "Create term",
-    "edit": "Edit term",
-    "delete": "Delete term",
-    "save": "Save term",
-    "saving": "Saving…",
-    "cancel": "Cancel",
-    "saved": "Vocabulary term saved",
-    "saveFailed": "Could not save this term",
-    "deleted": "Vocabulary term deleted",
-    "deleteFailed": "Could not delete this term",
-    "deleteConfirm": "Delete “{term}” from the vocabulary bank?",
-    "noDefinition": "No definition has been added yet.",
-    "previous": "Previous",
-    "next": "Next",
-    "pagination": "Page {page} of {pages}",
-    "subjects": { "debate": "Debate" },
-    "counts": { "total": "Total terms", "ieltsPage": "IELTS on this page", "debatePage": "Debate on this page" },
-    "filters": { "search": "Search terms or definitions", "allSubjects": "All subjects", "allBands": "All bands", "allTopics": "All topics", "apply": "Apply filters" },
-    "empty": { "title": "No vocabulary found", "description": "Create the first term or loosen the active filters." },
-    "form": { "createTitle": "Create vocabulary term", "editTitle": "Edit vocabulary term", "description": "Comma-separate synonyms, collocations, and topic tags." },
-    "fields": { "term": "Term", "subject": "Subject", "band": "Band tag", "partOfSpeech": "Part of speech", "phonetic": "Phonetic (IPA)", "definitionEn": "Definition (English)", "definitionVi": "Definition (Vietnamese)", "example": "Example", "synonyms": "Synonyms", "collocations": "Collocations", "topicTags": "Topic tags", "source": "Source" }
-  },
-  "resources": {
-    "eyebrow": "Content library",
-    "title": "Resources",
-    "description": "Curate files and trusted links for IELTS and Debate learners. Private files are delivered with short-lived signed URLs.",
-    "create": "Add resource",
-    "save": "Save resource",
-    "saving": "Saving…",
-    "saved": "Resource saved",
-    "saveFailed": "Could not save resource",
-    "deleted": "Resource deleted",
-    "deleteFailed": "Could not delete resource",
-    "cancel": "Cancel",
-    "edit": "Edit resource",
-    "preview": "Preview",
-    "noDescription": "No description",
-    "summary": { "total": "Total", "published": "Published", "files": "Files" },
-    "empty": { "title": "No resources yet", "description": "Add a file or trusted link to start the learner library." },
-    "editor": { "createTitle": "Add resource", "editTitle": "Edit resource", "description": "Choose who can see it, then publish when it is ready." },
-    "fields": {
-      "title": "Title",
-      "description": "Description",
-      "kind": "Resource type",
-      "subject": "Subject",
-      "url": "Link URL",
-      "file": "File",
-      "chooseFile": "Choose a file (up to 50MB)",
-      "fileTooLarge": "Choose a file that is 50MB or smaller.",
-      "replaceFile": "Choose a replacement, or keep the current file",
-      "tags": "Tags",
-      "tagsPlaceholder": "speaking, rubric, research",
-      "access": "Access",
-      "club": "Club",
-      "chooseClub": "Choose a club",
-      "published": "Published",
-      "publishedHint": "Visible immediately to everyone permitted by the selected access level."
+    "vocabulary": {
+      "eyebrow": "Reusable curriculum",
+      "title": "Vocabulary bank",
+      "description": "Manage reusable IELTS and debate terms for course flashcards and vocabulary drills.",
+      "create": "Create term",
+      "edit": "Edit term",
+      "delete": "Delete term",
+      "save": "Save term",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "saved": "Vocabulary term saved",
+      "saveFailed": "Could not save this term",
+      "deleted": "Vocabulary term deleted",
+      "deleteFailed": "Could not delete this term",
+      "deleteConfirm": "Delete “{term}” from the vocabulary bank?",
+      "noDefinition": "No definition has been added yet.",
+      "previous": "Previous",
+      "next": "Next",
+      "pagination": "Page {page} of {pages}",
+      "subjects": {
+        "debate": "Debate"
+      },
+      "counts": {
+        "total": "Total terms",
+        "ieltsPage": "IELTS on this page",
+        "debatePage": "Debate on this page"
+      },
+      "filters": {
+        "search": "Search terms or definitions",
+        "allSubjects": "All subjects",
+        "allBands": "All bands",
+        "allTopics": "All topics",
+        "apply": "Apply filters"
+      },
+      "empty": {
+        "title": "No vocabulary found",
+        "description": "Create the first term or loosen the active filters."
+      },
+      "form": {
+        "createTitle": "Create vocabulary term",
+        "editTitle": "Edit vocabulary term",
+        "description": "Comma-separate synonyms, collocations, and topic tags."
+      },
+      "fields": {
+        "term": "Term",
+        "subject": "Subject",
+        "band": "Band tag",
+        "partOfSpeech": "Part of speech",
+        "phonetic": "Phonetic (IPA)",
+        "definitionEn": "Definition (English)",
+        "definitionVi": "Definition (Vietnamese)",
+        "example": "Example",
+        "synonyms": "Synonyms",
+        "collocations": "Collocations",
+        "topicTags": "Topic tags",
+        "source": "Source"
+      }
     },
-    "kind": { "file": "File", "link": "Link" },
-    "access": { "public": "Public", "authenticated": "Signed-in learners", "club": "Club members" },
-    "status": { "published": "Published", "draft": "Draft" },
-    "delete": { "label": "Delete resource", "title": "Delete this resource?", "description": "“{title}” and its private file, if any, will be permanently removed.", "confirm": "Delete" }
-  },
-  "emailCampaigns": {
-    "new": "New campaign",
-    "empty": "No campaigns yet",
-    "compose": "Compose campaign",
-    "edit": "Campaign details",
-    "fields": { "name": "Campaign name", "template": "Template", "locale": "Language" },
-    "audience": { "title": "Audience", "adminTest": "Admin test only", "all": "All opted-in users", "plan": "By plan", "locale": "By locale", "club": "By club", "referrers": "Referrers" },
-    "actions": { "save": "Save draft", "schedule": "Schedule", "send": "Send now", "cancel": "Cancel campaign" },
-    "schedule": { "title": "Schedule delivery", "confirm": "Confirm schedule with campaign name" },
-    "send": { "title": "Confirm send by typing the campaign name", "confirm": "Confirm send with campaign name" },
-    "results": { "title": "Campaign results", "sent": "Sent", "delivered": "Delivered", "opened": "Opened", "clicked": "Clicked", "deliveryRate": "Delivery rate", "openRate": "Open rate", "clickRate": "Click rate", "risk": "Bounced, failed, or suppressed" },
-    "notices": { "saved": "Draft saved.", "scheduled": "Campaign scheduled.", "sent": "Campaign batch completed.", "processing": "First batch sent; cron will continue processing.", "canceled": "Campaign canceled; no further batches will send." },
-    "errors": { "load": "Unable to load campaigns.", "action": "Unable to update campaign.", "saveFirst": "Save the draft before scheduling or sending." }
-  },
-  "referrals": {
-    "title": "Referrals",
-    "readOnly": "Read only",
-    "orbsShort": "ORBs",
-    "search": "Search",
-    "searchPlaceholder": "Search names or emails",
-    "previous": "Previous",
-    "next": "Next",
-    "pagination": "Page {page} of {pages}",
-    "kpis": { "total": "Total referrals", "qualified": "Qualified", "credited": "Credited", "orbs": "ORBs awarded" },
-    "leaderboard": { "title": "Top referrers", "empty": "No referrers yet" },
-    "list": { "title": "Referral activity" },
-    "status": { "all": "All", "pending": "Pending", "qualified": "Qualified", "credited": "Credited", "rejected": "Rejected" },
-    "table": { "referrer": "Referrer", "referee": "Referee", "status": "Status", "orbs": "ORBs", "qualified": "Qualified", "credited": "Credited", "created": "Created" },
-    "empty": {
-      "title": "No referrals yet",
-      "description": "Referral activity will appear here after launch.",
-      "filteredTitle": "No matching referrals",
-      "filteredDescription": "Try a different email or status."
-    }
-  },
-  "maintenance": {
-    "eyebrow": "Operations",
-    "title": "Maintenance mode",
-    "description": "Publish a lightweight notice or temporarily route learners to the branded maintenance page. Admin and authentication routes stay available.",
-    "save": "Save settings",
-    "saving": "Saving…",
-    "saved": "Maintenance settings saved",
-    "saveFailed": "Could not save maintenance settings",
-    "invalid": "Review the maintenance settings",
-    "modeTitle": "Site mode",
-    "modeDescription": "Changes take effect within a few seconds in production.",
-    "modes": {
-      "off": { "label": "Off", "description": "Normal operation with no maintenance notice." },
-      "banner": { "label": "Banner", "description": "Keep the app open and show a bilingual notice." },
-      "full": { "label": "Full", "description": "Redirect learner pages and return 503 from public APIs." }
+    "resources": {
+      "eyebrow": "Content library",
+      "title": "Resources",
+      "description": "Curate files and trusted links for IELTS and Debate learners. Private files are delivered with short-lived signed URLs.",
+      "create": "Add resource",
+      "save": "Save resource",
+      "saving": "Saving…",
+      "saved": "Resource saved",
+      "saveFailed": "Could not save resource",
+      "deleted": "Resource deleted",
+      "deleteFailed": "Could not delete resource",
+      "cancel": "Cancel",
+      "edit": "Edit resource",
+      "preview": "Preview",
+      "noDescription": "No description",
+      "summary": {
+        "total": "Total",
+        "published": "Published",
+        "files": "Files"
+      },
+      "empty": {
+        "title": "No resources yet",
+        "description": "Add a file or trusted link to start the learner library."
+      },
+      "editor": {
+        "createTitle": "Add resource",
+        "editTitle": "Edit resource",
+        "description": "Choose who can see it, then publish when it is ready."
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "kind": "Resource type",
+        "subject": "Subject",
+        "url": "Link URL",
+        "file": "File",
+        "chooseFile": "Choose a file (up to 50MB)",
+        "fileTooLarge": "Choose a file that is 50MB or smaller.",
+        "replaceFile": "Choose a replacement, or keep the current file",
+        "tags": "Tags",
+        "tagsPlaceholder": "speaking, rubric, research",
+        "access": "Access",
+        "club": "Club",
+        "chooseClub": "Choose a club",
+        "published": "Published",
+        "publishedHint": "Visible immediately to everyone permitted by the selected access level."
+      },
+      "kind": {
+        "file": "File",
+        "link": "Link"
+      },
+      "access": {
+        "public": "Public",
+        "authenticated": "Signed-in learners",
+        "club": "Club members"
+      },
+      "status": {
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "delete": {
+        "label": "Delete resource",
+        "title": "Delete this resource?",
+        "description": "“{title}” and its private file, if any, will be permanently removed.",
+        "confirm": "Delete"
+      }
     },
-    "bannerTitle": "Banner message",
-    "bannerDescription": "Shown at the top of the signed-in app in banner mode.",
-    "fullTitle": "Full-page message",
-    "fullDescription": "Shown on the public maintenance splash in full mode.",
-    "languages": { "en": "English", "vi": "Vietnamese" },
-    "doneAtTitle": "Expected completion",
-    "doneAtDescription": "Required and validated as a future time when full mode is selected.",
-    "doneAtLabel": "Expected done at",
-    "doneAtHint": "Uses your browser’s local timezone. It is stored as UTC."
-  },
-  "comingSoon": "Coming soon",
+    "emailCampaigns": {
+      "new": "New campaign",
+      "empty": "No campaigns yet",
+      "compose": "Compose campaign",
+      "edit": "Campaign details",
+      "fields": {
+        "name": "Campaign name",
+        "template": "Template",
+        "locale": "Language"
+      },
+      "audience": {
+        "title": "Audience",
+        "adminTest": "Admin test only",
+        "all": "All opted-in users",
+        "plan": "By plan",
+        "locale": "By locale",
+        "club": "By club",
+        "referrers": "Referrers"
+      },
+      "actions": {
+        "save": "Save draft",
+        "schedule": "Schedule",
+        "send": "Send now",
+        "cancel": "Cancel campaign"
+      },
+      "schedule": {
+        "title": "Schedule delivery",
+        "confirm": "Confirm schedule with campaign name"
+      },
+      "send": {
+        "title": "Confirm send by typing the campaign name",
+        "confirm": "Confirm send with campaign name"
+      },
+      "results": {
+        "title": "Campaign results",
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "opened": "Opened",
+        "clicked": "Clicked",
+        "deliveryRate": "Delivery rate",
+        "openRate": "Open rate",
+        "clickRate": "Click rate",
+        "risk": "Bounced, failed, or suppressed"
+      },
+      "notices": {
+        "saved": "Draft saved.",
+        "scheduled": "Campaign scheduled.",
+        "sent": "Campaign batch completed.",
+        "processing": "First batch sent; cron will continue processing.",
+        "canceled": "Campaign canceled; no further batches will send."
+      },
+      "errors": {
+        "load": "Unable to load campaigns.",
+        "action": "Unable to update campaign.",
+        "saveFirst": "Save the draft before scheduling or sending."
+      }
+    },
+    "referrals": {
+      "title": "Referrals",
+      "readOnly": "Read only",
+      "orbsShort": "ORBs",
+      "search": "Search",
+      "searchPlaceholder": "Search names or emails",
+      "previous": "Previous",
+      "next": "Next",
+      "pagination": "Page {page} of {pages}",
+      "kpis": {
+        "total": "Total referrals",
+        "qualified": "Qualified",
+        "credited": "Credited",
+        "orbs": "ORBs awarded"
+      },
+      "leaderboard": {
+        "title": "Top referrers",
+        "empty": "No referrers yet"
+      },
+      "list": {
+        "title": "Referral activity"
+      },
+      "status": {
+        "all": "All",
+        "pending": "Pending",
+        "qualified": "Qualified",
+        "credited": "Credited",
+        "rejected": "Rejected"
+      },
+      "table": {
+        "referrer": "Referrer",
+        "referee": "Referee",
+        "status": "Status",
+        "orbs": "ORBs",
+        "qualified": "Qualified",
+        "credited": "Credited",
+        "created": "Created"
+      },
+      "empty": {
+        "title": "No referrals yet",
+        "description": "Referral activity will appear here after launch.",
+        "filteredTitle": "No matching referrals",
+        "filteredDescription": "Try a different email or status."
+      }
+    },
+    "maintenance": {
+      "eyebrow": "Operations",
+      "title": "Maintenance mode",
+      "description": "Publish a lightweight notice or temporarily route learners to the branded maintenance page. Admin and authentication routes stay available.",
+      "save": "Save settings",
+      "saving": "Saving…",
+      "saved": "Maintenance settings saved",
+      "saveFailed": "Could not save maintenance settings",
+      "invalid": "Review the maintenance settings",
+      "modeTitle": "Site mode",
+      "modeDescription": "Changes take effect within a few seconds in production.",
+      "modes": {
+        "off": {
+          "label": "Off",
+          "description": "Normal operation with no maintenance notice."
+        },
+        "banner": {
+          "label": "Banner",
+          "description": "Keep the app open and show a bilingual notice."
+        },
+        "full": {
+          "label": "Full",
+          "description": "Redirect learner pages and return 503 from public APIs."
+        }
+      },
+      "bannerTitle": "Banner message",
+      "bannerDescription": "Shown at the top of the signed-in app in banner mode.",
+      "fullTitle": "Full-page message",
+      "fullDescription": "Shown on the public maintenance splash in full mode.",
+      "languages": {
+        "en": "English",
+        "vi": "Vietnamese"
+      },
+      "doneAtTitle": "Expected completion",
+      "doneAtDescription": "Required and validated as a future time when full mode is selected.",
+      "doneAtLabel": "Expected done at",
+      "doneAtHint": "Uses your browser’s local timezone. It is stored as UTC."
+    },
+    "comingSoon": "Coming soon",
     "unauthorized": "You don't have permission to access this page.",
     "overview": {
       "title": "Overview",
@@ -1984,7 +2137,8 @@
       "last30Days": "30 Days",
       "last90Days": "90 Days",
       "noData": "No data available yet",
-      "refreshing": "Refreshing..."
+      "refreshing": "Refreshing...",
+      "subtitle": "A compact view of activity across Thinkfy."
     },
     "classes": {
       "title": "Classes",
@@ -2079,7 +2233,8 @@
           "students": "Students",
           "courses": "Courses",
           "schedule": "Schedule",
-          "attendance": "Attendance"
+          "attendance": "Attendance",
+          "workbench": "IELTS Workbench"
         },
         "metrics": {
           "students": "Students",
@@ -2129,6 +2284,96 @@
           "save": "Save Attendance",
           "saving": "Saving..."
         }
+      },
+      "schedule": {
+        "editTitle": "Edit Schedule",
+        "newTitle": "New Schedule",
+        "description": "Display-only class meeting pattern",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save Schedule",
+        "create": "Create Schedule",
+        "new": "New Schedule",
+        "close": "Close schedule editor",
+        "program": "Program",
+        "level": "Level",
+        "class": "Class",
+        "courseOptional": "Course (optional)",
+        "noCourse": "No course link",
+        "title": "Title",
+        "titlePlaceholder": "Debate Basics Session",
+        "roomLocation": "Room / Location",
+        "roomPlaceholder": "Room 204",
+        "startDate": "Start Date",
+        "timezone": "Timezone",
+        "timezones": {
+          "newYork": "Eastern Time (New York)",
+          "hoChiMinh": "Vietnam Time (Ho Chi Minh City)",
+          "utc": "UTC"
+        },
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "repeat": "Repeat",
+        "every": "Every",
+        "repeatOn": "Repeat on",
+        "ends": "Ends",
+        "endDate": "End Date",
+        "occurrences": "occurrences",
+        "noEndDate": "No end date",
+        "summary": "Recurrence Summary",
+        "allPrograms": "All Programs",
+        "allLevels": "All Levels",
+        "previousRange": "Previous schedule range",
+        "filters": "Filters",
+        "nextRange": "Next schedule range",
+        "today": "Today",
+        "programLevel": "Program / Level",
+        "edit": "Edit",
+        "manage": "Manage schedules",
+        "programs": {
+          "debate": "Debate",
+          "ielts": "IELTS",
+          "public_speaking": "Public Speaking"
+        },
+        "weekdays": {
+          "SU": "Sun",
+          "MO": "Mon",
+          "TU": "Tue",
+          "WE": "Wed",
+          "TH": "Thu",
+          "FR": "Fri",
+          "SA": "Sat"
+        },
+        "frequency": {
+          "none": "Does not repeat",
+          "daily": "Daily",
+          "weekly": "Weekly",
+          "monthly": "Monthly"
+        },
+        "endMode": {
+          "never": "Never",
+          "onDate": "On date",
+          "afterCount": "After count"
+        },
+        "on": "on",
+        "until": "until",
+        "from": "from",
+        "for": "for",
+        "occurrence": "occurrence",
+        "units": {
+          "days": "days",
+          "weeks": "weeks",
+          "months": "months"
+        },
+        "timeline": {
+          "title": "Schedule timeline",
+          "description": "Recurring class meetings across programs and levels.",
+          "classes": "{count, plural, one {# class} other {# classes}}",
+          "schedules": "{count, plural, one {# schedule} other {# schedules}}",
+          "empty": "No schedules in this range.",
+          "mobileEmpty": "No scheduled meetings in this range."
+        },
+        "archive": "Archive {title}"
       }
     },
     "courses": {
@@ -2283,6 +2528,265 @@
           "phase": "Phase",
           "duration": "Duration (min)"
         }
+      },
+      "settings": "Settings"
+    },
+    "groups": {
+      "operations": "Operations",
+      "workspace": "Workspace",
+      "peoplePrograms": "People & programs",
+      "contentTools": "Content & tools"
+    },
+    "clubs": {
+      "create": {
+        "title": "Create club",
+        "description": "Set up your club workspace, admins, and members.",
+        "close": "Close create club",
+        "creating": "Creating...",
+        "add": "Create and add",
+        "invite": "Create and invite",
+        "failed": "Club creation failed.",
+        "logoPreview": "Club logo preview",
+        "uploadLogo": "Upload logo",
+        "logoHelp": "PNG, JPG, SVG · Max 2MB",
+        "clubName": "Club name",
+        "clubNamePlaceholder": "Hanoi Debate Club",
+        "city": "City (Vietnam)",
+        "social": "Social media",
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "threads": "Threads",
+        "facebookPlaceholder": "https://facebook.com/club",
+        "instagramPlaceholder": "https://instagram.com/club",
+        "threadsPlaceholder": "https://threads.net/@club",
+        "people": "People",
+        "adminRequired": "At least one club admin is required.",
+        "emailPlaceholder": "name@example.com",
+        "removePerson": "Remove person",
+        "skipInvitation": "Skip invitation email",
+        "skipInvitationHelp": "Only existing Thinkfy accounts will be added to the club.",
+        "created": "Club created",
+        "open": "Open club",
+        "cancel": "Cancel"
+      },
+      "roles": {
+        "owner": "Admin",
+        "coach": "Coach",
+        "student": "Member"
+      },
+      "result": {
+        "invited": "Invitation sent",
+        "added": "Added",
+        "existing_member": "Already a member",
+        "missing_account": "Account not found",
+        "email_skipped": "Email skipped",
+        "failed": "Failed"
+      },
+      "schedule": {
+        "editTitle": "Edit event",
+        "newTitle": "New event",
+        "description": "Club schedule entry",
+        "close": "Close event editor",
+        "scheduledEvents": "Scheduled events",
+        "upcomingOccurrences": "Upcoming occurrences",
+        "linkedCohorts": "Linked cohorts",
+        "title": "Club schedule",
+        "descriptionFull": "Club-wide meetings, cohort-linked events, and exportable calendar entries",
+        "wholeClub": "Whole club",
+        "emptyTitle": "No club events yet",
+        "emptyDescription": "Create the first meeting or event for this club.",
+        "eventMix": "Event mix",
+        "analytics": "Schedule analytics",
+        "eventMixDescription": "Active events by type.",
+        "eventMixEmpty": "No event mix yet",
+        "eventMixEmptyDescription": "Events appear here once the schedule is created.",
+        "nextOnCalendar": "Next on calendar",
+        "upcomingEmpty": "No upcoming occurrences in range.",
+        "cohort": "Cohort",
+        "fieldTitle": "Title",
+        "titlePlaceholder": "Weekly sparring round",
+        "type": "Type",
+        "room": "Room",
+        "roomPlaceholder": "Room 204",
+        "location": "Location",
+        "locationPlaceholder": "Ha Noi campus",
+        "date": "Date",
+        "start": "Start",
+        "end": "End",
+        "repeat": "Repeat",
+        "every": "Every",
+        "on": "on",
+        "until": "until",
+        "from": "from",
+        "for": "for",
+        "occurrence": "occurrence",
+        "occurrences": "occurrences",
+        "units": {
+          "days": "days",
+          "weeks": "weeks",
+          "months": "months"
+        },
+        "frequency": {
+          "none": "Does not repeat",
+          "daily": "Daily",
+          "weekly": "Weekly",
+          "monthly": "Monthly"
+        },
+        "weekdays": {
+          "SU": "Sun",
+          "MO": "Mon",
+          "TU": "Tue",
+          "WE": "Wed",
+          "TH": "Thu",
+          "FR": "Fri",
+          "SA": "Sat"
+        },
+        "endMode": {
+          "neverEnds": "Never ends",
+          "onDate": "Ends on date",
+          "afterCount": "After count"
+        },
+        "archive": "Archive",
+        "saving": "Saving...",
+        "save": "Save event",
+        "saveFailed": "Event could not be saved.",
+        "archiveFailed": "Event could not be archived.",
+        "eventTypes": {
+          "meeting": "Meeting",
+          "workshop": "Workshop",
+          "tournament": "Tournament",
+          "social": "Social",
+          "deadline": "Deadline",
+          "other": "Other"
+        }
+      }
+    },
+    "corpus": {
+      "title": "Corpus Studio",
+      "heading": "Review, retrieve, publish",
+      "description": "Import private Trường Teen source bundles, approve RAG-ready corpus items, inspect retrieval usage, and publish reviewed motions into the practice catalog.",
+      "tabs": {
+        "overview": "Overview",
+        "knowledge": "Governed knowledge",
+        "import": "Import",
+        "sources": "Sources",
+        "matches": "Matches",
+        "items": "Items",
+        "motions": "Motions",
+        "logs": "Retrieval logs"
+      },
+      "filters": {
+        "allStatuses": "All statuses",
+        "candidate": "Candidate",
+        "needsReview": "Needs review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "published": "Published",
+        "allItemTypes": "All item types",
+        "debateMoments": "Debate moments",
+        "phraseBank": "Phrase bank",
+        "judgingLessons": "Judging lessons"
+      },
+      "kpis": {
+        "sources": "Sources",
+        "matches": "Matches",
+        "items": "Items",
+        "motions": "Motions",
+        "published": "Published",
+        "staleVectors": "Stale vectors"
+      },
+      "actions": {
+        "refresh": "Refresh",
+        "embed": "Embed {count}",
+        "importBundle": "Import bundle",
+        "publish": "Publish",
+        "close": "Close",
+        "openSource": "Open source"
+      },
+      "labels": {
+        "corpusViews": "Corpus views",
+        "searchCorpus": "Search corpus",
+        "searchPlaceholder": "Search by motion, school, item ID, phrase, or evidence note",
+        "filter": "Filter",
+        "fileName": "File name",
+        "bundleContent": "Bundle content",
+        "bundlePlaceholder": "Paste Gemini JSON output or your notes.md content with fenced JSON blocks..."
+      },
+      "headings": {
+        "reviewQueue": "Review queue",
+        "embeddingProviders": "Embedding providers",
+        "recentItems": "Recent corpus items",
+        "motionCandidates": "Motion candidates",
+        "importBundle": "Import reviewed source bundle"
+      },
+      "importDescription": "Paste a JSON bundle or Markdown file with fenced JSON blocks. The original upload is stored privately for admin audit; beta users only see published motion catalog entries.",
+      "table": {
+        "source": "Source",
+        "season": "Season",
+        "quality": "Quality",
+        "motion": "Motion",
+        "decision": "Decision",
+        "confidence": "Confidence",
+        "item": "Item",
+        "use": "Use",
+        "evidence": "Evidence",
+        "category": "Category",
+        "publish": "Publish",
+        "status": "Status",
+        "updated": "Updated",
+        "actions": "Actions",
+        "queryHash": "Query hash",
+        "provider": "Provider",
+        "similarity": "Similarity",
+        "injected": "Injected",
+        "latency": "Latency",
+        "aiRun": "AI run"
+      },
+      "empty": {
+        "noItemsLoaded": "No corpus items are loaded yet.",
+        "noEmbeddings": "No embeddings recorded.",
+        "queue": "Nothing in this queue.",
+        "sources": "No sources match the filters.",
+        "matches": "No matches match the filters.",
+        "items": "No corpus items match the filters.",
+        "motions": "No motion candidates match the filters.",
+        "logs": "No retrieval logs yet."
+      },
+      "detail": {
+        "status": "Status",
+        "confidence": "Confidence",
+        "updated": "Updated",
+        "relevanceSummary": "Relevance summary",
+        "topSimilarity": "Top similarity",
+        "avgTop3": "Average top 3",
+        "injected": "Injected",
+        "itemsAboveThreshold": "Items above threshold",
+        "thresholds": "Thresholds",
+        "gateDecision": "Gate decision",
+        "retrievedItems": "Retrieved corpus items",
+        "top3Short": "top 3",
+        "injectedIntoPrompt": "Injected into prompt",
+        "recordJson": "Record JSON"
+      },
+      "status": {
+        "injected": "Injected",
+        "skipped": "Skipped",
+        "timedOut": "Timed out",
+        "disabled": "Disabled",
+        "noContext": "No context"
+      },
+      "messages": {
+        "loadStudioError": "Unable to load Corpus Studio",
+        "loadDataError": "Unable to load corpus data",
+        "actionFailed": "Action failed",
+        "updateReviewError": "Unable to update review status",
+        "publishError": "Unable to publish motion",
+        "importError": "Unable to import bundle",
+        "importCompleted": "Import completed.",
+        "embeddingError": "Unable to run embeddings",
+        "embeddingCompleted": "Embedding batch finished: {embedded} embedded, {skipped} skipped.",
+        "marked": "Marked {status}.",
+        "publishedMotion": "Published motion{topic}."
       }
     }
   },
@@ -2291,11 +2795,32 @@
     "title": "Resource library",
     "description": "Useful guides, worksheets, and trusted links selected for your IELTS and Debate practice.",
     "count": "{count, plural, =0 {No resources} one {# resource} other {# resources}}",
-    "filters": { "label": "Resource filters", "subject": "Filter by subject", "allSubjects": "All subjects", "allTags": "All tags" },
-    "empty": { "title": "Nothing on the shelf yet", "description": "New learning resources will appear here when they are published.", "filteredTitle": "No matching resources", "filteredDescription": "Try another subject or tag." },
-    "kind": { "file": "File", "link": "Link" },
-    "access": { "public": "Public", "authenticated": "Learners", "club": "Your club" },
-    "open": { "file": "Open file", "link": "Open link", "unavailable": "Unavailable" },
+    "filters": {
+      "label": "Resource filters",
+      "subject": "Filter by subject",
+      "allSubjects": "All subjects",
+      "allTags": "All tags"
+    },
+    "empty": {
+      "title": "Nothing on the shelf yet",
+      "description": "New learning resources will appear here when they are published.",
+      "filteredTitle": "No matching resources",
+      "filteredDescription": "Try another subject or tag."
+    },
+    "kind": {
+      "file": "File",
+      "link": "Link"
+    },
+    "access": {
+      "public": "Public",
+      "authenticated": "Learners",
+      "club": "Your club"
+    },
+    "open": {
+      "file": "Open file",
+      "link": "Open link",
+      "unavailable": "Unavailable"
+    },
     "noDescription": "Ready when you are."
   },
   "courses": {
@@ -2356,7 +2881,9 @@
       "previewDraft": "Draft",
       "previewPublished": "Published",
       "previewSavedVersion": "This preview reflects the saved version of the course. Save changes in the editor to refresh it.",
-      "previewNoTracking": "Progress, enrollment, and completion tracking are hidden in preview mode. Open an activity to check the learner experience."
+      "previewNoTracking": "Progress, enrollment, and completion tracking are hidden in preview mode. Open an activity to check the learner experience.",
+      "moveUp": "Move {item} up",
+      "moveDown": "Move {item} down"
     }
   },
   "sessionResult": {
@@ -2556,86 +3083,86 @@
       "retryTopic": "Retry This Topic",
       "deleteSession": "Delete Session"
     },
-  "referral": {
-    "title": "Challenge a friend to beat your score!",
-    "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
-    "shareTitle": "Thinkfy Challenge",
-    "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
-    "cta": "Share Challenge",
-    "copied": "Copied!"
-  },
-  "clashMap": {
-    "title": "Clash Map",
-    "description": "Track which claims were answered, dropped, turned, or weighed.",
-    "share": "Share",
-    "allPairs": "All pairs",
-    "filters": {
-      "pair": "Speech Pair",
-      "side": "Side",
-      "outcome": "Outcome"
+    "referral": {
+      "title": "Challenge a friend to beat your score!",
+      "body": "You scored {score}/100. Share your invite link and both earn 600 bonus Credits.",
+      "shareTitle": "Thinkfy Challenge",
+      "shareText": "I scored {score}/100 on Thinkfy! Can you beat me? {link}",
+      "cta": "Share Challenge",
+      "copied": "Copied!"
     },
-    "sides": {
-      "all": "All sides",
-      "user": "Your responses",
-      "ai": "AI responses",
-      "dropped": "Dropped claims"
+    "clashMap": {
+      "title": "Clash Map",
+      "description": "Track which claims were answered, dropped, turned, or weighed.",
+      "share": "Share",
+      "allPairs": "All pairs",
+      "filters": {
+        "pair": "Speech Pair",
+        "side": "Side",
+        "outcome": "Outcome"
+      },
+      "sides": {
+        "all": "All sides",
+        "user": "Your responses",
+        "ai": "AI responses",
+        "dropped": "Dropped claims"
+      },
+      "outcomes": {
+        "all": "All outcomes",
+        "answered": "Answered",
+        "dropped": "Dropped",
+        "misanswered": "Misanswered",
+        "turned": "Turned",
+        "weighed": "Weighed"
+      },
+      "headers": {
+        "claim": "Opponent Claim",
+        "response": "Your Response",
+        "judge": "Judge Read"
+      },
+      "noAnswer": "No direct answer was found.",
+      "noMatches": "No clash links match these filters.",
+      "selectPrompt": "Select a clash to inspect the quotes and next move.",
+      "clashOf": "Clash {index} of {count}",
+      "previous": "Previous clash",
+      "next": "Next clash",
+      "opponentClaim": "Opponent claim",
+      "yourResponse": "Your response",
+      "judgeRead": "Judge read",
+      "tryThis": "Try this:",
+      "you": "You",
+      "aiOpponent": "AI Opponent",
+      "noResponse": "No response",
+      "aiJudge": "AI Judge",
+      "roundNumber": "Round {number}",
+      "emptyAnalysis": "Clash analysis will appear for newly analyzed full-round debates."
     },
-    "outcomes": {
-      "all": "All outcomes",
-      "answered": "Answered",
-      "dropped": "Dropped",
-      "misanswered": "Misanswered",
-      "turned": "Turned",
-      "weighed": "Weighed"
+    "verdictPanel": {
+      "user": {
+        "eyebrow": "You won the debate",
+        "title": "Your side carried the round."
+      },
+      "ai": {
+        "eyebrow": "AI won the debate",
+        "title": "The AI opponent edged this round."
+      },
+      "tie": {
+        "eyebrow": "Debate was tied",
+        "title": "Both sides held enough ground."
+      },
+      "fallback": {
+        "title": "Verdict",
+        "body": "Verdict analysis will appear for newly analyzed full-round debates."
+      },
+      "confidence": "Judge confidence",
+      "confidenceStars": "{count} out of 5 confidence stars",
+      "whyDecision": "Why this decision",
+      "reasonLabel": "Reason {number}: ",
+      "emptyReasons": "No deciding reasons were generated for this verdict.",
+      "nextMove": "Next move",
+      "nextMovePrompt": "Practice this as one clear comparative sentence before your next round."
     },
-    "headers": {
-      "claim": "Opponent Claim",
-      "response": "Your Response",
-      "judge": "Judge Read"
-    },
-    "noAnswer": "No direct answer was found.",
-    "noMatches": "No clash links match these filters.",
-    "selectPrompt": "Select a clash to inspect the quotes and next move.",
-    "clashOf": "Clash {index} of {count}",
-    "previous": "Previous clash",
-    "next": "Next clash",
-    "opponentClaim": "Opponent claim",
-    "yourResponse": "Your response",
-    "judgeRead": "Judge read",
-    "tryThis": "Try this:",
-    "you": "You",
-    "aiOpponent": "AI Opponent",
-    "noResponse": "No response",
-    "aiJudge": "AI Judge",
-    "roundNumber": "Round {number}",
-    "emptyAnalysis": "Clash analysis will appear for newly analyzed full-round debates."
-  },
-  "verdictPanel": {
-    "user": {
-      "eyebrow": "You won the debate",
-      "title": "Your side carried the round."
-    },
-    "ai": {
-      "eyebrow": "AI won the debate",
-      "title": "The AI opponent edged this round."
-    },
-    "tie": {
-      "eyebrow": "Debate was tied",
-      "title": "Both sides held enough ground."
-    },
-    "fallback": {
-      "title": "Verdict",
-      "body": "Verdict analysis will appear for newly analyzed full-round debates."
-    },
-    "confidence": "Judge confidence",
-    "confidenceStars": "{count} out of 5 confidence stars",
-    "whyDecision": "Why this decision",
-    "reasonLabel": "Reason {number}: ",
-    "emptyReasons": "No deciding reasons were generated for this verdict.",
-    "nextMove": "Next move",
-    "nextMovePrompt": "Practice this as one clear comparative sentence before your next round."
-  },
-  "modelUsed": "Analyzed with {model}",
+    "modelUsed": "Analyzed with {model}",
     "duration": {
       "seconds": "{count}s",
       "minutes": "{count} min",

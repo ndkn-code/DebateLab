@@ -34,22 +34,22 @@ function ModeCard({
   const content = (
     <div
       className={cn(
-        "group relative flex min-h-[380px] flex-col overflow-hidden rounded-[30px] border bg-surface p-6 text-left shadow-token-card transition-all",
+        "group relative flex min-h-[300px] flex-col overflow-hidden rounded-[10px] border bg-surface p-4 text-left shadow-none transition-all",
         disabled
           ? "cursor-not-allowed border-outline-variant/15 opacity-75"
           : "border-outline-variant/15 hover:-translate-y-1"
       )}
     >
-      <div className="flex flex-1 items-center justify-center rounded-[24px] bg-surface-container-low">
+      <div className="flex flex-1 items-center justify-center rounded-[10px] bg-surface-container-low">
         <DuelIllustration
           name={illustration}
           alt={title}
-          className="h-44 w-full max-w-[260px] transition-transform group-hover:scale-[1.03]"
+          className="h-32 w-full max-w-[220px] transition-transform group-hover:scale-[1.03]"
         />
       </div>
 
-      <div className="mt-5">
-        <h2 className="text-2xl font-bold text-on-surface">{title}</h2>
+      <div className="mt-4">
+        <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
           {description}
         </p>
@@ -58,7 +58,7 @@ function ModeCard({
       <Button
         type="button"
         disabled={disabled}
-        className="mt-6 h-12 w-full rounded-2xl text-base"
+        className="mt-4 h-8 w-full rounded-[10px] text-sm"
       >
         {disabled ? unavailableLabel : title}
         {!disabled && <ArrowRight className="h-4 w-4" />}
@@ -86,7 +86,7 @@ export function DuelHubPage({ isAdmin }: DuelHubPageProps) {
         <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6 lg:px-8">
           <ProductPageHeader title={t("title")} icon={<Swords />} />
 
-          <div className="mt-2 overflow-hidden rounded-[30px] border border-outline-variant/15 bg-surface p-6 shadow-token-card sm:p-8">
+          <div className="mt-2 overflow-hidden rounded-[10px] border border-outline-variant/15 bg-surface p-6 shadow-none sm:p-8">
             <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_240px]">
               <p className="max-w-xl text-base leading-7 text-on-surface-variant">
                 {t("subtitle")}

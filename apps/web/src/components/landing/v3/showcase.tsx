@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { LandingV3Copy } from "./copy";
@@ -15,6 +15,7 @@ const DIAL_RADIUS = 40;
 const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
 
 function ScoreDial({ score, label }: { score: number; label: string }) {
+  const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const filled = (score / 100) * DIAL_CIRCUMFERENCE;
@@ -32,16 +33,16 @@ function ScoreDial({ score, label }: { score: number; label: string }) {
           strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={DIAL_CIRCUMFERENCE}
-          initial={{ strokeDashoffset: DIAL_CIRCUMFERENCE }}
-          animate={inView ? { strokeDashoffset: DIAL_CIRCUMFERENCE - filled } : undefined}
-          transition={{ duration: 1.4, delay: 0.3, ease: EASE_OUT }}
+          initial={reduceMotion ? { strokeDashoffset: DIAL_CIRCUMFERENCE - filled } : { strokeDashoffset: DIAL_CIRCUMFERENCE }}
+          animate={reduceMotion ? undefined : inView ? { strokeDashoffset: DIAL_CIRCUMFERENCE - filled } : undefined}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.4, delay: 0.3, ease: EASE_OUT }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={inView ? { opacity: 1, scale: 1 } : undefined}
-          transition={{ duration: 0.5, delay: 0.9, ease: EASE_OUT }}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.6 }}
+          animate={reduceMotion ? undefined : inView ? { opacity: 1, scale: 1 } : undefined}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.9, ease: EASE_OUT }}
           className="type-heading-lg font-extrabold text-on-surface"
         >
           {score}
@@ -55,6 +56,8 @@ function ScoreDial({ score, label }: { score: number; label: string }) {
 }
 
 function Meter({ label, value, delay }: { label: string; value: number; delay: number }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div>
       <div className="flex items-center justify-between type-caption font-bold">
@@ -63,10 +66,10 @@ function Meter({ label, value, delay }: { label: string; value: number; delay: n
       </div>
       <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-container-high">
         <motion.div
-          initial={{ width: 0 }}
-          whileInView={{ width: `${value}%` }}
+          initial={reduceMotion ? { width: `${value}%` } : { width: 0 }}
+          whileInView={reduceMotion ? undefined : { width: `${value}%` }}
           viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 1, delay, ease: EASE_OUT }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1, delay, ease: EASE_OUT }}
           className="h-full rounded-full bg-primary"
         />
       </div>
@@ -75,6 +78,7 @@ function Meter({ label, value, delay }: { label: string; value: number; delay: n
 }
 
 export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
   const { panel } = copy.showcase;
   return (
     <section className="overflow-hidden bg-white px-6 py-20 md:px-8 md:py-28">
@@ -87,8 +91,8 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
             className="absolute -left-4 top-6 hidden h-full w-full -rotate-2 rounded-[26px] border border-outline-variant bg-surface-container sm:block"
           />
           <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 280, damping: 26 }}
+            whileHover={reduceMotion ? undefined : { y: -4 }}
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 280, damping: 26 }}
             className="relative rounded-[26px] border border-outline-variant bg-white p-5 shadow-token-panel sm:p-6"
           >
             {/* Panel header */}
@@ -96,8 +100,8 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
               <p className="truncate type-body-sm font-bold text-on-surface">{panel.title}</p>
               <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary-container px-3 py-1 type-caption font-extrabold text-primary-dim">
                 <motion.span
-                  animate={{ opacity: [1, 0.35, 1] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  animate={reduceMotion ? undefined : { opacity: [1, 0.35, 1] }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                   className="h-1.5 w-1.5 rounded-full bg-primary"
                 />
                 {panel.timer}
@@ -110,10 +114,10 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
                 {panel.transcript.map((line, index) => (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, x: -14 }}
-                    whileInView={{ opacity: 1, x: 0 }}
+                    initial={reduceMotion ? false : { opacity: 0, x: -14 }}
+                    whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.55, delay: 0.25 + index * 0.16, ease: EASE_OUT }}
+                    transition={reduceMotion ? { duration: 0 } : { duration: 0.55, delay: 0.25 + index * 0.16, ease: EASE_OUT }}
                   >
                     {line.tag ? (
                       <span
@@ -157,10 +161,10 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
 
             {/* Coach note */}
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.6, delay: 1, ease: EASE_OUT }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.6, delay: 1, ease: EASE_OUT }}
               className="mt-5 flex items-center gap-3 rounded-2xl border border-[#8BE8F7] bg-primary-container/70 px-4 py-3"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#8BE8F7] bg-white">
@@ -197,7 +201,7 @@ export function ShowcaseSection({ copy }: { copy: LandingV3Copy }) {
               className="group mt-7 inline-flex items-center gap-2 type-body font-extrabold text-primary underline decoration-2 underline-offset-[6px] transition-colors hover:text-primary-dim"
             >
               {copy.showcase.link}
-              <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+              <ArrowRightIcon className={cn("h-4 w-4", !reduceMotion && "transition-transform duration-200 group-hover:translate-x-1")} />
             </a>
           </Reveal>
         </div>

@@ -339,7 +339,7 @@ export function DuelMatchmakingPage({
     return (
       <PageTransition className="min-h-full bg-background">
         <div className="mx-auto max-w-xl px-4 py-16 text-center">
-          <div className="rounded-[28px] border border-outline-variant/20 bg-surface p-6">
+          <div className="rounded-[10px] border border-outline-variant/20 bg-surface p-6">
             <h1 className="text-2xl font-bold text-on-surface">
               No active motions available
             </h1>
@@ -350,7 +350,7 @@ export function DuelMatchmakingPage({
             <Button
               type="button"
               onClick={() => router.push("/debates")}
-              className="mt-5 h-11 rounded-2xl"
+              className="mt-5 h-8 rounded-[10px]"
             >
               Back to arena
             </Button>
@@ -382,7 +382,7 @@ export function DuelMatchmakingPage({
             </p>
           </div>
 
-          <div className="rounded-[24px] border border-primary/15 bg-primary/6 p-5">
+          <div className="rounded-[10px] border border-primary/15 bg-primary/6 p-5">
             <div className="flex items-center gap-3">
               <Radar className="h-6 w-6 text-primary" />
               <div>
@@ -398,9 +398,9 @@ export function DuelMatchmakingPage({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[30px] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
+          <main className="rounded-[10px] border border-outline-variant/15 bg-surface p-5 shadow-none lg:p-6">
             {isSearching || isMatched ? (
-              <div className="min-h-[560px] rounded-[28px] border border-outline-variant/12 bg-surface-container-low p-6">
+              <div className="min-h-[560px] rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-6">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-center">
                   <div>
                     <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 type-eyebrow text-primary">
@@ -418,7 +418,7 @@ export function DuelMatchmakingPage({
                         : "We are matching category, difficulty, timers, and hidden skill profile. Keep this page open while the queue runs."}
                     </p>
                   </div>
-                  <div className="rounded-[26px] border border-outline-variant/12 bg-surface p-5 text-center">
+                  <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5 text-center">
                     {isMatched ? (
                       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Users className="h-11 w-11" />
@@ -464,7 +464,7 @@ export function DuelMatchmakingPage({
                 </div>
 
                 {actionError && (
-                  <div className="mt-5 rounded-2xl border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
+                  <div className="mt-5 rounded-[10px] border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
                     {actionError}
                   </div>
                 )}
@@ -475,14 +475,14 @@ export function DuelMatchmakingPage({
                     variant="outline"
                     onClick={cancelQueue}
                     disabled={pending || isMatched}
-                    className="h-12 rounded-2xl border-outline-variant/25 bg-surface text-primary"
+                    className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-primary"
                   >
                     Cancel queue
                   </Button>
                   <Button
                     type="button"
                     disabled
-                    className="h-12 rounded-2xl text-base"
+                    className="h-8 rounded-[10px] text-base"
                   >
                     {isMatched ? "Opening room..." : "Searching..."}
                     {!isMatched && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -494,7 +494,7 @@ export function DuelMatchmakingPage({
                     type="button"
                     onClick={triggerAiBackfill}
                     disabled={pending}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-60"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-primary/6 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-60"
                   >
                     <Bot className="h-4 w-4" />
                     No humans yet — practice against an AI sparring partner
@@ -520,7 +520,7 @@ export function DuelMatchmakingPage({
                         type="button"
                         onClick={() => setTopicCategoryKey(category.key)}
                         className={cn(
-                          "rounded-[20px] border px-4 py-4 text-left text-sm font-semibold transition-all",
+                          "rounded-[10px] border px-4 py-4 text-left text-sm font-semibold transition-all",
                           effectiveTopicCategoryKey === category.key
                             ? "border-primary bg-primary/8 text-primary"
                             : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
@@ -575,7 +575,7 @@ export function DuelMatchmakingPage({
                   </div>
                 </section>
 
-                <section className="rounded-[24px] border border-outline-variant/12 bg-surface-container-low p-5">
+                <section className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-5">
                   <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
                     <div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -600,7 +600,7 @@ export function DuelMatchmakingPage({
                 </section>
 
                 {actionError && (
-                  <div className="rounded-2xl border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
+                  <div className="rounded-[10px] border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
                     {actionError}
                   </div>
                 )}
@@ -609,7 +609,7 @@ export function DuelMatchmakingPage({
                   type="button"
                   onClick={enterQueue}
                   disabled={pending}
-                  className="h-12 w-full rounded-2xl text-base"
+                  className="h-8 w-full rounded-[10px] text-base"
                 >
                   {pending ? "Entering queue..." : "Find opponent"}
                   {pending ? (
@@ -630,7 +630,7 @@ export function DuelMatchmakingPage({
               openingTimeSeconds={openingTimeSeconds}
               rebuttalTimeSeconds={rebuttalTimeSeconds}
             />
-            <div className="rounded-[24px] border border-success/20 bg-success/8 p-5">
+            <div className="rounded-[10px] border border-success/20 bg-success/8 p-5">
               <div className="flex items-center gap-3">
                 <ShieldCheck className="h-5 w-5 text-success" />
                 <div className="font-semibold text-on-surface">

@@ -114,10 +114,10 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
       <div className="relative w-full" style={{ perspective: "1200px" }}>
         {/* Background cards (stack effect) */}
         {deck.length - currentIdx > 1 && (
-          <div className="absolute inset-0 translate-y-2 scale-[0.96] rounded-3xl bg-gray-100 border border-gray-200" />
+          <div className="absolute inset-0 translate-y-2 scale-[0.96] rounded-[12px] bg-surface-container border border-outline-variant" />
         )}
         {deck.length - currentIdx > 2 && (
-          <div className="absolute inset-0 translate-y-4 scale-[0.92] rounded-3xl bg-gray-50 border border-gray-100" />
+          <div className="absolute inset-0 translate-y-4 scale-[0.92] rounded-[12px] bg-surface-container-low border border-outline-variant" />
         )}
 
         {/* Main card */}
@@ -143,7 +143,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
               >
                 {/* Front */}
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border-2 border-gray-200 bg-gradient-to-b from-primary/5 to-white p-8 shadow-lg"
+                  className="absolute inset-0 flex flex-col items-center justify-center rounded-[12px] border border-outline-variant bg-white p-8 shadow-none"
                   style={{ backfaceVisibility: "hidden" }}
                 >
                   <p className="text-2xl font-bold text-on-surface text-center">{card.front}</p>
@@ -152,7 +152,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
 
                 {/* Back */}
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border-2 border-primary/20 bg-white p-8 shadow-lg"
+                  className="absolute inset-0 flex flex-col items-center justify-center rounded-[12px] border border-primary/30 bg-white p-8 shadow-none"
                   style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
                   <p className="text-lg text-on-surface text-center leading-relaxed">{card.back}</p>
@@ -174,7 +174,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
           >
             <motion.button
               onClick={handleReview}
-              className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-300 bg-amber-50 px-5 py-3.5 text-base font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-[10px] border border-warning bg-warning-container px-4 text-sm font-medium text-on-warning-container hover:bg-warning-container/80 transition-colors"
               whileTap={{ scale: 0.97 }}
             >
               <RotateCcw className="h-5 w-5" />
@@ -182,7 +182,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
             </motion.button>
             <motion.button
               onClick={handleGotIt}
-              className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 px-5 py-3.5 text-base font-semibold text-white hover:bg-green-700 transition-colors"
+              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-[10px] bg-success px-4 text-sm font-medium text-on-success hover:bg-success-dim transition-colors"
               whileTap={{ scale: 0.97 }}
             >
               <Check className="h-5 w-5" />

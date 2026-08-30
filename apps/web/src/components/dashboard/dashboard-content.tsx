@@ -11,9 +11,9 @@ import {
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { DashboardStatsPanel } from "@/components/dashboard/dashboard-stats-panel";
 import { DailyFocusHero } from "@/components/dashboard/daily-focus-hero";
+import { DashboardPrimarySummary } from "@/components/dashboard/dashboard-primary-summary";
 import { TrainingPath } from "@/components/dashboard/training-path";
 import { QuestRail } from "@/components/dashboard/quest-rail";
-import { Stagger, StaggerItem } from "@/components/motion";
 import {
   NextMovesCard,
   RecentActivityCard,
@@ -56,7 +56,9 @@ function useDashboardTimezoneCookie() {
     const encodedTimezone = encodeURIComponent(timezone);
     const hasCookie = document.cookie
       .split("; ")
-      .some((entry) => entry === `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}`);
+      .some(
+        (entry) => entry === `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}`,
+      );
 
     if (hasCookie) return;
 
@@ -78,16 +80,30 @@ export function DashboardContent({
   const t = useTranslations("dashboard.home");
   const checkpoint =
     data.recommendedDrill.skillKey ?? data.skillSnapshot.weakestSkill;
+  const weeklySessions = data.hero.weeklyStats.reduce(
+    (total, entry) => total + entry.sessions_completed,
+    0,
+  );
 
   return (
-    <PageTransition data-dashboard-home className="min-h-full bg-background">
-      <ProductPageShell className="overflow-x-hidden">
-        <PageContainer size="wide" className="flex flex-col py-4 pb-24 lg:py-5 lg:pb-28">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-on-surface">
-            <p className="type-title min-w-0 font-bold text-on-surface">
-              {t(greetingKey)}, {displayName}{" "}
-              <span aria-hidden="true">👋</span>
-            </p>
+    <PageTransition data-dashboard-home className="min-h-full bg-transparent">
+      <ProductPageShell className="overflow-x-hidden bg-transparent">
+        <PageContainer
+          size="data"
+          className="flex flex-col py-5 pb-24 lg:px-6 lg:py-6 lg:pb-28"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4 px-4 text-on-surface">
+            <div className="min-w-0">
+              <p className="type-heading-lg font-medium text-on-surface">
+                {t(greetingKey)},{" "}
+                <span className="whitespace-nowrap">
+                  {displayName} <span aria-hidden="true">👋</span>
+                </span>
+              </p>
+              <p className="type-label mt-1 text-on-surface-variant">
+                {t("daily_focus")}
+              </p>
+            </div>
 
             <DashboardStatsPanel
               topBar={data.topBar}
@@ -101,29 +117,35 @@ export function DashboardContent({
             <WelcomeBanner displayName={displayName} userId={userId} show />
           ) : null}
 
-          <div className="grid items-start gap-5 pt-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+          <div className="grid items-start gap-4 pt-3 xl:grid-cols-[minmax(0,1fr)_312px]">
             {/* Main feed */}
-            <div className="flex min-w-0 flex-col gap-5">
+            <div className="flex min-w-0 flex-col gap-4">
               <DailyFocusHero drill={data.recommendedDrill} />
 
-              <TrainingPath
+              <DashboardPrimarySummary
+                weeklySessions={weeklySessions}
                 weeklyGoal={data.hero.weeklyGoal}
+                overallScore={data.skillSnapshot.overallScore}
+              />
+
+              <TrainingPath
                 metrics={data.skillSnapshot.metrics}
                 checkpoint={checkpoint}
               />
 
-              <Stagger className="grid gap-5 xl:grid-cols-2">
-                <StaggerItem>
-                  <NextMovesCard items={data.todayPlanItems} />
-                </StaggerItem>
-                <StaggerItem>
-                  <RecentActivityCard items={data.recentActivity} />
-                </StaggerItem>
-              </Stagger>
             </div>
 
             {/* Right rail (stacks below main feed on mobile) */}
             <QuestRail data={data} />
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+            <div>
+              <RecentActivityCard items={data.recentActivity} />
+            </div>
+            <div>
+              <NextMovesCard items={data.todayPlanItems} />
+            </div>
           </div>
         </PageContainer>
       </ProductPageShell>

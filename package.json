@@ -34,6 +34,7 @@
     "test:ielts-home": "npm run test:ielts-home -w @thinkfy/web",
     "test:ielts-capture": "npm run test:ielts-capture -w @thinkfy/web",
     "test:ielts-assignments": "npm run test:ielts-assignments -w @thinkfy/web",
+    "test:ielts-lms-pilot": "npm run test:ielts-lms-pilot -w @thinkfy/web",
     "test:ielts-adaptive-contracts": "npm run test:ielts-adaptive-contracts -w @thinkfy/web",
     "test:ielts-writing-scorer": "npm run test:ielts-writing-scorer -w @thinkfy/web",
     "test:payments": "npm run test:payments -w @thinkfy/web",

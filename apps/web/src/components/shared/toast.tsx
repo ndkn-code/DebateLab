@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, AlertTriangle, Info, CheckCircle2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,7 @@ const tones: Record<
 
 export function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   const addToast = useCallback((message: string, type: ToastType = "info") => {
     const id = crypto.randomUUID();
@@ -78,9 +79,13 @@ export function ToastContainer() {
           return (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              role={toast.type === "warning" || toast.type === "error" ? "alert" : "status"}
+              aria-live={toast.type === "warning" || toast.type === "error" ? "assertive" : "polite"}
+              aria-atomic="true"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10, scale: 0.95 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }}
               className={cn(
                 "flex items-center gap-3 rounded-lg border px-4 py-3 text-on-surface shadow-lg backdrop-blur-xl"
               )}
@@ -95,6 +100,8 @@ export function ToastContainer() {
               />
               <span className="text-sm">{toast.message}</span>
               <button
+                type="button"
+                aria-label="Dismiss notification"
                 onClick={() =>
                   setToasts((prev) => prev.filter((t) => t.id !== toast.id))
                 }

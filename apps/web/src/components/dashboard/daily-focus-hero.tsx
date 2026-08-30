@@ -3,9 +3,8 @@
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Clock3, Star, Target } from "@/components/ui/icons";
+import { ArrowRight, Clock3, Star, Target } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
 import type { DashboardRecommendedDrill } from "@/lib/api/dashboard";
 import {
   getPlanCtaLabel,
@@ -28,101 +27,132 @@ const DRILL_ILLUSTRATIONS: Record<
   "coach-check": { src: "/images/dashboard/focus-coach.webp", alt: "" },
 };
 
-function MetaChip({
-  icon,
+function HeroMetric({
   label,
-  tone = "default",
+  value,
+  icon,
 }: {
-  icon: React.ReactNode;
   label: string;
-  tone?: "default" | "gold";
+  value: string;
+  icon: React.ReactNode;
 }) {
   return (
-    <span className="type-label inline-flex min-h-9 items-center gap-2 rounded-full border border-outline-variant bg-surface px-3.5 font-bold text-on-surface shadow-token-card dark:border-outline-variant/70">
-      <span className={tone === "gold" ? "text-reward-dim" : "text-primary"}>{icon}</span>
-      {label}
-    </span>
+    <div className="min-w-0 border-l border-outline-variant/70 pl-3 first:border-l-0 first:pl-0 dark:border-outline-variant/60">
+      <div className="flex items-center gap-1.5 text-on-surface-variant">
+        <span aria-hidden="true" className="text-primary">
+          {icon}
+        </span>
+        <span className="type-caption truncate font-medium">{label}</span>
+      </div>
+      <p className="type-label mt-1 truncate font-semibold tabular-nums text-on-surface">
+        {value}
+      </p>
+    </div>
   );
 }
 
-export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) {
+export function DailyFocusHero({
+  drill,
+}: {
+  drill: DashboardRecommendedDrill;
+}) {
   const t = useTranslations("dashboard.home");
   const reduceMotion = useReducedMotion();
-  const illustration = DRILL_ILLUSTRATIONS[drill.key] ?? DRILL_ILLUSTRATIONS["start-debate"];
+  const illustration =
+    DRILL_ILLUSTRATIONS[drill.key] ?? DRILL_ILLUSTRATIONS["start-debate"];
 
-  const targetLabel = drill.skillKey
-    ? t("recommended_meta_target_skill", {
-        skill: t(`skill_labels.${drill.skillKey}`),
-      })
+  const targetValue = drill.skillKey
+    ? t(`skill_labels.${drill.skillKey}`)
     : drill.track
-      ? t("recommended_meta_track", { track: getPlanTrackLabel(drill.track, t) })
+      ? getPlanTrackLabel(drill.track, t)
       : null;
-  const scoreLabel =
+  const scoreValue =
     drill.scoreOutOf100 != null
-      ? t("recommended_meta_score", { score: drill.scoreOutOf100 })
-      : drill.progressLabel
-        ? t("recommended_meta_progress", { progress: drill.progressLabel })
-        : null;
+      ? `${drill.scoreOutOf100}/100`
+      : (drill.progressLabel ?? null);
 
   return (
     <section
       data-testid="dashboard-open-canvas"
-      className="relative overflow-hidden rounded-[2rem] border border-outline-variant bg-[linear-gradient(125deg,var(--color-surface-container-lowest)_0%,var(--color-primary-container)_100%)] shadow-token-card dark:border-outline-variant/70"
+      aria-labelledby="dashboard-daily-focus-title"
+      className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none dark:border-outline-variant/70"
     >
-      <div className="grid items-center gap-2 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6">
+      <div className="relative grid items-center gap-4 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_240px] xl:gap-5">
         <div className="relative z-10 min-w-0">
           <span className="type-eyebrow inline-flex items-center gap-2 text-primary">
             <Target className="h-4 w-4" />
-            {t("daily_focus")}
+            {t("today_sprint")}
           </span>
 
           <h1
             data-testid="dashboard-daily-focus-title"
-            className="type-heading-xl mt-3 max-w-[18ch] font-extrabold text-on-surface"
+            className="type-heading-lg mt-2 max-w-[25ch] font-semibold text-on-surface"
           >
             {getPlanTitle(drill, t)}
           </h1>
 
-          <p className="type-body mt-3 max-w-[46ch] leading-7 text-on-surface-variant">
+          <p className="type-body mt-2 line-clamp-2 max-w-[52ch] leading-5 text-on-surface-variant">
             {getPlanDescription(drill, t)}
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <MetaChip
-              icon={<Clock3 className="h-4 w-4" />}
-              label={t("recommended_meta_duration", { count: drill.durationMinutes })}
+          <div className="mt-4 grid max-w-[52ch] grid-cols-3 gap-3">
+            <HeroMetric
+              icon={<Clock3 className="h-3.5 w-3.5" />}
+              label={t("recommended_detail_time")}
+              value={t("recommended_meta_duration", {
+                count: drill.durationMinutes,
+              })}
             />
-            {targetLabel ? (
-              <MetaChip icon={<Target className="h-4 w-4" />} label={targetLabel} />
-            ) : null}
-            {scoreLabel ? (
-              <MetaChip
-                icon={<Star className="h-4 w-4" />}
-                label={scoreLabel}
-                tone="gold"
+            {targetValue ? (
+              <HeroMetric
+                icon={<Target className="h-3.5 w-3.5" />}
+                label={t("recommended_detail_context")}
+                value={targetValue}
               />
-            ) : null}
+            ) : (
+              <HeroMetric
+                icon={<Target className="h-3.5 w-3.5" />}
+                label={t("recommended_detail_context")}
+                value={getPlanTrackLabel(drill.track, t)}
+              />
+            )}
+            {scoreValue ? (
+              <HeroMetric
+                icon={<Star className="h-3.5 w-3.5" />}
+                label={t("summary_mastery")}
+                value={scoreValue}
+              />
+            ) : (
+              <HeroMetric
+                icon={<Star className="h-3.5 w-3.5" />}
+                label={t("summary_mastery")}
+                value="—"
+              />
+            )}
           </div>
 
-          <Link href={drill.href} data-testid="dashboard-recommended-cta">
-            <Button className="mt-6 min-h-13 min-w-[200px] rounded-2xl bg-primary px-9 text-base font-extrabold text-on-primary">
-              {getPlanCtaLabel(drill, t)}
-            </Button>
+          <Link
+            href={drill.href}
+            data-testid="dashboard-recommended-cta"
+            className="type-label mt-5 inline-flex h-8 min-w-[180px] items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
+          >
+            {getPlanCtaLabel(drill, t)}
+            <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
         </div>
 
         {/* Illustration slot */}
         <div
           data-testid="dashboard-recommended-illustration"
-          className="relative mx-auto hidden h-[240px] w-[240px] items-center justify-center lg:flex"
+          className="relative mx-auto hidden h-[260px] w-[260px] items-center justify-center xl:flex"
         >
-          <div
-            aria-hidden="true"
-            className="absolute inset-3 rounded-full bg-surface-container-lowest/70 dark:bg-primary-container/20"
-          />
           <motion.div
             animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
-            transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
+            }
             className="relative"
           >
             <Image
@@ -132,15 +162,21 @@ export function DailyFocusHero({ drill }: { drill: DashboardRecommendedDrill }) 
               width={512}
               height={512}
               priority
-              className="h-auto w-[210px] object-contain drop-shadow-token-card"
-              sizes="210px"
+              className="h-auto w-[230px] object-contain drop-shadow-token-card"
+              sizes="230px"
             />
           </motion.div>
           {/* sparkles */}
-          <span aria-hidden="true" className="absolute right-4 top-6 text-reward">
+          <span
+            aria-hidden="true"
+            className="absolute right-4 top-6 text-reward"
+          >
             <Star className="h-4 w-4 fill-current" />
           </span>
-          <span aria-hidden="true" className="absolute bottom-10 left-2 text-reward/70">
+          <span
+            aria-hidden="true"
+            className="absolute bottom-10 left-2 text-reward/70"
+          >
             <Star className="h-3 w-3 fill-current" />
           </span>
         </div>

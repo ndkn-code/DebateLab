@@ -29,7 +29,7 @@ export function SessionTopBar({
     <header className="border-b border-outline-variant/70 bg-surface-container-lowest/95 backdrop-blur-xl">
       <div className="grid min-h-14 w-full grid-cols-1 gap-2 px-4 py-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center lg:px-6">
         <div className="flex items-center gap-2 justify-self-start">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-on-primary shadow-token-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-on-primary shadow-none">
             <MessageSquareQuote className="h-4 w-4" />
           </div>
           <span className="text-lg font-bold tracking-normal text-on-surface">

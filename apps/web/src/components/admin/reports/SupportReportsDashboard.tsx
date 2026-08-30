@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { updateSupportReportStatus } from "@/app/actions/support-reports";
 import {
@@ -515,6 +516,7 @@ function DetailDrawer({
 
 export function SupportReportsDashboard({ data }: Props) {
   const router = useRouter();
+  const adminT = useTranslations("admin");
   const searchParams = useSearchParams();
   const [reports, setReports] = useState(data.reports);
   const [statusCounts, setStatusCounts] = useState(data.kpis.statusCounts);
@@ -601,11 +603,12 @@ export function SupportReportsDashboard({ data }: Props) {
   }));
 
   return (
-    <PageTransition className="min-h-full bg-surface-container text-on-surface-variant">
-      <header className="border-b border-sidebar-muted/15 bg-sidebar px-5 py-5 text-sidebar-foreground md:px-7">
+    <PageTransition className="min-h-full bg-background text-on-surface-variant">
+      <header className="border-b border-outline-variant bg-surface px-5 py-5 md:px-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-normal text-sidebar-foreground md:text-3xl">
+            <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+            <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
               Question / Bug Reports
             </h1>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -616,7 +619,7 @@ export function SupportReportsDashboard({ data }: Props) {
           </div>
           <Button
             variant="outline"
-            className="h-9 gap-2 self-start rounded-lg"
+            className="h-8 gap-2 self-start rounded-[10px]"
             onClick={() => router.refresh()}
           >
             <RefreshCw className="h-4 w-4" />
@@ -625,14 +628,14 @@ export function SupportReportsDashboard({ data }: Props) {
         </div>
       </header>
 
-      <main className="space-y-6 px-5 py-5 md:px-7">
+      <main className="mx-auto w-full max-w-[1440px] space-y-5 px-5 py-5 md:px-7 lg:py-7">
         {data.loadError && (
           <div className="rounded-lg border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
             {data.loadError}
           </div>
         )}
 
-        <StaggeredContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <StaggeredContainer className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           <StatCard
             icon={<AlertCircle className="h-5 w-5" />}
             label="Open queue"
@@ -741,7 +744,7 @@ export function SupportReportsDashboard({ data }: Props) {
             {reports.length ? (
               <>
                 <div className="hidden overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest md:block">
-                  <div className="grid grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] gap-3 border-b border-outline-variant/20 bg-surface-container px-4 py-2 text-xs font-bold uppercase tracking-normal text-on-surface-variant">
+                  <div className="grid min-w-[980px] grid-cols-[minmax(0,1.5fr)_170px_160px_150px_130px_120px] gap-3 border-b border-outline-variant/20 bg-surface-container px-4 py-2 type-caption font-semibold uppercase text-on-surface-variant">
                     <div>Report</div>
                     <div>Sender</div>
                     <div>Source</div>

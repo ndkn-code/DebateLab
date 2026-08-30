@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LeaderboardsPage } from "@/components/leaderboards/leaderboards-page";
 import { ProtectedShell } from "../../(protected)/protected-shell";
@@ -8,6 +9,7 @@ import {
   type LeaderboardFixtureState,
 } from "@/lib/leaderboards/fixtures";
 import { coerceLeaderboardLanguage } from "@/lib/leaderboards/model";
+import { DevQaToolbar, devQaActiveChipClass, devQaChipClass } from "../dev-v2";
 
 const QA_USER_ID = DEV_ADMIN_PROFILE.id;
 
@@ -83,16 +85,39 @@ export default async function LeaderboardsQaRoute({
       seasonReplayReducedMotionOverride={motion === "reduce"}
       seasonReplayReviewMode={review === "1" || review === "true"}
     >
-      <LeaderboardsPage
-        data={data}
-        viewerUserId={QA_USER_ID}
-        seasonReplayEnabled
-        reducedMotionOverride={motion === "reduce"}
-        seasonReplayReviewMode={review === "1" || review === "true"}
-        socialSignalsEnabled
-        analyticsEnabled
-        mockActionsEnabled
-      />
+      <>
+        <div className="border-b border-border bg-surface px-4 py-2 sm:px-6">
+          <DevQaToolbar label="Leaderboard fixture">
+            {(["normal", "promotion", "promotion-100", "demotion", "demotion-100", "champion", "held", "held-down", "outside", "empty", "low-pop"] as const).map((fixture) => (
+              <Link
+                key={fixture}
+                href={`?state=${fixture}${motion ? `&motion=${motion}` : ""}${review ? `&review=${review}` : ""}`}
+                aria-current={state === fixture ? "page" : undefined}
+                className={state === fixture ? devQaActiveChipClass : devQaChipClass}
+              >
+                {fixture.replaceAll("-", " ")}
+              </Link>
+            ))}
+            <Link
+              href={`?state=${state}&motion=${motion === "reduce" ? "full" : "reduce"}${review ? `&review=${review}` : ""}`}
+              className={motion === "reduce" ? devQaActiveChipClass : devQaChipClass}
+              aria-pressed={motion === "reduce"}
+            >
+              Reduced motion
+            </Link>
+          </DevQaToolbar>
+        </div>
+        <LeaderboardsPage
+          data={data}
+          viewerUserId={QA_USER_ID}
+          seasonReplayEnabled
+          reducedMotionOverride={motion === "reduce"}
+          seasonReplayReviewMode={review === "1" || review === "true"}
+          socialSignalsEnabled
+          analyticsEnabled
+          mockActionsEnabled
+        />
+      </>
     </ProtectedShell>
   );
 }

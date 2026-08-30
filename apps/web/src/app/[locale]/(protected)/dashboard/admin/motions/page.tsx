@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 export const metadata = { title: "Admin - Motions" };
 
@@ -184,6 +185,7 @@ export default async function AdminMotionsPage() {
   );
 
   return (
+    <AdminV2Frame>
     <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div>
@@ -349,5 +351,6 @@ export default async function AdminMotionsPage() {
         </div>
       </div>
     </div>
+    </AdminV2Frame>
   );
 }

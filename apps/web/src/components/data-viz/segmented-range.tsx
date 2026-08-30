@@ -31,7 +31,7 @@ export function SegmentedRange<T extends string>({
     <div
       role="tablist"
       aria-label="Time range"
-      className={cn("inline-flex items-center gap-1 rounded-lg bg-surface-container p-1", className)}
+      className={cn("inline-flex items-center gap-1 rounded-[10px] border border-outline-variant bg-surface-container p-1", className)}
     >
       {resolved.map((option) => {
         const active = option.value === value;
@@ -43,7 +43,7 @@ export function SegmentedRange<T extends string>({
             aria-selected={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "type-label rounded-md px-2.5 py-1 transition-colors",
+              "type-label h-7 rounded-md px-2.5 py-1 transition-colors",
               active
                 ? "bg-[var(--card-bg)] text-on-surface shadow-token-card"
                 : "text-on-surface-variant hover:text-on-surface",

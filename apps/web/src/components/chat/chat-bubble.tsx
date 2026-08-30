@@ -686,7 +686,7 @@ function CoachVisualExplainerCard({
     normalizeFormulaText(visual.title) === normalizeFormulaText(formulaText);
 
   return (
-    <section className="mt-5 max-w-[780px] overflow-hidden rounded-[26px] border border-outline-variant bg-white shadow-token-card">
+    <section className="mt-5 max-w-[780px] overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
       <div className="px-5 py-6 sm:px-8 sm:py-7">
         {titleIsFormula && !visual.subtitle ? null : (
           <motion.div
@@ -1102,7 +1102,7 @@ function CoachVisualPreparingCard() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
-      className="mt-5 max-w-[820px] overflow-hidden rounded-[24px] border border-outline-variant bg-white shadow-token-card"
+      className="mt-5 max-w-[820px] overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none"
       aria-live="polite"
     >
       <div className="flex items-center gap-3 border-b border-outline-variant px-5 py-4">
@@ -1139,7 +1139,7 @@ function UserMessage({ message }: { message: ChatMessageLocal }) {
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-token-primary">
         <User className="h-4 w-4" />
       </div>
-      <div className="max-w-[min(76%,680px)] rounded-2xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-token-primary">
+      <div className="max-w-[min(76%,680px)] rounded-xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-none">
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
     </div>

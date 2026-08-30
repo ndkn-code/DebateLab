@@ -1070,8 +1070,8 @@ export function AnalyticsPage({
   );
 
   return (
-    <PageTransition className="min-h-full bg-background">
-      <ProductPageShell>
+    <PageTransition className="min-h-full bg-transparent">
+      <ProductPageShell className="bg-transparent">
         <PageContainer
           size="standard"
           className="flex min-w-0 flex-col py-5 lg:py-6"
@@ -1090,9 +1090,9 @@ export function AnalyticsPage({
 
           <div className="grid gap-4">
             <div className="grid min-w-0 gap-4 2xl:grid-cols-[1.02fr_0.98fr]">
-              <section className="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface p-5 pb-4 shadow-token-card lg:p-6">
+              <section className="min-w-0 overflow-hidden rounded-xl border border-outline-variant bg-surface p-4 pb-4 shadow-none lg:p-5">
                 <div className="grid h-full min-w-0 grid-cols-1 gap-x-6 md:grid-cols-[7rem_minmax(0,1fr)] md:grid-rows-[auto_auto]">
-                  <Avatar className="h-28 w-28 shrink-0 ring-2 ring-primary-container shadow-token-card">
+                    <Avatar className="h-24 w-24 shrink-0 ring-2 ring-primary-container">
                     {data.hero.avatarUrl ? (
                       <AvatarImage
                         src={data.hero.avatarUrl}
@@ -1380,7 +1380,7 @@ export function AnalyticsPage({
 
             <ActivityHeatmapCard sessions={recentSessionsDisplay} />
 
-            <section className="flex min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-outline-variant/15 bg-surface p-5 shadow-token-card lg:p-6">
+            <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface p-4 shadow-none lg:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <Heading level={4} as="h3">

@@ -25,6 +25,7 @@ import type {
   BandConversionTableGroup,
 } from "@/lib/api/ielts/content-schema";
 import { Field } from "./ielts-ui";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 const BAND_LADDER = [
   9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0,
@@ -243,6 +244,7 @@ export function BandConversionsClient({
   );
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -294,5 +296,6 @@ export function BandConversionsClient({
         ) : null}
       </div>
     </div>
+    </AdminV2Frame>
   );
 }

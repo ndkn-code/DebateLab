@@ -1,12 +1,16 @@
 import { Resend } from "resend";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  getAppBaseUrl,
+  getDashboardUrl,
   getEmailTestRecipient,
+  getEmailSettingsUrl,
   getReplyToEmailAddresses,
   getSenderEmailAddress,
   getSupportEmailAddress,
   isEmailDryRun,
   isEmailSendingEnabled,
+  resolveEmailLocale,
 } from "@/lib/email/config";
 import {
   evaluateEmailCandidatesForProfile,
@@ -41,6 +45,21 @@ interface DailyStatsRow {
   practice_minutes?: number | null;
   xp_earned: number;
   average_score: number | null;
+}
+
+interface LmsOutboxEvent {
+  id: string;
+  class_id: string | null;
+  event_type: string;
+  payload: Record<string, unknown> | null;
+  email_recipient_ids: unknown;
+}
+
+interface LmsEmailProfile {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  preferences: Record<string, unknown> | null;
 }
 
 function getSince(days: number, now: Date) {
@@ -404,6 +423,126 @@ export async function dispatchEmailCandidates(input: {
   return result;
 }
 
+function stringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function lmsNotificationCopy(event: LmsOutboxEvent) {
+  const notification = toRecord(toRecord(event.payload).notification);
+  return {
+    title: getString(notification.title) ?? "Class update",
+    body: getString(notification.body) ?? "There is a new update in your class.",
+  };
+}
+
+async function dispatchLmsOutboxEmails(input: {
+  supabase: SupabaseClient;
+  resend: Resend | null;
+  dryRun: boolean;
+  sendingEnabled: boolean;
+  limit: number;
+}) {
+  const { data, error } = await input.supabase.rpc("claim_lms_outbox_events", {
+    p_limit: Math.max(1, Math.min(input.limit, 100)),
+  });
+  if (error) {
+    // The dispatcher can be deployed before the additive LMS migration.
+    if (error.code === "PGRST202" || error.code === "42883") return [];
+    throw new Error(error.message);
+  }
+
+  const outcomes: Array<{ sent: number; skipped: number; failed: number }> = [];
+  for (const event of (data ?? []) as LmsOutboxEvent[]) {
+    const recipientIds = stringArray(event.email_recipient_ids);
+    let sent = 0;
+    let skipped = 0;
+    let failed = 0;
+    let failureMessage: string | null = null;
+
+    if (recipientIds.length > 0) {
+      const profilesResult = await input.supabase
+        .from("profiles")
+        .select("id, email, display_name, preferences")
+        .in("id", recipientIds);
+      if (profilesResult.error) {
+        failed = recipientIds.length;
+        failureMessage = profilesResult.error.message;
+      } else {
+        for (const profile of (profilesResult.data ?? []) as LmsEmailProfile[]) {
+          // In-app notifications remain durable, but email is suppressed when
+          // a learner opts out after the outbox event was created.
+          if (profile.preferences?.email_notifications === false) {
+            skipped += 1;
+            continue;
+          }
+          if (!profile.email) {
+            skipped += 1;
+            continue;
+          }
+          const locale = resolveEmailLocale(profile.preferences);
+          const copy = lmsNotificationCopy(event);
+          const dashboardUrl = getDashboardUrl(locale);
+          try {
+            const result = await sendCandidate({
+              supabase: input.supabase,
+              resend: input.resend,
+              dryRun: input.dryRun,
+              sendingEnabled: input.sendingEnabled,
+              candidate: {
+              userId: profile.id,
+              toEmail: profile.email,
+              templateKey: "course_nudge",
+              category: "system",
+              locale,
+              sendKey: `lms:${event.id}:${profile.id}`,
+              subject: copy.title,
+              variables: {
+                locale,
+                userName: profile.display_name?.trim() || "Learner",
+                appUrl: getAppBaseUrl(),
+                settingsUrl: getEmailSettingsUrl(locale),
+                ctaUrl: dashboardUrl,
+                ctaLabel: locale === "en" ? "Open Thinkfy" : "Mở Thinkfy",
+                headline: copy.title,
+                body: copy.body,
+                preheader: copy.body,
+                mascotMood: event.event_type === "result_published" ? "celebrate" : "nudge",
+              },
+              metadata: {
+                source: "lms_outbox",
+                outboxEventId: event.id,
+                eventType: event.event_type,
+                classId: event.class_id,
+              },
+              },
+            });
+            if (result.sent) sent += 1;
+            if (result.skipped) skipped += 1;
+            if (result.failed) {
+              failed += 1;
+              failureMessage = result.reason;
+            }
+          } catch (error) {
+            failed += 1;
+            failureMessage = error instanceof Error ? error.message : "LMS email dispatch failed";
+          }
+        }
+      }
+    }
+
+    const completion = await input.supabase.rpc("complete_lms_outbox_event", {
+      p_event_id: event.id,
+      p_success: failed === 0,
+      p_error: failureMessage,
+    });
+    if (completion.error) throw new Error(completion.error.message);
+    outcomes.push({ sent, skipped, failed });
+  }
+  return outcomes;
+}
+
 async function createCronRun(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("email_cron_runs")
@@ -474,6 +613,22 @@ export async function dispatchUserEmails(input: {
     const profileIds = profileRows.map((profile) => profile.id);
     result.candidateUsers = profileRows.length;
 
+    const sendingEnabled = isEmailSendingEnabled();
+    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+    const lmsOutcomes = await dispatchLmsOutboxEmails({
+      supabase,
+      resend,
+      dryRun: result.dryRun,
+      sendingEnabled,
+      limit: input.limit ?? 50,
+    });
+    for (const outcome of lmsOutcomes) {
+      result.queued += outcome.sent + outcome.skipped + outcome.failed;
+      result.sent += outcome.sent;
+      result.skipped += outcome.skipped;
+      result.failed += outcome.failed;
+    }
+
     if (profileIds.length === 0) {
       await finishCronRun(supabase, cronRunId, result, "success");
       return result;
@@ -505,8 +660,6 @@ export async function dispatchUserEmails(input: {
     const statsByUser = groupByUser((statsRes.data ?? []) as DailyStatsRow[]);
     const historyByUser = groupByUser((historyRes.data ?? []) as (EmailMessageHistory & { user_id: string })[]);
     const templateOverrides = await loadActiveEmailTemplateOverrides(supabase);
-    const sendingEnabled = isEmailSendingEnabled();
-    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
     for (const profile of profileRows) {
       const summary = summarizeActivity({

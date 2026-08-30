@@ -21,9 +21,11 @@ export default async function AdminLayout({
   if (!user) {
     if (devAdminBypass || devAuthBypassUser) {
       return (
-        <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
-          <AdminSidebar />
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+        <div className="fixed inset-0 z-50 bg-background p-0 lg:p-4">
+          <div className="flex h-full w-full flex-col overflow-hidden rounded-none border border-outline-variant bg-surface shadow-none lg:flex-row lg:rounded-[14px] lg:shadow-sm">
+            <AdminSidebar />
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">{children}</main>
+          </div>
         </div>
       );
     }
@@ -40,9 +42,11 @@ export default async function AdminLayout({
   if (!profile || profile.role !== "admin") {
     if (devAdminBypass) {
       return (
-        <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
-          <AdminSidebar />
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+        <div className="fixed inset-0 z-50 bg-background p-0 lg:p-4">
+          <div className="flex h-full w-full flex-col overflow-hidden rounded-none border border-outline-variant bg-surface shadow-none lg:flex-row lg:rounded-[14px] lg:shadow-sm">
+            <AdminSidebar />
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">{children}</main>
+          </div>
         </div>
       );
     }
@@ -52,9 +56,11 @@ export default async function AdminLayout({
 
   // Use fixed positioning to completely replace the parent layout's sidebar
   return (
-    <div className="fixed inset-0 z-50 flex h-dvh w-screen flex-col overflow-hidden bg-background md:flex-row">
-      <AdminSidebar />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+    <div className="fixed inset-0 z-50 bg-background p-0 lg:p-4">
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-none border border-outline-variant bg-surface shadow-none lg:flex-row lg:rounded-[14px] lg:shadow-sm">
+        <AdminSidebar />
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">{children}</main>
+      </div>
     </div>
   );
 }

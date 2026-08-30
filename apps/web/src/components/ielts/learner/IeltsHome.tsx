@@ -55,6 +55,43 @@ export function IeltsHome({
             </h1>
           </header>
 
+          <section data-ielts-kpi-strip>
+            <div data-ielts-kpi>
+              <p className="type-caption font-medium text-on-surface-variant">
+                {t("predicted_title")}
+              </p>
+              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
+                {predictionView.overall.band === null
+                  ? "—"
+                  : predictionView.overall.band.toFixed(1)}
+              </p>
+            </div>
+            <div data-ielts-kpi>
+              <p className="type-caption font-medium text-on-surface-variant">
+                {t("today_title")}
+              </p>
+              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
+                {data.todayDueCount}
+              </p>
+            </div>
+            <div data-ielts-kpi>
+              <p className="type-caption font-medium text-on-surface-variant">
+                {t("tile_review_title")}
+              </p>
+              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
+                {data.reviewsDueCount}
+              </p>
+            </div>
+            <div data-ielts-kpi>
+              <p className="type-caption font-medium text-on-surface-variant">
+                {t("library_title")}
+              </p>
+              <p className="mt-1 type-heading-md tabular-nums text-on-surface">
+                {data.publishedCount}
+              </p>
+            </div>
+          </section>
+
           <IeltsDailyLoopPanel
             diagnosticReady={diagnosticReady}
             hasGoal={data.hasGoal}

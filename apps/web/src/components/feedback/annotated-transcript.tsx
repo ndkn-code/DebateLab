@@ -102,111 +102,111 @@ const TAG_STYLES: Record<
   }
 > = {
   stance: {
-    accent: "#0788A0",
-    accentRgb: "7,136,160",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   clarity: {
-    accent: "#0788A0",
-    accentRgb: "7,136,160",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   structure: {
-    accent: "#0788A0",
-    accentRgb: "7,136,160",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-primary-fixed",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   mechanism: {
-    accent: "#00B8D9",
-    accentRgb: "0,184,217",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-primary",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   logic: {
-    accent: "#00B8D9",
-    accentRgb: "0,184,217",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-primary",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   weighing: {
-    accent: "#00B8D9",
-    accentRgb: "0,184,217",
+    accent: "var(--color-secondary)",
+    accentRgb: "color-mix(in srgb, var(--color-secondary) 35%, transparent)",
     mark: "bg-primary-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-primary",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-primary-container text-on-surface-variant",
     dot: "bg-primary text-white",
     connector: "border-primary",
   },
   impact: {
-    accent: "#00B8D9",
-    accentRgb: "52,199,89",
+    accent: "var(--color-success)",
+    accentRgb: "color-mix(in srgb, var(--color-success) 35%, transparent)",
     mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-surface-container text-on-surface-variant",
     dot: "bg-success text-white",
     connector: "border-outline-variant",
   },
   evidence: {
-    accent: "#00B8D9",
-    accentRgb: "52,199,89",
+    accent: "var(--color-success)",
+    accentRgb: "color-mix(in srgb, var(--color-success) 35%, transparent)",
     mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-surface-container text-on-surface-variant",
     dot: "bg-success text-white",
     connector: "border-outline-variant",
   },
   clash: {
-    accent: "#FFD166",
-    accentRgb: "245,185,66",
+    accent: "var(--color-warning)",
+    accentRgb: "color-mix(in srgb, var(--color-warning) 35%, transparent)",
     mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-surface-container text-on-surface-variant",
     dot: "bg-warning text-on-surface",
     connector: "border-warning",
   },
   rebuttal: {
-    accent: "#FFD166",
-    accentRgb: "245,185,66",
+    accent: "var(--color-warning)",
+    accentRgb: "color-mix(in srgb, var(--color-warning) 35%, transparent)",
     mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-surface-container text-on-surface-variant",
     dot: "bg-warning text-on-surface",
     connector: "border-warning",
   },
   delivery: {
-    accent: "#00B8D9",
-    accentRgb: "123,97,255",
+    accent: "var(--color-primary)",
+    accentRgb: "color-mix(in srgb, var(--color-primary) 35%, transparent)",
     mark: "bg-surface-container text-on-surface-variant ring-outline-variant",
-    activeMark: "shadow-token-card",
-    card: "border-outline-variant bg-white",
+    activeMark: "shadow-none",
+    card: "border-outline-variant bg-surface",
     badge: "bg-surface-container text-on-surface-variant",
     dot: "bg-surface-container-high text-white",
     connector: "border-outline-variant",
@@ -580,14 +580,14 @@ export function AnnotatedTranscript({
 
   if (!transcript.trim()) {
     return (
-      <section className="rounded-2xl border border-outline-variant bg-white p-8 text-center text-sm leading-7 text-on-surface-variant">
+      <section className="rounded-[10px] border border-outline-variant bg-surface p-8 text-center text-sm leading-7 text-on-surface-variant">
         {emptyLabel}
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-normal text-on-surface">
@@ -605,7 +605,7 @@ export function AnnotatedTranscript({
                 <span className="text-xs font-bold text-on-surface-variant">
                   {speakerControlLabel ?? t("speaker")}
                 </span>
-                <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-outline-variant bg-white px-3 text-sm font-semibold text-on-surface">
+                <div className="mt-1 flex h-11 items-center justify-between rounded-lg border border-outline-variant bg-surface px-3 text-sm font-semibold text-on-surface">
                   {speakerLabel ?? t("you")}
                   <ChevronDown className="h-4 w-4 text-on-surface-variant" />
                 </div>
@@ -621,7 +621,7 @@ export function AnnotatedTranscript({
                 onChange={(event) =>
                   setFilter(event.target.value as TranscriptAnnotationFilter)
                 }
-                className="h-11 w-full appearance-none rounded-lg border border-outline-variant bg-white px-3 pr-9 text-sm font-semibold text-on-surface outline-none focus:border-primary"
+                className="h-11 w-full appearance-none rounded-lg border border-outline-variant bg-surface px-3 pr-9 text-sm font-semibold text-on-surface outline-none focus:border-primary"
               >
                 {FILTER_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -641,7 +641,7 @@ export function AnnotatedTranscript({
       >
         <div
           ref={transcriptPaneRef}
-          className="relative z-10 min-h-[280px] overflow-y-auto rounded-xl border border-outline-variant bg-white px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
+          className="relative z-10 min-h-[280px] overflow-y-auto rounded-[10px] border border-outline-variant bg-surface px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
         >
           <div className="space-y-7">
             {chunks.map((chunk) => {
@@ -726,7 +726,7 @@ export function AnnotatedTranscript({
                               }
                             }}
                             className={cn(
-                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 type-caption leading-5 shadow-token-card",
+                              "absolute right-[-28px] top-1/2 z-40 inline-flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full px-1 type-caption leading-5 shadow-none",
                               tone.dot
                             )}
                           >
@@ -774,9 +774,9 @@ export function AnnotatedTranscript({
                   }}
                   tabIndex={0}
                   className={cn(
-                    "relative cursor-pointer rounded-xl border bg-white p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    "relative cursor-pointer rounded-[10px] border bg-surface p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     tone.card,
-                    isActive && "shadow-token-card"
+                    isActive && "shadow-none"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -810,7 +810,7 @@ export function AnnotatedTranscript({
                         </span>
                       ) : null}
                       {annotation.roundNumber ? (
-                        <span className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
+                        <span className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
                           {roundLabel(annotation.roundNumber)}
                         </span>
                       ) : null}
@@ -837,9 +837,9 @@ export function AnnotatedTranscript({
                   </p>
                   {annotation.suggestion ? (
                     <p
-                      className="mt-4 rounded-lg border bg-white p-3 text-sm leading-6 text-on-surface-variant"
+                      className="mt-4 rounded-lg border bg-surface p-3 text-sm leading-6 text-on-surface-variant"
                       style={{
-                        borderColor: `rgba(${tone.accentRgb}, 0.35)`,
+                        borderColor: tone.accentRgb,
                       }}
                     >
                       <span className="font-bold text-on-surface">
@@ -852,7 +852,7 @@ export function AnnotatedTranscript({
               );
             })
           ) : (
-            <div className="rounded-xl border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
+            <div className="rounded-[10px] border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
               <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary">
                 <CheckCircle2 className="h-5 w-5" />
               </div>

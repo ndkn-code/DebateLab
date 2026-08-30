@@ -33,14 +33,14 @@ export function OnboardingShell({
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-on-surface">
       {!hideChrome ? (
-        <header className="sticky top-0 z-30 border-b border-outline-variant/30 bg-background/90 px-4 pt-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-outline-variant bg-background px-4 pt-3 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
             <button
               type="button"
               onClick={onBack}
               disabled={!showBack || !onBack}
               className={cn(
-                "inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                "inline-flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-medium text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
                 showBack && onBack
                   ? "hover:bg-surface-container hover:text-on-surface"
                   : "pointer-events-none opacity-0"
@@ -49,7 +49,7 @@ export function OnboardingShell({
               <ChevronLeft className="h-4 w-4" />
               {backLabel}
             </button>
-            <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-token-card">
+            <span className="inline-flex h-5 items-center rounded-[6px] bg-surface px-2 text-xs font-medium text-on-surface-variant">
               {stepLabel}
             </span>
             <ThemeToggle variant="public" />
@@ -113,7 +113,7 @@ export function OnboardingChoiceCard({
       animate={{ opacity: disabled && !selected ? 0.56 : 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "group relative flex min-h-[5.25rem] w-full items-center gap-4 rounded-[1.25rem] border bg-surface px-4 py-4 text-left shadow-token-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
+          "group relative flex min-h-16 w-full items-center gap-4 rounded-[10px] border bg-surface px-4 py-3 text-left transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary-container"
           : "border-outline-variant/70 hover:border-primary/45 hover:bg-surface-container-lowest",
@@ -122,7 +122,7 @@ export function OnboardingChoiceCard({
     >
       <span
         className={cn(
-          "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors",
+          "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] transition-colors",
           selected
             ? "bg-primary text-on-primary"
             : "bg-surface-container text-primary group-hover:bg-primary-container"
@@ -180,7 +180,7 @@ export function OnboardingPill({
       animate={{ opacity: disabled && !selected ? 0.55 : 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "min-h-[3rem] rounded-2xl border px-5 py-2.5 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-6",
+        "h-8 rounded-[10px] border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary text-on-primary shadow-token-primary"
           : "border-outline-variant/70 bg-surface text-on-surface-variant hover:border-primary/45 hover:bg-primary-container hover:text-on-surface",
@@ -208,7 +208,7 @@ export function OnboardingPreviewCard({
   return (
     <div
       className={cn(
-        "rounded-[1.6rem] border border-outline-variant/55 bg-surface p-5 shadow-token-card",
+        "rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none",
         className
       )}
     >
@@ -217,7 +217,7 @@ export function OnboardingPreviewCard({
           {Icon ? (
             <span
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-container text-primary",
+                "flex h-8 w-8 items-center justify-center rounded-[8px] bg-primary-container text-primary",
                 iconClassName
               )}
             >

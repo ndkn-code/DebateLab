@@ -82,7 +82,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
   });
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-outline-variant bg-white shadow-token-card">
+    <section className="overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
       <div className="grid gap-0 2xl:grid-cols-[248px_minmax(0,1fr)_360px]">
         <div className="p-3">
           <div className="overflow-hidden rounded-[15px] border border-outline-variant">
@@ -180,7 +180,7 @@ function HeroActionLink({
     <Link
       href={href}
       className={cn(
-        "type-body inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-primary px-6 py-3 font-semibold text-white shadow-token-primary transition-colors hover:bg-surface-container-high",
+        "type-body inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-white transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         disabled && "pointer-events-none opacity-80"
       )}
     >
@@ -204,7 +204,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
         </Heading>
       </div>
 
-      <div className="overflow-hidden rounded-[20px] border border-outline-variant bg-white shadow-token-card">
+      <div className="overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
         <div className="grid gap-4 p-3 lg:grid-cols-[118px_minmax(0,1fr)_320px_156px] lg:items-center lg:gap-5 lg:p-4">
           <div className="overflow-hidden rounded-[14px] border border-outline-variant">
             <div className="aspect-square">
@@ -217,7 +217,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
               <Heading level={3} className="text-on-surface-variant">
                 {course.title}
               </Heading>
-              <span className="type-caption rounded-full bg-primary-container px-3 py-1 text-primary">
+              <span className="type-caption inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 text-primary">
                 {getDifficultyLabel(course.difficulty, tp)}
               </span>
             </div>
@@ -232,7 +232,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             </div>
           </div>
 
-          <div className="rounded-[16px] bg-surface-container px-5 py-4">
+          <div className="rounded-[10px] bg-surface-container px-4 py-3">
             <Text className="font-medium text-on-surface-variant">
               {t("recommendation.why_course")}
             </Text>
@@ -253,7 +253,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Link
               href={course.isMock ? "#" : course.ctaHref}
               className={cn(
-                "type-body inline-flex min-h-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white px-6 py-3 font-semibold text-on-surface-variant transition-colors hover:bg-surface-container",
+                "type-body inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-white px-4 font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 course.isMock && "pointer-events-none"
               )}
             >
@@ -338,9 +338,9 @@ export function CourseListContent({ library }: CourseListContentProps) {
                   type="button"
                   onClick={() => setCategory(filter.value)}
                   className={cn(
-                    "type-body inline-flex min-h-[42px] items-center gap-2 rounded-[14px] border px-5 py-2.5 font-medium transition-colors",
+                    "type-body inline-flex h-8 items-center gap-2 rounded-[10px] border px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     category === filter.value
-                      ? "border-primary bg-primary text-white shadow-token-primary"
+                      ? "border-primary bg-primary text-white"
                       : "border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
                   )}
                 >
@@ -374,7 +374,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-[18px] border border-dashed border-outline-variant bg-white px-6 py-10 text-center text-on-surface-variant">
+            <div className="rounded-[10px] border border-dashed border-outline-variant bg-white px-6 py-8 text-center text-on-surface-variant">
               {t("empty_subtitle")}
             </div>
           )}

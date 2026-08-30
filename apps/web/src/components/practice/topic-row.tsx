@@ -18,9 +18,9 @@ interface TopicRowProps {
 }
 
 const DIFFICULTY_PILL_STYLES = {
-  easy: "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]",
-  medium: "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
-  hard: "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]",
+  easy: "bg-success-container text-success-dim dark:text-success",
+  medium: "bg-warning-container text-on-warning-container",
+  hard: "bg-error-container text-error-dim dark:text-error",
 } as const;
 
 export function TopicRow({
@@ -63,7 +63,7 @@ export function TopicRow({
       tabIndex={0}
       aria-pressed={isSelected}
       className={cn(
-        "group relative flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left outline-none transition-colors duration-150 sm:px-6 sm:py-[18px]",
+        "group relative flex min-h-10 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left outline-none transition-colors duration-150 sm:px-5",
         isSelected
           ? "bg-primary/[0.05] dark:bg-primary/[0.09]"
           : "hover:bg-surface-container focus-visible:bg-surface-container"
@@ -73,7 +73,7 @@ export function TopicRow({
         <motion.span
           layoutId="topic-row-indicator"
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute left-0 top-1/2 h-9 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
+          className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-tertiary"
         />
       ) : null}
 
@@ -88,12 +88,12 @@ export function TopicRow({
           {display.topic.title}
         </h3>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-surface-container px-2.5 py-1 type-caption font-semibold leading-none text-on-surface-variant">
+          <span className="inline-flex h-5 items-center rounded-[6px] bg-surface-container px-2 type-caption font-semibold leading-none text-on-surface-variant">
             {display.topic.category}
           </span>
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 type-caption font-semibold leading-none",
+              "inline-flex h-5 items-center rounded-[6px] px-2 type-caption font-semibold leading-none",
               DIFFICULTY_PILL_STYLES[display.difficultyTone]
             )}
           >
@@ -110,7 +110,7 @@ export function TopicRow({
           onToggleBookmark(display.topic.id);
         }}
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-90",
+          "flex size-8 shrink-0 items-center justify-center rounded-[8px] transition-all hover:bg-surface-container active:scale-95 focus-visible:ring-2 focus-visible:ring-ring",
           isBookmarked
             ? "text-primary"
             : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:!text-primary"

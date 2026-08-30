@@ -84,7 +84,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
   if (!verdict) {
     return (
-      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-10 text-center shadow-token-card">
+      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-10 text-center shadow-none">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <Trophy className="h-5 w-5" />
         </div>
@@ -105,7 +105,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
     // than the viewport, so layout decisions key off the panel's own width.
     <div className="@container flex flex-col gap-5">
       {/* Hero */}
-      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-10">
+      <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-none sm:p-10">
         <div className="flex flex-col items-center gap-7 text-center @3xl:flex-row @3xl:items-center @3xl:gap-10 @3xl:text-left">
           <div className="relative flex h-36 w-36 shrink-0 items-center justify-center @3xl:h-44 @3xl:w-44">
             <span
@@ -151,7 +151,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
 
       <div className="grid gap-5 @5xl:grid-cols-[minmax(0,1fr)_0.66fr]">
         {/* Why this decision */}
-        <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-7">
+        <section className="rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-none sm:p-7">
           <h3 className="text-lg font-extrabold text-on-surface">
             {t("whyDecision")}
           </h3>
@@ -161,7 +161,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
               verdict.decidingReasons.map((reason, index) => (
                 <li
                   key={`${reason}-${index}`}
-                  className="flex items-start gap-3.5 rounded-2xl bg-surface-container/60 p-4"
+                  className="flex items-start gap-3.5 rounded-[10px] bg-surface-container/60 p-4"
                 >
                   <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary type-caption font-extrabold text-on-primary">
                     {index + 1}
@@ -183,13 +183,13 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
         </section>
 
         {/* Next move */}
-        <section className="flex flex-col rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-token-card sm:p-7">
+        <section className="flex flex-col rounded-[1.5rem] border border-outline-variant bg-surface p-6 shadow-none sm:p-7">
           <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-on-surface">
             <Sparkles className="h-5 w-5 text-primary" />
             {t("nextMove")}
           </h3>
 
-          <div className="mt-5 flex flex-1 flex-col rounded-2xl bg-primary-container/50 p-5">
+          <div className="mt-5 flex flex-1 flex-col rounded-[10px] bg-primary-container/50 p-5">
             <p className="inline-flex items-start gap-3 type-body font-extrabold leading-7 text-on-surface">
               <Target className="mt-1 h-5 w-5 shrink-0 text-primary" />
               {t("nextMovePrompt")}

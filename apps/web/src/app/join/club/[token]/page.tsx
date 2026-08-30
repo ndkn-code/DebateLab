@@ -32,10 +32,10 @@ export default async function JoinClubInvitationPage({
           : "We could not find that club invitation.";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <section className="w-full max-w-md rounded-lg border border-outline-variant bg-white p-6 text-center shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8 text-on-surface">
+      <section className="w-full max-w-md rounded-[12px] border border-outline-variant bg-surface p-6 text-center shadow-none sm:p-8">
         <Eyebrow className="text-primary">Thinkfy Club</Eyebrow>
-        <h1 className="mt-3 text-2xl font-bold text-on-surface">Invitation not accepted</h1>
+        <h1 className="mt-3 text-xl font-medium text-on-surface">Invitation not accepted</h1>
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">{message}</p>
       </section>
     </main>

@@ -4,6 +4,7 @@ import * as React from "react";
 import { curveNatural } from "@visx/curve";
 
 import { cn } from "@/lib/utils";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 import { Display, Eyebrow, Heading, Text } from "@/components/ui/typography";
 import {
   ChartCard,
@@ -340,6 +341,7 @@ export default function UiSystemShowcasePage() {
   const [range, setRange] = React.useState<Range>("30d");
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10">
       <header className="flex flex-col gap-2">
         <Eyebrow className="text-primary">Thinkfy UI System</Eyebrow>
@@ -397,5 +399,6 @@ export default function UiSystemShowcasePage() {
         <DarkPanel range={range} />
       </section>
     </div>
+    </AdminV2Frame>
   );
 }

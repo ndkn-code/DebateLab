@@ -13,6 +13,7 @@ import { createIeltsTestAction } from "@/app/actions/ielts";
 import { IELTS_MODULES, IELTS_SKILLS, IELTS_TEST_KINDS } from "@/lib/api/ielts/schema";
 import type { IeltsTest } from "@/lib/api/ielts/tests-repository";
 import { Field, StatusBadge } from "./ielts-ui";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 function slugify(value: string): string {
   return value
@@ -121,6 +122,7 @@ export function IeltsTestsClient({ tests }: { tests: IeltsTest[] }) {
   const [creating, setCreating] = useState(false);
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
@@ -168,5 +170,6 @@ export function IeltsTestsClient({ tests }: { tests: IeltsTest[] }) {
         ) : null}
       </div>
     </div>
+    </AdminV2Frame>
   );
 }

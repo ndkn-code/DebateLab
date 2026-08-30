@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import {
+  failClubAssignmentSubmission,
   gradeAssignmentSubmission,
   recordAssignmentSubmissionFiles,
   submitClubAssignment,
@@ -354,6 +355,7 @@ function StudentWorkspace({ data }: { data: Extract<HomeworkWorkspaceData, { mod
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const idempotencyKeyRef = useRef<string | null>(null);
   const latestSubmission = data.submissions[0] ?? null;
   const canSubmit =
     data.assignment.status === "active" &&
@@ -377,10 +379,14 @@ function StudentWorkspace({ data }: { data: Extract<HomeworkWorkspaceData, { mod
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     startTransition(async () => {
+      let submissionId: string | null = null;
       try {
         setSuccess(false);
+        const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
+        idempotencyKeyRef.current = idempotencyKey;
         const result = await submitClubAssignment({
           assignmentId: data.assignment.id,
+          idempotencyKey,
           submissionText: text,
           files: files.map((file) => ({
             fileName: file.name,
@@ -388,6 +394,7 @@ function StudentWorkspace({ data }: { data: Extract<HomeworkWorkspaceData, { mod
             sizeBytes: file.size,
           })),
         });
+        submissionId = result.submissionId;
 
         const supabase = createTypedBrowserClient();
         for (const [index, target] of result.uploadTargets.entries()) {
@@ -417,9 +424,24 @@ function StudentWorkspace({ data }: { data: Extract<HomeworkWorkspaceData, { mod
         setFiles([]);
         setProgress({});
         setSuccess(true);
+        idempotencyKeyRef.current = null;
         showToast("Assignment submitted.", "success");
         router.refresh();
       } catch (error) {
+        let cleanupSucceeded = !submissionId;
+        if (submissionId) {
+          try {
+            await failClubAssignmentSubmission({
+              submissionId,
+              reason: error instanceof Error ? error.message : "Upload failed",
+            });
+            cleanupSucceeded = true;
+          } catch {
+            // The original upload error is more useful to the learner; the
+            // server-side cleanup action is best-effort and retryable.
+          }
+        }
+        if (cleanupSucceeded) idempotencyKeyRef.current = null;
         showToast(error instanceof Error ? error.message : "Unable to submit assignment.", "error");
       }
     });

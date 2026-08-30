@@ -231,7 +231,10 @@ export function MockTestPlayer({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-background">
+    <div
+      className="relative flex h-full min-h-0 flex-col bg-background"
+      data-ielts-exam="player"
+    >
       {error ? (
         <p className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-2xl bg-error-container px-4 py-3 text-sm font-semibold text-error shadow-lg">
           {error}

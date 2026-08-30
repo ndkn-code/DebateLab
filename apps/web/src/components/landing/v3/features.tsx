@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { LandingV3Copy } from "./copy";
@@ -21,12 +21,15 @@ function BentoCard({
   children: ReactNode;
   className?: string;
 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      whileHover={{ y: -6 }}
-      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      whileHover={reduceMotion ? undefined : { y: -6 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 24 }}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-[28px] border border-outline-variant bg-white p-7 shadow-token-card transition-shadow duration-300 hover:shadow-token-panel",
+        "group flex flex-col overflow-hidden rounded-[12px] border border-outline-variant bg-white p-5 shadow-none transition-[border-color,background-color,transform] duration-150 hover:border-primary/40",
+        !reduceMotion && "hover:-translate-y-0.5",
         className
       )}
     >
@@ -38,6 +41,8 @@ function BentoCard({
 }
 
 function CoachIllustration({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="flex h-full min-h-[220px] flex-col justify-between gap-6">
       <Stagger gap={0.25} delay={0.2} className="flex flex-col gap-3">
@@ -66,7 +71,10 @@ function CoachIllustration({ copy }: { copy: LandingV3Copy }) {
           aria-hidden="true"
           width={400}
           height={500}
-          className="h-auto w-36 object-contain transition-transform duration-500 group-hover:-translate-y-1.5 sm:w-44"
+          className={cn(
+            "h-auto w-36 object-contain sm:w-44",
+            !reduceMotion && "transition-transform duration-500 group-hover:-translate-y-1.5"
+          )}
           sizes="176px"
         />
       </div>
@@ -95,6 +103,8 @@ function TopicsIllustration({ copy }: { copy: LandingV3Copy }) {
 }
 
 function LiveIllustration({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="flex min-h-[96px] items-center justify-center gap-5 pt-4">
       <div className="flex flex-col items-center gap-1.5">
@@ -112,8 +122,8 @@ function LiveIllustration({ copy }: { copy: LandingV3Copy }) {
       </div>
       <span className="absolute right-7 top-7 inline-flex items-center gap-1.5 rounded-full bg-error px-2.5 py-1 type-caption font-extrabold tracking-widest text-white">
         <motion.span
-          animate={{ opacity: [1, 0.3, 1] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           className="h-1.5 w-1.5 rounded-full bg-white"
         />
         {copy.features.live.liveLabel}
@@ -123,6 +133,7 @@ function LiveIllustration({ copy }: { copy: LandingV3Copy }) {
 }
 
 function AnalyticsIllustration({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
   const bars = [34, 48, 58, 72, 88];
   return (
     <div className="flex min-h-[96px] items-end justify-center gap-3 pt-4 sm:gap-4">
@@ -132,10 +143,10 @@ function AnalyticsIllustration({ copy }: { copy: LandingV3Copy }) {
           <div key={index} className="flex flex-col items-center gap-1.5">
             <div className="flex h-[88px] items-end">
               <motion.span
-                initial={{ height: 0 }}
-                whileInView={{ height: `${height}%` }}
+                initial={reduceMotion ? { height: `${height}%` } : { height: 0 }}
+                whileInView={reduceMotion ? undefined : { height: `${height}%` }}
                 viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.8, delay: 0.15 + index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.8, delay: 0.15 + index * 0.1, ease: [0.16, 1, 0.3, 1] }}
                 className={cn("w-7 rounded-t-lg sm:w-8", isLast ? "bg-reward" : "bg-primary")}
               />
             </div>

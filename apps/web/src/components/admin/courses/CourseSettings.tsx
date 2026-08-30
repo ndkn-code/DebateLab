@@ -9,6 +9,7 @@ import { updateCourseVisibility, updateModuleAccessLevel } from "@/app/actions/c
 import type { CourseVisibility, ModuleAccessLevel } from "@/lib/types/admin";
 import { StudentAssignment } from "./StudentAssignment";
 import { ClassAssignment } from "./ClassAssignment";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 interface Props {
   course: { id: string; title: string; visibility: string };
@@ -35,6 +36,7 @@ export function CourseSettings({ course, modules, initialStudents, initialClasse
   };
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-6">
       <Link
         href={`/dashboard/admin/courses/${course.id}`}
@@ -116,5 +118,6 @@ export function CourseSettings({ course, modules, initialStudents, initialClasse
         </div>
       )}
     </div>
+    </AdminV2Frame>
   );
 }

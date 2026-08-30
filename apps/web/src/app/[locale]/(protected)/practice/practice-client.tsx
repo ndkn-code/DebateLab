@@ -637,7 +637,7 @@ export default function PracticePage({
                   setVisibleCount(INITIAL_VISIBLE_TOPICS);
                 }}
                 placeholder={t("search_placeholder")}
-                className="h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest pl-11 pr-4 type-body-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
+                className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-body-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-secondary focus:ring-2 focus:ring-ring/30"
               />
             </div>
 
@@ -654,7 +654,7 @@ export default function PracticePage({
             />
           </div>
 
-          <div className="mt-6 flex items-center gap-7 border-b border-outline-variant">
+          <div className="mt-5 flex items-center gap-5 border-b border-outline-variant">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -664,7 +664,7 @@ export default function PracticePage({
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
                   className={cn(
-                    "relative flex items-center gap-2 pb-3 type-body-sm font-semibold transition-colors",
+                    "relative flex min-h-10 items-center gap-2 pb-2 type-body-sm font-semibold transition-colors",
                     isActive
                       ? "text-on-surface"
                       : "text-on-surface-variant hover:text-on-surface"
@@ -687,7 +687,7 @@ export default function PracticePage({
                     <motion.span
                       layoutId="practice-tab-underline"
                       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                      className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-primary"
+                          className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-secondary"
                     />
                   ) : null}
                 </button>
@@ -695,7 +695,7 @@ export default function PracticePage({
             })}
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest shadow-token-card lg:min-h-0 lg:flex-1">
+          <div className="mt-5 overflow-hidden rounded-[12px] border border-outline-variant bg-surface-container-lowest shadow-none lg:min-h-0 lg:flex-1">
             <div className="grid lg:h-full lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
               <div className="relative min-w-0 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-outline-variant">
                 <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5 sm:px-6">

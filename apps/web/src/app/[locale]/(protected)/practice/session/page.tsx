@@ -38,7 +38,7 @@ function MissingSessionState({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6 text-center shadow-token-card">
+      <div className="w-full max-w-md rounded-[10px] border border-outline-variant bg-surface-container-lowest p-5 text-center shadow-none">
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <AlertCircle className="h-6 w-6" />
         </div>
@@ -48,7 +48,7 @@ function MissingSessionState({ onBack }: { onBack: () => void }) {
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
           {t("session.setup_expired_body")}
         </p>
-        <Button onClick={onBack} className="mt-6 h-11 w-full gap-2 rounded-2xl">
+        <Button onClick={onBack} className="mt-5 h-8 w-full gap-2 rounded-[10px]">
           <ArrowLeft className="h-4 w-4" />
           {t("session.return_to_practice")}
         </Button>
@@ -683,10 +683,10 @@ export default function SessionPage() {
       {/* Network error banner */}
       {speech.error === "network" && currentPhase === "speaking" && (
         <div
-          className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center"
+          className="border-b border-warning/30 bg-warning-container px-4 py-2 text-center"
           role="alert"
         >
-          <span className="text-xs text-amber-400">
+          <span className="text-xs text-on-warning-container">
             Lost connection to transcription service. Attempting to reconnect...
           </span>
         </div>

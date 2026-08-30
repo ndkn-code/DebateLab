@@ -219,7 +219,7 @@ function DesktopHeader({
   onPrefetch: (range: AnalyticsRangePreset) => void;
 }) {
   return (
-    <header className="hidden border-b border-outline-variant bg-surface-container-lowest/95 px-6 py-5 backdrop-blur md:block">
+    <header className="hidden border-b border-outline-variant bg-surface/95 px-6 py-5 backdrop-blur md:block">
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0">
           <Link
@@ -229,14 +229,14 @@ function DesktopHeader({
             <ArrowLeft className="h-4 w-4" />
             Back to Users & Access
           </Link>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal text-on-surface-variant">User Analytics</h1>
+          <h1 className="type-heading-lg mt-2 font-medium text-on-surface">User Analytics</h1>
           <p className="mt-1 text-sm text-on-surface-variant">
             Deep dive into user activity, engagement, and performance.
           </p>
         </div>
         <div className="flex min-w-[420px] flex-col items-end gap-4">
           <div className="flex w-full items-center justify-end gap-3">
-            <div className="flex h-9 w-[360px] items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface-variant shadow-sm">
+            <div className="flex h-8 w-[360px] items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-on-surface-variant shadow-none">
               <Search className="h-4 w-4" />
               <span className="truncate text-sm">Search users, content, and more...</span>
               <kbd className="type-caption ml-auto rounded-md border border-outline-variant bg-surface-container px-1.5 py-0.5 text-on-surface-variant">
@@ -245,7 +245,7 @@ function DesktopHeader({
             </div>
             <button
               type="button"
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-surface-container-high px-4 text-sm font-semibold text-on-surface shadow-sm hover:bg-surface-container-high"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Download className="h-4 w-4" />
               Export
@@ -261,12 +261,12 @@ function DesktopHeader({
 
 function MobileHeader() {
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] flex h-[74px] items-center justify-between bg-surface-container-high px-5 text-on-surface shadow-token-card md:hidden">
+    <div className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-outline-variant bg-surface px-5 text-on-surface shadow-none md:hidden">
       <Link href="/dashboard/admin/users" className="flex h-11 w-11 items-center justify-center rounded-lg text-on-surface">
         <ArrowLeft className="h-6 w-6" />
         <span className="sr-only">Back to users</span>
       </Link>
-      <h1 className="text-2xl font-bold tracking-normal">User Analytics</h1>
+      <h1 className="text-base font-medium tracking-normal">User Analytics</h1>
       <BarChart3 className="h-6 w-6" />
     </div>
   );
@@ -274,7 +274,7 @@ function MobileHeader() {
 
 function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="grid gap-5 md:grid-cols-[minmax(240px,1.15fr)_repeat(5,minmax(110px,0.6fr))_auto] md:items-center">
         <div className="flex min-w-0 items-center gap-4">
           <Avatar className="h-16 w-16 shrink-0 border border-outline-variant bg-surface-container md:h-[70px] md:w-[70px]">
@@ -286,7 +286,7 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-bold text-on-surface-variant">{data.user.displayName}</h2>
+            <h2 className="truncate text-base font-medium text-on-surface">{data.user.displayName}</h2>
             <p className="truncate text-sm text-on-surface-variant">{data.user.email ?? data.user.id}</p>
             <p className="mt-1 hidden text-xs text-on-surface-variant md:block">
               Joined {formatDate(data.user.createdAt)} <span className="px-1 text-on-surface-variant">•</span> Last active {formatDateTime(data.rawEvents[0]?.occurredAt)}
@@ -342,13 +342,13 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
 
         <Link
           href="/dashboard/admin/users"
-          className="hidden h-10 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface-variant hover:bg-surface-container md:inline-flex"
+          className="hidden h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant hover:bg-surface-container md:inline-flex"
         >
           View Profile
           <ExternalLink className="h-4 w-4" />
         </Link>
 
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-4 md:hidden">
+        <div className="rounded-[10px] border border-outline-variant bg-surface-container p-4 md:hidden">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-on-surface-variant">Effective plan</p>
             <Badge className="rounded-md bg-success-container text-success-dim">
@@ -419,7 +419,7 @@ function InsightRail({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5 xl:sticky xl:top-5",
+      "rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5 xl:sticky xl:top-5",
         className
       )}
     >
@@ -535,7 +535,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-on-surface">Feature Adoption</h3>
@@ -555,7 +555,7 @@ function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
 
 function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Course Progress</h3>
@@ -673,7 +673,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
             <div className="rounded-lg border border-outline-variant bg-surface-container p-3">
               <p className="type-caption font-semibold text-on-surface-variant">Overall Skill Score</p>
               <p className="mt-1 text-2xl font-bold text-on-surface-variant">{overall ?? "-"}%</p>
-              <p className="mt-1 type-caption text-success">↑ 6% vs last 30 days</p>
+              <p className="mt-1 type-caption text-success-dim">↑ 6% vs last 30 days</p>
             </div>
             <div className="rounded-lg border border-success/20 bg-success-container p-3">
               <p className="type-caption font-semibold text-on-surface-variant">Top Strength</p>
@@ -696,7 +696,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
@@ -734,7 +734,7 @@ function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
 
 function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-on-surface">Module Progress</h3>
@@ -777,7 +777,7 @@ function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-token-card md:p-5">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Raw Events</h3>
@@ -916,7 +916,7 @@ export function UserAnalyticsDashboard({
   };
 
   return (
-    <div className="min-h-full overflow-x-hidden bg-surface-container text-on-surface-variant">
+    <div className="min-h-full overflow-x-hidden bg-background text-on-surface-variant">
       <MobileHeader />
       <DesktopHeader
         range={selectedRange}
@@ -925,7 +925,7 @@ export function UserAnalyticsDashboard({
         onPrefetch={prefetchRange}
       />
 
-      <main className="space-y-5 px-4 pb-6 pt-9 md:px-6 md:py-5 xl:px-7">
+      <main className="mx-auto w-full max-w-[1440px] space-y-5 px-4 pb-6 pt-16 md:px-6 md:py-5 xl:px-7">
         <div className="md:hidden">
           <UserSummary data={data} />
           <div className="mt-5">
@@ -942,7 +942,7 @@ export function UserAnalyticsDashboard({
           <UserSummary data={data} />
         </div>
 
-        <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {kpis.map((item) => (
             <StaggerItem key={item.label}>
               <StatCard

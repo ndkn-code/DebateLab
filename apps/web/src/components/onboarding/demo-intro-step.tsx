@@ -66,7 +66,7 @@ export function DemoIntroStep({
       >
         <Button
           onClick={onNext}
-          className="h-12 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
+          className="h-8 rounded-[10px] bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           size="lg"
         >
           {t("demo_intro.cta")}

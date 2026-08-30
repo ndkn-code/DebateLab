@@ -70,6 +70,8 @@ export function WelcomeBanner({
             {/* Dismiss */}
             <button
               onClick={handleDismiss}
+              type="button"
+              aria-label="Dismiss welcome message"
               className="absolute right-3 top-3 rounded-lg p-1 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             >
               <X className="h-4 w-4" />

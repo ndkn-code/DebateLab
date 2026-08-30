@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
+import { isEligibleIeltsClass } from "@/lib/api/class-manager-model";
 
 export type IeltsEnrollmentClient = SupabaseClient<Database>;
 
@@ -12,32 +13,26 @@ async function hasActiveClassEnrollment(
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from("class_memberships")
-    .select("id")
+    .select("class_id")
     .eq("user_id", userId)
     .eq("member_role", "student")
     .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
+    .limit(100);
 
-  if (error) return false;
-  return Boolean(data);
-}
+  if (error || !data?.length) return false;
 
-async function hasActiveClubEnrollment(
-  supabase: IeltsEnrollmentClient,
-  userId: string,
-): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("club_memberships")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("role", "student")
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-
-  if (error) return false;
-  return Boolean(data);
+  const classIds = data.map((row) => row.class_id).filter(Boolean);
+  const { data: ieltsClasses, error: classError } = await supabase
+    .from("classes")
+    .select("id, program_type, status")
+    .in("id", classIds)
+    .eq("program_type", "ielts")
+    .neq("status", "archived")
+    .limit(1);
+  if (classError) return false;
+  return Boolean(
+    ieltsClasses?.some((row) => isEligibleIeltsClass(row.program_type, row.status)),
+  );
 }
 
 /**
@@ -54,12 +49,7 @@ export async function isEnrolledStudent(
 
   try {
     const supabase = client ?? (await createTypedServerClient());
-    const [classEnrollment, clubEnrollment] = await Promise.all([
-      hasActiveClassEnrollment(supabase, userId),
-      hasActiveClubEnrollment(supabase, userId),
-    ]);
-
-    return classEnrollment || clubEnrollment;
+    return hasActiveClassEnrollment(supabase, userId);
   } catch {
     return false;
   }

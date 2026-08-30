@@ -2,20 +2,20 @@
 
 /**
  * IELTS class-assignment server actions (WS-5.3). Teacher mutations (assign /
- * archive) are gated by `requireClubManager`; the learner start action resolves
+ * archive) are gated by class-specific manager access; the learner start action resolves
  * + authorizes the assignment, then stamps the new attempt with its club / class
  * / assignment ids. Every external input is validated with `parseInput`.
  */
 import { revalidatePath } from "next/cache";
 import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { requireClassManager } from "@/lib/api/class-manager-access";
 import { buildMockBlueprint } from "@/lib/ielts/mock-blueprint";
 import {
   ArchiveIeltsAssignmentSchema,
   AssignIeltsMockSchema,
   StartAssignedAttemptSchema,
 } from "@/lib/api/ielts/assignments-schema";
-import { requireClubManager } from "@/lib/api/ielts/assignment-access";
 import {
   archiveIeltsMockAssignment,
   createIeltsMockAssignment,
@@ -33,7 +33,8 @@ import {
 export async function assignIeltsMockToClass(raw: unknown): Promise<{ assignmentId: string }> {
   const input = parseInput(AssignIeltsMockSchema, raw);
   const supabase = await createTypedServerClient();
-  const managerId = await requireClubManager(supabase, input.clubId);
+  const manager = await requireClassManager(supabase, input.classId);
+  if (manager.clubId !== input.clubId) throw new Error("That class is not part of this club");
 
   const created = await createIeltsMockAssignment(
     {
@@ -42,7 +43,7 @@ export async function assignIeltsMockToClass(raw: unknown): Promise<{ assignment
       testId: input.testId,
       dueAt: input.dueAt ?? null,
       title: input.title ?? null,
-      createdBy: managerId,
+      createdBy: manager.userId,
     },
     supabase,
   );
@@ -55,7 +56,16 @@ export async function assignIeltsMockToClass(raw: unknown): Promise<{ assignment
 export async function archiveIeltsAssignment(raw: unknown): Promise<void> {
   const input = parseInput(ArchiveIeltsAssignmentSchema, raw);
   const supabase = await createTypedServerClient();
-  await requireClubManager(supabase, input.clubId);
+  const { data: assignment, error: assignmentError } = await supabase
+    .from("club_assignments")
+    .select("class_id, club_id")
+    .eq("id", input.assignmentId)
+    .eq("club_id", input.clubId)
+    .eq("assignment_type", "ielts_mock")
+    .maybeSingle();
+  if (assignmentError) throw new Error(assignmentError.message);
+  if (!assignment?.class_id) throw new Error("Assignment not found");
+  await requireClassManager(supabase, assignment.class_id);
 
   await archiveIeltsMockAssignment(input.clubId, input.assignmentId, supabase);
 

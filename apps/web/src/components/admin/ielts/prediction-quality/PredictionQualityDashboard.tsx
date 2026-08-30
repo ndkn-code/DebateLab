@@ -20,6 +20,7 @@ import type {
 } from "@/lib/ielts/prediction-quality/types";
 import { CalibrationPlot } from "./CalibrationPlot";
 import { DriftChart } from "./DriftChart";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 function formatBand(value: number | null) {
   return value == null ? "—" : value.toFixed(2);
@@ -47,6 +48,7 @@ export function PredictionQualityDashboard({
   const { kpis, meta } = view;
 
   return (
+    <AdminV2Frame>
     <div className="min-h-full bg-background px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -156,6 +158,7 @@ export function PredictionQualityDashboard({
         )}
       </div>
     </div>
+    </AdminV2Frame>
   );
 }
 

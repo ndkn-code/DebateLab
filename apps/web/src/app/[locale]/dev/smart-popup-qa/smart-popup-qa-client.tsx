@@ -245,22 +245,22 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
   ] as const;
 
   return (
-    <div className="min-h-dvh bg-background text-on-surface">
+    <div className="min-h-dvh overflow-x-hidden bg-background text-on-surface">
       <div className="flex min-h-dvh">
-        <aside className="hidden w-[220px] shrink-0 border-r border-outline-variant bg-white px-3 py-4 md:block">
+        <aside className="hidden w-[220px] shrink-0 border-r border-border bg-surface px-3 py-4 md:block">
           <div className="mb-5 flex items-center gap-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary text-on-primary">
               <Shield className="h-5 w-5" />
             </div>
-            <span className="text-xl font-extrabold">Thinkfy</span>
+            <span className="type-title font-semibold">Thinkfy</span>
           </div>
           <nav className="space-y-1">
             {navItems.map(([Icon, label], index) => (
               <div
                 key={label}
                 className={cn(
-                  "flex h-9 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-on-surface-variant",
-                  index === 0 && "bg-primary-container text-primary"
+                  "flex h-9 items-center gap-3 rounded-[10px] px-3 type-label font-medium text-on-surface-variant transition-colors duration-150",
+                  index === 0 && "bg-primary-container text-primary-dim"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -269,48 +269,48 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
             ))}
           </nav>
         </aside>
-        <main className="mx-auto w-full max-w-[1280px] px-5 py-8 md:px-8">
+        <main className="mx-auto w-full max-w-[1280px] px-5 py-6 md:px-8">
           <div className="mb-6 flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-extrabold">
+            <h1 className="type-heading-lg font-medium">
               {vi ? "Chào buổi tối, Jensen!" : "Good evening, Jensen!"}
             </h1>
-            <div className="hidden gap-8 text-sm font-bold text-on-surface-variant sm:flex">
+            <div className="hidden gap-6 type-label font-medium text-on-surface-variant sm:flex">
               <span>7 {vi ? "ngày" : "Day streak"}</span>
               <span>98,300 Credits</span>
               <span>Level 3</span>
             </div>
           </div>
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_380px]">
-            <section className="rounded-[28px] border border-outline-variant bg-white p-6 shadow-token-panel">
-              <span className="text-xs font-extrabold uppercase text-primary">
+            <section className="rounded-[12px] border border-border bg-surface p-5">
+              <span className="type-caption font-semibold uppercase tracking-wider text-primary-dim">
                 {vi ? "Đề xuất cho bạn" : "Recommended for you"}
               </span>
-              <h2 className="mt-4 max-w-sm text-4xl font-extrabold leading-tight">
+              <h2 className="mt-3 max-w-sm type-heading-xl text-on-surface">
                 {vi ? "Luyện phản biện" : "Strengthen Rebuttal"}
               </h2>
-              <div className="mt-5 grid max-w-sm grid-cols-2 gap-3 text-sm">
+              <div className="mt-4 grid max-w-sm grid-cols-2 gap-3 type-body-sm">
                 <div>
                   <p className="text-xs text-on-surface-variant">{vi ? "Lý do" : "Why now"}</p>
-                  <p className="font-extrabold">{vi ? "Kỹ năng yếu nhất" : "Weakest skill"}</p>
+                  <p className="type-label font-semibold">{vi ? "Kỹ năng yếu nhất" : "Weakest skill"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-on-surface-variant">{vi ? "Điểm" : "Score"}</p>
-                  <p className="font-extrabold">63/100</p>
+                  <p className="type-label font-semibold">63/100</p>
                 </div>
               </div>
-              <button className="mt-8 h-12 rounded-[18px] bg-primary px-8 font-extrabold text-white shadow-token-card">
+              <button type="button" className="mt-6 inline-flex h-8 items-center rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
                 {vi ? "Bắt đầu" : "Start"}
               </button>
             </section>
-            <section className="rounded-[28px] border border-outline-variant bg-white p-5">
-              <h2 className="text-lg font-extrabold">{vi ? "Kế hoạch hôm nay" : "Today's plan"}</h2>
+            <section className="rounded-[12px] border border-border bg-surface p-4">
+              <h2 className="type-title font-semibold">{vi ? "Kế hoạch hôm nay" : "Today's plan"}</h2>
               <div className="mt-4 space-y-3">
                 {["Continue course", "Review feedback", "Strengthen rebuttal"].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-outline-variant px-4 py-3"
+                    className="flex min-h-10 items-center justify-between gap-3 rounded-[10px] border border-border px-3 py-2"
                   >
-                    <span className="font-bold">
+                    <span className="type-label font-medium">
                       {vi
                         ? item === "Continue course"
                           ? "Tiếp tục khóa học"
@@ -319,7 +319,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
                             : "Luyện phản biện"
                         : item}
                     </span>
-                    <span className="rounded-full bg-surface-container px-3 py-1 text-sm font-extrabold text-primary">
+                    <span className="inline-flex h-6 items-center rounded-[6px] bg-primary-container px-2 type-caption font-semibold text-primary-dim">
                       {vi ? "Bắt đầu" : "Start"}
                     </span>
                   </div>
@@ -362,10 +362,10 @@ export function SmartPopupQaClient() {
                   type="button"
                   onClick={() => setAnswers((current) => ({ ...current, [question.id]: rating }))}
                   className={cn(
-                    "h-10 rounded-lg border text-sm font-extrabold",
+                    "h-8 rounded-[10px] border type-label font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     value === rating
-                      ? "border-primary bg-primary text-white"
-                      : "border-outline-variant bg-white text-on-surface-variant"
+                      ? "border-primary bg-primary text-on-primary"
+                      : "border-border bg-surface text-on-surface-variant hover:bg-primary-container"
                   )}
                 >
                   {rating}
@@ -392,10 +392,10 @@ export function SmartPopupQaClient() {
                 setAnswers((current) => ({ ...current, [question.id]: option.id }))
               }
               className={cn(
-                "min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-bold",
+                "min-h-10 rounded-[10px] border px-3 py-2 text-left type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                 value === option.id
                   ? "border-primary bg-primary-container text-on-surface"
-                  : "border-outline-variant bg-white text-on-surface-variant"
+                  : "border-border bg-surface text-on-surface-variant hover:bg-primary-container"
               )}
             >
               {option.label}
@@ -412,7 +412,7 @@ export function SmartPopupQaClient() {
           setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
         }
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-lg border border-outline-variant px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-fixed/40"
+        className="min-h-24 w-full rounded-[10px] border border-border bg-surface px-3 py-2 type-body text-on-surface outline-none transition-[border-color,box-shadow] duration-150 focus:border-ring focus:ring-2 focus:ring-ring/30"
       />
     );
   }
@@ -420,16 +420,16 @@ export function SmartPopupQaClient() {
   return (
     <>
       <DashboardBackdrop locale={locale} />
-      <div className="fixed bottom-4 left-1/2 z-10 hidden -translate-x-1/2 gap-2 rounded-full border border-outline-variant bg-white/90 px-3 py-2 shadow-lg lg:flex">
+      <div className="fixed bottom-4 left-1/2 z-10 hidden max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap justify-center gap-1.5 rounded-[12px] border border-border bg-surface px-2 py-2 shadow-none lg:flex">
         {states.map((state) => (
           <Link
             key={state}
             href={`/${locale}/dev/smart-popup-qa?state=${state}`}
             className={cn(
-              "rounded-full px-3 py-1 text-xs font-extrabold",
+              "inline-flex h-7 items-center rounded-[8px] px-2 type-caption font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
               state === initialState
-                ? "bg-primary text-white"
-                : "text-on-surface-variant hover:bg-surface-container"
+                ? "bg-primary text-on-primary"
+                : "text-on-surface-variant hover:bg-primary-container"
             )}
           >
             {stateLabels[state]}

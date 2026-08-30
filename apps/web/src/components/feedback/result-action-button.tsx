@@ -8,13 +8,13 @@ type ResultActionTone = "primary" | "coach" | "danger" | "neutral";
 
 const toneClassNames: Record<ResultActionTone, string> = {
   primary:
-    "border-outline-variant bg-primary text-white shadow-token-primary hover:bg-primary-dim",
+    "border-primary bg-primary text-on-primary shadow-none hover:bg-primary-dim",
   coach:
-    "border-outline-variant bg-white text-primary-dim shadow-token-primary hover:bg-surface-container",
+    "border-outline-variant bg-surface text-secondary shadow-none hover:bg-secondary-container",
   danger:
-    "border-outline-variant bg-white text-error shadow-token-card hover:bg-surface-container",
+    "border-outline-variant bg-surface text-error shadow-none hover:bg-error-container",
   neutral:
-    "border-outline-variant bg-white text-on-surface shadow-token-card hover:bg-surface-container",
+    "border-outline-variant bg-surface text-on-surface shadow-none hover:bg-surface-container",
 };
 
 interface ResultActionButtonProps extends ComponentProps<typeof Button> {
@@ -31,7 +31,7 @@ export function ResultActionButton({
     <Button
       variant={variant}
       className={cn(
-        "min-h-[48px] rounded-2xl border px-5 type-body font-bold transition active:translate-y-[2px] active:shadow-token-card",
+        "h-8 rounded-[10px] border px-3 type-body font-medium transition active:translate-y-px",
         toneClassNames[tone],
         className
       )}

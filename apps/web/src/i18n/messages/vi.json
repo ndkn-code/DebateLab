@@ -303,7 +303,7 @@
       "ielts_library": "Thư viện đề",
       "ielts_assigned": "Đề được giao"
     },
-      "ielts": {
+    "ielts": {
       "eyebrow": "IELTS",
       "greeting": "Xin chào, {name}",
       "greeting_fallback": "Xin chào",
@@ -806,7 +806,18 @@
           "title": "Thời Gian Luyện (7N)",
           "subtitle": "Trong 7 ngày gần nhất"
         }
-      }
+      },
+      "today_sprint": "Phiên luyện hôm nay",
+      "coming_up": "Sắp tới",
+      "practice_path": "Lộ trình luyện tập",
+      "summary_done": "Đã xong tuần này",
+      "summary_sessions": "{count} phiên",
+      "summary_mastery": "Mức thành thạo",
+      "summary_mastery_detail": "Nền tảng kỹ năng hiện tại",
+      "summary_pace": "Đúng tiến độ",
+      "summary_on_track": "Bạn đang đúng tiến độ",
+      "summary_minutes_left": "Còn {count} phút tới mục tiêu",
+      "summary_pace_detail": "Dựa trên cam kết luyện tập tuần"
     },
     "support": {
       "trigger_label": "Trợ giúp & Hỗ trợ",
@@ -1143,126 +1154,126 @@
       "remove_bookmark": "Bỏ lưu chủ đề",
       "recording": "Đang ghi âm...",
       "speak_placeholder": "Bắt đầu nói... lời của bạn sẽ hiện ở đây",
-    "audioCheck": {
-      "title": "Kiểm tra âm thanh",
-      "description": "Bật loa hoặc cắm tai nghe rồi nhấn nút bên dưới để kiểm tra nha!",
-      "playTest": "Phát thử âm thanh",
-      "playing": "Đang phát...",
-      "tryAgain": "Thử lại",
-      "confirm": "Nghe được rồi, bắt đầu!"
-    },
-    "session": {
-      "motion": "Motion",
-      "info": "Thông tin",
-      "argument_anchors": "Luận điểm gợi ý",
-      "coach_brief": "Gợi ý từ coach",
-      "highlight_claim": "Luận điểm",
-      "highlight_evidence": "Dẫn chứng",
-      "highlight_impact": "Tác động",
-      "highlight_assumption": "Giả định",
-      "transcript_rounds": "Transcript",
-      "transcript_empty_round": "Lượt này chưa có nội dung.",
-      "motion_default_context": "Xác định clash, chọn burden mạnh nhất và giải thích vì sao phe của bạn quan trọng hơn.",
-      "motion_brief": "Brief của motion",
-      "motion_scope": "Phạm vi",
-      "your_burden": "Burden của bạn",
-      "model_clarification": "Mô hình",
-      "show_motion_brief": "Mở brief motion",
-      "hide_motion_brief": "Ẩn brief motion",
-      "preparation_phase": "Chuẩn bị",
-      "prep_prompt": "Lên mở bài và các ý chính.",
-      "skip_to_speaking": "Bỏ qua để nói",
-      "quick_notes": "Ghi chú nhanh",
-      "notes_placeholder": "Ghi các luận điểm chính...",
-      "need_starting_point": "Cần gợi ý bắt đầu?",
-      "define_key_terms": "Định nghĩa",
-      "list_main_arguments": "Luận điểm chính",
-      "anticipate_counterpoints": "Phản biện trước",
-      "add_evidence": "Thêm dẫn chứng",
-      "lock_burden": "Chốt gánh nặng",
-      "create_clash_axes": "Tạo trục va chạm",
-      "deepen_mechanism": "Đào sâu cơ chế",
-      "weigh_impacts": "Cân tác động",
-      "polish_style": "Đánh bóng văn phong",
-      "speaking_phase": "Đang nói",
-      "speaking": "Đang nói",
-      "ai_turn": "Lượt AI",
-      "listening": "Đang nghe...",
-      "waiting_for_speech": "Đang chờ giọng nói...",
-      "waiting_for_transcript": "Đã nghe âm thanh. Đang tạo bản ghi...",
-      "paused": "Tạm dừng",
-      "not_recording": "Chưa ghi âm",
-      "no_speech_detected": "Chưa nghe thấy giọng nói. Kiểm tra micro nhé.",
-      "live_transcript": "Transcript trực tiếp",
-      "word_count": "{count} từ",
-      "transcript_placeholder": "Bắt đầu nói để xem transcript ở đây...",
-      "audio_sample_hint": "Bạn sẽ nghe một âm thử ngắn",
-      "exit_practice": "Thoát luyện tập",
-      "next_mic_check": "Tiếp theo: kiểm tra micro",
-      "mic_access_required": "Cần quyền truy cập micro",
-      "mic_allow_prompt": "Hãy cho phép truy cập micro khi trình duyệt hỏi.",
-      "test_microphone": "Kiểm tra micro",
-      "mic_working": "Micro hoạt động rồi!",
-      "mic_detected": "Đã nhận âm thanh. Bạn sẵn sàng bắt đầu.",
-      "speak_to_test_mic": "Nói một câu để kiểm tra micro...",
-      "start_session": "Bắt đầu phiên",
-      "skip_audio_test": "Bỏ qua kiểm tra âm thanh",
-      "mic_access_denied": "Micro bị chặn",
-      "mic_enable_steps": "Làm theo các bước này để bật micro:",
-      "mic_step_1": "Nhấn biểu tượng khóa hoặc camera trên thanh địa chỉ",
-      "mic_step_2": "Tìm Microphone và đổi sang Allow",
-      "mic_step_3": "Tải lại trang rồi thử lại",
-      "go_back": "Quay lại",
-      "setup_expired_title": "Cấu hình phiên đã hết hạn",
-      "setup_expired_body": "Thinkfy không khôi phục được cấu hình luyện tập. Hãy chọn lại chủ đề để bắt đầu phiên mới.",
-      "return_to_practice": "Quay lại Luyện tập",
-      "no_microphone_detected": "Không tìm thấy micro",
-      "connect_microphone": "Hãy kết nối micro rồi thử lại.",
-      "microphone_error": "Lỗi micro",
-      "pause": "Tạm dừng",
-      "resume": "Tiếp tục",
-      "end_speech": "Kết thúc bài nói",
-      "end_confirm_title": "Kết thúc bài nói sớm?",
-      "cancel": "Hủy",
-      "end_now": "Kết thúc ngay",
-      "transition_lets_go": "Bắt đầu nào",
-      "transition_session_starting": "Phiên luyện tập của bạn đang bắt đầu",
-      "transition_get_ready": "Sẵn sàng",
-      "transition_speaking_begins": "Phần nói bắt đầu ngay...",
-      "transition_round_with_label": "Vòng {round}: {label}",
-      "transition_round_title": "Vòng {round}",
-      "transition_round_subtitle": "{label}...",
-      "transition_your_turn": "Lượt của bạn: {label}",
-      "transition_analyzing": "Đang phân tích...",
-      "transition_analyzing_subtitle": "Đang xử lý bài tranh biện của bạn...",
-      "round_opening": "Mở bài",
-      "round_ai_rebuttal": "AI phản biện",
-      "round_counter_rebuttal": "Phản biện lại",
-      "round_ai_closing": "AI kết luận",
-      "round_closing": "Kết luận",
-      "ai_preparing": "AI đang chuẩn bị phản hồi...",
-      "ai_speaking": "AI đang nói...",
-      "ai_finished": "AI đã nói xong",
-      "error": "Lỗi",
-      "difficulty_label": "Độ khó: {difficulty}",
-      "skip_animation": "Bỏ qua hiệu ứng",
-      "try_audio_again": "Thử âm thanh lại",
-      "ai_response": "Phản hồi của AI",
-      "generating_round": "Đang tạo {round}...",
-      "same_notes_helper": "Ghi chú từ phần chuẩn bị. Thêm ý phản biện khi AI tranh luận.",
-      "tip": "Gợi ý",
-      "ai_highlight_tip": "Phần được tô sáng đánh dấu claim, evidence, impact hoặc assumption. Ghi ý phản biện trước khi tiếp tục.",
-      "continue_next_round": "Tiếp tục vòng tiếp theo",
-      "waiting": "Đang chờ..."
-    },
-    "tts": {
-      "generating": "Đang tạo giọng nói...",
-      "play": "Phát",
-      "pause": "Tạm dừng",
-      "resume": "Tiếp tục",
-      "replay": "Nghe lại",
-      "error": "Lỗi phát âm thanh"
-    }
+      "audioCheck": {
+        "title": "Kiểm tra âm thanh",
+        "description": "Bật loa hoặc cắm tai nghe rồi nhấn nút bên dưới để kiểm tra nha!",
+        "playTest": "Phát thử âm thanh",
+        "playing": "Đang phát...",
+        "tryAgain": "Thử lại",
+        "confirm": "Nghe được rồi, bắt đầu!"
+      },
+      "session": {
+        "motion": "Motion",
+        "info": "Thông tin",
+        "argument_anchors": "Luận điểm gợi ý",
+        "coach_brief": "Gợi ý từ coach",
+        "highlight_claim": "Luận điểm",
+        "highlight_evidence": "Dẫn chứng",
+        "highlight_impact": "Tác động",
+        "highlight_assumption": "Giả định",
+        "transcript_rounds": "Transcript",
+        "transcript_empty_round": "Lượt này chưa có nội dung.",
+        "motion_default_context": "Xác định clash, chọn burden mạnh nhất và giải thích vì sao phe của bạn quan trọng hơn.",
+        "motion_brief": "Brief của motion",
+        "motion_scope": "Phạm vi",
+        "your_burden": "Burden của bạn",
+        "model_clarification": "Mô hình",
+        "show_motion_brief": "Mở brief motion",
+        "hide_motion_brief": "Ẩn brief motion",
+        "preparation_phase": "Chuẩn bị",
+        "prep_prompt": "Lên mở bài và các ý chính.",
+        "skip_to_speaking": "Bỏ qua để nói",
+        "quick_notes": "Ghi chú nhanh",
+        "notes_placeholder": "Ghi các luận điểm chính...",
+        "need_starting_point": "Cần gợi ý bắt đầu?",
+        "define_key_terms": "Định nghĩa",
+        "list_main_arguments": "Luận điểm chính",
+        "anticipate_counterpoints": "Phản biện trước",
+        "add_evidence": "Thêm dẫn chứng",
+        "lock_burden": "Chốt gánh nặng",
+        "create_clash_axes": "Tạo trục va chạm",
+        "deepen_mechanism": "Đào sâu cơ chế",
+        "weigh_impacts": "Cân tác động",
+        "polish_style": "Đánh bóng văn phong",
+        "speaking_phase": "Đang nói",
+        "speaking": "Đang nói",
+        "ai_turn": "Lượt AI",
+        "listening": "Đang nghe...",
+        "waiting_for_speech": "Đang chờ giọng nói...",
+        "waiting_for_transcript": "Đã nghe âm thanh. Đang tạo bản ghi...",
+        "paused": "Tạm dừng",
+        "not_recording": "Chưa ghi âm",
+        "no_speech_detected": "Chưa nghe thấy giọng nói. Kiểm tra micro nhé.",
+        "live_transcript": "Transcript trực tiếp",
+        "word_count": "{count} từ",
+        "transcript_placeholder": "Bắt đầu nói để xem transcript ở đây...",
+        "audio_sample_hint": "Bạn sẽ nghe một âm thử ngắn",
+        "exit_practice": "Thoát luyện tập",
+        "next_mic_check": "Tiếp theo: kiểm tra micro",
+        "mic_access_required": "Cần quyền truy cập micro",
+        "mic_allow_prompt": "Hãy cho phép truy cập micro khi trình duyệt hỏi.",
+        "test_microphone": "Kiểm tra micro",
+        "mic_working": "Micro hoạt động rồi!",
+        "mic_detected": "Đã nhận âm thanh. Bạn sẵn sàng bắt đầu.",
+        "speak_to_test_mic": "Nói một câu để kiểm tra micro...",
+        "start_session": "Bắt đầu phiên",
+        "skip_audio_test": "Bỏ qua kiểm tra âm thanh",
+        "mic_access_denied": "Micro bị chặn",
+        "mic_enable_steps": "Làm theo các bước này để bật micro:",
+        "mic_step_1": "Nhấn biểu tượng khóa hoặc camera trên thanh địa chỉ",
+        "mic_step_2": "Tìm Microphone và đổi sang Allow",
+        "mic_step_3": "Tải lại trang rồi thử lại",
+        "go_back": "Quay lại",
+        "setup_expired_title": "Cấu hình phiên đã hết hạn",
+        "setup_expired_body": "Thinkfy không khôi phục được cấu hình luyện tập. Hãy chọn lại chủ đề để bắt đầu phiên mới.",
+        "return_to_practice": "Quay lại Luyện tập",
+        "no_microphone_detected": "Không tìm thấy micro",
+        "connect_microphone": "Hãy kết nối micro rồi thử lại.",
+        "microphone_error": "Lỗi micro",
+        "pause": "Tạm dừng",
+        "resume": "Tiếp tục",
+        "end_speech": "Kết thúc bài nói",
+        "end_confirm_title": "Kết thúc bài nói sớm?",
+        "cancel": "Hủy",
+        "end_now": "Kết thúc ngay",
+        "transition_lets_go": "Bắt đầu nào",
+        "transition_session_starting": "Phiên luyện tập của bạn đang bắt đầu",
+        "transition_get_ready": "Sẵn sàng",
+        "transition_speaking_begins": "Phần nói bắt đầu ngay...",
+        "transition_round_with_label": "Vòng {round}: {label}",
+        "transition_round_title": "Vòng {round}",
+        "transition_round_subtitle": "{label}...",
+        "transition_your_turn": "Lượt của bạn: {label}",
+        "transition_analyzing": "Đang phân tích...",
+        "transition_analyzing_subtitle": "Đang xử lý bài tranh biện của bạn...",
+        "round_opening": "Mở bài",
+        "round_ai_rebuttal": "AI phản biện",
+        "round_counter_rebuttal": "Phản biện lại",
+        "round_ai_closing": "AI kết luận",
+        "round_closing": "Kết luận",
+        "ai_preparing": "AI đang chuẩn bị phản hồi...",
+        "ai_speaking": "AI đang nói...",
+        "ai_finished": "AI đã nói xong",
+        "error": "Lỗi",
+        "difficulty_label": "Độ khó: {difficulty}",
+        "skip_animation": "Bỏ qua hiệu ứng",
+        "try_audio_again": "Thử âm thanh lại",
+        "ai_response": "Phản hồi của AI",
+        "generating_round": "Đang tạo {round}...",
+        "same_notes_helper": "Ghi chú từ phần chuẩn bị. Thêm ý phản biện khi AI tranh luận.",
+        "tip": "Gợi ý",
+        "ai_highlight_tip": "Phần được tô sáng đánh dấu claim, evidence, impact hoặc assumption. Ghi ý phản biện trước khi tiếp tục.",
+        "continue_next_round": "Tiếp tục vòng tiếp theo",
+        "waiting": "Đang chờ..."
+      },
+      "tts": {
+        "generating": "Đang tạo giọng nói...",
+        "play": "Phát",
+        "pause": "Tạm dừng",
+        "resume": "Tiếp tục",
+        "replay": "Nghe lại",
+        "error": "Lỗi phát âm thanh"
+      }
     },
     "chat": {
       "new_chat": "Chat Mới",
@@ -1553,12 +1564,12 @@
     "skill_chart": "Biểu Đồ Kỹ Năng"
   },
   "settings": {
-  "headline": "Cài đặt",
-  "subtitle": "Quản lý tài khoản, tuỳ chọn và trải nghiệm luyện tập của bạn.",
-  "fallback_name": "Thành viên Thinkfy",
-  "hero_summary": "Cập nhật cách hồ sơ của bạn xuất hiện, giữ mặc định luyện tập thật gọn gàng và tinh chỉnh trải nghiệm Thinkfy cho mỗi lần quay lại.",
-  "avatar_upload": "Tải ảnh đại diện lên",
-  "save_changes": "Lưu thay đổi",
+    "headline": "Cài đặt",
+    "subtitle": "Quản lý tài khoản, tuỳ chọn và trải nghiệm luyện tập của bạn.",
+    "fallback_name": "Thành viên Thinkfy",
+    "hero_summary": "Cập nhật cách hồ sơ của bạn xuất hiện, giữ mặc định luyện tập thật gọn gàng và tinh chỉnh trải nghiệm Thinkfy cho mỗi lần quay lại.",
+    "avatar_upload": "Tải ảnh đại diện lên",
+    "save_changes": "Lưu thay đổi",
     "status": {
       "unsaved": "Có thay đổi chưa lưu",
       "saved": "Mọi thay đổi đã được lưu"
@@ -1595,20 +1606,20 @@
     },
     "fields": {
       "display_name": "Tên hiển thị",
-    "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Thinkfy",
-    "handle": "Handle",
-    "handle_placeholder": "dev.admin",
-    "handle_helper": "Dùng 3-30 ký tự chữ thường, số, gạch dưới hoặc dấu chấm.",
-    "profile_status": "Trạng thái hồ sơ",
-    "profile_status_placeholder": "Đang xem lại bản đồ lập luận",
-    "profile_status_helper": "Một dòng ngắn có thể hiển thị trên hồ sơ của bạn.",
-    "avatar": "Ảnh đại diện",
-    "default_prep_time": "Thời gian chuẩn bị mặc định",
-    "default_speech_time": "Thời gian nói mặc định",
-    "default_difficulty": "Độ khó AI mặc định",
-    "app_language": "Ngôn ngữ ứng dụng",
-    "practice_language": "Ngôn ngữ luyện tập"
-  },
+      "display_name_placeholder": "Nhập tên bạn muốn hiển thị trong Thinkfy",
+      "handle": "Handle",
+      "handle_placeholder": "dev.admin",
+      "handle_helper": "Dùng 3-30 ký tự chữ thường, số, gạch dưới hoặc dấu chấm.",
+      "profile_status": "Trạng thái hồ sơ",
+      "profile_status_placeholder": "Đang xem lại bản đồ lập luận",
+      "profile_status_helper": "Một dòng ngắn có thể hiển thị trên hồ sơ của bạn.",
+      "avatar": "Ảnh đại diện",
+      "default_prep_time": "Thời gian chuẩn bị mặc định",
+      "default_speech_time": "Thời gian nói mặc định",
+      "default_difficulty": "Độ khó AI mặc định",
+      "app_language": "Ngôn ngữ ứng dụng",
+      "practice_language": "Ngôn ngữ luyện tập"
+    },
     "time_option": "{count, plural, one {# phút} other {# phút}}",
     "duration_helper": {
       "prep": "Chọn số phút bất kỳ từ 1 đến 10.",
@@ -1710,13 +1721,18 @@
         "vietnamese": "Việt Nam"
       }
     },
-  "toast": {
-    "saved": "Đã lưu cài đặt.",
-    "save_error": "Hiện chưa thể lưu cài đặt của bạn.",
-    "avatar_invalid": "Hãy chọn một tệp ảnh hợp lệ cho ảnh đại diện.",
-    "avatar_too_large": "Hãy chọn ảnh đại diện nhỏ hơn 8 MB.",
+    "toast": {
+      "saved": "Đã lưu cài đặt.",
+      "save_error": "Hiện chưa thể lưu cài đặt của bạn.",
+      "avatar_invalid": "Hãy chọn một tệp ảnh hợp lệ cho ảnh đại diện.",
+      "avatar_too_large": "Hãy chọn ảnh đại diện nhỏ hơn 8 MB.",
       "history_cleared": "{count, plural, =0 {Lịch sử luyện tập cá nhân đã trống.} one {Đã xoá # phiên luyện tập cá nhân.} other {Đã xoá # phiên luyện tập cá nhân.}}",
       "history_error": "Hiện chưa thể xoá lịch sử luyện tập cá nhân."
+    },
+    "visibility_options": {
+      "only_me": "Chỉ mình tôi",
+      "friends": "Bạn bè",
+      "everyone": "Mọi người"
     }
   },
   "achievements": {
@@ -1818,157 +1834,294 @@
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",
     "backToDashboard": "Quay lại Dashboard",
-      "nav": {
-        "overview": "Tổng quan",
-        "aiQuality": "Chất lượng AI",
-        "predictionQuality": "Chất lượng dự đoán",
-        "uiShowcase": "Thư viện UI",
-        "corpus": "Corpus",
-        "users": "Người dùng & truy cập",
-    "reports": "Báo cáo",
-    "referrals": "Giới thiệu",
-        "classes": "Classes",
-        "clubs": "Câu lạc bộ",
-        "emails": "Email",
-        "feedbackPopups": "Popup góp ý",
-        "maintenance": "Bảo trì",
-        "courses": "Khóa học",
-        "vocabulary": "Ngân hàng từ vựng",
-        "resources": "Tài liệu",
-        "ielts": "IELTS",
-        "questionBank": "Ngân hàng câu hỏi",
-        "duels": "Đấu đối kháng",
-        "motions": "Kiến nghị"
+    "nav": {
+      "overview": "Tổng quan",
+      "aiQuality": "Chất lượng AI",
+      "predictionQuality": "Chất lượng dự đoán",
+      "uiShowcase": "Thư viện UI",
+      "corpus": "Corpus",
+      "users": "Người dùng & truy cập",
+      "reports": "Báo cáo",
+      "referrals": "Giới thiệu",
+      "classes": "Classes",
+      "clubs": "Câu lạc bộ",
+      "emails": "Email",
+      "feedbackPopups": "Popup góp ý",
+      "maintenance": "Bảo trì",
+      "courses": "Khóa học",
+      "vocabulary": "Ngân hàng từ vựng",
+      "resources": "Tài liệu",
+      "ielts": "IELTS",
+      "questionBank": "Ngân hàng câu hỏi",
+      "duels": "Đấu đối kháng",
+      "motions": "Kiến nghị"
+    },
+    "vocabulary": {
+      "eyebrow": "Nội dung dùng lại",
+      "title": "Ngân hàng từ vựng",
+      "description": "Quản lý từ vựng IELTS và tranh biện dùng lại cho thẻ ghi nhớ và bài luyện từ vựng.",
+      "create": "Tạo từ mới",
+      "edit": "Sửa từ",
+      "delete": "Xóa từ",
+      "save": "Lưu từ",
+      "saving": "Đang lưu…",
+      "cancel": "Hủy",
+      "saved": "Đã lưu từ vựng",
+      "saveFailed": "Không thể lưu từ này",
+      "deleted": "Đã xóa từ vựng",
+      "deleteFailed": "Không thể xóa từ này",
+      "deleteConfirm": "Xóa “{term}” khỏi ngân hàng từ vựng?",
+      "noDefinition": "Chưa có định nghĩa.",
+      "previous": "Trước",
+      "next": "Tiếp",
+      "pagination": "Trang {page} / {pages}",
+      "subjects": {
+        "debate": "Tranh biện"
       },
-  "vocabulary": {
-    "eyebrow": "Nội dung dùng lại",
-    "title": "Ngân hàng từ vựng",
-    "description": "Quản lý từ vựng IELTS và tranh biện dùng lại cho thẻ ghi nhớ và bài luyện từ vựng.",
-    "create": "Tạo từ mới",
-    "edit": "Sửa từ",
-    "delete": "Xóa từ",
-    "save": "Lưu từ",
-    "saving": "Đang lưu…",
-    "cancel": "Hủy",
-    "saved": "Đã lưu từ vựng",
-    "saveFailed": "Không thể lưu từ này",
-    "deleted": "Đã xóa từ vựng",
-    "deleteFailed": "Không thể xóa từ này",
-    "deleteConfirm": "Xóa “{term}” khỏi ngân hàng từ vựng?",
-    "noDefinition": "Chưa có định nghĩa.",
-    "previous": "Trước",
-    "next": "Tiếp",
-    "pagination": "Trang {page} / {pages}",
-    "subjects": { "debate": "Tranh biện" },
-    "counts": { "total": "Tổng số từ", "ieltsPage": "IELTS trên trang", "debatePage": "Tranh biện trên trang" },
-    "filters": { "search": "Tìm từ hoặc định nghĩa", "allSubjects": "Mọi môn", "allBands": "Mọi band", "allTopics": "Mọi chủ đề", "apply": "Lọc" },
-    "empty": { "title": "Không tìm thấy từ vựng", "description": "Tạo từ đầu tiên hoặc nới lỏng bộ lọc." },
-    "form": { "createTitle": "Tạo từ vựng", "editTitle": "Sửa từ vựng", "description": "Ngăn cách từ đồng nghĩa, collocation và chủ đề bằng dấu phẩy." },
-    "fields": { "term": "Từ", "subject": "Môn", "band": "Band", "partOfSpeech": "Từ loại", "phonetic": "Phiên âm (IPA)", "definitionEn": "Định nghĩa (Tiếng Anh)", "definitionVi": "Định nghĩa (Tiếng Việt)", "example": "Ví dụ", "synonyms": "Từ đồng nghĩa", "collocations": "Collocation", "topicTags": "Chủ đề", "source": "Nguồn" }
-  },
-  "resources": {
-    "eyebrow": "Thư viện nội dung",
-    "title": "Tài liệu",
-    "description": "Quản lý tệp và liên kết uy tín cho học viên IELTS và Debate. Tệp riêng tư được mở bằng liên kết ký có thời hạn ngắn.",
-    "create": "Thêm tài liệu",
-    "save": "Lưu tài liệu",
-    "saving": "Đang lưu…",
-    "saved": "Đã lưu tài liệu",
-    "saveFailed": "Chưa lưu được tài liệu",
-    "deleted": "Đã xóa tài liệu",
-    "deleteFailed": "Chưa xóa được tài liệu",
-    "cancel": "Hủy",
-    "edit": "Sửa tài liệu",
-    "preview": "Xem thử",
-    "noDescription": "Chưa có mô tả",
-    "summary": { "total": "Tổng", "published": "Đã xuất bản", "files": "Tệp" },
-    "empty": { "title": "Chưa có tài liệu", "description": "Thêm tệp hoặc liên kết uy tín để bắt đầu thư viện học viên." },
-    "editor": { "createTitle": "Thêm tài liệu", "editTitle": "Sửa tài liệu", "description": "Chọn người có thể xem, rồi xuất bản khi đã sẵn sàng." },
-    "fields": {
-      "title": "Tiêu đề",
-      "description": "Mô tả",
-      "kind": "Loại tài liệu",
-      "subject": "Môn học",
-      "url": "URL liên kết",
-      "file": "Tệp",
-      "chooseFile": "Chọn tệp (tối đa 50MB)",
-      "fileTooLarge": "Hãy chọn tệp có dung lượng tối đa 50MB.",
-      "replaceFile": "Chọn tệp thay thế hoặc giữ tệp hiện tại",
-      "tags": "Thẻ",
-      "tagsPlaceholder": "speaking, rubric, research",
-      "access": "Quyền truy cập",
-      "club": "Câu lạc bộ",
-      "chooseClub": "Chọn câu lạc bộ",
-      "published": "Đã xuất bản",
-      "publishedHint": "Hiển thị ngay cho những người được phép theo quyền truy cập đã chọn."
+      "counts": {
+        "total": "Tổng số từ",
+        "ieltsPage": "IELTS trên trang",
+        "debatePage": "Tranh biện trên trang"
+      },
+      "filters": {
+        "search": "Tìm từ hoặc định nghĩa",
+        "allSubjects": "Mọi môn",
+        "allBands": "Mọi band",
+        "allTopics": "Mọi chủ đề",
+        "apply": "Lọc"
+      },
+      "empty": {
+        "title": "Không tìm thấy từ vựng",
+        "description": "Tạo từ đầu tiên hoặc nới lỏng bộ lọc."
+      },
+      "form": {
+        "createTitle": "Tạo từ vựng",
+        "editTitle": "Sửa từ vựng",
+        "description": "Ngăn cách từ đồng nghĩa, collocation và chủ đề bằng dấu phẩy."
+      },
+      "fields": {
+        "term": "Từ",
+        "subject": "Môn",
+        "band": "Band",
+        "partOfSpeech": "Từ loại",
+        "phonetic": "Phiên âm (IPA)",
+        "definitionEn": "Định nghĩa (Tiếng Anh)",
+        "definitionVi": "Định nghĩa (Tiếng Việt)",
+        "example": "Ví dụ",
+        "synonyms": "Từ đồng nghĩa",
+        "collocations": "Collocation",
+        "topicTags": "Chủ đề",
+        "source": "Nguồn"
+      }
     },
-    "kind": { "file": "Tệp", "link": "Liên kết" },
-    "access": { "public": "Công khai", "authenticated": "Học viên đã đăng nhập", "club": "Thành viên câu lạc bộ" },
-    "status": { "published": "Đã xuất bản", "draft": "Bản nháp" },
-    "delete": { "label": "Xóa tài liệu", "title": "Xóa tài liệu này?", "description": "“{title}” và tệp riêng tư đi kèm (nếu có) sẽ bị xóa vĩnh viễn.", "confirm": "Xóa" }
-  },
-  "emailCampaigns": {
-    "new": "Chiến dịch mới",
-    "empty": "Chưa có chiến dịch",
-    "compose": "Soạn chiến dịch",
-    "edit": "Chi tiết chiến dịch",
-    "fields": { "name": "Tên chiến dịch", "template": "Mẫu email", "locale": "Ngôn ngữ" },
-    "audience": { "title": "Đối tượng", "adminTest": "Chỉ admin thử nghiệm", "all": "Tất cả người dùng đã đồng ý", "plan": "Theo gói", "locale": "Theo ngôn ngữ", "club": "Theo câu lạc bộ", "referrers": "Người giới thiệu" },
-    "actions": { "save": "Lưu bản nháp", "schedule": "Lên lịch", "send": "Gửi ngay", "cancel": "Hủy chiến dịch" },
-    "schedule": { "title": "Lên lịch gửi", "confirm": "Xác nhận lịch bằng tên chiến dịch" },
-    "send": { "title": "Nhập tên chiến dịch để xác nhận gửi", "confirm": "Xác nhận gửi bằng tên chiến dịch" },
-    "results": { "title": "Kết quả chiến dịch", "sent": "Đã gửi", "delivered": "Đã nhận", "opened": "Đã mở", "clicked": "Đã nhấp", "deliveryRate": "Tỷ lệ nhận", "openRate": "Tỷ lệ mở", "clickRate": "Tỷ lệ nhấp", "risk": "Trả lại, lỗi hoặc chặn" },
-    "notices": { "saved": "Đã lưu bản nháp.", "scheduled": "Đã lên lịch chiến dịch.", "sent": "Đã hoàn tất đợt gửi.", "processing": "Đã gửi đợt đầu; cron sẽ tiếp tục xử lý.", "canceled": "Đã hủy chiến dịch; sẽ không gửi thêm đợt nào." },
-    "errors": { "load": "Không thể tải chiến dịch.", "action": "Không thể cập nhật chiến dịch.", "saveFirst": "Hãy lưu bản nháp trước khi lên lịch hoặc gửi." }
-  },
-  "referrals": {
-    "title": "Giới thiệu",
-    "readOnly": "Chỉ xem",
-    "orbsShort": "ORB",
-    "search": "Tìm kiếm",
-    "searchPlaceholder": "Tìm tên hoặc email",
-    "previous": "Trước",
-    "next": "Tiếp",
-    "pagination": "Trang {page} / {pages}",
-    "kpis": { "total": "Tổng lượt giới thiệu", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "orbs": "ORB đã thưởng" },
-    "leaderboard": { "title": "Người giới thiệu hàng đầu", "empty": "Chưa có người giới thiệu" },
-    "list": { "title": "Hoạt động giới thiệu" },
-    "status": { "all": "Tất cả", "pending": "Đang chờ", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "rejected": "Từ chối" },
-    "table": { "referrer": "Người giới thiệu", "referee": "Người được giới thiệu", "status": "Trạng thái", "orbs": "ORB", "qualified": "Đủ điều kiện", "credited": "Đã thưởng", "created": "Ngày tạo" },
-    "empty": {
-      "title": "Chưa có lượt giới thiệu",
-      "description": "Hoạt động giới thiệu sẽ xuất hiện tại đây sau khi ra mắt.",
-      "filteredTitle": "Không có kết quả phù hợp",
-      "filteredDescription": "Hãy thử email hoặc trạng thái khác."
-    }
-  },
-  "maintenance": {
-    "eyebrow": "Vận hành",
-    "title": "Chế độ bảo trì",
-    "description": "Đăng thông báo ngắn hoặc tạm thời chuyển người học tới trang bảo trì mang thương hiệu Thinkfy. Trang quản trị và xác thực vẫn hoạt động.",
-    "save": "Lưu cài đặt",
-    "saving": "Đang lưu…",
-    "saved": "Đã lưu cài đặt bảo trì",
-    "saveFailed": "Không thể lưu cài đặt bảo trì",
-    "invalid": "Vui lòng kiểm tra cài đặt bảo trì",
-    "modeTitle": "Chế độ trang web",
-    "modeDescription": "Thay đổi có hiệu lực trong vài giây trên môi trường production.",
-    "modes": {
-      "off": { "label": "Tắt", "description": "Hoạt động bình thường, không hiện thông báo bảo trì." },
-      "banner": { "label": "Banner", "description": "Vẫn mở ứng dụng và hiển thị thông báo song ngữ." },
-      "full": { "label": "Toàn phần", "description": "Chuyển hướng trang người học và trả về 503 cho API công khai." }
+    "resources": {
+      "eyebrow": "Thư viện nội dung",
+      "title": "Tài liệu",
+      "description": "Quản lý tệp và liên kết uy tín cho học viên IELTS và Debate. Tệp riêng tư được mở bằng liên kết ký có thời hạn ngắn.",
+      "create": "Thêm tài liệu",
+      "save": "Lưu tài liệu",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu tài liệu",
+      "saveFailed": "Chưa lưu được tài liệu",
+      "deleted": "Đã xóa tài liệu",
+      "deleteFailed": "Chưa xóa được tài liệu",
+      "cancel": "Hủy",
+      "edit": "Sửa tài liệu",
+      "preview": "Xem thử",
+      "noDescription": "Chưa có mô tả",
+      "summary": {
+        "total": "Tổng",
+        "published": "Đã xuất bản",
+        "files": "Tệp"
+      },
+      "empty": {
+        "title": "Chưa có tài liệu",
+        "description": "Thêm tệp hoặc liên kết uy tín để bắt đầu thư viện học viên."
+      },
+      "editor": {
+        "createTitle": "Thêm tài liệu",
+        "editTitle": "Sửa tài liệu",
+        "description": "Chọn người có thể xem, rồi xuất bản khi đã sẵn sàng."
+      },
+      "fields": {
+        "title": "Tiêu đề",
+        "description": "Mô tả",
+        "kind": "Loại tài liệu",
+        "subject": "Môn học",
+        "url": "URL liên kết",
+        "file": "Tệp",
+        "chooseFile": "Chọn tệp (tối đa 50MB)",
+        "fileTooLarge": "Hãy chọn tệp có dung lượng tối đa 50MB.",
+        "replaceFile": "Chọn tệp thay thế hoặc giữ tệp hiện tại",
+        "tags": "Thẻ",
+        "tagsPlaceholder": "speaking, rubric, research",
+        "access": "Quyền truy cập",
+        "club": "Câu lạc bộ",
+        "chooseClub": "Chọn câu lạc bộ",
+        "published": "Đã xuất bản",
+        "publishedHint": "Hiển thị ngay cho những người được phép theo quyền truy cập đã chọn."
+      },
+      "kind": {
+        "file": "Tệp",
+        "link": "Liên kết"
+      },
+      "access": {
+        "public": "Công khai",
+        "authenticated": "Học viên đã đăng nhập",
+        "club": "Thành viên câu lạc bộ"
+      },
+      "status": {
+        "published": "Đã xuất bản",
+        "draft": "Bản nháp"
+      },
+      "delete": {
+        "label": "Xóa tài liệu",
+        "title": "Xóa tài liệu này?",
+        "description": "“{title}” và tệp riêng tư đi kèm (nếu có) sẽ bị xóa vĩnh viễn.",
+        "confirm": "Xóa"
+      }
     },
-    "bannerTitle": "Nội dung banner",
-    "bannerDescription": "Hiển thị ở đầu ứng dụng khi chọn chế độ banner.",
-    "fullTitle": "Nội dung toàn trang",
-    "fullDescription": "Hiển thị trên trang bảo trì công khai khi chọn chế độ toàn phần.",
-    "languages": { "en": "Tiếng Anh", "vi": "Tiếng Việt" },
-    "doneAtTitle": "Thời gian dự kiến hoàn tất",
-    "doneAtDescription": "Bắt buộc và phải là thời điểm trong tương lai khi chọn chế độ toàn phần.",
-    "doneAtLabel": "Dự kiến hoàn tất lúc",
-    "doneAtHint": "Sử dụng múi giờ trên trình duyệt và được lưu dưới dạng UTC."
-  },
-  "comingSoon": "Sắp ra mắt",
+    "emailCampaigns": {
+      "new": "Chiến dịch mới",
+      "empty": "Chưa có chiến dịch",
+      "compose": "Soạn chiến dịch",
+      "edit": "Chi tiết chiến dịch",
+      "fields": {
+        "name": "Tên chiến dịch",
+        "template": "Mẫu email",
+        "locale": "Ngôn ngữ"
+      },
+      "audience": {
+        "title": "Đối tượng",
+        "adminTest": "Chỉ admin thử nghiệm",
+        "all": "Tất cả người dùng đã đồng ý",
+        "plan": "Theo gói",
+        "locale": "Theo ngôn ngữ",
+        "club": "Theo câu lạc bộ",
+        "referrers": "Người giới thiệu"
+      },
+      "actions": {
+        "save": "Lưu bản nháp",
+        "schedule": "Lên lịch",
+        "send": "Gửi ngay",
+        "cancel": "Hủy chiến dịch"
+      },
+      "schedule": {
+        "title": "Lên lịch gửi",
+        "confirm": "Xác nhận lịch bằng tên chiến dịch"
+      },
+      "send": {
+        "title": "Nhập tên chiến dịch để xác nhận gửi",
+        "confirm": "Xác nhận gửi bằng tên chiến dịch"
+      },
+      "results": {
+        "title": "Kết quả chiến dịch",
+        "sent": "Đã gửi",
+        "delivered": "Đã nhận",
+        "opened": "Đã mở",
+        "clicked": "Đã nhấp",
+        "deliveryRate": "Tỷ lệ nhận",
+        "openRate": "Tỷ lệ mở",
+        "clickRate": "Tỷ lệ nhấp",
+        "risk": "Trả lại, lỗi hoặc chặn"
+      },
+      "notices": {
+        "saved": "Đã lưu bản nháp.",
+        "scheduled": "Đã lên lịch chiến dịch.",
+        "sent": "Đã hoàn tất đợt gửi.",
+        "processing": "Đã gửi đợt đầu; cron sẽ tiếp tục xử lý.",
+        "canceled": "Đã hủy chiến dịch; sẽ không gửi thêm đợt nào."
+      },
+      "errors": {
+        "load": "Không thể tải chiến dịch.",
+        "action": "Không thể cập nhật chiến dịch.",
+        "saveFirst": "Hãy lưu bản nháp trước khi lên lịch hoặc gửi."
+      }
+    },
+    "referrals": {
+      "title": "Giới thiệu",
+      "readOnly": "Chỉ xem",
+      "orbsShort": "ORB",
+      "search": "Tìm kiếm",
+      "searchPlaceholder": "Tìm tên hoặc email",
+      "previous": "Trước",
+      "next": "Tiếp",
+      "pagination": "Trang {page} / {pages}",
+      "kpis": {
+        "total": "Tổng lượt giới thiệu",
+        "qualified": "Đủ điều kiện",
+        "credited": "Đã thưởng",
+        "orbs": "ORB đã thưởng"
+      },
+      "leaderboard": {
+        "title": "Người giới thiệu hàng đầu",
+        "empty": "Chưa có người giới thiệu"
+      },
+      "list": {
+        "title": "Hoạt động giới thiệu"
+      },
+      "status": {
+        "all": "Tất cả",
+        "pending": "Đang chờ",
+        "qualified": "Đủ điều kiện",
+        "credited": "Đã thưởng",
+        "rejected": "Từ chối"
+      },
+      "table": {
+        "referrer": "Người giới thiệu",
+        "referee": "Người được giới thiệu",
+        "status": "Trạng thái",
+        "orbs": "ORB",
+        "qualified": "Đủ điều kiện",
+        "credited": "Đã thưởng",
+        "created": "Ngày tạo"
+      },
+      "empty": {
+        "title": "Chưa có lượt giới thiệu",
+        "description": "Hoạt động giới thiệu sẽ xuất hiện tại đây sau khi ra mắt.",
+        "filteredTitle": "Không có kết quả phù hợp",
+        "filteredDescription": "Hãy thử email hoặc trạng thái khác."
+      }
+    },
+    "maintenance": {
+      "eyebrow": "Vận hành",
+      "title": "Chế độ bảo trì",
+      "description": "Đăng thông báo ngắn hoặc tạm thời chuyển người học tới trang bảo trì mang thương hiệu Thinkfy. Trang quản trị và xác thực vẫn hoạt động.",
+      "save": "Lưu cài đặt",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu cài đặt bảo trì",
+      "saveFailed": "Không thể lưu cài đặt bảo trì",
+      "invalid": "Vui lòng kiểm tra cài đặt bảo trì",
+      "modeTitle": "Chế độ trang web",
+      "modeDescription": "Thay đổi có hiệu lực trong vài giây trên môi trường production.",
+      "modes": {
+        "off": {
+          "label": "Tắt",
+          "description": "Hoạt động bình thường, không hiện thông báo bảo trì."
+        },
+        "banner": {
+          "label": "Banner",
+          "description": "Vẫn mở ứng dụng và hiển thị thông báo song ngữ."
+        },
+        "full": {
+          "label": "Toàn phần",
+          "description": "Chuyển hướng trang người học và trả về 503 cho API công khai."
+        }
+      },
+      "bannerTitle": "Nội dung banner",
+      "bannerDescription": "Hiển thị ở đầu ứng dụng khi chọn chế độ banner.",
+      "fullTitle": "Nội dung toàn trang",
+      "fullDescription": "Hiển thị trên trang bảo trì công khai khi chọn chế độ toàn phần.",
+      "languages": {
+        "en": "Tiếng Anh",
+        "vi": "Tiếng Việt"
+      },
+      "doneAtTitle": "Thời gian dự kiến hoàn tất",
+      "doneAtDescription": "Bắt buộc và phải là thời điểm trong tương lai khi chọn chế độ toàn phần.",
+      "doneAtLabel": "Dự kiến hoàn tất lúc",
+      "doneAtHint": "Sử dụng múi giờ trên trình duyệt và được lưu dưới dạng UTC."
+    },
+    "comingSoon": "Sắp ra mắt",
     "unauthorized": "Bạn không có quyền truy cập trang này.",
     "overview": {
       "title": "Tổng quan",
@@ -1984,7 +2137,8 @@
       "last30Days": "30 ngày",
       "last90Days": "90 ngày",
       "noData": "Chưa có dữ liệu",
-      "refreshing": "Đang cập nhật..."
+      "refreshing": "Đang cập nhật...",
+      "subtitle": "Tổng quan gọn về hoạt động trên Thinkfy."
     },
     "classes": {
       "title": "Classes",
@@ -2079,7 +2233,8 @@
           "students": "Students",
           "courses": "Courses",
           "schedule": "Schedule",
-          "attendance": "Attendance"
+          "attendance": "Attendance",
+          "workbench": "Bàn làm việc IELTS"
         },
         "metrics": {
           "students": "Students",
@@ -2129,6 +2284,96 @@
           "save": "Save Attendance",
           "saving": "Saving..."
         }
+      },
+      "schedule": {
+        "editTitle": "Chỉnh sửa lịch",
+        "newTitle": "Lịch mới",
+        "description": "Mẫu họp lớp chỉ để hiển thị",
+        "cancel": "Hủy",
+        "saving": "Đang lưu...",
+        "save": "Lưu lịch",
+        "create": "Tạo lịch",
+        "new": "Lịch mới",
+        "close": "Đóng trình chỉnh sửa lịch",
+        "program": "Chương trình",
+        "level": "Cấp độ",
+        "class": "Lớp",
+        "courseOptional": "Khóa học (tùy chọn)",
+        "noCourse": "Không liên kết khóa học",
+        "title": "Tiêu đề",
+        "titlePlaceholder": "Buổi luyện tranh biện cơ bản",
+        "roomLocation": "Phòng / Địa điểm",
+        "roomPlaceholder": "Phòng 204",
+        "startDate": "Ngày bắt đầu",
+        "timezone": "Múi giờ",
+        "timezones": {
+          "newYork": "Giờ miền Đông (New York)",
+          "hoChiMinh": "Giờ Việt Nam (TP. Hồ Chí Minh)",
+          "utc": "UTC"
+        },
+        "startTime": "Giờ bắt đầu",
+        "endTime": "Giờ kết thúc",
+        "repeat": "Lặp lại",
+        "every": "Mỗi",
+        "repeatOn": "Lặp vào",
+        "ends": "Kết thúc",
+        "endDate": "Ngày kết thúc",
+        "occurrences": "lần",
+        "noEndDate": "Không có ngày kết thúc",
+        "summary": "Tóm tắt lặp lại",
+        "allPrograms": "Tất cả chương trình",
+        "allLevels": "Tất cả cấp độ",
+        "previousRange": "Khoảng lịch trước",
+        "filters": "Bộ lọc",
+        "nextRange": "Khoảng lịch sau",
+        "today": "Hôm nay",
+        "programLevel": "Chương trình / Cấp độ",
+        "edit": "Chỉnh sửa",
+        "manage": "Quản lý lịch",
+        "programs": {
+          "debate": "Tranh biện",
+          "ielts": "IELTS",
+          "public_speaking": "Thuyết trình"
+        },
+        "weekdays": {
+          "SU": "CN",
+          "MO": "T2",
+          "TU": "T3",
+          "WE": "T4",
+          "TH": "T5",
+          "FR": "T6",
+          "SA": "T7"
+        },
+        "frequency": {
+          "none": "Không lặp lại",
+          "daily": "Hàng ngày",
+          "weekly": "Hàng tuần",
+          "monthly": "Hàng tháng"
+        },
+        "endMode": {
+          "never": "Không bao giờ",
+          "onDate": "Vào ngày",
+          "afterCount": "Sau số lần"
+        },
+        "on": "vào",
+        "until": "đến",
+        "from": "từ",
+        "for": "trong",
+        "occurrence": "lần",
+        "units": {
+          "days": "ngày",
+          "weeks": "tuần",
+          "months": "tháng"
+        },
+        "timeline": {
+          "title": "Dòng thời gian lịch",
+          "description": "Các buổi họp lớp lặp lại theo chương trình và cấp độ.",
+          "classes": "{count, plural, one {# lớp} other {# lớp}}",
+          "schedules": "{count, plural, one {# lịch} other {# lịch}}",
+          "empty": "Không có lịch trong khoảng này.",
+          "mobileEmpty": "Không có buổi họp trong khoảng này."
+        },
+        "archive": "Lưu trữ {title}"
       }
     },
     "courses": {
@@ -2283,6 +2528,265 @@
           "phase": "Giai đoạn",
           "duration": "Thời lượng (phút)"
         }
+      },
+      "settings": "Cài đặt"
+    },
+    "groups": {
+      "operations": "Vận hành",
+      "workspace": "Không gian làm việc",
+      "peoplePrograms": "Người dùng & chương trình",
+      "contentTools": "Nội dung & công cụ"
+    },
+    "clubs": {
+      "create": {
+        "title": "Tạo câu lạc bộ",
+        "description": "Thiết lập không gian, quản trị viên và thành viên cho câu lạc bộ.",
+        "close": "Đóng tạo câu lạc bộ",
+        "creating": "Đang tạo...",
+        "add": "Tạo và thêm",
+        "invite": "Tạo và mời",
+        "failed": "Không thể tạo câu lạc bộ.",
+        "logoPreview": "Xem trước logo câu lạc bộ",
+        "uploadLogo": "Tải logo lên",
+        "logoHelp": "PNG, JPG, SVG · Tối đa 2MB",
+        "clubName": "Tên câu lạc bộ",
+        "clubNamePlaceholder": "Câu lạc bộ tranh biện Hà Nội",
+        "city": "Thành phố (Việt Nam)",
+        "social": "Mạng xã hội",
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "threads": "Threads",
+        "facebookPlaceholder": "https://facebook.com/club",
+        "instagramPlaceholder": "https://instagram.com/club",
+        "threadsPlaceholder": "https://threads.net/@club",
+        "people": "Thành viên",
+        "adminRequired": "Cần ít nhất một quản trị viên câu lạc bộ.",
+        "emailPlaceholder": "name@example.com",
+        "removePerson": "Xóa người này",
+        "skipInvitation": "Bỏ qua email mời",
+        "skipInvitationHelp": "Chỉ tài khoản Thinkfy hiện có được thêm vào câu lạc bộ.",
+        "created": "Đã tạo câu lạc bộ",
+        "open": "Mở câu lạc bộ",
+        "cancel": "Hủy"
+      },
+      "roles": {
+        "owner": "Quản trị viên",
+        "coach": "Huấn luyện viên",
+        "student": "Thành viên"
+      },
+      "result": {
+        "invited": "Đã gửi lời mời",
+        "added": "Đã thêm",
+        "existing_member": "Đã là thành viên",
+        "missing_account": "Không tìm thấy tài khoản",
+        "email_skipped": "Đã bỏ qua email",
+        "failed": "Thất bại"
+      },
+      "schedule": {
+        "editTitle": "Chỉnh sửa sự kiện",
+        "newTitle": "Sự kiện mới",
+        "description": "Mục lịch của câu lạc bộ",
+        "close": "Đóng trình chỉnh sửa sự kiện",
+        "scheduledEvents": "Sự kiện đã lên lịch",
+        "upcomingOccurrences": "Lần diễn ra sắp tới",
+        "linkedCohorts": "Nhóm liên kết",
+        "title": "Lịch câu lạc bộ",
+        "descriptionFull": "Các buổi họp, sự kiện theo nhóm và mục lịch có thể xuất.",
+        "wholeClub": "Toàn câu lạc bộ",
+        "emptyTitle": "Chưa có sự kiện câu lạc bộ",
+        "emptyDescription": "Tạo buổi họp hoặc sự kiện đầu tiên cho câu lạc bộ.",
+        "eventMix": "Phân bổ sự kiện",
+        "analytics": "Phân tích lịch",
+        "eventMixDescription": "Sự kiện đang hoạt động theo loại.",
+        "eventMixEmpty": "Chưa có phân bổ sự kiện",
+        "eventMixEmptyDescription": "Sự kiện sẽ xuất hiện sau khi tạo lịch.",
+        "nextOnCalendar": "Lịch sắp tới",
+        "upcomingEmpty": "Không có lần diễn ra sắp tới trong khoảng này.",
+        "cohort": "Nhóm",
+        "fieldTitle": "Tiêu đề",
+        "titlePlaceholder": "Buổi luyện tranh biện hàng tuần",
+        "type": "Loại",
+        "room": "Phòng",
+        "roomPlaceholder": "Phòng 204",
+        "location": "Địa điểm",
+        "locationPlaceholder": "Cơ sở Hà Nội",
+        "date": "Ngày",
+        "start": "Bắt đầu",
+        "end": "Kết thúc",
+        "repeat": "Lặp lại",
+        "every": "Mỗi",
+        "on": "vào",
+        "until": "đến",
+        "from": "từ",
+        "for": "trong",
+        "occurrence": "lần",
+        "occurrences": "lần",
+        "units": {
+          "days": "ngày",
+          "weeks": "tuần",
+          "months": "tháng"
+        },
+        "frequency": {
+          "none": "Không lặp lại",
+          "daily": "Hàng ngày",
+          "weekly": "Hàng tuần",
+          "monthly": "Hàng tháng"
+        },
+        "weekdays": {
+          "SU": "CN",
+          "MO": "T2",
+          "TU": "T3",
+          "WE": "T4",
+          "TH": "T5",
+          "FR": "T6",
+          "SA": "T7"
+        },
+        "endMode": {
+          "neverEnds": "Không kết thúc",
+          "onDate": "Kết thúc vào ngày",
+          "afterCount": "Sau số lần"
+        },
+        "archive": "Lưu trữ",
+        "saving": "Đang lưu...",
+        "save": "Lưu sự kiện",
+        "saveFailed": "Không thể lưu sự kiện.",
+        "archiveFailed": "Không thể lưu trữ sự kiện.",
+        "eventTypes": {
+          "meeting": "Họp",
+          "workshop": "Hội thảo",
+          "tournament": "Giải đấu",
+          "social": "Giao lưu",
+          "deadline": "Hạn chót",
+          "other": "Khác"
+        }
+      }
+    },
+    "corpus": {
+      "title": "Corpus Studio",
+      "heading": "Duyệt, truy xuất, xuất bản",
+      "description": "Nhập các gói nguồn Trường Teen riêng tư, duyệt các mục corpus sẵn sàng cho RAG, kiểm tra việc truy xuất và xuất bản các kiến nghị đã duyệt vào danh mục luyện tập.",
+      "tabs": {
+        "overview": "Tổng quan",
+        "knowledge": "Tri thức quản trị",
+        "import": "Nhập dữ liệu",
+        "sources": "Nguồn",
+        "matches": "Đối sánh",
+        "items": "Mục dữ liệu",
+        "motions": "Kiến nghị",
+        "logs": "Nhật ký truy xuất"
+      },
+      "filters": {
+        "allStatuses": "Tất cả trạng thái",
+        "candidate": "Ứng viên",
+        "needsReview": "Cần duyệt",
+        "approved": "Đã duyệt",
+        "rejected": "Từ chối",
+        "published": "Đã xuất bản",
+        "allItemTypes": "Tất cả loại mục",
+        "debateMoments": "Khoảnh khắc tranh biện",
+        "phraseBank": "Kho cụm từ",
+        "judgingLessons": "Bài học chấm điểm"
+      },
+      "kpis": {
+        "sources": "Nguồn",
+        "matches": "Đối sánh",
+        "items": "Mục dữ liệu",
+        "motions": "Kiến nghị",
+        "published": "Đã xuất bản",
+        "staleVectors": "Vector cũ"
+      },
+      "actions": {
+        "refresh": "Làm mới",
+        "embed": "Tạo embedding {count}",
+        "importBundle": "Nhập gói dữ liệu",
+        "publish": "Xuất bản",
+        "close": "Đóng",
+        "openSource": "Mở nguồn"
+      },
+      "labels": {
+        "corpusViews": "Các chế độ xem corpus",
+        "searchCorpus": "Tìm kiếm corpus",
+        "searchPlaceholder": "Tìm theo kiến nghị, trường, mã mục, cụm từ hoặc ghi chú bằng chứng",
+        "filter": "Bộ lọc",
+        "fileName": "Tên tệp",
+        "bundleContent": "Nội dung gói dữ liệu",
+        "bundlePlaceholder": "Dán kết quả JSON của Gemini hoặc nội dung notes.md có các khối JSON được đánh dấu..."
+      },
+      "headings": {
+        "reviewQueue": "Hàng đợi duyệt",
+        "embeddingProviders": "Nhà cung cấp embedding",
+        "recentItems": "Mục corpus gần đây",
+        "motionCandidates": "Kiến nghị ứng viên",
+        "importBundle": "Nhập gói nguồn đã duyệt"
+      },
+      "importDescription": "Dán gói JSON hoặc tệp Markdown có các khối JSON được đánh dấu. Tệp gốc được lưu riêng để kiểm tra quản trị; người dùng beta chỉ thấy các kiến nghị đã xuất bản.",
+      "table": {
+        "source": "Nguồn",
+        "season": "Mùa",
+        "quality": "Chất lượng",
+        "motion": "Kiến nghị",
+        "decision": "Quyết định",
+        "confidence": "Độ tin cậy",
+        "item": "Mục dữ liệu",
+        "use": "Mục đích dùng",
+        "evidence": "Bằng chứng",
+        "category": "Danh mục",
+        "publish": "Xuất bản",
+        "status": "Trạng thái",
+        "updated": "Cập nhật",
+        "actions": "Thao tác",
+        "queryHash": "Mã truy vấn",
+        "provider": "Nhà cung cấp",
+        "similarity": "Độ tương đồng",
+        "injected": "Đã chèn",
+        "latency": "Độ trễ",
+        "aiRun": "Lần chạy AI"
+      },
+      "empty": {
+        "noItemsLoaded": "Chưa có mục corpus nào được tải.",
+        "noEmbeddings": "Chưa ghi nhận embedding nào.",
+        "queue": "Hàng đợi này chưa có dữ liệu.",
+        "sources": "Không có nguồn phù hợp với bộ lọc.",
+        "matches": "Không có đối sánh phù hợp với bộ lọc.",
+        "items": "Không có mục corpus phù hợp với bộ lọc.",
+        "motions": "Không có kiến nghị ứng viên phù hợp với bộ lọc.",
+        "logs": "Chưa có nhật ký truy xuất."
+      },
+      "detail": {
+        "status": "Trạng thái",
+        "confidence": "Độ tin cậy",
+        "updated": "Cập nhật",
+        "relevanceSummary": "Tóm tắt độ liên quan",
+        "topSimilarity": "Độ tương đồng cao nhất",
+        "avgTop3": "Trung bình 3 mục đầu",
+        "injected": "Đã chèn",
+        "itemsAboveThreshold": "Mục vượt ngưỡng",
+        "thresholds": "Ngưỡng",
+        "gateDecision": "Quyết định cổng",
+        "retrievedItems": "Mục corpus đã truy xuất",
+        "top3Short": "3 mục đầu",
+        "injectedIntoPrompt": "Đã chèn vào prompt",
+        "recordJson": "JSON bản ghi"
+      },
+      "status": {
+        "injected": "Đã chèn",
+        "skipped": "Đã bỏ qua",
+        "timedOut": "Hết thời gian",
+        "disabled": "Đã tắt",
+        "noContext": "Không có ngữ cảnh"
+      },
+      "messages": {
+        "loadStudioError": "Không thể tải Corpus Studio",
+        "loadDataError": "Không thể tải dữ liệu corpus",
+        "actionFailed": "Thao tác thất bại",
+        "updateReviewError": "Không thể cập nhật trạng thái duyệt",
+        "publishError": "Không thể xuất bản kiến nghị",
+        "importError": "Không thể nhập gói dữ liệu",
+        "importCompleted": "Đã hoàn tất nhập dữ liệu.",
+        "embeddingError": "Không thể chạy embedding",
+        "embeddingCompleted": "Đã hoàn tất lô embedding: {embedded} đã tạo, {skipped} bỏ qua.",
+        "marked": "Đã đánh dấu {status}.",
+        "publishedMotion": "Đã xuất bản kiến nghị{topic}."
       }
     }
   },
@@ -2291,11 +2795,32 @@
     "title": "Thư viện tài liệu",
     "description": "Hướng dẫn, bài tập và liên kết uy tín được chọn lọc cho việc luyện IELTS và Debate.",
     "count": "{count} tài liệu",
-    "filters": { "label": "Bộ lọc tài liệu", "subject": "Lọc theo môn", "allSubjects": "Tất cả môn", "allTags": "Tất cả thẻ" },
-    "empty": { "title": "Kệ tài liệu đang trống", "description": "Tài liệu học mới sẽ xuất hiện tại đây sau khi được xuất bản.", "filteredTitle": "Không có tài liệu phù hợp", "filteredDescription": "Hãy thử môn hoặc thẻ khác." },
-    "kind": { "file": "Tệp", "link": "Liên kết" },
-    "access": { "public": "Công khai", "authenticated": "Học viên", "club": "Câu lạc bộ của bạn" },
-    "open": { "file": "Mở tệp", "link": "Mở liên kết", "unavailable": "Chưa khả dụng" },
+    "filters": {
+      "label": "Bộ lọc tài liệu",
+      "subject": "Lọc theo môn",
+      "allSubjects": "Tất cả môn",
+      "allTags": "Tất cả thẻ"
+    },
+    "empty": {
+      "title": "Kệ tài liệu đang trống",
+      "description": "Tài liệu học mới sẽ xuất hiện tại đây sau khi được xuất bản.",
+      "filteredTitle": "Không có tài liệu phù hợp",
+      "filteredDescription": "Hãy thử môn hoặc thẻ khác."
+    },
+    "kind": {
+      "file": "Tệp",
+      "link": "Liên kết"
+    },
+    "access": {
+      "public": "Công khai",
+      "authenticated": "Học viên",
+      "club": "Câu lạc bộ của bạn"
+    },
+    "open": {
+      "file": "Mở tệp",
+      "link": "Mở liên kết",
+      "unavailable": "Chưa khả dụng"
+    },
     "noDescription": "Sẵn sàng khi bạn bắt đầu."
   },
   "courses": {
@@ -2356,7 +2881,9 @@
       "previewDraft": "Bản nháp",
       "previewPublished": "Đã xuất bản",
       "previewSavedVersion": "Bản xem trước này phản ánh phiên bản đã lưu của khóa học. Hãy lưu thay đổi trong trình chỉnh sửa để cập nhật.",
-      "previewNoTracking": "Chế độ xem trước không ghi nhận tiến độ, đăng ký hay hoàn thành. Hãy mở một hoạt động để kiểm tra trải nghiệm của học viên."
+      "previewNoTracking": "Chế độ xem trước không ghi nhận tiến độ, đăng ký hay hoàn thành. Hãy mở một hoạt động để kiểm tra trải nghiệm của học viên.",
+      "moveUp": "Di chuyển {item} lên",
+      "moveDown": "Di chuyển {item} xuống"
     }
   },
   "sessionResult": {
@@ -2526,11 +3053,11 @@
       "rebuttal": "Trả lời trực diện phe còn lại và cho thấy case của bạn vẫn đứng vững.",
       "evidence": "Thêm ví dụ, cơ chế và bằng chứng để lập luận cụ thể hơn.",
       "delivery": "Giữ nhịp nói chắc, chính xác và dễ theo dõi cho người nghe."
-      },
-      "detail": {
-        "heading": "Phản hồi chi tiết",
-        "strengths": "Bạn làm tốt ở đâu",
-        "improvements": "Cần cải thiện gì",
+    },
+    "detail": {
+      "heading": "Phản hồi chi tiết",
+      "strengths": "Bạn làm tốt ở đâu",
+      "improvements": "Cần cải thiện gì",
       "modelAnswer": "Bài mẫu",
       "strongerRebuild": "Phiên bản mạnh hơn",
       "showTranscript": "Xem bản ghi",
@@ -2556,86 +3083,86 @@
       "retryTopic": "Luyện lại chủ đề này",
       "deleteSession": "Xóa phiên"
     },
-  "referral": {
-    "title": "Thử thách bạn bè vượt điểm của bạn!",
-    "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
-    "shareTitle": "Thử thách Thinkfy",
-    "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
-    "cta": "Chia sẻ thử thách",
-    "copied": "Đã sao chép!"
-  },
-  "clashMap": {
-    "title": "Bản đồ đối đầu",
-    "description": "Theo dõi luận điểm nào được đáp trả, bị bỏ rơi, bị lật ngược hay được cân tác động.",
-    "share": "Chia sẻ",
-    "allPairs": "Tất cả các cặp",
-    "filters": {
-      "pair": "Cặp lượt nói",
-      "side": "Bên",
-      "outcome": "Kết quả"
+    "referral": {
+      "title": "Thử thách bạn bè vượt điểm của bạn!",
+      "body": "Bạn vừa đạt {score}/100. Chia sẻ link mời để cả hai cùng nhận thêm 600 Credits.",
+      "shareTitle": "Thử thách Thinkfy",
+      "shareText": "Mình vừa đạt {score}/100 trên Thinkfy! Bạn có vượt được không? {link}",
+      "cta": "Chia sẻ thử thách",
+      "copied": "Đã sao chép!"
     },
-    "sides": {
-      "all": "Tất cả các bên",
-      "user": "Phản hồi của bạn",
-      "ai": "Phản hồi của AI",
-      "dropped": "Luận điểm bị bỏ rơi"
+    "clashMap": {
+      "title": "Bản đồ đối đầu",
+      "description": "Theo dõi luận điểm nào được đáp trả, bị bỏ rơi, bị lật ngược hay được cân tác động.",
+      "share": "Chia sẻ",
+      "allPairs": "Tất cả các cặp",
+      "filters": {
+        "pair": "Cặp lượt nói",
+        "side": "Bên",
+        "outcome": "Kết quả"
+      },
+      "sides": {
+        "all": "Tất cả các bên",
+        "user": "Phản hồi của bạn",
+        "ai": "Phản hồi của AI",
+        "dropped": "Luận điểm bị bỏ rơi"
+      },
+      "outcomes": {
+        "all": "Tất cả kết quả",
+        "answered": "Đã đáp trả",
+        "dropped": "Bị bỏ rơi",
+        "misanswered": "Đáp trả sai hướng",
+        "turned": "Bị lật ngược",
+        "weighed": "Đã cân tác động"
+      },
+      "headers": {
+        "claim": "Luận điểm đối thủ",
+        "response": "Phản hồi của bạn",
+        "judge": "Nhận định giám khảo"
+      },
+      "noAnswer": "Không tìm thấy phản hồi trực tiếp.",
+      "noMatches": "Không có cặp đối đầu nào khớp bộ lọc này.",
+      "selectPrompt": "Chọn một cặp đối đầu để xem trích dẫn và bước tiếp theo.",
+      "clashOf": "Đối đầu {index} / {count}",
+      "previous": "Đối đầu trước",
+      "next": "Đối đầu sau",
+      "opponentClaim": "Luận điểm đối thủ",
+      "yourResponse": "Phản hồi của bạn",
+      "judgeRead": "Nhận định giám khảo",
+      "tryThis": "Thử cách này:",
+      "you": "Bạn",
+      "aiOpponent": "Đối thủ AI",
+      "noResponse": "Không có phản hồi",
+      "aiJudge": "Giám khảo AI",
+      "roundNumber": "Lượt {number}",
+      "emptyAnalysis": "Phân tích đối đầu sẽ xuất hiện với các trận full round được phân tích mới."
     },
-    "outcomes": {
-      "all": "Tất cả kết quả",
-      "answered": "Đã đáp trả",
-      "dropped": "Bị bỏ rơi",
-      "misanswered": "Đáp trả sai hướng",
-      "turned": "Bị lật ngược",
-      "weighed": "Đã cân tác động"
+    "verdictPanel": {
+      "user": {
+        "eyebrow": "Bạn thắng phần tranh biện",
+        "title": "Phe của bạn giữ được thế trận."
+      },
+      "ai": {
+        "eyebrow": "AI thắng phần tranh biện",
+        "title": "Đối thủ AI nhỉnh hơn ở vòng này."
+      },
+      "tie": {
+        "eyebrow": "Hai bên hòa nhau",
+        "title": "Cả hai phe đều giữ được đủ luận điểm."
+      },
+      "fallback": {
+        "title": "Phán quyết",
+        "body": "Phân tích phán quyết sẽ xuất hiện cho các phiên full-round mới."
+      },
+      "confidence": "Độ tin cậy của giám khảo",
+      "confidenceStars": "{count}/5 sao độ tin cậy",
+      "whyDecision": "Vì sao có phán quyết này",
+      "reasonLabel": "Lý do {number}: ",
+      "emptyReasons": "Chưa có lý do quyết định nào cho phán quyết này.",
+      "nextMove": "Bước tiếp theo",
+      "nextMovePrompt": "Luyện viết lại ý này thành một câu so sánh thật rõ trước vòng tiếp theo."
     },
-    "headers": {
-      "claim": "Luận điểm đối thủ",
-      "response": "Phản hồi của bạn",
-      "judge": "Nhận định giám khảo"
-    },
-    "noAnswer": "Không tìm thấy phản hồi trực tiếp.",
-    "noMatches": "Không có cặp đối đầu nào khớp bộ lọc này.",
-    "selectPrompt": "Chọn một cặp đối đầu để xem trích dẫn và bước tiếp theo.",
-    "clashOf": "Đối đầu {index} / {count}",
-    "previous": "Đối đầu trước",
-    "next": "Đối đầu sau",
-    "opponentClaim": "Luận điểm đối thủ",
-    "yourResponse": "Phản hồi của bạn",
-    "judgeRead": "Nhận định giám khảo",
-    "tryThis": "Thử cách này:",
-    "you": "Bạn",
-    "aiOpponent": "Đối thủ AI",
-    "noResponse": "Không có phản hồi",
-    "aiJudge": "Giám khảo AI",
-    "roundNumber": "Lượt {number}",
-    "emptyAnalysis": "Phân tích đối đầu sẽ xuất hiện với các trận full round được phân tích mới."
-  },
-  "verdictPanel": {
-    "user": {
-      "eyebrow": "Bạn thắng phần tranh biện",
-      "title": "Phe của bạn giữ được thế trận."
-    },
-    "ai": {
-      "eyebrow": "AI thắng phần tranh biện",
-      "title": "Đối thủ AI nhỉnh hơn ở vòng này."
-    },
-    "tie": {
-      "eyebrow": "Hai bên hòa nhau",
-      "title": "Cả hai phe đều giữ được đủ luận điểm."
-    },
-    "fallback": {
-      "title": "Phán quyết",
-      "body": "Phân tích phán quyết sẽ xuất hiện cho các phiên full-round mới."
-    },
-    "confidence": "Độ tin cậy của giám khảo",
-    "confidenceStars": "{count}/5 sao độ tin cậy",
-    "whyDecision": "Vì sao có phán quyết này",
-    "reasonLabel": "Lý do {number}: ",
-    "emptyReasons": "Chưa có lý do quyết định nào cho phán quyết này.",
-    "nextMove": "Bước tiếp theo",
-    "nextMovePrompt": "Luyện viết lại ý này thành một câu so sánh thật rõ trước vòng tiếp theo."
-  },
-  "modelUsed": "Được phân tích bằng {model}",
+    "modelUsed": "Được phân tích bằng {model}",
     "duration": {
       "seconds": "{count} giây",
       "minutes": "{count} phút",
@@ -3073,13 +3600,13 @@
         "delta": "{sign}{count}% so với kỳ trước",
         "no_delta": "Cần thêm lịch sử để so sánh"
       },
-    "mix": {
-      "title": "Tỷ lệ luyện nói vs tranh biện",
-      "scope": "Tỷ lệ luyện theo ngôn ngữ hiện tại",
-      "debate": "Tranh biện",
-      "speaking": "Luyện nói",
-      "breakdown": "{debate} phiên tranh biện • {speaking} phiên luyện nói",
-      "view_breakdown": "Xem chi tiết"
+      "mix": {
+        "title": "Tỷ lệ luyện nói vs tranh biện",
+        "scope": "Tỷ lệ luyện theo ngôn ngữ hiện tại",
+        "debate": "Tranh biện",
+        "speaking": "Luyện nói",
+        "breakdown": "{debate} phiên tranh biện • {speaking} phiên luyện nói",
+        "view_breakdown": "Xem chi tiết"
       },
       "average_score": {
         "title": "Điểm trung bình gần đây",
@@ -3102,12 +3629,12 @@
       "empty": "Các phiên gần đây sẽ hiện ở đây sau lần luyện tiếp theo.",
       "tooltip": "{count, plural, one {# phiên} other {# phiên}} vào {date}"
     },
-  "recent_sessions_title": "Phiên gần đây",
-  "recent_sessions_subtitle": "Xem lại các phiên solo và 1v1 có AI chấm gần nhất.",
-  "recent_speaking_badge": "Luyện nói",
-  "recent_debate_badge": "Luyện tranh biện",
-  "recent_duel_badge": "Đấu 1v1",
-  "recent_full_debate": "Tranh biện 1v1",
+    "recent_sessions_title": "Phiên gần đây",
+    "recent_sessions_subtitle": "Xem lại các phiên solo và 1v1 có AI chấm gần nhất.",
+    "recent_speaking_badge": "Luyện nói",
+    "recent_debate_badge": "Luyện tranh biện",
+    "recent_duel_badge": "Đấu 1v1",
+    "recent_full_debate": "Tranh biện 1v1",
     "recent_rebuttal": "Phản biện",
     "recent_constructive": "Xây luận điểm",
     "recent_won": "Bạn thắng",
@@ -3128,7 +3655,7 @@
       "developing": "Đang phát triển"
     },
     "score_note": {
-    "reviewed": "Đã xem lại",
+      "reviewed": "Đã xem lại",
       "excellent": "Xuất sắc",
       "very_good": "Rất tốt",
       "good": "Ổn",
@@ -3136,7 +3663,7 @@
       "keep_going": "Cố lên"
     },
     "empty_title": "Trang phân tích đang chờ dữ liệu",
-  "empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc tranh biện để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
+    "empty_body": "Hoàn thành thêm vài phiên luyện nói hoặc tranh biện để mở khóa tiến bộ, kỹ năng mạnh nhất và điểm cần tập trung tiếp theo.",
     "start_practicing": "Bắt đầu luyện tập"
   },
   "ielts": {

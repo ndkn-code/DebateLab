@@ -48,7 +48,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
   const visible = showAll ? sorted : sorted.slice(0, 6);
 
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-token-card md:p-6">
+    <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 md:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-on-surface">{t("achievements_title")}</h2>
         <span className="text-sm text-on-surface-variant">

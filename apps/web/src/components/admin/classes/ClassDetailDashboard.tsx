@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, useMemo, useState, useTransition } from "react";
+import {
+  FormEvent,
+  type KeyboardEvent,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useTranslations } from "next-intl";
 import { curveNatural } from "@visx/curve";
 import {
@@ -37,6 +43,7 @@ import {
   PageTransition,
   StaggeredContainer,
 } from "@/components/shared/page-motion";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 import { ChartCard, ChartEmpty, StatCard } from "@/components/data-viz";
 import {
   Area,
@@ -53,6 +60,10 @@ import {
   ScheduleEditor,
   ScheduleTimeline,
 } from "@/components/admin/classes/ScheduleTools";
+import {
+  IeltsTeacherWorkbench,
+  type IeltsTeacherWorkbenchData,
+} from "@/components/admin/classes/IeltsTeacherWorkbench";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
 import type {
@@ -67,9 +78,16 @@ import type {
 
 interface Props {
   data: AdminClassDetailData;
+  ieltsWorkbench?: IeltsTeacherWorkbenchData;
 }
 
-type Tab = "overview" | "students" | "courses" | "schedule" | "attendance";
+type Tab =
+  | "workbench"
+  | "overview"
+  | "students"
+  | "courses"
+  | "schedule"
+  | "attendance";
 
 function initials(name: string) {
   return (
@@ -166,6 +184,8 @@ function StudentRow({
       </div>
       {onRemove ? (
         <button
+          type="button"
+          aria-label="Remove student"
           onClick={onRemove}
           className="rounded-lg p-2 text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-error-container hover:text-error-dim active:scale-[0.95]"
         >
@@ -206,6 +226,8 @@ function CourseAssignmentRow({
       </span>
       {onRemove && (
         <button
+          type="button"
+          aria-label="Remove course"
           onClick={onRemove}
           className="rounded-lg p-2 text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-error-container hover:text-error-dim active:scale-[0.95]"
         >
@@ -293,6 +315,7 @@ function AttendanceSheet({
   onClose: () => void;
 }) {
   const t = useTranslations("admin.classes.detail.attendanceSheet");
+  const dialogRef = useAdminDialogFocus(true, onClose);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [courseId, setCourseId] = useState(
@@ -325,11 +348,25 @@ function AttendanceSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-scrim/30 backdrop-blur-sm">
-      <div className="flex h-full w-full max-w-md flex-col border-l border-outline-variant/30 bg-surface-container-lowest shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="attendance-sheet-title"
+        tabIndex={-1}
+        className="flex h-full w-full max-w-md flex-col border-l border-outline-variant bg-surface shadow-lg"
+      >
         <div className="flex h-16 items-center justify-between border-b border-outline-variant/20 px-4">
-          <h2 className="text-lg font-bold text-on-surface">{t("title")}</h2>
+          <h2
+            id="attendance-sheet-title"
+            className="text-lg font-bold text-on-surface"
+          >
+            {t("title")}
+          </h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label={t("cancel")}
             className="rounded-lg px-2 py-1 text-sm text-on-surface-variant hover:bg-surface-container"
           >
             Esc
@@ -481,10 +518,12 @@ function AttendanceSheet({
   );
 }
 
-export function ClassDetailDashboard({ data }: Props) {
+export function ClassDetailDashboard({ data, ieltsWorkbench }: Props) {
   const t = useTranslations("admin.classes.detail");
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(
+    data.classInfo.programType === "ielts" ? "workbench" : "overview",
+  );
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [studentResults, setStudentResults] = useState<
     AdminClassProfileSummary[]
@@ -497,6 +536,9 @@ export function ClassDetailDashboard({ data }: Props) {
   const [editingSchedule, setEditingSchedule] =
     useState<AdminClassSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
+  const editDialogRef = useAdminDialogFocus<HTMLFormElement>(editOpen, () =>
+    setEditOpen(false),
+  );
 
   function handleArchive() {
     startTransition(async () => {
@@ -516,12 +558,37 @@ export function ClassDetailDashboard({ data }: Props) {
   }
 
   const tabs: Tab[] = [
+    ...(data.classInfo.programType === "ielts" ? (["workbench"] as const) : []),
     "overview",
     "students",
     "courses",
     "schedule",
     "attendance",
   ];
+
+  function handleTabKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    current: Tab,
+  ) {
+    const index = tabs.indexOf(current);
+    const nextIndex =
+      event.key === "ArrowRight"
+        ? (index + 1) % tabs.length
+        : event.key === "ArrowLeft"
+          ? (index - 1 + tabs.length) % tabs.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? tabs.length - 1
+              : null;
+    if (nextIndex == null) return;
+    event.preventDefault();
+    const next = tabs[nextIndex];
+    setTab(next);
+    requestAnimationFrame(() =>
+      document.getElementById(`class-tab-${next}`)?.focus(),
+    );
+  }
   const scheduleData = useMemo<AdminClassSchedulesData>(() => {
     const rangeStart = toIsoDate(addDays(new Date(), -7));
     const rangeEnd = toIsoDate(addDays(new Date(), 90));
@@ -587,8 +654,8 @@ export function ClassDetailDashboard({ data }: Props) {
   }
 
   return (
-    <PageTransition className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <PageTransition className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link
             href="/dashboard/admin/classes"
@@ -598,7 +665,7 @@ export function ClassDetailDashboard({ data }: Props) {
             {t("back")}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight text-on-surface">
+            <h1 className="type-heading-lg font-medium text-on-surface">
               {data.classInfo.title}
             </h1>
             <span className="rounded-full bg-success-container px-3 py-1 text-xs font-semibold text-success-dim">
@@ -614,13 +681,13 @@ export function ClassDetailDashboard({ data }: Props) {
         <div className="flex gap-2">
           <button
             onClick={() => setEditOpen(true)}
-            className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"
+            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             {t("edit")}
           </button>
           <button
             onClick={() => setAttendanceOpen(true)}
-            className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
+            className="h-8 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             {t("takeAttendance")}
           </button>
@@ -633,7 +700,7 @@ export function ClassDetailDashboard({ data }: Props) {
         </div>
       )}
 
-      <FadeInItem className="mt-6 grid gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 text-sm shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md sm:grid-cols-2 lg:grid-cols-5">
+      <FadeInItem className="mt-6 grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-4 text-sm shadow-none sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
           <div>
@@ -685,11 +752,22 @@ export function ClassDetailDashboard({ data }: Props) {
       </FadeInItem>
 
       <div className="mt-6 border-b border-outline-variant/20">
-        <nav className="flex gap-5 overflow-x-auto">
+        <nav
+          className="flex gap-5 overflow-x-auto"
+          role="tablist"
+          aria-label={data.classInfo.title}
+        >
           {tabs.map((item) => (
             <button
               key={item}
+              type="button"
+              role="tab"
+              aria-selected={tab === item}
+              aria-controls={`class-panel-${item}`}
+              id={`class-tab-${item}`}
+              tabIndex={tab === item ? 0 : -1}
               onClick={() => setTab(item)}
+              onKeyDown={(event) => handleTabKeyDown(event, item)}
               className={cn(
                 "border-b-2 px-1 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]",
                 tab === item
@@ -703,8 +781,27 @@ export function ClassDetailDashboard({ data }: Props) {
         </nav>
       </div>
 
+      {tab === "workbench" && ieltsWorkbench && (
+        <div
+          role="tabpanel"
+          id="class-panel-workbench"
+          aria-labelledby="class-tab-workbench"
+        >
+          <IeltsTeacherWorkbench
+            classId={data.classInfo.id}
+            data={ieltsWorkbench}
+            onTakeAttendance={() => setAttendanceOpen(true)}
+          />
+        </div>
+      )}
+
       {tab === "overview" && (
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div
+          role="tabpanel"
+          id="class-panel-overview"
+          aria-labelledby="class-tab-overview"
+          className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]"
+        >
           <StaggeredContainer className="grid gap-4 sm:grid-cols-2 lg:col-span-2 xl:grid-cols-4">
             <StatCard
               icon={<Users className="h-5 w-5" />}
@@ -830,7 +927,12 @@ export function ClassDetailDashboard({ data }: Props) {
       )}
 
       {tab === "students" && (
-        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
+        <FadeInItem
+          role="tabpanel"
+          id="class-panel-students"
+          aria-labelledby="class-tab-students"
+          className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md"
+        >
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 className="text-lg font-bold text-on-surface">
               {t("roster.title", { count: data.roster.length })}
@@ -895,7 +997,12 @@ export function ClassDetailDashboard({ data }: Props) {
       )}
 
       {tab === "courses" && (
-        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
+        <FadeInItem
+          role="tabpanel"
+          id="class-panel-courses"
+          aria-labelledby="class-tab-courses"
+          className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md"
+        >
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-on-surface">
@@ -964,7 +1071,12 @@ export function ClassDetailDashboard({ data }: Props) {
       )}
 
       {tab === "schedule" && (
-        <div className="mt-5 space-y-4">
+        <div
+          role="tabpanel"
+          id="class-panel-schedule"
+          aria-labelledby="class-tab-schedule"
+          className="mt-5 space-y-4"
+        >
           <FadeInItem className="flex flex-col gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-bold text-on-surface">
@@ -1018,7 +1130,12 @@ export function ClassDetailDashboard({ data }: Props) {
       )}
 
       {tab === "attendance" && (
-        <FadeInItem className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md">
+        <FadeInItem
+          role="tabpanel"
+          id="class-panel-attendance"
+          aria-labelledby="class-tab-attendance"
+          className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md"
+        >
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-on-surface">
               {t("attendance.title")}
@@ -1124,10 +1241,17 @@ export function ClassDetailDashboard({ data }: Props) {
       {editOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm">
           <form
+            ref={editDialogRef}
             onSubmit={handleUpdate}
-            className="w-full max-w-xl rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-class-dialog-title"
+            className="w-full max-w-xl rounded-[10px] border border-outline-variant bg-surface p-5 shadow-lg"
           >
-            <h2 className="text-lg font-bold text-on-surface">
+            <h2
+              id="edit-class-dialog-title"
+              className="text-lg font-bold text-on-surface"
+            >
               {t("editClass")}
             </h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">

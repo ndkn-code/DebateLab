@@ -27,6 +27,7 @@ import {
   showcaseTopic,
 } from "@/lib/admin-ui-showcase/fixtures";
 import { cn } from "@/lib/utils";
+import { DevQaFrame } from "../dev-v2";
 
 type QaTab =
   | "setup"
@@ -147,26 +148,31 @@ export function DevPracticeQaPage() {
   const aiTtsFixture = aiTtsFixtures[ttsFixtureLanguage];
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-outline-variant bg-white p-4">
-          <p className="type-eyebrow text-primary">
+    <DevQaFrame
+      title="Practice timing, layout, and feedback verification"
+      description="Interactive localhost fixtures for setup, practice, debate, feedback, and result states."
+    >
+      <div className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div className="rounded-[12px] border border-border bg-surface p-4 sm:p-5">
+          <p className="type-caption font-semibold uppercase tracking-wider">
             Localhost QA
           </p>
-          <h1 className="mt-2 text-2xl font-bold text-on-surface">
+          <h1 className="mt-1 type-heading-lg font-medium text-on-surface">
             Practice timing, layout, and feedback verification
           </h1>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div role="tablist" aria-label="Practice QA fixtures" className="mt-4 flex flex-wrap gap-2">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
+                role="tab"
+                aria-selected={activeTab === tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "rounded-md border px-3 py-2 text-sm font-semibold",
+                  "inline-flex h-8 items-center rounded-[10px] border px-2.5 type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   activeTab === tab.key
                     ? "border-primary bg-primary-container text-primary-dim"
-                    : "border-outline-variant bg-white text-on-surface-variant hover:bg-background"
+                    : "border-border bg-surface text-on-surface-variant hover:bg-primary-container hover:text-primary-dim"
                 )}
               >
                 {tab.label}
@@ -249,11 +255,11 @@ export function DevPracticeQaPage() {
             }
           />
           <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8">
-            <div className="rounded-lg border border-outline-variant bg-white p-4">
-              <h2 className="text-lg font-bold text-on-surface">
+            <div className="rounded-[10px] border border-border bg-surface p-4">
+              <h2 className="type-title font-semibold text-on-surface">
                 Legacy feedback compatibility
               </h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
+              <p className="mt-1 type-body-sm text-on-surface-variant">
                 This second dashboard has no transcriptAnnotations field.
               </p>
             </div>
@@ -353,6 +359,6 @@ export function DevPracticeQaPage() {
           ttsVoice={aiTtsFixture.voice}
         />
       )}
-    </main>
+    </DevQaFrame>
   );
 }

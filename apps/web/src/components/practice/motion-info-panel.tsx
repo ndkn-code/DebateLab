@@ -39,7 +39,7 @@ function normalizeForComparison(value: string | null | undefined) {
 
 function CoachBriefItem({ label, text }: { label: string; text: string }) {
   return (
-    <div className="rounded-xl bg-surface-container px-3.5 py-3">
+    <div className="rounded-[10px] bg-surface-container px-3.5 py-3">
       <Eyebrow className="text-on-surface-variant">
         {label}
       </Eyebrow>
@@ -89,7 +89,7 @@ export function MotionInfoPanel({
   return (
     <section
       className={cn(
-        "rounded-[1.25rem] border border-outline-variant bg-surface p-5 shadow-token-card sm:p-6",
+        "rounded-[1.25rem] border border-outline-variant bg-surface p-5 shadow-none sm:p-6",
         className
       )}
     >

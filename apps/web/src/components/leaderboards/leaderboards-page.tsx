@@ -172,7 +172,7 @@ function LeagueCrest({
         ) : null}
         {isLocked ? (
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex size-8 items-center justify-center rounded-full bg-white/82 text-on-surface-variant shadow-token-card backdrop-blur-sm">
+            <span className="flex size-8 items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant shadow-none backdrop-blur-sm">
               <Lock className="size-4" />
             </span>
           </span>
@@ -218,7 +218,7 @@ function SegmentedControl<T extends string>({
             className={cn(
               "min-h-9 rounded-full px-4 text-sm font-bold transition-all",
               active
-                ? "bg-white text-on-surface shadow-token-card"
+                ? "bg-surface-container-lowest text-on-surface shadow-none"
                 : "text-on-surface-variant hover:text-on-surface"
             )}
             aria-pressed={active}
@@ -261,7 +261,7 @@ function PersonalRow({
       row.connection?.viewerCanRequest);
   const profileContent = (
     <>
-      <Avatar className="size-10 shrink-0 bg-surface-container sm:size-11">
+      <Avatar className="size-8 shrink-0 bg-surface-container">
         {row.avatarUrl ? <AvatarImage src={row.avatarUrl} alt={row.displayName} /> : null}
         <AvatarFallback
           className={cn(
@@ -297,10 +297,10 @@ function PersonalRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="leaderboard-row"
       className={cn(
-        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-on-surface-variant transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentUser
           ? currentUserRowTone(row.zone)
-          : "bg-transparent hover:bg-white/60"
+          : "bg-transparent hover:bg-surface-container-low"
       )}
     >
       <RankBadge rank={row.rank} highlighted={row.isCurrentUser} />
@@ -362,8 +362,8 @@ function PersonalRow({
                 row.connection?.status === "accepted"
                   ? "border-outline-variant bg-surface-container text-success"
                   : connectionRequested || row.connection?.status === "pending_sent"
-                    ? "border-outline-variant bg-white text-primary"
-                    : "border-outline-variant bg-white text-on-surface-variant hover:border-primary-fixed hover:text-primary-dim",
+                    ? "border-outline-variant bg-surface-container-lowest text-primary"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary-fixed hover:text-primary-dim",
                 (connectionPending ||
                   connectionRequested ||
                   row.connection?.status === "pending_sent" ||
@@ -401,7 +401,7 @@ function PersonalRow({
                 "inline-flex size-7 items-center justify-center rounded-full border transition",
                 kudosState.viewerHasSent
                   ? "border-outline-variant bg-surface-container text-success"
-                  : "border-outline-variant bg-white text-on-surface-variant hover:border-outline-variant hover:text-success",
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:text-success",
                 (!kudosState.viewerCanSend || kudosPending) &&
                   "cursor-not-allowed opacity-60"
               )}
@@ -438,17 +438,17 @@ function OrganizationRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="organization-leaderboard-row"
       className={cn(
-        "flex min-h-[64px] items-center gap-3 rounded-md px-3 py-2.5 text-on-surface-variant transition-colors sm:min-h-[70px] sm:gap-4 sm:px-4",
+        "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentOrganization
           ? "bg-surface-container-high text-on-surface shadow-token-card"
-          : "bg-transparent hover:bg-white/60"
+          : "bg-transparent hover:bg-surface-container-low"
       )}
     >
       <RankBadge rank={row.rank} highlighted={row.isCurrentOrganization} />
       <div
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-surface-variant sm:size-11",
-          row.isCurrentOrganization ? "bg-surface-container-high text-white" : "bg-surface-container"
+          "flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-surface-variant",
+          row.isCurrentOrganization ? "bg-surface-container-high text-on-surface" : "bg-surface-container"
         )}
       >
         {row.logoUrl ? (
@@ -515,7 +515,7 @@ function SeasonOutcomeBanner({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "mt-5 flex w-full flex-col gap-3 rounded-lg border px-4 py-3 text-left shadow-token-card sm:flex-row sm:items-center",
+        "mt-3 flex w-full flex-col gap-3 rounded-[10px] border px-4 py-3 text-left sm:flex-row sm:items-center",
         isPositive
           ? "border-outline-variant bg-surface-container text-on-surface-variant"
           : isNegative
@@ -548,7 +548,7 @@ function SeasonOutcomeBanner({
           type="button"
           variant="outline"
           size="sm"
-          className="self-start border-current/25 bg-white/70 text-current hover:bg-white sm:self-center"
+          className="self-start border-current/25 bg-surface-container-lowest text-current hover:bg-surface-container sm:self-center"
           onClick={onReplay}
         >
           <RotateCcw className="size-3.5" />
@@ -588,7 +588,7 @@ function LeaderboardInfoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-2xl border border-white/60 bg-white/90 p-0 text-on-surface shadow-token-card backdrop-blur-xl sm:max-w-[460px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] gap-0 rounded-xl border border-outline-variant bg-surface p-0 text-on-surface shadow-none backdrop-blur-xl sm:max-w-[460px]">
         <div className="px-5 pb-4 pt-5 sm:px-6 sm:pb-5">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-surface-variant">
@@ -856,16 +856,16 @@ export function LeaderboardsPage({
   return (
     <PageTransition
       data-testid="leaderboard-page"
-      className="min-h-full bg-surface-container text-on-surface"
+      className="min-h-full bg-transparent text-on-surface"
     >
-      <PageContainer size="wide" className="flex flex-col items-center py-6 sm:py-8">
+      <PageContainer size="wide" className="flex flex-col items-center py-5 sm:py-6">
         <section className="relative flex w-full max-w-[900px] flex-col items-center text-center">
           <button
             type="button"
             onClick={() => setLeaderboardInfoOpen(true)}
             aria-label={t("info.triggerLabel")}
             title={t("info.triggerLabel")}
-            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-outline-variant bg-white/80 text-on-surface-variant shadow-token-card backdrop-blur-md transition hover:border-primary/45 hover:text-on-surface-variant"
+            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-outline-variant bg-surface text-on-surface-variant shadow-none backdrop-blur-md transition hover:border-primary/45 hover:text-on-surface-variant"
           >
             <Info className="size-5" />
           </button>
@@ -890,7 +890,7 @@ export function LeaderboardsPage({
 
           <h1
             data-testid="league-title"
-            className="mt-8 text-balance type-heading-xl font-black text-on-surface-variant sm:type-display-sm"
+            className="type-heading-lg mt-6 font-medium text-on-surface"
           >
             {localizedLeague.name}
           </h1>
@@ -937,7 +937,7 @@ export function LeaderboardsPage({
           ) : null}
 
           {view === "organizations" && !data.organizations.affiliation ? (
-            <div className="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 text-center text-sm font-semibold text-on-surface-variant shadow-token-card">
+            <div className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-center text-sm font-semibold text-on-surface-variant">
               {t("organizations.joinPrefix")}{" "}
               <Link href="/settings" className="text-on-surface-variant hover:underline">
                 {t("organizations.settingsLink")}
@@ -949,7 +949,7 @@ export function LeaderboardsPage({
 
         <section
           data-testid="leaderboard-card"
-          className="mt-6 w-full max-w-[760px]"
+          className="mt-5 w-full max-w-[760px] rounded-xl border border-outline-variant bg-surface p-4"
         >
           {view === "personal" ? (
             data.personal.rows.length > 0 ? (

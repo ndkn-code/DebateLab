@@ -124,7 +124,7 @@ function AchievementInfoDialog({
         initial={{ opacity: 0, scale: 0.94, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md rounded-[24px] border border-outline-variant bg-surface-container-lowest p-7 shadow-token-card"
+        className="relative w-full max-w-md rounded-xl border border-outline-variant bg-surface-container-lowest p-5"
       >
         <button
           type="button"
@@ -264,7 +264,7 @@ function AchievementCard({
         ease: [0.22, 1, 0.36, 1],
       }}
       className={cn(
-        "relative flex cursor-pointer flex-col items-center rounded-[24px] border bg-surface-container-lowest p-6 pt-7 text-center shadow-token-card transition-transform duration-200 hover:-translate-y-1",
+        "relative flex cursor-pointer flex-col items-center rounded-xl border bg-surface-container-lowest p-5 pt-6 text-center transition-colors hover:border-primary",
         featured ? "border-primary/40" : "border-outline-variant"
       )}
     >
@@ -427,7 +427,7 @@ export function ProfileAchievementsTab({
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-col gap-4 rounded-[24px] border border-outline-variant bg-surface-container-lowest p-6 shadow-token-card sm:flex-row sm:items-center sm:justify-between sm:p-7">
+      <div className="flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-warning-container text-on-warning-container">
             <Award className="size-6" />

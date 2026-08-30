@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
+import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { validateAttendanceSubmission } from "@/lib/api/admin-classes-model";
 import {
   DEFAULT_CLASS_TIMEZONE,
@@ -21,8 +21,25 @@ import type {
   SaveAttendanceInput,
 } from "@/lib/types/admin-classes";
 import { containsIlikePattern, mergeUniqueById } from "@/lib/supabase/search";
+import {
+  requireClassManager,
+  requireClassOwner,
+  requireClubOwner,
+  requirePlatformAdmin,
+} from "@/lib/api/class-manager-access";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+type ClassRpcClient = {
+  rpc<T>(name: string, args: Record<string, unknown>): Promise<{
+    data: T | null;
+    error: { message: string } | null;
+  }>;
+};
+
+function classRpc(supabase: Supabase) {
+  return supabase as unknown as ClassRpcClient;
+}
 
 const CLASS_STATUSES = new Set<AdminClassStatus>(["draft", "active", "archived"]);
 const ATTENDANCE_STATUSES = new Set<AttendanceStatus>(["present", "late", "absent"]);
@@ -32,44 +49,18 @@ function isDevClassId(id: string) {
 }
 
 async function verifyAdmin(supabase: Supabase) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    if (isDevAdminBypassEnabled()) return DEV_ADMIN_PROFILE.id;
-    throw new Error("Unauthorized");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
-    if (isDevAdminBypassEnabled()) return user.id;
-    throw new Error("Forbidden");
-  }
-
-  return user.id;
+  return requirePlatformAdmin(supabase as Parameters<typeof requirePlatformAdmin>[0]);
 }
 
-async function logAdminAction(
+async function callClassRpc<T>(
   supabase: Supabase,
-  adminId: string,
-  action: string,
-  entityType: string,
-  entityId: string,
-  changes: Record<string, unknown>
+  name: string,
+  args: Record<string, unknown>,
 ) {
-  await supabase.from("admin_activity_log").insert({
-    admin_user_id: adminId,
-    action,
-    entity_type: entityType,
-    entity_id: entityId,
-    changes,
-  });
+  const { data, error } = await classRpc(supabase).rpc<T>(name, args);
+  if (error) throw new Error(error.message);
+  if (data === null) throw new Error(`${name} returned no result`);
+  return data;
 }
 
 function cleanString(value: FormDataEntryValue | string | null | undefined) {
@@ -131,60 +122,77 @@ async function generateUniqueClassCode(supabase: Supabase, programType: AdminCla
 
 export async function createClass(formData: FormData) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  const clubId = cleanString(formData.get("clubId"));
+  if (clubId) {
+    await requireClubOwner(supabase as Parameters<typeof requireClubOwner>[0], clubId);
+  } else {
+    await verifyAdmin(supabase);
+  }
   const payload = classPayloadFromForm(formData);
   const code = await generateUniqueClassCode(supabase, payload.program_type);
-
-  const { data, error } = await supabase
-    .from("classes")
-    .insert({ ...payload, code, created_by: adminId })
-    .select("id")
-    .single();
-
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "create_class", "class", data.id, payload);
+  const classId = await callClassRpc<string>(supabase, "create_class_transaction", {
+    p_club_id: clubId,
+    p_code: code,
+    p_title: payload.title,
+    p_description: payload.description,
+    p_program_type: payload.program_type,
+    p_grade_level: payload.grade_level,
+    p_status: payload.status,
+    p_start_date: payload.start_date,
+    p_end_date: payload.end_date,
+    p_meeting_schedule: payload.meeting_schedule,
+    p_room: payload.room,
+    p_max_students: payload.max_students,
+  });
   revalidatePath("/dashboard/admin/classes");
-  return data.id as string;
+  return classId;
 }
 
 export async function updateClass(classId: string, formData: FormData) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   const payload = classPayloadFromForm(formData);
 
   if (isDevClassId(classId)) {
     return;
   }
 
-  const { error } = await supabase
-    .from("classes")
-    .update({ ...payload, updated_at: new Date().toISOString() })
-    .eq("id", classId);
-
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "update_class", "class", classId, payload);
+  await callClassRpc<string>(supabase, "update_class_transaction", {
+    p_class_id: classId,
+    p_title: payload.title,
+    p_description: payload.description,
+    p_program_type: payload.program_type,
+    p_grade_level: payload.grade_level,
+    p_status: payload.status,
+    p_start_date: payload.start_date,
+    p_end_date: payload.end_date,
+    p_meeting_schedule: payload.meeting_schedule,
+    p_room: payload.room,
+    p_max_students: payload.max_students,
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
 }
 
 export async function archiveClass(classId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
-  const { error } = await supabase
-    .from("classes")
-    .update({ status: "archived", updated_at: new Date().toISOString() })
-    .eq("id", classId);
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "archive_class", "class", classId, {});
+  await callClassRpc<string>(supabase, "archive_class_transaction", { p_class_id: classId });
   revalidatePath("/dashboard/admin/classes");
 }
 
 export async function searchStudentsForClass(query: string, excludeClassId?: string) {
   const supabase = await createClient();
-  await verifyAdmin(supabase);
+  let clubId: string | null = null;
+  if (excludeClassId) {
+    const context = await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], excludeClassId);
+    clubId = context.clubId;
+  } else {
+    await verifyAdmin(supabase);
+  }
   const term = query.trim();
   if (term.length < 2) return [];
 
@@ -196,19 +204,33 @@ export async function searchStudentsForClass(query: string, excludeClassId?: str
   }
 
   const pattern = containsIlikePattern(term);
+  let eligibleStudentIds: string[] | null = null;
+  if (clubId) {
+    const { data: memberships, error: membershipError } = await supabase
+      .from("club_memberships")
+      .select("user_id")
+      .eq("club_id", clubId)
+      .eq("role", "student")
+      .eq("status", "active");
+    if (membershipError) throw new Error(membershipError.message);
+    eligibleStudentIds = (memberships ?? []).map((row) => row.user_id as string);
+    if (eligibleStudentIds.length === 0) return [];
+  }
+  const byName = supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, email")
+    .eq("role", "student")
+    .ilike("display_name", pattern)
+    .limit(12);
+  const byEmail = supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, email")
+    .eq("role", "student")
+    .ilike("email", pattern)
+    .limit(12);
   const [nameRes, emailRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url, email")
-      .eq("role", "student")
-      .ilike("display_name", pattern)
-      .limit(12),
-    supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url, email")
-      .eq("role", "student")
-      .ilike("email", pattern)
-      .limit(12),
+    eligibleStudentIds ? byName.in("id", eligibleStudentIds) : byName,
+    eligibleStudentIds ? byEmail.in("id", eligibleStudentIds) : byEmail,
   ]);
 
   if (nameRes.error) throw new Error(nameRes.error.message);
@@ -231,7 +253,7 @@ export async function searchStudentsForClass(query: string, excludeClassId?: str
 
 export async function addStudentToClass(classId: string, userId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
@@ -243,6 +265,13 @@ export async function addStudentToClass(classId: string, userId: string) {
     .maybeSingle();
 
   if (classError) throw new Error(classError.message);
+  const { data: studentProfile, error: studentProfileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (studentProfileError) throw new Error(studentProfileError.message);
+  if (studentProfile?.role !== "student") throw new Error("Student profile is required");
 
   const clubId = (classRow?.club_id as string | null | undefined) ?? null;
 
@@ -264,69 +293,103 @@ export async function addStudentToClass(classId: string, userId: string) {
     }
 
     if (!activeClub) {
-      const { error: clubMembershipError } = await supabase
-        .from("club_memberships")
-        .upsert(
-          {
-            club_id: clubId,
-            user_id: userId,
-            role: "student",
-            status: "active",
-            removed_at: null,
-            invited_by: adminId,
-            metadata: { verification_method: "admin" },
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "club_id,user_id,role" }
-        );
-
-      if (clubMembershipError) throw new Error(clubMembershipError.message);
+      throw new Error("Student must join this organization before class activation.");
     }
   }
 
-  const { error } = await supabase.from("class_memberships").upsert(
-    {
-      class_id: classId,
-      user_id: userId,
-      member_role: "student",
-      status: "active",
-      removed_at: null,
-      created_by: adminId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "class_id,user_id,member_role" }
-  );
-
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "add_class_student", "class", classId, { user_id: userId });
+  await callClassRpc<string>(supabase, "manage_class_student_transaction", {
+    p_class_id: classId,
+    p_student_id: userId,
+    p_action: "add",
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
 }
 
 export async function removeStudentFromClass(classId: string, userId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
-  const now = new Date().toISOString();
-
-  const { error } = await supabase
-    .from("class_memberships")
-    .update({ status: "removed", removed_at: now, updated_at: now })
-    .eq("class_id", classId)
-    .eq("user_id", userId)
-    .eq("member_role", "student");
-
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "remove_class_student", "class", classId, { user_id: userId });
+  await callClassRpc<string>(supabase, "manage_class_student_transaction", {
+    p_class_id: classId,
+    p_student_id: userId,
+    p_action: "remove",
+  });
   revalidatePath("/dashboard/admin/classes");
+  revalidatePath(`/dashboard/admin/classes/${classId}`);
+}
+
+export async function assignTeacherToClass(classId: string, userId: string) {
+  const supabase = await createClient();
+  await requireClassOwner(
+    supabase as Parameters<typeof requireClassOwner>[0],
+    classId,
+  );
+  if (!userId) throw new Error("Teacher is required");
+
+  const { data: classRow, error: classError } = await supabase
+    .from("classes")
+    .select("club_id")
+    .eq("id", classId)
+    .maybeSingle();
+  if (classError) throw new Error(classError.message);
+  if (!classRow) throw new Error("Class not found");
+  if (!classRow.club_id) throw new Error("Global classes cannot assign club teachers");
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  if (!profile || (profile.role !== "teacher" && profile.role !== "admin")) {
+    throw new Error("Teacher profile is required");
+  }
+
+  const { data: clubMembership, error: clubMembershipError } = await supabase
+    .from("club_memberships")
+    .select("id")
+    .eq("club_id", classRow.club_id)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["owner", "coach"])
+    .maybeSingle();
+  if (clubMembershipError) throw new Error(clubMembershipError.message);
+  if (!clubMembership && profile.role !== "admin") {
+    throw new Error("Teacher must be an active manager of this club");
+  }
+
+  await callClassRpc<string>(supabase, "manage_class_teacher_transaction", {
+    p_class_id: classId,
+    p_teacher_id: userId,
+    p_action: "add",
+  });
+  revalidatePath(`/dashboard/admin/classes/${classId}`);
+}
+
+export async function removeTeacherFromClass(classId: string, userId: string) {
+  const supabase = await createClient();
+  await requireClassOwner(
+    supabase as Parameters<typeof requireClassOwner>[0],
+    classId,
+  );
+  await callClassRpc<string>(supabase, "manage_class_teacher_transaction", {
+    p_class_id: classId,
+    p_teacher_id: userId,
+    p_action: "remove",
+  });
   revalidatePath(`/dashboard/admin/classes/${classId}`);
 }
 
 export async function searchCoursesForClass(query: string, excludeClassId?: string) {
   const supabase = await createClient();
-  await verifyAdmin(supabase);
+  if (excludeClassId) {
+    await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], excludeClassId);
+  } else {
+    await verifyAdmin(supabase);
+  }
   const term = query.trim();
   if (term.length < 2) return [];
 
@@ -374,7 +437,7 @@ export async function searchCoursesForClass(query: string, excludeClassId?: stri
 
 export async function getAssignedCoursesForClass(classId: string) {
   const supabase = await createClient();
-  await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
 
   if (isDevClassId(classId)) {
     return [
@@ -462,29 +525,28 @@ export async function searchClassesForCourse(query: string, excludeCourseId?: st
 
 export async function assignCourseToClass(classId: string, courseId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
 
-  const { error: assignmentError } = await supabase.from("class_course_assignments").upsert(
-    {
-      class_id: classId,
-      course_id: courseId,
-      assigned_by: adminId,
-    },
-    { onConflict: "class_id,course_id" }
-  );
+  const [{ data: classRow, error: classError }, { data: courseRow, error: courseError }] = await Promise.all([
+    supabase.from("classes").select("program_type").eq("id", classId).maybeSingle(),
+    supabase.from("courses").select("subject").eq("id", courseId).maybeSingle(),
+  ]);
+  if (classError) throw new Error(classError.message);
+  if (courseError) throw new Error(courseError.message);
+  if (!classRow) throw new Error("Class not found");
+  if (!courseRow) throw new Error("Course not found");
+  if (courseRow.subject === "ielts" && classRow.program_type !== "ielts") {
+    throw new Error("IELTS courses can only be assigned to IELTS classes.");
+  }
 
-  if (assignmentError) throw new Error(assignmentError.message);
-
-  const { error: visibilityError } = await supabase
-    .from("courses")
-    .update({ visibility: "class_restricted" })
-    .eq("id", courseId);
-
-  if (visibilityError) throw new Error(visibilityError.message);
-  await logAdminAction(supabase, adminId, "assign_course_to_class", "class", classId, { course_id: courseId });
+  await callClassRpc<string>(supabase, "manage_class_course_transaction", {
+    p_class_id: classId,
+    p_course_id: courseId,
+    p_action: "assign",
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
   revalidatePath("/dashboard/admin/courses");
@@ -493,24 +555,15 @@ export async function assignCourseToClass(classId: string, courseId: string) {
 
 export async function unassignCourseFromClass(classId: string, courseId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
-  const { error } = await supabase
-    .from("class_course_assignments")
-    .delete()
-    .eq("class_id", classId)
-    .eq("course_id", courseId);
-
-  if (error) throw new Error(error.message);
-  const { error: scheduleError } = await supabase
-    .from("class_schedules")
-    .update({ course_id: null, updated_at: new Date().toISOString() })
-    .eq("class_id", classId)
-    .eq("course_id", courseId);
-  if (scheduleError) throw new Error(scheduleError.message);
-  await logAdminAction(supabase, adminId, "unassign_course_from_class", "class", classId, { course_id: courseId });
+  await callClassRpc<string>(supabase, "manage_class_course_transaction", {
+    p_class_id: classId,
+    p_course_id: courseId,
+    p_action: "unassign",
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
   revalidatePath(`/dashboard/admin/courses/${courseId}/settings`);
@@ -518,7 +571,7 @@ export async function unassignCourseFromClass(classId: string, courseId: string)
 
 export async function saveAttendanceSession(input: SaveAttendanceInput) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], input.classId);
   if (isDevClassId(input.classId)) {
     return;
   }
@@ -567,41 +620,17 @@ export async function saveAttendanceSession(input: SaveAttendanceInput) {
     if (!ATTENDANCE_STATUSES.has(record.status)) throw new Error("Invalid attendance status");
   }
 
-  const { data: session, error: sessionError } = await supabase
-    .from("class_attendance_sessions")
-    .upsert(
-      {
-        class_id: input.classId,
-        course_id: input.courseId,
-        session_date: sessionDate,
-        title: input.title ?? null,
-        notes: input.notes ?? null,
-        taken_by: adminId,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "class_id,course_id,session_date" }
-    )
-    .select("id")
-    .single();
-
-  if (sessionError) throw new Error(sessionError.message);
-
-  const { error: recordsError } = await supabase.from("class_attendance_records").upsert(
-    input.records.map((record) => ({
-      session_id: session.id,
-      user_id: record.userId,
+  await callClassRpc<string>(supabase, "save_class_attendance_transaction", {
+    p_class_id: input.classId,
+    p_course_id: input.courseId,
+    p_session_date: sessionDate,
+    p_title: input.title ?? null,
+    p_notes: input.notes ?? null,
+    p_records: input.records.map((record) => ({
+      userId: record.userId,
       status: record.status,
       notes: record.notes ?? null,
-      updated_at: new Date().toISOString(),
     })),
-    { onConflict: "session_id,user_id" }
-  );
-
-  if (recordsError) throw new Error(recordsError.message);
-  await logAdminAction(supabase, adminId, "save_class_attendance", "class", input.classId, {
-    course_id: input.courseId,
-    session_date: sessionDate,
-    records: input.records.length,
   });
 
   revalidatePath("/dashboard/admin/classes");
@@ -610,25 +639,21 @@ export async function saveAttendanceSession(input: SaveAttendanceInput) {
 
 export async function deleteAttendanceSession(classId: string, sessionId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
-  const { error } = await supabase
-    .from("class_attendance_sessions")
-    .delete()
-    .eq("id", sessionId)
-    .eq("class_id", classId);
-
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "delete_class_attendance", "class", classId, { session_id: sessionId });
+  await callClassRpc<string>(supabase, "delete_class_attendance_transaction", {
+    p_class_id: classId,
+    p_session_id: sessionId,
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
 }
 
 export async function saveClassSchedule(input: SaveClassScheduleInput) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], input.classId);
   if (isDevClassId(input.classId)) {
     return input.id ?? "dev-schedule";
   }
@@ -675,42 +700,38 @@ export async function saveClassSchedule(input: SaveClassScheduleInput) {
     updated_at: new Date().toISOString(),
   };
 
-  if (input.id) {
-    const { error } = await supabase
-      .from("class_schedules")
-      .update(payload)
-      .eq("id", input.id)
-      .eq("class_id", input.classId);
-    if (error) throw new Error(error.message);
-    await logAdminAction(supabase, adminId, "update_class_schedule", "class", input.classId, { schedule_id: input.id });
-  } else {
-    const { data, error } = await supabase
-      .from("class_schedules")
-      .insert({ ...payload, created_by: adminId })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    await logAdminAction(supabase, adminId, "create_class_schedule", "class", input.classId, { schedule_id: data.id });
-  }
+  const scheduleId = await callClassRpc<string>(supabase, "save_class_schedule_transaction", {
+    p_class_id: input.classId,
+    p_schedule_id: input.id ?? null,
+    p_course_id: courseId,
+    p_title: title,
+    p_room: payload.room,
+    p_location: payload.location,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_start_time: startTime,
+    p_end_time: endTime,
+    p_timezone: payload.timezone,
+    p_recurrence_rule: recurrenceRule,
+    p_recurrence_summary: payload.recurrence_summary,
+    p_status: payload.status,
+  });
 
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${input.classId}`);
-  return input.id ?? null;
+  return scheduleId;
 }
 
 export async function deleteClassSchedule(classId: string, scheduleId: string) {
   const supabase = await createClient();
-  const adminId = await verifyAdmin(supabase);
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   if (isDevClassId(classId)) {
     return;
   }
-  const { error } = await supabase
-    .from("class_schedules")
-    .update({ status: "archived", updated_at: new Date().toISOString() })
-    .eq("id", scheduleId)
-    .eq("class_id", classId);
-  if (error) throw new Error(error.message);
-  await logAdminAction(supabase, adminId, "delete_class_schedule", "class", classId, { schedule_id: scheduleId });
+  await callClassRpc<string>(supabase, "archive_class_schedule_transaction", {
+    p_class_id: classId,
+    p_schedule_id: scheduleId,
+  });
   revalidatePath("/dashboard/admin/classes");
   revalidatePath(`/dashboard/admin/classes/${classId}`);
 }

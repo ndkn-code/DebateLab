@@ -78,7 +78,7 @@ export function ModuleCompletionScreen({
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-6 mt-6 space-y-3"
+          className="w-full rounded-[12px] bg-white border border-outline-variant p-5 mt-6 space-y-3"
         >
           <div className="flex items-center justify-center gap-2">
             <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
@@ -112,7 +112,7 @@ export function ModuleCompletionScreen({
           {nextModuleFirstActivityId && !isLastModule && (
             <Link
               href={nextModuleHref ?? `/dashboard/courses/${courseId}/activity/${nextModuleFirstActivityId}`}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
+              className="flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {t("continueToModule", { moduleName: nextModuleTitle ?? "Next" })}
               <ArrowRight className="h-5 w-5" />
@@ -120,7 +120,7 @@ export function ModuleCompletionScreen({
           )}
           <Link
             href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 px-6 py-3 text-base font-medium text-on-surface-variant hover:bg-gray-50 transition-colors"
+            className="flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("backToCourseOverview")}

@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Link } from "@/i18n/navigation";
 import type { BankFacets, BankQuestionDetail } from "@/lib/api/ielts/question-bank";
 import type { BankFilters, BankQuestionCard } from "@/lib/ielts/question-bank/model";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 type ListResult = { questions: BankQuestionCard[]; count: number; page: number; pageSize: number; pageCount: number };
 
@@ -49,6 +50,7 @@ export function QuestionBankBrowser({ facets, result, filters, detail }: { facet
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
   return (
+    <AdminV2Frame>
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="type-headline text-on-surface">Question Bank</h1></div>
@@ -102,6 +104,7 @@ export function QuestionBankBrowser({ facets, result, filters, detail }: { facet
         </SheetContent>
       </Sheet>
     </div>
+    </AdminV2Frame>
   );
 }
 

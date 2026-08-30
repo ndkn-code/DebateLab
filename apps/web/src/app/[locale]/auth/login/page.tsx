@@ -113,11 +113,12 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="relative flex min-h-screen items-center justify-center bg-background px-4 py-8 text-on-surface">
       <ThemeToggle
         variant="public"
         className="absolute right-4 top-4"
       />
+      <div className="w-full max-w-sm rounded-[12px] border border-outline-variant bg-surface p-6 shadow-none sm:p-8">
       <Suspense fallback={
         <div className="w-full max-w-sm text-center">
           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
@@ -125,6 +126,7 @@ export default function LoginPage() {
       }>
         <LoginContent />
       </Suspense>
+      </div>
     </main>
   );
 }

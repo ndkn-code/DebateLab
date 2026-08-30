@@ -88,7 +88,7 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
 
       <div className="space-y-6 w-full">
         {passages.map((passage) => (
-          <div key={passage.id} className="text-lg leading-loose text-on-surface rounded-2xl bg-white border border-gray-100 p-6 shadow-sm">
+          <div key={passage.id} className="text-lg leading-loose text-on-surface rounded-[10px] bg-white border border-outline-variant p-5 shadow-none">
             {renderPassage(passage)}
           </div>
         ))}
@@ -97,7 +97,7 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
       <AnimatePresence>
         {checked && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className={`mt-6 w-full rounded-2xl p-4 text-center font-bold text-lg ${
+            className={`mt-6 w-full rounded-[10px] p-3 text-center text-base font-medium ${
               score === allBlanks.length ? "bg-green-50 text-green-700 border border-green-200" : "bg-amber-50 text-amber-700 border border-amber-200"
             }`}
           >
@@ -108,7 +108,7 @@ export function FillBlankPlayer({ content, onComplete }: Props) {
 
       {!checked && (
         <motion.button onClick={handleCheck} disabled={!allFilled}
-          className="mt-8 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary transition-all disabled:opacity-40 hover:bg-primary/90 min-w-[200px]"
+          className="mt-8 inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors disabled:opacity-40 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("checkAnswers")}

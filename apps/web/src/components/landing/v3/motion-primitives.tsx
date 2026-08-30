@@ -25,11 +25,12 @@ interface RevealProps {
 
 /** Fade-and-rise scroll reveal, fires once. */
 export function Reveal({ children, delay = 0, className, margin = "-80px" }: RevealProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       variants={revealVariants}
-      initial="hidden"
-      whileInView="visible"
+      initial={reduceMotion ? false : "hidden"}
+      whileInView={reduceMotion ? undefined : "visible"}
       custom={delay}
       viewport={{ once: true, margin }}
       className={className}
@@ -50,10 +51,11 @@ interface StaggerProps {
 
 /** Parent that staggers all <StaggerItem> children when scrolled into view. */
 export function Stagger({ children, className, gap = 0.1, delay = 0, margin = "-80px" }: StaggerProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial="hidden"
-      whileInView="visible"
+      initial={reduceMotion ? false : "hidden"}
+      whileInView={reduceMotion ? undefined : "visible"}
       viewport={{ once: true, margin }}
       variants={{
         hidden: {},
@@ -75,12 +77,14 @@ export function StaggerItem({
   className?: string;
   y?: number;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       variants={{
         hidden: { opacity: 0, y },
         visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: EASE_OUT } },
       }}
+      initial={reduceMotion ? false : undefined}
       className={className}
     >
       {children}

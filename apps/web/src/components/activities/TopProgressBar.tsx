@@ -30,11 +30,11 @@ export function TopProgressBar({
   courseOverviewHref,
 }: Props) {
   return (
-    <div className="sticky top-0 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shadow-sm">
+    <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-outline-variant bg-surface/95 px-4 py-3 backdrop-blur-sm">
       {/* Back button */}
       <Link
         href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-surface-variant hover:bg-gray-100 transition-colors"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <ArrowLeft className="h-5 w-5" />
       </Link>

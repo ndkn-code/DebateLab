@@ -46,7 +46,7 @@ export function PrimaryButton({
     <a
       href={href}
       className={cn(
-        "btn-3d-primary inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary px-8 text-base font-bold text-on-primary hover:bg-primary-dim",
+        "inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-[background-color,transform] duration-150 hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         className
       )}
     >
@@ -69,7 +69,7 @@ export function GhostButton({
     <a
       href={href}
       className={cn(
-        "inline-flex h-14 items-center justify-center rounded-2xl border border-outline-variant bg-white px-8 text-base font-bold text-primary-dim shadow-token-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-token-primary",
+        "inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-white px-4 text-sm font-medium text-on-surface transition-[background-color,border-color,transform] duration-150 hover:border-primary hover:bg-surface-container-low active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         className
       )}
     >

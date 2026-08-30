@@ -6,22 +6,22 @@ import { cn } from "@/lib/utils";
 import type { DebateScore } from "@/types/feedback";
 
 const bandColors: Record<string, string> = {
-  Expert: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
-  Proficient: "text-primary bg-primary/10 border-primary/30",
-  Competent: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-  Developing: "text-orange-400 bg-orange-500/10 border-orange-500/30",
-  Novice: "text-red-400 bg-red-500/10 border-red-500/30",
+  Expert: "text-success-dim bg-success-container border-success/30",
+  Proficient: "text-secondary bg-secondary-container border-secondary/30",
+  Competent: "text-on-warning-container bg-warning-container border-warning/30",
+  Developing: "text-on-warning-container bg-warning-container border-warning/30",
+  Novice: "text-error-dim bg-error-container border-error/30",
 };
 
 function getStrokeColor(band: string) {
   const map: Record<string, string> = {
-    Expert: "#34d399",
-    Proficient: "#60a5fa",
-    Competent: "#fbbf24",
-    Developing: "#fb923c",
-    Novice: "#f87171",
+    Expert: "var(--color-success)",
+    Proficient: "var(--color-secondary)",
+    Competent: "var(--color-warning)",
+    Developing: "var(--color-warning)",
+    Novice: "var(--color-error)",
   };
-  return map[band] ?? "#60a5fa";
+  return map[band] ?? "var(--color-secondary)";
 }
 
 interface ScoreHeroProps {
@@ -58,10 +58,10 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
   const strokeColor = getStrokeColor(feedback.overallBand);
 
   return (
-    <div className="flex flex-col items-center gap-6 py-8" role="region" aria-label={`Overall score: ${feedback.totalScore} out of 100, band: ${feedback.overallBand}`}>
+    <div className="flex flex-col items-center gap-4 py-6" role="region" aria-label={`Overall score: ${feedback.totalScore} out of 100, band: ${feedback.overallBand}`}>
       {/* Score ring */}
       <div className="relative flex items-center justify-center" aria-hidden="true">
-        <svg className="h-48 w-48 -rotate-90" viewBox="0 0 180 180">
+        <svg className="h-36 w-36 -rotate-90" viewBox="0 0 180 180">
           <circle
             cx="90"
             cy="90"
@@ -86,7 +86,7 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
           />
         </svg>
         <div className="absolute flex flex-col items-center">
-          <span className="text-5xl font-bold text-primary">{displayScore}</span>
+          <span className="text-4xl font-semibold text-on-surface">{displayScore}</span>
           <span className="text-sm text-on-surface-variant">/100</span>
         </div>
       </div>
@@ -94,7 +94,7 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
       {/* Band badge */}
       <span
         className={cn(
-          "rounded-full border px-4 py-1.5 text-sm font-semibold",
+          "inline-flex h-5 items-center rounded-[6px] border px-2.5 text-xs font-medium",
           bandColors[feedback.overallBand]
         )}
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { landingHref } from "../links";
@@ -15,6 +15,7 @@ interface NavbarProps {
 
 export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
   const { scrollY } = useScroll();
+  const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -25,9 +26,9 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
       <motion.div
-        layout
+        layout={!reduceMotion}
         className={cn(
-          "mx-auto flex max-w-6xl items-center justify-between rounded-2xl border px-4 py-2.5 transition-colors duration-300 md:px-5",
+          "mx-auto flex max-w-6xl items-center justify-between rounded-[10px] border px-4 py-2 transition-colors duration-150 md:px-5",
           scrolled
             ? "border-outline-variant bg-white/90 shadow-token-card backdrop-blur-md"
             : "border-transparent bg-transparent"
@@ -66,7 +67,7 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
           {!isLoggedIn ? (
             <a
               href={landingHref(locale, "/auth/signup")}
-              className="btn-3d-primary inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-on-primary hover:bg-primary-dim"
+            className="inline-flex h-8 items-center rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {copy.nav.signup}
             </a>
@@ -78,7 +79,7 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant bg-white text-on-surface lg:hidden"
+          className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-outline-variant bg-white text-on-surface transition-colors hover:bg-surface-container lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             {menuOpen ? (
@@ -93,11 +94,11 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
       <AnimatePresence>
         {menuOpen ? (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            initial={reduceMotion ? false : { opacity: 0, y: -10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="mx-auto mt-2 max-w-6xl rounded-2xl border border-outline-variant bg-white p-4 shadow-token-panel lg:hidden"
+            exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.98 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
+            className="mx-auto mt-2 max-w-6xl rounded-[10px] border border-outline-variant bg-white p-3 shadow-none lg:hidden"
           >
             <nav className="flex flex-col gap-1">
               {copy.nav.links.map((link) => (
@@ -105,7 +106,7 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-xl px-3 py-3 text-base font-bold text-on-surface transition-colors hover:bg-surface-container"
+                  className="rounded-[8px] px-3 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
                 >
                   {link.label}
                 </a>
@@ -114,14 +115,14 @@ export function LandingV3Navbar({ copy, isLoggedIn, locale }: NavbarProps) {
             <div className="mt-3 flex flex-col gap-2 border-t border-outline-variant pt-4">
               <a
                 href={landingHref(locale, isLoggedIn ? "/dashboard" : "/auth/login")}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-outline-variant bg-white text-sm font-bold text-on-surface"
+                className="inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-white text-sm font-medium text-on-surface"
               >
                 {isLoggedIn ? copy.nav.dashboard : copy.nav.login}
               </a>
               {!isLoggedIn ? (
                 <a
                   href={landingHref(locale, "/auth/signup")}
-                  className="btn-3d-primary inline-flex h-12 items-center justify-center rounded-xl bg-primary text-sm font-bold text-on-primary"
+                  className="inline-flex h-8 items-center justify-center rounded-[10px] bg-primary text-sm font-medium text-on-primary"
                 >
                   {copy.nav.signup}
                 </a>

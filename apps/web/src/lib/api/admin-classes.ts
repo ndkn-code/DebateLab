@@ -26,6 +26,10 @@ import type {
   ClassRecurrenceRule,
   ClassScheduleStatus,
 } from "@/lib/types/admin-classes";
+import {
+  requireClassManager,
+  requireClassManagerDashboard,
+} from "@/lib/api/class-manager-access";
 
 type Supabase = Awaited<ReturnType<typeof createClient>> | SupabaseClient;
 
@@ -126,6 +130,7 @@ export async function getAdminClassesPageData({
   pageSize?: number;
 } = {}): Promise<AdminClassesPageData> {
   const supabase = await createClient();
+  await requireClassManagerDashboard(supabase as Parameters<typeof requireClassManagerDashboard>[0]);
   const search = String(searchParams?.q ?? "").trim();
   const status = normalizeStatus(String(searchParams?.status ?? "all"));
   const sort = normalizeSort(String(searchParams?.sort ?? "newest"));
@@ -198,6 +203,7 @@ export async function getAdminClassSchedulesPageData({
   searchParams?: Record<string, string | string[] | undefined>;
 } = {}): Promise<AdminClassSchedulesData> {
   const supabase = await createClient();
+  await requireClassManagerDashboard(supabase as Parameters<typeof requireClassManagerDashboard>[0]);
   const range = normalizeScheduleRange(searchParams);
   const program = normalizeScheduleProgram(String(searchParams?.program ?? "all"));
   const level = String(searchParams?.level ?? "all").trim() || "all";
@@ -480,6 +486,7 @@ export async function getAdminClassDetail(
   }
 
   const supabase = await createClient();
+  await requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
   const { data: classRow, error: classError } = await supabase
     .from("classes")
     .select("*")

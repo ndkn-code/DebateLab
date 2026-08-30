@@ -624,8 +624,8 @@ export default function FeedbackPage() {
         {/* Error */}
         {error && (
           <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-center">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="rounded-[10px] border border-error/20 bg-error-container px-4 py-3 text-center">
+              <p className="text-sm text-error-dim">{error}</p>
             </div>
             <div className="flex gap-3">
               <Button
@@ -700,10 +700,10 @@ export default function FeedbackPage() {
                   afterPanel={
                     <>
                       {referralCode && feedback && (
-                        <div className="mx-auto max-w-7xl rounded-[28px] border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-6">
+                        <div className="mx-auto max-w-7xl rounded-[10px] border border-success/30 bg-success-container p-4">
                           <div className="flex flex-col items-center text-center">
-                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
-                              <Gift className="h-6 w-6 text-primary" />
+                            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-[8px] bg-surface">
+                              <Gift className="h-4 w-4 text-success-dim" />
                             </div>
                             <h3 className="text-base font-bold text-on-surface">
                               {t("referral.title")}
@@ -733,7 +733,7 @@ export default function FeedbackPage() {
                                   setTimeout(() => setLinkCopied(false), 2000);
                                 }
                               }}
-                              className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
+                              className="mt-4 flex h-8 items-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {linkCopied ? (
                                 <>

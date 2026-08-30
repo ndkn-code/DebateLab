@@ -55,6 +55,12 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/motions", key: "motions" as const, icon: FileText },
 ] as const;
 
+const ADMIN_GROUPS = [
+  { key: "workspace", items: ADMIN_NAV.slice(0, 5) },
+  { key: "peoplePrograms", items: ADMIN_NAV.slice(5, 10) },
+  { key: "contentTools", items: ADMIN_NAV.slice(10) },
+] as const;
+
 function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname();
   const t = useTranslations("admin");
@@ -62,18 +68,20 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-muted/15 px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.08] text-sidebar-muted">
-          <Shield className="h-4 w-4" />
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-outline-variant px-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
+          <Shield className="h-4 w-4" aria-hidden="true" />
         </div>
-        <span className="truncate text-base font-extrabold text-sidebar-foreground">
+        <span className="truncate text-base font-semibold text-sidebar-foreground">
           {t("title")}
         </span>
       </div>
 
       {/* Nav */}
-      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3">
-        {ADMIN_NAV.map((item) => {
+      <nav aria-label={t("title")} className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-3 py-4">
+        {ADMIN_GROUPS.map((group) => <div key={group.key} className="space-y-1">
+          <p className="type-eyebrow px-2 pb-1 text-sidebar-muted">{t(`groups.${group.key}`)}</p>
+          {group.items.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
@@ -82,27 +90,28 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
               href={item.href}
               onClick={onNavClick}
               className={cn(
-                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
+                "type-label flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px",
                 isActive
                   ? "sidebar-nav-selected"
                   : "sidebar-nav-idle"
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="truncate">{t(`nav.${item.key}`)}</span>
             </Link>
           );
-        })}
+          })}
+        </div>)}
       </nav>
 
       {/* Back to Dashboard */}
-      <div className="shrink-0 border-t border-sidebar-muted/15 p-2">
+      <div className="shrink-0 border-t border-outline-variant p-3">
         <Link
           href="/dashboard"
           onClick={onNavClick}
-          className="sidebar-nav-action flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all"
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
         >
-          <ArrowLeft className="h-5 w-5 shrink-0" />
+          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{t("backToDashboard")}</span>
         </Link>
       </div>
@@ -112,23 +121,24 @@ function NavLinks({ onNavClick }: { onNavClick?: () => void }) {
 
 export function AdminSidebar() {
   const { sidebarOpen, setSidebarOpen } = useAdminStore();
+  const t = useTranslations("admin");
 
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden h-full w-55 shrink-0 flex-col overflow-hidden border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground md:flex">
+      <aside className="hidden h-full w-60 shrink-0 flex-col overflow-hidden border-r border-outline-variant bg-sidebar text-sidebar-foreground lg:flex">
         <NavLinks />
       </aside>
 
       {/* Mobile top bar + sheet */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
+      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-outline-variant bg-sidebar px-4 text-sidebar-foreground lg:hidden">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetTrigger className="flex h-11 w-11 items-center justify-center rounded-lg text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-foreground">
-            <Menu className="h-5 w-5" />
+          <SheetTrigger aria-label={t("title")} className="flex h-11 w-11 items-center justify-center rounded-[10px] text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-55 border-sidebar-muted/15 bg-sidebar p-0 text-sidebar-foreground"
+            className="w-60 border-outline-variant bg-sidebar p-0 text-sidebar-foreground"
             showCloseButton={false}
           >
             <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
@@ -136,8 +146,8 @@ export function AdminSidebar() {
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-sidebar-muted" />
-          <span className="text-lg font-extrabold tracking-tight text-sidebar-foreground">
+          <Shield className="h-4 w-4 text-sidebar-muted" aria-hidden="true" />
+          <span className="text-base font-semibold tracking-tight text-sidebar-foreground">
             Admin
           </span>
         </div>

@@ -24,6 +24,7 @@ import {
   SurveyThankYou,
 } from "@/components/shared/smart-popup-host";
 import { cn } from "@/lib/utils";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 import type { FeedbackPopupAdminData } from "@/lib/smart-popups/admin";
 import type { LocalizedSurveyQuestion } from "@/lib/smart-popups/survey";
 import type {
@@ -382,6 +383,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
   return (
     <>
+    <AdminV2Frame>
     <div className="mx-auto max-w-7xl min-w-0 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -423,6 +425,8 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
 
       {health.status !== "ok" ? (
         <section
+          role="alert"
+          aria-live="assertive"
           className={cn(
             "rounded-lg border px-4 py-3 text-sm shadow-token-card",
             health.status === "error"
@@ -472,7 +476,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-outline-variant bg-background px-4 py-3 text-sm font-semibold text-on-surface-variant">
+        <div role="status" aria-live="polite" className="rounded-lg border border-outline-variant bg-background px-4 py-3 text-sm font-semibold text-on-surface-variant">
           {notice}
         </div>
       ) : null}
@@ -1054,6 +1058,7 @@ export function FeedbackPopupsDashboard({ initialData }: Props) {
         </section>
       ) : null}
     </div>
+    </AdminV2Frame>
     {preview ? (
       <SmartPopupFrame
         open

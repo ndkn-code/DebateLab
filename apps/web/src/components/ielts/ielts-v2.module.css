@@ -1,0 +1,255 @@
+.root {
+  --ielts-space-page: clamp(1rem, 1.7vw, 2rem);
+  --ielts-radius-card: 12px;
+  --ielts-radius-control: 10px;
+  color: var(--color-on-surface);
+  background: var(--color-background);
+  min-height: 100%;
+}
+
+.root :global(main) {
+  color: var(--color-on-surface);
+}
+
+/* The compact, operational IELTS rhythm. Existing components keep their
+   semantic utility classes; these selectors only tune geometry in this scope. */
+.root :global(.type-display-sm),
+.root :global(.type-heading-xl),
+.root :global(.type-heading-lg) {
+  font-size: 24px !important;
+  line-height: 30px !important;
+  letter-spacing: -0.018em;
+  font-weight: 600 !important;
+}
+
+.root :global(.type-heading-md),
+.root :global(.type-heading-sm),
+.root :global(.type-title) {
+  font-size: 16px !important;
+  line-height: 20px !important;
+  font-weight: 600 !important;
+}
+
+.root :global(.type-body),
+.root :global(.type-body-sm) {
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.root :global(.type-label),
+.root :global(.type-eyebrow),
+.root :global(.type-caption) {
+  font-size: 13px !important;
+  line-height: 16px !important;
+}
+
+.root :global([class~="rounded-3xl"]),
+.root :global([class~="rounded-2xl"]) {
+  border-radius: var(--ielts-radius-card) !important;
+}
+
+.root :global([class~="rounded-xl"]),
+.root :global([class~="rounded-lg"]) {
+  border-radius: var(--ielts-radius-control) !important;
+}
+
+.root :global([class~="shadow-token-card"]),
+.root :global([class~="shadow-2xl"]) {
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-inverse-surface) 8%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-inverse-surface) 5%, transparent) !important;
+}
+
+.root :global(.dark [class~="shadow-token-card"]),
+.root :global(.dark [class~="shadow-2xl"]) {
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-inverse-surface) 28%, transparent),
+    0 10px 26px color-mix(in srgb, var(--color-inverse-surface) 18%, transparent) !important;
+}
+
+/* Surfaces stay white/charcoal and retain the tonal layering used by the
+   application shell. */
+.root :global([class~="bg-surface-container"]),
+.root :global([class~="bg-surface-container-lowest"]),
+.root :global([class~="bg-surface"]) {
+  border-color: var(--color-outline-variant);
+}
+
+.root :global([class~="bg-surface-container"]),
+.root :global([class~="bg-surface-container-lowest"]) {
+  background-color: var(--color-surface) !important;
+}
+
+.root :global([class~="bg-surface-container-low"]) {
+  background-color: var(--color-surface-container-low) !important;
+}
+
+.root :global([class~="bg-surface-container-high"]),
+.root :global([class~="bg-surface-container-highest"]) {
+  background-color: var(--color-surface-container-high) !important;
+}
+
+/* All controls receive a predictable 32px baseline while exam controls that
+   opt into the focused player can opt out with data-exam-control. */
+.root :global(button:not([data-exam-control])),
+.root :global(a[class*="bg-primary"]),
+.root :global(a[class*="bg-secondary"]),
+.root :global([role="tab"]) {
+  min-height: 32px;
+  border-radius: var(--ielts-radius-control);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease;
+}
+
+.root :global(button:not([data-exam-control]):active),
+.root :global(a[class*="bg-primary"]:active),
+.root :global(a[class*="bg-secondary"]:active),
+.root :global([role="tab"]:active) {
+  transform: translateY(1px);
+}
+
+.root :global(button:focus-visible),
+.root :global(a:focus-visible),
+.root :global(input:focus-visible),
+.root :global(textarea:focus-visible),
+.root :global(select:focus-visible),
+.root :global([role="tab"]:focus-visible) {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.root :global(input),
+.root :global(select),
+.root :global(textarea) {
+  border-radius: 8px;
+  border-color: var(--color-input);
+  background-color: var(--color-surface);
+}
+
+.root :global(input:not([type="checkbox"]):not([type="radio"])),
+.root :global(select) {
+  min-height: 32px;
+}
+
+.root :global([role="tablist"]) {
+  gap: 6px;
+}
+
+.root :global([role="tab"]) {
+  padding: 0.4rem 0.75rem;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+/* Common IELTS cards become status surfaces instead of oversized marketing
+   tiles. Keep large padding available to empty and celebration states. */
+.root :global(article[class*="border"]),
+.root :global(section[class*="border"]),
+.root :global(div[class*="border"][class*="bg-surface"]) {
+  border-width: 1px;
+  border-color: var(--color-outline-variant);
+}
+
+.root :global(.grid.gap-4 > article),
+.root :global(.grid.gap-4 > a) {
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.root :global(.grid.gap-4 > article:hover),
+.root :global(.grid.gap-4 > a:hover) {
+  border-color: var(--color-outline);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-inverse-surface) 7%, transparent);
+}
+
+/* KPI strips and work queues used by home, study plan, results, and admin
+   assignment views. */
+.root :global([data-ielts-kpi-strip]) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--ielts-radius-card);
+  background: var(--color-outline-variant);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-inverse-surface) 6%, transparent);
+}
+
+.root :global([data-ielts-kpi]) {
+  min-height: 84px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+}
+
+.root :global([data-ielts-row]) {
+  min-height: 40px;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.root :global([data-ielts-settings-row]) {
+  min-height: 44px;
+}
+
+.root :global([data-ielts-status="complete"]),
+.root :global([data-ielts-status="success"]) {
+  color: var(--color-success-dim);
+  background: var(--color-success-container);
+}
+
+.root :global([data-ielts-status="warning"]) {
+  color: var(--color-on-warning-container);
+  background: var(--color-warning-container);
+}
+
+.root :global([data-ielts-status="error"]) {
+  color: var(--color-error);
+  background: var(--color-error-container);
+}
+
+/* Reading/listening stimulus and player controls are allowed to stay focused,
+   but panels still use the v2 border/radius hierarchy. */
+.root :global([data-ielts-exam]) {
+  --ielts-radius-card: 10px;
+}
+
+.root :global([data-ielts-exam] button) {
+  border-radius: 8px;
+}
+
+.root :global([data-ielts-exam] [class~="rounded-3xl"]),
+.root :global([data-ielts-exam] [class~="rounded-2xl"]) {
+  border-radius: 10px !important;
+}
+
+@media (max-width: 767px) {
+  .root :global(main) {
+    min-width: 0;
+  }
+
+  .root :global([data-ielts-kpi-strip]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .root :global(.type-heading-xl),
+  .root :global(.type-heading-lg),
+  .root :global(.type-display-sm) {
+    font-size: 22px !important;
+    line-height: 28px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .root :global([data-ielts-kpi-strip]) {
+    grid-template-columns: 1fr;
+  }
+
+  .root :global([data-ielts-kpi]) {
+    min-height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(*),
+  .root :global(*::before),
+  .root :global(*::after) {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

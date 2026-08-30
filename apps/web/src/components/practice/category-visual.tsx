@@ -23,33 +23,33 @@ interface CategoryVisualMeta {
 const CATEGORY_VISUALS: Record<CategoryKey, CategoryVisualMeta> = {
   education: {
     icon: GraduationCap,
-    tileClassName: "bg-[#E5F6EC] dark:bg-[#34C759]/15",
-    iconClassName: "text-[#1E9E54] dark:text-[#5DD984]",
+    tileClassName: "bg-success-container",
+    iconClassName: "text-success-dim dark:text-success",
   },
   technology: {
     icon: Smartphone,
-    tileClassName: "bg-[#E3F3FF] dark:bg-[#3B9EFF]/15",
-    iconClassName: "text-[#1D7FD6] dark:text-[#6FB9FF]",
+    tileClassName: "bg-secondary-container",
+    iconClassName: "text-secondary",
   },
   society: {
     icon: Users,
-    tileClassName: "bg-[#EFEAFE] dark:bg-[#8B5CF6]/15",
-    iconClassName: "text-[#6D4FD0] dark:text-[#B49AFC]",
+    tileClassName: "bg-primary-container",
+    iconClassName: "text-primary-dim dark:text-primary",
   },
   environment: {
     icon: Sprout,
-    tileClassName: "bg-[#E2F7F1] dark:bg-[#14B8A6]/15",
-    iconClassName: "text-[#0E9583] dark:text-[#4FD8C5]",
+    tileClassName: "bg-success-container",
+    iconClassName: "text-success-dim dark:text-success",
   },
   ethics: {
     icon: Brain,
-    tileClassName: "bg-[#FFF3DC] dark:bg-[#FFD166]/15",
-    iconClassName: "text-[#C98A1B] dark:text-[#FFD98A]",
+    tileClassName: "bg-warning-container",
+    iconClassName: "text-on-warning-container",
   },
   vietnam: {
     icon: MapPin,
-    tileClassName: "bg-[#FFEAEA] dark:bg-[#FF5A5F]/15",
-    iconClassName: "text-[#D6494E] dark:text-[#FF9398]",
+    tileClassName: "bg-error-container",
+    iconClassName: "text-error-dim dark:text-error",
   },
 };
 
@@ -64,7 +64,7 @@ const SIZE_STYLES = {
     image: 44,
   },
   lg: {
-    tile: "size-16 rounded-[20px]",
+    tile: "size-12 rounded-[10px]",
     icon: "h-7 w-7",
     image: 64,
   },

@@ -47,7 +47,7 @@ export function RoundProgress({ rounds, currentRound }: RoundProgressProps) {
                   isCompleted
                     ? "border-secondary bg-secondary-container text-secondary-dim"
                     : isActive
-                      ? "border-primary bg-primary-container text-primary shadow-token-primary"
+                      ? "border-primary bg-primary-container text-primary shadow-none"
                       : "border-outline-variant/70 bg-surface text-outline",
                 )}
               >

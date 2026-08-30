@@ -62,6 +62,7 @@ export function MockPreTestGuide({
         "w-full rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left shadow-token-card sm:p-4",
         className,
       )}
+      data-ielts-exam="guide"
     >
       {showHeading ? (
         <h2 className="text-sm font-bold text-on-surface sm:text-base">

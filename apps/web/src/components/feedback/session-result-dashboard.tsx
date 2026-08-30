@@ -288,7 +288,7 @@ export function SessionResultDashboard({
   if (!viewModel) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-outline-variant bg-white p-6 text-center text-on-surface-variant shadow-token-card">
+        <div className="rounded-[10px] border border-outline-variant bg-surface p-6 text-center text-on-surface-variant shadow-none">
           {t("noFeedback")}
         </div>
       </div>
@@ -465,7 +465,7 @@ export function SessionResultDashboard({
         {backHref && backLabel ? (
           <Link
             href={backHref}
-            className="inline-flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-white hover:text-primary"
+            className="inline-flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface hover:text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -479,7 +479,7 @@ export function SessionResultDashboard({
             type="button"
             variant="outline"
             onClick={handleShare}
-            className="h-12 rounded-xl border-outline-variant bg-white px-5 text-on-surface-variant shadow-none hover:bg-surface-container"
+            className="h-8 rounded-[10px] border-outline-variant bg-surface px-5 text-on-surface-variant shadow-none hover:bg-surface-container"
           >
             {shareState === "copied" || shareState === "shared" ? (
               <Check className="mr-2 h-4 w-4 text-primary" />
@@ -491,7 +491,7 @@ export function SessionResultDashboard({
           <Button
             type="button"
             variant="outline"
-            className="h-12 w-12 rounded-xl border-outline-variant bg-white p-0 text-on-surface-variant shadow-none hover:bg-surface-container"
+            className="h-8 w-12 rounded-[10px] border-outline-variant bg-surface p-0 text-on-surface-variant shadow-none hover:bg-surface-container"
             aria-label="More result actions"
           >
             <MoreVertical className="h-5 w-5" />
@@ -499,7 +499,7 @@ export function SessionResultDashboard({
         </div>
       </div>
 
-      <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+      <section className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
         <div className="grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)]">
           <div className="relative flex min-h-[245px] flex-col items-center justify-center overflow-hidden px-4 py-2">
             {HERO_CONFETTI.map((className) => (
@@ -527,7 +527,7 @@ export function SessionResultDashboard({
                 <RingCenter defaultLabel={t("scoreLabel")} />
               </RingChart>
               <SuccessCheck
-                className="absolute right-3 top-3 rounded-full bg-[var(--card-bg)] p-1 shadow-token-card"
+                className="absolute right-3 top-3 rounded-full bg-[var(--card-bg)] p-1 shadow-none"
                 size={40}
               />
               <span className="sr-only">out of 100</span>
@@ -549,7 +549,7 @@ export function SessionResultDashboard({
             <Button
               type="button"
               variant="ghost"
-              className="absolute right-0 top-0 hidden h-10 w-10 rounded-xl p-0 text-on-surface-variant hover:bg-surface-container sm:flex"
+              className="absolute right-0 top-0 hidden h-10 w-10 rounded-[10px] p-0 text-on-surface-variant hover:bg-surface-container sm:flex"
               aria-label="Save result"
             >
               <Bookmark className="h-6 w-6" />
@@ -565,7 +565,7 @@ export function SessionResultDashboard({
                 </p>
                 {winnerResult && (
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-xl bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
+                    <span className="inline-flex items-center gap-2 rounded-[10px] bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
                       <Trophy className="h-4 w-4" />
                       {winnerResult.kind === "tie"
                         ? `${t("winner.tieLabel")}: ${t("winner.tie")}`
@@ -573,7 +573,7 @@ export function SessionResultDashboard({
                             `winner.sides.${winnerResult.side}`,
                           )}`}
                     </span>
-                    <span className="rounded-xl bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
+                    <span className="rounded-[10px] bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant ring-1 ring-outline-variant">
                       {t("winner.confidence", {
                         confidence: Math.round(winnerResult.confidence * 100),
                       })}
@@ -616,7 +616,7 @@ export function SessionResultDashboard({
       </section>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
+        <div className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none">
           <div className="flex items-center gap-5">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-success-container text-success-dim">
               <TrendingUp className="h-9 w-9" />
@@ -641,7 +641,7 @@ export function SessionResultDashboard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
+        <div className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none">
           <div className="flex items-center gap-5">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-warning-container text-on-warning-container">
               <TrendingDown className="h-9 w-9" />
@@ -666,7 +666,7 @@ export function SessionResultDashboard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card">
+        <div className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none">
           <div className="flex items-center gap-5">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
               <Target className="h-9 w-9" />
@@ -692,7 +692,7 @@ export function SessionResultDashboard({
       {hasLearningReview && (
         <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           {viewModel.prepNotes && (
-            <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+            <div className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 text-base font-bold text-on-surface">
@@ -705,19 +705,19 @@ export function SessionResultDashboard({
                     })}
                   </p>
                 </div>
-                <span className="rounded-xl bg-surface-container px-3 py-2 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
+                <span className="rounded-[10px] bg-surface-container px-3 py-2 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
                   {tCoaching("notes.saved")}
                 </span>
               </div>
 
               <div
-                className="mt-4 max-h-[280px] min-h-[120px] overflow-y-auto rounded-xl border border-outline-variant bg-surface-container p-4 text-sm leading-7 text-on-surface-variant [overflow-wrap:anywhere] [&_a]:font-semibold [&_a]:text-primary [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-on-surface [&_ul]:list-disc"
+                className="mt-4 max-h-[280px] min-h-[120px] overflow-y-auto rounded-[10px] border border-outline-variant bg-surface-container p-4 text-sm leading-7 text-on-surface-variant [overflow-wrap:anywhere] [&_a]:font-semibold [&_a]:text-primary [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-on-surface [&_ul]:list-disc"
                 dangerouslySetInnerHTML={{ __html: viewModel.prepNotes.html }}
               />
 
               {viewModel.feedback.noteTakingFeedback && (
                 <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                  <div className="rounded-xl bg-success-container/40 p-4 ring-1 ring-outline-variant">
+                  <div className="rounded-[10px] bg-success-container/40 p-4 ring-1 ring-outline-variant">
                     <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                       <CheckCircle2 className="h-4 w-4 text-success-dim" />
                       {tCoaching("notes.whatHelped")}
@@ -733,7 +733,7 @@ export function SessionResultDashboard({
                       )}
                     </ul>
                   </div>
-                  <div className="rounded-xl bg-warning-container/35 p-4 ring-1 ring-outline-variant">
+                  <div className="rounded-[10px] bg-warning-container/35 p-4 ring-1 ring-outline-variant">
                     <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                       <Target className="h-4 w-4 text-on-warning-container" />
                       {tCoaching("notes.missed")}
@@ -749,7 +749,7 @@ export function SessionResultDashboard({
                       )}
                     </ul>
                   </div>
-                  <div className="rounded-xl bg-surface-container p-4 ring-1 ring-outline-variant">
+                  <div className="rounded-[10px] bg-surface-container p-4 ring-1 ring-outline-variant">
                     <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                       <Lightbulb className="h-4 w-4 text-primary" />
                       {tCoaching("notes.nextTemplate")}
@@ -772,7 +772,7 @@ export function SessionResultDashboard({
 
           <div
             className={cn(
-              "rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6",
+              "rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6",
               !viewModel.prepNotes && "xl:col-span-2",
             )}
           >
@@ -799,14 +799,14 @@ export function SessionResultDashboard({
                   return (
                     <article
                       key={`${step.title}-${index}`}
-                      className="rounded-xl border border-outline-variant bg-surface-container p-4"
+                      className="rounded-[10px] border border-outline-variant bg-surface-container p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-container text-sm font-extrabold text-primary">
                           {index + 1}
                         </div>
                         {timeBox && (
-                          <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
+                          <span className="rounded-lg bg-surface px-2.5 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant">
                             {timeBox}
                           </span>
                         )}
@@ -817,7 +817,7 @@ export function SessionResultDashboard({
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {step.whyItMatters}
                       </p>
-                      <p className="mt-3 rounded-lg bg-white p-3 text-sm leading-6 text-on-surface-variant ring-1 ring-outline-variant">
+                      <p className="mt-3 rounded-lg bg-surface p-3 text-sm leading-6 text-on-surface-variant ring-1 ring-outline-variant">
                         {step.howToPractice}
                       </p>
                       {step.shadowExample && (
@@ -839,7 +839,7 @@ export function SessionResultDashboard({
                 {viewModel.shadowExamples.map((example, index) => (
                   <article
                     key={`${example.label}-${index}`}
-                    className="rounded-xl border border-outline-variant bg-white p-4"
+                    className="rounded-[10px] border border-outline-variant bg-surface p-4"
                   >
                     <div className="flex items-center gap-2 text-sm font-bold text-primary">
                       <ClipboardList className="h-4 w-4" />
@@ -893,7 +893,7 @@ export function SessionResultDashboard({
             return (
               <div
                 key={metric.key}
-                className="rounded-xl border border-outline-variant bg-surface-container p-4"
+                className="rounded-[10px] border border-outline-variant bg-surface-container p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -932,7 +932,7 @@ export function SessionResultDashboard({
       </ChartCard>
 
       {scoreRationale && (
-        <section className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+        <section className="mt-5 rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-on-surface">
@@ -942,7 +942,7 @@ export function SessionResultDashboard({
                 {scoreRationale.overall}
               </p>
             </div>
-            <span className="rounded-xl bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
+            <span className="rounded-[10px] bg-primary-container px-3 py-2 text-sm font-bold text-primary ring-1 ring-outline-variant">
               {t("scoreRationale.total", {
                 score: viewModel.feedback.totalScore,
               })}
@@ -953,14 +953,14 @@ export function SessionResultDashboard({
             {scoreRationaleCategories.map(({ key, value, icon: Icon }) => (
               <article
                 key={key}
-                className="rounded-xl border border-outline-variant bg-surface-container p-4"
+                className="rounded-[10px] border border-outline-variant bg-surface-container p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                     <Icon className="h-4 w-4 text-primary" />
                     {t(`scoreRationale.categories.${key}`)}
                   </div>
-                  <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-on-surface ring-1 ring-outline-variant">
+                  <span className="rounded-lg bg-surface px-2.5 py-1 text-sm font-bold text-on-surface ring-1 ring-outline-variant">
                     {value.score}/{value.maxScore}
                   </span>
                 </div>
@@ -992,7 +992,7 @@ export function SessionResultDashboard({
       )}
 
       {hasCasework && (
-        <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+        <div className="mt-5 rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-on-surface">
@@ -1009,7 +1009,7 @@ export function SessionResultDashboard({
               {caseworkItems.map(({ label, value, icon: Icon }) => (
                 <div
                   key={label}
-                  className="rounded-xl border border-outline-variant bg-surface-container p-4"
+                  className="rounded-[10px] border border-outline-variant bg-surface-container p-4"
                 >
                   <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
                     <Icon className="h-4 w-4 text-primary" />
@@ -1028,7 +1028,7 @@ export function SessionResultDashboard({
               {argumentBreakdowns.map((argument, index) => (
                 <article
                   key={`${argument.name}-${index}`}
-                  className="rounded-xl border border-outline-variant bg-white p-4"
+                  className="rounded-[10px] border border-outline-variant bg-surface p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -1077,7 +1077,7 @@ export function SessionResultDashboard({
         </div>
       )}
 
-      <div className="mt-5 rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+      <div className="mt-5 rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
         <h2 className="text-base font-bold text-on-surface">
           {t("detail.heading")}
         </h2>
@@ -1102,7 +1102,7 @@ export function SessionResultDashboard({
               emptyMessage={t("detail.emptyImprovements")}
             />
           </div>
-          <div className="rounded-xl bg-surface-container p-5 xl:ml-6">
+          <div className="rounded-[10px] bg-surface-container p-5 xl:ml-6">
             <div className="flex items-center gap-2 text-sm font-bold text-primary">
               <Quote className="h-5 w-5" />
               {viewModel.modelAnswerKind === "stronger-rebuild"
@@ -1121,7 +1121,7 @@ export function SessionResultDashboard({
               type="button"
               variant="ghost"
               onClick={() => setShowTranscript((value) => !value)}
-              className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
+              className="min-h-[44px] rounded-[10px] px-4 text-primary hover:bg-primary-container"
             >
               <FileText className="mr-2 h-4 w-4" />
               {showTranscript
@@ -1139,7 +1139,7 @@ export function SessionResultDashboard({
                 type="button"
                 variant="ghost"
                 onClick={() => setShowTimeline((value) => !value)}
-                className="min-h-[44px] rounded-xl px-4 text-primary hover:bg-primary-container"
+                className="min-h-[44px] rounded-[10px] px-4 text-primary hover:bg-primary-container"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 {showTimeline
@@ -1156,7 +1156,7 @@ export function SessionResultDashboard({
         )}
 
         {showInlineReviewControls && showTranscript && (
-          <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+          <div className="mt-4 rounded-[10px] border border-outline-variant bg-surface-container p-5">
             <h3 className="text-base font-semibold text-on-surface">
               {t("detail.transcript")}
             </h3>
@@ -1177,7 +1177,7 @@ export function SessionResultDashboard({
         {showInlineReviewControls &&
           showTimeline &&
           viewModel.rounds.length > 0 && (
-            <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-5">
+            <div className="mt-4 rounded-[10px] border border-outline-variant bg-surface-container p-5">
               <h3 className="mb-4 text-base font-semibold text-on-surface">
                 {t("detail.timeline")}
               </h3>

@@ -58,7 +58,7 @@ export function StatCard({
     <div
       data-slot="stat-card"
       className={cn(
-        "flex flex-col gap-3 rounded-xl bg-[var(--card-bg)] p-4 shadow-token-card ring-1 ring-[var(--card-border)]",
+        "flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface p-4 shadow-none",
         className,
       )}
     >

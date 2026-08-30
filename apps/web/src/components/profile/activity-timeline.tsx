@@ -69,7 +69,7 @@ export function ActivityTimeline({ activity }: ActivityTimelineProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-token-card md:p-6">
+    <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 md:p-5">
       <h2 className="mb-4 text-base font-semibold text-on-surface">
         {t("recent_activity")}
       </h2>

@@ -91,7 +91,7 @@ export function ActivityCompletionScreen({
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-6 mt-4 space-y-4"
+          className="w-full rounded-[12px] bg-white border border-outline-variant p-5 mt-4 space-y-4"
         >
           {/* XP */}
           <div className="flex items-center justify-center gap-2">
@@ -175,7 +175,7 @@ export function ActivityCompletionScreen({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           onClick={onContinue}
-          className="mt-6 flex items-center gap-2 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 transition-colors"
+          className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("continue")}

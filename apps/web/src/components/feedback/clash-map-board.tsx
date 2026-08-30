@@ -61,39 +61,39 @@ const OUTCOME_STYLES: Record<
   }
 > = {
   answered: {
-    accent: "#2F76EF",
-    border: "#9FC0FF",
-    row: "#F6F9FF",
+    accent: "var(--color-secondary)",
+    border: "var(--color-secondary)",
+    row: "var(--color-secondary-container)",
     badge: "bg-primary-container text-on-surface-variant",
-    text: "#245FD6",
+    text: "var(--color-secondary-dim)",
   },
   dropped: {
-    accent: "#FFD166",
-    border: "#FAD68A",
-    row: "#FFF9EC",
+    accent: "var(--color-warning)",
+    border: "var(--color-warning)",
+    row: "var(--color-warning-container)",
     badge: "bg-surface-container text-on-surface-variant",
-    text: "#B45309",
+    text: "var(--color-on-warning-container)",
   },
   misanswered: {
-    accent: "#EF4444",
-    border: "#FCA5A5",
-    row: "#FFF7F7",
+    accent: "var(--color-error)",
+    border: "var(--color-error)",
+    row: "var(--color-error-container)",
     badge: "bg-surface-container text-on-surface-variant",
-    text: "#B42318",
+    text: "var(--color-error-dim)",
   },
   turned: {
-    accent: "#00B8D9",
-    border: "#CFC6FF",
-    row: "#FAF8FF",
+    accent: "var(--color-primary)",
+    border: "var(--color-primary)",
+    row: "var(--color-primary-container)",
     badge: "bg-surface-container text-on-surface-variant",
-    text: "#6245F5",
+    text: "var(--color-primary-dim)",
   },
   weighed: {
-    accent: "#00B8D9",
-    border: "#BFEBD0",
-    row: "#F4FCF7",
+    accent: "var(--color-success)",
+    border: "var(--color-success)",
+    row: "var(--color-success-container)",
     badge: "bg-surface-container text-on-surface-variant",
-    text: "#168A45",
+    text: "var(--color-success-dim)",
   },
 };
 
@@ -162,7 +162,7 @@ export function ClashMapBoard({
 
   if (items.length === 0) {
     return (
-      <section className="rounded-2xl border border-outline-variant bg-white p-8 text-center shadow-token-card">
+      <section className="rounded-[10px] border border-outline-variant bg-surface p-8 text-center shadow-none">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <Shuffle className="h-5 w-5" />
         </div>
@@ -175,7 +175,7 @@ export function ClashMapBoard({
   }
 
   return (
-    <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-normal text-on-surface">
@@ -187,12 +187,12 @@ export function ClashMapBoard({
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-outline-variant bg-white px-4 text-sm font-bold text-on-surface-variant">
+          <button className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-4 text-sm font-bold text-on-surface-variant">
             <Share2 className="h-4 w-4 text-primary" />
             {t("share")}
           </button>
           <button
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-white text-on-surface-variant"
+            className="inline-flex h-8 w-11 items-center justify-center rounded-[10px] border border-outline-variant bg-surface text-on-surface-variant"
             aria-label="More clash map actions"
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function ClashMapBoard({
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-outline-variant bg-white p-4">
+      <div className="mt-6 rounded-[10px] border border-outline-variant bg-surface p-4">
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr]">
           <FilterSelect
             icon={<UserRound className="h-5 w-5 text-on-surface-variant" />}
@@ -227,7 +227,7 @@ export function ClashMapBoard({
       </div>
 
       <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px]">
-        <div className="overflow-hidden rounded-2xl border border-outline-variant bg-white">
+        <div className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
           <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_32px] border-b border-outline-variant bg-background px-5 py-3 text-sm font-bold text-on-surface-variant lg:grid">
             <div className="text-center">{t("headers.claim")}</div>
             <div className="text-center">{t("headers.response")}</div>
@@ -248,11 +248,11 @@ export function ClashMapBoard({
                     onClick={() => setActiveId(item.id)}
                     className="block w-full border-b border-outline-variant p-0 text-left last:border-b-0"
                     style={{
-                      backgroundColor: isActive ? tone.row : "#FFFFFF",
+                      backgroundColor: isActive ? tone.row : "var(--color-surface)",
                     }}
                   >
                     <div
-                      className="grid gap-3 rounded-xl p-3 transition lg:grid-cols-[28px_minmax(0,1fr)_52px_minmax(0,1fr)_52px_minmax(0,1fr)_24px] lg:items-center"
+                      className="grid gap-3 rounded-[10px] p-3 transition lg:grid-cols-[28px_minmax(0,1fr)_52px_minmax(0,1fr)_52px_minmax(0,1fr)_24px] lg:items-center"
                       style={{
                         border: isActive
                           ? `2px solid ${tone.accent}`
@@ -280,7 +280,7 @@ export function ClashMapBoard({
                         muted={!item.responseQuote}
                       />
                       <RowConnector accent={tone.accent} />
-                      <div className="rounded-xl border border-outline-variant bg-white p-4">
+                      <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
                         <span className={cn("rounded-md px-2.5 py-1 text-xs font-bold", tone.badge)}>
                           {t(`outcomes.${item.outcome}`)}
                         </span>
@@ -301,7 +301,7 @@ export function ClashMapBoard({
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-outline-variant bg-white p-4 shadow-token-card 2xl:sticky 2xl:top-5 2xl:self-start">
+        <aside className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none 2xl:sticky 2xl:top-5 2xl:self-start">
           {activeItem ? (
             <ClashDetail
               item={activeItem}
@@ -342,7 +342,7 @@ function FilterSelect({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-11 rounded-xl border border-outline-variant bg-white px-3 text-sm font-semibold text-on-surface outline-none transition focus:border-primary focus:ring-4 focus:ring-outline-variant"
+          className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-semibold text-on-surface outline-none transition focus:border-primary focus:ring-4 focus:ring-outline-variant"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -381,7 +381,7 @@ function ClashMiniCard({
   muted?: boolean;
 }) {
   return (
-    <div className="min-h-[118px] rounded-xl border border-outline-variant bg-white p-4">
+    <div className="min-h-[118px] rounded-[10px] border border-outline-variant bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
         <span className="text-on-surface">{label}</span>
         <span className="text-on-surface-variant">{meta}</span>
@@ -456,7 +456,7 @@ function ClashDetail({
           accent={tone.accent}
           muted={!item.responseQuote}
         />
-        <div className="rounded-xl border border-outline-variant bg-white p-4">
+        <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-base font-bold text-on-surface">{t("judgeRead")}</h3>
             <span className={cn("rounded-md px-2.5 py-1 text-xs font-bold", tone.badge)}>
@@ -471,7 +471,7 @@ function ClashDetail({
             {item.judgeMeta ? ` · ${item.judgeMeta}` : ""}
           </p>
         </div>
-        <div className="rounded-xl bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
+        <div className="rounded-[10px] bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
           <span className="font-bold text-on-surface">{t("tryThis")} </span>
           {item.suggestion}
         </div>
@@ -494,7 +494,7 @@ function DetailSection({
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-outline-variant bg-white p-4">
+    <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
       <h3 className="text-base font-bold text-on-surface">{title}</h3>
       <p
         className={cn(

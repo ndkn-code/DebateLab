@@ -109,7 +109,7 @@ function SegmentedControl<Value extends string>({
 
   return (
     <div
-      className="grid gap-1 rounded-2xl bg-surface-container p-1"
+      className="grid gap-1 rounded-[10px] bg-surface-container p-1"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {
@@ -124,7 +124,7 @@ function SegmentedControl<Value extends string>({
             aria-pressed={isActive}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative flex min-h-[42px] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 type-body-sm font-semibold transition-colors duration-150",
+              "relative flex min-h-8 items-center justify-center gap-1.5 rounded-[8px] px-2 py-1 type-body-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring",
               isActive
                 ? "text-primary"
                 : "text-on-surface-variant hover:text-on-surface",
@@ -136,7 +136,7 @@ function SegmentedControl<Value extends string>({
               <motion.span
                 layoutId={`segment-${groupId}`}
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 rounded-[12px] bg-surface-container-lowest shadow-token-card ring-1 ring-primary/25"
+                className="absolute inset-0 rounded-[8px] bg-surface-container-lowest shadow-none ring-1 ring-secondary/30"
               />
             ) : null}
             <span className="relative z-10 flex items-center gap-1.5">
@@ -181,7 +181,7 @@ function TimeStepper({
     onChange(clampDurationSeconds(bounded + direction * config.stepSeconds, config));
 
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+    <div className="rounded-[10px] border border-outline-variant bg-surface-container-lowest p-3">
       <Text variant="label" as="p" className="font-bold text-on-surface">
         {label}
       </Text>
@@ -192,7 +192,7 @@ function TimeStepper({
           onClick={() => step(-1)}
           disabled={bounded <= config.minSeconds}
           aria-label={`− ${label}`}
-          className="flex size-9 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex size-8 items-center justify-center rounded-[8px] bg-surface-container text-on-surface-variant transition-colors hover:bg-secondary-container hover:text-secondary disabled:cursor-not-allowed disabled:opacity-35 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Minus className="h-4 w-4" />
         </motion.button>
@@ -216,7 +216,7 @@ function TimeStepper({
           onClick={() => step(1)}
           disabled={bounded >= config.maxSeconds}
           aria-label={`+ ${label}`}
-          className="flex size-9 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex size-8 items-center justify-center rounded-[8px] bg-surface-container text-on-surface-variant transition-colors hover:bg-secondary-container hover:text-secondary disabled:cursor-not-allowed disabled:opacity-35 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Plus className="h-4 w-4" />
         </motion.button>
@@ -226,9 +226,9 @@ function TimeStepper({
 }
 
 const DIFFICULTY_CHIP_STYLES = {
-  easy: "bg-[#E5F6EC] text-[#1E9E54] dark:bg-[#34C759]/15 dark:text-[#5DD984]",
-  medium: "bg-[#FFF3DC] text-[#C98A1B] dark:bg-[#FFD166]/15 dark:text-[#FFD98A]",
-  hard: "bg-[#FFEAEA] text-[#D6494E] dark:bg-[#FF5A5F]/15 dark:text-[#FF9398]",
+  easy: "bg-success-container text-success-dim dark:text-success",
+  medium: "bg-warning-container text-on-warning-container",
+  hard: "bg-error-container text-error-dim dark:text-error",
 } as const;
 
 function getDifficultyChip(difficulty: DebateTopic["difficulty"]) {
@@ -404,7 +404,7 @@ export function SessionConfig({
                 </span>
               </div>
 
-              <div className="mt-7 rounded-2xl bg-surface-container p-5">
+              <div className="mt-6 rounded-[10px] border border-outline-variant bg-surface-container-low p-4">
                 <div className="flex items-center gap-2 type-label font-bold text-on-surface">
                   <Scale className="h-4 w-4 text-primary" />
                   {t("session.motion_brief")}
@@ -491,11 +491,11 @@ export function SessionConfig({
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-              <Text variant="label" as="p" className="font-bold text-on-surface">
+            <div className="flex min-h-11 items-center justify-between gap-4 rounded-[10px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5">
+              <Text id="ai-hints-label" variant="label" as="p" className="font-bold text-on-surface">
                 {t("ai_hints")}
               </Text>
-              <Switch checked={aiHints} onCheckedChange={setAiHints} />
+              <Switch aria-labelledby="ai-hints-label" checked={aiHints} onCheckedChange={setAiHints} />
             </div>
           </div>
         </div>
@@ -531,7 +531,7 @@ export function SessionConfig({
           <Button
             onClick={handleBegin}
             disabled={isDeducting || showBeginTransition}
-            className="h-12 flex-1 rounded-2xl type-body font-bold sm:max-w-[230px]"
+            className="h-8 flex-1 rounded-[10px] type-body font-bold sm:max-w-[230px]"
           >
             {isDeducting || showBeginTransition ? t("starting") : t("begin_session")}
             <ArrowRight className="ml-1.5 h-[18px] w-[18px] transition-transform group-hover/button:translate-x-0.5" />

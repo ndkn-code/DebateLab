@@ -191,7 +191,7 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
     <div className="space-y-10">
       {sections.map((section) => (
         <section key={section.id} className="space-y-5">
-          <div className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest p-5 soft-shadow sm:p-6">
+          <div className="rounded-[12px] border border-outline-variant bg-surface-container-lowest p-5 shadow-none sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <Eyebrow className="font-semibold text-primary">
@@ -207,7 +207,7 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
                 ) : null}
               </div>
 
-              <div className="min-w-[220px] rounded-2xl bg-surface-container p-4">
+              <div className="min-w-[220px] rounded-[10px] bg-surface-container p-4">
                 <div className="flex items-center justify-between text-xs text-on-surface-variant">
                   <span>
                     {t("detail.lessons_completed", {
@@ -260,14 +260,14 @@ function PathNode({ item, index }: { item: CoursePathItem; index: number }) {
   const content = (
     <div
       className={cn(
-        "w-full rounded-[1.5rem] border p-5 transition-colors md:w-[calc(50%-2.5rem)]",
+        "w-full rounded-[10px] border p-4 transition-[border-color,background-color,transform] duration-150 md:w-[calc(50%-2.5rem)]",
         styles.card
       )}
     >
       <div className="flex items-start gap-4">
         <div
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border",
             styles.node
           )}
         >

@@ -60,13 +60,14 @@ function WaypointBadge({
   labelBelow: boolean;
   delay: number;
 }) {
+  const reduceMotion = useReducedMotion();
   const Icon = WAYPOINT_ICONS[icon];
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.4 }}
-      whileInView={{ opacity: 1, scale: 1 }}
+      initial={reduceMotion ? false : { opacity: 0, scale: 0.4 }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
       viewport={{ once: true, margin: "-100px" }}
-      transition={{ type: "spring", stiffness: 300, damping: 18, delay }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 18, delay }}
       className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
       style={{ left: `${(point.x / VIEW_W) * 100}%`, top: `${(point.y / VIEW_H) * 100}%` }}
     >
@@ -170,7 +171,7 @@ function JourneyCanvas({ copy }: { copy: LandingV3Copy }) {
       >
         <motion.div
           animate={reduceMotion ? undefined : { rotate: [-3, 3, -3] }}
-          transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
         >
           <Image
             src="/images/landing-v3/mascot-walking.webp"
@@ -203,6 +204,8 @@ function JourneyCanvas({ copy }: { copy: LandingV3Copy }) {
 
 /** Mobile fallback: vertical timeline. */
 function JourneyTimeline({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="relative mx-auto mt-12 flex max-w-sm flex-col gap-8 md:hidden">
       <span aria-hidden="true" className="absolute bottom-6 left-[26px] top-6 w-1 rounded-full bg-[#CDECF3]" />
@@ -212,10 +215,10 @@ function JourneyTimeline({ copy }: { copy: LandingV3Copy }) {
         return (
           <motion.div
             key={waypoint.label}
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={reduceMotion ? false : { opacity: 0, x: -20 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.55, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.55, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
             className="relative flex items-center gap-4"
           >
             <span

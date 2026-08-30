@@ -76,11 +76,11 @@ function StatCard({
         : "bg-primary/10 text-primary";
 
   return (
-    <div className="rounded-[24px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${toneClass}`}>
+    <div className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+      <div className={`flex h-8 w-8 items-center justify-center rounded-[8px] ${toneClass}`}>
         {icon}
       </div>
-      <div className="mt-4 text-3xl font-bold text-on-surface">{value}</div>
+      <div className="mt-3 text-2xl font-medium tabular-nums text-on-surface">{value}</div>
       <div className="mt-1 text-sm text-on-surface-variant">{label}</div>
     </div>
   );
@@ -136,14 +136,14 @@ export default async function AdminDuelsPage() {
   const hiddenProfiles = mmrProfilesRes.count ?? 0;
 
   return (
-    <div className="min-h-full bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/15 bg-surface px-3 py-1 type-eyebrow text-primary">
+    <div className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-[1440px]">
+        <div className="border-b border-outline-variant pb-5">
+          <div className="inline-flex h-6 items-center gap-2 rounded-[6px] border border-outline-variant bg-surface px-2 type-eyebrow text-secondary">
             <Swords className="h-4 w-4" />
             Duel monitor
           </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-on-surface">
+          <h1 className="type-heading-lg mt-2 font-medium text-on-surface">
             Matchmaking and hidden MMR
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-on-surface-variant">
@@ -151,7 +151,7 @@ export default async function AdminDuelsPage() {
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={<Radar className="h-5 w-5" />}
             label="Queued in last 24h"
@@ -176,9 +176,9 @@ export default async function AdminDuelsPage() {
           />
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-            <h2 className="text-xl font-bold text-on-surface">Recent matches</h2>
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+            <h2 className="text-base font-medium text-on-surface">Recent matches</h2>
             <div className="mt-5 space-y-3">
               {recentDuels.length === 0 ? (
                 <div className="rounded-2xl bg-surface-container-low p-4 text-sm text-on-surface-variant">
@@ -188,7 +188,7 @@ export default async function AdminDuelsPage() {
                 recentDuels.map((duel) => (
                   <div
                     key={duel.id}
-                    className="rounded-[20px] border border-outline-variant/12 bg-surface-container-low px-4 py-4"
+                    className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -222,8 +222,8 @@ export default async function AdminDuelsPage() {
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
-            <h2 className="text-xl font-bold text-on-surface">Rating events</h2>
+          <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+            <h2 className="text-base font-medium text-on-surface">Rating events</h2>
             <div className="mt-5 space-y-3">
               {ratingEvents.length === 0 ? (
                 <div className="rounded-2xl bg-surface-container-low p-4 text-sm text-on-surface-variant">
@@ -233,7 +233,7 @@ export default async function AdminDuelsPage() {
                 ratingEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="rounded-[20px] border border-outline-variant/12 bg-surface-container-low px-4 py-4"
+                    className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold text-on-surface">
@@ -255,10 +255,10 @@ export default async function AdminDuelsPage() {
           </section>
         </div>
 
-        <section className="mt-6 rounded-[28px] border border-outline-variant/15 bg-surface p-5 shadow-token-card">
+        <section className="mt-6 rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-success" />
-            <h2 className="text-xl font-bold text-on-surface">
+            <h2 className="text-base font-medium text-on-surface">
               Suspicious fair-play events
             </h2>
           </div>
@@ -271,7 +271,7 @@ export default async function AdminDuelsPage() {
               integrityEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded-[20px] border border-outline-variant/12 bg-surface-container-low px-4 py-4"
+                  className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface">

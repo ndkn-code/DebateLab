@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
+import { DevQaFrame } from "../dev-v2";
 
 export function ReferralQaClient() {
   const searchParams = useSearchParams();
@@ -11,20 +12,25 @@ export function ReferralQaClient() {
   const [open, setOpen] = useState(true);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-6">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-on-primary"
-      >
-        Open referral dialog
-      </button>
+    <DevQaFrame
+      title="Referral credits dialog"
+      description="Preview the invite flow in both the ready and pending states."
+    >
+      <div className="flex min-h-[280px] items-center justify-center rounded-[10px] border border-dashed border-border bg-surface-container-low p-6">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex h-8 items-center rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+        >
+          Open referral dialog
+        </button>
+      </div>
       <ReferralCreditsDialog
         open={open}
         onOpenChange={setOpen}
         referralCode={pending ? null : "QA-DEBATE"}
         inviteReward={600}
       />
-    </main>
+    </DevQaFrame>
   );
 }

@@ -189,7 +189,7 @@ export function ActivityPlayerWrapper({
         <p className="text-lg mb-4">This activity isn&apos;t available yet.</p>
         <button
           onClick={() => onComplete(0, 0, {})}
-          className="rounded-2xl bg-primary px-6 py-3 text-base font-semibold text-on-primary"
+          className="inline-flex h-8 items-center rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           {t("skipActivity")}
         </button>

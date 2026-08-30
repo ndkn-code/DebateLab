@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { LandingV3Copy } from "./copy";
 import { FlameIcon, StarIcon } from "./icons";
@@ -17,6 +17,8 @@ const AVATAR_GRADIENTS = [
 ] as const;
 
 export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <section id="stories" className="bg-surface-container px-6 py-20 md:px-8 md:py-28">
       <div className="mx-auto max-w-6xl">
@@ -31,10 +33,10 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
         <Reveal delay={0.15} className="relative mt-20">
           {/* Mascot sitting on the bubble's top edge */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="absolute -top-[86px] right-8 z-10 sm:-top-[98px] sm:right-16"
           >
             <Image
@@ -48,7 +50,7 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
             />
           </motion.div>
 
-          <div className="relative rounded-[40px] border border-outline-variant bg-white p-5 shadow-token-panel sm:p-8 md:p-10">
+          <div className="relative rounded-[12px] border border-outline-variant bg-white p-4 shadow-none sm:p-6 md:p-7">
             {/* Bubble tail */}
             <span
               aria-hidden="true"
@@ -59,9 +61,9 @@ export function TestimonialsSection({ copy }: { copy: LandingV3Copy }) {
               {copy.testimonials.items.map((item, index) => (
                 <StaggerItem key={item.name} className="mb-4 break-inside-avoid">
                   <motion.figure
-                    whileHover={{ y: -4 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                    className="rounded-[22px] border border-outline-variant/60 bg-surface-container p-6"
+                    whileHover={reduceMotion ? undefined : { y: -4 }}
+                    transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 24 }}
+                    className="rounded-[10px] border border-outline-variant/60 bg-surface-container p-4"
                   >
                     <div className="flex items-center gap-1 text-warning">
                       {Array.from({ length: 5 }).map((_, starIndex) => (

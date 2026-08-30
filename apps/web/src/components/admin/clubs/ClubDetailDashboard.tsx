@@ -1021,11 +1021,11 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
   }
 
   return (
-    <main className="min-h-full bg-background px-4 py-5 text-on-surface sm:px-5 lg:px-6">
-      <div className="mx-auto max-w-7xl">
-        <header className="flex flex-col gap-4 border-b border-outline-variant pb-5 xl:flex-row xl:items-center xl:justify-between">
+    <main className="min-h-full bg-background px-4 py-5 text-on-surface sm:px-5 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-[1440px]">
+        <header className="flex flex-col gap-4 border-b border-outline-variant pb-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container-high text-2xl font-bold text-on-surface shadow-sm shadow-token-card/20">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container-high text-xl font-medium text-on-surface shadow-none">
               {data.club.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -1039,13 +1039,13 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-2xl font-bold tracking-normal text-on-surface sm:text-3xl">
+                <h1 className="type-heading-lg truncate font-medium text-on-surface">
                   {data.club.name}
                 </h1>
                 <span className="inline-flex h-6 items-center rounded-full border border-outline-variant bg-surface-container px-2 text-xs font-bold text-success">
                   {data.club.status}
                 </span>
-                <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface-variant">
+                <span className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
                   <Clock3 className="h-4 w-4 text-on-surface-variant" />
                   GMT+7 Vietnam
                 </span>
@@ -1085,18 +1085,18 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button className="inline-flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold text-on-surface shadow-sm">
+            <button className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
               <Import className="h-4 w-4" />
               Import Students
             </button>
-            <button className="inline-flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold text-on-surface shadow-sm">
+            <button className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
               <Mail className="h-4 w-4" />
               Message Club
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("Assignments")}
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface-container-high px-4 text-sm font-bold text-on-surface shadow-sm shadow-token-card/25"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Plus className="h-4 w-4" />
               Create Assignment

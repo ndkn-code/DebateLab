@@ -24,10 +24,10 @@ function getTimerColor(progress: number, timeLeft: number) {
 }
 
 function getStrokeColor(progress: number, timeLeft: number) {
-  if (timeLeft <= 10) return "#FF5A5F";
-  if (progress > 0.75) return "#FF5A5F";
-  if (progress > 0.5) return "#FFD166";
-  return "#00B8D9";
+  if (timeLeft <= 10) return "var(--color-error)";
+  if (progress > 0.75) return "var(--color-error)";
+  if (progress > 0.5) return "var(--color-warning)";
+  return "var(--color-secondary)";
 }
 
 export function CountdownTimer({

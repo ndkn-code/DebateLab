@@ -3,9 +3,11 @@
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { Plus, Search, MoreHorizontal, Copy, Archive, Trash2, Eye, EyeOff } from "@/components/ui/icons";
 import { archiveCourse, deleteCourse, duplicateCourse, togglePublish } from "@/app/actions/courses";
 import type { AdminCourse, CourseVisibility } from "@/lib/types/admin";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 interface Props {
   initialCourses: AdminCourse[];
@@ -73,6 +75,7 @@ export function CourseTable({ initialCourses }: Props) {
   }
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -139,12 +142,12 @@ export function CourseTable({ initialCourses }: Props) {
             </thead>
             <tbody>
               {filtered.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-outline-variant/5 hover:bg-surface-container/50 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/dashboard/admin/courses/${c.id}`)}
-                >
-                  <td className="px-4 py-3 font-medium text-on-surface">{c.title}</td>
+                <tr key={c.id} className="border-b border-outline-variant/5 transition-colors hover:bg-surface-container/50">
+                  <td className="px-4 py-3 font-medium text-on-surface">
+                    <Link href={`/dashboard/admin/courses/${c.id}`} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                      {c.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${visBadge(c.visibility)}`}>
                       {t(c.visibility === "class_restricted" ? "classRestricted" : c.visibility)}
@@ -159,6 +162,9 @@ export function CourseTable({ initialCourses }: Props) {
                   </td>
                   <td className="px-4 py-3 relative" onClick={(e) => e.stopPropagation()}>
                     <button
+                      type="button"
+                      aria-label={`${c.title}: ${t("filterStatus")}`}
+                      aria-expanded={menuOpen === c.id}
                       onClick={() => setMenuOpen(menuOpen === c.id ? null : c.id)}
                       className="p-1 rounded-lg hover:bg-surface-container"
                     >
@@ -189,5 +195,6 @@ export function CourseTable({ initialCourses }: Props) {
         </div>
       )}
     </div>
+    </AdminV2Frame>
   );
 }

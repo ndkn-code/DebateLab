@@ -168,6 +168,7 @@ export function ProtectedShell({
   const isPracticeSession = pathname?.includes("/practice/session");
   const isIeltsMock = pathname?.includes("/ielts/mock/");
   const isImmersive = isPracticeSession || isIeltsMock;
+  const isDashboardHome = /^\/[a-z]{2}\/dashboard\/?$/.test(pathname ?? "");
   const seasonReplayDismissalKey = useMemo(() => {
     if (!seasonReplayOutcome) return null;
     return getSeasonReplayDismissalKey(userId, seasonReplayOutcome);
@@ -246,21 +247,27 @@ export function ProtectedShell({
   }
 
   return (
-    <div className="fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden overscroll-none bg-background md:flex-row">
-      <Sidebar
-        profile={profile}
-        userEmail={userEmail}
-        activeSubject={activeSubject}
-        isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-      />
-      <main
-        ref={mainScrollRef}
-        className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-none"
-        style={{ WebkitOverflowScrolling: "auto" }}
-      >
-        <MaintenanceBanner />
-        {children}
-      </main>
+    <div
+      className={`thinkfy-v2-shell fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden overscroll-none bg-background p-0 md:p-3 ${
+        isDashboardHome ? "lg:p-4" : "lg:p-8 xl:p-12"
+      }`}
+    >
+      <div className="thinkfy-v2-app-frame relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-border bg-surface lg:flex-row">
+        <Sidebar
+          profile={profile}
+          userEmail={userEmail}
+          activeSubject={activeSubject}
+          isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+        />
+        <main
+          ref={mainScrollRef}
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-none"
+          style={{ WebkitOverflowScrolling: "auto" }}
+        >
+          <MaintenanceBanner />
+          {children}
+        </main>
+      </div>
       <GlobalOverlays />
       {seasonReplayOverlay}
       <SessionHeartbeatProvider userId={userId} />

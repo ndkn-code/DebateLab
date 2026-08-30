@@ -123,10 +123,10 @@ export function MatchingPlayer({ content, onComplete }: Props) {
               <motion.button
                 key={pair.id}
                 onClick={() => handleLeftClick(pair.id)}
-                className={`w-full text-left rounded-2xl border-2 p-4 text-sm font-semibold transition-all ${
+                className={`w-full text-left rounded-[10px] border p-3 text-sm font-medium transition-all ${
                   checked
                     ? correctAfterCheck ? "border-green-500 bg-green-50" : wrongAfterCheck ? "border-red-500 bg-red-50" : "border-gray-200"
-                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-gray-200 hover:border-primary/40"
+                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5" : "border-outline-variant hover:border-primary/40"
                 }`}
                 whileTap={{ scale: 0.97 }}
                 layout
@@ -153,9 +153,9 @@ export function MatchingPlayer({ content, onComplete }: Props) {
               <motion.button
                 key={pair.id}
                 onClick={() => handleRightClick(pair.id)}
-                className={`w-full text-left rounded-2xl border-2 p-4 text-sm transition-all ${
+                className={`w-full text-left rounded-[10px] border p-3 text-sm transition-all ${
                   checked ? "border-gray-200 bg-gray-50/50"
-                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-gray-200 hover:border-primary/40"
+                    : matched && color ? `${color.border} ${color.bg} ${color.text}` : isSelected ? "border-primary bg-primary/5" : "border-outline-variant hover:border-primary/40"
                 }`}
                 whileTap={{ scale: 0.97 }}
                 layout
@@ -171,7 +171,7 @@ export function MatchingPlayer({ content, onComplete }: Props) {
         <motion.button
           onClick={handleCheck}
           disabled={Object.keys(matches).length < pairs.length}
-          className="mt-8 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary transition-all disabled:opacity-40 hover:bg-primary/90 min-w-[200px]"
+          className="mt-8 inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors disabled:opacity-40 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("checkMatches")}

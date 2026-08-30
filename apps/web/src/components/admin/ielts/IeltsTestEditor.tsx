@@ -27,6 +27,7 @@ import { MicroItemDraftPanel } from "./MicroItemDraftPanel";
 import { PassagePanel } from "./PassagePanel";
 import { QuestionPanel } from "./QuestionPanel";
 import { VersionHistory } from "./VersionHistory";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 
 const ACTION_LABEL: Record<IeltsContentStatus, string> = {
   draft: "Return to Draft",
@@ -166,6 +167,7 @@ export function IeltsTestEditor({
   }
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-3">
         <Link
@@ -237,5 +239,6 @@ export function IeltsTestEditor({
       {tab === "versions" ? <VersionHistory testId={test.id} versions={versions} /> : null}
       {tab === "import" ? <ImportPanel testId={test.id} /> : null}
     </div>
+    </AdminV2Frame>
   );
 }

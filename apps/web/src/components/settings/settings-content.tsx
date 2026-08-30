@@ -162,9 +162,9 @@ function SectionPanel(props: {
       data-settings-section-id={id}
       aria-labelledby={`${id}-settings-title`}
       aria-describedby={description ? `${id}-settings-description` : undefined}
-      className="scroll-mt-28 rounded-lg border border-outline-variant bg-white shadow-token-card dark:border-outline-variant/70 dark:bg-surface/95"
+      className="scroll-mt-28 rounded-xl border border-outline-variant bg-surface shadow-none dark:border-outline-variant/70 dark:bg-surface/95"
     >
-      <div className="px-5 pb-2 pt-5">
+      <div className="border-b border-outline-variant/60 px-4 pb-3 pt-4">
         <h2
           id={`${id}-settings-title`}
           className="text-base font-semibold text-on-surface dark:text-on-surface"
@@ -177,7 +177,7 @@ function SectionPanel(props: {
           </p>
         ) : null}
       </div>
-      <div className="space-y-1 pb-4">{children}</div>
+      <div className="space-y-0 pb-3">{children}</div>
     </section>
   );
 }
@@ -208,7 +208,7 @@ function SettingRow(props: {
   return (
     <div
       className={cn(
-        "grid gap-4 px-5 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(220px,300px)]",
+        "grid min-h-11 gap-4 border-b border-outline-variant/40 px-4 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(220px,300px)]",
         align === "center" ? "sm:items-center" : "sm:items-start"
       )}
     >
@@ -226,35 +226,37 @@ function SettingRow(props: {
 function ToggleControl(props: {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  label: string;
 }) {
   return (
     <Switch
       checked={props.checked}
       onCheckedChange={props.onCheckedChange}
+      aria-label={props.label}
     />
   );
 }
 
 const VISIBILITY_OPTIONS: Array<{
   value: SettingsDraft["profileVisibility"];
-  label: string;
+  labelKey: "visibility_options.only_me" | "visibility_options.friends" | "visibility_options.everyone";
 }> = [
   {
     value: "private",
-    label: "Only me",
+    labelKey: "visibility_options.only_me",
   },
   {
     value: "connections",
-    label: "Friends",
+    labelKey: "visibility_options.friends",
   },
   {
     value: "public",
-    label: "Everyone",
+    labelKey: "visibility_options.everyone",
   },
 ];
 
 const INPUT_CLASSNAME =
-  "h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+  "h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest px-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
 
 const SELECT_CLASSNAME =
   "rounded-lg border-outline-variant bg-white text-on-surface focus:border-primary focus-visible:ring-primary/20 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
@@ -953,9 +955,9 @@ export function SettingsContent({
   return (
     <div
       ref={rootRef}
-      className="min-h-full bg-background text-on-surface dark:bg-background dark:text-on-surface"
+      className="min-h-full bg-transparent text-on-surface dark:bg-transparent dark:text-on-surface"
     >
-      <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1280px] px-4 py-5 sm:px-6 lg:px-8">
         <ProductPageHeader
           title={t("headline")}
           icon={<Settings />}
@@ -1004,9 +1006,9 @@ export function SettingsContent({
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <nav className="sticky top-6 rounded-lg border border-outline-variant bg-white p-3 shadow-token-card dark:border-outline-variant/70 dark:bg-surface/95">
+            <nav className="sticky top-6 rounded-xl border border-outline-variant bg-surface p-2 shadow-none dark:border-outline-variant/70 dark:bg-surface/95">
               {settingsSectionGroups.map((group, groupIndex) => (
                 <div
                   key={`${group.group}-${groupIndex}`}
@@ -1269,7 +1271,7 @@ export function SettingsContent({
                   >
                     {VISIBILITY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </option>
                     ))}
                   </Select>
@@ -1287,6 +1289,7 @@ export function SettingsContent({
                 description="Other students can request a mutual connection from your profile or friend search."
               >
                 <ToggleControl
+                  label="Allow friend requests"
                   checked={draft.allowConnectionRequests}
                   onCheckedChange={(checked) =>
                     updateDraft("allowConnectionRequests", checked)
@@ -1298,6 +1301,7 @@ export function SettingsContent({
                 description="Let authenticated students find you by your exact @handle."
               >
                 <ToggleControl
+                  label="Search by handle"
                   checked={draft.searchableByHandle}
                   onCheckedChange={(checked) =>
                     updateDraft("searchableByHandle", checked)
@@ -1337,6 +1341,7 @@ export function SettingsContent({
                   description="Other students can send lightweight kudos that never affect rank."
                 >
                   <ToggleControl
+                    label="Allow encouragement"
                     checked={leaderboardPrivacy.allowKudos}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({ allowKudos: checked })
@@ -1348,6 +1353,7 @@ export function SettingsContent({
                   description="Let leaderboard surfaces connect your rank with your verified organization."
                 >
                   <ToggleControl
+                    label="Show organization"
                     checked={leaderboardPrivacy.showOrganization}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({
@@ -1361,6 +1367,7 @@ export function SettingsContent({
                   description="When off, future leaderboard reads use private display treatment where supported."
                 >
                   <ToggleControl
+                    label="Appear on leaderboards"
                     checked={leaderboardPrivacy.participateInLeaderboards}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({
@@ -1397,6 +1404,7 @@ export function SettingsContent({
                 description={t("toggles.practice_reminders.description")}
               >
                 <ToggleControl
+                  label={t("toggles.practice_reminders.title")}
                   checked={draft.practiceReminders}
                   onCheckedChange={(checked) =>
                     updateDraft("practiceReminders", checked)
@@ -1408,6 +1416,7 @@ export function SettingsContent({
                 description={t("toggles.streak_reminders.description")}
               >
                 <ToggleControl
+                  label={t("toggles.streak_reminders.title")}
                   checked={draft.streakReminders}
                   onCheckedChange={(checked) =>
                     updateDraft("streakReminders", checked)
@@ -1419,6 +1428,7 @@ export function SettingsContent({
                 description={t("toggles.achievement_updates.description")}
               >
                 <ToggleControl
+                  label={t("toggles.achievement_updates.title")}
                   checked={draft.achievementUpdates}
                   onCheckedChange={(checked) =>
                     updateDraft("achievementUpdates", checked)
@@ -1430,6 +1440,7 @@ export function SettingsContent({
                 description={t("toggles.smart_feature_popups.description")}
               >
                 <ToggleControl
+                  label={t("toggles.smart_feature_popups.title")}
                   checked={draft.smartFeaturePopups}
                   onCheckedChange={(checked) =>
                     updateDraft("smartFeaturePopups", checked)
@@ -1441,6 +1452,7 @@ export function SettingsContent({
                 description={t("toggles.email_notifications.description")}
               >
                 <ToggleControl
+                  label={t("toggles.email_notifications.title")}
                   checked={draft.emailNotifications}
                   onCheckedChange={(checked) =>
                     updateDraft("emailNotifications", checked)

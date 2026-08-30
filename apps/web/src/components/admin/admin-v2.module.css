@@ -1,0 +1,121 @@
+.root {
+  --admin-canvas: var(--color-background);
+  --admin-surface: var(--color-surface);
+  --admin-surface-muted: var(--color-surface-container-low);
+  --admin-surface-subtle: var(--color-surface-container);
+  --admin-text: var(--color-on-surface);
+  --admin-muted: var(--color-on-surface-variant);
+  --admin-border: var(--color-outline-variant);
+  --admin-primary: var(--color-secondary);
+  --admin-action: var(--color-primary);
+  --admin-success-fill: var(--color-success-container);
+  --admin-success: var(--color-success);
+  --admin-warning-fill: var(--color-warning-container);
+  --admin-warning: var(--color-on-warning-container);
+  --admin-error-fill: var(--color-error-container);
+  --admin-error: var(--color-error);
+  min-height: 100%;
+  overflow-x: hidden;
+  background: var(--admin-canvas);
+  color: var(--admin-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+:global(.dark) .root {
+  --admin-canvas: var(--color-background);
+  --admin-surface: var(--color-surface);
+  --admin-surface-muted: var(--color-surface-container-low);
+  --admin-surface-subtle: var(--color-surface-container);
+  --admin-text: var(--color-on-surface);
+  --admin-muted: var(--color-on-surface-variant);
+  --admin-border: var(--color-outline-variant);
+  --admin-primary: var(--color-secondary);
+  --admin-action: var(--color-primary);
+  --admin-success-fill: var(--color-success-container);
+  --admin-success: var(--color-success);
+  --admin-warning-fill: var(--color-warning-container);
+  --admin-warning: var(--color-on-warning-container);
+  --admin-error-fill: var(--color-error-container);
+  --admin-error: var(--color-error);
+}
+
+.root :global(.bg-background) { background: var(--admin-canvas) !important; }
+.root :global(.bg-surface),
+.root :global(.bg-surface-container-lowest),
+.root :global(.bg-white) { background: var(--admin-surface) !important; }
+.root :global(.bg-surface-container-low) { background: var(--admin-surface-muted) !important; }
+.root :global(.bg-gray-50),
+.root :global(.bg-gray-100) { background: var(--admin-surface-subtle) !important; }
+.root :global(.bg-surface-container),
+.root :global(.bg-surface-container-high),
+.root :global(.bg-surface-container-highest) { background: var(--admin-surface-subtle) !important; }
+
+.root :global(.text-on-surface),
+.root :global(.text-gray-900),
+.root :global(.text-black) { color: var(--admin-text) !important; }
+.root :global(.text-on-surface-variant),
+.root :global(.text-muted-foreground),
+.root :global(.text-gray-700),
+.root :global(.text-gray-600) { color: var(--admin-muted) !important; }
+.root :global(.text-red-600),
+.root :global(.text-red-700) { color: var(--admin-error) !important; }
+.root :global(.bg-red-100) { background: var(--admin-error-fill) !important; }
+.root :global(.text-green-700) { color: var(--admin-success) !important; }
+.root :global(.bg-green-100) { background: var(--admin-success-fill) !important; }
+.root :global(.text-amber-700) { color: var(--admin-warning) !important; }
+.root :global(.bg-amber-100) { background: var(--admin-warning-fill) !important; }
+.root :global(.border-outline),
+.root :global(.border-outline-variant),
+.root :global([class*="border-outline-variant/"]),
+.root :global([class*="border-input"]) { border-color: var(--admin-border) !important; }
+
+.root :global(.bg-primary) { background: var(--admin-action) !important; }
+.root :global(.text-primary),
+.root :global(.text-primary-dim) { color: var(--admin-primary) !important; }
+.root :global(.text-on-primary) { color: var(--button-primary-text) !important; }
+.root :global(.bg-warning\/15),
+.root :global(.bg-warning-container) { background: var(--admin-warning-fill) !important; }
+.root :global(.text-warning),
+.root :global(.text-warning-dim) { color: var(--admin-warning) !important; }
+.root :global(.bg-error-container),
+.root :global(.bg-error\/10),
+.root :global(.bg-error\/15) { background: var(--admin-error-fill) !important; }
+.root :global(.text-error),
+.root :global(.text-error-dim) { color: var(--admin-error) !important; }
+
+.root :global(.rounded-2xl),
+.root :global(.rounded-3xl),
+.root :global(.rounded-\[24px\]),
+.root :global(.rounded-\[28px\]),
+.root :global(.rounded-xl) { border-radius: 10px !important; }
+.root :global(.shadow-sm),
+.root :global(.shadow-lg),
+.root :global(.shadow-xl),
+.root :global(.shadow-2xl),
+.root :global(.shadow-token-card) { box-shadow: 0 1px 2px color-mix(in srgb, var(--color-outline) 20%, transparent) !important; }
+
+.root :global(button),
+.root :global([role="button"]) { transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms ease; }
+.root :global(button:active),
+.root :global([role="button"]:active) { transform: translateY(1px); }
+.root :global(button:focus-visible),
+.root :global(a:focus-visible),
+.root :global(input:focus-visible),
+.root :global(select:focus-visible),
+.root :global(textarea:focus-visible) { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+.root :global(input),
+.root :global(select) { min-height: 32px; border-radius: 10px; }
+.root :global(table tr) { min-height: 40px; }
+.root :global(th) { color: var(--admin-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.root :global(td),
+.root :global(th) { border-color: color-mix(in srgb, var(--admin-border) 70%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(*), .root :global(*::before), .root :global(*::after) {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

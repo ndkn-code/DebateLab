@@ -223,7 +223,7 @@ export function DuelCreatePage({
     if (roomLoading) {
       return (
         <div className="flex min-h-full items-center justify-center bg-background">
-          <div className="rounded-2xl border border-outline-variant/15 bg-surface px-5 py-4 text-sm text-on-surface-variant">
+          <div className="rounded-[10px] border border-outline-variant/15 bg-surface px-5 py-4 text-sm text-on-surface-variant">
             Loading duel room...
           </div>
         </div>
@@ -233,7 +233,7 @@ export function DuelCreatePage({
     if (roomError || !activeRoom) {
       return (
         <div className="min-h-full bg-background px-4 py-10">
-          <div className="mx-auto max-w-xl rounded-[28px] border border-outline-variant/20 bg-surface p-6 text-center">
+          <div className="mx-auto max-w-xl rounded-[10px] border border-outline-variant/20 bg-surface p-6 text-center">
             <h1 className="text-2xl font-bold text-on-surface">
               Duel room unavailable
             </h1>
@@ -248,7 +248,7 @@ export function DuelCreatePage({
                 setActiveRoomCode(null);
                 router.replace("/debates/new");
               }}
-              className="mt-5 h-11 rounded-2xl"
+              className="mt-5 h-8 rounded-[10px]"
             >
               Create a new room
             </Button>
@@ -270,7 +270,7 @@ export function DuelCreatePage({
     return (
       <PageTransition className="min-h-full bg-background">
         <div className="mx-auto max-w-xl px-4 py-16 text-center">
-          <div className="rounded-[28px] border border-outline-variant/20 bg-surface p-6">
+          <div className="rounded-[10px] border border-outline-variant/20 bg-surface p-6">
             <h1 className="text-2xl font-bold text-on-surface">
               No active motions available
             </h1>
@@ -281,7 +281,7 @@ export function DuelCreatePage({
             <Button
               type="button"
               onClick={() => router.push("/debates")}
-              className="mt-5 h-11 rounded-2xl"
+              className="mt-5 h-8 rounded-[10px]"
             >
               Back to arena
             </Button>
@@ -292,7 +292,7 @@ export function DuelCreatePage({
   }
 
   return (
-    <PageTransition className="min-h-full bg-[linear-gradient(180deg,#F3FCFE_0%,#E5F8FC_45%,#F3FCFE_100%)]">
+    <PageTransition className="min-h-full bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
         <div className="mb-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
           <div>
@@ -304,7 +304,7 @@ export function DuelCreatePage({
               <ArrowLeft className="h-4 w-4" />
               1v1 Debate Arena
             </button>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-on-surface sm:text-5xl">
+            <h1 className="mt-4 max-w-2xl text-2xl font-semibold tracking-tight text-on-surface">
               Create a duel room
             </h1>
             <p className="mt-3 text-sm text-on-surface-variant sm:text-base">
@@ -315,7 +315,7 @@ export function DuelCreatePage({
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[28px] border border-outline-variant/20 bg-surface p-6 shadow-token-card sm:p-7 lg:p-8">
+          <main className="rounded-[10px] border border-outline-variant/20 bg-surface p-6 shadow-none sm:p-7 lg:p-8">
             <section>
               <div className="flex items-start gap-4">
                 <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
@@ -336,7 +336,7 @@ export function DuelCreatePage({
                       type="button"
                       onClick={() => setCategoryFilter(category.key)}
                       className={cn(
-                        "h-10 rounded-full border px-5 text-sm font-medium transition-colors",
+                        "h-8 rounded-[10px] border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring",
                         categoryFilter === category.key
                           ? "border-primary bg-primary text-on-primary"
                           : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container-low"
@@ -351,7 +351,7 @@ export function DuelCreatePage({
                   onChange={(event) =>
                     setDifficultyFilter(event.target.value as DifficultyFilter)
                   }
-                  className="h-11 w-full rounded-2xl border border-outline-variant/30 bg-surface px-4 text-sm font-medium text-on-surface outline-none focus:border-primary/50 lg:w-[150px]"
+                  className="h-8 w-full rounded-[10px] border border-outline-variant/30 bg-surface px-4 text-sm font-medium text-on-surface outline-none focus:border-primary/50 lg:w-[150px]"
                 >
                   {difficultyOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -372,8 +372,8 @@ export function DuelCreatePage({
                       className={cn(
                         "group relative flex min-h-[174px] flex-col rounded-[14px] border bg-surface-container-lowest p-4 text-left transition-all duration-200 hover:-translate-y-0.5",
                         selected
-                          ? "border-primary shadow-token-primary"
-                          : "border-outline-variant hover:border-outline-variant hover:shadow-token-card"
+                          ? "border-primary shadow-none"
+                          : "border-outline-variant hover:border-outline-variant hover:shadow-none"
                       )}
                     >
                       {selected && (
@@ -383,12 +383,12 @@ export function DuelCreatePage({
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 pr-8">
-                        <span className="rounded-full bg-primary-container px-2.5 py-[4px] type-caption font-semibold text-on-surface-variant">
+                        <span className="inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 type-caption font-semibold text-on-surface-variant">
                           {shortCategoryLabel(topic.category)}
                         </span>
                         <span
                           className={cn(
-                            "rounded-full px-2.5 py-[4px] type-caption font-semibold",
+                            "inline-flex h-5 items-center rounded-[6px] px-2 type-caption font-semibold",
                             difficultyTone(topic.difficulty)
                           )}
                         >
@@ -432,7 +432,7 @@ export function DuelCreatePage({
                     setOpeningTimeSeconds(180);
                     setRebuttalTimeSeconds(120);
                   }}
-                  className="inline-flex h-11 items-center gap-2 rounded-2xl border border-outline-variant/25 bg-surface px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                  className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant/25 bg-surface px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low"
                 >
                   <SlidersHorizontal className="h-4 w-4 text-primary" />
                   Presets
@@ -482,14 +482,14 @@ export function DuelCreatePage({
                   type="button"
                   onClick={() => setSideAssignmentMode("random")}
                   className={cn(
-                    "rounded-[20px] border p-5 text-left transition-all",
+                    "rounded-[10px] border p-5 text-left transition-all",
                     sideAssignmentMode === "random"
                       ? "border-primary bg-primary/6"
                       : "border-outline-variant/25 bg-surface"
                   )}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
                       <Scale className="h-7 w-7" />
                     </div>
                     <div className="min-w-0">
@@ -517,14 +517,14 @@ export function DuelCreatePage({
                   type="button"
                   onClick={() => setSideAssignmentMode("choose")}
                   className={cn(
-                    "rounded-[20px] border p-5 text-left transition-all",
+                    "rounded-[10px] border p-5 text-left transition-all",
                     sideAssignmentMode === "choose"
                       ? "border-primary bg-primary/6"
                       : "border-outline-variant/25 bg-surface"
                   )}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
                       <ShieldCheck className="h-7 w-7" />
                     </div>
                     <div className="min-w-0">
@@ -552,7 +552,7 @@ export function DuelCreatePage({
                       type="button"
                       onClick={() => setCreatorSidePreference(side)}
                       className={cn(
-                        "rounded-2xl border px-4 py-3 text-sm font-semibold capitalize transition-colors",
+                        "rounded-[10px] border px-4 py-3 text-sm font-semibold capitalize transition-colors",
                         creatorSidePreference === side
                           ? "border-primary bg-primary/8 text-primary"
                           : "border-outline-variant/15 bg-surface text-on-surface"
@@ -566,7 +566,7 @@ export function DuelCreatePage({
             </section>
 
             {error && (
-              <div className="mt-5 rounded-2xl border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
+              <div className="mt-5 rounded-[10px] border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
                 {error}
               </div>
             )}
@@ -580,7 +580,7 @@ export function DuelCreatePage({
                     .getElementById("duel-preview")
                     ?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
-                className="h-12 rounded-2xl border-outline-variant/25 bg-surface text-primary"
+                className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-primary"
               >
                 <Mail className="h-4 w-4" />
                 Preview invite
@@ -589,7 +589,7 @@ export function DuelCreatePage({
                 type="button"
                 onClick={handleCreate}
                 disabled={pending}
-                className="h-12 rounded-2xl text-base"
+                className="h-8 rounded-[10px] text-base"
               >
                 {pending ? "Creating room..." : "Create duel room"}
                 <ArrowRight className="h-4 w-4" />

@@ -14,13 +14,16 @@ export default function AdminError({
   }, [error]);
 
   return (
-    <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex min-h-[50vh] items-center justify-center px-5 py-10">
       <div className="text-center space-y-4">
-        <h2 className="text-xl font-bold text-on-surface">Something went wrong</h2>
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[10px] bg-error-container text-error">
+          <span aria-hidden="true">!</span>
+        </div>
+        <h2 className="text-xl font-medium text-on-surface">Something went wrong</h2>
         <p className="text-sm text-on-surface-variant max-w-md">{error.message}</p>
         <button
           onClick={reset}
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90"
+          className="h-8 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary transition hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           Try again
         </button>

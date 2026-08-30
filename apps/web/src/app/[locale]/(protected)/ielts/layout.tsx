@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { isIeltsAccessible } from "@/lib/ielts/access";
+import styles from "@/components/ielts/ielts-v2.module.css";
 
 /**
  * Launch gate for the entire `/ielts/**` learner subtree (WS-5.1) — home, test
@@ -17,5 +18,5 @@ export default async function IeltsLayout({
     notFound();
   }
 
-  return children;
+  return <div className={styles.root} data-ielts-v2="root">{children}</div>;
 }

@@ -114,7 +114,7 @@ function EmptyState({ privateState }: { privateState?: boolean }) {
   const t = useTranslations("profileSocial.activities");
 
   return (
-    <section className="rounded-[24px] border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-14 text-center">
+    <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-5 py-12 text-center">
       {privateState ? (
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
           <ShieldCheck className="size-6" />
@@ -162,7 +162,7 @@ function ActivityCard({
         delay: Math.min(index * 0.035, 0.3),
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="grid gap-4 rounded-[20px] border border-outline-variant bg-surface-container-lowest p-5 shadow-token-card transition-transform duration-200 hover:-translate-y-0.5 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center"
+      className="grid min-h-11 gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 transition-colors hover:border-primary sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center"
     >
       <span
         className={cn(

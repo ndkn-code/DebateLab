@@ -28,11 +28,11 @@ function GameCard({
   const reduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 56, rotate: rotate * 2.4 }}
-      whileInView={{ opacity: 1, y: 0, rotate }}
+      initial={reduceMotion ? false : { opacity: 0, y: 56, rotate: rotate * 2.4 }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, rotate }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ type: "spring", stiffness: 160, damping: 19, delay }}
-      whileHover={{ rotate: 0, scale: 1.04, zIndex: 30 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 160, damping: 19, delay }}
+      whileHover={reduceMotion ? undefined : { rotate: 0, scale: 1.04, zIndex: 30 }}
       className={cn(
         "rounded-[24px] border border-outline-variant bg-white p-5 shadow-token-panel",
         className
@@ -40,7 +40,7 @@ function GameCard({
     >
       <motion.div
         animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
-        transition={{ duration: 4.2, delay: bobDelay, repeat: Infinity, ease: "easeInOut" }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 4.2, delay: bobDelay, repeat: Infinity, ease: "easeInOut" }}
       >
         {children}
       </motion.div>
@@ -80,7 +80,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
             <div className="flex items-center gap-3">
               <motion.span
                 animate={reduceMotion ? undefined : { scale: [1, 1.14, 1] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1E0]"
               >
                 <Image
@@ -102,10 +102,10 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
               {Array.from({ length: 7 }).map((_, index) => (
                 <motion.span
                   key={index}
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
+                  initial={reduceMotion ? false : { scale: 0 }}
+                  whileInView={reduceMotion ? undefined : { scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ type: "spring", stiffness: 380, damping: 16, delay: 0.5 + index * 0.07 }}
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 16, delay: 0.5 + index * 0.07 }}
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full",
                     index < 5 ? "bg-[#FF9F45]" : "border-2 border-dashed border-outline-variant bg-white"
@@ -134,10 +134,10 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
               {league.rows.map((row, index) => (
                 <motion.div
                   key={row.name}
-                  initial={{ opacity: 0, x: 18 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={reduceMotion ? false : { opacity: 0, x: 18 }}
+                  whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.55 + index * 0.12, ease: EASE_OUT }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.55 + index * 0.12, ease: EASE_OUT }}
                   className={cn(
                     "flex items-center gap-2.5 rounded-xl px-3 py-2",
                     row.you ? "bg-primary-container" : "bg-surface-container"
@@ -165,7 +165,7 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                       viewBox="0 0 24 24"
                       className="h-3.5 w-3.5 text-success"
                       animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
-                      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                      transition={reduceMotion ? { duration: 0 } : { duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                       aria-hidden="true"
                     >
                       <path d="M12 19V5m0 0-6 6m6-6 6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
@@ -189,10 +189,10 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
                 {Array.from({ length: 3 }).map((_, index) => (
                   <motion.span
                     key={index}
-                    initial={{ scale: 0, rotate: -40 }}
-                    whileInView={{ scale: 1, rotate: 0 }}
+                    initial={reduceMotion ? false : { scale: 0, rotate: -40 }}
+                    whileInView={reduceMotion ? undefined : { scale: 1, rotate: 0 }}
                     viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 360, damping: 14, delay: 0.7 + index * 0.1 }}
+                    transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 14, delay: 0.7 + index * 0.1 }}
                   >
                     <StarIcon className="h-5 w-5 text-reward" />
                   </motion.span>
@@ -202,10 +202,10 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
             <div className="mt-3">
               <div className="h-2.5 overflow-hidden rounded-full bg-surface-container-high">
                 <motion.div
-                  initial={{ width: 0 }}
-                  whileInView={{ width: "72%" }}
+                  initial={reduceMotion ? { width: "72%" } : { width: 0 }}
+                  whileInView={reduceMotion ? undefined : { width: "72%" }}
                   viewport={{ once: true }}
-                  transition={{ duration: 1.1, delay: 0.7, ease: EASE_OUT }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 1.1, delay: 0.7, ease: EASE_OUT }}
                   className="h-full rounded-full bg-reward"
                 />
               </div>
@@ -215,10 +215,10 @@ export function GamificationSection({ copy }: { copy: LandingV3Copy }) {
 
           {/* Mascot presenting the cards */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 30 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.7, delay: 0.5, ease: EASE_OUT }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.7, delay: 0.5, ease: EASE_OUT }}
             className="relative z-30 -mt-2 self-start pl-4 sm:absolute sm:-bottom-2 sm:left-8 sm:mt-0 sm:pl-0"
           >
             <Image

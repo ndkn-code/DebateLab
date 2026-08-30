@@ -165,7 +165,7 @@ export function SpeakingPhase({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 pb-20 pt-3 sm:px-5 lg:px-6">
       <div className="fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2 lg:bottom-auto lg:right-5 lg:top-28">
-        <div className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-white/95 px-3 py-2 text-sm font-bold text-on-surface-variant shadow-token-card backdrop-blur">
+        <div className="inline-flex items-center gap-2 rounded-[10px] border border-outline-variant bg-surface/95 px-3 py-2 text-sm font-bold text-on-surface-variant shadow-none backdrop-blur">
           <Clock3 className="h-4 w-4 text-primary" />
           <span className="tabular-nums">{formatPracticeTime(timeLeft)}</span>
         </div>
@@ -177,7 +177,7 @@ export function SpeakingPhase({
               ? t("session.hide_motion_brief")
               : t("session.show_motion_brief")
           }
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant bg-white/95 text-primary shadow-token-card backdrop-blur transition hover:bg-surface-container"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-[10px] border border-outline-variant bg-surface/95 text-primary shadow-none backdrop-blur transition hover:bg-surface-container"
         >
           <BookOpenText className="h-5 w-5" />
         </button>
@@ -194,7 +194,7 @@ export function SpeakingPhase({
             <MotionInfoPanel
               topic={topic}
               side={side}
-              className="shadow-token-card"
+              className="shadow-none"
             />
           </motion.div>
         )}
@@ -320,7 +320,7 @@ export function SpeakingPhase({
           onClick={() => setShowEndConfirm(true)}
           disabled={isFinalizing}
           aria-label="End speech early"
-          className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim"
+          className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-none hover:bg-primary-dim"
         >
           <Square className="h-4 w-4" />
           {t("session.end_speech")}
@@ -344,7 +344,7 @@ export function SpeakingPhase({
               aria-modal="true"
               aria-labelledby="end-speech-confirm-title"
               onClick={(event) => event.stopPropagation()}
-              className="pointer-events-auto mx-auto flex w-full max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-token-card backdrop-blur-xl"
+              className="pointer-events-auto mx-auto flex w-full max-w-[520px] items-center justify-center rounded-[1.35rem] border border-outline-variant/70 bg-surface-container-lowest/95 p-4 shadow-none backdrop-blur-xl"
             >
               <div className="text-center">
                 <p
@@ -357,13 +357,13 @@ export function SpeakingPhase({
                   <Button
                     onClick={() => setShowEndConfirm(false)}
                     variant="outline"
-                    className="rounded-xl border-outline-variant/70 bg-surface text-on-surface-variant"
+                    className="rounded-[10px] border-outline-variant/70 bg-surface text-on-surface-variant"
                   >
                     {t("session.cancel")}
                   </Button>
                   <Button
                     onClick={handleConfirmEnd}
-                    className="rounded-xl bg-primary text-on-primary shadow-token-primary hover:bg-primary-dim"
+                    className="rounded-[10px] bg-primary text-on-primary shadow-none hover:bg-primary-dim"
                   >
                     {t("session.end_now")}
                   </Button>

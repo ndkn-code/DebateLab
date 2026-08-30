@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { getTimeGreetingKey } from "@/components/dashboard/plan-copy";
@@ -12,6 +13,7 @@ import type {
 } from "@/lib/api/dashboard";
 import type { PracticeTrack } from "@/types/feedback";
 import { ProtectedShell } from "../../(protected)/protected-shell";
+import { DevQaToolbar, devQaActiveChipClass, devQaChipClass } from "../dev-v2";
 
 type DashboardQaState =
   | "normal"
@@ -387,16 +389,30 @@ export default async function Page({
       userEmail={QA_PROFILE.email}
       userId={QA_USER_ID}
     >
+      <div className="border-b border-border bg-surface px-4 py-2 sm:px-6">
+        <DevQaToolbar label="Dashboard fixture">
+          {(["normal", "empty", "course", "weak-speaking", "weak-debate"] as const).map((fixture) => (
+            <Link
+              key={fixture}
+              href={`?state=${fixture}`}
+              aria-current={state === fixture ? "page" : undefined}
+              className={state === fixture ? devQaActiveChipClass : devQaChipClass}
+            >
+              {fixture.replace("-", " ")}
+            </Link>
+          ))}
+        </DevQaToolbar>
+      </div>
       <DashboardContent
-        data={makeDashboardData(state)}
-        displayName="Jensen Huang"
-        greetingKey={getTimeGreetingKey(
-          new Date("2026-05-18T12:00:00.000Z"),
-          "America/New_York"
-        )}
-        userId={QA_USER_ID}
-        showWelcome={false}
-      />
+          data={makeDashboardData(state)}
+          displayName="Jensen Huang"
+          greetingKey={getTimeGreetingKey(
+            new Date("2026-05-18T12:00:00.000Z"),
+            "America/New_York"
+          )}
+          userId={QA_USER_ID}
+          showWelcome={false}
+        />
     </ProtectedShell>
   );
 }

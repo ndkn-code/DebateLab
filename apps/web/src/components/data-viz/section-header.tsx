@@ -20,7 +20,7 @@ export function DashboardSectionHeader({
   className,
 }: DashboardSectionHeaderProps) {
   return (
-    <div className={cn("flex flex-wrap items-end justify-between gap-3", className)}>
+    <div className={cn("flex flex-wrap items-end justify-between gap-3 border-b border-outline-variant/60 pb-3", className)}>
       <div className="flex flex-col gap-1">
         {eyebrow && <Eyebrow className="text-primary">{eyebrow}</Eyebrow>}
         <Heading level={2} className="text-on-surface">

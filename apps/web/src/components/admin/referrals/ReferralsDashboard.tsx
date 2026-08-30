@@ -55,13 +55,17 @@ export function ReferralsDashboard({
   locale: string;
 }) {
   const t = useTranslations("admin.referrals");
+  const adminT = useTranslations("admin");
   const number = (value: number) => value.toLocaleString(locale);
 
   return (
-    <PageTransition className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6 lg:p-8">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="type-title-lg text-on-surface">{t("title")}</h1>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container px-3 py-1 text-xs font-semibold text-on-surface-variant">
+    <PageTransition className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 p-4 md:p-6 lg:px-8 lg:py-7">
+      <header className="flex flex-col gap-3 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+        <h1 className="type-heading-lg mt-1 font-medium text-on-surface">{t("title")}</h1>
+        </div>
+        <span className="inline-flex h-6 w-fit items-center gap-1.5 rounded-[6px] border border-outline-variant bg-surface-container px-2 text-xs font-medium text-on-surface-variant">
           <UserPlus className="h-3.5 w-3.5" /> {t("readOnly")}
         </span>
       </header>
@@ -108,7 +112,7 @@ export function ReferralsDashboard({
                 key={status}
                 href={queryHref(data.filters, { status, page: 1 })}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   data.filters.status === status
                     ? "border-primary/25 bg-primary text-on-primary"
                     : "border-outline-variant/40 bg-background text-on-surface-variant hover:bg-primary-container",
@@ -130,9 +134,9 @@ export function ReferralsDashboard({
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-225 text-left text-sm">
-                <thead className="border-b border-outline-variant/35 text-xs font-bold uppercase tracking-normal text-on-surface-variant">
-                  <tr><th className="px-3 py-3">{t("table.referrer")}</th><th className="px-3 py-3">{t("table.referee")}</th><th className="px-3 py-3">{t("table.status")}</th><th className="px-3 py-3">{t("table.orbs")}</th><th className="px-3 py-3">{t("table.qualified")}</th><th className="px-3 py-3">{t("table.credited")}</th><th className="px-3 py-3">{t("table.created")}</th></tr>
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="h-10 border-b border-outline-variant/35 bg-surface-container-low type-caption font-semibold uppercase text-on-surface-variant">
+                  <tr><th className="px-3">{t("table.referrer")}</th><th className="px-3">{t("table.referee")}</th><th className="px-3">{t("table.status")}</th><th className="px-3">{t("table.orbs")}</th><th className="px-3">{t("table.qualified")}</th><th className="px-3">{t("table.credited")}</th><th className="px-3">{t("table.created")}</th></tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/25">
                   {data.referrals.map((referral) => (

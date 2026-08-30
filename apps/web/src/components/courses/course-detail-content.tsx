@@ -103,9 +103,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
 
         <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_292px]">
           <div className="min-w-0">
-            <section className="rounded-[28px] border border-outline-variant bg-white p-5 shadow-token-panel sm:p-6">
+            <section className="rounded-[12px] border border-outline-variant bg-white p-5 shadow-none sm:p-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <div className="relative h-[118px] w-full shrink-0 overflow-hidden rounded-[20px] border border-outline-variant bg-[linear-gradient(135deg,#8BE8F7_0%,#00B8D9_100%)] sm:h-[118px] sm:w-[118px]">
+                <div className="relative h-[118px] w-full shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container sm:h-[118px] sm:w-[118px]">
                   {course.thumbnail_url ? (
                     <Image
                       src={course.thumbnail_url}
@@ -133,7 +133,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     {course.isPreview ? (
                       <>
                         <span className="h-1 w-1 rounded-full bg-surface-container-high" />
-                        <span className="rounded-full bg-primary-container px-2.5 py-1 text-xs font-semibold text-on-surface-variant">
+                        <span className="inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 text-xs font-medium text-on-surface-variant">
                           {t("reader.preview_badge")}
                         </span>
                       </>
@@ -194,10 +194,10 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
             </section>
 
             {selectedLesson ? (
-              <section className="mt-7 overflow-hidden rounded-[30px] border border-outline-variant bg-white shadow-token-card">
+              <section className="mt-7 overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
                 <div className="grid gap-8 border-b border-outline-variant p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_250px]">
                   <div className="min-w-0">
-                    <div className="type-eyebrow inline-flex rounded-full bg-primary-container px-3 py-1 font-semibold text-on-surface-variant">
+                    <div className="type-caption inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 font-medium text-on-surface-variant">
                       {t("reader.lesson_kicker", {
                         lesson: currentItem?.lessonNumber ?? 1,
                       })}

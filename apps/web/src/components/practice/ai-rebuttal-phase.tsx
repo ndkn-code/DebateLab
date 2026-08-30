@@ -576,7 +576,7 @@ export function AiRebuttalPhase({
             )}
           </div>
 
-          <div className="mt-4 flex min-h-[300px] flex-col rounded-xl bg-surface-container/60 p-5">
+          <div className="mt-4 flex min-h-[300px] flex-col rounded-[10px] bg-surface-container/60 p-5">
             {status === "loading" ? (
               <div className="flex flex-1 items-center justify-center">
                 <div className="flex flex-col items-center gap-4">

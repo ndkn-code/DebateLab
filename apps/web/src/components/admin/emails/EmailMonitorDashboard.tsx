@@ -18,6 +18,8 @@ import { EmailTemplateEditor } from "@/components/admin/emails/EmailTemplateEdit
 import { EmailCampaignsDashboard } from "@/components/admin/emails/EmailCampaignsDashboard";
 import type { EmailAdminDashboardData, EmailAdminKpi } from "@/lib/email/admin";
 import { cn } from "@/lib/utils";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
+import { useRouter } from "@/i18n/navigation";
 
 interface Props {
   data: EmailAdminDashboardData;
@@ -69,16 +71,18 @@ function KpiIcon({ kpiKey }: { kpiKey: string }) {
 
 export function EmailMonitorDashboard({ data }: Props) {
   const [activeTab, setActiveTab] = useState<"monitor" | "templates" | "campaigns">("monitor");
+  const router = useRouter();
   const maxTrend = Math.max(
     1,
     ...data.trend.map((point) => Math.max(point.sent, point.delivered, point.opened, point.clicked, point.failed))
   );
 
   return (
+    <AdminV2Frame>
     <div className="mx-auto max-w-7xl min-w-0 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">
+          <h1 className="type-heading-lg text-on-surface">
             Email Monitor
           </h1>
           <p className="mt-1 w-full max-w-[calc(100vw-2rem)] text-sm leading-6 text-on-surface-variant sm:max-w-2xl">
@@ -86,14 +90,14 @@ export function EmailMonitorDashboard({ data }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface-variant shadow-token-card">
+          <button type="button" disabled aria-label="Date range: last 14 days" className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card disabled:cursor-default disabled:opacity-100">
             <CalendarDays className="h-4 w-4 text-primary" />
             Last 14 days
-          </div>
-          <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface-variant shadow-token-card">
+          </button>
+          <button type="button" onClick={() => router.refresh()} aria-label="Refresh email monitor" className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card hover:bg-surface-container">
             <RefreshCw className="h-4 w-4 text-primary" />
             Refresh
-          </div>
+          </button>
         </div>
       </div>
 
@@ -108,7 +112,7 @@ export function EmailMonitorDashboard({ data }: Props) {
             type="button"
             onClick={() => setActiveTab(tab.key as "monitor" | "templates" | "campaigns")}
             className={cn(
-              "h-9 rounded-md px-5 text-sm font-bold transition-colors",
+              "h-8 rounded-[10px] px-4 type-label font-medium transition-colors",
               activeTab === tab.key
                 ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
                 : "text-on-surface-variant hover:bg-surface-container-lowest"
@@ -402,5 +406,6 @@ export function EmailMonitorDashboard({ data }: Props) {
         </>
       )}
     </div>
+    </AdminV2Frame>
   );
 }

@@ -1,26 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { useLocale, useTranslations } from "next-intl";
+import { motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
+  Award,
   CheckCircle2,
-  ChevronRight,
   Clock3,
-  Gift,
+  Flame,
   Sparkles,
+  Target,
   Zap,
 } from "@/components/ui/icons";
-import {
-  HeatmapCells,
-  HeatmapChart,
-  HeatmapInteractionBoundary,
-  HeatmapInteractionProvider,
-  HeatmapTooltip,
-} from "@/components/charts";
-import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
-import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { DashboardHomeData } from "@/lib/api/dashboard";
 import type {
@@ -29,24 +19,6 @@ import type {
 } from "@thinkfy/shared/dashboard";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-const XP_QUEST_GOAL = 50;
-const STREAK_HEATMAP_LEVELS = [
-  "var(--color-surface-container-high)",
-  "var(--color-chart-4)",
-  "var(--color-chart-4)",
-  "var(--color-chart-3)",
-  "var(--color-chart-3)",
-] as const;
-
-function toHeatmapDate(date: string) {
-  return new Date(`${date}T12:00:00`);
-}
-
-function getHeatmapCount(entry: DailyStatEntry) {
-  if (entry.practice_minutes <= 0 && entry.sessions_completed <= 0) return 0;
-  return Math.min(4, 1 + entry.sessions_completed + Math.floor(entry.practice_minutes / 20));
-}
-
 function RailCard({
   children,
   className,
@@ -60,8 +32,8 @@ function RailCard({
     <div
       data-testid={testId}
       className={cn(
-        "rounded-[1.5rem] border border-outline-variant bg-surface p-5 shadow-token-card dark:border-outline-variant/70",
-        className
+        "rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70",
+        className,
       )}
     >
       {children}
@@ -79,49 +51,213 @@ function findToday(weeklyStats: DailyStatEntry[]): DailyStatEntry | null {
   );
 }
 
-// --- Level card ---------------------------------------------------------
+function clampProgressValue(value: number, max: number) {
+  return Math.max(0, Math.min(value, Math.max(max, 1)));
+}
 
-function LevelCard({ topBar }: { topBar: DashboardHomeData["topBar"] }) {
-  const t = useTranslations("dashboard.home");
-  const progress = Math.min(
-    100,
-    Math.round((topBar.xpCurrent / Math.max(topBar.xpGoal, 1)) * 100)
+function SignalIcon({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: "blue" | "green" | "amber";
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+        tone === "blue" && "bg-primary-container text-primary",
+        tone === "green" && "bg-success-container text-success-dim",
+        tone === "amber" && "bg-warning-container text-reward-dim",
+      )}
+    >
+      {children}
+    </span>
   );
+}
+
+function SignalRow({
+  icon,
+  label,
+  value,
+  detail,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      {icon}
+      <div className="min-w-0 flex-1">
+        <p className="type-caption font-semibold text-on-surface-variant">
+          {label}
+        </p>
+        <p className="type-body-sm mt-0.5 font-bold tabular-nums text-on-surface">
+          {value}
+        </p>
+        {detail ? (
+          <p className="type-caption mt-0.5 truncate text-on-surface-variant">
+            {detail}
+          </p>
+        ) : null}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// --- Today / readiness card --------------------------------------------
+
+function ReadinessCard({
+  topBar,
+  todayGoal,
+  weeklyStats,
+}: {
+  topBar: DashboardHomeData["topBar"];
+  todayGoal: DashboardGoalSummary;
+  weeklyStats: DailyStatEntry[];
+}) {
+  const t = useTranslations("dashboard.home");
+  const reduceMotion = useReducedMotion();
+  const goalProgress = Math.min(100, Math.max(0, todayGoal.progressPercent));
+  const todayGoalMax = Math.max(todayGoal.goalMinutes, 1);
+  const xpGoalMax = Math.max(topBar.xpGoal, 1);
+  const levelProgress = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round((topBar.xpCurrent / Math.max(topBar.xpGoal, 1)) * 100),
+    ),
+  );
+  const recentDays = weeklyStats.slice(-7);
+  const activeDays = recentDays.filter(
+    (entry) => entry.practice_minutes > 0 || entry.sessions_completed > 0,
+  ).length;
+  const goalValue = `${todayGoal.practicedMinutes} / ${todayGoal.goalMinutes} ${t("min")}`;
+  const levelValue = t("level", { level: topBar.level });
+  const streakValue = `${topBar.currentStreak} ${t("days")}`;
 
   return (
-    <RailCard testId="dashboard-level-card">
-      <div className="flex items-center gap-4">
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-          <Image
-            src="/images/rewards/league-gold.webp"
-            alt=""
-            aria-hidden="true"
-            width={1254}
-            height={1254}
-            className="h-14 w-14 object-contain"
-            sizes="56px"
-          />
-          <span className="type-body absolute translate-y-[3px] font-extrabold text-on-warning-container">
-            {topBar.level}
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="type-body font-extrabold text-on-surface">
-            {t("level", { level: topBar.level })}
-          </p>
-          <div className="mt-2 h-3 overflow-hidden rounded-full bg-surface-container-high">
+    <RailCard
+      testId="dashboard-level-card"
+      className="p-4 xl:min-h-[309px]"
+    >
+      <div className="space-y-3.5">
+        <SignalRow
+          icon={
+            <SignalIcon tone="blue">
+              <Target className="h-[18px] w-[18px]" />
+            </SignalIcon>
+          }
+          label={t("today_goal_title")}
+          value={goalValue}
+        >
+          <div className="mt-1.5 flex items-center gap-2">
+            <div
+              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-container-high"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={todayGoalMax}
+              aria-valuenow={clampProgressValue(
+                todayGoal.practicedMinutes,
+                todayGoalMax,
+              )}
+              aria-label={t("today_goal_subtitle")}
+            >
+              <motion.div
+                initial={reduceMotion ? false : { width: 0 }}
+                whileInView={{ width: `${goalProgress}%` }}
+                viewport={{ once: true }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.8, ease: EASE_OUT, delay: 0.15 }
+                }
+                className={cn(
+                  "h-full rounded-full",
+                  todayGoal.metGoal ? "bg-success" : "bg-primary",
+                )}
+              />
+            </div>
+            <span className="type-caption shrink-0 font-semibold tabular-nums text-on-surface-variant">
+              {goalProgress}%
+            </span>
+          </div>
+        </SignalRow>
+
+        <div className="border-t border-outline-variant/60" />
+
+        <SignalRow
+          icon={
+            <SignalIcon tone="amber">
+              <Award className="h-[18px] w-[18px]" />
+            </SignalIcon>
+          }
+          label={t("topbar_level")}
+          value={levelValue}
+          detail={`${topBar.xpCurrent} / ${topBar.xpGoal} XP`}
+        >
+          <div
+            className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={xpGoalMax}
+            aria-valuenow={clampProgressValue(topBar.xpCurrent, xpGoalMax)}
+            aria-label={t("stats.level_progress", {
+              current: topBar.xpCurrent,
+              goal: topBar.xpGoal,
+            })}
+          >
             <motion.div
-              initial={{ width: 0 }}
-              whileInView={{ width: `${progress}%` }}
+              initial={reduceMotion ? false : { width: 0 }}
+              whileInView={{ width: `${levelProgress}%` }}
               viewport={{ once: true }}
-              transition={{ duration: 1, ease: EASE_OUT, delay: 0.2 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.8, ease: EASE_OUT, delay: 0.2 }
+              }
               className="h-full rounded-full bg-reward"
             />
           </div>
-          <p className="type-caption mt-1.5 font-bold text-on-surface-variant">
-            {topBar.xpCurrent} / {topBar.xpGoal} XP
-          </p>
-        </div>
+        </SignalRow>
+
+        <div className="border-t border-outline-variant/60" />
+
+        <SignalRow
+          icon={
+            <SignalIcon tone="green">
+              <Flame className="h-[18px] w-[18px]" />
+            </SignalIcon>
+          }
+          label={t("streak_title")}
+          value={streakValue}
+        >
+          <div
+            className="mt-2 flex items-center gap-1.5"
+            aria-label={t("active_days_this_week", { count: activeDays })}
+          >
+            {recentDays.map((entry) => {
+              const active =
+                entry.practice_minutes > 0 || entry.sessions_completed > 0;
+              return (
+                <span
+                  key={entry.date}
+                  aria-hidden="true"
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full",
+                    active ? "bg-success" : "bg-surface-container-high",
+                  )}
+                />
+              );
+            })}
+          </div>
+        </SignalRow>
       </div>
     </RailCard>
   );
@@ -138,46 +274,76 @@ interface Quest {
 }
 
 function QuestRow({ quest, index }: { quest: Quest; index: number }) {
+  const reduceMotion = useReducedMotion();
+  const questMax = Math.max(quest.goal, 1);
   const done = quest.current >= quest.goal;
-  const percent = Math.min(100, (quest.current / Math.max(quest.goal, 1)) * 100);
+  const percent = Math.min(
+    100,
+    Math.max(0, (quest.current / Math.max(quest.goal, 1)) * 100),
+  );
 
   return (
     <div className="flex items-center gap-3">
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-          done ? "bg-success-container text-success-dim" : "bg-warning-container text-reward-dim"
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+          done
+            ? "bg-success-container text-success-dim"
+            : "bg-warning-container text-reward-dim",
         )}
       >
         {done ? <CheckCircle2 className="h-5 w-5" /> : quest.icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="type-body-sm truncate font-extrabold text-on-surface">{quest.label}</p>
-        <div className="relative mt-1.5 h-3.5 overflow-hidden rounded-full bg-surface-container-high">
+        <p className="type-body-sm truncate font-extrabold text-on-surface">
+          {quest.label}
+        </p>
+        <div
+          className="relative mt-1.5 h-3 overflow-hidden rounded-full bg-surface-container-high"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={questMax}
+          aria-valuenow={clampProgressValue(quest.current, questMax)}
+          aria-label={quest.label}
+        >
           <motion.div
-            initial={{ width: 0 }}
+            initial={reduceMotion ? false : { width: 0 }}
             whileInView={{ width: `${percent}%` }}
             viewport={{ once: true }}
-            transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.15 + index * 0.12 }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : {
+                    duration: 0.9,
+                    ease: EASE_OUT,
+                    delay: 0.15 + index * 0.12,
+                  }
+            }
             className={cn(
               "h-full rounded-full",
-              done ? "bg-success" : "bg-reward"
+              done ? "bg-success" : "bg-reward",
             )}
           />
           <span className="type-caption absolute inset-0 flex items-center justify-center font-extrabold text-on-surface/70">
-            {Math.min(quest.current, quest.goal)} / {quest.goal}
+            {clampProgressValue(quest.current, questMax)} / {quest.goal}
           </span>
         </div>
       </div>
-      <Image
-        src={done ? "/images/rewards/chest-open.webp" : "/images/rewards/chest-closed.webp"}
-        alt=""
+      <span
         aria-hidden="true"
-        width={1254}
-        height={1254}
-        className={cn("h-9 w-9 shrink-0 object-contain", !done && "opacity-80")}
-        sizes="36px"
-      />
+        className={cn(
+          "type-caption inline-flex h-5 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 font-semibold tabular-nums",
+          done
+            ? "bg-success-container text-success-dim"
+            : "bg-primary-container text-primary-dim",
+        )}
+      >
+        {done ? (
+          <CheckCircle2 className="h-3.5 w-3.5" />
+        ) : (
+          `${Math.round(percent)}%`
+        )}
+      </span>
     </div>
   );
 }
@@ -207,22 +373,20 @@ function DailyQuestsCard({
       current: today?.sessions_completed ?? 0,
       goal: 1,
     },
-    {
-      id: "xp",
-      icon: <Zap className="h-5 w-5" />,
-      label: t("quest_earn_xp", { count: XP_QUEST_GOAL }),
-      current: today?.xp_earned ?? 0,
-      goal: XP_QUEST_GOAL,
-    },
   ];
 
   return (
-    <RailCard testId="dashboard-daily-quests">
+    <RailCard
+      testId="dashboard-daily-quests"
+      className="flex flex-col xl:min-h-[273px]"
+    >
       <div className="flex items-center justify-between">
-        <p className="type-body font-extrabold text-on-surface">{t("quests_title")}</p>
+        <p className="type-body font-extrabold text-on-surface">
+          {t("quests_title")}
+        </p>
         <Zap className="h-[18px] w-[18px] text-reward" />
       </div>
-      <div className="mt-4 flex flex-col gap-4">
+      <div className="mt-3.5 flex flex-1 flex-col justify-evenly gap-3">
         {quests.map((quest, index) => (
           <QuestRow key={quest.id} quest={quest} index={index} />
         ))}
@@ -231,163 +395,24 @@ function DailyQuestsCard({
   );
 }
 
-// --- Streak --------------------------------------------------------------
-
-function StreakRailCard({
-  streak,
-  weeklyStats,
-}: {
-  streak: number;
-  weeklyStats: DailyStatEntry[];
-}) {
-  const t = useTranslations("dashboard.home");
-  const locale = useLocale();
-  const days = useMemo(() => weeklyStats.slice(-7), [weeklyStats]);
-  const heatmapData = useMemo(
-    () =>
-      days.map((entry, index) => ({
-        bin: index,
-        bins: [
-          {
-            bin: 0,
-            count: getHeatmapCount(entry),
-            date: toHeatmapDate(entry.date),
-          },
-        ],
-      })),
-    [days]
-  );
-
-  return (
-    <RailCard testId="dashboard-streak-rail">
-      <div className="flex items-center gap-3.5">
-        <Image
-          src="/images/rewards/streak-fire.webp"
-          alt=""
-          aria-hidden="true"
-          width={1254}
-          height={1254}
-          className={cn("h-11 w-11 object-contain", streak === 0 && "opacity-40 grayscale")}
-          sizes="44px"
-        />
-        <div>
-          <p className="text-on-surface">
-            <Stat size="heading-lg" className="font-extrabold leading-none">
-              {streak}
-            </Stat>{" "}
-            <span className="type-body-sm font-bold text-on-surface-variant">{t("days")}</span>
-          </p>
-          <p className="type-caption mt-1 font-bold text-on-surface-variant">
-            {t("streak_title")}
-          </p>
-        </div>
-      </div>
-
-      <HeatmapInteractionProvider>
-        <HeatmapInteractionBoundary className="mt-4">
-          <HeatmapChart
-            data={heatmapData}
-            layout="fill"
-            levelColors={STREAK_HEATMAP_LEVELS}
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            gap={5}
-            className="h-8 w-full"
-          >
-            <HeatmapCells cornerRadius={7} />
-            <HeatmapTooltip
-              formatLabel={(count, date) =>
-                count > 0
-                  ? t("active_days_this_week", { count: 1 })
-                  : date.toLocaleDateString(locale, {
-                      month: "short",
-                      day: "numeric",
-                    })
-              }
-            />
-          </HeatmapChart>
-        </HeatmapInteractionBoundary>
-      </HeatmapInteractionProvider>
-
-      <div className="mt-2 grid grid-cols-7 gap-1.5">
-        {days.map((entry) => {
-          const initial = new Date(`${entry.date}T12:00:00`).toLocaleDateString(locale, {
-            weekday: "narrow",
-          });
-          return (
-            <span
-              key={entry.date}
-              className="type-caption text-center font-extrabold uppercase text-on-surface-variant"
-            >
-              {initial}
-            </span>
-          );
-        })}
-      </div>
-    </RailCard>
-  );
-}
-
-// --- Invite --------------------------------------------------------------
-
-function InviteRailCard({
-  referralCode,
-  inviteReward,
-}: {
-  referralCode: string | null;
-  inviteReward: number;
-}) {
-  const t = useTranslations("dashboard.home");
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        disabled={!referralCode}
-        data-testid="dashboard-mobile-referral-card"
-        onClick={() => referralCode && setOpen(true)}
-        className="group flex w-full items-center gap-3 rounded-[1.5rem] border border-outline-variant bg-surface p-5 text-left shadow-token-card transition-all hover:-translate-y-0.5 hover:border-primary-fixed disabled:cursor-not-allowed disabled:opacity-60 dark:border-outline-variant/70"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
-          <Gift className="h-5 w-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="type-body-sm block truncate font-extrabold text-on-surface">
-            {t("invite_friend_title")}
-          </span>
-          <span className="type-caption block font-bold text-primary">
-            {t("invite_friend_reward", { count: inviteReward })}
-          </span>
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-      </button>
-      <ReferralCreditsDialog
-        open={open}
-        onOpenChange={setOpen}
-        referralCode={referralCode}
-        inviteReward={inviteReward}
-      />
-    </>
-  );
-}
-
 // --- Rail ----------------------------------------------------------------
 
 export function QuestRail({ data }: { data: DashboardHomeData }) {
+  const t = useTranslations("dashboard.home");
+
   return (
-    <aside className="flex flex-col gap-4 lg:sticky lg:top-5">
-      <LevelCard topBar={data.topBar} />
-      <DailyQuestsCard
+    <aside
+      aria-label={t("progress_title")}
+      className="flex flex-col gap-3 xl:sticky xl:top-5"
+    >
+      <ReadinessCard
+        topBar={data.topBar}
         todayGoal={data.hero.todayGoal}
         weeklyStats={data.hero.weeklyStats}
       />
-      <StreakRailCard
-        streak={data.topBar.currentStreak}
+      <DailyQuestsCard
+        todayGoal={data.hero.todayGoal}
         weeklyStats={data.hero.weeklyStats}
-      />
-      <InviteRailCard
-        referralCode={data.sidebarCards.referralCode}
-        inviteReward={data.sidebarCards.inviteOrbs}
       />
     </aside>
   );

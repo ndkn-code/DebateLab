@@ -42,7 +42,7 @@ export function PracticePanel({
   return (
     <section
       className={cn(
-        "rounded-[1.25rem] border border-outline-variant/70 bg-surface-container-lowest shadow-token-card",
+        "rounded-[10px] border border-outline-variant bg-surface-container-lowest shadow-none",
         className
       )}
     >
@@ -63,7 +63,7 @@ export function PhasePill({
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold",
+        "inline-flex h-5 items-center justify-center gap-1.5 rounded-[6px] px-2 text-xs font-medium",
         tone === "blue" && "bg-primary-container text-primary",
         tone === "red" && "bg-error-container text-error",
         tone === "ai" && "bg-primary-container text-primary",
@@ -95,7 +95,7 @@ export function PracticeTimerDial({
   const markerAngle = progress * 2 * Math.PI;
   const markerX = svgNumber(140 + radius * Math.cos(markerAngle));
   const markerY = svgNumber(140 + radius * Math.sin(markerAngle));
-  const strokeColor = tone === "red" ? "#FF5A5F" : "#00B8D9";
+  const strokeColor = tone === "red" ? "var(--color-error)" : "var(--color-secondary)";
 
   return (
     <div
@@ -119,7 +119,7 @@ export function PracticeTimerDial({
           cy="140"
           r={radius}
           fill="none"
-          stroke="#E8F0FD"
+          stroke="var(--color-outline-variant)"
           strokeWidth="9"
         />
         <circle
@@ -138,7 +138,7 @@ export function PracticeTimerDial({
           cx={markerX}
           cy={markerY}
           r="9"
-          fill="#ffffff"
+          fill="var(--color-surface)"
           stroke={strokeColor}
           strokeWidth="5"
           className="drop-shadow-sm"
@@ -392,7 +392,7 @@ export function ActionRail({
   return (
     <div
       className={cn(
-        "relative rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-token-card backdrop-blur-xl",
+        "relative rounded-lg border border-outline-variant/70 bg-surface-container-lowest/95 p-3 shadow-none backdrop-blur-xl",
         className
       )}
     >
@@ -419,7 +419,7 @@ export function PrimaryActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-11 min-w-[210px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-token-primary hover:bg-primary-dim",
+        "h-8 min-w-[210px] gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary shadow-none hover:bg-primary-dim",
         className
       )}
     >
@@ -446,7 +446,7 @@ export function PauseButton({
       onClick={onClick}
       variant="outline"
       className={cn(
-        "h-11 min-w-[132px] gap-2 rounded-lg border-outline-variant bg-white text-sm font-semibold text-on-surface shadow-token-card hover:bg-background",
+        "h-8 min-w-[132px] gap-2 rounded-[10px] border-outline-variant bg-surface text-sm font-medium text-on-surface shadow-none hover:bg-background",
         className
       )}
     >

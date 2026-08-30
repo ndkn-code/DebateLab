@@ -178,11 +178,14 @@ function NavContent({
           collapsed ? "justify-center" : "gap-2"
         )}
       >
-        <LogoMark
-          size={collapsed ? "icon" : "sm"}
-          markOnly={collapsed}
-          variant="dark"
-        />
+        {collapsed ? (
+          <LogoMark size="icon" markOnly variant="light" />
+        ) : (
+          <>
+            <LogoMark size="sm" variant="light" className="dark:hidden" />
+            <LogoMark size="sm" variant="dark" className="hidden dark:inline-flex" />
+          </>
+        )}
       </div>
 
       {!collapsed ? (
@@ -429,6 +432,7 @@ export function Sidebar({
         />
       ) : (
         <aside
+          data-thinkfy-v2="sidebar"
           className={cn(
             "relative hidden h-dvh shrink-0 self-start flex-col overflow-hidden overscroll-none border-r border-sidebar-muted/15 bg-sidebar text-sidebar-foreground transition-all duration-200 md:sticky md:top-0 md:flex",
             collapsed ? "w-16" : "w-55"
@@ -446,6 +450,8 @@ export function Sidebar({
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+            title={collapsed ? "Expand navigation" : "Collapse navigation"}
             className="absolute right-2 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-muted/20 bg-white/[0.08] text-sidebar-muted shadow-sm transition-colors hover:bg-white/[0.12] hover:text-sidebar-foreground"
           >
             <ChevronLeft
@@ -459,7 +465,7 @@ export function Sidebar({
       )}
 
       {/* Mobile top bar + sheet */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
+      <div data-thinkfy-v2="mobile-bar" className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden">
         <Sheet>
           <SheetTrigger
             aria-label={tc("navigation")}

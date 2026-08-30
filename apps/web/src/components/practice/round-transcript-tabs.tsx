@@ -50,7 +50,7 @@ function LivePane({
       aria-label="Live speech transcript"
       aria-live="polite"
       onScroll={handleScroll}
-      className="min-h-[162px] flex-1 overflow-y-auto rounded-xl bg-surface-container/60 p-4"
+      className="min-h-[162px] flex-1 overflow-y-auto rounded-[10px] bg-surface-container/60 p-4"
     >
       {!transcript && !interimTranscript ? (
         <p className="text-sm italic text-outline">{placeholder}</p>
@@ -147,7 +147,7 @@ export function RoundTranscriptTabs({
                 className={cn(
                   "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 type-caption font-bold transition-all",
                   isActive
-                    ? "bg-surface text-on-surface shadow-token-card"
+                    ? "bg-surface text-on-surface shadow-none"
                     : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
@@ -172,7 +172,7 @@ export function RoundTranscriptTabs({
           placeholder={t("session.transcript_placeholder")}
         />
       ) : (
-        <div className="min-h-[162px] flex-1 overflow-y-auto rounded-xl bg-surface-container/60 p-4">
+        <div className="min-h-[162px] flex-1 overflow-y-auto rounded-[10px] bg-surface-container/60 p-4">
           {selected?.transcript || selected?.aiResponse ? (
             <p className="font-sans text-base leading-7 text-on-surface">
               {selected.type === "ai-rebuttal"

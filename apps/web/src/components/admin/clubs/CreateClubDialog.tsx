@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, ImagePlus, Plus, Send, Trash2, UserRoundPlus, X } from "@/components/ui/icons";
 import { createClub } from "@/app/actions/admin-clubs";
 import { VIETNAM_CITY_OPTIONS } from "@/lib/api/admin-clubs-model";
 import { cn } from "@/lib/utils";
 import type { ClubRecipientInput, ClubRecipientResult, ClubRole } from "@/lib/types/admin-clubs";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 
-const ROLE_OPTIONS: Array<{ value: ClubRole; label: string }> = [
-  { value: "owner", label: "Club admin" },
-  { value: "coach", label: "Coach" },
-  { value: "student", label: "Member" },
+const ROLE_OPTIONS: Array<{ value: ClubRole }> = [
+  { value: "owner" },
+  { value: "coach" },
+  { value: "student" },
 ];
 
 function emptyRecipient(role: ClubRole = "student"): ClubRecipientInput {
@@ -36,6 +38,7 @@ export function CreateClubDialog({
   onClose: () => void;
   onCreated: (clubId: string) => void;
 }) {
+  const t = useTranslations("admin.clubs");
   const [recipients, setRecipients] = useState<ClubRecipientInput[]>([emptyRecipient("owner")]);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [skipInvitation, setSkipInvitation] = useState(false);
@@ -47,6 +50,7 @@ export function CreateClubDialog({
     () => recipients.filter((recipient) => recipient.role === "owner" && recipient.email.trim()).length,
     [recipients]
   );
+  const dialogRef = useAdminDialogFocus<HTMLFormElement>(open, onClose);
 
   if (!open) return null;
 
@@ -84,27 +88,32 @@ export function CreateClubDialog({
         setResultClubId(result.clubId);
         setRecipientResults(result.recipients);
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Club creation failed.");
+        setError(caught instanceof Error ? caught.message : t("create.failed"));
       }
     });
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-end bg-surface-container-high/30 backdrop-blur-sm sm:items-stretch">
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-surface-container-high/30 backdrop-blur-sm sm:items-stretch" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form
         onSubmit={submit}
-        className="flex max-h-[94dvh] w-full flex-col rounded-t-lg border border-outline-variant bg-white shadow-2xl sm:h-full sm:max-h-none sm:max-w-[560px] sm:rounded-none sm:border-y-0 sm:border-r-0"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-club-dialog-title"
+        className="flex max-h-[94dvh] w-full flex-col rounded-t-[10px] border border-outline-variant bg-surface shadow-lg sm:h-full sm:max-h-none sm:max-w-[560px] sm:rounded-none sm:border-y-0 sm:border-r-0"
       >
         <div className="flex h-16 items-center justify-between border-b border-outline-variant px-5">
           <div>
-            <h2 className="text-lg font-bold text-on-surface">Create club</h2>
-            <p className="text-xs text-on-surface-variant">Set up your club workspace, admins, and members.</p>
+                <h2 id="create-club-dialog-title" className="text-lg font-bold text-on-surface">{t("create.title")}</h2>
+            <p className="text-xs text-on-surface-variant">{t("create.description")}</p>
           </div>
           <button
             type="button"
+            autoFocus
             onClick={onClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition hover:bg-surface-container"
-            aria-label="Close create club"
+            aria-label={t("create.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -112,23 +121,23 @@ export function CreateClubDialog({
 
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
           {error && (
-            <div className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-sm font-medium text-on-surface-variant">
+            <div role="alert" className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-sm font-medium text-on-surface-variant">
               {error}
             </div>
           )}
 
           {resultClubId && (
-            <div className="rounded-lg border border-outline-variant bg-surface-container p-3 text-sm text-on-surface-variant">
+            <div role="status" aria-live="polite" className="rounded-lg border border-outline-variant bg-surface-container p-3 text-sm text-on-surface-variant">
               <div className="flex items-center gap-2 font-bold">
                 <CheckCircle2 className="h-4 w-4" />
-                Club created
+                {t("create.created")}
               </div>
               <button
                 type="button"
                 onClick={() => onCreated(resultClubId)}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-bold text-white"
+                className="mt-3 inline-flex h-8 items-center justify-center rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
               >
-                Open club
+                {t("create.open")}
               </button>
             </div>
           )}
@@ -137,12 +146,12 @@ export function CreateClubDialog({
             <label className="flex h-36 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed border-outline-variant bg-background text-center text-xs font-semibold text-on-surface-variant transition hover:border-primary sm:aspect-square sm:h-auto">
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoPreview} alt="Club logo preview" className="h-full w-full object-cover" />
+                <img src={logoPreview} alt={t("create.logoPreview")} className="h-full w-full object-cover" />
               ) : (
                 <>
                   <ImagePlus className="mb-2 h-7 w-7 text-primary" />
-                  <span className="font-bold text-on-surface-variant">Upload logo</span>
-                  <span className="mt-1 leading-4">PNG, JPG, SVG<br />Max 2MB</span>
+                  <span className="font-bold text-on-surface-variant">{t("create.uploadLogo")}</span>
+                  <span className="mt-1 leading-4">{t("create.logoHelp")}</span>
                 </>
               )}
               <input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required className="sr-only" onChange={handleLogoChange} />
@@ -150,16 +159,16 @@ export function CreateClubDialog({
 
             <div className="grid gap-3">
               <label>
-                <span className="text-xs font-semibold text-on-surface-variant">Club name <span className="text-on-surface-variant">*</span></span>
+                <span className="text-xs font-semibold text-on-surface-variant">{t("create.clubName")} <span className="text-on-surface-variant">*</span></span>
                 <input
                   name="name"
                   required
-                  placeholder="Hanoi Debate Club"
+                  placeholder={t("create.clubNamePlaceholder")}
                   className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                 />
               </label>
               <label>
-                <span className="text-xs font-semibold text-on-surface-variant">City (Vietnam) <span className="text-on-surface-variant">*</span></span>
+                <span className="text-xs font-semibold text-on-surface-variant">{t("create.city")} <span className="text-on-surface-variant">*</span></span>
                 <select
                   name="city"
                   required
@@ -175,25 +184,25 @@ export function CreateClubDialog({
           </section>
 
           <section className="grid gap-3">
-            <h3 className="text-sm font-bold text-on-surface">Social media</h3>
+            <h3 className="text-sm font-bold text-on-surface">{t("create.social")}</h3>
             <label>
-              <span className="text-xs font-semibold text-on-surface-variant">Facebook <span className="text-on-surface-variant">*</span></span>
+              <span className="text-xs font-semibold text-on-surface-variant">{t("create.facebook")} <span className="text-on-surface-variant">*</span></span>
               <input
                 name="facebookUrl"
                 type="url"
                 required
-                placeholder="https://facebook.com/club"
+                placeholder={t("create.facebookPlaceholder")}
                 className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
-                <span className="text-xs font-semibold text-on-surface-variant">Instagram</span>
-                <input name="instagramUrl" type="url" placeholder="https://instagram.com/club" className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+                <span className="text-xs font-semibold text-on-surface-variant">{t("create.instagram")}</span>
+                <input name="instagramUrl" type="url" placeholder={t("create.instagramPlaceholder")} className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
               </label>
               <label>
-                <span className="text-xs font-semibold text-on-surface-variant">Threads</span>
-                <input name="threadsUrl" type="url" placeholder="https://threads.net/@club" className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+                <span className="text-xs font-semibold text-on-surface-variant">{t("create.threads")}</span>
+                <input name="threadsUrl" type="url" placeholder={t("create.threadsPlaceholder")} className="mt-1 h-11 w-full rounded-lg border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
               </label>
             </div>
           </section>
@@ -201,33 +210,33 @@ export function CreateClubDialog({
           <section className="rounded-lg border border-outline-variant bg-background p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-on-surface">People</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("create.people")}</h3>
                 <p className={cn("text-xs", ownerCount ? "text-on-surface-variant" : "text-on-surface-variant")}>
-                  At least one club admin is required.
+                  {t("create.adminRequired")}
                 </p>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => addRecipient("owner")} className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-xs font-bold text-on-surface">
+                <button type="button" onClick={() => addRecipient("owner")} className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
                   <UserRoundPlus className="h-4 w-4 text-primary" />
-                  Admin
+                  {t("roles.owner")}
                 </button>
-                <button type="button" onClick={() => addRecipient()} className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-xs font-bold text-on-surface">
+                <button type="button" onClick={() => addRecipient()} className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
                   <Plus className="h-4 w-4 text-primary" />
-                  Member
+                  {t("roles.student")}
                 </button>
               </div>
             </div>
 
             <div className="mt-3 space-y-2">
               {recipients.map((recipient, index) => (
-                <div key={index} className="grid gap-2 rounded-lg border border-outline-variant bg-white p-2 sm:grid-cols-[112px_1fr_36px]">
+                <div key={index} className="grid gap-2 rounded-[10px] border border-outline-variant bg-surface p-2 sm:grid-cols-[112px_1fr_36px]">
                   <select
                     value={recipient.role}
                     onChange={(event) => updateRecipient(index, { role: event.target.value as ClubRole })}
                     className="h-10 rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
                   >
                     {ROLE_OPTIONS.map((role) => (
-                      <option key={role.value} value={role.value}>{role.label}</option>
+                      <option key={role.value} value={role.value}>{t(`roles.${role.value}`)}</option>
                     ))}
                   </select>
                   <input
@@ -235,14 +244,14 @@ export function CreateClubDialog({
                     onChange={(event) => updateRecipient(index, { email: event.target.value })}
                     type="email"
                     required={index === 0}
-                    placeholder="name@example.com"
+                    placeholder={t("create.emailPlaceholder")}
                     className="h-10 rounded-lg border border-outline-variant bg-background px-3 text-sm outline-none focus:border-primary"
                   />
                   <button
                     type="button"
                     onClick={() => removeRecipient(index)}
                     className="inline-flex h-10 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container"
-                    aria-label="Remove person"
+                    aria-label={t("create.removePerson")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -251,10 +260,10 @@ export function CreateClubDialog({
             </div>
           </section>
 
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-outline-variant bg-white p-3">
+          <label className="flex items-center justify-between gap-3 rounded-[10px] border border-outline-variant bg-surface p-3">
             <span>
-              <span className="block text-sm font-bold text-on-surface">Skip invitation email</span>
-              <span className="block text-xs leading-5 text-on-surface-variant">Only existing Thinkfy accounts will be added to the club.</span>
+              <span className="block text-sm font-bold text-on-surface">{t("create.skipInvitation")}</span>
+              <span className="block text-xs leading-5 text-on-surface-variant">{t("create.skipInvitationHelp")}</span>
             </span>
             <input
               type="checkbox"
@@ -263,7 +272,7 @@ export function CreateClubDialog({
               className="peer sr-only"
             />
             <span className="relative h-7 w-12 shrink-0 rounded-full bg-surface-container-high transition peer-checked:bg-surface-container-high peer-checked:[&>span]:translate-x-5">
-              <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition" />
+              <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-surface shadow transition" />
             </span>
           </label>
 
@@ -271,7 +280,7 @@ export function CreateClubDialog({
             <section className="space-y-2">
               {recipientResults.map((result) => (
                 <div key={`${result.email}:${result.role}`} className={cn("rounded-lg border px-3 py-2 text-xs font-semibold", resultTone(result.status))}>
-                  {result.email} · {result.role} · {result.status.replace(/_/g, " ")}
+                  {result.email} · {t(`roles.${result.role}`)} · {t(`result.${result.status}`)}
                 </div>
               ))}
             </section>
@@ -279,16 +288,16 @@ export function CreateClubDialog({
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-outline-variant p-4 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="inline-flex h-11 items-center justify-center rounded-lg border border-outline-variant bg-white px-4 text-sm font-bold text-on-surface">
-            Cancel
+          <button type="button" onClick={onClose} className="inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+            {t("create.cancel")}
           </button>
           <button
             type="submit"
             disabled={isPending || ownerCount === 0}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm shadow-token-card/20 transition disabled:cursor-not-allowed disabled:bg-surface-container-high"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-surface-container-high"
           >
             {skipInvitation ? <CheckCircle2 className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-            {isPending ? "Creating..." : skipInvitation ? "Create and add" : "Create and invite"}
+            {isPending ? t("create.creating") : skipInvitation ? t("create.add") : t("create.invite")}
           </button>
         </div>
       </form>

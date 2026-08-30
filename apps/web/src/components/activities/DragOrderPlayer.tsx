@@ -74,19 +74,19 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
               key={item.id}
               layout
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={`flex items-center gap-3 rounded-2xl border-2 p-4 transition-all ${
+              className={`flex items-center gap-3 rounded-[10px] border p-3 transition-all ${
                 checked
                   ? isCorrect
                     ? "border-green-500 bg-green-50"
                     : "border-red-500 bg-red-50"
-                  : "border-gray-200 bg-white hover:shadow-sm"
+                  : "border-outline-variant bg-white hover:border-primary/40"
               }`}
             >
               {/* Position number */}
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                 checked
                   ? isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                  : "bg-gray-100 text-on-surface-variant"
+                  : "bg-surface-container text-on-surface-variant"
               }`}>
                 {checked ? (isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />) : i + 1}
               </div>
@@ -114,14 +114,16 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
                   <button
                     onClick={() => move(i, -1)}
                     disabled={i === 0}
-                    className="p-1 rounded-lg disabled:opacity-20 hover:bg-gray-100 hover:text-primary transition-colors"
+                    aria-label={t("moveUp", { item: item.text })}
+                    className="rounded-[6px] p-1 transition-colors hover:bg-surface-container hover:text-primary disabled:opacity-20"
                   >
                     <ChevronUp className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => move(i, 1)}
                     disabled={i === items.length - 1}
-                    className="p-1 rounded-lg disabled:opacity-20 hover:bg-gray-100 hover:text-primary transition-colors"
+                    aria-label={t("moveDown", { item: item.text })}
+                    className="rounded-[6px] p-1 transition-colors hover:bg-surface-container hover:text-primary disabled:opacity-20"
                   >
                     <ChevronDown className="h-4 w-4" />
                   </button>
@@ -143,7 +145,7 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
       {!checked && (
         <motion.button
           onClick={handleCheck}
-          className="mt-8 rounded-2xl bg-primary px-8 py-3.5 text-base font-semibold text-on-primary hover:bg-primary/90 min-w-[200px]"
+          className="mt-8 inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("checkOrder")}

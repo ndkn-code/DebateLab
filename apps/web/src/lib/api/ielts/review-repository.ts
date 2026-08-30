@@ -223,10 +223,10 @@ export async function rateIeltsReviewItem(
     p_next_stability: result.next.stability,
     p_next_retrievability: result.next.retrievability,
     p_reviewed_at: result.reviewedAt.toISOString(),
-    p_is_correct: input.isCorrect ?? null,
-    p_response_ms: input.responseMs ?? null,
-    p_plan_item_id: input.planItemId ?? null,
-    p_activity_attempt_id: input.activityAttemptId ?? null,
+    p_is_correct: input.isCorrect ?? undefined,
+    p_response_ms: input.responseMs ?? undefined,
+    p_plan_item_id: input.planItemId ?? undefined,
+    p_activity_attempt_id: input.activityAttemptId ?? undefined,
     p_metadata: input.metadata as Json,
   });
   if (error) throw new Error(`rateIeltsReviewItem failed: ${error.message}`);

@@ -223,7 +223,7 @@ export function DemoSpeakStep({
       {!hasStarted ? (
         <Button
           onClick={startRecording}
-          className="h-12 gap-2 rounded-2xl bg-primary px-8 text-lg font-semibold text-on-primary hover:bg-primary-dim"
+          className="h-8 gap-2 rounded-[10px] bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           size="lg"
         >
           <Mic className="h-5 w-5" />
@@ -232,7 +232,7 @@ export function DemoSpeakStep({
       ) : (
         <Button
           onClick={handleDone}
-          className="h-12 gap-2 rounded-2xl bg-error px-8 text-lg font-semibold text-on-error hover:bg-error-dim"
+          className="h-8 gap-2 rounded-[10px] bg-error px-5 text-sm font-medium text-on-error hover:bg-error-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/40"
           size="lg"
         >
           <Square className="h-4 w-4" />

@@ -28,7 +28,7 @@ export function DuelTranscriptTab({ room }: DuelTranscriptTabProps) {
   );
 
   return (
-    <section className="rounded-2xl border border-outline-variant bg-white p-5 shadow-token-card sm:p-6">
+    <section className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Heading level={2}>
@@ -50,7 +50,7 @@ export function DuelTranscriptTab({ room }: DuelTranscriptTabProps) {
           orderedSpeeches.map((speech) => (
             <article
               key={speech.id}
-              className="rounded-xl border border-outline-variant bg-white p-4"
+              className="rounded-[10px] border border-outline-variant bg-surface p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +79,7 @@ export function DuelTranscriptTab({ room }: DuelTranscriptTabProps) {
             </article>
           ))
         ) : (
-          <div className="rounded-xl border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
+          <div className="rounded-[10px] border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
             No duel speeches were recorded for this result.
           </div>
         )}

@@ -17,6 +17,8 @@ import {
   XCircle,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 import type { AiQualityRating, AiQualityRun, Profile } from "@/types";
 import type {
   AiQualityOutputType,
@@ -777,6 +779,7 @@ export function AiQualityDashboard() {
   };
 
   return (
+    <AdminV2Frame>
     <div className="min-h-full bg-background px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -948,12 +951,12 @@ export function AiQualityDashboard() {
 
         <section className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface">
           {loading ? (
-            <div className="flex h-64 items-center justify-center text-on-surface-variant">
+            <div role="status" aria-live="polite" className="flex h-64 items-center justify-center text-on-surface-variant">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Loading AI quality data
             </div>
           ) : error ? (
-            <div className="flex h-64 items-center justify-center text-error">
+            <div role="alert" aria-live="assertive" className="flex h-64 items-center justify-center text-error">
               <AlertTriangle className="mr-2 h-5 w-5" />
               {error}
             </div>
@@ -1106,6 +1109,7 @@ export function AiQualityDashboard() {
         />
       )}
     </div>
+    </AdminV2Frame>
   );
 }
 
@@ -1193,6 +1197,7 @@ function DetailDrawer({
   onClose: () => void;
   onReview: (row: Row, reviewStatus: AiQualityReviewStatus) => Promise<void>;
 }) {
+  const dialogRef = useAdminDialogFocus(true, onClose);
   const corpusMetadata = getCorpusMetadata(row);
   const transcriptionMetadata = getTranscriptionMetadata(row);
   const speedMetadata = getSpeedMetadata(row);
@@ -1201,13 +1206,13 @@ function DetailDrawer({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20">
-      <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-outline-variant/20 bg-surface p-6 shadow-2xl">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ai-quality-detail-title" tabIndex={-1} className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-outline-variant/20 bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="type-eyebrow text-primary">
               {OUTPUT_LABELS[row.output_type]}
             </div>
-            <h2 className="mt-2 text-2xl font-bold text-on-surface">
+            <h2 id="ai-quality-detail-title" className="mt-2 text-2xl font-bold text-on-surface">
               {row.topic_title || "Untitled AI run"}
             </h2>
             <p className="mt-1 text-sm text-on-surface-variant">
@@ -1247,8 +1252,8 @@ function DetailDrawer({
               No linked provider request rows yet.
             </p>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
-              <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+            <div className="mt-4 overflow-x-auto rounded-xl border border-outline-variant/15 bg-surface">
+              <table className="min-w-[640px] divide-y divide-outline-variant/10 text-xs">
                 <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                   <tr>
                     <th className="px-3 py-2">Call</th>
@@ -1537,8 +1542,8 @@ function DetailDrawer({
                 ))}
               </div>
               {transcriptionMetadata.normalizationHints.length > 0 && (
-                <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
-                  <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+                <div className="mt-4 overflow-x-auto rounded-xl border border-outline-variant/15 bg-surface">
+                  <table className="min-w-[560px] divide-y divide-outline-variant/10 text-xs">
                     <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                       <tr>
                         <th className="px-3 py-2">Raw</th>
@@ -1648,8 +1653,8 @@ function DetailDrawer({
                 </div>
               )}
               {transcriptionMetadata.repair.edits.length > 0 && (
-                <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant/15 bg-surface">
-                  <table className="min-w-full divide-y divide-outline-variant/10 text-xs">
+                <div className="mt-4 overflow-x-auto rounded-xl border border-outline-variant/15 bg-surface">
+                  <table className="min-w-[560px] divide-y divide-outline-variant/10 text-xs">
                     <thead className="bg-surface-container-low text-left type-eyebrow text-on-surface-variant">
                       <tr>
                         <th className="px-3 py-2">Raw</th>

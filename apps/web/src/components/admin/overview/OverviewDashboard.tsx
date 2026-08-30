@@ -28,6 +28,7 @@ const ApiUsageChart = dynamic(
 
 export function OverviewDashboard({ initialData }: Props) {
   const t = useTranslations("admin.overview");
+  const adminT = useTranslations("admin");
   const [data, setData] = useState(initialData);
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d">("30d");
   const supabase = createClient();
@@ -79,15 +80,19 @@ export function OverviewDashboard({ initialData }: Props) {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-on-surface">{t("title")}</h1>
+      <div className="flex flex-col gap-3 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+          <h1 className="type-heading-lg mt-1 font-medium text-on-surface">{t("title")}</h1>
+          <p className="mt-1 text-sm text-on-surface-variant">{t("subtitle")}</p>
+        </div>
         <SegmentedRange value={dateRange} onChange={handleDateRange} options={rangeOptions} />
       </div>
 
       {/* Stat cards */}
-      <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Stagger className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StaggerItem>
           <StatCard
             label={t("totalUsers")}

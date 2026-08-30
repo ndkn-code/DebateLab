@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { Nunito, Be_Vietnam_Pro, Geist_Mono, Noto_Serif } from "next/font/google";
+import { Inter, Geist_Mono, Noto_Serif } from "next/font/google";
 import { ThinkfyThemeVariables } from "@/components/shared/theme-variables";
 import "./globals.css";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
-
-const beVietnam = Be_Vietnam_Pro({
-  variable: "--font-be-vietnam",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -84,7 +78,7 @@ export default async function RootLayout({
         <ThinkfyThemeVariables />
       </head>
       <body
-        className={`${nunito.variable} ${beVietnam.variable} ${notoSerif.variable} ${geistMono.variable} bg-background font-sans antialiased`}
+        className={`${inter.variable} ${notoSerif.variable} ${geistMono.variable} bg-background font-sans antialiased`}
       >
         {children}
       </body>

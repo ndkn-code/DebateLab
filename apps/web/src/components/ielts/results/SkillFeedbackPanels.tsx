@@ -16,6 +16,12 @@ import type {
   WritingResult,
   WritingTaskResult,
 } from "@/lib/ielts/results/types";
+import { useLocale } from "next-intl";
+import {
+  GradingResultDetails,
+  gradingPresentationFromResult,
+  type GradingProcessStatus,
+} from "@/components/ielts/learner/GradingResultDetails";
 import { bandText } from "./format";
 
 function isScored(status: string): boolean {
@@ -29,9 +35,7 @@ function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
         <li key={criterion.key} className="rounded-xl bg-surface-container-low px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <span className="type-body-sm font-medium text-on-surface">{criterion.label}</span>
-            <span className="type-body-sm font-bold text-on-surface tabular-nums">
-              {bandText(criterion.band)}
-            </span>
+            <span className="type-body-sm font-bold text-on-surface tabular-nums">{bandText(criterion.band)}</span>
           </div>
           {criterion.rationale ? (
             <p className="mt-1 type-caption text-on-surface-variant">{criterion.rationale}</p>
@@ -45,8 +49,7 @@ function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
 function PendingNote({ skill }: { skill: string }) {
   return (
     <p className="rounded-xl bg-warning-container px-3 py-2 type-body-sm text-on-warning-container">
-      {skill} is still being scored — this section updates automatically when
-      marking finishes.
+      {skill} is still being scored — this section updates automatically when marking finishes.
     </p>
   );
 }
@@ -64,9 +67,7 @@ function Corrections({ items }: { items: ResultsInlineCorrection[] }) {
             <span className="text-error line-through">{item.original}</span>
             {" → "}
             <span className="font-medium text-on-surface">{item.suggestion}</span>
-            {item.explanation ? (
-              <span className="text-on-surface-variant"> — {item.explanation}</span>
-            ) : null}
+            {item.explanation ? <span className="text-on-surface-variant"> — {item.explanation}</span> : null}
           </li>
         ))}
       </ul>
@@ -76,20 +77,14 @@ function Corrections({ items }: { items: ResultsInlineCorrection[] }) {
 
 function Prompt({ text }: { text: string | null }) {
   if (!text) return null;
-  return (
-    <p className="rounded-xl bg-surface-container-low px-3 py-2 type-body-sm text-on-surface">
-      {text}
-    </p>
-  );
+  return <p className="rounded-xl bg-surface-container-low px-3 py-2 type-body-sm text-on-surface">{text}</p>;
 }
 
 function ModelAnswer({ text }: { text: string | null }) {
   if (!text) return null;
   return (
     <details className="rounded-xl border border-outline-variant bg-surface px-3 py-2">
-      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">
-        Band 9 model answer
-      </summary>
+      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">Band 9 model answer</summary>
       <p className="mt-2 whitespace-pre-wrap type-body-sm text-on-surface-variant">{text}</p>
     </details>
   );
@@ -101,9 +96,7 @@ function ParagraphAnnotations({ paragraph }: { paragraph: WritingEssayParagraph 
     <div className="mt-2 flex flex-col gap-2 rounded-xl bg-surface-container-low px-3 py-2">
       {paragraph.feedback ? (
         <div>
-          <p className="type-caption font-semibold uppercase text-on-surface-variant">
-            Paragraph feedback
-          </p>
+          <p className="type-caption font-semibold uppercase text-on-surface-variant">Paragraph feedback</p>
           <p className="mt-1 type-body-sm text-on-surface">{paragraph.feedback.comment}</p>
           {paragraph.feedback.improvements.length > 0 ? (
             <p className="mt-1 type-caption text-on-surface-variant">
@@ -132,16 +125,12 @@ function EssayReview({ task }: { task: WritingTaskResult }) {
   if (!task.essay.trim()) return null;
   return (
     <details open className="rounded-xl border border-outline-variant bg-surface px-3 py-2">
-      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">
-        Submitted essay
-      </summary>
+      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">Submitted essay</summary>
       <div className="mt-3 flex flex-col gap-3">
         {task.essayParagraphs.length > 0 ? (
           task.essayParagraphs.map((paragraph) => (
             <div key={paragraph.paragraph}>
-              <p className="whitespace-pre-wrap type-body-sm text-on-surface">
-                {paragraph.text}
-              </p>
+              <p className="whitespace-pre-wrap type-body-sm text-on-surface">{paragraph.text}</p>
               <ParagraphAnnotations paragraph={paragraph} />
             </div>
           ))
@@ -154,7 +143,9 @@ function EssayReview({ task }: { task: WritingTaskResult }) {
 }
 
 function WritingTaskCard({ task }: { task: WritingTaskResult }) {
+  const locale = useLocale();
   const hasSubmissionReview = Boolean(task.prompt || task.essay.trim());
+  const grading = gradingPresentationFromResult(task);
   return (
     <div className="rounded-2xl border border-outline-variant bg-surface-container p-4">
       <div className="flex items-center justify-between gap-2">
@@ -170,12 +161,21 @@ function WritingTaskCard({ task }: { task: WritingTaskResult }) {
           <EssayReview task={task} />
         </div>
       ) : null}
+      {grading ? (
+        <div className="mt-3">
+          <GradingResultDetails
+            criteria={task.criteria}
+            metadata={grading.metadata}
+            retrySafeRunId={grading.retrySafeRunId}
+            status={task.status as GradingProcessStatus}
+            locale={locale}
+          />
+        </div>
+      ) : null}
       {isScored(task.status) ? (
         <div className="mt-3 flex flex-col gap-3">
-          <CriteriaList criteria={task.criteria} />
-          {task.summary ? (
-            <p className="type-body-sm text-on-surface">{task.summary}</p>
-          ) : null}
+          {grading ? null : <CriteriaList criteria={task.criteria} />}
+          {task.summary ? <p className="type-body-sm text-on-surface">{task.summary}</p> : null}
           {task.vietnameseSummary ? (
             <p className="type-body-sm text-on-surface-variant">{task.vietnameseSummary}</p>
           ) : null}
@@ -230,12 +230,8 @@ function HeatmapWord({ word }: { word: SpeakingPronunciationHeatmapWord }) {
   return (
     <div className="rounded-xl border border-outline-variant bg-surface px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`rounded-full px-2 py-0.5 type-caption ${levelClass(word.level)}`}>
-          {word.word}
-        </span>
-        <span className="type-caption text-on-surface-variant tabular-nums">
-          {Math.round(word.accuracy)}/100
-        </span>
+        <span className={`rounded-full px-2 py-0.5 type-caption ${levelClass(word.level)}`}>{word.word}</span>
+        <span className="type-caption text-on-surface-variant tabular-nums">{Math.round(word.accuracy)}/100</span>
         {word.errorType !== "None" ? (
           <span className="type-caption text-on-surface-variant">{word.errorType}</span>
         ) : null}
@@ -251,11 +247,7 @@ function HeatmapWord({ word }: { word: SpeakingPronunciationHeatmapWord }) {
   );
 }
 
-function PronunciationHeatmap({
-  heatmap,
-}: {
-  heatmap: SpeakingPronunciationHeatmap | null;
-}) {
+function PronunciationHeatmap({ heatmap }: { heatmap: SpeakingPronunciationHeatmap | null }) {
   if (!heatmap) {
     return (
       <p className="rounded-xl bg-surface-container-low px-3 py-2 type-body-sm text-on-surface-variant">
@@ -265,9 +257,7 @@ function PronunciationHeatmap({
   }
   return (
     <details className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2">
-      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">
-        Pronunciation heatmap
-      </summary>
+      <summary className="cursor-pointer type-body-sm font-medium text-on-surface">Pronunciation heatmap</summary>
       {heatmap.overall ? (
         <div className="mt-2 grid gap-2 sm:grid-cols-4">
           {[
@@ -278,9 +268,7 @@ function PronunciationHeatmap({
           ].map(([label, value]) => (
             <div key={label} className="rounded-lg bg-surface px-2 py-1">
               <p className="type-caption text-on-surface-variant">{label}</p>
-              <p className="type-body-sm font-bold text-on-surface tabular-nums">
-                {Math.round(Number(value))}
-              </p>
+              <p className="type-body-sm font-bold text-on-surface tabular-nums">{Math.round(Number(value))}</p>
             </div>
           ))}
         </div>
@@ -295,8 +283,10 @@ function PronunciationHeatmap({
 }
 
 function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
+  const locale = useLocale();
   const label = part.partNumber ? `Part ${part.partNumber}` : "Speaking response";
   const hasTranscript = part.transcript.trim().length > 0;
+  const grading = gradingPresentationFromResult(part);
   return (
     <div className="rounded-2xl border border-outline-variant bg-surface-container p-4">
       <div className="flex items-center justify-between gap-2">
@@ -310,22 +300,27 @@ function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
           <Prompt text={part.prompt} />
           {hasTranscript ? (
             <div className="rounded-xl border border-outline-variant bg-surface px-3 py-2">
-              <p className="type-caption font-semibold uppercase text-on-surface-variant">
-                Transcript
-              </p>
-              <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface">
-                {part.transcript}
-              </p>
+              <p className="type-caption font-semibold uppercase text-on-surface-variant">Transcript</p>
+              <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface">{part.transcript}</p>
             </div>
           ) : null}
         </div>
       ) : null}
+      {grading ? (
+        <div className="mt-3">
+          <GradingResultDetails
+            criteria={part.criteria}
+            metadata={grading.metadata}
+            retrySafeRunId={grading.retrySafeRunId}
+            status={part.status as GradingProcessStatus}
+            locale={locale}
+          />
+        </div>
+      ) : null}
       {isScored(part.status) ? (
         <div className="mt-3 flex flex-col gap-3">
-          <CriteriaList criteria={part.criteria} />
-          {part.summary ? (
-            <p className="type-body-sm text-on-surface">{part.summary}</p>
-          ) : null}
+          {grading ? null : <CriteriaList criteria={part.criteria} />}
+          {part.summary ? <p className="type-body-sm text-on-surface">{part.summary}</p> : null}
           <PronunciationHeatmap heatmap={part.pronunciationHeatmap} />
         </div>
       ) : (

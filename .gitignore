@@ -49,3 +49,7 @@ next-env.d.ts
 /tmp/
 /qa-artifacts/
 /design-artifacts/
+/.codex/
+/.codex-audits/
+/outputs/
+/design-qa.md

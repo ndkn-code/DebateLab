@@ -1,7 +1,9 @@
 import "server-only";
 
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { getSessionUserId, requireClubManager, type IeltsServerClient } from "@/lib/api/ielts/assignment-access";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSessionUserId, type IeltsServerClient } from "@/lib/api/ielts/assignment-access";
+import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 
 const HOMEWORK_BUCKET = "assignment-submissions";
 
@@ -141,29 +143,40 @@ async function decorateSubmissions(
     submitted_at: string;
     graded_at: string | null;
   }>,
+  isManager: boolean,
 ): Promise<HomeworkSubmission[]> {
   if (rows.length === 0) return [];
 
   const submissionIds = rows.map((row) => row.id);
-  const userIds = [...new Set(rows.map((row) => row.user_id))];
-  const [profilesRes, filesRes] = await Promise.all([
-    supabase.from("profiles").select("id, display_name, email").in("id", userIds),
-    supabase
+  const filesRes = await (supabase as unknown as SupabaseClient)
       .from("assignment_submission_files")
-      .select("id, submission_id, storage_path, file_name, mime_type, size_bytes, created_at")
+      .select("id, submission_id, storage_path, file_name, mime_type, size_bytes, created_at, state")
       .in("submission_id", submissionIds)
-      .order("created_at", { ascending: true }),
-  ]);
-  if (profilesRes.error) throw new Error(profilesRes.error.message);
+      .eq("state", "verified")
+      .order("created_at", { ascending: true });
   if (filesRes.error) throw new Error(filesRes.error.message);
 
-  const profileById = new Map(
-    (profilesRes.data ?? []).map((profile) => [
-      profile.id,
-      String(profile.display_name ?? profile.email ?? "Student"),
-    ]),
-  );
-  const signedFiles = await signedFileRows(supabase, filesRes.data ?? []);
+  const profileById = new Map<string, string>();
+  if (isManager) {
+    const rpcClient = supabase as unknown as {
+      rpc<T>(name: string, args: Record<string, unknown>): Promise<{ data: T | null; error: { message: string } | null }>;
+    };
+    const { data: roster, error: rosterError } = await rpcClient.rpc<Array<{ user_id: string; display_name: string }>>(
+      "get_homework_submission_roster",
+      { p_assignment_id: rows[0]?.assignment_id },
+    );
+    if (rosterError) throw new Error(rosterError.message);
+    for (const profile of roster ?? []) profileById.set(profile.user_id, profile.display_name);
+  }
+  const signedFiles = await signedFileRows(supabase, (filesRes.data ?? []) as unknown as Array<{
+    id: string;
+    submission_id: string;
+    storage_path: string;
+    file_name: string;
+    mime_type: string | null;
+    size_bytes: number | null;
+    created_at: string;
+  }>);
   const filesBySubmission = new Map<string, HomeworkSubmissionFile[]>();
   for (const file of signedFiles) {
     const source = filesRes.data?.find((row) => row.id === file.id);
@@ -179,7 +192,7 @@ async function decorateSubmissions(
     clubId: row.club_id,
     classId: row.class_id,
     userId: row.user_id,
-    studentName: profileById.get(row.user_id) ?? "Student",
+    studentName: profileById.get(row.user_id) ?? (isManager ? "Student" : "You"),
     submissionText: row.submission_text,
     gradeStatus: normalizeGradeStatus(row.grade_status),
     score: row.score,
@@ -201,13 +214,6 @@ export async function getClubHomeworkWorkspace(
 ): Promise<HomeworkWorkspaceData | null> {
   const supabase = await createTypedServerClient();
   const viewerId = await getSessionUserId(supabase);
-  let isManager = false;
-  try {
-    await requireClubManager(supabase, clubId);
-    isManager = true;
-  } catch {
-    isManager = false;
-  }
 
   const { data: assignment, error } = await supabase
     .from("club_assignments")
@@ -219,12 +225,24 @@ export async function getClubHomeworkWorkspace(
   if (!assignment) return null;
 
   const assignmentRow = assignment as AssignmentRow;
+  let isManager = false;
+  try {
+    if (assignmentRow.class_id) {
+      await requireClassManager(supabase, assignmentRow.class_id);
+    } else {
+      await requireClubOwner(supabase, clubId);
+    }
+    isManager = true;
+  } catch {
+    isManager = false;
+  }
   if (!isManager && assignmentRow.class_id) {
     const { data: membership, error: membershipError } = await supabase
       .from("class_memberships")
       .select("id")
       .eq("class_id", assignmentRow.class_id)
       .eq("user_id", viewerId)
+      .eq("member_role", "student")
       .eq("status", "active")
       .maybeSingle();
     if (membershipError) throw new Error(membershipError.message);
@@ -249,11 +267,13 @@ export async function getClubHomeworkWorkspace(
     submissionInstructions: assignmentRow.submission_instructions,
   };
 
-  let submissionsQuery = supabase
+  const homeworkDb = supabase as unknown as SupabaseClient;
+  let submissionsQuery = homeworkDb
     .from("club_assignment_submissions")
     .select("id, assignment_id, club_id, class_id, user_id, submission_text, grade_status, score, score_max, rubric_breakdown, feedback, submitted_at, graded_at")
     .eq("assignment_id", assignmentId)
     .eq("club_id", clubId)
+    .eq("submission_state", "submitted")
     .order("submitted_at", { ascending: false });
 
   if (!isManager) {
@@ -267,6 +287,6 @@ export async function getClubHomeworkWorkspace(
     mode: isManager ? "manager" : "student",
     viewerId,
     assignment: detail,
-    submissions: await decorateSubmissions(supabase, submissions ?? []),
+    submissions: await decorateSubmissions(supabase, submissions ?? [], isManager),
   } as HomeworkWorkspaceData;
 }

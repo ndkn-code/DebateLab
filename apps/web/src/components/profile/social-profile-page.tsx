@@ -290,7 +290,7 @@ function ProfileStatTile({
   return (
     <div
       aria-label={`${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}`}
-      className="flex min-w-0 items-center gap-3.5 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3.5 shadow-token-card transition-transform duration-200 hover:-translate-y-0.5"
+      className="flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2.5 transition-colors hover:border-primary"
     >
       {art ? (
         <Image
@@ -1167,19 +1167,17 @@ function ProfileHeader({
   const leagueTierId = coerceLeagueTierId(profile.season?.leagueTier);
 
   return (
-    <header className="grid gap-8 pb-9 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
+    <header className="grid gap-6 rounded-xl border border-outline-variant bg-surface p-5 pb-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
       <div className="flex items-start justify-center lg:justify-end">
-        <span className="inline-flex rounded-full bg-[conic-gradient(from_140deg,var(--color-chart-1),var(--color-chart-2),var(--color-chart-4),var(--color-chart-1))] p-[4px] shadow-token-card">
-          <span className="inline-flex rounded-full bg-background p-[5px]">
-            <Avatar className="h-40 w-40 bg-surface-container sm:h-44 sm:w-44 lg:h-52 lg:w-52">
+        <span className="inline-flex rounded-full border-4 border-primary-container p-1">
+            <Avatar className="h-36 w-36 bg-surface-container sm:h-40 sm:w-40 lg:h-44 lg:w-44">
               {profile.avatarUrl ? (
                 <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
               ) : null}
-              <AvatarFallback className="bg-[radial-gradient(circle_at_50%_22%,var(--color-surface-container-lowest)_0%,var(--color-primary-container)_52%,var(--color-chart-crosshair)_100%)] text-5xl font-semibold text-on-surface">
+              <AvatarFallback className="bg-primary-container text-5xl font-semibold text-on-surface">
                 {getInitials(profile.displayName)}
               </AvatarFallback>
             </Avatar>
-          </span>
         </span>
       </div>
 
@@ -1284,7 +1282,7 @@ function ProfileTabs({
               aria-busy={isPending ? true : undefined}
               data-href={href}
               className={cn(
-                "relative inline-flex h-[3.75rem] min-w-[7.5rem] items-center justify-center gap-2 text-sm font-bold transition-colors",
+                "relative inline-flex h-11 min-w-[7rem] items-center justify-center gap-2 type-label font-medium transition-colors",
                 isActive
                   ? "text-primary-dim"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -1524,11 +1522,11 @@ export function SocialProfilePage({
 
   return (
     <main
-      className="min-h-full bg-background text-on-surface"
+      className="min-h-full bg-transparent text-on-surface"
       data-testid="profile-social-page"
       data-locale={localeKey}
     >
-      <div className="mx-auto w-full max-w-[1180px] px-4 py-7 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1180px] px-4 py-5 sm:px-6 lg:px-8">
         <div className="sr-only">
           <h1>{pageTitle}</h1>
         </div>
@@ -1548,7 +1546,7 @@ export function SocialProfilePage({
               }
               isPrivacyPreview={privacyPreview}
             />
-            <div className="mt-7">
+            <div className="mt-5">
               <ProfileTabs
                 activeTab={activeTab}
                 baseHref={baseHref}
@@ -1558,7 +1556,7 @@ export function SocialProfilePage({
                 onTabPrefetch={handleTabPrefetch}
               />
             </div>
-            <div className="mt-5">
+            <div className="mt-4">
               <TabBody
                 tab={activeTab}
                 data={localizedPublicProfile}

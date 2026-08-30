@@ -589,8 +589,224 @@ export function getThinkfyTheme(mode: ThinkfyThemeMode): ThinkfyTheme {
   return thinkfyThemes[mode];
 }
 
+/**
+ * Web-only visual language. The mobile contract above intentionally remains
+ * untouched: native clients continue to consume `getThinkfyTheme`, while web
+ * surfaces can opt into the calmer stone/charcoal palette independently.
+ */
+export type ThinkfyWebTheme = ThinkfyTheme & {
+  /** Geometry and interaction values shared by web primitives. */
+  geometry: {
+    buttonHeight: number;
+    buttonRadius: number;
+    dataRowHeight: number;
+    settingsRowHeight: number;
+    badgeHeight: number;
+    badgeRadius: number;
+    switchWidth: number;
+    switchHeight: number;
+    switchThumb: number;
+    switchHitTarget: number;
+    cardRadius: number;
+  };
+};
+
+const webLightColors = {
+  background: "#F5F5F2",
+  foreground: "#333333",
+  primary: "#333333",
+  primaryDim: "#222222",
+  primaryDepth: "#1A1A1A",
+  primaryContainer: "#E9E9E5",
+  primaryFixed: "#333333",
+  onPrimary: "#FFFFFF",
+  onPrimaryContainer: "#333333",
+  secondary: "#0077E6",
+  secondaryDim: "#005BAC",
+  secondaryContainer: "#E6F2FF",
+  tertiary: "#15B042",
+  tertiaryContainer: "#CAFACE",
+  reward: "#D18B00",
+  rewardDim: "#8A5C00",
+  rewardContainer: "#FFF2CC",
+  onReward: "#333333",
+  success: "#15B042",
+  successDim: "#087C2B",
+  successContainer: "#CAFACE",
+  onSuccess: "#333333",
+  warning: "#B45309",
+  warningContainer: "#FFF4D6",
+  onWarningContainer: "#7C2D12",
+  error: "#B42318",
+  errorDim: "#8E1B12",
+  errorContainer: "#FEE4E2",
+  onError: "#FFFFFF",
+  info: "#0077E6",
+  infoContainer: "#E6F2FF",
+  onInfo: "#FFFFFF",
+  surface: "#FFFFFF",
+  surfaceDim: "#F0F0EC",
+  surfaceHigh: "#FFFFFF",
+  surfaceHighest: "#E9E9E5",
+  surfaceContainer: "#F0F0EC",
+  surfaceContainerLow: "#F8F8F6",
+  surfaceContainerHigh: "#E9E9E5",
+  surfaceContainerHighest: "#DEDED9",
+  surfaceContainerLowest: "#FFFFFF",
+  outline: "#D7D7D2",
+  outlineVariant: "#E2E2DE",
+  inverse: "#333333",
+  inverseText: "#FFFFFF",
+  muted: "#666666",
+  placeholder: "#666666",
+  chartPrimary: "#0077E6",
+  chartSecondary: "#15B042",
+  chartTertiary: "#D18B00",
+  chart1: "#0077E6",
+  chart2: "#67B3FF",
+  chart3: "#15B042",
+  chart4: "#D18B00",
+  chart5: "#7458C9",
+  chart6: "#333333",
+  chart7: "#B42318",
+  chartGrid: "#E2E2DE",
+  chartAxis: "#666666",
+  chartTooltipBg: "#333333",
+  chartTooltipText: "#FFFFFF",
+  chartCrosshair: "#B7B7B1",
+  courseAccent: "#0077E6",
+} satisfies ThinkfyColorRoles;
+
+const webDarkColors = {
+  background: "#171715",
+  foreground: "#F5F5F2",
+  primary: "#F5F5F2",
+  primaryDim: "#E2E2DE",
+  primaryDepth: "#B7B7B1",
+  primaryContainer: "#363633",
+  primaryFixed: "#F5F5F2",
+  onPrimary: "#242422",
+  onPrimaryContainer: "#F5F5F2",
+  secondary: "#5AA9FF",
+  secondaryDim: "#9CCBFF",
+  secondaryContainer: "#12365B",
+  tertiary: "#63D486",
+  tertiaryContainer: "#183D27",
+  reward: "#E8AE32",
+  rewardDim: "#FFD67A",
+  rewardContainer: "#493713",
+  onReward: "#242422",
+  success: "#63D486",
+  successDim: "#8AE3A1",
+  successContainer: "#183D27",
+  onSuccess: "#142018",
+  warning: "#F5B94D",
+  warningContainer: "#493713",
+  onWarningContainer: "#FFE3A8",
+  error: "#F28B82",
+  errorDim: "#FFB4AB",
+  errorContainer: "#5C201B",
+  onError: "#2B0A07",
+  info: "#5AA9FF",
+  infoContainer: "#12365B",
+  onInfo: "#081A2D",
+  surface: "#242422",
+  surfaceDim: "#171715",
+  surfaceHigh: "#2D2D2A",
+  surfaceHighest: "#363633",
+  surfaceContainer: "#2D2D2A",
+  surfaceContainerLow: "#20201E",
+  surfaceContainerHigh: "#363633",
+  surfaceContainerHighest: "#41413D",
+  surfaceContainerLowest: "#1D1D1B",
+  outline: "#5A5A55",
+  outlineVariant: "#41413D",
+  inverse: "#F5F5F2",
+  inverseText: "#242422",
+  muted: "#B7B7B1",
+  placeholder: "#999993",
+  chartPrimary: "#5AA9FF",
+  chartSecondary: "#63D486",
+  chartTertiary: "#F5B94D",
+  chart1: "#5AA9FF",
+  chart2: "#9CCBFF",
+  chart3: "#63D486",
+  chart4: "#F5B94D",
+  chart5: "#B7A3FF",
+  chart6: "#F5F5F2",
+  chart7: "#F28B82",
+  chartGrid: "#41413D",
+  chartAxis: "#B7B7B1",
+  chartTooltipBg: "#363633",
+  chartTooltipText: "#F5F5F2",
+  chartCrosshair: "#5A5A55",
+  courseAccent: "#5AA9FF",
+} satisfies ThinkfyColorRoles;
+
+function makeWebTheme(mode: ThinkfyThemeMode, colors: ThinkfyColorRoles): ThinkfyWebTheme {
+  const components = makeComponentTokens(colors);
+  // Use the darker success token for compact text on the fixed green fill.
+  components.badge.success = {
+    ...components.badge.success,
+    text: colors.successDim,
+  };
+  components.sidebar = mode === "light"
+    ? {
+        background: "#FFFFFF",
+        softBackground: "#F8F8F6",
+        text: "#333333",
+        mutedText: "#777777",
+        accent: "#0077E6",
+        hoverBackground: "#F0F0EC",
+        selectedBackground: "#CAFACE",
+        selectedText: "#333333",
+        selectedAccent: "#15B042",
+        selectedShadow: "#B4DABF",
+      }
+    : {
+        background: "#242422",
+        softBackground: "#2D2D2A",
+        text: "#F5F5F2",
+        mutedText: "#B7B7B1",
+        accent: "#5AA9FF",
+        hoverBackground: "#363633",
+        selectedBackground: "#183D27",
+        selectedText: "#F5F5F2",
+        selectedAccent: "#63D486",
+        selectedShadow: "#111A14",
+      };
+  return {
+    mode,
+    colors,
+    components,
+    webCssVariables: makeWebCssVariables(colors, components),
+    geometry: {
+      buttonHeight: 32,
+      buttonRadius: 10,
+      dataRowHeight: 40,
+      settingsRowHeight: 44,
+      badgeHeight: 20,
+      badgeRadius: 6,
+      switchWidth: 24,
+      switchHeight: 14,
+      switchThumb: 10,
+      switchHitTarget: 32,
+      cardRadius: 10,
+    },
+  };
+}
+
+export const thinkfyWebThemes = {
+  light: makeWebTheme("light", webLightColors),
+  dark: makeWebTheme("dark", webDarkColors),
+} as const satisfies Record<ThinkfyThemeMode, ThinkfyWebTheme>;
+
+export function getThinkfyWebTheme(mode: ThinkfyThemeMode): ThinkfyWebTheme {
+  return thinkfyWebThemes[mode];
+}
+
 export function getThinkfyWebCssVariables(mode: ThinkfyThemeMode) {
-  return getThinkfyTheme(mode).webCssVariables;
+  return getThinkfyWebTheme(mode).webCssVariables;
 }
 
 export type ThinkfyFontRole = "display" | "sans" | "serif" | "mono";
@@ -618,8 +834,8 @@ export type ThinkfyTypeStep = {
  */
 export const thinkfyTypography = {
   family: {
-    display: "Nunito",
-    sans: "Be Vietnam Pro",
+    display: "Inter",
+    sans: "Inter",
     serif: "Noto Serif",
     mono: "Geist Mono",
   },
@@ -631,12 +847,12 @@ export const thinkfyTypography = {
     headingXl: { utility: "type-heading-xl", family: "sans", size: 30, lineHeight: 1.2, weight: 700, tracking: -0.012 },
     headingLg: { utility: "type-heading-lg", family: "sans", size: 24, lineHeight: 1.25, weight: 700, tracking: -0.01 },
     headingMd: { utility: "type-heading-md", family: "sans", size: 20, lineHeight: 1.3, weight: 600, tracking: -0.006 },
-    title: { utility: "type-title", family: "sans", size: 17, lineHeight: 1.35, weight: 600, tracking: -0.003 },
+    title: { utility: "type-title", family: "sans", size: 16, lineHeight: 1.25, weight: 500, tracking: 0 },
     bodyLg: { utility: "type-body-lg", family: "sans", size: 18, lineHeight: 1.6, weight: 400, tracking: 0 },
-    body: { utility: "type-body", family: "sans", size: 16, lineHeight: 1.6, weight: 400, tracking: 0 },
+    body: { utility: "type-body", family: "sans", size: 14, lineHeight: 1.4286, weight: 400, tracking: 0 },
     bodySm: { utility: "type-body-sm", family: "sans", size: 14, lineHeight: 1.55, weight: 400, tracking: 0 },
     caption: { utility: "type-caption", family: "sans", size: 12, lineHeight: 1.45, weight: 500, tracking: 0.002 },
-    label: { utility: "type-label", family: "sans", size: 13, lineHeight: 1.3, weight: 600, tracking: 0 },
+    label: { utility: "type-label", family: "sans", size: 13, lineHeight: 1.2308, weight: 500, tracking: 0 },
     eyebrow: { utility: "type-eyebrow", family: "sans", size: 12, lineHeight: 1.2, weight: 700, tracking: 0.14, uppercase: true },
     code: { utility: "type-code", family: "mono", size: 14, lineHeight: 1.5, weight: 400, tracking: 0 },
     prose: { utility: "type-prose", family: "serif", size: 16, lineHeight: 1.7, weight: 400, tracking: 0 },

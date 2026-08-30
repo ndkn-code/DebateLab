@@ -76,15 +76,15 @@ export function CoursePlayerView({
       </Link>
 
       {/* Course header */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 p-6 shadow-sm">
+      <div className="rounded-[12px] bg-surface-container-lowest border border-outline-variant p-5 shadow-none">
         {previewMode ? (
-          <div className="mb-4 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+          <div className="mb-4 rounded-[10px] border border-primary/20 bg-primary-container/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="inline-flex h-5 items-center gap-1 rounded-[6px] bg-primary-container px-2 text-xs font-medium text-primary">
                 <Eye className="h-3.5 w-3.5" />
                 {t("adminPreview")}
               </span>
-              <span className="inline-flex items-center rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-medium text-on-surface-variant">
+              <span className="inline-flex h-5 items-center rounded-[6px] border border-outline-variant bg-surface-container-low px-2 text-xs font-medium text-on-surface-variant">
                 {previewStateLabel}
               </span>
             </div>
@@ -121,7 +121,7 @@ export function CoursePlayerView({
         ) : (
           <button
             onClick={handleEnroll}
-            className="mt-4 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
+            className="mt-4 inline-flex h-8 items-center rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {t("enroll")}
           </button>
@@ -141,7 +141,7 @@ export function CoursePlayerView({
           const BadgeIcon = badge.icon;
 
           return (
-            <div key={mod.id as string} className="rounded-2xl bg-surface-container-lowest border border-outline-variant/10 shadow-sm overflow-hidden">
+            <div key={mod.id as string} className="rounded-[10px] bg-surface-container-lowest border border-outline-variant shadow-none overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/10">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-primary bg-primary/10 rounded-md px-1.5 py-0.5">

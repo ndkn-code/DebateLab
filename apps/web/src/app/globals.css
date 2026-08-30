@@ -6,10 +6,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #F3FCFE;
-  --color-foreground: #102936;
-  --font-display: var(--font-nunito), ui-sans-serif, sans-serif;
-  --font-sans: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  --color-background: #F5F5F2;
+  --color-foreground: #333333;
+  --font-display: var(--font-inter), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, sans-serif;
   --font-serif: var(--font-noto-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
@@ -147,13 +147,13 @@
 }
 
 /* ───────── Typography scale (see design.md · §Typography) ─────────
-   display → Nunito · heading/title/body/label/eyebrow/caption → Be Vietnam Pro
+   display → Inter · heading/title/body/label/eyebrow/caption → Inter
    code → Geist Mono · prose → Noto Serif.
    Families reference the next/font vars directly (the @theme-inline --font-*
    tokens are not emitted as runtime custom properties). Color is intentionally
    excluded so these compose with the existing color-token system. */
 @utility type-display-xl {
-  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: clamp(2.75rem, 1.6rem + 4.8vw, 4.5rem);
   line-height: 1.04;
   font-weight: 800;
@@ -161,7 +161,7 @@
   text-wrap: balance;
 }
 @utility type-display-lg {
-  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: clamp(2.25rem, 1.3rem + 4vw, 3.5rem);
   line-height: 1.06;
   font-weight: 800;
@@ -169,7 +169,7 @@
   text-wrap: balance;
 }
 @utility type-display-md {
-  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: clamp(1.875rem, 1.2rem + 2.9vw, 2.75rem);
   line-height: 1.08;
   font-weight: 800;
@@ -177,77 +177,77 @@
   text-wrap: balance;
 }
 @utility type-display-sm {
-  font-family: var(--font-nunito), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: clamp(1.625rem, 1.2rem + 1.8vw, 2.25rem);
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.015em;
 }
 @utility type-heading-xl {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 1.875rem;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.012em;
 }
 @utility type-heading-lg {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 1.5rem;
   line-height: 1.25;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 @utility type-heading-md {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 1.25rem;
   line-height: 1.3;
   font-weight: 600;
   letter-spacing: -0.006em;
 }
 @utility type-title {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
-  font-size: 1.0625rem;
-  line-height: 1.35;
-  font-weight: 600;
-  letter-spacing: -0.003em;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 @utility type-body {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.4286;
   font-weight: 400;
   letter-spacing: 0;
 }
 @utility type-body-lg {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 1.125rem;
   line-height: 1.6;
   font-weight: 400;
   letter-spacing: 0;
 }
 @utility type-body-sm {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 0.875rem;
   line-height: 1.55;
   font-weight: 400;
   letter-spacing: 0;
 }
 @utility type-caption {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 0.75rem;
   line-height: 1.45;
   font-weight: 500;
   letter-spacing: 0.002em;
 }
 @utility type-label {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 0.8125rem;
-  line-height: 1.3;
-  font-weight: 600;
+  line-height: 1.2308;
+  font-weight: 500;
   letter-spacing: 0;
 }
 @utility type-eyebrow {
-  font-family: var(--font-be-vietnam), ui-sans-serif, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, sans-serif;
   font-size: 0.75rem;
   line-height: 1.2;
   font-weight: 700;
@@ -790,3 +790,299 @@
   --chart-marker-foreground: var(--color-on-surface);
   --chart-ring-background: var(--color-surface-container);
 }
+
+/* ───────── Thinkfy web v2 foundation ─────────
+   This additive layer is intentionally web-only. Mobile consumes the legacy
+   theme object and never loads this stylesheet. Keeping the semantic aliases
+   here lets existing routes adopt the new visual language incrementally. */
+:root {
+  --color-background: #F5F5F2;
+  --color-foreground: #333333;
+  --color-primary: #333333;
+  --color-primary-dim: #222222;
+  --color-primary-depth: #1A1A1A;
+  --color-primary-container: #E9E9E5;
+  --color-primary-fixed: #333333;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #333333;
+  --color-secondary: #0077E6;
+  --color-secondary-dim: #005BAC;
+  --color-secondary-container: #E6F2FF;
+  --color-tertiary: #15B042;
+  --color-tertiary-container: #CAFACE;
+  --color-success: #15B042;
+  --color-success-dim: #087C2B;
+  --color-success-container: #CAFACE;
+  --color-on-success: #333333;
+  --color-warning: #B45309;
+  --color-warning-container: #FFF4D6;
+  --color-on-warning-container: #7C2D12;
+  --color-error: #B42318;
+  --color-error-dim: #8E1B12;
+  --color-error-container: #FEE4E2;
+  --color-info: #0077E6;
+  --color-info-container: #E6F2FF;
+  --color-reward: #D18B00;
+  --color-reward-dim: #8A5C00;
+  --color-reward-container: #FFF2CC;
+  --color-on-reward: #333333;
+  --color-on-error: #FFFFFF;
+  --color-on-info: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-dim: #F0F0EC;
+  --color-surface-bright: #FFFFFF;
+  --color-surface-tint: #333333;
+  --color-surface-variant: #F0F0EC;
+  --color-surface-container: #F0F0EC;
+  --color-surface-container-low: #F8F8F6;
+  --color-surface-container-high: #E9E9E5;
+  --color-surface-container-highest: #DEDED9;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-on-surface: #333333;
+  --color-on-surface-variant: #666666;
+  --color-outline: #D7D7D2;
+  --color-outline-variant: #E2E2DE;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #333333;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #333333;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary-foreground: #333333;
+  --color-muted: #F0F0EC;
+  --color-muted-foreground: #666666;
+  --color-accent: #F0F0EC;
+  --color-accent-foreground: #333333;
+  --color-destructive: #B42318;
+  --color-border: #E2E2DE;
+  --color-input: #D7D7D2;
+  --color-ring: #0077E6;
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-soft: #F8F8F6;
+  --color-sidebar-foreground: #333333;
+  --color-sidebar-muted: #666666;
+  --color-sidebar-accent: #0077E6;
+  --button-primary-bg: #333333;
+  --button-primary-highlight: #333333;
+  --button-primary-text: #FFFFFF;
+  --button-primary-shadow: #1A1A1A;
+  --button-primary-hover-bg: #222222;
+  --button-primary-pressed-bg: #1A1A1A;
+  --button-secondary-bg: #FFFFFF;
+  --button-secondary-text: #222222;
+  --button-secondary-border: #D7D7D2;
+  --button-secondary-shadow: transparent;
+  --button-secondary-hover-bg: #F0F0EC;
+  --button-secondary-pressed-bg: #E9E9E5;
+  --card-bg: #FFFFFF;
+  --card-border: #E2E2DE;
+  --card-shadow: transparent;
+  --input-bg: #FFFFFF;
+  --input-border: #D7D7D2;
+  --input-focus-border: #0077E6;
+  --input-focus-ring: #0077E6;
+  --progress-track: #E2E2DE;
+  --progress-fill: #0077E6;
+  --progress-reward-fill: #D18B00;
+  --sidebar-bg: #FFFFFF;
+  --sidebar-soft-bg: #F8F8F6;
+  --sidebar-text: #333333;
+  --sidebar-muted-text: #666666;
+  --sidebar-accent: #0077E6;
+  --sidebar-hover-bg: #F0F0EC;
+  --sidebar-selected-bg: #CAFACE;
+  --sidebar-selected-text: #333333;
+  --sidebar-selected-accent: #15B042;
+  --sidebar-selected-shadow: #B4DABF;
+}
+
+.dark {
+  --color-background: #171715;
+  --color-foreground: #F5F5F2;
+  --color-primary: #F5F5F2;
+  --color-primary-dim: #E2E2DE;
+  --color-primary-depth: #B7B7B1;
+  --color-primary-container: #363633;
+  --color-primary-fixed: #F5F5F2;
+  --color-on-primary: #242422;
+  --color-on-primary-container: #F5F5F2;
+  --color-secondary: #5AA9FF;
+  --color-secondary-dim: #9CCBFF;
+  --color-secondary-container: #12365B;
+  --color-tertiary: #63D486;
+  --color-tertiary-container: #183D27;
+  --color-success: #63D486;
+  --color-success-dim: #8AE3A1;
+  --color-success-container: #183D27;
+  --color-on-success: #142018;
+  --color-warning: #F5B94D;
+  --color-warning-container: #493713;
+  --color-on-warning-container: #FFE3A8;
+  --color-error: #F28B82;
+  --color-error-dim: #FFB4AB;
+  --color-error-container: #5C201B;
+  --color-info: #5AA9FF;
+  --color-info-container: #12365B;
+  --color-reward: #E8AE32;
+  --color-reward-dim: #FFD67A;
+  --color-reward-container: #493713;
+  --color-on-reward: #242422;
+  --color-on-error: #2B0A07;
+  --color-on-info: #081A2D;
+  --color-surface: #242422;
+  --color-surface-dim: #171715;
+  --color-surface-bright: #2D2D2A;
+  --color-surface-tint: #F5F5F2;
+  --color-surface-variant: #2D2D2A;
+  --color-surface-container: #2D2D2A;
+  --color-surface-container-low: #20201E;
+  --color-surface-container-high: #363633;
+  --color-surface-container-highest: #41413D;
+  --color-surface-container-lowest: #1D1D1B;
+  --color-on-surface: #F5F5F2;
+  --color-on-surface-variant: #B7B7B1;
+  --color-outline: #5A5A55;
+  --color-outline-variant: #41413D;
+  --color-card: #242422;
+  --color-card-foreground: #F5F5F2;
+  --color-popover: #2D2D2A;
+  --color-popover-foreground: #F5F5F2;
+  --color-primary-foreground: #242422;
+  --color-secondary-foreground: #F5F5F2;
+  --color-muted: #2D2D2A;
+  --color-muted-foreground: #B7B7B1;
+  --color-accent: #363633;
+  --color-accent-foreground: #F5F5F2;
+  --color-destructive: #F28B82;
+  --color-border: #41413D;
+  --color-input: #41413D;
+  --color-ring: #5AA9FF;
+  --color-sidebar: #242422;
+  --color-sidebar-soft: #2D2D2A;
+  --color-sidebar-foreground: #F5F5F2;
+  --color-sidebar-muted: #B7B7B1;
+  --color-sidebar-accent: #5AA9FF;
+  --button-primary-bg: #F5F5F2;
+  --button-primary-highlight: #F5F5F2;
+  --button-primary-text: #242422;
+  --button-primary-shadow: #B7B7B1;
+  --button-primary-hover-bg: #E2E2DE;
+  --button-primary-pressed-bg: #B7B7B1;
+  --button-secondary-bg: #242422;
+  --button-secondary-text: #F5F5F2;
+  --button-secondary-border: #5A5A55;
+  --button-secondary-shadow: transparent;
+  --button-secondary-hover-bg: #363633;
+  --button-secondary-pressed-bg: #41413D;
+  --card-bg: #242422;
+  --card-border: #41413D;
+  --card-shadow: transparent;
+  --input-bg: #1D1D1B;
+  --input-border: #41413D;
+  --input-focus-border: #5AA9FF;
+  --input-focus-ring: #5AA9FF;
+  --progress-track: #41413D;
+  --progress-fill: #5AA9FF;
+  --progress-reward-fill: #E8AE32;
+  --sidebar-bg: #242422;
+  --sidebar-soft-bg: #2D2D2A;
+  --sidebar-text: #F5F5F2;
+  --sidebar-muted-text: #B7B7B1;
+  --sidebar-accent: #5AA9FF;
+  --sidebar-hover-bg: #363633;
+  --sidebar-selected-bg: #183D27;
+  --sidebar-selected-text: #F5F5F2;
+  --sidebar-selected-accent: #63D486;
+  --sidebar-selected-shadow: #111A14;
+}
+
+body {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.thinkfy-v2-shell .thinkfy-v2-app-frame > [data-thinkfy-v2="rail"] {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  z-index: 20;
+  height: 100%;
+}
+
+.thinkfy-v2-shell .thinkfy-v2-app-frame > [aria-hidden="true"] {
+  height: 100%;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .thinkfy-v2-shell .thinkfy-v2-app-frame {
+    flex-direction: column;
+  }
+  .thinkfy-v2-shell .thinkfy-v2-app-frame > aside,
+  .thinkfy-v2-shell .thinkfy-v2-app-frame > [aria-hidden="true"] {
+    display: none !important;
+  }
+  .thinkfy-v2-shell [data-thinkfy-v2="mobile-bar"] {
+    display: flex !important;
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .thinkfy-v2-shell .thinkfy-v2-app-frame {
+    border-radius: 0;
+    border-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Tailwind v4 emits a few `@theme inline` utilities as literals. Rebind those
+   shared semantic utilities so every existing web route receives the v2 theme
+   without requiring a route-by-route class migration. */
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-foreground { background-color: var(--color-primary-foreground) !important; }
+.bg-primary-dim { background-color: var(--color-primary-dim) !important; }
+.bg-primary-container { background-color: var(--color-primary-container) !important; }
+.bg-secondary-container { background-color: var(--color-secondary-container) !important; }
+.bg-success-container { background-color: var(--color-success-container) !important; }
+.bg-warning-container { background-color: var(--color-warning-container) !important; }
+.bg-error-container { background-color: var(--color-error-container) !important; }
+.bg-info-container { background-color: var(--color-info-container) !important; }
+.bg-sidebar { background-color: var(--color-sidebar) !important; }
+.bg-surface-container { background-color: var(--color-surface-container) !important; }
+.bg-surface-container-low { background-color: var(--color-surface-container-low) !important; }
+.bg-surface-container-high { background-color: var(--color-surface-container-high) !important; }
+.bg-surface-container-highest { background-color: var(--color-surface-container-highest) !important; }
+.bg-surface-container-lowest { background-color: var(--color-surface-container-lowest) !important; }
+.text-primary { color: var(--color-primary) !important; }
+.text-primary-dim { color: var(--color-primary-dim) !important; }
+/* Base hues stay reserved for focus, controls, fills, and icon accents;
+   normal-size text resolves to the contrast-safe dim/content token. */
+.text-secondary { color: var(--color-secondary-dim) !important; }
+.text-secondary-dim { color: var(--color-secondary-dim) !important; }
+.text-success { color: var(--color-success-dim) !important; }
+.text-success-dim { color: var(--color-success-dim) !important; }
+.text-on-surface-variant,
+.text-muted-foreground { color: var(--color-on-surface-variant) !important; }
+.text-on-surface,
+.text-on-background,
+.text-foreground,
+.text-card-foreground,
+.text-popover-foreground { color: var(--color-on-surface) !important; }
+.text-primary-foreground,
+.text-on-primary { color: var(--color-on-primary) !important; }
+.text-sidebar-foreground { color: var(--color-sidebar-foreground) !important; }
+.text-sidebar-muted { color: var(--color-sidebar-muted) !important; }
+.border-border,
+.border-input,
+.border-outline,
+.border-outline-variant { border-color: var(--color-outline-variant) !important; }
+.ring-ring { --tw-ring-color: var(--color-ring) !important; }

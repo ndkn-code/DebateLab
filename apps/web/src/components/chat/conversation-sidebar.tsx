@@ -42,10 +42,10 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <div className="border-b border-outline-variant/12 p-3">
+      <div className="border-b border-outline-variant/60 p-3">
         <Button
           onClick={onNewChat}
-          className="h-9 w-full gap-2 rounded-xl bg-primary text-sm font-semibold text-on-primary shadow-none"
+          className="h-8 w-full gap-2 rounded-[10px] bg-primary type-label font-medium text-on-primary shadow-none"
         >
           <Plus className="h-4 w-4" />
           {t("new_chat")}
@@ -64,7 +64,7 @@ function SidebarContent({
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group flex min-w-0 items-center gap-1 rounded-xl border transition-colors",
+                    "group flex min-h-10 min-w-0 items-center gap-1 rounded-[10px] border transition-colors",
                     activeId === conversation.id
                       ? "border-primary/16 bg-primary/5 text-on-surface"
                       : "border-transparent bg-transparent text-on-surface hover:border-outline-variant/14 hover:bg-surface-container-low/70"

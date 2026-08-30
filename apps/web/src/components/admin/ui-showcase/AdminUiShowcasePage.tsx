@@ -75,6 +75,7 @@ import {
   showcaseTranscript,
 } from "@/lib/admin-ui-showcase/fixtures";
 import { cn } from "@/lib/utils";
+import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
 import type {
   ShowcaseCoverageRow,
   ShowcaseScenario,
@@ -1390,6 +1391,7 @@ export function AdminUiShowcasePage({
   }
 
   return (
+    <AdminV2Frame>
     <main className="min-h-full bg-white">
       <style jsx global>{`
         .admin-ui-showcase-preview .fixed {
@@ -1512,5 +1514,6 @@ export function AdminUiShowcasePage({
         </section>
       </div>
     </main>
+    </AdminV2Frame>
   );
 }

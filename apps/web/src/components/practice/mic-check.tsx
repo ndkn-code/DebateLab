@@ -384,7 +384,7 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -399,7 +399,7 @@ export function MicCheck({
                 </p>
               </div>
 
-              <ol className="w-full space-y-2 rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
+              <ol className="w-full space-y-2 rounded-[10px] border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
                 <li className="flex gap-2">
                   <span className="shrink-0 font-semibold text-on-surface">1.</span>
                   {t("session.mic_step_1")}
@@ -441,7 +441,7 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />
@@ -483,7 +483,7 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-token-card"
+              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
             >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
                 <MicOff className="h-10 w-10 text-red-400" />

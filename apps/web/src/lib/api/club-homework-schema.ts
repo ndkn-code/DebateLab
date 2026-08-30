@@ -10,6 +10,7 @@ export const HomeworkFileRequestSchema = z.object({
 
 export const SubmitClubAssignmentSchema = z.object({
   assignmentId: UuidSchema,
+  idempotencyKey: UuidSchema.optional(),
   submissionText: z.string().max(20000).nullable().optional(),
   files: z.array(HomeworkFileRequestSchema).max(20).default([]),
 });
@@ -21,6 +22,11 @@ export const RecordAssignmentSubmissionFilesSchema = z.object({
       storagePath: z.string().trim().min(1).max(500),
     }),
   ).max(20),
+});
+
+export const FailAssignmentSubmissionSchema = z.object({
+  submissionId: UuidSchema,
+  reason: z.string().trim().max(500).nullable().optional(),
 });
 
 export const GradeAssignmentSubmissionSchema = z.object({

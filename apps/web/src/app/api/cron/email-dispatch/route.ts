@@ -26,9 +26,31 @@ export async function GET(request: NextRequest) {
 
   try {
     const admin = createTypedAdminClient();
+    let dueSoonEventsEnqueued: number | null = null;
+    let dueSoonEventsWarning: string | null = null;
+    const dueSoon = await admin.rpc("enqueue_lms_due_soon_events", {
+      p_horizon: "24 hours",
+    });
+    if (dueSoon.error) {
+      // The email cron may deploy before the additive LMS migration. Keep the
+      // existing email job healthy until the migration has reached production.
+      if (dueSoon.error.code === "PGRST202" || dueSoon.error.code === "42883") {
+        dueSoonEventsWarning = "LMS due-soon migration is not available yet.";
+      } else {
+        throw new Error(dueSoon.error.message);
+      }
+    } else {
+      dueSoonEventsEnqueued = typeof dueSoon.data === "number" ? dueSoon.data : 0;
+    }
     const campaigns = await processDueEmailCampaigns(admin);
     const result = await dispatchUserEmails({ supabase: admin, limit });
-    return NextResponse.json({ ok: true, ...result, campaigns });
+    return NextResponse.json({
+      ok: true,
+      dueSoonEventsEnqueued,
+      ...(dueSoonEventsWarning ? { dueSoonEventsWarning } : {}),
+      ...result,
+      campaigns,
+    });
   } catch (error) {
     return NextResponse.json(
       {

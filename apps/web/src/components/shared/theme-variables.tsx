@@ -1,4 +1,7 @@
-import { getThinkfyWebCssVariables, type ThinkfyThemeMode } from "@thinkfy/shared/design-system";
+import {
+  getThinkfyWebCssVariables,
+  type ThinkfyThemeMode,
+} from "@thinkfy/shared/design-system";
 
 function cssBlock(selector: string, mode: ThinkfyThemeMode) {
   const declarations = Object.entries(getThinkfyWebCssVariables(mode))

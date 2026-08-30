@@ -46,7 +46,7 @@ export function CoachBrief({
     key ? t(`coach.skill_names.${key}`) : t("coach.not_enough_data");
 
   return (
-    <div className="rounded-[28px] border border-outline-variant/15 bg-surface px-5 py-5 shadow-token-card sm:px-6 sm:py-6">
+    <div className="rounded-xl border border-outline-variant bg-surface px-4 py-4 shadow-none sm:px-5 sm:py-5">
       <div className="max-w-3xl">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 type-eyebrow text-primary">
           <Sparkles className="h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ function InsightStat({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-low px-4 py-4">
+    <div className="rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-3">
       <div className="type-eyebrow text-on-surface-variant">
         {label}
       </div>
@@ -152,7 +152,7 @@ export function CoachInsightsRail({
         className
       )}
     >
-      <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
+      <section className="rounded-xl border border-outline-variant bg-surface px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="type-title text-on-surface">
@@ -225,7 +225,7 @@ export function CoachInsightsRail({
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-outline-variant/14 bg-surface px-4 py-4">
+      <section className="rounded-xl border border-outline-variant bg-surface px-4 py-4">
         <div className="flex items-center gap-2 type-eyebrow text-primary">
           <Target className="h-4 w-4" />
           {t("coach.current_focus")}

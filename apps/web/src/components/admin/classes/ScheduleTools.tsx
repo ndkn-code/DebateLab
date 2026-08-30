@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import {
   BookOpen,
@@ -22,13 +23,12 @@ import {
 import {
   DEFAULT_CLASS_TIMEZONE,
   PROGRAM_OPTIONS,
-  getProgramLabel,
   getProgramLevels,
   normalizeClassProgram,
   normalizeRecurrenceRule,
-  summarizeRecurrence,
 } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
+import { useAdminDialogFocus } from "@/components/admin/use-admin-dialog-focus";
 import type {
   AdminClassAssignedCourse,
   AdminClassListRow,
@@ -40,14 +40,9 @@ import type {
   RecurrenceWeekday,
 } from "@/lib/types/admin-classes";
 
-const WEEKDAYS: Array<{ value: RecurrenceWeekday; label: string }> = [
-  { value: "SU", label: "Sun" },
-  { value: "MO", label: "Mon" },
-  { value: "TU", label: "Tue" },
-  { value: "WE", label: "Wed" },
-  { value: "TH", label: "Thu" },
-  { value: "FR", label: "Fri" },
-  { value: "SA", label: "Sat" },
+const WEEKDAYS: Array<{ value: RecurrenceWeekday }> = [
+  { value: "SU" }, { value: "MO" }, { value: "TU" }, { value: "WE" },
+  { value: "TH" }, { value: "FR" }, { value: "SA" },
 ];
 
 const PROGRAM_TONE: Record<AdminClassProgram, string> = {
@@ -71,6 +66,7 @@ export function ClassProgramFields({
   defaultProgram?: AdminClassProgram | string | null;
   defaultLevel?: string | null;
 }) {
+  const t = useTranslations("admin.classes.schedule");
   const [program, setProgram] = useState<AdminClassProgram>(
     normalizeClassProgram(defaultProgram),
   );
@@ -92,7 +88,7 @@ export function ClassProgramFields({
       <input type="hidden" name="programType" value={program} />
       <label className="sm:col-span-2">
         <span className="text-xs font-semibold text-on-surface-variant">
-          Program
+          {t("program")}
         </span>
         <div className="mt-1 grid grid-cols-3 overflow-hidden rounded-lg border border-outline-variant/40 bg-background">
           {PROGRAM_OPTIONS.map((option) => (
@@ -114,14 +110,14 @@ export function ClassProgramFields({
               ) : (
                 <Users className="h-4 w-4" />
               )}
-              <span className="truncate">{option.label}</span>
+              <span className="truncate">{t(`programs.${option.value}`)}</span>
             </button>
           ))}
         </div>
       </label>
       <label>
         <span className="text-xs font-semibold text-on-surface-variant">
-          Level
+          {t("level")}
         </span>
         <select
           name="gradeLevel"
@@ -154,6 +150,8 @@ export function ScheduleEditor({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const t = useTranslations("admin.classes.schedule");
+  const dialogRef = useAdminDialogFocus<HTMLFormElement>(true, onClose);
   const [isPending, startTransition] = useTransition();
   const today = new Date().toISOString().slice(0, 10);
   const [classId, setClassId] = useState(
@@ -229,10 +227,8 @@ export function ScheduleEditor({
     [count, endMode, frequency, interval, startDate, until, weekdays],
   );
 
-  const recurrenceSummary = useMemo(
-    () => summarizeRecurrence(recurrenceRule, startDate),
-    [recurrenceRule, startDate],
-  );
+  const locale = useLocale();
+  const recurrenceSummary = formatRecurrenceSummary(recurrenceRule, startDate, t, locale);
 
   function toggleWeekday(day: RecurrenceWeekday) {
     setWeekdays((current) =>
@@ -243,7 +239,7 @@ export function ScheduleEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-end bg-scrim/30 backdrop-blur-sm sm:items-stretch">
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-scrim/30 backdrop-blur-sm sm:items-stretch" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -265,29 +261,34 @@ export function ScheduleEditor({
             router.refresh();
           });
         }}
-        className="flex max-h-[92dvh] w-full flex-col rounded-t-xl border border-outline-variant/30 bg-surface-container-lowest shadow-2xl sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:border-y-0 sm:border-r-0"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="schedule-editor-title"
+        className="flex max-h-[92dvh] w-full flex-col rounded-t-[10px] border border-outline-variant bg-surface shadow-lg sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:border-y-0 sm:border-r-0"
       >
         <div className="flex h-16 items-center justify-between border-b border-outline-variant/20 px-5">
           <div>
-            <h2 className="text-lg font-bold text-on-surface">
-              {schedule ? "Edit Schedule" : "New Schedule"}
+            <h2 id="schedule-editor-title" className="text-lg font-bold text-on-surface">
+              {schedule ? t("editTitle") : t("newTitle")}
             </h2>
             <p className="text-xs text-on-surface-variant">
-              Display-only class meeting pattern
+              {t("description")}
             </p>
           </div>
           <button
             type="button"
+            autoFocus
             onClick={onClose}
             className="rounded-lg px-2 py-1 text-sm text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"
           >
-            Esc
+            {t("close")}
           </button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Class
+              {t("class")}
             </span>
             <select
               value={classId}
@@ -300,7 +301,7 @@ export function ScheduleEditor({
             >
               {classes.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.title} ({getProgramLabel(item.programType)} -{" "}
+                  {item.title} ({t(`programs.${item.programType}`)} -{" "}
                   {item.gradeLevel})
                 </option>
               ))}
@@ -308,14 +309,14 @@ export function ScheduleEditor({
           </label>
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Course (optional)
+              {t("courseOptional")}
             </span>
             <select
               value={courseId}
               onChange={(event) => setCourseId(event.target.value)}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
             >
-              <option value="">No course link</option>
+              <option value="">{t("noCourse")}</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.title}
@@ -325,31 +326,31 @@ export function ScheduleEditor({
           </label>
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Title
+              {t("title")}
             </span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               required
-              placeholder="Debate Basics Session"
+              placeholder={t("titlePlaceholder")}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <label className="block">
             <span className="text-xs font-semibold text-on-surface-variant">
-              Room / Location
+              {t("roomLocation")}
             </span>
             <input
               value={room}
               onChange={(event) => setRoom(event.target.value)}
-              placeholder="Room 204"
+              placeholder={t("roomPlaceholder")}
               className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Start Date
+                {t("startDate")}
               </span>
               <input
                 type="date"
@@ -361,21 +362,21 @@ export function ScheduleEditor({
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Timezone
+                {t("timezone")}
               </span>
               <select
                 value={timezone}
                 onChange={(event) => setTimezone(event.target.value)}
                 className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
               >
-                <option value="America/New_York">America/New_York</option>
-                <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh</option>
-                <option value="UTC">UTC</option>
+                <option value="America/New_York">{t("timezones.newYork")}</option>
+                <option value="Asia/Ho_Chi_Minh">{t("timezones.hoChiMinh")}</option>
+                <option value="UTC">{t("timezones.utc")}</option>
               </select>
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Start Time
+                {t("startTime")}
               </span>
               <input
                 type="time"
@@ -387,7 +388,7 @@ export function ScheduleEditor({
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                End Time
+                {t("endTime")}
               </span>
               <input
                 type="time"
@@ -401,7 +402,7 @@ export function ScheduleEditor({
           <div className="grid grid-cols-[1fr_112px] gap-3">
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Repeat
+                {t("repeat")}
               </span>
               <select
                 value={frequency}
@@ -410,15 +411,15 @@ export function ScheduleEditor({
                 }
                 className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
               >
-                <option value="none">Does not repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="none">{t("frequency.none")}</option>
+                <option value="daily">{t("frequency.daily")}</option>
+                <option value="weekly">{t("frequency.weekly")}</option>
+                <option value="monthly">{t("frequency.monthly")}</option>
               </select>
             </label>
             <label>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Every
+                {t("every")}
               </span>
               <input
                 type="number"
@@ -433,7 +434,7 @@ export function ScheduleEditor({
           {frequency === "weekly" && (
             <div>
               <span className="text-xs font-semibold text-on-surface-variant">
-                Repeat on
+                {t("repeatOn")}
               </span>
               <div className="mt-2 grid grid-cols-7 gap-1">
                 {WEEKDAYS.map((day) => (
@@ -448,7 +449,7 @@ export function ScheduleEditor({
                         : "border-outline-variant/40 bg-background text-on-surface-variant hover:bg-surface-container",
                     )}
                   >
-                    {day.label}
+                    {t(`weekdays.${day.value}`)}
                   </button>
                 ))}
               </div>
@@ -458,7 +459,7 @@ export function ScheduleEditor({
             <div className="grid grid-cols-2 gap-3">
               <label>
                 <span className="text-xs font-semibold text-on-surface-variant">
-                  Ends
+                  {t("ends")}
                 </span>
                 <select
                   value={endMode}
@@ -467,15 +468,15 @@ export function ScheduleEditor({
                   }
                   className="mt-1 h-11 w-full rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
                 >
-                  <option value="never">Never</option>
-                  <option value="on_date">On date</option>
-                  <option value="after_occurrences">After count</option>
+                  <option value="never">{t("endMode.never")}</option>
+                  <option value="on_date">{t("endMode.onDate")}</option>
+                  <option value="after_occurrences">{t("endMode.afterCount")}</option>
                 </select>
               </label>
               {endMode === "on_date" ? (
                 <label>
                   <span className="text-xs font-semibold text-on-surface-variant">
-                    End Date
+                    {t("endDate")}
                   </span>
                   <input
                     type="date"
@@ -487,7 +488,7 @@ export function ScheduleEditor({
               ) : endMode === "after_occurrences" ? (
                 <label>
                   <span className="text-xs font-semibold text-on-surface-variant">
-                    Occurrences
+                    {t("occurrences")}
                   </span>
                   <input
                     type="number"
@@ -500,7 +501,7 @@ export function ScheduleEditor({
                 </label>
               ) : (
                 <div className="mt-6 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
-                  No end date
+                  {t("noEndDate")}
                 </div>
               )}
             </div>
@@ -508,7 +509,7 @@ export function ScheduleEditor({
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
             <div className="mb-1 flex items-center gap-2 font-bold">
               <Repeat2 className="h-4 w-4" />
-              Recurrence Summary
+              {t("summary")}
             </div>
             {recurrenceSummary}
           </div>
@@ -519,7 +520,7 @@ export function ScheduleEditor({
             onClick={onClose}
             className="h-10 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             disabled={isPending || !classId || !title}
@@ -527,10 +528,10 @@ export function ScheduleEditor({
           >
             <Save className="h-4 w-4" />
             {isPending
-              ? "Saving..."
+              ? t("saving")
               : schedule
-                ? "Save Schedule"
-                : "Create Schedule"}
+                ? t("save")
+                : t("create")}
           </button>
         </div>
       </form>
@@ -549,9 +550,11 @@ export function ScheduleTimeline({
   onEditSchedule?: (schedule: AdminClassSchedule) => void;
   onDeleteSchedule?: (schedule: AdminClassSchedule) => void;
 }) {
+  const t = useTranslations("admin.classes.schedule");
+  const locale = useLocale();
   const months = useMemo(
-    () => buildMonthTicks(data.filters.rangeStart, data.filters.rangeEnd),
-    [data.filters.rangeEnd, data.filters.rangeStart],
+    () => buildMonthTicks(data.filters.rangeStart, data.filters.rangeEnd, locale),
+    [data.filters.rangeEnd, data.filters.rangeStart, locale],
   );
   const schedulesById = new Map(
     data.schedules.map((schedule) => [schedule.id, schedule]),
@@ -568,21 +571,21 @@ export function ScheduleTimeline({
       }
     >();
     for (const item of data.classes) {
-      const key = `${item.programType}-${item.gradeLevel ?? "Level"}`;
+      const key = `${item.programType}-${item.gradeLevel ?? t("level")}`;
       map.set(key, {
         key,
         program: item.programType,
-        level: item.gradeLevel ?? "Level",
+        level: item.gradeLevel ?? t("level"),
         classCount: (map.get(key)?.classCount ?? 0) + 1,
         schedules: [],
       });
     }
     for (const schedule of data.schedules) {
-      const key = `${schedule.classProgramType}-${schedule.classLevel ?? "Level"}`;
+      const key = `${schedule.classProgramType}-${schedule.classLevel ?? t("level")}`;
       const group = map.get(key) ?? {
         key,
         program: schedule.classProgramType,
-        level: schedule.classLevel ?? "Level",
+        level: schedule.classLevel ?? t("level"),
         classCount: 0,
         schedules: [],
       };
@@ -603,6 +606,7 @@ export function ScheduleTimeline({
     data.filters.rangeEnd,
     data.filters.rangeStart,
     data.schedules,
+    t,
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const todayPercent =
@@ -616,10 +620,10 @@ export function ScheduleTimeline({
       <div className="flex flex-col gap-3 border-b border-outline-variant/20 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-bold text-on-surface">
-            Schedule timeline
+            {t("timeline.title")}
           </h2>
           <p className="text-sm text-on-surface-variant">
-            Recurring class meetings across programs and levels.
+            {t("timeline.description")}
           </p>
         </div>
         {onNewSchedule && (
@@ -628,7 +632,7 @@ export function ScheduleTimeline({
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary shadow-sm shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
-            New Schedule
+            {t("new")}
           </button>
         )}
       </div>
@@ -638,7 +642,7 @@ export function ScheduleTimeline({
             className="grid border-b border-outline-variant/20 bg-surface-container text-xs font-semibold text-on-surface-variant"
             style={{ gridTemplateColumns: "220px 1fr" }}
           >
-            <div className="px-4 py-3">Program / Level</div>
+            <div className="px-4 py-3">{t("programLevel")}</div>
             <div
               className="relative grid"
               style={{
@@ -662,7 +666,7 @@ export function ScheduleTimeline({
                   style={{ left: `${todayPercent}%` }}
                 >
                   <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded-md bg-primary px-2 py-1 type-caption font-bold text-on-primary shadow-sm">
-                    Today
+                    {t("today")}
                   </span>
                 </div>
               )}
@@ -687,13 +691,13 @@ export function ScheduleTimeline({
                   </div>
                   <div>
                     <p className="font-bold text-on-surface">
-                      {getProgramLabel(group.program)}
+                      {t(`programs.${group.program}`)}
                     </p>
                     <p className="text-sm text-on-surface-variant">
-                      {group.level} · {group.classCount} classes
+                      {group.level} · {t("timeline.classes", { count: group.classCount })}
                     </p>
                     <p className="text-xs text-on-surface-variant">
-                      {group.schedules.length} schedules
+                      {t("timeline.schedules", { count: group.schedules.length })}
                     </p>
                   </div>
                 </div>
@@ -719,7 +723,7 @@ export function ScheduleTimeline({
                   )}
                   {group.schedules.length === 0 ? (
                     <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-lg border border-dashed border-outline-variant/30 bg-background/70 px-3 py-3 text-sm text-on-surface-variant">
-                      No schedules in this range.
+                      {t("timeline.empty")}
                     </div>
                   ) : (
                     group.schedules.map((schedule, index) => {
@@ -751,13 +755,13 @@ export function ScheduleTimeline({
                                 {schedule.title}
                               </span>
                               <span className="block truncate">
-                                {formatTime(`2000-01-01T${schedule.startTime}`)}{" "}
-                                - {formatTime(`2000-01-01T${schedule.endTime}`)}{" "}
-                                · {schedule.recurrenceSummary}
+                                {formatTime(`2000-01-01T${schedule.startTime}`, locale)}{" "}
+                                - {formatTime(`2000-01-01T${schedule.endTime}`, locale)}{" "}
+                                · {formatRecurrenceSummary(schedule.recurrenceRule, schedule.startDate, t, locale)}
                               </span>
                             </span>
                             <span className="shrink-0 rounded bg-surface-container-lowest/80 px-2 py-1">
-                              {schedule.room ?? schedule.courseTitle ?? "Class"}
+                              {schedule.room ?? schedule.courseTitle ?? t("class")}
                             </span>
                           </span>
                         </button>
@@ -773,7 +777,7 @@ export function ScheduleTimeline({
       <div className="grid gap-3 p-4 lg:hidden">
         {data.occurrences.length === 0 ? (
           <p className="rounded-lg border border-dashed border-outline-variant/30 px-3 py-10 text-center text-sm text-on-surface-variant">
-            No scheduled meetings in this range.
+            {t("timeline.mobileEmpty")}
           </p>
         ) : (
           data.occurrences.map((item) => {
@@ -790,12 +794,12 @@ export function ScheduleTimeline({
                   <div>
                     <p className="text-sm font-bold">{item.title}</p>
                     <p className="text-xs">
-                      {formatDate(item.date)} · {formatTime(item.startsAt)} -{" "}
-                      {formatTime(item.endsAt)}
+                      {formatDate(item.date, locale)} · {formatTime(item.startsAt, locale)} -{" "}
+                      {formatTime(item.endsAt, locale)}
                     </p>
                     <p className="mt-1 text-xs">
                       {item.classTitle} ·{" "}
-                      {getProgramLabel(item.classProgramType)} {item.classLevel}
+                      {t(`programs.${item.classProgramType}`)} {item.classLevel}
                     </p>
                   </div>
                   {schedule && (
@@ -803,7 +807,7 @@ export function ScheduleTimeline({
                       onClick={() => onEditSchedule?.(schedule)}
                       className="rounded-lg bg-surface-container-lowest/80 px-2 py-1 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container-lowest active:scale-[0.98]"
                     >
-                      Edit
+                      {t("edit")}
                     </button>
                   )}
                 </div>
@@ -819,7 +823,7 @@ export function ScheduleTimeline({
                     </span>
                   )}
                   <span className="rounded bg-surface-container-lowest/80 px-2 py-1">
-                    {item.recurrenceSummary}
+                    {schedule ? formatRecurrenceSummary(schedule.recurrenceRule, schedule.startDate, t, locale) : item.recurrenceSummary}
                   </span>
                 </div>
               </div>
@@ -830,7 +834,7 @@ export function ScheduleTimeline({
       {onDeleteSchedule && data.schedules.length > 0 && (
         <div className="border-t border-outline-variant/20 p-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            Manage schedules
+            {t("manage")}
           </p>
           <div className="flex flex-wrap gap-2">
             {data.schedules.map((schedule) => (
@@ -840,7 +844,7 @@ export function ScheduleTimeline({
                 className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/30 bg-background px-3 py-2 text-xs font-semibold text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:border-error/30 hover:bg-error-container hover:text-error-dim active:scale-[0.98]"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Archive {schedule.title}
+                {t("archive", { title: schedule.title })}
               </button>
             ))}
           </div>
@@ -855,6 +859,7 @@ export function ScheduleRangeControls({
 }: {
   data: AdminClassSchedulesData;
 }) {
+  const t = useTranslations("admin.classes.schedule");
   const prevStart = shiftDate(data.filters.rangeStart, -28);
   const prevEnd = shiftDate(data.filters.rangeEnd, -28);
   const nextStart = shiftDate(data.filters.rangeStart, 28);
@@ -884,10 +889,10 @@ export function ScheduleRangeControls({
         defaultValue={data.filters.program}
         className="h-11 rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
       >
-        <option value="all">All Programs</option>
+        <option value="all">{t("allPrograms")}</option>
         {PROGRAM_OPTIONS.map((program) => (
           <option key={program.value} value={program.value}>
-            {program.label}
+            {t(`programs.${program.value}`)}
           </option>
         ))}
       </select>
@@ -896,7 +901,7 @@ export function ScheduleRangeControls({
         defaultValue={data.filters.level}
         className="h-11 rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
       >
-        <option value="all">All Levels</option>
+        <option value="all">{t("allLevels")}</option>
         {Array.from(
           new Set(PROGRAM_OPTIONS.flatMap((program) => program.levels)),
         ).map((level) => (
@@ -908,16 +913,18 @@ export function ScheduleRangeControls({
       <div className="flex gap-2">
         <a
           href={`?view=schedules&start=${prevStart}&end=${prevEnd}`}
+          aria-label={t("previousRange")}
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"
         >
           <ChevronLeft className="h-4 w-4" />
         </a>
         <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
           <Filter className="h-4 w-4" />
-          Filters
+          {t("filters")}
         </button>
         <a
           href={`?view=schedules&start=${nextStart}&end=${nextEnd}`}
+          aria-label={t("nextRange")}
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant/40 bg-background transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]"
         >
           <ChevronRight className="h-4 w-4" />
@@ -928,7 +935,7 @@ export function ScheduleRangeControls({
   );
 }
 
-function buildMonthTicks(start: string, end: string) {
+function buildMonthTicks(start: string, end: string, locale: string) {
   const ticks: Array<{ key: string; label: string; year: string }> = [];
   const current = new Date(`${start}T00:00:00`);
   current.setDate(1);
@@ -936,32 +943,53 @@ function buildMonthTicks(start: string, end: string) {
   while (current <= last && ticks.length < 14) {
     ticks.push({
       key: current.toISOString().slice(0, 7),
-      label: current.toLocaleDateString("en", { month: "short" }),
-      year: current.toLocaleDateString("en", { year: "numeric" }),
+      label: current.toLocaleDateString(locale, { month: "short" }),
+      year: current.toLocaleDateString(locale, { year: "numeric" }),
     });
     current.setMonth(current.getMonth() + 1);
   }
   return ticks.length
     ? ticks
-    : [{ key: start.slice(0, 7), label: formatDate(start), year: "" }];
+    : [{ key: start.slice(0, 7), label: formatDate(start, locale), year: "" }];
 }
 
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatDate(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
   }).format(new Date(`${date}T00:00:00`));
 }
 
-function formatTime(value: string) {
+function formatTime(value: string, locale: string) {
   const time = value.slice(11, 16);
   const [hours, minutes] = time.split(":").map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(locale, {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+}
+
+function formatRecurrenceSummary(
+  rule: AdminClassSchedule["recurrenceRule"],
+  startDate: string,
+  t: (key: string) => string,
+  locale: string,
+) {
+  if (rule.frequency === "none") return t("frequency.none");
+  const cadence = rule.interval > 1
+    ? `${t("every")} ${rule.interval} ${t(`units.${rule.frequency === "daily" ? "days" : rule.frequency === "weekly" ? "weeks" : "months"}`)}`
+    : t(`frequency.${rule.frequency}`);
+  const weekdayText = rule.frequency === "weekly" && rule.weekdays.length
+    ? ` ${t("on")} ${rule.weekdays.map((day) => t(`weekdays.${day}`)).join(", ")}`
+    : "";
+  const endText = rule.endMode === "on_date" && rule.until
+    ? ` ${t("until")} ${formatDate(rule.until, locale)}`
+    : rule.endMode === "after_occurrences" && rule.count
+      ? ` ${t("for")} ${rule.count} ${t(rule.count === 1 ? "occurrence" : "occurrences")}`
+      : "";
+  return `${cadence}${weekdayText} ${t("from")} ${formatDate(startDate, locale)}${endText}`;
 }
 
 function shiftDate(date: string, days: number) {
