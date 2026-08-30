@@ -26,6 +26,7 @@ import type {
   PracticeLanguage,
 } from "@/types";
 import { getGroqCoachFallbackModel } from "@/lib/ai/core/policies";
+import { isDebateCompatibleMobileCoachContext } from "@/lib/api/chat-product-context";
 
 export const MOBILE_COACH_MESSAGE_MAX_LENGTH = 4000;
 
@@ -291,6 +292,13 @@ export async function getMobileCoachHome({
     DEFAULT_PRACTICE_LANGUAGE,
   );
   const normalizedContext = normalizeMobileCoachContext(contextType);
+  if (!isDebateCompatibleMobileCoachContext(normalizedContext)) {
+    throw new MobileCoachApiError(
+      "Conversation does not belong to Debate Coach.",
+      409,
+      "coach_context_mismatch",
+    );
+  }
   const profile = await getCoachProfile(userId, practiceLanguage, supabase);
   const envelope = await getCoachContextEnvelope({
     userId,
@@ -318,9 +326,10 @@ export async function listMobileCoachConversations(
   const { data, error } = await supabase
     .from("chat_conversations")
     .select(
-      "id, user_id, title, context_type, context_id, created_at, updated_at",
+      "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
     )
     .eq("user_id", userId)
+    .eq("product_context", "debate")
     .order("updated_at", { ascending: false })
     .limit(30);
 
@@ -368,10 +377,11 @@ export async function getMobileCoachConversation({
   const { data: conversation, error: conversationError } = await supabase
     .from("chat_conversations")
     .select(
-      "id, user_id, title, context_type, context_id, created_at, updated_at",
+      "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
     )
     .eq("id", conversationId)
     .eq("user_id", userId)
+    .eq("product_context", "debate")
     .maybeSingle();
 
   if (conversationError) {
@@ -430,6 +440,13 @@ export async function sendMobileCoachMessage({
     DEFAULT_PRACTICE_LANGUAGE,
   );
   const normalizedContext = normalizeMobileCoachContext(context);
+  if (!isDebateCompatibleMobileCoachContext(normalizedContext)) {
+    throw new MobileCoachApiError(
+      "Conversation does not belong to Debate Coach.",
+      409,
+      "coach_context_mismatch",
+    );
+  }
   const trimmedMessage = message.trim();
 
   if (!trimmedMessage) {
@@ -458,10 +475,11 @@ export async function sendMobileCoachMessage({
     const { data: existingConversation } = await supabase
       .from("chat_conversations")
       .select(
-        "id, user_id, title, context_type, context_id, created_at, updated_at",
+        "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
       )
       .eq("id", conversationId)
       .eq("user_id", userId)
+      .eq("product_context", "debate")
       .maybeSingle();
 
     if (!existingConversation) {
@@ -538,6 +556,7 @@ export async function sendMobileCoachMessage({
   if (!conversation) {
     const insertData: Record<string, string> = {
       user_id: userId,
+      product_context: "debate",
       title: clipText(trimmedMessage, 64) || "New conversation",
     };
     if (normalizedContext) insertData.context_type = normalizedContext;
@@ -547,7 +566,7 @@ export async function sendMobileCoachMessage({
       .from("chat_conversations")
       .insert(insertData)
       .select(
-        "id, user_id, title, context_type, context_id, created_at, updated_at",
+        "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
       )
       .single();
 
@@ -593,8 +612,9 @@ export async function sendMobileCoachMessage({
     .update({ updated_at: now })
     .eq("id", resolvedConversationId)
     .eq("user_id", userId)
+    .eq("product_context", "debate")
     .select(
-      "id, user_id, title, context_type, context_id, created_at, updated_at",
+      "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
     )
     .maybeSingle();
 

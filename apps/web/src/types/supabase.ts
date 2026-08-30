@@ -2022,33 +2022,45 @@ export type Database = {
       }
       chat_conversations: {
         Row: {
+          context_id: string | null
+          context_type: string | null
           created_at: string
           id: string
+          initial_request_id: string | null
           last_message_at: string | null
           message_count: number
           model: string
+          product_context: string
           system_prompt: string | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          context_id?: string | null
+          context_type?: string | null
           created_at?: string
           id?: string
+          initial_request_id?: string | null
           last_message_at?: string | null
           message_count?: number
           model?: string
+          product_context?: string
           system_prompt?: string | null
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          context_id?: string | null
+          context_type?: string | null
           created_at?: string
           id?: string
+          initial_request_id?: string | null
           last_message_at?: string | null
           message_count?: number
           model?: string
+          product_context?: string
           system_prompt?: string | null
           title?: string
           updated_at?: string
@@ -13952,7 +13964,10 @@ export type Database = {
       }
       generate_duel_share_code: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
-      get_chat_sidebar_payload: { Args: never; Returns: Json }
+      get_chat_sidebar_payload: {
+        Args: { p_product_context?: string }
+        Returns: Json
+      }
       get_course_library_payload: { Args: never; Returns: Json }
       get_dashboard_payload: { Args: never; Returns: Json }
       get_homework_submission_roster: {

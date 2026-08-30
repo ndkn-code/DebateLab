@@ -439,6 +439,8 @@ export interface ChatConversation {
   id: string;
   user_id: string;
   title: string;
+  product_context?: "debate" | "ielts";
+  initial_request_id?: string | null;
   context_type?: string | null;
   context_id?: string | null;
   created_at: string;

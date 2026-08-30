@@ -5,12 +5,16 @@ export interface ConversationWithPreview extends ChatConversation {
   preview?: string;
 }
 
+export type ChatProductContext = "debate" | "ielts";
+
 export async function getConversations(
-  userId: string
+  userId: string,
+  productContext: ChatProductContext = "debate",
 ): Promise<ConversationWithPreview[]> {
   const supabase = await createClient();
   const { data: rpcConversations, error: rpcError } = await supabase.rpc(
-    "get_chat_sidebar_payload"
+    "get_chat_sidebar_payload",
+    { p_product_context: productContext },
   );
 
   if (!rpcError && Array.isArray(rpcConversations)) {
@@ -19,8 +23,11 @@ export async function getConversations(
 
   const { data, error } = await supabase
     .from("chat_conversations")
-    .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+    .select(
+      "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
+    )
     .eq("user_id", userId)
+    .eq("product_context", productContext)
     .order("updated_at", { ascending: false })
     .limit(30);
 
@@ -48,7 +55,7 @@ export async function getConversations(
     if (!normalized) continue;
     previewByConversation.set(
       message.conversation_id,
-      normalized.length > 88 ? `${normalized.slice(0, 85)}...` : normalized
+      normalized.length > 88 ? `${normalized.slice(0, 85)}...` : normalized,
     );
   }
 
@@ -60,7 +67,8 @@ export async function getConversations(
 
 export async function getConversation(
   conversationId: string,
-  userId: string
+  userId: string,
+  productContext: ChatProductContext = "debate",
 ): Promise<{ conversation: ChatConversation; messages: ChatMessage[] } | null> {
   const supabase = await createClient();
 
@@ -68,9 +76,12 @@ export async function getConversation(
   const [convRes, msgRes] = await Promise.all([
     supabase
       .from("chat_conversations")
-      .select("id, user_id, title, context_type, context_id, created_at, updated_at")
+      .select(
+        "id, user_id, title, product_context, context_type, context_id, created_at, updated_at",
+      )
       .eq("id", conversationId)
       .eq("user_id", userId)
+      .eq("product_context", productContext)
       .single(),
     supabase
       .from("chat_messages")
@@ -89,22 +100,28 @@ export async function getConversation(
 
 export async function deleteConversation(
   conversationId: string,
-  userId: string
+  userId: string,
+  productContext: ChatProductContext = "debate",
 ) {
   const supabase = await createClient();
+  const { data: ownedConversation, error: lookupError } = await supabase
+    .from("chat_conversations")
+    .select("id")
+    .eq("id", conversationId)
+    .eq("user_id", userId)
+    .eq("product_context", productContext)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (!ownedConversation) return false;
 
-  // Delete messages first
-  await supabase
-    .from("chat_messages")
-    .delete()
-    .eq("conversation_id", conversationId);
-
-  // Delete conversation
+  // Messages cascade only after product-scoped ownership is proven.
   const { error } = await supabase
     .from("chat_conversations")
     .delete()
     .eq("id", conversationId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("product_context", productContext);
 
   if (error) throw error;
+  return true;
 }

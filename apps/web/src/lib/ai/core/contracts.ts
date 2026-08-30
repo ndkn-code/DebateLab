@@ -9,6 +9,8 @@ export const AI_TASKS = [
   "stt_transcript_repair",
   "coach_chat",
   "coach_metadata",
+  "ielts_coach_chat",
+  "ielts_coach_metadata",
   "coach_title",
   "coach_visualization",
   "rebuttal",

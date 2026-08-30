@@ -7,8 +7,13 @@ import { recordGeminiKeySuccess } from "@/lib/gemini/key-pool";
 const originalFetch = globalThis.fetch;
 const originalGeminiKey = process.env.GEMINI_API_KEY;
 const originalGroqKey = process.env.GROQ_API_KEY;
+const originalIeltsCoachModel = process.env.GROQ_IELTS_COACH_MODEL;
+const originalIeltsCoachFallbackModel =
+  process.env.GROQ_IELTS_COACH_FALLBACK_MODEL;
 
 async function run() {
+  process.env.GROQ_IELTS_COACH_MODEL = "test-ielts-coach-primary";
+  process.env.GROQ_IELTS_COACH_FALLBACK_MODEL = "test-ielts-coach-fallback";
   assert.deepEqual(extractJsonObject('```json\n{"ok":true}\n```'), {
     ok: true,
   });
@@ -26,6 +31,12 @@ async function run() {
   assert.equal(
     getAiTaskPolicy("ielts_speaking_adjudication").candidates[0]?.provider,
     "groq",
+  );
+  const ieltsCoachPolicy = getAiTaskPolicy("ielts_coach_chat");
+  assert.equal(ieltsCoachPolicy.candidates.length, 2);
+  assert.equal(
+    ieltsCoachPolicy.candidates.every((candidate) => candidate.provider === "groq"),
+    true,
   );
 
   process.env.GROQ_API_KEY = "test-key";
@@ -152,6 +163,38 @@ async function run() {
   assert.equal(calls, 3, "primary JSON plus repair then fallback provider");
   assert.equal(fallback.output.value, "fallback");
   assert.equal(fallback.fallbackUsed, true);
+
+  calls = 0;
+  globalThis.fetch = (async (_input, init) => {
+    calls += 1;
+    const request = JSON.parse(String(init?.body)) as { model?: string };
+    if (request.model === ieltsCoachPolicy.candidates[0]?.model) {
+      return new Response(
+        JSON.stringify({ error: { message: "primary unavailable" } }),
+        { status: 503 },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: '{"value":"fast-fallback"}' } }],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const ieltsCoachFallback = await generateStructured({
+    task: "ielts_coach_chat",
+    prompt: "return json",
+    schema: z.object({ value: z.string() }),
+    context: {
+      task: "ielts_coach_chat",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+  });
+  assert.equal(ieltsCoachFallback.output.value, "fast-fallback");
+  assert.equal(ieltsCoachFallback.fallbackUsed, true);
+  assert.equal(calls, 2);
 }
 
 void run().finally(() => {
@@ -160,4 +203,12 @@ void run().finally(() => {
   else process.env.GEMINI_API_KEY = originalGeminiKey;
   if (originalGroqKey == null) delete process.env.GROQ_API_KEY;
   else process.env.GROQ_API_KEY = originalGroqKey;
+  if (originalIeltsCoachModel == null)
+    delete process.env.GROQ_IELTS_COACH_MODEL;
+  else process.env.GROQ_IELTS_COACH_MODEL = originalIeltsCoachModel;
+  if (originalIeltsCoachFallbackModel == null)
+    delete process.env.GROQ_IELTS_COACH_FALLBACK_MODEL;
+  else
+    process.env.GROQ_IELTS_COACH_FALLBACK_MODEL =
+      originalIeltsCoachFallbackModel;
 });

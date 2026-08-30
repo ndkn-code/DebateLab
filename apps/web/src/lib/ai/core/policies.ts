@@ -5,6 +5,10 @@ export const getGeminiCoachModel = () =>
   process.env.GEMINI_COACH_MODEL || "gemini-3.5-flash-lite";
 export const getGroqCoachFallbackModel = () =>
   process.env.GROQ_COACH_FALLBACK_MODEL || "openai/gpt-oss-20b";
+const getIeltsCoachPrimaryModel = () =>
+  process.env.GROQ_IELTS_COACH_MODEL || getGroqCoachFallbackModel();
+const getIeltsCoachFallbackModel = () =>
+  process.env.GROQ_IELTS_COACH_FALLBACK_MODEL || groqModel();
 const deepSeekModel = () => process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 
 /** Gemini is only added after the product surface has collected consent. */
@@ -20,6 +24,19 @@ export function getCoachChatCandidates(allowGemini: boolean) {
           model: getGroqCoachFallbackModel(),
         },
       ];
+}
+
+/**
+ * IELTS Coach is likely to be accessed by minors, so it uses the existing
+ * Groq transport only. The second production model is a bounded fallback and
+ * is removed when an operator deliberately configures both names identically.
+ */
+export function getIeltsCoachCandidates() {
+  const primary = getIeltsCoachPrimaryModel();
+  const fallback = getIeltsCoachFallbackModel();
+  return [primary, fallback]
+    .filter((model, index, models) => models.indexOf(model) === index)
+    .map((model) => ({ provider: "groq" as const, model }));
 }
 
 /**
@@ -89,6 +106,24 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         schemaRepairAttempts: 1,
         maxOutputTokens: 900,
         temperature: 0.2,
+        criticality: "best_effort",
+      };
+    case "ielts_coach_chat":
+      return {
+        candidates: getIeltsCoachCandidates(),
+        attemptTimeoutMs: 8_000,
+        schemaRepairAttempts: 1,
+        maxOutputTokens: 1_400,
+        temperature: 0.25,
+        criticality: "best_effort",
+      };
+    case "ielts_coach_metadata":
+      return {
+        candidates: getIeltsCoachCandidates(),
+        attemptTimeoutMs: 6_000,
+        schemaRepairAttempts: 1,
+        maxOutputTokens: 1_200,
+        temperature: 0.1,
         criticality: "best_effort",
       };
     case "coach_title":

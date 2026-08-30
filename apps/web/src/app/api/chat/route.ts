@@ -35,6 +35,13 @@ import {
 } from "@/lib/coach/intent";
 import { pruneCoachMetadata } from "@/lib/coach/metadata";
 import {
+  handleIeltsCoachRequest,
+  ieltsCoachContextTypeSchema,
+} from "@/lib/coach/ielts-route";
+import { getActiveSubject } from "@/lib/subject/server";
+import { IELTS_ENABLED } from "@/lib/features";
+import { tryCreateTypedAdminClient } from "@/lib/supabase/admin";
+import {
   createDebateCorpusRetrievalMetadata,
   type DebateCorpusRetrievalResult,
 } from "@/lib/corpus/retrieval";
@@ -134,6 +141,9 @@ interface ChatRequest {
   contextId?: string;
   practiceLanguage?: string;
   googleAiConsent: boolean;
+  productContext?: "debate" | "ielts";
+  subjectContext?: "debate" | "ielts";
+  requestId?: string;
 }
 
 function isUuid(value?: string | null): value is string {
@@ -146,6 +156,17 @@ function isUuid(value?: string | null): value is string {
 function normalizeContextType(context?: string) {
   if (!context) return undefined;
   return context === "dashboard-home" ? "coach-home" : context;
+}
+
+function productContextValue(
+  value: string | undefined,
+  field: "productContext" | "subjectContext",
+) {
+  if (value === undefined) return undefined;
+  if (value !== "debate" && value !== "ielts") {
+    throw new RequestValidationError(`${field} is invalid.`);
+  }
+  return value;
 }
 
 const GROQ_COACH_MODEL = getGroqCoachFallbackModel();
@@ -173,9 +194,32 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
     maxLength: 8,
   });
   const googleAiConsent = getBoolean(body, "googleAiConsent", false) ?? false;
+  const productContext = productContextValue(
+    getString(body, "productContext", { maxLength: 16 }),
+    "productContext",
+  );
+  const subjectContext = productContextValue(
+    getString(body, "subjectContext", { maxLength: 16 }),
+    "subjectContext",
+  );
+  const requestId = getString(body, "requestId", { maxLength: 64 });
 
   if (conversationId && !isUuid(conversationId)) {
     throw new RequestValidationError("conversationId is invalid.");
+  }
+  if ((productContext === undefined) !== (subjectContext === undefined)) {
+    throw new RequestValidationError(
+      "productContext and subjectContext must be provided together.",
+    );
+  }
+  if (
+    productContext !== undefined &&
+    productContext !== subjectContext
+  ) {
+    throw new RequestValidationError("Coach product context is ambiguous.");
+  }
+  if (requestId && !isUuid(requestId)) {
+    throw new RequestValidationError("requestId is invalid.");
   }
 
   return {
@@ -185,6 +229,9 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
     contextId,
     practiceLanguage,
     googleAiConsent,
+    productContext,
+    subjectContext,
+    requestId,
   };
 }
 
@@ -756,6 +803,81 @@ export async function POST(req: NextRequest) {
     const { message, contextId } = body;
     let { conversationId } = body;
 
+    const roleResult = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    const activeSubject = await getActiveSubject({
+      ieltsAccessible: IELTS_ENABLED || roleResult.data?.role === "admin",
+    });
+    const requestedProduct = body.productContext ?? "debate";
+    if (requestedProduct !== activeSubject) {
+      return new Response(
+        JSON.stringify({
+          error: "Coach context does not match the active product.",
+          code: "COACH_CONTEXT_MISMATCH",
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (requestedProduct === "ielts") {
+      if (!body.requestId || !normalizedContext) {
+        throw new RequestValidationError(
+          "IELTS Coach requires requestId and an explicit IELTS context.",
+        );
+      }
+      const contextType = ieltsCoachContextTypeSchema.safeParse(
+        normalizedContext,
+      );
+      if (!contextType.success) {
+        throw new RequestValidationError("IELTS Coach context is invalid.");
+      }
+      if (contextId && !isUuid(contextId)) {
+        throw new RequestValidationError("contextId is invalid.");
+      }
+      if (contextId) {
+        throw new RequestValidationError(
+          "This IELTS Coach context does not accept an entity id.",
+        );
+      }
+      const trustedSupabase = tryCreateTypedAdminClient();
+      if (!trustedSupabase) {
+        return new Response(
+          JSON.stringify({
+            status: "terminal",
+            code: "IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE",
+            runId: body.requestId,
+            userMessage:
+              practiceLanguage === "vi"
+                ? "Coach đang tạm thời không khả dụng. Vui lòng thử lại sau."
+                : "The Coach is temporarily unavailable. Please try again later.",
+            attempt: 1,
+            maxAttempts: 2,
+            manualRetry: {
+              allowed: true,
+              idempotencyKey: body.requestId,
+              availableAt: new Date().toISOString(),
+            },
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return handleIeltsCoachRequest({
+        supabase,
+        trustedSupabase,
+        userId: user.id,
+        request: {
+          message,
+          conversationId,
+          requestId: body.requestId,
+          contextType: contextType.data,
+          contextId,
+          locale: practiceLanguage,
+        },
+      });
+    }
+
     let systemPrompt = buildSystemPrompt(practiceLanguage);
     let coachMetadataContext: { mode?: string; focusTitle?: string } = {};
     let coachPromptContext: {
@@ -891,6 +1013,7 @@ RULES FOR THIS CONTEXT:
         .select("id")
         .eq("id", conversationId)
         .eq("user_id", user.id)
+        .eq("product_context", "debate")
         .maybeSingle();
 
       if (!existingConversation) {
@@ -899,6 +1022,7 @@ RULES FOR THIS CONTEXT:
     } else {
       const insertData: Record<string, string> = {
         user_id: user.id,
+        product_context: "debate",
         title:
           practiceLanguage === "vi" ? "Cuộc hội thoại mới" : "New conversation",
       };
