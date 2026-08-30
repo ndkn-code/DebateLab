@@ -23,7 +23,7 @@ assert.equal(getOrganizationRoleLabel("coach"), "Teacher");
 assert.equal(getOrganizationStatusLabel("active"), "Active");
 
 assert.equal(mapLegacyClubType("school"), "school");
-assert.equal(mapLegacyClubType("center"), "club");
+assert.equal(mapLegacyClubType("center"), "school");
 assert.equal(mapLegacyClubType("independent"), "club");
 assert.equal(mapLegacyClubType(null), "club");
 assert.equal(normalizeOrganizationRole(" coach "), "teacher");
@@ -31,4 +31,3 @@ assert.equal(normalizeOrganizationRole("ADMIN"), "admin");
 assert.equal(normalizeOrganizationRole("unknown"), null);
 
 console.log("organization contract tests passed");
-

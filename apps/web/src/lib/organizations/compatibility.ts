@@ -18,14 +18,14 @@ export type LegacyClubType = (typeof LEGACY_CLUB_TYPES)[number];
 export type LegacyOrganizationRole = OrganizationRole | "coach";
 
 /**
- * A school remains a school; all other legacy club kinds are organizations of
- * the new `club` type. Unknown and empty values intentionally fall back to
- * `club` because that is the least surprising compatibility behavior for an
- * existing club row.
+ * Schools and learning centers become `school` organizations; independent and
+ * online communities remain clubs. Unknown and empty values intentionally fall
+ * back to `club` because that is the least surprising compatibility behavior
+ * for an existing club row.
  */
 export function organizationTypeFromLegacyClubType(value: unknown): OrganizationType {
   const normalized = normalizeToken(value);
-  return normalized === "school" ? "school" : "club";
+  return normalized === "school" || normalized === "center" ? "school" : "club";
 }
 
 /** Alias with a migration-oriented name for callers reading old rows. */
@@ -64,4 +64,3 @@ export function isCanonicalOrganizationType(value: unknown): value is Organizati
 function normalizeToken(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
-
