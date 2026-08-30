@@ -1,0 +1,52 @@
+{
+  "projectId": "thinkfy-debatelab-prod",
+  "region": "asia-southeast1",
+  "cloudRunService": "debatelab-notification-delivery-worker",
+  "pubsubTopic": "notification-delivery",
+  "pubsubSubscription": "notification-delivery-worker",
+  "deadLetterTopic": "notification-delivery-dead-letter",
+  "cloudSchedulerJob": "notification-delivery-reconcile",
+  "cloudSchedulerSchedule": "* * * * *",
+  "runtimeServiceAccount": "debatelab-notification-worker@thinkfy-debatelab-prod.iam.gserviceaccount.com",
+  "pushServiceAccount": "debatelab-pubsub-push@thinkfy-debatelab-prod.iam.gserviceaccount.com",
+  "schedulerPublisherServiceAgent": "service-PROJECT_NUMBER@gcp-sa-cloudscheduler.iam.gserviceaccount.com",
+  "vercelPublisherServiceAccount": "debatelab-vercel-publisher@thinkfy-debatelab-prod.iam.gserviceaccount.com",
+  "secrets": [
+    "supabase-service-role-key",
+    "resend-api-key"
+  ],
+  "cloudRun": {
+    "ingress": "internal-and-cloud-load-balancing",
+    "minInstances": 0,
+    "maxInstances": 1,
+    "concurrency": 1,
+    "cpu": 1,
+    "memory": "512Mi",
+    "timeoutSeconds": 60,
+    "startupCpuBoost": true
+  },
+  "iam": {
+    "runtime": [
+      "roles/secretmanager.secretAccessor"
+    ],
+    "push": [
+      "roles/run.invoker"
+    ],
+    "schedulerServiceAgent": [
+      "roles/cloudscheduler.serviceAgent (project service-agent role; includes Pub/Sub publish)"
+    ],
+    "vercelPublisherTopicOnly": [
+      "roles/pubsub.publisher"
+    ],
+    "pubsubServiceAgentOnDlq": [
+      "roles/pubsub.publisher on notification-delivery-dead-letter",
+      "roles/pubsub.subscriber on notification-delivery-worker"
+    ]
+  },
+  "pubsub": {
+    "ackDeadlineSeconds": 60,
+    "maxDeliveryAttempts": 5,
+    "retryMinimumBackoff": "10s",
+    "retryMaximumBackoff": "300s"
+  }
+}

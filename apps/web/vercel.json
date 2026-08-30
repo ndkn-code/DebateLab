@@ -30,16 +30,6 @@
           "initialDelaySeconds": 0
         }
       ]
-    },
-    "src/app/api/queues/notification-delivery/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "notification-delivery-v1",
-          "retryAfterSeconds": 60,
-          "initialDelaySeconds": 0
-        }
-      ]
     }
   },
   "crons": [
@@ -50,14 +40,6 @@
     {
       "path": "/api/cron/email-dispatch",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/notification-delivery",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/email-campaigns",
-      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/ielts-replan",
