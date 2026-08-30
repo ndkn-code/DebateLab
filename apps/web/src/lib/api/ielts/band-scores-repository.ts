@@ -15,6 +15,25 @@ import { evaluateSimulationCompletion } from "@/lib/ielts/simulation-completion"
  */
 type TypedAdminClient = ReturnType<typeof createTypedAdminClient>;
 
+type SimulationBandRow = {
+  listening_band: number | null;
+  reading_band: number | null;
+  writing_band: number | null;
+  speaking_band: number | null;
+  overall_band: number | null;
+};
+
+function isSimulationComplete(bands: SimulationBandRow | null): boolean {
+  return evaluateSimulationCompletion({
+    listeningBand: bands?.listening_band ?? null,
+    readingBand: bands?.reading_band ?? null,
+    writingBand: bands?.writing_band ?? null,
+    writingRequired: true,
+    speakingBand: bands?.speaking_band ?? null,
+    overallBand: bands?.overall_band ?? null,
+  }).attemptComplete;
+}
+
 /** Mark a submitted simulation complete once R/L and required Writing exist. */
 export async function completeSimulationAttemptIfReady(
   admin: TypedAdminClient,
@@ -33,15 +52,7 @@ export async function completeSimulationAttemptIfReady(
   if (bandError) throw new Error(`completeSimulationAttemptIfReady(bands): ${bandError.message}`);
   if (!attempt || attempt.status !== "submitted") return false;
 
-  const decision = evaluateSimulationCompletion({
-    listeningBand: bands?.listening_band ?? null,
-    readingBand: bands?.reading_band ?? null,
-    writingBand: bands?.writing_band ?? null,
-    writingRequired: true,
-    speakingBand: bands?.speaking_band ?? null,
-    overallBand: bands?.overall_band ?? null,
-  });
-  if (!decision.attemptComplete) return false;
+  if (!isSimulationComplete(bands)) return false;
 
   const now = new Date().toISOString();
   const { error } = await admin

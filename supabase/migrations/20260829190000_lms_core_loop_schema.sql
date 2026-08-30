@@ -154,6 +154,9 @@ create table if not exists public.lms_lesson_occurrences (
   unique (id, class_id, course_id, occurrence_date)
 );
 
+alter table public.lms_lesson_occurrences
+  add column if not exists published_at timestamptz;
+
 create table if not exists public.lms_occurrence_resources (
   occurrence_id uuid not null references public.lms_lesson_occurrences(id) on delete cascade,
   resource_id uuid not null references public.lms_resources(id) on delete restrict,
@@ -583,19 +586,27 @@ alter table public.lms_occurrence_resources enable row level security;
 alter table public.lms_occurrence_assignments enable row level security;
 alter table public.lms_occurrence_roster_snapshots enable row level security;
 
+drop policy if exists "LMS occurrence scoped reads"
+  on public.lms_lesson_occurrences;
 create policy "LMS occurrence scoped reads"
 on public.lms_lesson_occurrences for select to authenticated
 using (private.can_view_lms_occurrence(id, (select auth.uid())));
+drop policy if exists "LMS occurrence manager writes"
+  on public.lms_lesson_occurrences;
 create policy "LMS occurrence manager writes"
 on public.lms_lesson_occurrences for all to authenticated
 using (private.can_manage_class(class_id, (select auth.uid())))
 with check (private.can_manage_class(class_id, (select auth.uid())));
+drop policy if exists "LMS occurrence resource scoped reads"
+  on public.lms_occurrence_resources;
 create policy "LMS occurrence resource scoped reads"
 on public.lms_occurrence_resources for select to authenticated
 using (
   private.can_view_lms_occurrence(occurrence_id, (select auth.uid()))
   and private.is_published_lms_resource(resource_id)
 );
+drop policy if exists "LMS occurrence resource manager writes"
+  on public.lms_occurrence_resources;
 create policy "LMS occurrence resource manager writes"
 on public.lms_occurrence_resources for all to authenticated
 using (exists (
@@ -606,12 +617,16 @@ with check (exists (
   select 1 from public.lms_lesson_occurrences o
   where o.id = occurrence_id and private.can_manage_class(o.class_id, (select auth.uid()))
 ));
+drop policy if exists "LMS occurrence assignment scoped reads"
+  on public.lms_occurrence_assignments;
 create policy "LMS occurrence assignment scoped reads"
 on public.lms_occurrence_assignments for select to authenticated
 using (
   private.can_view_lms_occurrence(occurrence_id, (select auth.uid()))
   and private.is_active_class_assignment(assignment_id)
 );
+drop policy if exists "LMS occurrence assignment manager writes"
+  on public.lms_occurrence_assignments;
 create policy "LMS occurrence assignment manager writes"
 on public.lms_occurrence_assignments for all to authenticated
 using (exists (
@@ -622,6 +637,8 @@ with check (exists (
   select 1 from public.lms_lesson_occurrences o
   where o.id = occurrence_id and private.can_manage_class(o.class_id, (select auth.uid()))
 ));
+drop policy if exists "LMS occurrence roster scoped reads"
+  on public.lms_occurrence_roster_snapshots;
 create policy "LMS occurrence roster scoped reads"
 on public.lms_occurrence_roster_snapshots for select to authenticated
 using (
