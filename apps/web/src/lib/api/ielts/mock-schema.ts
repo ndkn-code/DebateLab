@@ -24,6 +24,7 @@ export type SectionActionInput = z.infer<typeof SectionActionSchema>;
 // so a forged client can't push an unbounded blob through the RPC.
 const MAX_RESPONSE_BYTES = 16 * 1024;
 export const SaveResponseSchema = z.object({
+  attemptId: z.string().uuid(),
   sectionId: z.string().uuid(),
   questionId: z.string().uuid(),
   response: z

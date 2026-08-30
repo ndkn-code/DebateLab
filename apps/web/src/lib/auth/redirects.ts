@@ -16,7 +16,10 @@ export function isAllowedAuthRedirect(path: string): boolean {
   if (path.includes("://") || path.includes("\\")) return false;
 
   return ALLOWED_REDIRECT_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`),
+    (prefix) =>
+      path === prefix ||
+      path.startsWith(`${prefix}/`) ||
+      path.startsWith(`${prefix}?`),
   );
 }
 

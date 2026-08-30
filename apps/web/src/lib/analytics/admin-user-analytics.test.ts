@@ -56,10 +56,16 @@ const dailyStats: DailyStatLike[] = [
 
 assert.equal(normalizeAdminAnalyticsRange("7d"), "7d");
 assert.equal(normalizeAdminAnalyticsRange("bogus"), "30d");
-assert.equal(inferFeatureAreaFromRoute("/dashboard/courses/1/activity/2"), "activities");
+assert.equal(
+  inferFeatureAreaFromRoute("/dashboard/courses/1/activity/2"),
+  "activities",
+);
 assert.equal(inferFeatureAreaFromRoute("/dashboard/admin/users"), "admin");
 assert.equal(inferFeatureAreaFromRoute("/ielts/home"), "ielts");
-assert.equal(inferFeatureAreaFromRoute("/dashboard/teacher"), "teacher_workspace");
+assert.equal(
+  inferFeatureAreaFromRoute("/dashboard/teacher"),
+  "teacher_workspace",
+);
 assert.equal(inferFeatureAreaFromRoute("/dashboard/classes/class-1"), "lms");
 
 const normalized = normalizeAnalyticsEventInput({
@@ -90,8 +96,12 @@ assert.equal(webVital.eventName, "web_vital_recorded");
 assert.equal(webVital.featureArea, "profile");
 
 assert.throws(
-  () => normalizeAnalyticsEventInput({ eventName: "freeform", featureArea: "courses" }),
-  /Invalid analytics event name/
+  () =>
+    normalizeAnalyticsEventInput({
+      eventName: "freeform",
+      featureArea: "courses",
+    }),
+  /Invalid analytics event name/,
 );
 
 assert.equal(
@@ -157,7 +167,7 @@ const parsedInsights = parseAdminInsightJson(
         tone: "green",
       },
     ],
-  })
+  }),
 );
 assert.equal(parsedInsights[0].title, "Momentum");
 assert.equal(parsedInsights[0].priority, "high");

@@ -7,21 +7,25 @@ import {
 
 const ALL: IeltsSkill[] = ["listening", "reading", "writing", "speaking"];
 
-// Canonical limits: L 40m (30+10), R 60m, W 60m, S 14m.
+// Practice limits: L 40m (30+10), R 60m, W 60m, S 14m.
 assert.equal(IELTS_SECTION_TIME_LIMITS.listening, 2400);
 assert.equal(IELTS_SECTION_TIME_LIMITS.reading, 3600);
 assert.equal(IELTS_SECTION_TIME_LIMITS.writing, 3600);
 assert.equal(IELTS_SECTION_TIME_LIMITS.speaking, 840);
 
-// full_mock with all four skills → ordered L,R,W,S with sequential orders.
-const full = buildMockBlueprint({ kind: "full_mock", skill: null, skillsWithContent: ALL });
+// full_mock is an exam simulation → fixed ordered L,R,W. Speaking is a
+// separate Speaking Rehearsal product and never part of the simulation.
+const full = buildMockBlueprint({
+  kind: "full_mock",
+  skill: null,
+  skillsWithContent: ALL,
+});
 assert.deepEqual(
   full.map((s) => [s.skill, s.sectionOrder, s.timeLimitSeconds, s.label]),
   [
-    ["listening", 0, 2400, "Listening"],
+    ["listening", 0, 1920, "Listening"],
     ["reading", 1, 3600, "Reading"],
     ["writing", 2, 3600, "Writing"],
-    ["speaking", 3, 840, "Speaking"],
   ],
 );
 
@@ -41,26 +45,38 @@ assert.deepEqual(
 
 // skill_set / drill → just the targeted skill.
 assert.deepEqual(
-  buildMockBlueprint({ kind: "skill_set", skill: "reading", skillsWithContent: ["reading"] }).map(
-    (s) => s.skill,
-  ),
+  buildMockBlueprint({
+    kind: "skill_set",
+    skill: "reading",
+    skillsWithContent: ["reading"],
+  }).map((s) => s.skill),
   ["reading"],
 );
 assert.deepEqual(
-  buildMockBlueprint({ kind: "drill", skill: "listening", skillsWithContent: ["listening"] }).map(
-    (s) => s.skill,
-  ),
+  buildMockBlueprint({
+    kind: "drill",
+    skill: "listening",
+    skillsWithContent: ["listening"],
+  }).map((s) => s.skill),
   ["listening"],
 );
 
 // skill_set whose skill has no authored content → no sections.
 assert.deepEqual(
-  buildMockBlueprint({ kind: "skill_set", skill: "writing", skillsWithContent: ["reading"] }),
+  buildMockBlueprint({
+    kind: "skill_set",
+    skill: "writing",
+    skillsWithContent: ["reading"],
+  }),
   [],
 );
 // skill_set with null skill (malformed) → no sections.
 assert.deepEqual(
-  buildMockBlueprint({ kind: "skill_set", skill: null, skillsWithContent: ALL }),
+  buildMockBlueprint({
+    kind: "skill_set",
+    skill: null,
+    skillsWithContent: ALL,
+  }),
   [],
 );
 
@@ -72,5 +88,17 @@ const overridden = buildMockBlueprint({
   timeLimitOverrides: { reading: 1800 },
 });
 assert.equal(overridden[0].timeLimitSeconds, 1800);
+
+// Guided practice can still expose a speaking rehearsal section when called
+// explicitly by the practice surface.
+assert.deepEqual(
+  buildMockBlueprint({
+    kind: "skill_set",
+    skill: "speaking",
+    skillsWithContent: ["speaking"],
+    assessmentMode: "practice",
+  }).map((section) => section.skill),
+  ["speaking"],
+);
 
 console.log("ielts/mock-blueprint tests passed");

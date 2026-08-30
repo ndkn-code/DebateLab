@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import {
-  CheckCircle2,
-  type LucideIcon,
-} from "@/components/ui/icons";
+import { CheckCircle2, type LucideIcon } from "@/components/ui/icons";
 import type { IeltsOnboardingStep } from "@/lib/ielts/onboarding/model";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +15,7 @@ function stepIndex(step: IeltsOnboardingStep): number {
   return ONBOARDING_STEPS.indexOf(step);
 }
 
-export function OnboardingHeader({
-  step,
-}: {
-  step: IeltsOnboardingStep;
-}) {
+export function OnboardingHeader({ step }: { step: IeltsOnboardingStep }) {
   const t = useTranslations("ielts.onboarding");
 
   return (
@@ -52,7 +45,9 @@ export function OnboardingHeader({
               )}
             >
               {done ? <CheckCircle2 className="size-4" /> : null}
-              {t(`steps.${item}`)}
+              <span aria-current={active ? "step" : undefined}>
+                {t(`steps.${item}`)}
+              </span>
             </li>
           );
         })}
@@ -70,7 +65,9 @@ export function Field({
 }) {
   return (
     <label className="grid gap-1.5">
-      <span className="type-body-sm font-semibold text-on-surface">{label}</span>
+      <span className="type-body-sm font-semibold text-on-surface">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -85,7 +82,9 @@ export function ChoiceGroup({
 }) {
   return (
     <div className="grid gap-2">
-      <p className="type-label font-semibold uppercase text-on-surface-variant">{label}</p>
+      <p className="type-label font-semibold uppercase text-on-surface-variant">
+        {label}
+      </p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -112,7 +111,9 @@ export function InfoStrip({
       <div className="inline-flex size-9 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
         <Icon className="size-5" />
       </div>
-      <p className="type-label font-semibold uppercase text-on-surface-variant">{label}</p>
+      <p className="type-label font-semibold uppercase text-on-surface-variant">
+        {label}
+      </p>
     </div>
   );
 }

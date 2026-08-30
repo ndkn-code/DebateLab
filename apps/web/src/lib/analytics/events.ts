@@ -181,7 +181,8 @@ const PRIVACY_SENSITIVE_EVENT_NAMES = new Set<string>([
   "teacher_review_returned",
   "student_homework_feedback_viewed",
 ]);
-const FORBIDDEN_METADATA_KEY = /^(answer_?key|essay(_?text)?|response_?text|transcript|audio(_?path)?|storage_?path|email|phone)$/i;
+const FORBIDDEN_METADATA_KEY =
+  /^(answer_?key|essay(_?text)?|response_?text|transcript|audio(_?path)?|storage_?path|email|phone)$/i;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -194,7 +195,8 @@ function containsSensitiveMetadata(value: unknown): boolean {
   if (!isObjectRecord(value)) return false;
 
   return Object.entries(value).some(
-    ([key, nested]) => FORBIDDEN_METADATA_KEY.test(key) || containsSensitiveMetadata(nested),
+    ([key, nested]) =>
+      FORBIDDEN_METADATA_KEY.test(key) || containsSensitiveMetadata(nested),
   );
 }
 
@@ -222,7 +224,9 @@ function normalizeOccurredAt(value: string | null | undefined) {
   return Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString();
 }
 
-export function inferFeatureAreaFromRoute(route: string | null | undefined): AnalyticsFeatureArea {
+export function inferFeatureAreaFromRoute(
+  route: string | null | undefined,
+): AnalyticsFeatureArea {
   const pathname = (route ?? "").toLowerCase();
 
   if (pathname.includes("/dashboard/admin/clubs")) return "clubs";
@@ -231,19 +235,26 @@ export function inferFeatureAreaFromRoute(route: string | null | undefined): Ana
   if (pathname.includes("/dashboard/classes")) return "lms";
   if (pathname.includes("/ielts")) return "ielts";
   if (pathname.includes("/leaderboards")) return "leaderboards";
-  if (pathname.includes("/notifications") || pathname.includes("/smart-popups")) return "notifications";
+  if (pathname.includes("/notifications") || pathname.includes("/smart-popups"))
+    return "notifications";
   if (pathname.includes("/activity/")) return "activities";
   if (pathname.includes("/courses")) return "courses";
-  if (pathname.endsWith("/dashboard") || pathname.includes("/dashboard?")) return "profile";
-  if (pathname.includes("/practice") || pathname.includes("/history")) return "practice";
-  if (pathname.includes("/debates") || pathname.includes("/duel")) return "duels";
-  if (pathname.includes("/profile") || pathname.includes("/settings")) return "profile";
+  if (pathname.endsWith("/dashboard") || pathname.includes("/dashboard?"))
+    return "profile";
+  if (pathname.includes("/practice") || pathname.includes("/history"))
+    return "practice";
+  if (pathname.includes("/debates") || pathname.includes("/duel"))
+    return "duels";
+  if (pathname.includes("/profile") || pathname.includes("/settings"))
+    return "profile";
   return "practice";
 }
 
 export function normalizeAnalyticsEventInput(
   input: AnalyticsEventInput,
-  defaults: Partial<Pick<NormalizedAnalyticsEvent, "source" | "featureArea">> = {}
+  defaults: Partial<
+    Pick<NormalizedAnalyticsEvent, "source" | "featureArea">
+  > = {},
 ): NormalizedAnalyticsEvent {
   const rawEventName = input.eventName ?? input.event_name;
   if (!rawEventName || !EVENT_NAME_SET.has(rawEventName)) {
@@ -252,7 +263,10 @@ export function normalizeAnalyticsEventInput(
 
   const route = trimRoute(input.route);
   const rawFeatureArea =
-    input.featureArea ?? input.feature_area ?? defaults.featureArea ?? inferFeatureAreaFromRoute(route);
+    input.featureArea ??
+    input.feature_area ??
+    defaults.featureArea ??
+    inferFeatureAreaFromRoute(route);
   if (!FEATURE_AREA_SET.has(rawFeatureArea)) {
     throw new Error("Invalid analytics feature area");
   }
@@ -263,8 +277,13 @@ export function normalizeAnalyticsEventInput(
   }
 
   const metadata = isObjectRecord(input.metadata) ? input.metadata : {};
-  if (PRIVACY_SENSITIVE_EVENT_NAMES.has(rawEventName) && containsSensitiveMetadata(metadata)) {
-    throw new Error("Sensitive content is not allowed in IELTS or LMS analytics metadata");
+  if (
+    PRIVACY_SENSITIVE_EVENT_NAMES.has(rawEventName) &&
+    containsSensitiveMetadata(metadata)
+  ) {
+    throw new Error(
+      "Sensitive content is not allowed in IELTS or LMS analytics metadata",
+    );
   }
 
   return {

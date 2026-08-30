@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { IELTS_ASSESSMENT_MODES_V1 } from "@/lib/features";
 import { requireClassManager } from "@/lib/api/class-manager-access";
 import { buildMockBlueprint } from "@/lib/ielts/mock-blueprint";
 import {
@@ -30,11 +31,14 @@ import {
 } from "@/lib/api/ielts/mock-repository";
 
 /** Teacher: assign a published mock to a class in their club. */
-export async function assignIeltsMockToClass(raw: unknown): Promise<{ assignmentId: string }> {
+export async function assignIeltsMockToClass(
+  raw: unknown,
+): Promise<{ assignmentId: string }> {
   const input = parseInput(AssignIeltsMockSchema, raw);
   const supabase = await createTypedServerClient();
   const manager = await requireClassManager(supabase, input.classId);
-  if (manager.clubId !== input.clubId) throw new Error("That class is not part of this club");
+  if (manager.clubId !== input.clubId)
+    throw new Error("That class is not part of this club");
 
   const created = await createIeltsMockAssignment(
     {
@@ -70,7 +74,9 @@ export async function archiveIeltsAssignment(raw: unknown): Promise<void> {
   await archiveIeltsMockAssignment(input.clubId, input.assignmentId, supabase);
 
   revalidatePath(`/dashboard/clubs/${input.clubId}/ielts`);
-  revalidatePath(`/dashboard/clubs/${input.clubId}/ielts/${input.assignmentId}`);
+  revalidatePath(
+    `/dashboard/clubs/${input.clubId}/ielts/${input.assignmentId}`,
+  );
 }
 
 /**
@@ -78,7 +84,12 @@ export async function archiveIeltsAssignment(raw: unknown): Promise<void> {
  * assignment (not the caller), so a forged test id cannot be substituted, and
  * the attempt is stamped with the club / class / assignment for the teacher view.
  */
-export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptState> {
+export async function startAssignedMockAttempt(
+  raw: unknown,
+): Promise<AttemptState> {
+  if (!IELTS_ASSESSMENT_MODES_V1) {
+    throw new Error("IELTS assessment modes are not available.");
+  }
   const input = parseInput(StartAssignedAttemptSchema, raw);
   const resolved = await resolveAssignmentForStart(input.assignmentId);
 
@@ -90,6 +101,7 @@ export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptSta
     kind: structure.test.kind,
     skill: structure.test.skill,
     skillsWithContent,
+    assessmentMode: structure.test.assessment_mode,
   });
   if (blueprint.length === 0) throw new Error("Test has no sittable content");
 
@@ -97,6 +109,8 @@ export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptSta
     userId: resolved.userId,
     test: { id: structure.test.id, module: structure.test.module },
     blueprint,
+    assessmentMode: structure.test.assessment_mode,
+    testVersion: structure.test.version,
     org: {
       clubId: resolved.clubId,
       classId: resolved.classId,

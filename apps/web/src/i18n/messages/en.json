@@ -3920,6 +3920,8 @@
       "toastActionFailed": "Something went wrong. Please try again.",
       "exam": {
         "modeLabel": "Exam simulation",
+        "guidedPracticeLabel": "Guided practice",
+        "guidedPracticeBody": "Work through one focused skill with pausing, navigation, and feedback available.",
         "time": "Time",
         "timerPaused": "Paused",
         "timerSubmitted": "Submitted",

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 }
 
 async function linkReferralIfPresent(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
     const cookieStore = await cookies();

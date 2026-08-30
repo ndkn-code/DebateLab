@@ -7,6 +7,7 @@ import type { IeltsDiagnosticTestSummary } from "@/lib/api/ielts/study-plan-repo
 import type { IeltsGeneratedStudyPlan } from "@/lib/ielts/study-plan";
 
 export type GoalState = {
+  module: IeltsGoalModel["module"];
   targetOverallBand: number;
   targetSkillBands: Record<IeltsSkill, string>;
   targetTestDate: string;
@@ -28,6 +29,7 @@ export type PlanResult = {
 
 export function goalToState(goal: IeltsGoalModel): GoalState {
   return {
+    module: goal.module,
     targetOverallBand: goal.targetOverallBand,
     targetSkillBands: {
       listening: goal.targetSkillBands.listening?.toString() ?? "",
@@ -53,7 +55,7 @@ export function stateToGoal(state: GoalState): IeltsGoalModel {
   ) as IeltsGoalModel["targetSkillBands"];
 
   return {
-    module: "academic",
+    module: state.module,
     targetOverallBand: state.targetOverallBand,
     targetSkillBands,
     targetTestDate: state.targetTestDate,

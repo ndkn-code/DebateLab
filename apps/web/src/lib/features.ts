@@ -40,6 +40,31 @@ export const IELTS_ENABLED: boolean = ieltsEnabledValue
   ? isEnabled(ieltsEnabledValue)
   : false;
 
+/**
+ * Assessment modes are deliberately fail-closed. Enabling the IELTS product
+ * must not implicitly expose the no-pause simulation engine; release this
+ * independently once the frozen-attempt and timing checks are deployed.
+ */
+const ieltsAssessmentModesValue =
+  process.env.NEXT_PUBLIC_IELTS_ASSESSMENT_MODES_V1 ??
+  process.env.IELTS_ASSESSMENT_MODES_V1;
+export const IELTS_ASSESSMENT_MODES_V1: boolean = isEnabled(
+  ieltsAssessmentModesValue,
+);
+
+/** Shared LMS surfaces are also opt-in and fail closed. */
+const teacherWorkspaceValue =
+  process.env.NEXT_PUBLIC_TEACHER_WORKSPACE_V1 ??
+  process.env.TEACHER_WORKSPACE_V1;
+export const TEACHER_WORKSPACE_V1: boolean = isEnabled(teacherWorkspaceValue);
+
+const studentLmsWorkspaceValue =
+  process.env.NEXT_PUBLIC_STUDENT_LMS_WORKSPACE_V1 ??
+  process.env.STUDENT_LMS_WORKSPACE_V1;
+export const STUDENT_LMS_WORKSPACE_V1: boolean = isEnabled(
+  studentLmsWorkspaceValue,
+);
+
 /** Subjects a learner may switch to, given the launch flags. */
 export function availableSubjects(): Subject[] {
   return IELTS_ENABLED ? ["debate", "ielts"] : ["debate"];
@@ -70,14 +95,16 @@ export const DUEL_ENABLED: boolean = duelEnabledValue
   : false;
 
 const leaderboardEnabledValue =
-  process.env.NEXT_PUBLIC_LEADERBOARDS_ENABLED ?? process.env.LEADERBOARDS_ENABLED;
+  process.env.NEXT_PUBLIC_LEADERBOARDS_ENABLED ??
+  process.env.LEADERBOARDS_ENABLED;
 
 export const LEADERBOARDS_ENABLED: boolean = leaderboardEnabledValue
   ? isEnabled(leaderboardEnabledValue)
   : true;
 
 const leaderboardDataSourceValue =
-  process.env.LEADERBOARDS_DATA_SOURCE ?? process.env.NEXT_PUBLIC_LEADERBOARDS_DATA_SOURCE;
+  process.env.LEADERBOARDS_DATA_SOURCE ??
+  process.env.NEXT_PUBLIC_LEADERBOARDS_DATA_SOURCE;
 
 export const LEADERBOARDS_DATA_SOURCE: LeaderboardDataSource =
   leaderboardDataSourceValue === "mock" ? "mock" : "ledger";
@@ -106,48 +133,51 @@ export const LEADERBOARD_ANALYTICS_ENABLED: boolean =
   isEnabled(process.env.NEXT_PUBLIC_LEADERBOARD_ANALYTICS_ENABLED) ||
   isEnabled(process.env.LEADERBOARD_ANALYTICS_ENABLED);
 
-export const LEADERBOARD_ROLLOUT_STAGE: LeaderboardRolloutStage = getRolloutStage(
-  process.env.NEXT_PUBLIC_LEADERBOARD_ROLLOUT_STAGE ??
-    process.env.LEADERBOARD_ROLLOUT_STAGE
-);
+export const LEADERBOARD_ROLLOUT_STAGE: LeaderboardRolloutStage =
+  getRolloutStage(
+    process.env.NEXT_PUBLIC_LEADERBOARD_ROLLOUT_STAGE ??
+      process.env.LEADERBOARD_ROLLOUT_STAGE,
+  );
 
 const profileSocialEnabledValue =
-  process.env.NEXT_PUBLIC_PROFILE_SOCIAL_ENABLED ?? process.env.PROFILE_SOCIAL_ENABLED;
+  process.env.NEXT_PUBLIC_PROFILE_SOCIAL_ENABLED ??
+  process.env.PROFILE_SOCIAL_ENABLED;
 
-export const PROFILE_SOCIAL_ENABLED: boolean =
-  isEnabledByDefault(profileSocialEnabledValue);
+export const PROFILE_SOCIAL_ENABLED: boolean = isEnabledByDefault(
+  profileSocialEnabledValue,
+);
 
 export const PROFILE_PUBLIC_READS_ENABLED: boolean =
   PROFILE_SOCIAL_ENABLED &&
   isEnabledByDefault(
     process.env.NEXT_PUBLIC_PROFILE_PUBLIC_READS_ENABLED ??
-      process.env.PROFILE_PUBLIC_READS_ENABLED
+      process.env.PROFILE_PUBLIC_READS_ENABLED,
   );
 
 export const PROFILE_CONNECTIONS_ENABLED: boolean =
   PROFILE_SOCIAL_ENABLED &&
   isEnabledByDefault(
     process.env.NEXT_PUBLIC_PROFILE_CONNECTIONS_ENABLED ??
-      process.env.PROFILE_CONNECTIONS_ENABLED
+      process.env.PROFILE_CONNECTIONS_ENABLED,
   );
 
 export const PROFILE_DISCOVERY_ENABLED: boolean =
   PROFILE_SOCIAL_ENABLED &&
   isEnabledByDefault(
     process.env.NEXT_PUBLIC_PROFILE_DISCOVERY_ENABLED ??
-      process.env.PROFILE_DISCOVERY_ENABLED
+      process.env.PROFILE_DISCOVERY_ENABLED,
   );
 
 export const PROFILE_FRIEND_CODES_ENABLED: boolean =
   PROFILE_SOCIAL_ENABLED &&
   isEnabledByDefault(
     process.env.NEXT_PUBLIC_PROFILE_FRIEND_CODES_ENABLED ??
-      process.env.PROFILE_FRIEND_CODES_ENABLED
+      process.env.PROFILE_FRIEND_CODES_ENABLED,
   );
 
 export const PROFILE_SOCIAL_GUARDRAILS_ENABLED: boolean =
   PROFILE_SOCIAL_ENABLED &&
   isEnabledByDefault(
     process.env.NEXT_PUBLIC_PROFILE_SOCIAL_GUARDRAILS_ENABLED ??
-      process.env.PROFILE_SOCIAL_GUARDRAILS_ENABLED
+      process.env.PROFILE_SOCIAL_GUARDRAILS_ENABLED,
   );

@@ -10,6 +10,11 @@
  * player navigates parts freely; entering the next block starts its own clock.
  */
 import type { Enums } from "@/types/supabase";
+import type { AssessmentMode } from "@thinkfy/shared";
+import {
+  assessmentModeForTestKind,
+  assessmentModePolicy,
+} from "./assessment-mode";
 
 export type IeltsSkill = Enums<"ielts_skill">;
 export type IeltsTestKind = Enums<"ielts_test_kind">;
@@ -26,13 +31,6 @@ export const IELTS_SECTION_TIME_LIMITS: Record<IeltsSkill, number> = {
   writing: 60 * MINUTE,
   speaking: 14 * MINUTE,
 };
-
-const SKILL_ORDER: readonly IeltsSkill[] = [
-  "listening",
-  "reading",
-  "writing",
-  "speaking",
-];
 
 const SKILL_LABELS: Record<IeltsSkill, string> = {
   listening: "Listening",
@@ -54,26 +52,38 @@ export interface MockBlueprintInput {
   skill: IeltsSkill | null;
   /** Skills that actually have authored content in this test. */
   skillsWithContent: readonly IeltsSkill[];
+  /** Frozen on the attempt; omitted only for legacy pure callers. */
+  assessmentMode?: AssessmentMode;
   /** Optional per-skill time overrides (e.g. a test-specific limit). */
   timeLimitOverrides?: Partial<Record<IeltsSkill, number>>;
 }
 
 function resolveSkills(input: MockBlueprintInput): IeltsSkill[] {
   const available = new Set(input.skillsWithContent);
+  const mode = input.assessmentMode ?? assessmentModeForTestKind(input.kind);
+  const policy = assessmentModePolicy(mode);
   if (input.kind === "full_mock") {
-    return SKILL_ORDER.filter((skill) => available.has(skill));
+    return policy.skillOrder.filter((skill) => available.has(skill));
   }
   // skill_set / drill: a single targeted skill, only if it has content.
-  return input.skill !== null && available.has(input.skill) ? [input.skill] : [];
+  return input.skill !== null && available.has(input.skill)
+    ? [input.skill]
+    : [];
 }
 
 /** Build the ordered timed-section blueprint for an attempt. */
-export function buildMockBlueprint(input: MockBlueprintInput): SectionBlueprint[] {
+export function buildMockBlueprint(
+  input: MockBlueprintInput,
+): SectionBlueprint[] {
+  const mode = input.assessmentMode ?? assessmentModeForTestKind(input.kind);
+  const policy = assessmentModePolicy(mode);
   return resolveSkills(input).map((skill, index) => ({
     skill,
     sectionOrder: index,
     label: SKILL_LABELS[skill],
     timeLimitSeconds:
-      input.timeLimitOverrides?.[skill] ?? IELTS_SECTION_TIME_LIMITS[skill],
+      input.timeLimitOverrides?.[skill] ??
+      policy.sectionTimeLimits[skill] ??
+      IELTS_SECTION_TIME_LIMITS[skill],
   }));
 }

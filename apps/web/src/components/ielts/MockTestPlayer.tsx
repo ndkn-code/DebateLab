@@ -11,9 +11,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { MockStructure, AttemptState } from "@/lib/api/ielts/mock-repository";
+import type {
+  MockStructure,
+  AttemptState,
+} from "@/lib/api/ielts/mock-repository";
 import type { IeltsResponseMap } from "@/lib/ielts/question-contract";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
+import {
+  assessmentModePolicy,
+  type AssessmentMode,
+} from "@/lib/ielts/assessment-mode";
 import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
 import { showToast } from "@/components/shared/toast";
 import {
@@ -61,15 +68,24 @@ export function MockTestPlayer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(new Map());
+  const pending = useRef<Map<string, { sectionId: string; value: unknown }>>(
+    new Map(),
+  );
   const lastAnswerToastAt = useRef(0);
   const answerSaveErrorShown = useRef(false);
-  const hydrateAnnotations = useMockAnnotationsStore((store) => store.hydrateAttempt);
-  const clearAnnotations = useMockAnnotationsStore((store) => store.clearActiveAttempt);
+  const hydrateAnnotations = useMockAnnotationsStore(
+    (store) => store.hydrateAttempt,
+  );
+  const clearAnnotations = useMockAnnotationsStore(
+    (store) => store.clearActiveAttempt,
+  );
 
   const sections = state?.sections ?? [];
   const section = sections[activeIndex];
   const attemptId = state?.attempt.id ?? null;
+  const assessmentMode: AssessmentMode =
+    state?.attempt.assessment_mode ?? structure.test.assessment_mode;
+  const modePolicy = assessmentModePolicy(assessmentMode);
 
   useEffect(() => {
     if (!attemptId) return undefined;
@@ -77,51 +93,65 @@ export function MockTestPlayer({
     return () => clearAnnotations();
   }, [attemptId, hydrateAnnotations, clearAnnotations]);
 
-  const run = useCallback(async (fn: () => Promise<void>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await fn();
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : t("toastActionFailed");
-      setError(message);
-      showToast(message, "error");
-    } finally {
-      setBusy(false);
-    }
-  }, [t]);
+  const run = useCallback(
+    async (fn: () => Promise<void>) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await fn();
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : t("toastActionFailed");
+        setError(message);
+        showToast(message, "error");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [t],
+  );
 
   const hydrate = (next: AttemptState) => {
     setState(next);
     setResponses(
-      Object.fromEntries(next.responses.map((row) => [row.question_id, row.response])),
+      Object.fromEntries(
+        next.responses.map((row) => [row.question_id, row.response]),
+      ),
     );
   };
 
   // Persist one question's latest value; keep it pending on failure so a later
   // flush retries (the optimistic value stays on screen meanwhile).
-  const persistOne = useCallback(async (questionId: string) => {
-    const item = pending.current.get(questionId);
-    if (!item) return;
-    try {
-      await saveResponse({ sectionId: item.sectionId, questionId, response: item.value });
-      if (pending.current.get(questionId) === item) {
-        pending.current.delete(questionId);
-        answerSaveErrorShown.current = false;
-        const now = Date.now();
-        if (now - lastAnswerToastAt.current > 12000) {
-          lastAnswerToastAt.current = now;
-          showToast(t("toastAnswerSaved"), "success");
+  const persistOne = useCallback(
+    async (questionId: string) => {
+      const item = pending.current.get(questionId);
+      if (!item || !attemptId) return;
+      try {
+        await saveResponse({
+          attemptId,
+          sectionId: item.sectionId,
+          questionId,
+          response: item.value,
+        });
+        if (pending.current.get(questionId) === item) {
+          pending.current.delete(questionId);
+          answerSaveErrorShown.current = false;
+          const now = Date.now();
+          if (now - lastAnswerToastAt.current > 12000) {
+            lastAnswerToastAt.current = now;
+            showToast(t("toastAnswerSaved"), "success");
+          }
         }
+      } catch {
+        if (!answerSaveErrorShown.current) {
+          answerSaveErrorShown.current = true;
+          showToast(t("toastAnswerSaveFailed"), "warning");
+        }
+        /* keep pending for retry */
       }
-    } catch {
-      if (!answerSaveErrorShown.current) {
-        answerSaveErrorShown.current = true;
-        showToast(t("toastAnswerSaveFailed"), "warning");
-      }
-      /* keep pending for retry */
-    }
-  }, [t]);
+    },
+    [attemptId, t],
+  );
 
   // Drain all debounced saves NOW — called before every state transition so no
   // just-typed answer is lost when a section/attempt is submitted.
@@ -141,7 +171,12 @@ export function MockTestPlayer({
       setPhase("running");
       const first = started.sections[0];
       if (first) {
-        setState(await enterSection({ attemptId: started.attempt.id, sectionId: first.id }));
+        setState(
+          await enterSection({
+            attemptId: started.attempt.id,
+            sectionId: first.id,
+          }),
+        );
       }
     });
 
@@ -149,6 +184,9 @@ export function MockTestPlayer({
     run(async () => {
       const target = sections[index];
       if (!target || !attemptId) return;
+      if (!modePolicy.canNavigateToSubmittedSection) {
+        if (index !== activeIndex + 1 || section?.submitted_at === null) return;
+      }
       await flushPending();
       setActiveIndex(index);
       if (target.started_at === null) {
@@ -172,7 +210,10 @@ export function MockTestPlayer({
 
   const sectionAction =
     (
-      action: (input: { attemptId: string; sectionId: string }) => Promise<AttemptState>,
+      action: (input: {
+        attemptId: string;
+        sectionId: string;
+      }) => Promise<AttemptState>,
       successMessage?: string,
     ) =>
     () => {
@@ -204,14 +245,22 @@ export function MockTestPlayer({
       // Diagnostic sittings (onboarding / study-plan) pass a returnHref and must
       // funnel back there — the plan, not the raw results page. Self-serve mocks
       // (no returnHref) go to full results.
-      router.push(returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`);
+      router.push(
+        returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`,
+      );
     });
   };
 
   if (phase === "intro") {
     return (
       <div className="flex h-full items-center justify-center overflow-y-auto px-4 py-8">
-        <IntroCard title={structure.test.title} busy={busy} error={error} onStart={handleStart} />
+        <IntroCard
+          title={structure.test.title}
+          assessmentMode={assessmentMode}
+          busy={busy}
+          error={error}
+          onStart={handleStart}
+        />
       </div>
     );
   }
@@ -250,12 +299,16 @@ export function MockTestPlayer({
           busy={busy}
           testTitle={structure.test.title}
           sections={sections}
+          assessmentMode={assessmentMode}
           activeSectionIndex={activeIndex}
           onAnswer={handleAnswer}
           onSwitchSection={handleSwitch}
           onPause={sectionAction(pauseSection)}
           onResume={sectionAction(resumeSection)}
-          onSubmitSection={sectionAction(submitSection, t("toastSectionSubmitted"))}
+          onSubmitSection={sectionAction(
+            submitSection,
+            t("toastSectionSubmitted"),
+          )}
           onExpire={handleExpire}
           onFinish={handleFinish}
         />
@@ -266,11 +319,13 @@ export function MockTestPlayer({
 
 function IntroCard({
   title,
+  assessmentMode,
   busy,
   error,
   onStart,
 }: {
   title: string;
+  assessmentMode: AssessmentMode;
   busy: boolean;
   error: string | null;
   onStart: () => void;
@@ -280,11 +335,15 @@ function IntroCard({
   return (
     <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-5 text-center sm:p-6">
       <span className="inline-flex h-7 items-center rounded-lg border border-primary/35 bg-primary-container px-2.5 text-xs font-extrabold uppercase tracking-wide text-on-primary-container">
-        {t("modeLabel")}
+        {assessmentMode === "simulation"
+          ? t("modeLabel")
+          : t("guidedPracticeLabel")}
       </span>
       <h1 className="text-xl font-bold text-on-surface">{title}</h1>
       <p className="text-sm text-on-surface-variant">
-        {t("introBody")}
+        {assessmentMode === "simulation"
+          ? t("introBody")
+          : t("guidedPracticeBody")}
       </p>
       <MockPreTestGuide />
       {error ? <p className="text-sm text-error">{error}</p> : null}
@@ -318,12 +377,16 @@ function BandSummary({
   ];
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container p-5 sm:p-6">
-      <h1 className="text-center text-xl font-bold text-on-surface">{t("yourBand")}</h1>
+      <h1 className="text-center text-xl font-bold text-on-surface">
+        {t("yourBand")}
+      </h1>
       <div className="rounded-xl bg-primary p-5 text-center text-on-primary">
         <p className="text-xs font-semibold uppercase tracking-wide">
           {t("overallProvisional")}
         </p>
-        <p className="text-4xl font-extrabold">{bandText(grade.bands.overallBand)}</p>
+        <p className="text-4xl font-extrabold">
+          {bandText(grade.bands.overallBand)}
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         {rows.map(([label, raw, band]) => (

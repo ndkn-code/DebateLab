@@ -3920,6 +3920,8 @@
       "toastActionFailed": "Có lỗi xảy ra. Vui lòng thử lại.",
       "exam": {
         "modeLabel": "Mô phỏng kỳ thi",
+        "guidedPracticeLabel": "Luyện tập có hướng dẫn",
+        "guidedPracticeBody": "Luyện một kỹ năng trọng tâm với khả năng tạm dừng, điều hướng và nhận phản hồi.",
         "time": "Thời gian",
         "timerPaused": "Tạm dừng",
         "timerSubmitted": "Đã nộp",

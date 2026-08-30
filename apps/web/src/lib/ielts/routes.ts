@@ -10,6 +10,8 @@ export function ieltsLoginHref(next: string = IELTS_ROUTES.onboarding): string {
   return `/auth/login?next=${encodeURIComponent(next)}`;
 }
 
-export function ieltsSignupHref(next: string = IELTS_ROUTES.onboarding): string {
+export function ieltsSignupHref(
+  next: string = IELTS_ROUTES.onboarding,
+): string {
   return `/auth/signup?next=${encodeURIComponent(next)}`;
 }

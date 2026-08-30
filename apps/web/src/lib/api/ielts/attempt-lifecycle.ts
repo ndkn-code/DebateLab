@@ -11,6 +11,7 @@ import "server-only";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/supabase";
 import type { SectionBlueprint } from "@/lib/ielts/mock-blueprint";
+import type { AssessmentMode } from "@thinkfy/shared";
 
 export interface CreatedAttempt {
   attempt: Tables<"ielts_attempts">;
@@ -32,6 +33,8 @@ export async function createAttemptWithSections(params: {
   userId: string;
   test: Pick<Tables<"ielts_tests">, "id" | "module">;
   blueprint: SectionBlueprint[];
+  assessmentMode?: AssessmentMode;
+  testVersion?: number;
   org?: AttemptOrgContext;
 }): Promise<CreatedAttempt> {
   const admin = createTypedAdminClient();
@@ -48,6 +51,8 @@ export async function createAttemptWithSections(params: {
     .insert({
       user_id: userId,
       test_id: test.id,
+      assessment_mode: params.assessmentMode ?? "practice",
+      test_version: params.testVersion ?? 1,
       module: test.module,
       status: "in_progress",
       attempt_number: (count ?? 0) + 1,
@@ -76,15 +81,51 @@ export async function createAttemptWithSections(params: {
       })),
     )
     .select();
-  if (sectionError) throw new Error(`createAttemptSections: ${sectionError.message}`);
+  if (sectionError)
+    throw new Error(`createAttemptSections: ${sectionError.message}`);
 
-  return { attempt, sections: (sections ?? []).sort((a, b) => a.section_order - b.section_order) };
+  return {
+    attempt,
+    sections: (sections ?? []).sort(
+      (a, b) => a.section_order - b.section_order,
+    ),
+  };
 }
 
 /** Mark an attempt submitted (idempotent-friendly; service-role). */
 export async function markAttemptSubmitted(attemptId: string): Promise<void> {
   const admin = createTypedAdminClient();
   const nowIso = new Date().toISOString();
+  const { data: attempt, error: attemptError } = await admin
+    .from("ielts_attempts")
+    .select("id, assessment_mode, status")
+    .eq("id", attemptId)
+    .maybeSingle();
+  if (attemptError)
+    throw new Error(`markAttemptSubmitted(load): ${attemptError.message}`);
+  if (!attempt) throw new Error("markAttemptSubmitted: attempt not found");
+  if (attempt.status !== "in_progress") return;
+
+  const { data: sections, error: sectionsError } = await admin
+    .from("ielts_attempt_sections")
+    .select("skill, submitted_at")
+    .eq("attempt_id", attemptId);
+  if (sectionsError)
+    throw new Error(`markAttemptSubmitted(sections): ${sectionsError.message}`);
+  const requiredSkills =
+    attempt.assessment_mode === "simulation"
+      ? (["listening", "reading", "writing"] as const)
+      : (sections ?? []).map((section) => section.skill);
+  const submittedSkills = new Set(
+    (sections ?? [])
+      .filter((section) => section.submitted_at !== null)
+      .map((section) => section.skill),
+  );
+  if (requiredSkills.some((skill) => !submittedSkills.has(skill))) {
+    throw new Error(
+      "All required IELTS sections must be submitted before finishing the attempt.",
+    );
+  }
   const { error } = await admin
     .from("ielts_attempts")
     .update({ status: "submitted", submitted_at: nowIso, updated_at: nowIso })
