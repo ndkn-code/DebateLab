@@ -1,6 +1,8 @@
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { CookieConsentManager } from "@/components/legal/cookie-consent-manager";
+import { asPublicLocale } from "@/lib/public-site";
 
 type Props = {
   children: React.ReactNode;
@@ -20,5 +22,10 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
 
-  return children;
+  return (
+    <>
+      {children}
+      <CookieConsentManager locale={asPublicLocale(locale)} />
+    </>
+  );
 }

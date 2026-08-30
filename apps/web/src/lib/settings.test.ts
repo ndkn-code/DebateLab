@@ -34,7 +34,7 @@ assert.equal(draft.organizationVisibility, "connections");
 assert.equal(draft.allowConnectionRequests, false);
 assert.equal(draft.searchableByHandle, false);
 assert.equal(draft.friendCodeDiscoveryEnabled, true);
-assert.equal(draft.analyticsCookiesEnabled, true);
+assert.equal(draft.analyticsCookiesEnabled, false);
 
 const savedDraft = buildSavedSettingsDraft({
   profilePrivacy: null,
@@ -48,6 +48,6 @@ assert.equal(savedDraft.activitiesVisibility, "connections");
 assert.equal(savedDraft.achievementsVisibility, "connections");
 assert.equal(savedDraft.organizationVisibility, "connections");
 assert.equal(savedDraft.friendCodeDiscoveryEnabled, true);
-assert.equal(savedDraft.analyticsCookiesEnabled, true);
+assert.equal(savedDraft.analyticsCookiesEnabled, false);
 
 console.log("Settings model tests passed");

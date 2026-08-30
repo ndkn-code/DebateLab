@@ -23,6 +23,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://thinkfy.net",
+  ),
   title: {
     default: "Thinkfy — Master the Art of Debate",
     template: "%s | Thinkfy",
@@ -60,11 +63,12 @@ export const metadata: Metadata = {
     images: ["/brand/thinkfy/thinkfy-logo-light.png"],
   },
   icons: {
-    icon: [
-      { url: "/brand/thinkfy/thinkfy-favicon.png", type: "image/png" },
-    ],
+    icon: [{ url: "/brand/thinkfy/thinkfy-favicon.png", type: "image/png" }],
     apple: [{ url: "/brand/thinkfy/thinkfy-favicon.png", type: "image/png" }],
   },
+  applicationName: "Thinkfy",
+  category: "education",
+  referrer: "origin-when-cross-origin",
 };
 
 export default async function RootLayout({

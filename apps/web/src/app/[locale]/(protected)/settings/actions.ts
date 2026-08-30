@@ -148,7 +148,9 @@ export async function claimOrganizationJoinCode(input: string) {
   }
 
   const row = Array.isArray(data)
-    ? (data[0] as { status?: string; message?: string; club_id?: string | null } | undefined)
+    ? (data[0] as
+        | { status?: string; message?: string; club_id?: string | null }
+        | undefined)
     : null;
   const status = (row?.status ?? "not_found") as ClubJoinCodeClaimStatus;
 
@@ -174,7 +176,7 @@ function getDateFormatter() {
 
 function formatDateInZone(date: string | Date) {
   return getDateFormatter().format(
-    typeof date === "string" ? new Date(date) : date
+    typeof date === "string" ? new Date(date) : date,
   );
 }
 
@@ -186,15 +188,13 @@ function getSupportedLocale(locale: string): SettingsLocale {
 
 function sanitizeVisibility(
   value: unknown,
-  fallback: ProfileVisibility
+  fallback: ProfileVisibility,
 ): ProfileVisibility {
   if (value === "trusted") {
     return "connections";
   }
 
-  return value === "private" ||
-    value === "connections" ||
-    value === "public"
+  return value === "private" || value === "connections" || value === "public"
     ? (value as ProfileVisibility)
     : fallback;
 }
@@ -203,26 +203,29 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
   const locale = getSupportedLocale(input.preferredLocale);
   const practiceLanguage = coercePracticeLanguage(locale);
   const displayName = input.displayName.trim();
-  const rawHandle = (input.handle ?? "").trim().replace(/^@+/, "").toLowerCase();
+  const rawHandle = (input.handle ?? "")
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase();
   const handle = rawHandle ? normalizeProfileHandle(rawHandle) : "";
   const profileStatus = (input.profileStatus ?? "").trim().slice(0, 140);
   const defaultPrepTime = clampDurationSeconds(
     input.defaultPrepTime,
-    SOLO_PREP_DURATION
+    SOLO_PREP_DURATION,
   );
   const defaultSpeechTime = clampDurationSeconds(
     input.defaultSpeechTime,
-    SOLO_SPEECH_DURATION
+    SOLO_SPEECH_DURATION,
   );
   const defaultDifficulty = AI_DIFFICULTY_OPTIONS.includes(
-    input.defaultDifficulty
+    input.defaultDifficulty,
   )
     ? input.defaultDifficulty
     : "medium";
 
   if (rawHandle && !handle) {
     throw new Error(
-      "Handles must be 3-30 characters and use only lowercase letters, numbers, underscores, or periods."
+      "Handles must be 3-30 characters and use only lowercase letters, numbers, underscores, or periods.",
     );
   }
 
@@ -231,19 +234,25 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     handle: handle ?? "",
     profileStatus,
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
-    profileVisibility: sanitizeVisibility(input.profileVisibility, "connections"),
-    analyticsVisibility: sanitizeVisibility(input.analyticsVisibility, "private"),
+    profileVisibility: sanitizeVisibility(
+      input.profileVisibility,
+      "connections",
+    ),
+    analyticsVisibility: sanitizeVisibility(
+      input.analyticsVisibility,
+      "private",
+    ),
     activitiesVisibility: sanitizeVisibility(
       input.activitiesVisibility,
-      "connections"
+      "connections",
     ),
     achievementsVisibility: sanitizeVisibility(
       input.achievementsVisibility,
-      "connections"
+      "connections",
     ),
     organizationVisibility: sanitizeVisibility(
       input.organizationVisibility,
-      "connections"
+      "connections",
     ),
     allowConnectionRequests: input.allowConnectionRequests !== false,
     searchableByHandle: input.searchableByHandle !== false,
@@ -263,7 +272,7 @@ function sanitizeDraft(input: SettingsDraft): SettingsDraft {
     achievementUpdates: Boolean(input.achievementUpdates),
     smartFeaturePopups: input.smartFeaturePopups !== false,
     emailNotifications: Boolean(input.emailNotifications),
-    analyticsCookiesEnabled: true,
+    analyticsCookiesEnabled: Boolean(input.analyticsCookiesEnabled),
   };
 }
 
@@ -285,7 +294,7 @@ function computeStreakStats(dateKeys: string[]) {
     const previous = new Date(`${uniqueDates[index - 1]}T00:00:00`);
     const current = new Date(`${uniqueDates[index]}T00:00:00`);
     const daysApart = Math.round(
-      (current.getTime() - previous.getTime()) / (1000 * 60 * 60 * 24)
+      (current.getTime() - previous.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (daysApart === 1) {
@@ -309,7 +318,7 @@ function computeStreakStats(dateKeys: string[]) {
 
 function getNumericMetadata(
   metadata: Record<string, unknown> | null | undefined,
-  keys: string[]
+  keys: string[],
 ) {
   for (const key of keys) {
     const value = metadata?.[key];
@@ -341,7 +350,7 @@ function createDailyStatsAggregate(date: string): DailyStatsAggregate {
 
 function upsertDailyAggregate(
   aggregates: Map<string, DailyStatsAggregate>,
-  date: string
+  date: string,
 ) {
   const existing = aggregates.get(date);
   if (existing) {
@@ -364,14 +373,11 @@ async function rebuildDailyStats(input: {
     supabase
       .from("activity_log")
       .select(
-        "id, activity_type, reference_id, reference_type, xp_earned, metadata, created_at"
+        "id, activity_type, reference_id, reference_type, xp_earned, metadata, created_at",
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("daily_stats")
-      .select("*")
-      .eq("user_id", userId),
+    supabase.from("daily_stats").select("*").eq("user_id", userId),
   ]);
 
   if (activityRes.error) {
@@ -404,8 +410,9 @@ async function rebuildDailyStats(input: {
       aggregate.minutes += Math.max(
         0,
         Math.round(
-          getNumericMetadata(row.metadata, ["duration_seconds", "duration"]) / 60
-        )
+          getNumericMetadata(row.metadata, ["duration_seconds", "duration"]) /
+            60,
+        ),
       );
       continue;
     }
@@ -417,7 +424,7 @@ async function rebuildDailyStats(input: {
       aggregate.sessionsCompleted += 1;
       aggregate.xpEarned += row.xp_earned ?? 0;
       aggregate.minutes += row.reference_id
-        ? duelMinutesById.get(row.reference_id) ?? 0
+        ? (duelMinutesById.get(row.reference_id) ?? 0)
         : 0;
       continue;
     }
@@ -426,9 +433,11 @@ async function rebuildDailyStats(input: {
     aggregate.minutes += Math.max(
       0,
       Math.round(
-        getNumericMetadata(row.metadata, ["timeSpentSeconds", "time_spent_seconds"]) /
-          60
-      )
+        getNumericMetadata(row.metadata, [
+          "timeSpentSeconds",
+          "time_spent_seconds",
+        ]) / 60,
+      ),
     );
   }
 
@@ -499,7 +508,7 @@ export async function saveSettings(input: SettingsDraft) {
   if (!user && devAuthBypassUser) {
     const preferences = draftToPreferences(
       draft,
-      DEV_ADMIN_PROFILE.preferences as Record<string, unknown>
+      DEV_ADMIN_PROFILE.preferences as Record<string, unknown>,
     );
 
     const cookieStore = await cookies();
@@ -512,7 +521,7 @@ export async function saveSettings(input: SettingsDraft) {
         path: "/",
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
-      }
+      },
     );
 
     revalidateSettingsRoutes();
@@ -551,7 +560,7 @@ export async function saveSettings(input: SettingsDraft) {
 
   const preferences = draftToPreferences(
     draft,
-    (profile?.preferences as Record<string, unknown> | null | undefined) ?? {}
+    (profile?.preferences as Record<string, unknown> | null | undefined) ?? {},
   );
 
   const { error } = await supabase
@@ -587,7 +596,7 @@ export async function saveSettings(input: SettingsDraft) {
         friend_code_discovery_enabled: draft.friendCodeDiscoveryEnabled,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id" }
+      { onConflict: "user_id" },
     );
 
   if (privacyError) {
@@ -595,13 +604,17 @@ export async function saveSettings(input: SettingsDraft) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(ANALYTICS_COOKIE_NAME, getAnalyticsCookieValue(draft.analyticsCookiesEnabled), {
-    httpOnly: false,
-    maxAge: ANALYTICS_COOKIE_MAX_AGE,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  cookieStore.set(
+    ANALYTICS_COOKIE_NAME,
+    getAnalyticsCookieValue(draft.analyticsCookiesEnabled),
+    {
+      httpOnly: false,
+      maxAge: ANALYTICS_COOKIE_MAX_AGE,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
+  );
 
   revalidateSettingsRoutes();
   if (draft.handle) {
@@ -632,7 +645,9 @@ export async function saveSettings(input: SettingsDraft) {
   };
 }
 
-export async function saveDebateModePreference(nextLocaleInput: SettingsLocale) {
+export async function saveDebateModePreference(
+  nextLocaleInput: SettingsLocale,
+) {
   const locale = getSupportedLocale(nextLocaleInput);
   const practiceLanguage = coercePracticeLanguage(locale);
   const supabase = await createClient();
@@ -723,7 +738,9 @@ export async function clearSoloPracticeHistory() {
     throw new Error(participantsError.message);
   }
 
-  const duelIds = [...new Set((duelParticipants ?? []).map((row) => row.duel_id))];
+  const duelIds = [
+    ...new Set((duelParticipants ?? []).map((row) => row.duel_id)),
+  ];
   let duelRows: DuelRow[] = [];
   let duelSpeechRows: DuelSpeechRow[] = [];
 
@@ -755,7 +772,7 @@ export async function clearSoloPracticeHistory() {
   const speechSecondsByDuelId = duelSpeechRows.reduce((map, speech) => {
     map.set(
       speech.duel_id,
-      (map.get(speech.duel_id) ?? 0) + (speech.duration_seconds ?? 0)
+      (map.get(speech.duel_id) ?? 0) + (speech.duration_seconds ?? 0),
     );
     return map;
   }, new Map<string, number>());
@@ -765,12 +782,11 @@ export async function clearSoloPracticeHistory() {
   let duelMinutesTotal = 0;
 
   for (const duel of duelRows) {
-    const prepWindow = Math.max(
-      30,
-      Math.min(duel.prep_time_seconds ?? 0, 60)
-    );
+    const prepWindow = Math.max(30, Math.min(duel.prep_time_seconds ?? 0, 60));
     const totalSeconds =
-      (speechSecondsByDuelId.get(duel.id) ?? 0) + duel.prep_time_seconds + prepWindow;
+      (speechSecondsByDuelId.get(duel.id) ?? 0) +
+      duel.prep_time_seconds +
+      prepWindow;
     const totalMinutes = Math.max(1, Math.round(totalSeconds / 60));
     duelMinutesById.set(duel.id, totalMinutes);
     duelMinutesTotal += totalMinutes;

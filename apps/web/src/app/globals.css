@@ -15,62 +15,60 @@
   --font-serif: var(--font-noto-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --color-primary: #00B8D9;
-  --color-primary-dim: #0788A0;
-  --color-primary-depth: #0788A0;
-  --color-primary-container: #E5F8FC;
-  --color-primary-fixed: #00B8D9;
-  --color-primary-fixed-dim: #8BE8F7;
-  --color-on-primary: #ffffff;
-  --color-on-primary-container: #0788A0;
-  --color-on-primary-fixed: #102936;
-  --color-on-primary-fixed-variant: #0788A0;
-  --color-inverse-primary: #00B8D9;
+  /* Tailwind fallback values mirror the shared web-v2 theme. Runtime values
+     are emitted by ThinkfyThemeVariables from @thinkfy/shared/design-system. */
+  --color-primary: #333333;
+  --color-primary-dim: #222222;
+  --color-primary-depth: #1A1A1A;
+  --color-primary-container: #E9E9E5;
+  --color-primary-fixed: #333333;
+  --color-primary-fixed-dim: #E9E9E5;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #333333;
+  --color-on-primary-fixed: #FFFFFF;
+  --color-on-primary-fixed-variant: #E9E9E5;
+  --color-inverse-primary: #F5F5F2;
 
-  /* secondary = warm coral accent (the one non-cyan brand hue). Distinct from
-     error (#FF5A5F) by leaning orange. Mirrors the emitter derivation in
-     @thinkfy/shared design-system tokens.ts (must stay in sync). */
-  --color-secondary: #FF8A5B;
-  --color-secondary-dim: #C24A26;
-  --color-secondary-container: #FFEDE3;
-  --color-secondary-fixed: #FFEDE3;
-  --color-secondary-fixed-dim: #FFEDE3;
-  --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #C24A26;
-  --color-on-secondary-fixed: #C24A26;
-  --color-on-secondary-fixed-variant: #C24A26;
+  --color-secondary: #0077E6;
+  --color-secondary-dim: #005BAC;
+  --color-secondary-container: #E6F2FF;
+  --color-secondary-fixed: #E6F2FF;
+  --color-secondary-fixed-dim: #E6F2FF;
+  --color-on-secondary: #FFFFFF;
+  --color-on-secondary-container: #005BAC;
+  --color-on-secondary-fixed: #005BAC;
+  --color-on-secondary-fixed-variant: #005BAC;
 
-  /* tertiary = deep-cyan supporting tone (tonal depth against the primary cyan) */
-  --color-tertiary: #0788A0;
-  --color-tertiary-dim: #0788A0;
-  --color-tertiary-container: #D5EFF5;
-  --color-tertiary-fixed: #D5EFF5;
-  --color-tertiary-fixed-dim: #D5EFF5;
-  --color-on-tertiary: #ffffff;
-  --color-on-tertiary-container: #0788A0;
-  --color-on-tertiary-fixed: #0788A0;
-  --color-on-tertiary-fixed-variant: #0788A0;
+  --color-tertiary: #15B042;
+  --color-tertiary-dim: #087C2B;
+  --color-tertiary-container: #CAFACE;
+  --color-tertiary-fixed: #CAFACE;
+  --color-tertiary-fixed-dim: #CAFACE;
+  --color-on-tertiary: #FFFFFF;
+  --color-on-tertiary-container: #333333;
+  --color-on-tertiary-fixed: #333333;
+  --color-on-tertiary-fixed-variant: #087C2B;
 
-  --color-error: #FF5A5F;
-  --color-error-dim: #D94349;
-  --color-error-container: #FFE8EA;
-  --color-on-error: #ffffff;
-  --color-on-error-container: #D94349;
+  --color-error: #B42318;
+  --color-error-dim: #8E1B12;
+  --color-error-container: #FEE4E2;
+  --color-on-error: #FFFFFF;
+  --color-on-error-container: #8E1B12;
 
-  --color-success: #34C759;
-  --color-success-dim: #249B55;
-  --color-success-container: #E8F7EC;
-  --color-on-success: #102936;
-  --color-warning: #FFD166;
-  --color-warning-container: #FFF3CE;
-  --color-on-warning-container: #8A5C00;
-  --color-info: #00B8D9;
-  --color-info-container: #E5F8FC;
-  --color-on-info: #ffffff;
-  --color-reward: #FFD166;
-  --color-reward-dim: #C79300;
-  --color-reward-container: #FFF3CE;
-  --color-on-reward: #102936;
+  --color-success: #15B042;
+  --color-success-dim: #087C2B;
+  --color-success-container: #CAFACE;
+  --color-on-success: #333333;
+  --color-warning: #B45309;
+  --color-warning-container: #FFF4D6;
+  --color-on-warning-container: #7C2D12;
+  --color-info: #0077E6;
+  --color-info-container: #E6F2FF;
+  --color-on-info: #FFFFFF;
+  --color-reward: #D18B00;
+  --color-reward-dim: #8A5C00;
+  --color-reward-container: #FFF2CC;
+  --color-on-reward: #333333;
 
   /* Exam annotation palette. These are solid semantic tokens because themed
      color utilities with /opacity bake the light literal into dark mode. */
@@ -79,49 +77,49 @@
   --color-highlight-blue: #BDEBF5;
   --color-highlight-purple: #D9CCFF;
   --color-highlight-orange: #FFD0B8;
-  --color-highlight-ink: #102936;
+  --color-highlight-ink: #333333;
 
   --color-surface: #ffffff;
-  --color-surface-dim: #F3FCFE;
+  --color-surface-dim: #F0F0EC;
   --color-surface-bright: #ffffff;
-  --color-surface-tint: #00B8D9;
-  --color-surface-variant: #F3FCFE;
-  --color-surface-container: #F3FCFE;
-  --color-surface-container-low: #F8FDFF;
-  --color-surface-container-high: #E5F8FC;
-  --color-surface-container-highest: #E5F8FC;
+  --color-surface-tint: #333333;
+  --color-surface-variant: #F0F0EC;
+  --color-surface-container: #F0F0EC;
+  --color-surface-container-low: #F8F8F6;
+  --color-surface-container-high: #E9E9E5;
+  --color-surface-container-highest: #DEDED9;
   --color-surface-container-lowest: #ffffff;
 
-  --color-sidebar: #102936;
-  --color-sidebar-soft: #183B49;
-  --color-sidebar-foreground: #ffffff;
-  --color-sidebar-muted: #8BE8F7;
-  --color-sidebar-accent: #00B8D9;
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-soft: #F8F8F6;
+  --color-sidebar-foreground: #333333;
+  --color-sidebar-muted: #666666;
+  --color-sidebar-accent: #0077E6;
 
-  --color-on-surface: #102936;
-  --color-on-surface-variant: #657B84;
-  --color-on-background: #102936;
-  --color-inverse-surface: #102936;
-  --color-inverse-on-surface: #ffffff;
+  --color-on-surface: #333333;
+  --color-on-surface-variant: #666666;
+  --color-on-background: #333333;
+  --color-inverse-surface: #333333;
+  --color-inverse-on-surface: #FFFFFF;
 
-  --color-outline: #CDECF3;
-  --color-outline-variant: #CDECF3;
+  --color-outline: #D7D7D2;
+  --color-outline-variant: #E2E2DE;
 
   /* shadcn compatibility */
   --color-card: #ffffff;
-  --color-card-foreground: #102936;
+  --color-card-foreground: #333333;
   --color-popover: #ffffff;
-  --color-popover-foreground: #102936;
+  --color-popover-foreground: #333333;
   --color-primary-foreground: #ffffff;
-  --color-secondary-foreground: #102936;
-  --color-muted: #F3FCFE;
-  --color-muted-foreground: #657B84;
-  --color-accent: #F3FCFE;
-  --color-accent-foreground: #102936;
-  --color-destructive: #FF5A5F;
-  --color-border: #CDECF3;
-  --color-input: #CDECF3;
-  --color-ring: #00B8D9;
+  --color-secondary-foreground: #333333;
+  --color-muted: #F0F0EC;
+  --color-muted-foreground: #666666;
+  --color-accent: #F0F0EC;
+  --color-accent-foreground: #333333;
+  --color-destructive: #B42318;
+  --color-border: #E2E2DE;
+  --color-input: #D7D7D2;
+  --color-ring: #0077E6;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -134,18 +132,18 @@
   /* Chart palette — design.md §Chart Colors. Mirrors @thinkfy/shared chart
      roles; generates fill-chart-1 / stroke-chart-1 / text-chart-1 utilities.
      Dark overrides live in the .dark block below. Never use /opacity on these. */
-  --color-chart-1: #00B8D9;
-  --color-chart-2: #8BE8F7;
-  --color-chart-3: #34C759;
-  --color-chart-4: #F5B942;
-  --color-chart-5: #7B61FF;
-  --color-chart-6: #0788A0;
-  --color-chart-7: #FF7A59;
-  --color-chart-grid: #E3EEF1;
-  --color-chart-axis: #657B84;
-  --color-chart-tooltip-bg: #FFFFFF;
-  --color-chart-tooltip-text: #102936;
-  --color-chart-crosshair: #CDECF3;
+  --color-chart-1: #0077E6;
+  --color-chart-2: #67B3FF;
+  --color-chart-3: #15B042;
+  --color-chart-4: #D18B00;
+  --color-chart-5: #7458C9;
+  --color-chart-6: #333333;
+  --color-chart-7: #B42318;
+  --color-chart-grid: #E2E2DE;
+  --color-chart-axis: #666666;
+  --color-chart-tooltip-bg: #333333;
+  --color-chart-tooltip-text: #FFFFFF;
+  --color-chart-crosshair: #B7B7B1;
 }
 
 /* ───────── Typography scale (see design.md · §Typography) ─────────
@@ -730,31 +728,6 @@
   .dark [class~="text-gray-500"],
   .dark [class~="text-gray-600"] {
     color: var(--color-on-surface-variant) !important;
-  }
-  .landing-light {
-    --color-background: #F3FCFE;
-    --color-surface: #ffffff;
-    --color-surface-container-lowest: #ffffff;
-    --color-surface-container-low: #F3FCFE;
-    --color-surface-container: #E5F8FC;
-    --color-surface-container-high: #E5F8FC;
-    --color-surface-container-highest: #E5F8FC;
-    --color-on-surface: #102936;
-    --color-on-surface-variant: #657B84;
-    --color-primary: #00B8D9;
-    --color-primary-dim: #0788A0;
-    --color-primary-container: #E5F8FC;
-    --color-on-primary: #ffffff;
-    --color-primary-foreground: #ffffff;
-    --color-secondary-container: #eafbf0;
-    --color-tertiary-container: #ecf8f5;
-    --color-warning-container: #fff6e8;
-    --color-error-container: #fff1f1;
-    --color-outline: #cfe0fb;
-    --color-outline-variant: #CDECF3;
-    color-scheme: light;
-    background-color: #F3FCFE;
-    color: #102936;
   }
   .soft-shadow {
     box-shadow: 0 24px 60px -18px rgba(11, 20, 36, 0.1);

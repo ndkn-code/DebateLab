@@ -1,31 +1,66 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { IeltsLanding } from "@/components/landing/ielts/IeltsLanding";
-import { resolveSignedInIeltsEntry } from "@/lib/api/ielts/entry-repository";
-import { createTypedServerClient } from "@/lib/supabase/server";
+import { StructuredData } from "@/components/seo/structured-data";
+import { PublicSiteAnalytics } from "@/components/analytics/public-site-analytics";
+import {
+  PUBLIC_SITE_URL,
+  asPublicLocale,
+  publicPageMetadata,
+} from "@/lib/public-site";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "IELTS preparation",
-};
+type Props = { params: Promise<{ locale: string }> };
 
-export default async function IeltsLandingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = asPublicLocale((await params).locale);
+  return publicPageMetadata({
+    locale,
+    path: "/ielts",
+    title:
+      locale === "vi"
+        ? "Luyện IELTS với lộ trình rõ ràng"
+        : "IELTS practice with a clear study path",
+    description:
+      locale === "vi"
+        ? "Luyện Nghe, Đọc, Viết và Nói với bài tập tập trung, phản hồi hữu ích và lộ trình thích ứng theo tiến độ."
+        : "Practice IELTS Listening, Reading, Writing, and Speaking with focused work, useful feedback, and an adaptive study path.",
+    keywords:
+      locale === "vi"
+        ? ["luyện IELTS", "IELTS online", "lộ trình IELTS", "IELTS speaking"]
+        : [
+            "IELTS practice",
+            "IELTS preparation",
+            "IELTS study plan",
+            "IELTS speaking practice",
+          ],
+  });
+}
+
+export default async function IeltsLandingPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const landingLocale = asPublicLocale(locale);
 
-  const supabase = await createTypedServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect(await resolveSignedInIeltsEntry(user.id, supabase));
-  }
-
-  return <IeltsLanding locale={locale === "vi" ? "vi" : "en"} />;
+  return (
+    <PublicSiteAnalytics locale={landingLocale} product="ielts">
+      <StructuredData
+        value={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Thinkfy IELTS",
+          applicationCategory: "EducationalApplication",
+          operatingSystem: "Web",
+          url: `${PUBLIC_SITE_URL}/${landingLocale}/ielts`,
+          description:
+            landingLocale === "vi"
+              ? "Luyện IELTS bốn kỹ năng với lộ trình học thích ứng và phản hồi AI hỗ trợ."
+              : "Four-skill IELTS practice with an adaptive study path and AI-assisted feedback.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }}
+      />
+      <IeltsLanding locale={landingLocale} />
+    </PublicSiteAnalytics>
+  );
 }

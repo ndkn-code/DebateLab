@@ -1,8 +1,5 @@
 import { coercePracticeLanguage } from "@/lib/practice-language";
-import {
-  coerceVoiceForLanguage,
-  DEFAULT_VOICE,
-} from "@/lib/tts-voices";
+import { coerceVoiceForLanguage, DEFAULT_VOICE } from "@/lib/tts-voices";
 import type { ProfileVisibility } from "@/lib/profile-social/model";
 import {
   SOLO_PREP_DURATION,
@@ -160,7 +157,7 @@ const DEFAULT_SETTINGS = {
   achievementUpdates: true,
   smartFeaturePopups: true,
   emailNotifications: true,
-  analyticsCookiesEnabled: true,
+  analyticsCookiesEnabled: false,
   profileVisibility: "connections" as ProfileVisibility,
   analyticsVisibility: "private" as ProfileVisibility,
   activitiesVisibility: "connections" as ProfileVisibility,
@@ -177,17 +174,12 @@ function coerceBoolean(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
 }
 
-function coerceProfileVisibility(
-  value: unknown,
-  fallback: ProfileVisibility
-) {
+function coerceProfileVisibility(value: unknown, fallback: ProfileVisibility) {
   if (value === "trusted") {
     return "connections" as ProfileVisibility;
   }
 
-  return value === "private" ||
-    value === "connections" ||
-    value === "public"
+  return value === "private" || value === "connections" || value === "public"
     ? (value as ProfileVisibility)
     : fallback;
 }
@@ -209,7 +201,7 @@ export function getAnalyticsCookieValue(enabled: boolean) {
 }
 
 export function isAnalyticsEnabled(cookieValue?: string | null) {
-  return cookieValue !== "denied";
+  return cookieValue === "granted";
 }
 
 export function serializeAvatarPreset(preset: AvatarPreset) {
@@ -240,7 +232,7 @@ export function getAvatarPresetUrl(presetId: string) {
     AVATAR_PRESETS.find((candidate) => candidate.id === presetId) ??
     AVATAR_PRESETS[0];
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-    serializeAvatarPreset(preset)
+    serializeAvatarPreset(preset),
   )}`;
   avatarUrlCache.set(preset.id, url);
   return url;
@@ -293,12 +285,12 @@ export function normalizeAvatarUrl(avatarUrl?: string | null) {
 
 export function normalizeSettingsPreferences(
   preferences: Record<string, unknown> | null | undefined,
-  fallbackLocale: SettingsLocale = DEFAULT_SETTINGS.preferredLocale
+  fallbackLocale: SettingsLocale = DEFAULT_SETTINGS.preferredLocale,
 ) {
   const source = (preferences ?? {}) as SettingsPreferences;
   const preferredLocale = coerceLocale(
     source.preferred_locale,
-    fallbackLocale ?? DEFAULT_SETTINGS.preferredLocale
+    fallbackLocale ?? DEFAULT_SETTINGS.preferredLocale,
   );
   const practiceLanguage = coercePracticeLanguage(preferredLocale);
 
@@ -306,64 +298,67 @@ export function normalizeSettingsPreferences(
     defaultPrepTime: coerceDuration(
       source.default_prep_time,
       SOLO_PREP_DURATION,
-      DEFAULT_SETTINGS.defaultPrepTime
+      DEFAULT_SETTINGS.defaultPrepTime,
     ),
     defaultSpeechTime: coerceDuration(
       source.default_speech_time,
       SOLO_SPEECH_DURATION,
-      DEFAULT_SETTINGS.defaultSpeechTime
+      DEFAULT_SETTINGS.defaultSpeechTime,
     ),
     defaultDifficulty: coerceDifficulty(
       source.default_ai_difficulty,
-      DEFAULT_SETTINGS.defaultDifficulty
+      DEFAULT_SETTINGS.defaultDifficulty,
     ),
     ttsVoice: coerceVoiceForLanguage(source.tts_voice, practiceLanguage),
     preferredLocale,
     practiceLanguage,
     detailedFeedback: coerceBoolean(
       source.detailed_feedback,
-      DEFAULT_SETTINGS.detailedFeedback
+      DEFAULT_SETTINGS.detailedFeedback,
     ),
     highlightWeakAreas: coerceBoolean(
       source.highlight_weak_areas,
-      DEFAULT_SETTINGS.highlightWeakAreas
+      DEFAULT_SETTINGS.highlightWeakAreas,
     ),
     explainLikeImLearning: coerceBoolean(
       source.explain_like_im_learning,
-      DEFAULT_SETTINGS.explainLikeImLearning
+      DEFAULT_SETTINGS.explainLikeImLearning,
     ),
     advancedTerminology: coerceBoolean(
       source.advanced_terminology,
-      DEFAULT_SETTINGS.advancedTerminology
+      DEFAULT_SETTINGS.advancedTerminology,
     ),
     practiceReminders: coerceBoolean(
       source.practice_reminders,
-      DEFAULT_SETTINGS.practiceReminders
+      DEFAULT_SETTINGS.practiceReminders,
     ),
     streakReminders: coerceBoolean(
       source.streak_reminders,
-      DEFAULT_SETTINGS.streakReminders
+      DEFAULT_SETTINGS.streakReminders,
     ),
     achievementUpdates: coerceBoolean(
       source.achievement_updates,
-      DEFAULT_SETTINGS.achievementUpdates
+      DEFAULT_SETTINGS.achievementUpdates,
     ),
     smartFeaturePopups: coerceBoolean(
       source.smart_feature_popups,
-      DEFAULT_SETTINGS.smartFeaturePopups
+      DEFAULT_SETTINGS.smartFeaturePopups,
     ),
     emailNotifications: coerceBoolean(
       source.email_notifications,
-      DEFAULT_SETTINGS.emailNotifications
+      DEFAULT_SETTINGS.emailNotifications,
     ),
-    analyticsCookiesEnabled: true,
+    analyticsCookiesEnabled: coerceBoolean(
+      source.analytics_cookies_enabled,
+      DEFAULT_SETTINGS.analyticsCookiesEnabled,
+    ),
   };
 }
 
 function coerceDuration(
   value: unknown,
   config: typeof SOLO_PREP_DURATION | typeof SOLO_SPEECH_DURATION,
-  fallback: number
+  fallback: number,
 ) {
   return clampDurationSeconds(value, config, fallback);
 }
@@ -379,7 +374,7 @@ export function buildSettingsDraft(input: {
 }) {
   const normalized = normalizeSettingsPreferences(
     input.preferences,
-    input.currentLocale
+    input.currentLocale,
   );
 
   return {
@@ -389,31 +384,31 @@ export function buildSettingsDraft(input: {
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
     profileVisibility: coerceProfileVisibility(
       input.profilePrivacy?.profile_visibility,
-      DEFAULT_SETTINGS.profileVisibility
+      DEFAULT_SETTINGS.profileVisibility,
     ),
     analyticsVisibility: coerceProfileVisibility(
       input.profilePrivacy?.analytics_visibility,
-      DEFAULT_SETTINGS.analyticsVisibility
+      DEFAULT_SETTINGS.analyticsVisibility,
     ),
     activitiesVisibility: coerceProfileVisibility(
       input.profilePrivacy?.activities_visibility,
-      DEFAULT_SETTINGS.activitiesVisibility
+      DEFAULT_SETTINGS.activitiesVisibility,
     ),
     achievementsVisibility: coerceProfileVisibility(
       input.profilePrivacy?.achievements_visibility,
-      DEFAULT_SETTINGS.achievementsVisibility
+      DEFAULT_SETTINGS.achievementsVisibility,
     ),
     organizationVisibility: coerceProfileVisibility(
       input.profilePrivacy?.organization_visibility,
-      DEFAULT_SETTINGS.organizationVisibility
+      DEFAULT_SETTINGS.organizationVisibility,
     ),
     allowConnectionRequests: coerceBoolean(
       input.profilePrivacy?.allow_connection_requests,
-      DEFAULT_SETTINGS.allowConnectionRequests
+      DEFAULT_SETTINGS.allowConnectionRequests,
     ),
     searchableByHandle: coerceBoolean(
       input.profilePrivacy?.searchable_by_handle,
-      DEFAULT_SETTINGS.searchableByHandle
+      DEFAULT_SETTINGS.searchableByHandle,
     ),
     friendCodeDiscoveryEnabled: true,
     defaultPrepTime: normalized.defaultPrepTime,
@@ -446,7 +441,7 @@ export function buildSavedSettingsDraft(input: {
 }) {
   const normalized = normalizeSettingsPreferences(
     input.preferences,
-    input.currentLocale
+    input.currentLocale,
   );
 
   return {
@@ -456,31 +451,31 @@ export function buildSavedSettingsDraft(input: {
     avatarUrl: normalizeAvatarUrl(input.avatarUrl),
     profileVisibility: coerceProfileVisibility(
       input.profilePrivacy?.profile_visibility,
-      DEFAULT_SETTINGS.profileVisibility
+      DEFAULT_SETTINGS.profileVisibility,
     ),
     analyticsVisibility: coerceProfileVisibility(
       input.profilePrivacy?.analytics_visibility,
-      DEFAULT_SETTINGS.analyticsVisibility
+      DEFAULT_SETTINGS.analyticsVisibility,
     ),
     activitiesVisibility: coerceProfileVisibility(
       input.profilePrivacy?.activities_visibility,
-      DEFAULT_SETTINGS.activitiesVisibility
+      DEFAULT_SETTINGS.activitiesVisibility,
     ),
     achievementsVisibility: coerceProfileVisibility(
       input.profilePrivacy?.achievements_visibility,
-      DEFAULT_SETTINGS.achievementsVisibility
+      DEFAULT_SETTINGS.achievementsVisibility,
     ),
     organizationVisibility: coerceProfileVisibility(
       input.profilePrivacy?.organization_visibility,
-      DEFAULT_SETTINGS.organizationVisibility
+      DEFAULT_SETTINGS.organizationVisibility,
     ),
     allowConnectionRequests: coerceBoolean(
       input.profilePrivacy?.allow_connection_requests,
-      DEFAULT_SETTINGS.allowConnectionRequests
+      DEFAULT_SETTINGS.allowConnectionRequests,
     ),
     searchableByHandle: coerceBoolean(
       input.profilePrivacy?.searchable_by_handle,
-      DEFAULT_SETTINGS.searchableByHandle
+      DEFAULT_SETTINGS.searchableByHandle,
     ),
     friendCodeDiscoveryEnabled: true,
     defaultPrepTime: normalized.defaultPrepTime,
@@ -504,7 +499,7 @@ export function buildSavedSettingsDraft(input: {
 
 export function draftToPreferences(
   draft: SettingsDraft,
-  existing: Record<string, unknown> | null | undefined
+  existing: Record<string, unknown> | null | undefined,
 ) {
   const practiceLanguage = coercePracticeLanguage(draft.preferredLocale);
 
@@ -526,6 +521,6 @@ export function draftToPreferences(
     smart_feature_popups: draft.smartFeaturePopups,
     email_notifications: draft.emailNotifications,
     email_opt_in_scope: draft.emailNotifications ? "all" : null,
-    analytics_cookies_enabled: true,
+    analytics_cookies_enabled: draft.analyticsCookiesEnabled,
   } satisfies SettingsPreferences;
 }
