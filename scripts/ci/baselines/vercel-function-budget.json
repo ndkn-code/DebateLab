@@ -1,0 +1,4 @@
+{
+  "baselineCommit": "7595b1bbc000b3d9aacc0a2350ba9a338741025a",
+  "reason": "Frozen when Grafana/GCP observability work adopted the no-new-Vercel-functions architecture. Removals are allowed; additions require an explicit architecture decision and baseline update."
+}

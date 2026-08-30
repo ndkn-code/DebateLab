@@ -5,6 +5,7 @@
 import { execSync } from "node:child_process";
 
 const checks: Array<[label: string, file: string]> = [
+  ["Frozen Vercel function surface", "scripts/ci/checks/vercel-function-budget.ts"],
   ["RLS coverage", "scripts/ci/checks/rls-coverage.ts"],
   ["No inline supabase in pages/components", "scripts/ci/checks/no-inline-supabase.ts"],
   ["Typed score columns (no untyped Json)", "scripts/ci/checks/score-columns.ts"],

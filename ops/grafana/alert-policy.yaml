@@ -1,0 +1,59 @@
+# Repository-owned source of truth for production bug alert routing.
+# Grafana data-source UIDs and contact-point secrets are intentionally absent.
+apiVersion: thinkfy.dev/v1
+kind: BugAlertPolicy
+metadata:
+  name: production-bugs
+  environment: production
+spec:
+  groupBy:
+    - error_fingerprint
+    - service_name
+    - deployment_environment
+  resolveAfter: 30m
+  rules:
+    - id: new-production-fingerprint
+      severity: p2
+      clickupStatus: New
+      window: 5m
+      condition:
+        occurrencesAtLeast: 1
+        newFingerprintOnly: true
+      annotations:
+        summary: New production error fingerprint
+    - id: repeated-production-fingerprint
+      severity: p1
+      clickupStatus: Ready for Agent
+      window: 15m
+      condition:
+        any:
+          - occurrencesAtLeast: 3
+          - distinctSessionsAtLeast: 2
+      annotations:
+        summary: Repeated production error
+    - id: critical-area-first-occurrence
+      severity: p0
+      clickupStatus: Ready for Agent
+      window: 5m
+      condition:
+        occurrencesAtLeast: 1
+        featureAreaIn:
+          - authentication
+          - payments
+          - data-loss
+          - security
+      annotations:
+        summary: First production error in a critical area
+  quotaWarnings:
+    - percent: 50
+    - percent: 75
+    - percent: 90
+  routing:
+    contactPoint: grafana-bug-webhook
+    webhookPayloadVersion: 1
+    hmacRequired: true
+    repeatInterval: 4h
+  exclusions:
+    - browser-extension
+    - known-bot
+    - user-cancelled-request
