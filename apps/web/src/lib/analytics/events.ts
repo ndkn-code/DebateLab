@@ -87,6 +87,29 @@ export const ANALYTICS_EVENT_NAMES = [
   "profile_unblocked",
   "profile_report_submitted",
   "profile_rollout_guardrail_triggered",
+  "ielts_landing_viewed",
+  "ielts_landing_cta_clicked",
+  "ielts_onboarding_started",
+  "ielts_onboarding_completed",
+  "ielts_simulation_started",
+  "ielts_simulation_section_submitted",
+  "ielts_simulation_completed",
+  "ielts_simulation_abandoned",
+  "ielts_simulation_recovered",
+  "teacher_weekly_calendar_viewed",
+  "class_opened",
+  "lesson_assignment_viewed",
+  "student_submission_reserved",
+  "student_submission_uploaded",
+  "student_submission_finalized",
+  "student_submission_failed",
+  "teacher_review_queue_opened",
+  "teacher_review_saved",
+  "teacher_review_published",
+  "teacher_review_returned",
+  "attendance_marked",
+  "lms_notification_opened",
+  "student_homework_feedback_viewed",
 ] as const;
 
 export const ANALYTICS_FEATURE_AREAS = [
@@ -100,6 +123,9 @@ export const ANALYTICS_FEATURE_AREAS = [
   "leaderboards",
   "profile",
   "notifications",
+  "ielts",
+  "lms",
+  "teacher_workspace",
 ] as const;
 
 export const ANALYTICS_SOURCES = ["web", "server", "admin", "system"] as const;
@@ -138,11 +164,38 @@ export interface NormalizedAnalyticsEvent {
 const EVENT_NAME_SET = new Set<string>(ANALYTICS_EVENT_NAMES);
 const FEATURE_AREA_SET = new Set<string>(ANALYTICS_FEATURE_AREAS);
 const SOURCE_SET = new Set<string>(ANALYTICS_SOURCES);
+const PRIVACY_SENSITIVE_EVENT_NAMES = new Set<string>([
+  "ielts_onboarding_started",
+  "ielts_onboarding_completed",
+  "ielts_simulation_started",
+  "ielts_simulation_section_submitted",
+  "ielts_simulation_completed",
+  "ielts_simulation_abandoned",
+  "ielts_simulation_recovered",
+  "student_submission_reserved",
+  "student_submission_uploaded",
+  "student_submission_finalized",
+  "student_submission_failed",
+  "teacher_review_saved",
+  "teacher_review_published",
+  "teacher_review_returned",
+  "student_homework_feedback_viewed",
+]);
+const FORBIDDEN_METADATA_KEY = /^(answer_?key|essay(_?text)?|response_?text|transcript|audio(_?path)?|storage_?path|email|phone)$/i;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function containsSensitiveMetadata(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsSensitiveMetadata);
+  if (!isObjectRecord(value)) return false;
+
+  return Object.entries(value).some(
+    ([key, nested]) => FORBIDDEN_METADATA_KEY.test(key) || containsSensitiveMetadata(nested),
+  );
 }
 
 function trimRoute(value: string | null | undefined) {
@@ -174,6 +227,9 @@ export function inferFeatureAreaFromRoute(route: string | null | undefined): Ana
 
   if (pathname.includes("/dashboard/admin/clubs")) return "clubs";
   if (pathname.includes("/dashboard/admin")) return "admin";
+  if (pathname.includes("/dashboard/teacher")) return "teacher_workspace";
+  if (pathname.includes("/dashboard/classes")) return "lms";
+  if (pathname.includes("/ielts")) return "ielts";
   if (pathname.includes("/leaderboards")) return "leaderboards";
   if (pathname.includes("/notifications") || pathname.includes("/smart-popups")) return "notifications";
   if (pathname.includes("/activity/")) return "activities";
@@ -207,6 +263,9 @@ export function normalizeAnalyticsEventInput(
   }
 
   const metadata = isObjectRecord(input.metadata) ? input.metadata : {};
+  if (PRIVACY_SENSITIVE_EVENT_NAMES.has(rawEventName) && containsSensitiveMetadata(metadata)) {
+    throw new Error("Sensitive content is not allowed in IELTS or LMS analytics metadata");
+  }
 
   return {
     eventName: rawEventName as AnalyticsEventName,

@@ -58,6 +58,9 @@ assert.equal(normalizeAdminAnalyticsRange("7d"), "7d");
 assert.equal(normalizeAdminAnalyticsRange("bogus"), "30d");
 assert.equal(inferFeatureAreaFromRoute("/dashboard/courses/1/activity/2"), "activities");
 assert.equal(inferFeatureAreaFromRoute("/dashboard/admin/users"), "admin");
+assert.equal(inferFeatureAreaFromRoute("/ielts/home"), "ielts");
+assert.equal(inferFeatureAreaFromRoute("/dashboard/teacher"), "teacher_workspace");
+assert.equal(inferFeatureAreaFromRoute("/dashboard/classes/class-1"), "lms");
 
 const normalized = normalizeAnalyticsEventInput({
   eventName: "page_leave",
@@ -89,6 +92,25 @@ assert.equal(webVital.featureArea, "profile");
 assert.throws(
   () => normalizeAnalyticsEventInput({ eventName: "freeform", featureArea: "courses" }),
   /Invalid analytics event name/
+);
+
+assert.equal(
+  normalizeAnalyticsEventInput({
+    eventName: "ielts_onboarding_completed",
+    route: "/ielts/onboarding",
+    metadata: { onboardingVersion: 1, usedDiagnostic: true },
+  }).featureArea,
+  "ielts",
+);
+
+assert.throws(
+  () =>
+    normalizeAnalyticsEventInput({
+      eventName: "teacher_review_published",
+      route: "/dashboard/teacher",
+      metadata: { review: { essayText: "private learner work" } },
+    }),
+  /Sensitive content/,
 );
 
 const trend = buildAdminTrend("7d", events, dailyStats, now);

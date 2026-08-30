@@ -1,24 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-
-const ALLOWED_REDIRECT_PREFIXES = [
-  "/dashboard",
-  "/onboarding",
-  "/courses",
-  "/settings",
-  "/profile",
-  "/practice",
-  "/chat",
-  "/history",
-  "/join/club",
-];
-
-function isAllowedRedirect(path: string): boolean {
-  // Must start with / and not // (prevents protocol-relative URLs)
-  if (!path.startsWith("/") || path.startsWith("//")) return false;
-  return ALLOWED_REDIRECT_PREFIXES.some((prefix) => path.startsWith(prefix));
-}
+import { resolveAuthRedirect } from "@/lib/auth/redirects";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -33,7 +16,7 @@ export async function GET(request: Request) {
       // Handle referral linking after successful auth
       await linkReferralIfPresent(supabase);
 
-      const redirectTo = isAllowedRedirect(next) ? next : "/dashboard";
+      const redirectTo = resolveAuthRedirect(next);
       return NextResponse.redirect(`${origin}${redirectTo}`);
     }
   }
