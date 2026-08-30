@@ -31,9 +31,7 @@ export function SectionTimer({
   onStatusChange?: (status: SectionRuntimeStatus) => void;
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [announcement, setAnnouncement] = useState("");
   const expiredRef = useRef(false);
-  const announcedRef = useRef<string | null>(null);
 
   const status = sectionStatus(timing, nowMs);
   const remaining = remainingSeconds(timing, nowMs);
@@ -54,22 +52,13 @@ export function SectionTimer({
     if (status === "running") expiredRef.current = false;
   }, [status, onExpire, onStatusChange]);
 
-  useEffect(() => {
-    const threshold = status === "expired"
-      ? "expired"
-      : status === "running" && remaining <= 60
-        ? "1-minute"
-        : status === "running" && remaining <= 300
-          ? "5-minute"
-          : null;
-    if (threshold && announcedRef.current !== threshold) {
-      announcedRef.current = threshold;
-      setAnnouncement(
-        threshold === "expired" ? "Time expired." : `Approximately ${threshold === "1-minute" ? "one minute" : "five minutes"} remaining.`,
-      );
-    }
-    if (status === "running" && remaining > 300) announcedRef.current = null;
-  }, [remaining, status]);
+  const announcement = status === "expired"
+    ? "Time expired."
+    : status === "running" && remaining <= 60
+      ? "Approximately one minute remaining."
+      : status === "running" && remaining <= 300
+        ? "Approximately five minutes remaining."
+        : "";
 
   const low = ticking && remaining <= 60;
   const label =

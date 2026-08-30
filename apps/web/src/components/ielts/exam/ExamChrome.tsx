@@ -97,7 +97,7 @@ export function ExamSectionHeader({
       <div className="flex min-h-16 items-center gap-1 px-3 py-2 sm:gap-3 sm:px-5">
         <div className="hidden min-w-0 flex-1 sm:block">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="shrink-0 rounded-md border border-outline-variant bg-surface-container px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-on-surface-variant">
+            <span className="type-caption shrink-0 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-extrabold uppercase tracking-wide text-on-surface-variant">
               Exam Simulation
             </span>
             <h1 className="truncate text-sm font-extrabold text-on-surface sm:text-base">
