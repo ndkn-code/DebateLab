@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 
-import { captureHandledError } from "@/lib/observability/faro-client";
+import {
+  captureHandledError,
+  initializeThinkfyFaro,
+} from "@/lib/observability/faro-client";
+import { hasBrowserAnalyticsConsent } from "@/lib/analytics-consent";
 
 export default function GlobalError({
   error,
@@ -12,6 +16,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    if (!hasBrowserAnalyticsConsent()) return;
+
+    initializeThinkfyFaro();
     captureHandledError(
       error,
       { digest: error.digest, featureArea: "root_layout" },

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "postbuild": "node src/scripts/upload-faro-source-maps.mjs",
-    "test:faro": "tsx src/lib/observability/faro-sanitize.test.ts",
+    "test:faro": "tsx src/lib/analytics-consent.test.ts && tsx src/lib/observability/faro-sanitize.test.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
