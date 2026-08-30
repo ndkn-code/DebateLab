@@ -123,6 +123,7 @@ if gcloud pubsub subscriptions describe "${SUBSCRIPTION}" --project "${PROJECT_I
     --push-auth-service-account "${PUSH_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
     --dead-letter-topic "${DLQ_TOPIC}" \
     --max-delivery-attempts 10 \
+    --ack-deadline 90 \
     --min-retry-delay 120s \
     --max-retry-delay 600s
 else
@@ -133,6 +134,7 @@ else
     --push-auth-service-account "${PUSH_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
     --dead-letter-topic "${DLQ_TOPIC}" \
     --max-delivery-attempts 10 \
+    --ack-deadline 90 \
     --min-retry-delay 120s \
     --max-retry-delay 600s
 fi
