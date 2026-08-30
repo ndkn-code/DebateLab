@@ -19,7 +19,10 @@ import type {
 
 export const EMAIL_TEMPLATE_META: Record<
   EmailTemplateKey,
-  { category: EmailCategory; preference: "practice" | "streak" | "achievement" | "global" }
+  {
+    category: EmailCategory;
+    preference: "practice" | "streak" | "achievement" | "global";
+  }
 > = {
   welcome: { category: "onboarding", preference: "global" },
   onboarding_nudge: { category: "onboarding", preference: "global" },
@@ -33,20 +36,53 @@ export const EMAIL_TEMPLATE_META: Record<
 };
 
 const palette = {
-  background: "#F3FCFE",
+  background: "#F5F5F2",
   surface: "#FFFFFF",
-  surfaceAlt: "#E5F8FC",
-  border: "#CDECF3",
-  primary: "#00B8D9",
-  primaryDark: "#0788A0",
-  primarySoft: "#E5F8FC",
-  heading: "#102936",
-  text: "#657B84",
-  muted: "#657B84",
-  success: "#34C759",
-  warning: "#FFD166",
-  coral: "#FF7A59",
+  surfaceAlt: "#F1F1EE",
+  border: "#D9D9D4",
+  primary: "#333333",
+  primaryDark: "#111111",
+  primarySoft: "#E9F3FF",
+  link: "#005EA8",
+  heading: "#333333",
+  text: "#555555",
+  muted: "#666666",
+  success: "#157A32",
+  warning: "#A85B00",
+  coral: "#A12B20",
 };
+
+export const EMAIL_ACCESSIBLE_PALETTE = palette;
+
+function whyReceivedCopy(templateKey: EmailTemplateKey, locale: EmailLocale) {
+  const en: Record<EmailTemplateKey, string> = {
+    welcome: "You receive this because you created a Thinkfy account.",
+    onboarding_nudge:
+      "You receive this because your Thinkfy setup is not complete.",
+    practice_reminder:
+      "You receive this because practice reminder emails are on.",
+    streak_rescue: "You receive this because study consistency emails are on.",
+    winback: "You receive this because practice reminder emails are on.",
+    weekly_progress: "You receive this because weekly progress emails are on.",
+    achievement: "You receive this because milestone emails are on.",
+    course_nudge: "You receive this because course reminder emails are on.",
+    club_invitation:
+      "You receive this because a teacher or club invited this email address.",
+  };
+  const vi: Record<EmailTemplateKey, string> = {
+    welcome: "Bạn nhận email này vì đã tạo tài khoản Thinkfy.",
+    onboarding_nudge: "Bạn nhận email này vì chưa hoàn tất thiết lập Thinkfy.",
+    practice_reminder: "Bạn nhận email này vì email nhắc luyện tập đang bật.",
+    streak_rescue: "Bạn nhận email này vì email nhắc nhịp học đang bật.",
+    winback: "Bạn nhận email này vì email nhắc luyện tập đang bật.",
+    weekly_progress: "Bạn nhận email này vì email tổng kết tuần đang bật.",
+    achievement: "Bạn nhận email này vì email cột mốc đang bật.",
+    course_nudge: "Bạn nhận email này vì email nhắc khóa học đang bật.",
+    club_invitation:
+      "Bạn nhận email này vì giáo viên hoặc câu lạc bộ đã mời địa chỉ email này.",
+  };
+  return locale === "vi" ? vi[templateKey] : en[templateKey];
+}
 
 export interface TemplateContext {
   userName: string;
@@ -84,7 +120,7 @@ function baseVariables(context: TemplateContext) {
 
 export function buildTemplateVariables(
   templateKey: EmailTemplateKey,
-  context: TemplateContext
+  context: TemplateContext,
 ): EmailTemplateVariables & { subject: string } {
   const base = baseVariables(context);
   const formatter = numberFormat(context.locale);
@@ -98,17 +134,26 @@ export function buildTemplateVariables(
   const totalSessions = context.totalSessions ?? 0;
   const level = context.level ?? 1;
   const courseTitle =
-    context.latestCourseTitle || (context.locale === "en" ? "your course" : "khóa học của bạn");
+    context.latestCourseTitle ||
+    (context.locale === "en" ? "your course" : "khóa học của bạn");
   const achievement =
-    context.latestAchievementLabel || (context.locale === "en" ? "New milestone unlocked" : "Cột mốc mới đã mở khóa");
-  const clubName = context.clubName || (context.locale === "en" ? "your club" : "CLB của bạn");
-  const clubRole = context.clubRole || (context.locale === "en" ? "member" : "thành viên");
+    context.latestAchievementLabel ||
+    (context.locale === "en"
+      ? "New milestone unlocked"
+      : "Cột mốc mới đã mở khóa");
+  const clubName =
+    context.clubName || (context.locale === "en" ? "your club" : "CLB của bạn");
+  const clubRole =
+    context.clubRole || (context.locale === "en" ? "member" : "thành viên");
   const inviterName = context.inviterName || "Thinkfy";
   const clubCity = context.city || "Vietnam";
   const clubInviteUrl = context.ctaUrl || base.appUrl;
 
   if (context.locale === "en") {
-    const en: Record<EmailTemplateKey, EmailTemplateVariables & { subject: string }> = {
+    const en: Record<
+      EmailTemplateKey,
+      EmailTemplateVariables & { subject: string }
+    > = {
       welcome: {
         ...base,
         subject: "Win from your first practice",
@@ -243,10 +288,16 @@ export function buildTemplateVariables(
       },
     };
 
-    return en[templateKey];
+    return {
+      ...en[templateKey],
+      whyReceived: whyReceivedCopy(templateKey, context.locale),
+    };
   }
 
-  const vi: Record<EmailTemplateKey, EmailTemplateVariables & { subject: string }> = {
+  const vi: Record<
+    EmailTemplateKey,
+    EmailTemplateVariables & { subject: string }
+  > = {
     welcome: {
       ...base,
       subject: "Bắt đầu thắng từ bài luyện đầu tiên",
@@ -381,10 +432,21 @@ export function buildTemplateVariables(
     },
   };
 
-  return vi[templateKey];
+  return {
+    ...vi[templateKey],
+    whyReceived: whyReceivedCopy(templateKey, context.locale),
+  };
 }
 
-function StatCell({ label, value, width }: { label?: string; value?: string; width: string }) {
+function StatCell({
+  label,
+  value,
+  width,
+}: {
+  label?: string;
+  value?: string;
+  width: string;
+}) {
   if (!label || !value) return null;
 
   return (
@@ -392,9 +454,15 @@ function StatCell({ label, value, width }: { label?: string; value?: string; wid
       className="thinkfy-stat-cell"
       width={width}
       valign="top"
-      style={{ paddingTop: 6, paddingRight: 6, paddingBottom: 6, paddingLeft: 6 }}
+      style={{
+        paddingTop: 6,
+        paddingRight: 6,
+        paddingBottom: 6,
+        paddingLeft: 6,
+      }}
     >
       <table
+        role="presentation"
         width="100%"
         cellPadding="0"
         cellSpacing="0"
@@ -454,10 +522,20 @@ function StatCell({ label, value, width }: { label?: string; value?: string; wid
 
 function Mascot({ mood }: { mood: EmailTemplateVariables["mascotMood"] }) {
   const borderColor =
-    mood === "warning" ? palette.warning : mood === "winback" ? palette.coral : palette.primary;
+    mood === "warning"
+      ? palette.warning
+      : mood === "winback"
+        ? palette.coral
+        : palette.primary;
 
   return (
-    <table align="center" cellPadding="0" cellSpacing="0" border={0}>
+    <table
+      role="presentation"
+      align="center"
+      cellPadding="0"
+      cellSpacing="0"
+      border={0}
+    >
       <tbody>
         <tr>
           <td
@@ -497,15 +575,32 @@ function Mascot({ mood }: { mood: EmailTemplateVariables["mascotMood"] }) {
   );
 }
 
-function StreakDots({ dots }: { dots?: EmailStreakDot[] }) {
+function StreakDots({
+  dots,
+  isEnglish,
+}: {
+  dots?: EmailStreakDot[];
+  isEnglish: boolean;
+}) {
   if (!dots?.length) return null;
 
   return (
-    <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginTop: 14 }}>
+    <table
+      role="presentation"
+      width="100%"
+      cellPadding="0"
+      cellSpacing="0"
+      border={0}
+      style={{ marginTop: 14 }}
+    >
       <tbody>
         <tr>
           {dots.map((dot) => (
-            <td key={dot.date} align="center" style={{ width: "14.28%", paddingTop: 0, paddingBottom: 0 }}>
+            <td
+              key={dot.date}
+              align="center"
+              style={{ width: "14.28%", paddingTop: 0, paddingBottom: 0 }}
+            >
               <p
                 style={{
                   marginTop: 0,
@@ -527,12 +622,47 @@ function StreakDots({ dots }: { dots?: EmailStreakDot[] }) {
                   width: 18,
                   height: 18,
                   borderRadius: 9,
-                  backgroundColor: dot.active ? palette.primary : palette.surfaceAlt,
+                  backgroundColor: dot.active
+                    ? palette.success
+                    : palette.surfaceAlt,
                   borderColor: dot.today ? palette.warning : palette.border,
                   borderStyle: "solid",
                   borderWidth: 2,
                 }}
-              />
+              >
+                <span
+                  style={{
+                    color: dot.active ? "#FFFFFF" : palette.muted,
+                    fontFamily: "Arial, Helvetica, sans-serif",
+                    fontSize: 11,
+                    fontWeight: 900,
+                    lineHeight: "14px",
+                  }}
+                >
+                  {dot.active ? "✓" : "–"}
+                </span>
+              </span>
+              <p
+                style={{
+                  marginTop: 4,
+                  marginRight: 0,
+                  marginBottom: 0,
+                  marginLeft: 0,
+                  color: palette.muted,
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: "12px",
+                }}
+              >
+                {dot.active
+                  ? isEnglish
+                    ? "Done"
+                    : "Đã học"
+                  : isEnglish
+                    ? "Rest"
+                    : "Nghỉ"}
+              </p>
             </td>
           ))}
         </tr>
@@ -547,17 +677,19 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
     { label: variables.stat1Label, value: variables.stat1Value },
     { label: variables.stat2Label, value: variables.stat2Value },
     { label: variables.stat3Label, value: variables.stat3Value },
-  ].filter((stat): stat is { label: string; value: string } => Boolean(stat.label && stat.value));
+  ].filter((stat): stat is { label: string; value: string } =>
+    Boolean(stat.label && stat.value),
+  );
   const statWidth = `${100 / Math.max(1, stats.length)}%`;
 
   return (
-    <html>
+    <html lang={isEnglish ? "en" : "vi"} dir="ltr">
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="color-scheme" content="light" />
-        <meta name="supported-color-schemes" content="light" />
+        <meta name="color-scheme" content="light dark" />
+        <meta name="supported-color-schemes" content="light dark" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <title>{variables.headline}</title>
         <style>
@@ -565,6 +697,14 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
             body, table, td, p, h1, a { -webkit-text-size-adjust: 100%; }
             .thinkfy-container { max-width: 620px; }
             .thinkfy-headline { overflow-wrap: break-word; word-break: normal; }
+            @media (prefers-color-scheme: dark) {
+              .thinkfy-page { background-color: #000000 !important; }
+              .thinkfy-container { background-color: #111111 !important; border-color: #333333 !important; }
+              .thinkfy-footer, .thinkfy-stat-card { background-color: #1A1A1A !important; border-color: #333333 !important; }
+              .thinkfy-container h1, .thinkfy-container p, .thinkfy-container td { color: #F5F5F2 !important; }
+              .thinkfy-container a { color: #8EC5FF !important; }
+              .thinkfy-cta { background-color: #F5F5F2 !important; color: #111111 !important; }
+            }
             @media only screen and (max-width: 620px) {
               .thinkfy-outer-pad { padding-left: 12px !important; padding-right: 12px !important; }
               .thinkfy-container { width: 100% !important; max-width: 100% !important; border-radius: 22px !important; }
@@ -580,7 +720,10 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
           `}
         </style>
       </head>
-      <body style={{ margin: 0, backgroundColor: palette.background }}>
+      <body
+        className="thinkfy-page"
+        style={{ margin: 0, backgroundColor: palette.background }}
+      >
         <div
           style={{
             display: "none",
@@ -594,15 +737,29 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
         >
           {variables.preheader}
         </div>
-        <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ width: "100%", backgroundColor: palette.background }}>
+        <table
+          role="presentation"
+          className="thinkfy-page"
+          width="100%"
+          cellPadding="0"
+          cellSpacing="0"
+          border={0}
+          style={{ width: "100%", backgroundColor: palette.background }}
+        >
           <tbody>
             <tr>
               <td
                 className="thinkfy-outer-pad"
                 align="center"
-                style={{ paddingTop: 20, paddingRight: 12, paddingBottom: 24, paddingLeft: 12 }}
+                style={{
+                  paddingTop: 20,
+                  paddingRight: 12,
+                  paddingBottom: 24,
+                  paddingLeft: 12,
+                }}
               >
                 <table
+                  role="presentation"
                   className="thinkfy-container"
                   width="100%"
                   cellPadding="0"
@@ -624,7 +781,12 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                       <td
                         className="thinkfy-hero-pad"
                         align="center"
-                        style={{ paddingTop: 24, paddingRight: 24, paddingBottom: 10, paddingLeft: 24 }}
+                        style={{
+                          paddingTop: 24,
+                          paddingRight: 24,
+                          paddingBottom: 10,
+                          paddingLeft: 24,
+                        }}
                       >
                         <p
                           style={{
@@ -700,7 +862,13 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                         >
                           {variables.body}
                         </p>
-                        <table align="center" cellPadding="0" cellSpacing="0" border={0}>
+                        <table
+                          role="presentation"
+                          align="center"
+                          cellPadding="0"
+                          cellSpacing="0"
+                          border={0}
+                        >
                           <tbody>
                             <tr>
                               <td
@@ -713,6 +881,7 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                               >
                                 <a
                                   href={variables.ctaUrl}
+                                  className="thinkfy-cta"
                                   style={{
                                     display: "inline-block",
                                     paddingTop: 15,
@@ -740,9 +909,20 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                     <tr>
                       <td
                         className="thinkfy-stat-wrap"
-                        style={{ paddingTop: 10, paddingRight: 22, paddingBottom: 28, paddingLeft: 22 }}
+                        style={{
+                          paddingTop: 10,
+                          paddingRight: 22,
+                          paddingBottom: 28,
+                          paddingLeft: 22,
+                        }}
                       >
-                        <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                        <table
+                          role="presentation"
+                          width="100%"
+                          cellPadding="0"
+                          cellSpacing="0"
+                          border={0}
+                        >
                           <tbody>
                             <tr>
                               {stats.map((stat) => (
@@ -756,11 +936,15 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                             </tr>
                           </tbody>
                         </table>
-                        <StreakDots dots={variables.streakDots} />
+                        <StreakDots
+                          dots={variables.streakDots}
+                          isEnglish={isEnglish}
+                        />
                       </td>
                     </tr>
                     <tr>
                       <td
+                        className="thinkfy-footer"
                         style={{
                           paddingTop: 18,
                           paddingRight: 24,
@@ -785,9 +969,10 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                             lineHeight: "18px",
                           }}
                         >
-                          {isEnglish
-                            ? "You receive this because Thinkfy email notifications are on."
-                            : "Bạn nhận email này vì thông báo email Thinkfy đang bật."}
+                          {variables.whyReceived ??
+                            (isEnglish
+                              ? "You receive this because Thinkfy email notifications are on."
+                              : "Bạn nhận email này vì thông báo email Thinkfy đang bật.")}
                         </p>
                         <p
                           style={{
@@ -802,19 +987,38 @@ function ThinkfyEmail({ variables }: { variables: EmailTemplateVariables }) {
                             lineHeight: "18px",
                           }}
                         >
-                          <a href={variables.settingsUrl} style={{ color: palette.primaryDark, fontWeight: 800, textDecoration: "none" }}>
-                            {isEnglish ? "Manage email preferences" : "Quản lý tuỳ chọn email"}
+                          <a
+                            href={variables.settingsUrl}
+                            style={{
+                              color: palette.link,
+                              fontWeight: 800,
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {isEnglish
+                              ? "Manage email preferences"
+                              : "Quản lý tuỳ chọn email"}
                           </a>
                           {variables.unsubscribeUrl ? (
                             <>
                               {" · "}
-                              <a href={variables.unsubscribeUrl} style={{ color: palette.primaryDark, fontWeight: 800, textDecoration: "none" }}>
-                                {isEnglish ? "Unsubscribe from this stream" : "Hủy nhận nhóm email này"}
+                              <a
+                                href={variables.unsubscribeUrl}
+                                style={{
+                                  color: palette.link,
+                                  fontWeight: 800,
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {isEnglish
+                                  ? "Unsubscribe from this stream"
+                                  : "Hủy nhận nhóm email này"}
                               </a>
                             </>
                           ) : null}
                           {" · "}
-                          {isEnglish ? "Contact" : "Liên hệ"}: {variables.supportEmail ?? "support@thinkfy.net"}
+                          {isEnglish ? "Contact" : "Liên hệ"}:{" "}
+                          {variables.supportEmail ?? "support@thinkfy.net"}
                         </p>
                       </td>
                     </tr>

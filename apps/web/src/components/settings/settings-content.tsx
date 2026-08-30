@@ -38,6 +38,11 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { showToast } from "@/components/shared/toast";
 import { InfoHint } from "@/components/settings/info-hint";
 import { VoiceSettings } from "@/components/settings/voice-settings";
+import { NotificationPreferencesPanel } from "@/components/notifications/notification-preferences-panel";
+import type {
+  NotificationPreferenceView,
+  NotificationUiOperations,
+} from "@/components/notifications/contracts";
 import {
   claimOrganizationJoinCode,
   saveSettings,
@@ -57,9 +62,7 @@ import {
   normalizeSettingsHandleDraft,
   normalizeSettingsStatusDraft,
 } from "@/lib/profile-social/ui-model";
-import {
-  coercePracticeLanguage,
-} from "@/lib/practice-language";
+import { coercePracticeLanguage } from "@/lib/practice-language";
 import {
   SOLO_PREP_DURATION,
   SOLO_SPEECH_DURATION,
@@ -87,6 +90,12 @@ interface SettingsContentProps {
   organizationJoinCodesEnabled?: boolean;
   leaderboardPrivacyControlsEnabled?: boolean;
   leaderboardPrivacySettings?: LeaderboardPrivacySettings;
+  notificationPreferences?: NotificationPreferenceView[];
+  notificationPreferenceOperations?: Pick<
+    NotificationUiOperations,
+    "getPreferences" | "updatePreferences"
+  >;
+  notificationPreferenceReviewRequired?: boolean;
 }
 
 type SettingsSectionId =
@@ -135,11 +144,7 @@ function isRenderableAvatar(avatarUrl: string) {
 }
 
 function formatInitials(name: string) {
-  const tokens = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+  const tokens = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
 
   if (tokens.length === 0) {
     return "DL";
@@ -209,7 +214,7 @@ function SettingRow(props: {
     <div
       className={cn(
         "grid min-h-11 gap-4 border-b border-outline-variant/40 px-4 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(220px,300px)]",
-        align === "center" ? "sm:items-center" : "sm:items-start"
+        align === "center" ? "sm:items-center" : "sm:items-start",
       )}
     >
       <div className="min-w-0 pr-2">
@@ -239,7 +244,10 @@ function ToggleControl(props: {
 
 const VISIBILITY_OPTIONS: Array<{
   value: SettingsDraft["profileVisibility"];
-  labelKey: "visibility_options.only_me" | "visibility_options.friends" | "visibility_options.everyone";
+  labelKey:
+    | "visibility_options.only_me"
+    | "visibility_options.friends"
+    | "visibility_options.everyone";
 }> = [
   {
     value: "private",
@@ -264,13 +272,13 @@ const SELECT_CLASSNAME =
 type SettingsScrollContainer = HTMLElement | Window;
 
 function isWindowScrollContainer(
-  container: SettingsScrollContainer
+  container: SettingsScrollContainer,
 ): container is Window {
   return container === window;
 }
 
 function getSettingsScrollContainer(
-  element: HTMLElement | null
+  element: HTMLElement | null,
 ): SettingsScrollContainer {
   let current = element?.parentElement ?? null;
 
@@ -293,7 +301,9 @@ function getSettingsScrollContainer(
 }
 
 function getScrollContainerTop(container: SettingsScrollContainer) {
-  return isWindowScrollContainer(container) ? window.scrollY : container.scrollTop;
+  return isWindowScrollContainer(container)
+    ? window.scrollY
+    : container.scrollTop;
 }
 
 function getScrollContainerHeight(container: SettingsScrollContainer) {
@@ -304,7 +314,10 @@ function getScrollContainerHeight(container: SettingsScrollContainer) {
 
 function getScrollContainerMaxTop(container: SettingsScrollContainer) {
   if (isWindowScrollContainer(container)) {
-    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    return Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight,
+    );
   }
 
   return Math.max(0, container.scrollHeight - container.clientHeight);
@@ -312,7 +325,7 @@ function getScrollContainerMaxTop(container: SettingsScrollContainer) {
 
 function getElementTopInScrollContainer(
   element: HTMLElement,
-  container: SettingsScrollContainer
+  container: SettingsScrollContainer,
 ) {
   if (isWindowScrollContainer(container)) {
     return element.getBoundingClientRect().top + window.scrollY;
@@ -325,7 +338,7 @@ function getElementTopInScrollContainer(
 
 function coerceSettingsVisibilityDraft(
   value: unknown,
-  fallback: SettingsDraft["profileVisibility"]
+  fallback: SettingsDraft["profileVisibility"],
 ): SettingsDraft["profileVisibility"] {
   if (value === "trusted") {
     return "connections";
@@ -369,7 +382,7 @@ async function fileToAvatarDataUrl(file: File) {
       0,
       0,
       outputSize,
-      outputSize
+      outputSize,
     );
 
     return canvas.toDataURL("image/jpeg", 0.86);
@@ -396,7 +409,7 @@ function AvatarPreview(props: {
     <div
       className={cn(
         "overflow-hidden rounded-full border border-outline-variant bg-surface-container shadow-inner dark:border-outline-variant/70 dark:bg-primary-container",
-        sizeClassName
+        sizeClassName,
       )}
     >
       {isRenderableAvatar(avatarUrl) ? (
@@ -424,19 +437,24 @@ export function SettingsContent({
   organizationJoinCodesEnabled = false,
   leaderboardPrivacyControlsEnabled = false,
   leaderboardPrivacySettings,
+  notificationPreferences,
+  notificationPreferenceOperations,
+  notificationPreferenceReviewRequired = false,
 }: SettingsContentProps) {
   const t = useTranslations("settings");
   const router = useRouter();
   const [isSaving, startSavingTransition] = useTransition();
   const [isOrganizationPending, startOrganizationTransition] = useTransition();
-  const [isLeaderboardPrivacyPending, startLeaderboardPrivacyTransition] = useTransition();
+  const [isLeaderboardPrivacyPending, startLeaderboardPrivacyTransition] =
+    useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
   const [organizationCode, setOrganizationCode] = useState("");
-  const [leaderboardPrivacy, setLeaderboardPrivacy] = useState<
-    LeaderboardPrivacySettings | null
-  >(leaderboardPrivacySettings ?? null);
+  const [leaderboardPrivacy, setLeaderboardPrivacy] =
+    useState<LeaderboardPrivacySettings | null>(
+      leaderboardPrivacySettings ?? null,
+    );
 
   const serverSavedDraft = useMemo(
     () =>
@@ -446,10 +464,11 @@ export function SettingsContent({
         profileStatus: profile?.profile_status,
         avatarUrl: profile?.avatar_url,
         profilePrivacy: profilePrivacySettings,
-        preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
+        preferences:
+          (profile?.preferences as Record<string, unknown> | null) ?? {},
         currentLocale,
       }),
-    [currentLocale, profile, profilePrivacySettings]
+    [currentLocale, profile, profilePrivacySettings],
   );
 
   const serverDraft = useMemo(
@@ -460,19 +479,20 @@ export function SettingsContent({
         profileStatus: profile?.profile_status,
         avatarUrl: profile?.avatar_url,
         profilePrivacy: profilePrivacySettings,
-        preferences: (profile?.preferences as Record<string, unknown> | null) ?? {},
+        preferences:
+          (profile?.preferences as Record<string, unknown> | null) ?? {},
         currentLocale,
       }),
-    [currentLocale, profile, profilePrivacySettings]
+    [currentLocale, profile, profilePrivacySettings],
   );
 
   const userId = profile?.id ?? "";
   const savedSignature = useMemo(
     () => JSON.stringify(serverSavedDraft),
-    [serverSavedDraft]
+    [serverSavedDraft],
   );
   const [localSavedDraft, setLocalSavedDraft] = useState<SettingsDraft | null>(
-    null
+    null,
   );
   const [draft, setDraft] = useState<SettingsDraft>(serverDraft);
   const [hasHydratedStoredDraft, setHasHydratedStoredDraft] = useState(false);
@@ -486,7 +506,7 @@ export function SettingsContent({
       JSON.stringify(snapshot.saved) === savedSignature
     ) {
       const practiceLanguage = coercePracticeLanguage(
-        snapshot.draft.preferredLocale
+        snapshot.draft.preferredLocale,
       );
       setDraft({
         ...snapshot.draft,
@@ -502,35 +522,35 @@ export function SettingsContent({
           typeof snapshot.draft.profileVisibility === "string"
             ? coerceSettingsVisibilityDraft(
                 snapshot.draft.profileVisibility,
-                serverDraft.profileVisibility
+                serverDraft.profileVisibility,
               )
             : serverDraft.profileVisibility,
         analyticsVisibility:
           typeof snapshot.draft.analyticsVisibility === "string"
             ? coerceSettingsVisibilityDraft(
                 snapshot.draft.analyticsVisibility,
-                serverDraft.analyticsVisibility
+                serverDraft.analyticsVisibility,
               )
             : serverDraft.analyticsVisibility,
         activitiesVisibility:
           typeof snapshot.draft.activitiesVisibility === "string"
             ? coerceSettingsVisibilityDraft(
                 snapshot.draft.activitiesVisibility,
-                serverDraft.activitiesVisibility
+                serverDraft.activitiesVisibility,
               )
             : serverDraft.activitiesVisibility,
         achievementsVisibility:
           typeof snapshot.draft.achievementsVisibility === "string"
             ? coerceSettingsVisibilityDraft(
                 snapshot.draft.achievementsVisibility,
-                serverDraft.achievementsVisibility
+                serverDraft.achievementsVisibility,
               )
             : serverDraft.achievementsVisibility,
         organizationVisibility:
           typeof snapshot.draft.organizationVisibility === "string"
             ? coerceSettingsVisibilityDraft(
                 snapshot.draft.organizationVisibility,
-                serverDraft.organizationVisibility
+                serverDraft.organizationVisibility,
               )
             : serverDraft.organizationVisibility,
         allowConnectionRequests:
@@ -545,7 +565,7 @@ export function SettingsContent({
         practiceLanguage,
         ttsVoice: coerceVoiceForLanguage(
           snapshot.draft.ttsVoice,
-          practiceLanguage
+          practiceLanguage,
         ),
         smartFeaturePopups:
           typeof snapshot.draft.smartFeaturePopups === "boolean"
@@ -559,14 +579,13 @@ export function SettingsContent({
   }, [savedSignature, serverDraft, userId]);
 
   const effectiveSavedDraft =
-    localSavedDraft &&
-    JSON.stringify(localSavedDraft) !== savedSignature
+    localSavedDraft && JSON.stringify(localSavedDraft) !== savedSignature
       ? localSavedDraft
       : serverSavedDraft;
   const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
   const savedDraftSignature = useMemo(
     () => JSON.stringify(effectiveSavedDraft),
-    [effectiveSavedDraft]
+    [effectiveSavedDraft],
   );
   const isDirty = draftSignature !== savedDraftSignature;
   const profilePreviewHref = effectiveSavedDraft.handle
@@ -639,7 +658,7 @@ export function SettingsContent({
         icon: <LogOut className="h-4 w-4" />,
       },
     ],
-    [leaderboardPrivacy, leaderboardPrivacyControlsEnabled]
+    [leaderboardPrivacy, leaderboardPrivacyControlsEnabled],
   );
   const settingsSectionGroups = useMemo(() => {
     const groups: Array<{
@@ -664,7 +683,7 @@ export function SettingsContent({
   const getSectionElement = useCallback((sectionId: SettingsSectionId) => {
     return (
       rootRef.current?.querySelector<HTMLElement>(
-        `[data-settings-section-id="${sectionId}"]`
+        `[data-settings-section-id="${sectionId}"]`,
       ) ?? null
     );
   }, []);
@@ -682,7 +701,7 @@ export function SettingsContent({
 
     window.localStorage.setItem(
       SETTINGS_DRAFT_STORAGE_KEY,
-      JSON.stringify(snapshot)
+      JSON.stringify(snapshot),
     );
   }, [draft, effectiveSavedDraft, hasHydratedStoredDraft, userId]);
 
@@ -737,8 +756,7 @@ export function SettingsContent({
         }
       }
 
-      const anchorY =
-        scrollTop + Math.min(containerHeight * 0.28, 240);
+      const anchorY = scrollTop + Math.min(containerHeight * 0.28, 240);
       let nextSection = settingsSections[0].id;
 
       for (const section of settingsSections) {
@@ -747,7 +765,7 @@ export function SettingsContent({
 
         const sectionTop = getElementTopInScrollContainer(
           element,
-          scrollContainer
+          scrollContainer,
         );
         if (sectionTop <= anchorY + 1) {
           nextSection = section.id;
@@ -788,7 +806,10 @@ export function SettingsContent({
       if (frame) {
         window.cancelAnimationFrame(frame);
       }
-      scrollContainer.removeEventListener("scroll", scheduleActiveSectionUpdate);
+      scrollContainer.removeEventListener(
+        "scroll",
+        scheduleActiveSectionUpdate,
+      );
       window.removeEventListener("wheel", clearManualActiveSection);
       window.removeEventListener("touchmove", clearManualActiveSection);
       window.removeEventListener("keydown", clearManualActiveSection);
@@ -808,7 +829,7 @@ export function SettingsContent({
       getElementTopInScrollContainer(element, scrollContainer) - offset;
     const top = Math.min(
       Math.max(0, rawTop),
-      getScrollContainerMaxTop(scrollContainer)
+      getScrollContainerMaxTop(scrollContainer),
     );
 
     let ancestor = isWindowScrollContainer(scrollContainer)
@@ -829,7 +850,7 @@ export function SettingsContent({
 
   function updateDraft<K extends keyof SettingsDraft>(
     key: K,
-    value: SettingsDraft[K]
+    value: SettingsDraft[K],
   ) {
     setDraft((current) => ({
       ...current,
@@ -838,7 +859,7 @@ export function SettingsContent({
   }
 
   async function handleAvatarFileChange(
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -879,7 +900,7 @@ export function SettingsContent({
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t("toast.save_error"),
-          "error"
+          "error",
         );
       }
     });
@@ -902,17 +923,22 @@ export function SettingsContent({
           error instanceof Error
             ? error.message
             : "Unable to join that organization right now.",
-          "error"
+          "error",
         );
       }
     });
   }
 
   function updateLeaderboardPrivacyDraft(
-    patch: Partial<Pick<
-      LeaderboardPrivacySettings,
-      "displayMode" | "allowKudos" | "showOrganization" | "participateInLeaderboards"
-    >>
+    patch: Partial<
+      Pick<
+        LeaderboardPrivacySettings,
+        | "displayMode"
+        | "allowKudos"
+        | "showOrganization"
+        | "participateInLeaderboards"
+      >
+    >,
   ) {
     if (!leaderboardPrivacy) return;
     setLeaderboardPrivacy({
@@ -931,7 +957,8 @@ export function SettingsContent({
           displayMode: leaderboardPrivacy.displayMode,
           allowKudos: leaderboardPrivacy.allowKudos,
           showOrganization: leaderboardPrivacy.showOrganization,
-          participateInLeaderboards: leaderboardPrivacy.participateInLeaderboards,
+          participateInLeaderboards:
+            leaderboardPrivacy.participateInLeaderboards,
         });
         setLeaderboardPrivacy(saved);
         showToast("Leaderboard privacy updated.", "success");
@@ -940,7 +967,7 @@ export function SettingsContent({
           error instanceof Error
             ? error.message
             : "Unable to update leaderboard privacy.",
-          "error"
+          "error",
         );
       }
     });
@@ -996,7 +1023,7 @@ export function SettingsContent({
                   "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
                   activeSection === section.id
                     ? "bg-primary-container text-primary-dim"
-                    : "text-on-surface-variant hover:bg-white hover:text-on-surface"
+                    : "text-on-surface-variant hover:bg-white hover:text-on-surface",
                 )}
               >
                 {section.icon}
@@ -1030,7 +1057,7 @@ export function SettingsContent({
                           "flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-medium transition-colors",
                           activeSection === section.id
                             ? "bg-primary-container text-primary-dim"
-                            : "text-on-surface-variant hover:bg-background hover:text-on-surface"
+                            : "text-on-surface-variant hover:bg-background hover:text-on-surface",
                         )}
                       >
                         {section.icon}
@@ -1119,14 +1146,18 @@ export function SettingsContent({
                           {t("fields.handle")}
                         </SettingLabel>
                         <div className="flex h-11 items-center rounded-lg border border-outline-variant bg-white text-sm font-medium text-on-surface transition-colors focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface">
-                          <span className="pl-3 pr-1 text-on-surface-variant">@</span>
+                          <span className="pl-3 pr-1 text-on-surface-variant">
+                            @
+                          </span>
                           <input
                             type="text"
                             value={draft.handle}
                             onChange={(event) =>
                               updateDraft(
                                 "handle",
-                                normalizeSettingsHandleDraft(event.target.value)
+                                normalizeSettingsHandleDraft(
+                                  event.target.value,
+                                ),
                               )
                             }
                             placeholder={t("fields.handle_placeholder")}
@@ -1145,7 +1176,7 @@ export function SettingsContent({
                           onChange={(event) =>
                             updateDraft(
                               "profileStatus",
-                              normalizeSettingsStatusDraft(event.target.value)
+                              normalizeSettingsStatusDraft(event.target.value),
                             )
                           }
                           placeholder={t("fields.profile_status_placeholder")}
@@ -1168,7 +1199,9 @@ export function SettingsContent({
                   label={t("fields.default_prep_time")}
                   value={draft.defaultPrepTime}
                   config={SOLO_PREP_DURATION}
-                  onChange={(seconds) => updateDraft("defaultPrepTime", seconds)}
+                  onChange={(seconds) =>
+                    updateDraft("defaultPrepTime", seconds)
+                  }
                   compact
                 />
                 <DurationControl
@@ -1187,7 +1220,8 @@ export function SettingsContent({
                     onChange={(event) =>
                       updateDraft(
                         "defaultDifficulty",
-                        event.target.value as SettingsDraft["defaultDifficulty"]
+                        event.target
+                          .value as SettingsDraft["defaultDifficulty"],
                       )
                     }
                     className={SELECT_CLASSNAME}
@@ -1264,7 +1298,8 @@ export function SettingsContent({
                     onChange={(event) =>
                       updateDraft(
                         item.key,
-                        event.target.value as SettingsDraft["profileVisibility"]
+                        event.target
+                          .value as SettingsDraft["profileVisibility"],
                       )
                     }
                     className={SELECT_CLASSNAME}
@@ -1396,69 +1431,21 @@ export function SettingsContent({
 
             <SectionPanel
               id="notifications"
-              title="Notifications"
-              description="Keep momentum without turning the app into a notification machine."
+              title={currentLocale === "vi" ? "Thông báo" : "Notifications"}
+              description={
+                currentLocale === "vi"
+                  ? "Chọn cập nhật nào đến với bạn và thời điểm nhận."
+                  : "Choose which updates reach you and when they arrive."
+              }
             >
-              <SettingRow
-                title={t("toggles.practice_reminders.title")}
-                description={t("toggles.practice_reminders.description")}
-              >
-                <ToggleControl
-                  label={t("toggles.practice_reminders.title")}
-                  checked={draft.practiceReminders}
-                  onCheckedChange={(checked) =>
-                    updateDraft("practiceReminders", checked)
-                  }
-                />
-              </SettingRow>
-              <SettingRow
-                title={t("toggles.streak_reminders.title")}
-                description={t("toggles.streak_reminders.description")}
-              >
-                <ToggleControl
-                  label={t("toggles.streak_reminders.title")}
-                  checked={draft.streakReminders}
-                  onCheckedChange={(checked) =>
-                    updateDraft("streakReminders", checked)
-                  }
-                />
-              </SettingRow>
-              <SettingRow
-                title={t("toggles.achievement_updates.title")}
-                description={t("toggles.achievement_updates.description")}
-              >
-                <ToggleControl
-                  label={t("toggles.achievement_updates.title")}
-                  checked={draft.achievementUpdates}
-                  onCheckedChange={(checked) =>
-                    updateDraft("achievementUpdates", checked)
-                  }
-                />
-              </SettingRow>
-              <SettingRow
-                title={t("toggles.smart_feature_popups.title")}
-                description={t("toggles.smart_feature_popups.description")}
-              >
-                <ToggleControl
-                  label={t("toggles.smart_feature_popups.title")}
-                  checked={draft.smartFeaturePopups}
-                  onCheckedChange={(checked) =>
-                    updateDraft("smartFeaturePopups", checked)
-                  }
-                />
-              </SettingRow>
-              <SettingRow
-                title={t("toggles.email_notifications.title")}
-                description={t("toggles.email_notifications.description")}
-              >
-                <ToggleControl
-                  label={t("toggles.email_notifications.title")}
-                  checked={draft.emailNotifications}
-                  onCheckedChange={(checked) =>
-                    updateDraft("emailNotifications", checked)
-                  }
-                />
-              </SettingRow>
+              <NotificationPreferencesPanel
+                locale={currentLocale}
+                preferences={notificationPreferences}
+                operations={notificationPreferenceOperations}
+                migratedPreferenceReviewRequired={
+                  notificationPreferenceReviewRequired
+                }
+              />
             </SectionPanel>
 
             <SectionPanel
@@ -1536,14 +1523,14 @@ export function SettingsContent({
                           onChange={(event) =>
                             setOrganizationCode(
                               formatOrganizationJoinCode(
-                                event.target.value
-                              ).slice(0, 19)
+                                event.target.value,
+                              ).slice(0, 19),
                             )
                           }
                           placeholder="ABCD-1234"
                           className={cn(
                             INPUT_CLASSNAME,
-                            "font-bold tracking-widest placeholder:tracking-normal"
+                            "font-bold tracking-widest placeholder:tracking-normal",
                           )}
                         />
                         <Button

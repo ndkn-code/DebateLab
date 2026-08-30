@@ -64,6 +64,11 @@ import type { DashboardNavItem } from "@/lib/api/dashboard";
 import { coerceAppLocale, type AppLocale } from "@/lib/locale-switch";
 import type { Subject } from "@/lib/subject";
 import { REFERRAL_REWARD_CREDITS } from "@/lib/referrals/constants";
+import { NotificationCenter } from "@/components/notifications/notification-center";
+import type {
+  NotificationInboxSnapshot,
+  NotificationUiOperations,
+} from "@/components/notifications/contracts";
 
 type SidebarNavItem = {
   href?: string;
@@ -184,6 +189,11 @@ interface SidebarProps {
   userEmail: string | null;
   activeSubject: Subject;
   isEnrolledIeltsStudent?: boolean;
+  notificationInbox?: NotificationInboxSnapshot;
+  notificationOperations?: Pick<
+    NotificationUiOperations,
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
+  >;
 }
 
 function NavContent({
@@ -195,6 +205,8 @@ function NavContent({
   currentLocale,
   currentSubject,
   isEnrolledIeltsStudent,
+  notificationInbox,
+  notificationOperations,
 }: {
   collapsed: boolean;
   profile: SidebarProps["profile"];
@@ -204,6 +216,11 @@ function NavContent({
   currentLocale: AppLocale;
   currentSubject: Subject;
   isEnrolledIeltsStudent: boolean;
+  notificationInbox?: NotificationInboxSnapshot;
+  notificationOperations?: Pick<
+    NotificationUiOperations,
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
+  >;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -365,6 +382,11 @@ function NavContent({
 
       {/* User section */}
       <div className="shrink-0 space-y-1 p-2">
+        <NotificationCenter
+          variant="sidebar"
+          snapshot={notificationInbox}
+          operations={notificationOperations}
+        />
         <ThemeToggle collapsed={collapsed} />
         {!collapsed ? (
           <SupportIssueDialog
@@ -447,6 +469,8 @@ export function Sidebar({
   userEmail,
   activeSubject,
   isEnrolledIeltsStudent = false,
+  notificationInbox,
+  notificationOperations,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
@@ -508,6 +532,8 @@ export function Sidebar({
           userEmail={userEmail}
           currentLocale={currentLocale}
           activeSubject={activeSubject}
+          notificationInbox={notificationInbox}
+          notificationOperations={notificationOperations}
         />
       ) : (
         <aside
@@ -525,6 +551,8 @@ export function Sidebar({
             currentLocale={currentLocale}
             currentSubject={activeSubject}
             isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+            notificationInbox={notificationInbox}
+            notificationOperations={notificationOperations}
           />
           {/* Collapse toggle */}
           <button
@@ -569,6 +597,8 @@ export function Sidebar({
               currentLocale={currentLocale}
               currentSubject={activeSubject}
               isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+              notificationInbox={notificationInbox}
+              notificationOperations={notificationOperations}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}
@@ -583,6 +613,10 @@ export function Sidebar({
           ieltsAvailable={IELTS_ENABLED || isAdmin}
         />
         <ThemeToggle variant="mobile" className="ml-auto" />
+        <NotificationCenter
+          snapshot={notificationInbox}
+          operations={notificationOperations}
+        />
         <div className="shrink-0">
           <Avatar size="sm">
             {profile?.avatar_url && (

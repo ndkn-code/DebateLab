@@ -16,6 +16,10 @@ import {
 import type { LeaderboardSeasonOutcome } from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
 import { DEFAULT_SUBJECT, type Subject } from "@thinkfy/shared/subject";
+import type {
+  NotificationInboxSnapshot,
+  NotificationUiOperations,
+} from "@/components/notifications/contracts";
 
 interface ProtectedShellProps {
   children: React.ReactNode;
@@ -29,6 +33,11 @@ interface ProtectedShellProps {
   seasonReplayOutcome?: LeaderboardSeasonOutcome | null;
   seasonReplayReducedMotionOverride?: boolean;
   seasonReplayReviewMode?: boolean;
+  notificationInbox?: NotificationInboxSnapshot;
+  notificationOperations?: Pick<
+    NotificationUiOperations,
+    "listInbox" | "markRead" | "markAllRead" | "muteObject"
+  >;
 }
 
 function useViewportScrollLock() {
@@ -159,6 +168,8 @@ export function ProtectedShell({
   seasonReplayOutcome = null,
   seasonReplayReducedMotionOverride,
   seasonReplayReviewMode = false,
+  notificationInbox,
+  notificationOperations,
 }: ProtectedShellProps) {
   useViewportScrollLock();
   const mainScrollRef = useScrollBoundaryLock<HTMLElement>();
@@ -256,6 +267,8 @@ export function ProtectedShell({
           userEmail={userEmail}
           activeSubject={activeSubject}
           isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+          notificationInbox={notificationInbox}
+          notificationOperations={notificationOperations}
         />
         <main
           ref={mainScrollRef}

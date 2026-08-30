@@ -2024,9 +2024,26 @@
       },
       "actions": {
         "save": "Lưu bản nháp",
+        "approve": "Duyệt danh sách người nhận",
         "schedule": "Lên lịch",
         "send": "Gửi ngay",
+        "pause": "Tạm dừng gửi",
+        "resume": "Tiếp tục gửi",
         "cancel": "Hủy chiến dịch"
+      },
+      "status": {
+        "draft": "Bản nháp",
+        "approved": "Đã duyệt",
+        "scheduled": "Đã lên lịch",
+        "sending": "Đang gửi",
+        "paused": "Đã tạm dừng",
+        "sent": "Đã gửi",
+        "canceled": "Đã hủy"
+      },
+      "approval": {
+        "title": "Duyệt chiến dịch này",
+        "description": "Khi duyệt, danh sách {count} người nhận đủ điều kiện sẽ được chốt. Kiểm tra nội dung rồi nhập tên chiến dịch để tiếp tục.",
+        "confirm": "Xác nhận duyệt bằng tên chiến dịch"
       },
       "schedule": {
         "title": "Lên lịch gửi",
@@ -2042,16 +2059,24 @@
         "delivered": "Đã nhận",
         "opened": "Đã mở",
         "clicked": "Đã nhấp",
+        "queued": "Đang chờ",
+        "delayed": "Bị trễ",
+        "bounced": "Bị trả lại",
+        "complained": "Bị báo cáo",
+        "notReported": "Phản hồi này chưa cung cấp số liệu",
         "deliveryRate": "Tỷ lệ nhận",
         "openRate": "Tỷ lệ mở",
         "clickRate": "Tỷ lệ nhấp",
-        "risk": "Trả lại, lỗi hoặc chặn"
+        "risk": "Trả lại, báo cáo, lỗi hoặc chặn"
       },
       "notices": {
         "saved": "Đã lưu bản nháp.",
+        "approved": "Đã duyệt chiến dịch và chốt danh sách người nhận.",
         "scheduled": "Đã lên lịch chiến dịch.",
         "sent": "Đã hoàn tất đợt gửi.",
         "processing": "Đã gửi đợt đầu; cron sẽ tiếp tục xử lý.",
+        "paused": "Đã tạm dừng sau tác vụ gửi đang chạy.",
+        "resumed": "Đã tiếp tục gửi chiến dịch.",
         "canceled": "Đã hủy chiến dịch; sẽ không gửi thêm đợt nào."
       },
       "errors": {

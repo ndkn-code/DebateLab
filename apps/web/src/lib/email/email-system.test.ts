@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { evaluateEmailCandidatesForProfile } from "@/lib/email/eligibility";
-import { buildTemplateVariables, renderThinkfyEmail } from "@/lib/email/templates";
-import { __emailDispatchInternals } from "@/lib/email/dispatch";
 import {
-  addDaysToDateKey,
-  computeEmailStreakState,
-} from "@/lib/email/time";
+  buildTemplateVariables,
+  EMAIL_ACCESSIBLE_PALETTE,
+  renderThinkfyEmail,
+} from "@/lib/email/templates";
+import { __emailDispatchInternals } from "@/lib/email/dispatch";
+import { addDaysToDateKey, computeEmailStreakState } from "@/lib/email/time";
 import {
   buildListUnsubscribeHeaders,
   buildUnsubscribeLinks,
@@ -27,6 +28,59 @@ import type {
 import { EMAIL_TEMPLATE_KEYS } from "@/lib/email/types";
 
 const TODAY_VN = "2026-05-16";
+
+function contrastRatio(foreground: string, background: string) {
+  function luminance(hex: string) {
+    const channels = hex
+      .replace("#", "")
+      .match(/.{2}/g)!
+      .map((value) => Number.parseInt(value, 16) / 255)
+      .map((value) =>
+        value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+      );
+    return (
+      0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!
+    );
+  }
+  const first = luminance(foreground);
+  const second = luminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function assertAccessibleRenderedHtml(html: string, locale: "en" | "vi") {
+  assert.match(
+    html,
+    new RegExp(`<html[^>]*lang="${locale}"[^>]*dir="ltr"`, "i"),
+  );
+  assert.match(html, /name="color-scheme" content="light dark"/i);
+  assert.match(html, /prefers-color-scheme:\s*dark/i);
+  const tables = html.match(/<table\b[^>]*>/gi) ?? [];
+  assert.ok(tables.length > 0, "rendered email should contain layout tables");
+  assert.ok(
+    tables.every((table) => /role="presentation"/i.test(table)),
+    "every layout table must be hidden from the accessibility tree",
+  );
+  assert.match(html, new RegExp(EMAIL_ACCESSIBLE_PALETTE.primary, "i"));
+  assert.match(html, new RegExp(EMAIL_ACCESSIBLE_PALETTE.link, "i"));
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.surface,
+      EMAIL_ACCESSIBLE_PALETTE.primary,
+    ) >= 4.5,
+  );
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.muted,
+      EMAIL_ACCESSIBLE_PALETTE.surfaceAlt,
+    ) >= 4.5,
+  );
+  assert.ok(
+    contrastRatio(
+      EMAIL_ACCESSIBLE_PALETTE.link,
+      EMAIL_ACCESSIBLE_PALETTE.surfaceAlt,
+    ) >= 4.5,
+  );
+}
 
 function baseProfile(overrides: Partial<EmailProfile> = {}): EmailProfile {
   return {
@@ -52,7 +106,9 @@ function baseProfile(overrides: Partial<EmailProfile> = {}): EmailProfile {
   };
 }
 
-function baseStreak(overrides: Partial<EmailStreakState> = {}): EmailStreakState {
+function baseStreak(
+  overrides: Partial<EmailStreakState> = {},
+): EmailStreakState {
   const activeDates = new Set(["2026-05-13", "2026-05-14", "2026-05-15"]);
   return {
     current: 3,
@@ -69,7 +125,9 @@ function baseStreak(overrides: Partial<EmailStreakState> = {}): EmailStreakState
   };
 }
 
-function baseSummary(overrides: Partial<EmailActivitySummary> = {}): EmailActivitySummary {
+function baseSummary(
+  overrides: Partial<EmailActivitySummary> = {},
+): EmailActivitySummary {
   return {
     lastActivityAt: "2026-05-14T03:00:00.000Z",
     lastPracticeAt: "2026-05-14T03:00:00.000Z",
@@ -115,11 +173,29 @@ function assertOutcomeCopy(templateKey: EmailTemplateKey) {
     latestAchievementLabel: "Streak 3 ngày",
   });
 
-  assert.notEqual(variables.subject, variables.preheader, `${templateKey} subject/preheader duplicated`);
-  assert.notEqual(variables.subject, variables.headline, `${templateKey} subject/headline duplicated`);
-  assert.notEqual(variables.preheader, variables.headline, `${templateKey} preheader/headline duplicated`);
-  assert.ok(variables.ctaLabel.length >= 5, `${templateKey} CTA should be specific`);
-  assert.doesNotMatch(variables.ctaLabel, /learn more|renew premium|click here/i);
+  assert.notEqual(
+    variables.subject,
+    variables.preheader,
+    `${templateKey} subject/preheader duplicated`,
+  );
+  assert.notEqual(
+    variables.subject,
+    variables.headline,
+    `${templateKey} subject/headline duplicated`,
+  );
+  assert.notEqual(
+    variables.preheader,
+    variables.headline,
+    `${templateKey} preheader/headline duplicated`,
+  );
+  assert.ok(
+    variables.ctaLabel.length >= 5,
+    `${templateKey} CTA should be specific`,
+  );
+  assert.doesNotMatch(
+    variables.ctaLabel,
+    /learn more|renew premium|click here/i,
+  );
   return variables;
 }
 
@@ -132,8 +208,15 @@ async function testTemplateRendering() {
     });
 
     assert.match(rendered.html, /Thinkfy/);
-    assert.match(rendered.html, /https:\/\/thinkfy\.net\/coach\/coach-pet-clean\.png/);
-    assert.doesNotMatch(rendered.html, /href="\/(?:practice|courses|dashboard)/);
+    assert.match(
+      rendered.html,
+      /https:\/\/thinkfy\.net\/coach\/coach-pet-clean\.png/,
+    );
+    assert.doesNotMatch(
+      rendered.html,
+      /href="\/(?:practice|courses|dashboard)/,
+    );
+    assertAccessibleRenderedHtml(rendered.html, "vi");
   }
 
   const streak = buildTemplateVariables("streak_rescue", {
@@ -149,6 +232,7 @@ async function testTemplateRendering() {
 
   assert.equal(rendered.subject, "Streak còn cứu được hôm nay");
   assert.match(rendered.text, /Giữ streak/);
+  assert.match(rendered.html, /Đã học|Nghỉ/);
 
   const english = buildTemplateVariables("weekly_progress", {
     userName: "Minh",
@@ -160,6 +244,11 @@ async function testTemplateRendering() {
 
   assert.match(english.headline, /weekly progress/i);
   assert.equal(english.locale, "en");
+  const renderedEnglish = await renderThinkfyEmail({
+    subject: english.subject,
+    variables: english,
+  });
+  assertAccessibleRenderedHtml(renderedEnglish.html, "en");
 }
 
 function testEligibility() {
@@ -171,7 +260,9 @@ function testEligibility() {
     now,
   });
 
-  const streakCandidate = evaluation.candidates.find((candidate) => candidate.templateKey === "streak_rescue");
+  const streakCandidate = evaluation.candidates.find(
+    (candidate) => candidate.templateKey === "streak_rescue",
+  );
   assert.ok(streakCandidate);
   assert.equal(streakCandidate.toEmail, "minh@example.com");
   assert.equal(streakCandidate.variables.stat1Value, "3");
@@ -179,7 +270,10 @@ function testEligibility() {
   assert.equal(streakCandidate.metadata?.streakMismatch, true);
 
   const practicedToday = evaluateEmailCandidatesForProfile({
-    profile: baseProfile({ streak_current: 4, streak_last_active_date: "2026-05-16" }),
+    profile: baseProfile({
+      streak_current: 4,
+      streak_last_active_date: "2026-05-16",
+    }),
     summary: baseSummary({
       lastActivityAt: "2026-05-15T23:30:00.000Z",
       lastPracticeAt: "2026-05-15T23:30:00.000Z",
@@ -197,10 +291,18 @@ function testEligibility() {
     history: [],
     now,
   });
-  assert.equal(practicedToday.candidates.some((candidate) => candidate.templateKey === "streak_rescue"), false);
+  assert.equal(
+    practicedToday.candidates.some(
+      (candidate) => candidate.templateKey === "streak_rescue",
+    ),
+    false,
+  );
 
   const inactiveTwoDays = evaluateEmailCandidatesForProfile({
-    profile: baseProfile({ streak_current: 0, streak_last_active_date: "2026-05-13" }),
+    profile: baseProfile({
+      streak_current: 0,
+      streak_last_active_date: "2026-05-13",
+    }),
     summary: baseSummary({
       lastActivityAt: "2026-05-13T03:00:00.000Z",
       lastPracticeAt: "2026-05-13T03:00:00.000Z",
@@ -218,8 +320,17 @@ function testEligibility() {
     history: [],
     now,
   });
-  assert.equal(inactiveTwoDays.candidates.some((candidate) => candidate.templateKey === "streak_rescue"), false);
-  assert.ok(inactiveTwoDays.candidates.some((candidate) => candidate.templateKey === "winback"));
+  assert.equal(
+    inactiveTwoDays.candidates.some(
+      (candidate) => candidate.templateKey === "streak_rescue",
+    ),
+    false,
+  );
+  assert.ok(
+    inactiveTwoDays.candidates.some(
+      (candidate) => candidate.templateKey === "winback",
+    ),
+  );
 
   const optedOut = evaluateEmailCandidatesForProfile({
     profile: baseProfile({ preferences: { email_notifications: false } }),
@@ -230,6 +341,17 @@ function testEligibility() {
 
   assert.equal(optedOut.candidates.length, 0);
   assert.deepEqual(optedOut.skippedReasons, ["email_notifications_disabled"]);
+
+  const missingConsent = evaluateEmailCandidatesForProfile({
+    profile: baseProfile({ preferences: { preferred_locale: "vi" } }),
+    summary: baseSummary(),
+    history: [],
+    now,
+  });
+  assert.equal(missingConsent.candidates.length, 0);
+  assert.deepEqual(missingConsent.skippedReasons, [
+    "email_notifications_disabled",
+  ]);
 
   const noPractice = evaluateEmailCandidatesForProfile({
     profile: baseProfile({
@@ -243,7 +365,11 @@ function testEligibility() {
     summary: baseSummary({
       lastActivityAt: "2026-05-13T00:00:00.000Z",
       lastPracticeAt: "2026-05-13T00:00:00.000Z",
-      streakState: baseStreak({ atRiskToday: false, current: 0, profileCurrent: 0 }),
+      streakState: baseStreak({
+        atRiskToday: false,
+        current: 0,
+        profileCurrent: 0,
+      }),
       latestAchievementKey: null,
       latestAchievementLabel: null,
     }),
@@ -251,7 +377,12 @@ function testEligibility() {
     now,
   });
 
-  assert.equal(noPractice.candidates.some((candidate) => candidate.templateKey === "winback"), false);
+  assert.equal(
+    noPractice.candidates.some(
+      (candidate) => candidate.templateKey === "winback",
+    ),
+    false,
+  );
   assert.ok(noPractice.skippedReasons.includes("winback_preference_disabled"));
 
   const reminderOnly = evaluateEmailCandidatesForProfile({
@@ -275,22 +406,30 @@ function testEligibility() {
   });
 
   assert.ok(
-    reminderOnly.candidates.every((candidate) =>
-      candidate.templateKey === "practice_reminder" ||
-      candidate.templateKey === "streak_rescue"
-    )
+    reminderOnly.candidates.every(
+      (candidate) =>
+        candidate.templateKey === "practice_reminder" ||
+        candidate.templateKey === "streak_rescue",
+    ),
   );
   assert.ok(reminderOnly.skippedReasons.includes("achievement_scope_disabled"));
   assert.ok(reminderOnly.skippedReasons.includes("winback_scope_disabled"));
 }
 
 function testVietnamStreakBoundaries() {
-  const profile = baseProfile({ streak_current: 99, streak_last_active_date: "2026-05-15" });
+  const profile = baseProfile({
+    streak_current: 99,
+    streak_last_active_date: "2026-05-15",
+  });
 
   const beforeVietnamMidnight = computeEmailStreakState({
     profile,
     activities: [
-      { activity_type: "debate_completed", reference_type: null, created_at: "2026-05-15T16:30:00.000Z" },
+      {
+        activity_type: "debate_completed",
+        reference_type: null,
+        created_at: "2026-05-15T16:30:00.000Z",
+      },
     ],
     now: new Date("2026-05-15T16:59:00.000Z"),
   });
@@ -300,7 +439,11 @@ function testVietnamStreakBoundaries() {
   const afterVietnamMidnight = computeEmailStreakState({
     profile,
     activities: [
-      { activity_type: "debate_completed", reference_type: null, created_at: "2026-05-15T16:30:00.000Z" },
+      {
+        activity_type: "debate_completed",
+        reference_type: null,
+        created_at: "2026-05-15T16:30:00.000Z",
+      },
     ],
     now: new Date("2026-05-15T17:05:00.000Z"),
   });
@@ -310,9 +453,16 @@ function testVietnamStreakBoundaries() {
   assert.equal(afterVietnamMidnight.mismatch, true);
 
   const duelReferenceQualifies = computeEmailStreakState({
-    profile: baseProfile({ streak_current: 1, streak_last_active_date: "2026-05-16" }),
+    profile: baseProfile({
+      streak_current: 1,
+      streak_last_active_date: "2026-05-16",
+    }),
     activities: [
-      { activity_type: "anything", reference_type: "debate_duel", created_at: "2026-05-16T02:00:00.000Z" },
+      {
+        activity_type: "anything",
+        reference_type: "debate_duel",
+        created_at: "2026-05-16T02:00:00.000Z",
+      },
     ],
     now: new Date("2026-05-16T03:00:00.000Z"),
   });
@@ -322,11 +472,35 @@ function testVietnamStreakBoundaries() {
 
 function testDispatchSummaryAndSendInput() {
   const summary = __emailDispatchInternals.summarizeActivity({
-    profile: baseProfile({ streak_current: 10, streak_last_active_date: "2026-05-12" }),
+    profile: baseProfile({
+      streak_current: 10,
+      streak_last_active_date: "2026-05-12",
+    }),
     activities: [
-      { user_id: "u1", activity_type: "debate_completed", reference_type: null, metadata: null, xp_earned: 10, created_at: "2026-05-13T03:00:00.000Z" },
-      { user_id: "u1", activity_type: "duel_completed", reference_type: null, metadata: null, xp_earned: 10, created_at: "2026-05-14T03:00:00.000Z" },
-      { user_id: "u1", activity_type: "lesson_completed", reference_type: null, metadata: null, xp_earned: 10, created_at: "2026-05-15T03:00:00.000Z" },
+      {
+        user_id: "u1",
+        activity_type: "debate_completed",
+        reference_type: null,
+        metadata: null,
+        xp_earned: 10,
+        created_at: "2026-05-13T03:00:00.000Z",
+      },
+      {
+        user_id: "u1",
+        activity_type: "duel_completed",
+        reference_type: null,
+        metadata: null,
+        xp_earned: 10,
+        created_at: "2026-05-14T03:00:00.000Z",
+      },
+      {
+        user_id: "u1",
+        activity_type: "lesson_completed",
+        reference_type: null,
+        metadata: null,
+        xp_earned: 10,
+        created_at: "2026-05-15T03:00:00.000Z",
+      },
     ],
     dailyStats: [],
     now: new Date("2026-05-16T03:00:00.000Z"),
@@ -361,9 +535,23 @@ function testDispatchSummaryAndSendInput() {
     },
   });
 
-  assert.equal(sendInput.options.idempotencyKey, "streak_rescue:00000000-0000-0000-0000-000000000001:2026-05-16");
-  assert.match(sendInput.payload.headers?.["List-Unsubscribe"] ?? "", /\/api\/email\/unsubscribe\?token=/);
-  assert.equal(sendInput.payload.headers?.["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+  assert.equal(
+    sendInput.options.idempotencyKey,
+    "streak_rescue:00000000-0000-0000-0000-000000000001:2026-05-16",
+  );
+  assert.match(
+    sendInput.payload.headers?.["List-Unsubscribe"] ?? "",
+    /\/api\/email\/unsubscribe\?token=/,
+  );
+  assert.equal(
+    sendInput.payload.headers?.["List-Unsubscribe-Post"],
+    "List-Unsubscribe=One-Click",
+  );
+  assert.equal(
+    sendInput.payload.headers?.["List-ID"],
+    "<streak.notifications.thinkfy.net>",
+  );
+  assert.match(sendInput.payload.from, /updates\.thinkfy\.net/);
 }
 
 function testUnsubscribeTokensAndHeaders() {
@@ -380,7 +568,7 @@ function testUnsubscribeTokensAndHeaders() {
 
   const headers = buildListUnsubscribeHeaders(
     "https://thinkfy.net/api/email/unsubscribe?token=abc",
-    "support@thinkfy.net"
+    "support@thinkfy.net",
   );
   assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
   assert.match(headers["List-Unsubscribe"], /mailto:support@thinkfy\.net/);
@@ -409,12 +597,21 @@ function testWebhookStatusRules() {
   assert.equal(delivered.status, null);
   assert.equal(delivered.patch.status, undefined);
 
+  const delayed = buildProviderStatusPatch({
+    eventType: "email.delivery_delayed",
+    currentStatus: "sent",
+    now: new Date("2026-05-16T00:00:00.000Z"),
+  });
+  assert.equal(delayed.status, "delayed");
+  assert.equal(delayed.patch.delayed_at, "2026-05-16T00:00:00.000Z");
+  assert.equal(shouldApplyProviderStatus("delayed", "sent"), false);
+
   assert.equal(
     getResendEmailId({
       type: "email.delivered",
       data: { email_id: "resend-123" },
     }),
-    "resend-123"
+    "resend-123",
   );
 }
 

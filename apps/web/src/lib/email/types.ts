@@ -12,6 +12,7 @@ export const EMAIL_TEMPLATE_KEYS = [
 
 export type EmailTemplateKey = (typeof EMAIL_TEMPLATE_KEYS)[number];
 export type EmailLocale = "vi" | "en";
+export type EmailSenderStream = "notifications" | "updates";
 export type EmailCategory =
   | "onboarding"
   | "practice"
@@ -26,6 +27,7 @@ export type EmailStatus =
   | "skipped"
   | "sent"
   | "scheduled"
+  | "delayed"
   | "delivered"
   | "opened"
   | "clicked"
@@ -93,6 +95,9 @@ export interface EmailCandidate {
   sendKey: string;
   subject: string;
   variables: EmailTemplateVariables;
+  messageClass?: NotificationMessageClass;
+  topic?: NotificationTopic;
+  senderStream?: EmailSenderStream;
   metadata?: Record<string, unknown>;
 }
 
@@ -122,6 +127,7 @@ export interface EmailTemplateVariables {
   oneClickUnsubscribeUrl?: string;
   supportEmail?: string;
   secondaryNote?: string;
+  whyReceived?: string;
 }
 
 export interface RenderedEmail {
@@ -139,3 +145,9 @@ export interface EmailDispatchResult {
   dryRun: boolean;
   errors: string[];
 }
+import type {
+  NotificationMessageClass,
+  NotificationTopic,
+} from "@/lib/notifications/contracts";
+
+export type { NotificationMessageClass, NotificationTopic };
