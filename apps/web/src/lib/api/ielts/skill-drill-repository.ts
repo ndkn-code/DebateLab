@@ -16,6 +16,7 @@ const BANK_QUESTION_LIMIT = 200;
 type SourceTest = Pick<Tables<"ielts_tests">, "id" | "status" | "module" | "metadata">;
 type SourceQuestion = Tables<"ielts_questions"> & { ielts_tests: SourceTest | null };
 type QuestionKey = Tables<"ielts_question_keys">;
+type ExistingDrillRow = MaterializedSkillDrillTest & { metadata: Json };
 
 export interface MaterializedSkillDrillTest {
   id: string;
@@ -67,6 +68,99 @@ async function findExistingDrill(
     .maybeSingle();
   if (error) throw new Error(`skillDrill(existing): ${error.message}`);
   return data;
+}
+
+function jsonStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => (typeof entry === "string" ? [entry] : []));
+}
+
+function metadataQuestionTypes(metadata: Json): string[] {
+  if (!isRecord(metadata)) return [];
+  return jsonStringArray(metadata.question_types);
+}
+
+function metadataDifficultyBand(metadata: Json): number | null {
+  if (!isRecord(metadata)) return null;
+  const raw = metadata.difficulty_band_hint;
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+}
+
+function metadataQuestionCount(metadata: Json): number | null {
+  if (!isRecord(metadata)) return null;
+  const raw = metadata.question_count;
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+}
+
+function isInitialBankDrill(row: ExistingDrillRow): boolean {
+  return isRecord(row.metadata) && row.metadata.generated_by === "ielts_skill_drill_bank_v1";
+}
+
+function typeMatchScore(
+  row: ExistingDrillRow,
+  reference: IeltsSkillDrillPlanReference,
+): number {
+  if (reference.questionTypes.length === 0) return 0;
+  const requested = new Set(reference.questionTypes);
+  const candidateTypes = metadataQuestionTypes(row.metadata);
+  return candidateTypes.some((type) => (requested as Set<string>).has(type)) ? 1 : -1;
+}
+
+function difficultyDistance(
+  row: ExistingDrillRow,
+  reference: IeltsSkillDrillPlanReference,
+): number {
+  const candidate = metadataDifficultyBand(row.metadata) ?? 6.5;
+  const target = reference.difficultyBandHint ?? 6.5;
+  return Math.abs(candidate - target);
+}
+
+function bankDrillSort(
+  reference: IeltsSkillDrillPlanReference,
+): (left: ExistingDrillRow, right: ExistingDrillRow) => number {
+  return (left, right) => {
+    const leftBank = isInitialBankDrill(left);
+    const rightBank = isInitialBankDrill(right);
+    if (leftBank !== rightBank) return leftBank ? -1 : 1;
+
+    const leftType = typeMatchScore(left, reference);
+    const rightType = typeMatchScore(right, reference);
+    if (leftType !== rightType) return rightType - leftType;
+
+    const leftDistance = difficultyDistance(left, reference);
+    const rightDistance = difficultyDistance(right, reference);
+    if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+
+    const leftCount = metadataQuestionCount(left.metadata) ?? 8;
+    const rightCount = metadataQuestionCount(right.metadata) ?? 8;
+    if (leftCount !== rightCount) return Math.abs(leftCount - 8) - Math.abs(rightCount - 8);
+
+    return left.slug.localeCompare(right.slug);
+  };
+}
+
+async function findExistingPublishedBankDrill(
+  client: IeltsDbClient,
+  reference: IeltsSkillDrillPlanReference,
+): Promise<MaterializedSkillDrillTest | null> {
+  const { data, error } = await client
+    .from("ielts_tests")
+    .select("id, slug, title, metadata")
+    .eq("status", "published")
+    .eq("kind", "drill")
+    .eq("module", reference.module)
+    .eq("skill", reference.skill)
+    .eq("metadata->>generated_kind", "b2c_skill_drill")
+    .eq("metadata->>subskill_key", reference.subskillKey)
+    .limit(50);
+  if (error) throw new Error(`skillDrill(existing bank): ${error.message}`);
+
+  const candidates = ((data ?? []) as ExistingDrillRow[])
+    .filter((row) => isGeneratedDrillMetadata(row.metadata))
+    .filter((row) => typeMatchScore(row, reference) >= 0)
+    .sort(bankDrillSort(reference));
+  const best = candidates[0];
+  return best ? { id: best.id, slug: best.slug, title: best.title } : null;
 }
 
 async function loadBankQuestions(
@@ -365,6 +459,12 @@ export async function materializeIeltsSkillDrill(params: {
   userId: string;
   reference: IeltsSkillDrillPlanReference;
 }): Promise<MaterializedSkillDrillTest | null> {
+  const existingBankDrill = await findExistingPublishedBankDrill(
+    params.client,
+    params.reference,
+  );
+  if (existingBankDrill) return existingBankDrill;
+
   const sourceRows = await loadBankQuestions(params.client, params.reference);
   const result = buildIeltsSkillDrill({
     userId: params.userId,
