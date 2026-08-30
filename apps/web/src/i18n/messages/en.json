@@ -301,6 +301,7 @@
       "ielts_home": "IELTS Home",
       "ielts_learn": "Learn",
       "ielts_library": "Test Library",
+      "ielts_speaking": "Speaking Rehearsal",
       "ielts_assigned": "Assigned"
     },
     "ielts": {
@@ -358,6 +359,22 @@
       "recent_title": "Recent sittings",
       "featured_title": "Start practising",
       "library_title": "IELTS test library",
+      "speaking_rehearsal": {
+        "eyebrow": "Speaking practice",
+        "title": "Speaking Rehearsal",
+        "body": "Rehearse published IELTS Speaking prompts and receive AI feedback in a low-stakes practice setting.",
+        "notice_title": "AI rehearsal, not an official score",
+        "notice_body": "This practice is separate from Exam Simulation. AI feedback can guide your next practice, but it is not an official IELTS Speaking result.",
+        "guide_title": "Before your first rehearsal",
+        "guide_body": "Choose one prompt set, allow microphone access, then record a natural answer. You can review the AI feedback after submission.",
+        "guide_dismiss": "Got it",
+        "guide_reopen": "How rehearsal works",
+        "available_title": "Choose a rehearsal",
+        "available_count": "{count, plural, one {# published set} other {# published sets}}",
+        "start": "Start rehearsal",
+        "empty_title": "No Speaking rehearsals yet",
+        "empty_body": "Published Speaking practice sets will appear here when they are ready."
+      },
       "filter_label": "Filter tests",
       "filter_all": "All",
       "filter_full_mock": "Full mocks",
@@ -3918,7 +3935,7 @@
       "toastAnswerSaved": "Answer saved.",
       "toastAnswerSaveFailed": "We couldn't save that answer yet. It will retry before submit.",
       "toastSectionSubmitted": "Section submitted.",
-      "toastMockSubmitted": "Mock submitted. Your band is ready.",
+      "toastMockSubmitted": "Simulation submitted. Your results are being graded.",
       "toastActionFailed": "Something went wrong. Please try again.",
       "exam": {
         "modeLabel": "Exam simulation",
@@ -3993,7 +4010,7 @@
         "noQuestions": "No questions in this part.",
         "noContent": "This section has no content yet.",
         "pausedBody": "Paused — the clock is frozen. Resume to keep answering.",
-        "introBody": "Timed, exam-conditions mock. Reading, Writing, and Speaking can be paused; Listening recordings play once without pause or replay.",
+        "introBody": "Timed Listening, Reading, and Writing simulation in a fixed order. Submitted sections cannot be reopened, and Listening recordings play once.",
         "starting": "Starting…",
         "startMock": "Start mock test",
         "yourBand": "Your band",

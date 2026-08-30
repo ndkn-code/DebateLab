@@ -84,7 +84,7 @@ export function IeltsOnboardingGoalStep({
           onSubmit();
         }}
       >
-        <fieldset className="grid gap-2">
+        <fieldset className="grid gap-2" role="radiogroup">
           <legend className="type-body-sm font-semibold text-on-surface">
             {moduleCopy.label}
           </legend>
@@ -103,7 +103,8 @@ export function IeltsOnboardingGoalStep({
                 <button
                   key={module}
                   type="button"
-                  aria-pressed={selected}
+                  role="radio"
+                  aria-checked={selected}
                   onClick={() => setGoal((current) => ({ ...current, module }))}
                   className={cn(
                     "min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

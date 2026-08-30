@@ -81,18 +81,18 @@ export function ChoiceGroup({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
-      <p className="type-label font-semibold uppercase text-on-surface-variant">
+    <fieldset className="grid gap-2">
+      <legend className="type-label font-semibold uppercase text-on-surface-variant">
         {label}
-      </p>
+      </legend>
       <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
+    </fieldset>
   );
 }
 
 export function choiceClass(active: boolean): string {
   return cn(
-    "min-h-9 rounded-lg border px-3 type-body-sm font-semibold transition-colors",
+    "min-h-10 rounded-lg border px-3 type-body-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
     active
       ? "border-primary bg-primary-container text-on-primary-container"
       : "border-outline-variant bg-surface-container-low text-on-surface-variant hover:bg-surface-container",

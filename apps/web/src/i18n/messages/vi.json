@@ -301,6 +301,7 @@
       "ielts_home": "Trang IELTS",
       "ielts_learn": "Học",
       "ielts_library": "Thư viện đề",
+      "ielts_speaking": "Luyện nói mô phỏng",
       "ielts_assigned": "Đề được giao"
     },
     "ielts": {
@@ -358,6 +359,22 @@
       "recent_title": "Lần làm gần đây",
       "featured_title": "Bắt đầu luyện tập",
       "library_title": "Thư viện đề IELTS",
+      "speaking_rehearsal": {
+        "eyebrow": "Luyện kỹ năng Nói",
+        "title": "Luyện nói mô phỏng",
+        "body": "Luyện với bộ câu hỏi IELTS Speaking đã xuất bản và nhận phản hồi AI trong môi trường nhẹ nhàng, ít áp lực.",
+        "notice_title": "AI hỗ trợ luyện tập, không phải điểm chính thức",
+        "notice_body": "Bài luyện này tách biệt với Mô phỏng bài thi. Phản hồi AI giúp định hướng lần luyện tiếp theo nhưng không phải kết quả IELTS Speaking chính thức.",
+        "guide_title": "Trước lần luyện đầu tiên",
+        "guide_body": "Chọn một bộ câu hỏi, cho phép dùng micro rồi ghi âm câu trả lời tự nhiên. Bạn có thể xem phản hồi AI sau khi nộp.",
+        "guide_dismiss": "Đã hiểu",
+        "guide_reopen": "Cách luyện nói hoạt động",
+        "available_title": "Chọn bài luyện",
+        "available_count": "{count} bộ đã xuất bản",
+        "start": "Bắt đầu luyện nói",
+        "empty_title": "Chưa có bài luyện Speaking",
+        "empty_body": "Các bộ luyện Speaking đã xuất bản sẽ xuất hiện tại đây khi sẵn sàng."
+      },
       "filter_label": "Lọc đề thi",
       "filter_all": "Tất cả",
       "filter_full_mock": "Đề đầy đủ",
@@ -3918,7 +3935,7 @@
       "toastAnswerSaved": "Đã lưu câu trả lời.",
       "toastAnswerSaveFailed": "Chưa lưu được câu trả lời này. Hệ thống sẽ thử lại trước khi nộp.",
       "toastSectionSubmitted": "Đã nộp phần thi.",
-      "toastMockSubmitted": "Đã nộp bài thi thử. Band của bạn đã sẵn sàng.",
+      "toastMockSubmitted": "Đã nộp bài mô phỏng. Hệ thống đang chấm bài.",
       "toastActionFailed": "Có lỗi xảy ra. Vui lòng thử lại.",
       "exam": {
         "modeLabel": "Mô phỏng kỳ thi",
@@ -3993,7 +4010,7 @@
         "noQuestions": "Phần này chưa có câu hỏi.",
         "noContent": "Phần thi này chưa có nội dung.",
         "pausedBody": "Đã tạm dừng — đồng hồ đang dừng. Tiếp tục để làm bài.",
-        "introBody": "Bài thi thử có tính giờ theo điều kiện thi. Có thể tạm dừng Đọc, Viết và Nói; bản ghi Nghe chỉ phát một lần, không thể tạm dừng hoặc phát lại.",
+        "introBody": "Bài mô phỏng Nghe, Đọc và Viết có tính giờ theo thứ tự cố định. Không thể mở lại phần đã nộp và bản ghi Nghe chỉ phát một lần.",
         "starting": "Đang bắt đầu…",
         "startMock": "Bắt đầu thi thử",
         "yourBand": "Band của bạn",
