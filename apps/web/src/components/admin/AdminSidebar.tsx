@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/sheet";
 import { Link } from "@/i18n/navigation";
 import { motion, useReducedMotion } from "framer-motion";
+import { ORGANIZATIONS_V1 } from "@/lib/features";
 
 const ADMIN_NAV = [
   {
@@ -72,7 +73,13 @@ const ADMIN_NAV = [
     key: "classes" as const,
     icon: CalendarDays,
   },
-  { href: "/dashboard/admin/clubs", key: "clubs" as const, icon: Building2 },
+  {
+    href: ORGANIZATIONS_V1
+      ? "/dashboard/admin/organizations"
+      : "/dashboard/admin/clubs",
+    key: ORGANIZATIONS_V1 ? ("organizations" as const) : ("clubs" as const),
+    icon: Building2,
+  },
   { href: "/dashboard/admin/emails", key: "emails" as const, icon: Mail },
   {
     href: "/dashboard/admin/feedback-popups",

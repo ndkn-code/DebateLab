@@ -52,6 +52,8 @@ export interface OrganizationMemberInviteResult {
   role: OrganizationRole;
   status: "pending" | "accepted";
   expiresAt?: string | null;
+  /** Server-only delivery secret. Never return this from a browser action. */
+  deliveryToken?: string;
 }
 
 export interface OrganizationClassResult {
@@ -350,5 +352,6 @@ export function normalizeOrganizationInviteResult(
     role: isOrganizationRole(row.role) ? row.role : fallback.role,
     status: row.status === "accepted" ? "accepted" : "pending",
     expiresAt: typeof row.expiresAt === "string" ? row.expiresAt : typeof row.expires_at === "string" ? row.expires_at : null,
+    deliveryToken: typeof row.deliveryToken === "string" ? row.deliveryToken : undefined,
   };
 }

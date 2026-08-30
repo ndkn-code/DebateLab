@@ -5,7 +5,6 @@ import {
   getAdminClubsPageData,
 } from "@/lib/api/admin-clubs";
 import { ORGANIZATIONS_V1 } from "@/lib/features";
-import { organizationTypeFromLegacyClubType } from "@/lib/organizations/compatibility";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +20,7 @@ export default async function AdminOrganizationPage({
   const language = locale === "vi" ? "vi" : "en";
   const [detail, list] = await Promise.all([
     getAdminClubDetail(organizationId),
-    getAdminClubsPageData(),
+    getAdminClubsPageData({ includeArchived: true }),
   ]);
 
   if (!detail) {
@@ -31,7 +30,7 @@ export default async function AdminOrganizationPage({
   const options = list.clubs.map((organization) => ({
     id: organization.id,
     name: organization.name,
-    type: organizationTypeFromLegacyClubType(organization.clubType),
+    type: organization.organizationType,
     status: organization.status,
     memberCount: organization.studentCount + organization.coachCount,
     role: "admin" as const,
@@ -45,7 +44,7 @@ export default async function AdminOrganizationPage({
     ({
       id: detail.club.id,
       name: detail.club.name,
-      type: organizationTypeFromLegacyClubType(detail.club.clubType),
+      type: detail.club.organizationType,
       status: detail.club.status,
       memberCount: detail.club.studentCount + detail.club.coachCount,
       role: "admin" as const,

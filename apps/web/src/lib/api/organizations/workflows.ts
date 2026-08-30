@@ -1,9 +1,12 @@
-"use server";
+import "server-only";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { requirePlatformAdmin } from "@/lib/api/class-manager-access";
+import { getAppBaseUrl } from "@/lib/email/config";
+import { sendClubInvitationEmail } from "@/lib/email/club-invitations";
 import {
   callOrganizationRpc,
   DEFAULT_ORGANIZATION_COUNTRY,
@@ -154,8 +157,42 @@ export async function inviteOrganizationMember(
     email: validation.payload.email,
     role: input.role,
   });
+  const { deliveryToken, ...publicResult } = result;
+  if (!deliveryToken) throw new Error("Invitation operation returned no delivery token.");
+
+  const [{ data: organization, error: organizationError }, { data: inviter, error: inviterError }] =
+    await Promise.all([
+      supabase
+        .from("clubs")
+        .select("name, city")
+        .eq("id", input.organizationId)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("display_name, email")
+        .eq("id", actorId)
+        .single(),
+    ]);
+  if (organizationError) throw new Error(organizationError.message);
+  if (inviterError) throw new Error(inviterError.message);
+
+  const delivery = await sendClubInvitationEmail({
+    supabase: createAdminClient(),
+    invitationId: result.invitationId,
+    toEmail: result.email,
+    clubName: organization.name,
+    clubId: input.organizationId,
+    role: result.role,
+    inviterName: inviter.display_name ?? inviter.email ?? "Thinkfy",
+    city: organization.city,
+    inviteUrl: `${getAppBaseUrl()}/join/club/${deliveryToken}`,
+    sendKey: `organization_invitation:${result.invitationId}:${validation.payload.idempotencyKey}`,
+  });
+  if (delivery.failed) {
+    throw new Error(delivery.reason ?? "Invitation email could not be delivered.");
+  }
   revalidateOrganization(input.organizationId);
-  return result;
+  return publicResult;
 }
 
 export async function createOrganizationFirstClass(

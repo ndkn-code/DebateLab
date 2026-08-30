@@ -79,5 +79,14 @@ assert.equal(
   }),
   4,
 );
+assert.equal(
+  deriveOrganizationSetupStep({
+    status: "draft",
+    hasPeople: false,
+    hasClass: false,
+    setupVersion: 5,
+  }),
+  4,
+);
 
 console.log("organization setup model tests passed");

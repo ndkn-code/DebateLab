@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAdminClubsPageData } from "@/lib/api/admin-clubs";
 import { ORGANIZATIONS_V1 } from "@/lib/features";
-import { organizationTypeFromLegacyClubType } from "@/lib/organizations/compatibility";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,10 @@ export default async function AdminOrganizationsPage({
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   if (!ORGANIZATIONS_V1) redirect(`/${locale}/dashboard/admin/clubs`);
-  const data = await getAdminClubsPageData({ searchParams: query });
+  const data = await getAdminClubsPageData({
+    searchParams: query,
+    includeArchived: true,
+  });
   const language = locale === "vi" ? "vi" : "en";
   const filters = {
     query: value(query.q, "").trim(),
@@ -43,7 +45,7 @@ export default async function AdminOrganizationsPage({
     .map((organization) => ({
       id: organization.id,
       name: organization.name,
-      type: organizationTypeFromLegacyClubType(organization.clubType),
+      type: organization.organizationType,
       status: organization.status,
       city: organization.city,
       memberCount: organization.studentCount + organization.coachCount,

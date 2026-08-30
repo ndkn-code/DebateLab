@@ -4,9 +4,9 @@ import { deriveOrganizationSetupStep } from "@/components/admin/organizations/or
 import { redirect } from "next/navigation";
 import { getAdminClubDetail } from "@/lib/api/admin-clubs";
 import { ORGANIZATIONS_V1 } from "@/lib/features";
+import { createClient } from "@/lib/supabase/server";
 import {
   normalizeOrganizationRole,
-  organizationTypeFromLegacyClubType,
 } from "@/lib/organizations/compatibility";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,12 @@ export default async function OrganizationSetupPage({
     redirect(`/${locale}/dashboard/admin/clubs/${organizationId}`);
   }
   const language = locale === "vi" ? "vi" : "en";
-  const data = await getAdminClubDetail(organizationId);
+  const [data, setupRecord] = await Promise.all([
+    getAdminClubDetail(organizationId),
+    createClient().then((supabase) =>
+      supabase.from("clubs").select("setup_version").eq("id", organizationId).maybeSingle(),
+    ),
+  ]);
 
   if (!data) {
     return (
@@ -48,11 +53,14 @@ export default async function OrganizationSetupPage({
   const firstInvitation = data.invitations.find(
     (invitation) => invitation.status === "pending",
   );
-  const firstTeacher = data.members.find((member) => member.role === "coach");
+  const firstTeacher = data.members.find(
+    (member) => normalizeOrganizationRole(member.role) === "teacher",
+  );
   const initialStep = deriveOrganizationSetupStep({
     status: data.club.status,
     hasClass: Boolean(firstClass),
     hasPeople: Boolean(firstInvitation || data.members.length > 1),
+    setupVersion: setupRecord.data?.setup_version ?? null,
   });
 
   return (
@@ -61,9 +69,7 @@ export default async function OrganizationSetupPage({
       initialStep={initialStep}
       initialDraft={{
         organizationId,
-        organizationType: organizationTypeFromLegacyClubType(
-          data.club.clubType,
-        ),
+        organizationType: data.club.organizationType,
         name: data.club.name,
         country: data.club.country,
         city: data.club.city ?? "",

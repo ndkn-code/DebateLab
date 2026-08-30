@@ -57,7 +57,11 @@ export function deriveOrganizationSetupStep(input: {
   status: OrganizationStatus;
   hasPeople: boolean;
   hasClass: boolean;
+  setupVersion?: number | null;
 }) {
+  if (typeof input.setupVersion === "number" && input.setupVersion >= 5) return 4;
+  if (typeof input.setupVersion === "number" && input.setupVersion >= 4) return 3;
+  if (typeof input.setupVersion === "number" && input.setupVersion >= 3) return 2;
   if (input.status === "active" || input.hasClass) return 4;
   if (input.hasPeople) return 3;
   return 2;

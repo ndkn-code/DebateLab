@@ -8,7 +8,6 @@ import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypa
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   normalizeClubRecipients,
-  normalizeEmailAddress,
   normalizeSocialUrl,
   validateClubAssignmentInput,
   validateClubCreationInput,
@@ -31,8 +30,62 @@ import type {
   CreateClubResult,
   SaveClubEventInput,
 } from "@/lib/types/admin-clubs";
+import {
+  activateOrganization as activateOrganizationWorkflow,
+  assignOrganizationCourse as assignOrganizationCourseWorkflow,
+  assignOrganizationMaterial as assignOrganizationMaterialWorkflow,
+  assignOrganizationTeacher as assignOrganizationTeacherWorkflow,
+  createOrganizationDraft as createOrganizationDraftWorkflow,
+  createOrganizationFirstClass as createOrganizationFirstClassWorkflow,
+  inviteOrganizationMember as inviteOrganizationMemberWorkflow,
+  updateOrganization as updateOrganizationWorkflow,
+} from "@/lib/api/organizations/workflows";
+import type {
+  ActivateOrganizationInput,
+  AssignOrganizationResourceInput,
+  AssignOrganizationTeacherInput,
+  CreateOrganizationClassInput,
+  CreateOrganizationDraftInput,
+  InviteOrganizationMemberInput,
+  UpdateOrganizationInput,
+} from "@/lib/api/organizations/repository";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+// Keep organization mutations on the existing admin/club action boundary.
+// The implementation module is server-only and is not a standalone action
+// or deployment entrypoint.
+export async function createOrganizationDraft(input: CreateOrganizationDraftInput) {
+  return createOrganizationDraftWorkflow(input);
+}
+
+export async function updateOrganization(input: UpdateOrganizationInput) {
+  return updateOrganizationWorkflow(input);
+}
+
+export async function inviteOrganizationMember(input: InviteOrganizationMemberInput) {
+  return inviteOrganizationMemberWorkflow(input);
+}
+
+export async function createOrganizationFirstClass(input: CreateOrganizationClassInput) {
+  return createOrganizationFirstClassWorkflow(input);
+}
+
+export async function assignOrganizationTeacher(input: AssignOrganizationTeacherInput) {
+  return assignOrganizationTeacherWorkflow(input);
+}
+
+export async function assignOrganizationCourse(input: AssignOrganizationResourceInput) {
+  return assignOrganizationCourseWorkflow(input);
+}
+
+export async function assignOrganizationMaterial(input: AssignOrganizationResourceInput) {
+  return assignOrganizationMaterialWorkflow(input);
+}
+
+export async function activateOrganization(input: ActivateOrganizationInput) {
+  return activateOrganizationWorkflow(input);
+}
 
 async function verifyAdmin(supabase: Supabase) {
   const {
@@ -352,6 +405,11 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
       code,
       name,
       club_type: cleanString(formData.get("clubType")) ?? "school",
+      organization_type:
+        (cleanString(formData.get("clubType")) ?? "school") === "school" ||
+        (cleanString(formData.get("clubType")) ?? "school") === "center"
+          ? "school"
+          : "club",
       city: validation.city,
       country: "VN",
       timezone: "Asia/Ho_Chi_Minh",
@@ -924,139 +982,47 @@ export async function deleteClubEvent(clubId: string, eventId: string) {
   revalidatePath(`/dashboard/admin/clubs/${clubId}`);
 }
 
-export async function claimClubInvitation(token: string) {
+export async function claimClubInvitation(token: string): Promise<
+  | { status: "auth_required" | "not_found" | "expired" | "revoked" }
+  | { status: "email_mismatch"; expectedEmail?: undefined }
+  | { status: "already_in_org"; clubId: string }
+  | { status: "accepted"; clubId: string }
+> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) return { status: "auth_required" as const };
-
-  const admin = createAdminClient();
-  const { data: profile, error: profileError } = await admin
-    .from("profiles")
-    .select("id, email")
-    .eq("id", user.id)
-    .single();
-  if (profileError) throw new Error(profileError.message);
-
   const tokenHash = invitationTokenHash(token);
-  const { data: invitation, error } = await admin
-    .from("club_invitations")
-    .select("id, club_id, email, role, status, expires_at, invited_by")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc("consume_organization_invitation", {
+    p_token_hash: tokenHash,
+  });
   if (error) throw new Error(error.message);
-  if (!invitation) return { status: "not_found" as const };
-  const canonicalRole = normalizeOrganizationRole(invitation.role);
-  if (!canonicalRole) return { status: "not_found" as const };
 
-  const { data: organization, error: organizationError } = await admin
-    .from("clubs")
-    .select("status")
-    .eq("id", invitation.club_id)
-    .maybeSingle();
-  if (organizationError) throw new Error(organizationError.message);
-  // Invitations for draft/archived organizations must not be able to create
-  // memberships while setup or lifecycle changes are in progress.
-  if (!organization || organization.status !== "active") return { status: "not_found" as const };
-
-  if (invitation.status === "accepted") {
-    const { data: activeMembership } = await admin
-      .from("club_memberships")
-      .select("id")
-      .eq("club_id", invitation.club_id)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .in("role", ["owner", "admin", "teacher", "coach", "student"])
-      .maybeSingle();
-    return activeMembership
-      ? { status: "accepted" as const, clubId: invitation.club_id as string }
-      : { status: "revoked" as const };
+  const result = data && typeof data === "object"
+    ? (data as { status?: unknown; clubId?: unknown; organizationId?: unknown })
+    : null;
+  const status = result?.status;
+  if (status === "invalid" || typeof status !== "string") {
+    return { status: "not_found" as const };
   }
-  if (invitation.status !== "pending") return { status: invitation.status as "revoked" | "expired" };
-
-  if (new Date(invitation.expires_at as string).getTime() < Date.now()) {
-    await admin
-      .from("club_invitations")
-      .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("id", invitation.id);
-    return { status: "expired" as const };
+  if (status === "expired" || status === "revoked" || status === "email_mismatch") {
+    return { status } as const;
   }
+  if (!result) return { status: "not_found" as const };
+  const clubId = typeof result.clubId === "string"
+    ? result.clubId
+    : typeof result.organizationId === "string"
+      ? result.organizationId
+      : null;
+  if (!clubId) return { status: "not_found" as const };
+  if (status === "already_in_org") return { status, clubId } as const;
+  if (status !== "accepted") return { status: "not_found" as const };
 
-  const invitationEmail = normalizeEmailAddress(invitation.email);
-  const profileEmail = normalizeEmailAddress(profile.email);
-  if (!invitationEmail || !profileEmail || invitationEmail !== profileEmail) {
-    // Do not disclose the invited address to a claimant who does not own it.
-    return { status: "email_mismatch" as const, expectedEmail: undefined };
-  }
-
-  if (canonicalRole === "student") {
-    const activeClub = await findActiveStudentClub(user.id);
-    if (activeClub?.club_id === invitation.club_id) {
-      await admin
-        .from("club_invitations")
-        .update({
-          status: "accepted",
-          accepted_by: user.id,
-          accepted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", invitation.id);
-
-      return { status: "accepted" as const, clubId: invitation.club_id as string };
-    }
-
-    if (activeClub) {
-      return { status: "already_in_org" as const, clubId: activeClub.club_id as string };
-    }
-  }
-
-  const { error: membershipError } = await admin.from("club_memberships").upsert(
-    {
-      club_id: invitation.club_id,
-      user_id: user.id,
-      role: canonicalRole,
-      status: "active",
-      removed_at: null,
-      invited_by: invitation.invited_by,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "club_id,user_id,role" }
-  );
-  if (membershipError) throw new Error(membershipError.message);
-
-  if (canonicalRole === "teacher") {
-    const { data: currentProfile, error: currentProfileError } = await admin
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (currentProfileError) throw new Error(currentProfileError.message);
-    if (currentProfile?.role === "student") {
-      const { error: promoteError } = await admin
-        .from("profiles")
-        .update({ role: "teacher", updated_at: new Date().toISOString() })
-        .eq("id", user.id)
-        .eq("role", "student");
-      if (promoteError) throw new Error(promoteError.message);
-    }
-  }
-
-  const { error: invitationError } = await admin
-    .from("club_invitations")
-    .update({
-      status: "accepted",
-      accepted_by: user.id,
-      accepted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", invitation.id);
-  if (invitationError) throw new Error(invitationError.message);
-
-  revalidatePath(`/dashboard/admin/clubs/${invitation.club_id}`);
-  return { status: "accepted" as const, clubId: invitation.club_id as string };
+  revalidatePath(`/dashboard/admin/clubs/${clubId}`);
+  revalidatePath(`/dashboard/admin/organizations/${clubId}`);
+  return { status: "accepted" as const, clubId };
 }
 
 export async function saveCoachReview(input: {

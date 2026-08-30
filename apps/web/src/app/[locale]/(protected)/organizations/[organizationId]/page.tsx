@@ -2,7 +2,6 @@ import { OrganizationOverview } from "@/components/organizations/organization-ov
 import { getAdminClubDetail } from "@/lib/api/admin-clubs";
 import {
   normalizeOrganizationRole,
-  organizationTypeFromLegacyClubType,
 } from "@/lib/organizations/compatibility";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,7 +31,7 @@ export default async function OrganizationPage({ params }: Props) {
   const organization = {
     id: detail.club.id,
     name: detail.club.name,
-    type: organizationTypeFromLegacyClubType(detail.club.clubType),
+    type: detail.club.organizationType,
     status: detail.club.status,
     memberCount: detail.members.filter((member) => member.status === "active")
       .length,

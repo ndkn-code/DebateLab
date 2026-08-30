@@ -419,26 +419,30 @@ export function OrganizationSetupWizard({
             </legend>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {(["club", "school"] as const).map((type) => (
-                <button
+                <label
                   key={type}
-                  type="button"
-                  role="radio"
-                  aria-checked={draft.organizationType === type}
-                  onClick={() => update("organizationType", type)}
                   className={cn(
-                    "min-h-20 rounded-[10px] border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+                    "min-h-20 cursor-pointer rounded-[10px] border p-4 text-left transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none",
                     draft.organizationType === type
                       ? "border-primary bg-primary-container"
                       : "border-outline-variant hover:bg-surface-container-low",
                   )}
                 >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="organizationType"
+                    value={type}
+                    checked={draft.organizationType === type}
+                    onChange={() => update("organizationType", type)}
+                  />
                   <span className="block type-label text-on-surface">
                     {type === "club" ? t.club : t.school}
                   </span>
                   <span className="mt-1 block type-body-sm text-on-surface-variant">
                     {type === "club" ? t.clubHelp : t.schoolHelp}
                   </span>
-                </button>
+                </label>
               ))}
             </div>
           </fieldset>

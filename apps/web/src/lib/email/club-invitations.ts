@@ -158,7 +158,7 @@ export async function sendClubInvitationEmail(input: {
     return { sent: false, skipped: true, failed: false, reason: "dry_run" };
   }
 
-  const { data: message, error: insertError } = await input.supabase
+  let { data: message, error: insertError } = await input.supabase
     .from("email_messages")
     .insert({
       user_id: input.invitedUserId ?? null,
@@ -192,15 +192,39 @@ export async function sendClubInvitationEmail(input: {
 
   if (insertError) {
     if (insertError.code === "23505") {
-      return {
-        sent: false,
-        skipped: true,
-        failed: false,
-        reason: "duplicate_send_key",
-      };
+      const { data: existing, error: existingError } = await input.supabase
+        .from("email_messages")
+        .select("id, status")
+        .eq("send_key", sendKey)
+        .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
+      if (!existing || existing.status !== "failed") {
+        return {
+          sent: false,
+          skipped: true,
+          failed: false,
+          reason: "duplicate_send_key",
+        };
+      }
+      const { data: retried, error: retryError } = await input.supabase
+        .from("email_messages")
+        .update({
+          status: "queued",
+          error_message: null,
+          failed_at: null,
+        })
+        .eq("id", existing.id)
+        .eq("status", "failed")
+        .select("id")
+        .single();
+      if (retryError) throw new Error(retryError.message);
+      message = retried;
+      insertError = null;
+    } else {
+      throw new Error(insertError.message);
     }
-    throw new Error(insertError.message);
   }
+  if (!message) throw new Error("Invitation email message could not be reserved.");
 
   const resend = getResendClient();
   if (!resend) {

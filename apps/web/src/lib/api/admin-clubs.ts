@@ -363,8 +363,10 @@ function buildPageKpis(clubs: AdminClubListRow[]): AdminClubsKpis {
 
 export async function getAdminClubsPageData({
   searchParams,
+  includeArchived = false,
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
+  includeArchived?: boolean;
 } = {}): Promise<AdminClubsPageData> {
   const devBypassEnabled =
     isDevAdminBypassEnabled() ||
@@ -375,11 +377,12 @@ export async function getAdminClubsPageData({
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let listQuery = supabase
     .from("admin_club_list_rows")
     .select("*")
-    .neq("status", "archived")
     .order("created_at", { ascending: false });
+  if (!includeArchived) listQuery = listQuery.neq("status", "archived");
+  const { data, error } = await listQuery;
 
   if (error) {
     return {
@@ -392,6 +395,30 @@ export async function getAdminClubsPageData({
   }
 
   const clubs = ((data ?? []) as Record<string, unknown>[]).map(toClubListRow);
+  const clubIds = clubs.map((club) => club.id);
+  const membershipResult = clubIds.length
+    ? await supabase
+        .from("club_memberships")
+        .select("club_id, role, status")
+        .in("club_id", clubIds)
+        .eq("status", "active")
+    : { data: [], error: null };
+  if (membershipResult.error) {
+    return {
+      clubs,
+      kpis: buildPageKpis(clubs),
+      qaEnabled: false,
+      qaState: null,
+      loadError: membershipResult.error.message,
+    };
+  }
+  const staffCounts = new Map<string, number>();
+  for (const membership of membershipResult.data ?? []) {
+    if (["owner", "admin", "teacher", "coach"].includes(String(membership.role))) {
+      staffCounts.set(membership.club_id, (staffCounts.get(membership.club_id) ?? 0) + 1);
+    }
+  }
+  for (const club of clubs) club.coachCount = staffCounts.get(club.id) ?? 0;
   return {
     clubs,
     kpis: buildPageKpis(clubs),
