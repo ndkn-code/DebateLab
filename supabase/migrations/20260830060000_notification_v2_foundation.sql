@@ -567,6 +567,9 @@ for all to authenticated using (user_id = auth.uid()) with check (user_id = auth
 drop policy if exists "Users manage own notification settings" on public.notification_user_settings;
 create policy "Users manage own notification settings" on public.notification_user_settings
 for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "No direct notification delivery job access" on public.notification_delivery_jobs;
+create policy "No direct notification delivery job access" on public.notification_delivery_jobs
+for all to authenticated using (false) with check (false);
 
 grant select on public.notification_events, public.notification_inbox_items to authenticated;
 grant update (state, read_at, archived_at) on public.notification_inbox_items to authenticated;

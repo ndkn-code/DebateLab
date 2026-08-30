@@ -294,6 +294,10 @@ assert.match(migration, /recipient_id = auth\.uid\(\)/);
 assert.match(migration, /user_id = auth\.uid\(\)/);
 assert.match(
   migration,
+  /create policy "No direct notification delivery job access" on public\.notification_delivery_jobs\s+for all to authenticated using \(false\) with check \(false\)/,
+);
+assert.match(
+  migration,
   /grant update \(state, read_at, archived_at\) on public\.notification_inbox_items to authenticated/,
 );
 assert.match(
