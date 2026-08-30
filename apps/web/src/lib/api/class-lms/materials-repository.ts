@@ -7,6 +7,8 @@ import {
   materialPlacementInputSchema,
   materialRightsInputSchema,
   materialUploadInputSchema,
+  materialMaxBytesForMime,
+  MATERIAL_RENDITION_KINDS,
   type MaterialAccessRule,
   type MaterialPlacementInput,
   type MaterialRightsBasis,
@@ -42,19 +44,17 @@ export type MaterialRpcClient = {
   rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<RpcResponse>;
   storage?: { from: (bucket: string) => { createSignedUrl: (path: string, expiresIn: number) => PromiseLike<{ data: { signedUrl?: string } | null; error: { message: string } | null }> } };
 };
+type MaterialRenditionLookup = {
+  eq: (column: string, value: string) => MaterialRenditionLookup;
+  maybeSingle: () => PromiseLike<{
+    data: { bucket_id?: string; storage_path?: string } | null;
+    error: { message: string } | null;
+  }>;
+};
+
 type MaterialStorageClient = {
   from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        eq: (column: string, value: string) => {
-          eq: (column: string, value: string) => {
-            maybeSingle: () => PromiseLike<{ data: { bucket_id?: string; storage_path?: string } | null; error: { message: string } | null }>;
-          };
-          maybeSingle: () => PromiseLike<{ data: { bucket_id?: string; storage_path?: string } | null; error: { message: string } | null }>;
-        };
-        maybeSingle: () => PromiseLike<{ data: { bucket_id?: string; storage_path?: string } | null; error: { message: string } | null }>;
-      };
-    };
+    select: (columns: string) => MaterialRenditionLookup;
   };
   storage: { from: (bucket: string) => { createSignedUrl: (path: string, expiresIn: number) => PromiseLike<{ data: { signedUrl?: string } | null; error: { message: string } | null }> } };
 };
@@ -119,6 +119,15 @@ export interface LearnerMaterialRow {
 export interface MaterialPage<T> {
   rows: T[];
   nextCursor: string | null;
+}
+
+export interface MaterialUploadReservation {
+  materialId: string;
+  versionId: string;
+  bucketId: string;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
 }
 
 const managerRowSchema = z.object({
@@ -221,9 +230,21 @@ function mapLearnerRow(row: Raw): LearnerMaterialRow | null {
   const id = text(row, "material_id", "materialId") || text(row, "id");
   const placementId = text(row, "placement_id", "placementId");
   const versionId = text(row, "version_id", "versionId");
-  const renditionKind = text(row, "preview_kind", "previewKind") as Exclude<MaterialRenditionKind, "original">;
+  const renditionKindValue = text(row, "preview_kind", "previewKind");
   const accessState = text(row, "access_state", "accessState") as LearnerMaterialRow["accessState"];
-  if (!id || !placementId || !versionId || !renditionKind || renditionKind === "original") return null;
+  if (
+    !id ||
+    !placementId ||
+    !versionId ||
+    renditionKindValue === "original" ||
+    !(MATERIAL_RENDITION_KINDS as readonly string[]).includes(
+      renditionKindValue,
+    )
+  ) return null;
+  const renditionKind = renditionKindValue as Exclude<
+    MaterialRenditionKind,
+    "original"
+  >;
   if (!["available", "locked", "processing"].includes(accessState)) return null;
   return {
     id,
@@ -289,7 +310,28 @@ export async function prepareSharedMaterialUpload(input: unknown, client?: RpcCl
   const db = await rpcClient(client);
   const parsed = materialUploadInputSchema.safeParse(input);
   if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; "));
-  return invoke(db, SHARED_MATERIAL_RPCS.prepareUpload, { p_input: parsed.data });
+  const raw = await invoke(db, SHARED_MATERIAL_RPCS.prepareUpload, { p_input: parsed.data });
+  const row = Array.isArray(raw) ? raw[0] : raw;
+  if (!row || typeof row !== "object") throw new Error("Material upload reservation was not returned.");
+  const value = row as Raw;
+  const materialId = text(value, "material_id", "materialId");
+  const versionId = text(value, "version_id", "versionId");
+  const bucketId = text(value, "bucket_id", "bucketId");
+  const storagePath = text(value, "storage_path", "storagePath");
+  const mimeType = text(value, "mime_type", "mimeType") || parsed.data.mimeType;
+  const sizeBytes = number(value, "size_bytes", "sizeBytes") || parsed.data.sizeBytes;
+  if (
+    !z.string().uuid().safeParse(materialId).success ||
+    !z.string().uuid().safeParse(versionId).success ||
+    bucketId !== "lms-material-ingest" ||
+    !storagePath ||
+    mimeType !== parsed.data.mimeType ||
+    sizeBytes !== parsed.data.sizeBytes ||
+    sizeBytes > materialMaxBytesForMime(mimeType)
+  ) {
+    throw new Error("Invalid material upload reservation.");
+  }
+  return { materialId, versionId, bucketId, storagePath, mimeType, sizeBytes } satisfies MaterialUploadReservation;
 }
 
 export async function publishSharedMaterial(materialId: string, versionId: string, client?: RpcClient) {

@@ -30,7 +30,7 @@ const learnerProjection = {
   order_index: 0,
   processing_status: "ready",
   preview_rendition_id: renditionId,
-  preview_kind: "preview",
+  preview_kind: "pdf_preview",
   preview_mime_type: "application/pdf",
   page_count: 2,
   native_document: null,
@@ -52,27 +52,33 @@ const fakeClient: MaterialRpcClient = {
   },
 };
 
+const fakeRenditionLookup = {
+  eq: () => fakeRenditionLookup,
+  maybeSingle: async () => ({
+    data: {
+      bucket_id: "lms-material-previews",
+      storage_path: `preview/${renditionId}.pdf`,
+    },
+    error: null,
+  }),
+};
+
 const fakeService = {
   from: () => ({
-    select: () => ({
-      eq: () => ({
-        eq: () => ({
-          eq: async () => ({ data: { bucket_id: "lms-material-previews", storage_path: `preview/${renditionId}.pdf` }, error: null }),
-          maybeSingle: async () => ({ data: { bucket_id: "lms-material-previews", storage_path: `preview/${renditionId}.pdf` }, error: null }),
-        }),
-        maybeSingle: async () => ({ data: { bucket_id: "lms-material-previews", storage_path: `preview/${renditionId}.pdf` }, error: null }),
-      }),
-    }),
+    select: () => fakeRenditionLookup,
   }),
   storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "https://signed.example/preview" }, error: null }) }) },
 };
 
-const loaded = await loadLearnerMaterialsForWeek({ classId: learnerProjection.class_id, from: "2026-09-01", to: "2026-09-07" }, fakeClient, fakeService);
-assert.equal(loaded[0]?.signedUrl, "https://signed.example/preview");
-assert.equal(loaded[0]?.unlocked, true);
-assert.equal(calls[0]?.name, SHARED_MATERIAL_RPCS.listLearner);
-assert.deepEqual(calls[0]?.args, { p_class_id: learnerProjection.class_id, p_from: "2026-09-01", p_to: "2026-09-07" });
-assert.equal(calls[1]?.args.p_rendition_id, renditionId);
-assert.equal(Object.hasOwn(loaded[0] ?? {}, "storagePath"), false);
+async function main() {
+  const loaded = await loadLearnerMaterialsForWeek({ classId: learnerProjection.class_id, from: "2026-09-01", to: "2026-09-07" }, fakeClient, fakeService);
+  assert.equal(loaded[0]?.signedUrl, "https://signed.example/preview");
+  assert.equal(loaded[0]?.unlocked, true);
+  assert.equal(calls[0]?.name, SHARED_MATERIAL_RPCS.listLearner);
+  assert.deepEqual(calls[0]?.args, { p_class_id: learnerProjection.class_id, p_from: "2026-09-01", p_to: "2026-09-07" });
+  assert.equal(calls[1]?.args.p_rendition_id, renditionId);
+  assert.equal(Object.hasOwn(loaded[0] ?? {}, "storagePath"), false);
+  console.log("shared LMS materials repository contracts passed");
+}
 
-console.log("shared LMS materials repository contracts passed");
+void main();

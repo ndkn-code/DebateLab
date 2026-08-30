@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { parseInput } from "@/lib/api/boundary";
+import { createTypedServerClient } from "@/lib/supabase/server";
 import {
   materialAccessRuleSchema,
   materialPlacementInputSchema,
   materialRightsInputSchema,
+  materialMaxBytesForMime,
   materialUploadInputSchema,
 } from "@/lib/api/class-lms/material-contracts";
 import {
@@ -37,7 +39,18 @@ const learnerWeekSchema = z.object({ classId: z.string().uuid().optional(), from
 const materialVersionSchema = z.object({ materialId: z.string().uuid(), versionId: z.string().uuid() }).strict();
 
 export async function prepareSharedMaterialUpload(raw: unknown) {
-  return prepareSharedMaterialUploadRpc(parseInput(materialUploadInputSchema, raw));
+  const input = parseInput(materialUploadInputSchema, raw);
+  const reservation = await prepareSharedMaterialUploadRpc(input);
+  const db = await createTypedServerClient();
+  const upload = await db.storage.from(reservation.bucketId).createSignedUploadUrl(reservation.storagePath);
+  if (upload.error) throw new Error(`prepareSharedMaterialUpload: ${upload.error.message}`);
+  return {
+    ...reservation,
+    token: upload.data.token,
+    signedUrl: upload.data.signedUrl,
+    expiresInSeconds: 15 * 60,
+    maxSizeBytes: materialMaxBytesForMime(input.mimeType),
+  };
 }
 
 export async function placeSharedLmsMaterial(raw: unknown) {
