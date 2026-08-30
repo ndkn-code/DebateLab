@@ -7,6 +7,10 @@ export const TALLY_BUG_REPORT_HIDDEN_FIELDS = [
   "userAgent",
   "viewport",
   "timestamp",
+  "faroSessionId",
+  "traceId",
+  "releaseSha",
+  "debugId",
 ] as const;
 
 export type TallyBugReportHiddenField =

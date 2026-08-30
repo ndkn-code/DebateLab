@@ -4,6 +4,7 @@ import { getMessages } from "next-intl/server";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PostHogPageview, PostHogProvider } from "@/app/posthog-provider";
+import { FaroProvider } from "@/app/faro-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ToastProvider } from "@/components/shared/toast-provider";
 import { WebVitalsReporter } from "@/components/shared/web-vitals-reporter";
@@ -79,10 +80,12 @@ export async function LocalizedAppProviders({
   );
 
   const content = analyticsEnabled ? (
-    <PostHogProvider enabled>
-      <PostHogPageview enabled />
-      {children}
-    </PostHogProvider>
+    <FaroProvider enabled>
+      <PostHogProvider enabled>
+        <PostHogPageview enabled />
+        {children}
+      </PostHogProvider>
+    </FaroProvider>
   ) : (
     children
   );

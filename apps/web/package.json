@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node src/scripts/upload-faro-source-maps.mjs",
+    "test:faro": "tsx src/lib/observability/faro-sanitize.test.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -86,6 +88,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.1",
+    "@grafana/faro-react": "^2.11.0",
+    "@grafana/faro-web-sdk": "^2.11.0",
+    "@grafana/faro-web-tracing": "^2.11.0",
     "@number-flow/react": "^0.6.0",
     "@phosphor-icons/react": "^2.1.10",
     "@react-email/render": "^2.0.8",
@@ -143,6 +148,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@grafana/faro-cli": "^0.12.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
