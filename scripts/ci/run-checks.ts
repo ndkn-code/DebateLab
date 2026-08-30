@@ -8,6 +8,10 @@ const checks: Array<[label: string, file: string]> = [
   ["RLS coverage", "scripts/ci/checks/rls-coverage.ts"],
   ["No inline supabase in pages/components", "scripts/ci/checks/no-inline-supabase.ts"],
   ["Typed score columns (no untyped Json)", "scripts/ci/checks/score-columns.ts"],
+  [
+    "No new Vercel Function entrypoints",
+    "scripts/ci/checks/no-new-vercel-functions.ts",
+  ],
 ];
 
 const failed: string[] = [];
