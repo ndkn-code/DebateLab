@@ -3,7 +3,7 @@
  * grandfathered at the recorded git commit; removals pass, additions fail.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export interface Surface {
@@ -20,23 +20,6 @@ const workflowPattern = /^apps\/web\/src\/workflows\//;
 const serverActionPattern = /["']use server["'];?/g;
 const vercelPath = "apps/web/vercel.json";
 
-function normalized(relative: string): string {
-  return relative.split(path.sep).join("/");
-}
-
-function walk(root: string, relative = ""): string[] {
-  const directory = path.join(root, relative);
-  const files: string[] = [];
-  for (const name of readdirSync(directory)) {
-    if ([".git", ".next", "node_modules"].includes(name)) continue;
-    const child = path.join(relative, name);
-    const absolute = path.join(root, child);
-    if (statSync(absolute).isDirectory()) files.push(...walk(root, child));
-    else files.push(normalized(child));
-  }
-  return files;
-}
-
 function parseVercel(content: string | undefined): Surface["vercel"] {
   if (!content) return {};
   const parsed = JSON.parse(content) as Surface["vercel"];
@@ -44,7 +27,15 @@ function parseVercel(content: string | undefined): Surface["vercel"] {
 }
 
 export function readCurrentSurface(repoRoot: string): Surface {
-  const paths = new Set(walk(repoRoot));
+  // Include committed files and newly authored, non-ignored files. Build tools
+  // generate ignored route-like output (for example .well-known/workflow),
+  // which is not source and must not consume the function budget.
+  const listed = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  const paths = new Set(listed.split("\0").filter(Boolean));
   const contents = new Map<string, string>();
   for (const candidate of paths) {
     if (routePattern.test(candidate) || workflowPattern.test(candidate)) continue;
