@@ -24,6 +24,7 @@ function makeTrend() {
     delivered,
     opened,
     clicked,
+    delayed: 0,
     failed,
   }));
 }
@@ -38,6 +39,37 @@ export function getEmailAdminFixtureData(): EmailAdminDashboardData {
       openTracking: true,
       clickTracking: true,
     },
+    domains: [
+      {
+        name: "notifications.thinkfy.net",
+        status: "verified",
+        sending: "enabled",
+        receiving: "disabled",
+        openTracking: true,
+        clickTracking: true,
+      },
+      {
+        name: "updates.thinkfy.net",
+        status: "verified",
+        sending: "enabled",
+        receiving: "disabled",
+        openTracking: true,
+        clickTracking: true,
+      },
+    ],
+    health: {
+      accepted: 496,
+      delivered: 467,
+      delayed: 0,
+      bounced: 6,
+      complained: 0,
+      deliveryRate: 94.15,
+      delayedRate: 0,
+      bounceRate: 1.21,
+      complaintRate: 0,
+      complaintState: "healthy",
+      bounceState: "healthy",
+    },
     kpis: [
       { key: "sent", label: "Sent", value: 496, tone: "neutral" },
       { key: "delivered", label: "Delivered", value: 467, tone: "success" },
@@ -49,10 +81,38 @@ export function getEmailAdminFixtureData(): EmailAdminDashboardData {
     ],
     trend: makeTrend(),
     templatePerformance: [
-      { templateKey: "practice_reminder", sent: 132, delivered: 125, opened: 82, clicked: 39, failed: 2 },
-      { templateKey: "streak_rescue", sent: 92, delivered: 89, opened: 66, clicked: 34, failed: 1 },
-      { templateKey: "weekly_progress", sent: 81, delivered: 78, opened: 51, clicked: 21, failed: 0 },
-      { templateKey: "winback", sent: 62, delivered: 55, opened: 31, clicked: 14, failed: 3 },
+      {
+        templateKey: "practice_reminder",
+        sent: 132,
+        delivered: 125,
+        opened: 82,
+        clicked: 39,
+        failed: 2,
+      },
+      {
+        templateKey: "streak_rescue",
+        sent: 92,
+        delivered: 89,
+        opened: 66,
+        clicked: 34,
+        failed: 1,
+      },
+      {
+        templateKey: "weekly_progress",
+        sent: 81,
+        delivered: 78,
+        opened: 51,
+        clicked: 21,
+        failed: 0,
+      },
+      {
+        templateKey: "winback",
+        sent: 62,
+        delivered: 55,
+        opened: 31,
+        clicked: 14,
+        failed: 3,
+      },
     ],
     recentMessages: [
       {

@@ -9,9 +9,10 @@ import {
   getSenderEmailAddress,
   getSupportEmailAddress,
   isEmailDryRun,
-  isEmailSendingEnabled,
+  isEmailStreamEnabled,
   resolveEmailLocale,
 } from "@/lib/email/config";
+import { emailListId, resolveCandidatePolicy } from "@/lib/email/policy";
 import {
   evaluateEmailCandidatesForProfile,
   type EmailMessageHistory,
@@ -19,7 +20,10 @@ import {
 import { renderThinkfyEmail } from "@/lib/email/templates";
 import { loadActiveEmailTemplateOverrides } from "@/lib/email/template-overrides";
 import { buildListUnsubscribeHeaders } from "@/lib/email/unsubscribe";
-import { computeEmailStreakState, isQualifyingStreakActivity } from "@/lib/email/time";
+import {
+  computeEmailStreakState,
+  isQualifyingStreakActivity,
+} from "@/lib/email/time";
 import type {
   EmailActivitySummary,
   EmailCategory,
@@ -27,6 +31,10 @@ import type {
   EmailDispatchResult,
   EmailProfile,
 } from "@/lib/email/types";
+import {
+  enqueueNotificationEvent,
+  type NotificationDbClient,
+} from "@/lib/notifications/repository";
 
 interface ActivityLogRow {
   user_id: string;
@@ -102,7 +110,9 @@ function createEmptySummary(): EmailActivitySummary {
 
 function newerDate(current: string | null, next: string) {
   if (!current) return next;
-  return new Date(next).getTime() > new Date(current).getTime() ? next : current;
+  return new Date(next).getTime() > new Date(current).getTime()
+    ? next
+    : current;
 }
 
 function summarizeActivity(input: {
@@ -114,18 +124,30 @@ function summarizeActivity(input: {
   const summary = createEmptySummary();
 
   for (const activity of input.activities) {
-    summary.lastActivityAt = newerDate(summary.lastActivityAt, activity.created_at);
+    summary.lastActivityAt = newerDate(
+      summary.lastActivityAt,
+      activity.created_at,
+    );
 
     if (isQualifyingStreakActivity(activity)) {
-      summary.lastPracticeAt = newerDate(summary.lastPracticeAt, activity.created_at);
+      summary.lastPracticeAt = newerDate(
+        summary.lastPracticeAt,
+        activity.created_at,
+      );
     }
 
     if (activity.activity_type === "lesson_completed") {
-      summary.lastLessonAt = newerDate(summary.lastLessonAt, activity.created_at);
+      summary.lastLessonAt = newerDate(
+        summary.lastLessonAt,
+        activity.created_at,
+      );
     }
 
     if (activity.activity_type === "course_started") {
-      summary.lastCourseStartedAt = newerDate(summary.lastCourseStartedAt, activity.created_at);
+      summary.lastCourseStartedAt = newerDate(
+        summary.lastCourseStartedAt,
+        activity.created_at,
+      );
       const metadata = toRecord(activity.metadata);
       summary.latestCourseTitle =
         getString(metadata.course_name) ||
@@ -142,7 +164,8 @@ function summarizeActivity(input: {
 
   for (const row of input.dailyStats) {
     summary.sessionsLast7Days += row.sessions_completed ?? 0;
-    summary.minutesLast7Days += row.minutes_studied ?? row.practice_minutes ?? 0;
+    summary.minutesLast7Days +=
+      row.minutes_studied ?? row.practice_minutes ?? 0;
     summary.xpLast7Days += row.xp_earned ?? 0;
     if (typeof row.average_score === "number") {
       summary.bestScoreLast7Days =
@@ -194,7 +217,7 @@ function groupByUser<T extends { user_id: string }>(rows: T[]) {
 async function hasActiveSuppression(
   supabase: SupabaseClient,
   email: string,
-  category: EmailCategory
+  category: EmailCategory,
 ) {
   const { data, error } = await supabase
     .from("email_suppressions")
@@ -208,13 +231,17 @@ async function hasActiveSuppression(
   return Boolean(data?.length);
 }
 
-async function insertEmailMessage(supabase: SupabaseClient, candidate: EmailCandidate) {
+async function insertEmailMessage(
+  supabase: SupabaseClient,
+  candidate: EmailCandidate,
+) {
+  const policy = resolveCandidatePolicy(candidate);
   const { data, error } = await supabase
     .from("email_messages")
     .insert({
       user_id: candidate.userId,
       to_email: normalizeEmail(candidate.toEmail),
-      from_email: getSenderEmailAddress(),
+      from_email: getSenderEmailAddress(policy.senderStream),
       reply_to: getReplyToEmailAddresses(),
       template_key: candidate.templateKey,
       category: candidate.category,
@@ -228,13 +255,44 @@ async function insertEmailMessage(supabase: SupabaseClient, candidate: EmailCand
         category: candidate.category,
         locale: candidate.locale,
       },
-      metadata: candidate.metadata ?? {},
+      message_class: policy.messageClass,
+      sender_stream: policy.senderStream,
+      metadata: {
+        ...(candidate.metadata ?? {}),
+        notificationTopic: policy.topic,
+        messageClass: policy.messageClass,
+        senderStream: policy.senderStream,
+      },
     })
     .select("id")
     .single();
 
   if (error) {
-    if (error.code === "23505") return { id: null, duplicate: true };
+    if (error.code === "23505") {
+      const existing = await supabase
+        .from("email_messages")
+        .select("id, status, skip_reason")
+        .eq("send_key", candidate.sendKey)
+        .maybeSingle();
+      if (existing.error) throw new Error(existing.error.message);
+      if (
+        existing.data?.id &&
+        (existing.data.status === "failed" ||
+          (existing.data.status === "skipped" &&
+            ["dry_run", "emails_disabled"].includes(
+              existing.data.skip_reason ?? "",
+            )))
+      ) {
+        await updateMessage(supabase, existing.data.id as string, {
+          status: "queued",
+          skip_reason: null,
+          error_message: null,
+          failed_at: null,
+        });
+        return { id: existing.data.id as string, duplicate: false };
+      }
+      return { id: null, duplicate: true };
+    }
     throw new Error(error.message);
   }
 
@@ -244,7 +302,7 @@ async function insertEmailMessage(supabase: SupabaseClient, candidate: EmailCand
 async function updateMessage(
   supabase: SupabaseClient,
   id: string,
-  patch: Record<string, unknown>
+  patch: Record<string, unknown>,
 ) {
   const { error } = await supabase
     .from("email_messages")
@@ -259,26 +317,33 @@ function buildResendSendInput(input: {
   rendered: { subject: string; html: string; text: string };
   actualRecipient: string;
 }) {
-  const unsubscribeHeaders = input.candidate.variables.oneClickUnsubscribeUrl
+  const policy = resolveCandidatePolicy(input.candidate);
+  const unsubscribeHeaders: Record<string, string> = input.candidate.variables
+    .oneClickUnsubscribeUrl
     ? buildListUnsubscribeHeaders(
         input.candidate.variables.oneClickUnsubscribeUrl,
-        getSupportEmailAddress()
+        getSupportEmailAddress(),
       )
-    : undefined;
+    : {};
+  const headers: Record<string, string> = {
+    ...unsubscribeHeaders,
+    ...(policy.optional ? { "List-ID": `<${emailListId(policy.topic)}>` } : {}),
+  };
 
   return {
     payload: {
-      from: getSenderEmailAddress(),
+      from: getSenderEmailAddress(policy.senderStream),
       to: [input.actualRecipient],
       replyTo: getReplyToEmailAddresses(),
       subject: input.rendered.subject,
       html: input.rendered.html,
       text: input.rendered.text,
-      headers: unsubscribeHeaders,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       tags: [
         { name: "template", value: input.candidate.templateKey },
         { name: "category", value: input.candidate.category },
         { name: "locale", value: input.candidate.locale },
+        { name: "stream", value: policy.senderStream },
       ],
     },
     options: { idempotencyKey: input.candidate.sendKey },
@@ -290,38 +355,44 @@ async function sendCandidate(input: {
   resend: Resend | null;
   candidate: EmailCandidate;
   dryRun: boolean;
-  sendingEnabled: boolean;
+  sendingEnabled?: boolean;
 }) {
   const { supabase, resend, candidate } = input;
 
-  const inserted = await insertEmailMessage(supabase, candidate);
-  if (inserted.duplicate || !inserted.id) {
-    return { sent: false, skipped: true, failed: false, reason: "duplicate_send_key" };
+  const policy = resolveCandidatePolicy(candidate);
+
+  if (
+    await hasActiveSuppression(supabase, candidate.toEmail, candidate.category)
+  ) {
+    return {
+      sent: false,
+      skipped: true,
+      failed: false,
+      reason: "active_suppression",
+    };
   }
 
-  if (await hasActiveSuppression(supabase, candidate.toEmail, candidate.category)) {
-    await updateMessage(supabase, inserted.id, {
-      status: "suppressed",
-      skip_reason: "active_suppression",
-      suppressed_at: new Date().toISOString(),
-    });
-    return { sent: false, skipped: true, failed: false, reason: "active_suppression" };
-  }
-
-  if (!input.sendingEnabled) {
-    await updateMessage(supabase, inserted.id, {
-      status: "skipped",
-      skip_reason: "emails_disabled",
-    });
-    return { sent: false, skipped: true, failed: false, reason: "emails_disabled" };
+  if (!(input.sendingEnabled ?? isEmailStreamEnabled(policy.senderStream))) {
+    return {
+      sent: false,
+      skipped: true,
+      failed: false,
+      reason: "emails_disabled",
+    };
   }
 
   if (input.dryRun) {
-    await updateMessage(supabase, inserted.id, {
-      status: "skipped",
-      skip_reason: "dry_run",
-    });
     return { sent: false, skipped: true, failed: false, reason: "dry_run" };
+  }
+
+  const inserted = await insertEmailMessage(supabase, candidate);
+  if (inserted.duplicate || !inserted.id) {
+    return {
+      sent: false,
+      skipped: true,
+      failed: false,
+      reason: "duplicate_send_key",
+    };
   }
 
   if (!resend) {
@@ -330,7 +401,12 @@ async function sendCandidate(input: {
       error_message: "Resend client is not configured.",
       failed_at: new Date().toISOString(),
     });
-    return { sent: false, skipped: false, failed: true, reason: "missing_resend_client" };
+    return {
+      sent: false,
+      skipped: false,
+      failed: true,
+      reason: "missing_resend_client",
+    };
   }
 
   try {
@@ -340,8 +416,15 @@ async function sendCandidate(input: {
     });
     const testRecipient = getEmailTestRecipient();
     const actualRecipient = testRecipient || candidate.toEmail;
-    const sendInput = buildResendSendInput({ candidate, rendered, actualRecipient });
-    const response = await resend.emails.send(sendInput.payload, sendInput.options);
+    const sendInput = buildResendSendInput({
+      candidate,
+      rendered,
+      actualRecipient,
+    });
+    const response = await resend.emails.send(
+      sendInput.payload,
+      sendInput.options,
+    );
 
     if (response.error) {
       throw new Error(response.error.message);
@@ -353,6 +436,9 @@ async function sendCandidate(input: {
       sent_at: new Date().toISOString(),
       metadata: {
         ...(candidate.metadata ?? {}),
+        notificationTopic: policy.topic,
+        messageClass: policy.messageClass,
+        senderStream: policy.senderStream,
         actualRecipient,
         intendedRecipient: candidate.toEmail,
         testMode: Boolean(testRecipient),
@@ -363,7 +449,8 @@ async function sendCandidate(input: {
   } catch (error) {
     await updateMessage(supabase, inserted.id, {
       status: "failed",
-      error_message: error instanceof Error ? error.message : "Unknown send failure",
+      error_message:
+        error instanceof Error ? error.message : "Unknown send failure",
       failed_at: new Date().toISOString(),
     });
     return {
@@ -373,6 +460,21 @@ async function sendCandidate(input: {
       reason: error instanceof Error ? error.message : "send_failed",
     };
   }
+}
+
+export async function dispatchEmailCandidate(input: {
+  supabase: SupabaseClient;
+  candidate: EmailCandidate;
+}) {
+  const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
+  return sendCandidate({
+    supabase: input.supabase,
+    resend,
+    candidate: input.candidate,
+    dryRun: isEmailDryRun(),
+  });
 }
 
 /**
@@ -387,7 +489,9 @@ export async function dispatchEmailCandidates(input: {
   delayMs?: number;
 }) {
   const result: EmailDispatchResult = {
-    candidateUsers: new Set(input.candidates.map((candidate) => candidate.userId)).size,
+    candidateUsers: new Set(
+      input.candidates.map((candidate) => candidate.userId),
+    ).size,
     queued: input.candidates.length,
     sent: 0,
     skipped: 0,
@@ -395,8 +499,9 @@ export async function dispatchEmailCandidates(input: {
     dryRun: isEmailDryRun(),
     errors: [],
   };
-  const sendingEnabled = isEmailSendingEnabled();
-  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+  const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 
   for (const candidate of input.candidates) {
     try {
@@ -405,18 +510,19 @@ export async function dispatchEmailCandidates(input: {
         resend,
         candidate,
         dryRun: result.dryRun,
-        sendingEnabled,
       });
       if (sendResult.sent) result.sent += 1;
       if (sendResult.skipped) result.skipped += 1;
       if (sendResult.failed) result.failed += 1;
     } catch (error) {
       result.failed += 1;
-      result.errors.push(error instanceof Error ? error.message : "Unknown dispatch failure");
+      result.errors.push(
+        error instanceof Error ? error.message : "Unknown dispatch failure",
+      );
     }
 
-    if ((input.delayMs ?? 550) > 0) {
-      await new Promise((resolve) => setTimeout(resolve, input.delayMs ?? 550));
+    if ((input.delayMs ?? 0) > 0) {
+      await new Promise((resolve) => setTimeout(resolve, input.delayMs));
     }
   }
 
@@ -433,7 +539,8 @@ function lmsNotificationCopy(event: LmsOutboxEvent) {
   const notification = toRecord(toRecord(event.payload).notification);
   return {
     title: getString(notification.title) ?? "Class update",
-    body: getString(notification.body) ?? "There is a new update in your class.",
+    body:
+      getString(notification.body) ?? "There is a new update in your class.",
   };
 }
 
@@ -441,9 +548,12 @@ async function dispatchLmsOutboxEmails(input: {
   supabase: SupabaseClient;
   resend: Resend | null;
   dryRun: boolean;
-  sendingEnabled: boolean;
   limit: number;
 }) {
+  // Do not claim durable events when the operational stream cannot send. They
+  // remain pending for the reconciler rather than being consumed as skips.
+  if (input.dryRun || !isEmailStreamEnabled("notifications")) return [];
+
   const { data, error } = await input.supabase.rpc("claim_lms_outbox_events", {
     p_limit: Math.max(1, Math.min(input.limit, 100)),
   });
@@ -470,7 +580,8 @@ async function dispatchLmsOutboxEmails(input: {
         failed = recipientIds.length;
         failureMessage = profilesResult.error.message;
       } else {
-        for (const profile of (profilesResult.data ?? []) as LmsEmailProfile[]) {
+        for (const profile of (profilesResult.data ??
+          []) as LmsEmailProfile[]) {
           // In-app notifications remain durable, but email is suppressed when
           // a learner opts out after the outbox event was created.
           if (profile.preferences?.email_notifications === false) {
@@ -489,33 +600,48 @@ async function dispatchLmsOutboxEmails(input: {
               supabase: input.supabase,
               resend: input.resend,
               dryRun: input.dryRun,
-              sendingEnabled: input.sendingEnabled,
               candidate: {
-              userId: profile.id,
-              toEmail: profile.email,
-              templateKey: "course_nudge",
-              category: "system",
-              locale,
-              sendKey: `lms:${event.id}:${profile.id}`,
-              subject: copy.title,
-              variables: {
+                userId: profile.id,
+                toEmail: profile.email,
+                templateKey: "course_nudge",
+                category: "system",
                 locale,
-                userName: profile.display_name?.trim() || "Learner",
-                appUrl: getAppBaseUrl(),
-                settingsUrl: getEmailSettingsUrl(locale),
-                ctaUrl: dashboardUrl,
-                ctaLabel: locale === "en" ? "Open Thinkfy" : "Mở Thinkfy",
-                headline: copy.title,
-                body: copy.body,
-                preheader: copy.body,
-                mascotMood: event.event_type === "result_published" ? "celebrate" : "nudge",
-              },
-              metadata: {
-                source: "lms_outbox",
-                outboxEventId: event.id,
-                eventType: event.event_type,
-                classId: event.class_id,
-              },
+                sendKey: `lms:${event.id}:${profile.id}`,
+                subject: copy.title,
+                variables: {
+                  locale,
+                  userName: profile.display_name?.trim() || "Learner",
+                  appUrl: getAppBaseUrl(),
+                  settingsUrl: getEmailSettingsUrl(locale),
+                  ctaUrl: dashboardUrl,
+                  ctaLabel: locale === "en" ? "Open Thinkfy" : "Mở Thinkfy",
+                  headline: copy.title,
+                  body: copy.body,
+                  preheader: copy.body,
+                  mascotMood:
+                    event.event_type === "result_published"
+                      ? "celebrate"
+                      : "nudge",
+                },
+                messageClass: "operational",
+                topic:
+                  event.event_type === "assignment_published"
+                    ? "class_assignment"
+                    : event.event_type === "assignment_due_soon"
+                      ? "class_due"
+                      : event.event_type === "assignment_returned" ||
+                          event.event_type === "resubmission_requested"
+                        ? "class_returned"
+                        : event.event_type === "result_published"
+                          ? "class_result"
+                          : "class_announcement",
+                senderStream: "notifications",
+                metadata: {
+                  source: "lms_outbox",
+                  outboxEventId: event.id,
+                  eventType: event.event_type,
+                  classId: event.class_id,
+                },
               },
             });
             if (result.sent) sent += 1;
@@ -526,7 +652,10 @@ async function dispatchLmsOutboxEmails(input: {
             }
           } catch (error) {
             failed += 1;
-            failureMessage = error instanceof Error ? error.message : "LMS email dispatch failed";
+            failureMessage =
+              error instanceof Error
+                ? error.message
+                : "LMS email dispatch failed";
           }
         }
       }
@@ -544,6 +673,20 @@ async function dispatchLmsOutboxEmails(input: {
 }
 
 async function createCronRun(supabase: SupabaseClient) {
+  const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString();
+  await supabase
+    .from("email_cron_runs")
+    .update({
+      status: "error",
+      finished_at: new Date().toISOString(),
+      error_message: "Dispatcher lease expired before completion.",
+      metadata: { staleLeaseRecovered: true },
+    })
+    .eq("job_key", "email-dispatch")
+    .eq("status", "started")
+    .is("finished_at", null)
+    .lt("started_at", staleBefore);
+
   const { data, error } = await supabase
     .from("email_cron_runs")
     .insert({ job_key: "email-dispatch", status: "started" })
@@ -559,7 +702,7 @@ async function finishCronRun(
   id: string,
   result: EmailDispatchResult,
   status: "success" | "error",
-  errorMessage?: string
+  errorMessage?: string,
 ) {
   await supabase
     .from("email_cron_runs")
@@ -599,27 +742,13 @@ export async function dispatchUserEmails(input: {
   const cronRunId = await createCronRun(supabase);
 
   try {
-    const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select(
-        "id, email, display_name, onboarding_completed, preferences, streak_current, streak_last_active_date, total_sessions_completed, total_practice_minutes, xp, level, created_at"
-      )
-      .order("created_at", { ascending: false })
-      .limit(input.limit ?? 500);
-
-    if (profileError) throw new Error(profileError.message);
-
-    const profileRows = (profiles ?? []) as EmailProfile[];
-    const profileIds = profileRows.map((profile) => profile.id);
-    result.candidateUsers = profileRows.length;
-
-    const sendingEnabled = isEmailSendingEnabled();
-    const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+    const resend = process.env.RESEND_API_KEY
+      ? new Resend(process.env.RESEND_API_KEY)
+      : null;
     const lmsOutcomes = await dispatchLmsOutboxEmails({
       supabase,
       resend,
       dryRun: result.dryRun,
-      sendingEnabled,
       limit: input.limit ?? 50,
     });
     for (const outcome of lmsOutcomes) {
@@ -628,88 +757,154 @@ export async function dispatchUserEmails(input: {
       result.skipped += outcome.skipped;
       result.failed += outcome.failed;
     }
-
-    if (profileIds.length === 0) {
-      await finishCronRun(supabase, cronRunId, result, "success");
-      return result;
-    }
-
-    const [activityRes, statsRes, historyRes] = await Promise.all([
-      supabase
-        .from("activity_log")
-        .select("user_id, activity_type, reference_type, metadata, xp_earned, created_at")
-        .in("user_id", profileIds)
-        .gte("created_at", getSince(120, now)),
-      supabase
-        .from("daily_stats")
-        .select("user_id, date, sessions_completed, minutes_studied, practice_minutes, xp_earned, average_score")
-        .in("user_id", profileIds)
-        .gte("date", getSince(8, now).slice(0, 10)),
-      supabase
-        .from("email_messages")
-        .select("user_id, template_key, send_key, status, created_at")
-        .in("user_id", profileIds)
-        .gte("created_at", getSince(45, now)),
-    ]);
-
-    if (activityRes.error) throw new Error(activityRes.error.message);
-    if (statsRes.error) throw new Error(statsRes.error.message);
-    if (historyRes.error) throw new Error(historyRes.error.message);
-
-    const activitiesByUser = groupByUser((activityRes.data ?? []) as ActivityLogRow[]);
-    const statsByUser = groupByUser((statsRes.data ?? []) as DailyStatsRow[]);
-    const historyByUser = groupByUser((historyRes.data ?? []) as (EmailMessageHistory & { user_id: string })[]);
     const templateOverrides = await loadActiveEmailTemplateOverrides(supabase);
+    const pageSize = 200;
+    const maximumProfiles = input.limit ?? Number.POSITIVE_INFINITY;
+    let offset = 0;
 
-    for (const profile of profileRows) {
-      const summary = summarizeActivity({
-        profile,
-        activities: activitiesByUser.get(profile.id) ?? [],
-        dailyStats: statsByUser.get(profile.id) ?? [],
-        now,
-      });
-      const evaluation = evaluateEmailCandidatesForProfile({
-        profile,
-        summary,
-        history: historyByUser.get(profile.id) ?? [],
-        now,
-        templateOverrides,
-      });
+    while (result.candidateUsers < maximumProfiles) {
+      const take = Math.min(pageSize, maximumProfiles - result.candidateUsers);
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select(
+          "id, email, display_name, onboarding_completed, preferences, streak_current, streak_last_active_date, total_sessions_completed, total_practice_minutes, xp, level, created_at",
+        )
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + take - 1);
+      if (profileError) throw new Error(profileError.message);
 
-      for (const reason of evaluation.skippedReasons) {
-        if (reason === "missing_email" || reason === "email_notifications_disabled") {
-          result.skipped += 1;
+      const profileRows = (profiles ?? []) as EmailProfile[];
+      if (profileRows.length === 0) break;
+      result.candidateUsers += profileRows.length;
+      offset += profileRows.length;
+      const profileIds = profileRows.map((profile) => profile.id);
+
+      const [activityRes, statsRes, historyRes] = await Promise.all([
+        supabase
+          .from("activity_log")
+          .select(
+            "user_id, activity_type, reference_type, metadata, xp_earned, created_at",
+          )
+          .in("user_id", profileIds)
+          .gte("created_at", getSince(120, now)),
+        supabase
+          .from("daily_stats")
+          .select(
+            "user_id, date, sessions_completed, minutes_studied, practice_minutes, xp_earned, average_score",
+          )
+          .in("user_id", profileIds)
+          .gte("date", getSince(8, now).slice(0, 10)),
+        supabase
+          .from("email_messages")
+          .select("user_id, template_key, send_key, status, created_at")
+          .in("user_id", profileIds)
+          .gte("created_at", getSince(45, now)),
+      ]);
+      if (activityRes.error) throw new Error(activityRes.error.message);
+      if (statsRes.error) throw new Error(statsRes.error.message);
+      if (historyRes.error) throw new Error(historyRes.error.message);
+
+      const activitiesByUser = groupByUser(
+        (activityRes.data ?? []) as ActivityLogRow[],
+      );
+      const statsByUser = groupByUser((statsRes.data ?? []) as DailyStatsRow[]);
+      const historyByUser = groupByUser(
+        (historyRes.data ?? []) as (EmailMessageHistory & {
+          user_id: string;
+        })[],
+      );
+
+      for (const profile of profileRows) {
+        const summary = summarizeActivity({
+          profile,
+          activities: activitiesByUser.get(profile.id) ?? [],
+          dailyStats: statsByUser.get(profile.id) ?? [],
+          now,
+        });
+        const evaluation = evaluateEmailCandidatesForProfile({
+          profile,
+          summary,
+          history: historyByUser.get(profile.id) ?? [],
+          now,
+          templateOverrides,
+        });
+
+        for (const reason of evaluation.skippedReasons) {
+          if (
+            reason === "missing_email" ||
+            reason === "email_notifications_disabled"
+          ) {
+            result.skipped += 1;
+          }
+        }
+
+        for (const candidate of evaluation.candidates) {
+          result.queued += 1;
+          try {
+            if (
+              process.env.NOTIFICATIONS_V2_DELIVERY_ENABLED === "true" &&
+              !result.dryRun
+            ) {
+              const policy = resolveCandidatePolicy(candidate);
+              await enqueueNotificationEvent(
+                supabase as unknown as NotificationDbClient,
+                {
+                  eventKey: `lifecycle:${candidate.sendKey}`,
+                  eventType: candidate.templateKey,
+                  title: candidate.subject,
+                  body: candidate.variables.body,
+                  messageClass: policy.messageClass,
+                  topic: policy.topic,
+                  recipientIds: [candidate.userId],
+                  payload: {
+                    templateKey: candidate.templateKey,
+                    locale: candidate.locale,
+                    variables: candidate.variables,
+                  },
+                  importance: "normal",
+                  source: "lifecycle_email",
+                  actorId: null,
+                  subjectType: "profile",
+                  subjectId: candidate.userId,
+                  enqueueDeliveryJobs: true,
+                },
+              );
+              continue;
+            }
+            const sendResult = await sendCandidate({
+              supabase,
+              resend,
+              candidate,
+              dryRun: result.dryRun,
+            });
+            if (sendResult.sent) result.sent += 1;
+            if (sendResult.skipped) result.skipped += 1;
+            if (sendResult.failed) result.failed += 1;
+          } catch (error) {
+            result.failed += 1;
+            result.errors.push(
+              error instanceof Error
+                ? error.message
+                : "Unknown dispatch failure",
+            );
+          }
         }
       }
 
-      for (const candidate of evaluation.candidates) {
-        result.queued += 1;
-
-        try {
-          const sendResult = await sendCandidate({
-            supabase,
-            resend,
-            candidate,
-            dryRun: result.dryRun,
-            sendingEnabled,
-          });
-
-          if (sendResult.sent) result.sent += 1;
-          if (sendResult.skipped) result.skipped += 1;
-          if (sendResult.failed) result.failed += 1;
-        } catch (error) {
-          result.failed += 1;
-          result.errors.push(error instanceof Error ? error.message : "Unknown dispatch failure");
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 550));
-      }
+      if (profileRows.length < take) break;
     }
 
-    await finishCronRun(supabase, cronRunId, result, result.failed > 0 ? "error" : "success");
+    await finishCronRun(
+      supabase,
+      cronRunId,
+      result,
+      result.failed > 0 ? "error" : "success",
+    );
     return result;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Email dispatch failed";
+    const message =
+      error instanceof Error ? error.message : "Email dispatch failed";
     result.errors.push(message);
     await finishCronRun(supabase, cronRunId, result, "error", message);
     throw error;

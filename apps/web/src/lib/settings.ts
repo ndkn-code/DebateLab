@@ -156,7 +156,7 @@ const DEFAULT_SETTINGS = {
   streakReminders: true,
   achievementUpdates: true,
   smartFeaturePopups: true,
-  emailNotifications: true,
+  emailNotifications: false,
   analyticsCookiesEnabled: false,
   profileVisibility: "connections" as ProfileVisibility,
   analyticsVisibility: "private" as ProfileVisibility,
@@ -502,6 +502,12 @@ export function draftToPreferences(
   existing: Record<string, unknown> | null | undefined,
 ) {
   const practiceLanguage = coercePracticeLanguage(draft.preferredLocale);
+  const existingEmailScope = existing?.email_opt_in_scope;
+  const emailOptInScope = !draft.emailNotifications
+    ? null
+    : existingEmailScope === "reminders_only"
+      ? "reminders_only"
+      : "all";
 
   return {
     ...(existing ?? {}),
@@ -520,7 +526,7 @@ export function draftToPreferences(
     achievement_updates: draft.achievementUpdates,
     smart_feature_popups: draft.smartFeaturePopups,
     email_notifications: draft.emailNotifications,
-    email_opt_in_scope: draft.emailNotifications ? "all" : null,
+    email_opt_in_scope: emailOptInScope,
     analytics_cookies_enabled: draft.analyticsCookiesEnabled,
   } satisfies SettingsPreferences;
 }

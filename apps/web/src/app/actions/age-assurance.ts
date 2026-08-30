@@ -1,17 +1,15 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasAdminClientConfig } from "@/lib/supabase/admin";
 import {
   getAppBaseUrl,
-  getReplyToEmailAddresses,
-  getSenderEmailAddress,
   isEmailDryRun,
   isEmailSendingEnabled,
 } from "@/lib/email/config";
+import { sendTransactionalEmail } from "@/lib/email/transactional";
 import type { PublicLocale } from "@/lib/public-site";
 
 export type AgeAssuranceStatus =
@@ -94,29 +92,31 @@ export async function submitAgeAssuranceAction(input: {
 
   const consentUrl = `${getAppBaseUrl()}/${input.locale}/guardian-consent/${encodeURIComponent(token)}`;
   if (isEmailSendingEnabled() && !isEmailDryRun()) {
-    const resend = new Resend(process.env.RESEND_API_KEY);
     const vi = input.locale === "vi";
-    const response = await resend.emails.send({
-      from: getSenderEmailAddress(),
-      to: [guardianEmail],
-      replyTo: getReplyToEmailAddresses(),
-      subject: vi
-        ? "Xem xét yêu cầu đồng ý sử dụng Thinkfy"
-        : "Review a Thinkfy guardian consent request",
-      text: vi
-        ? `Một học sinh đã yêu cầu sự đồng ý của bạn để sử dụng các tính năng luyện tập có xử lý bài viết hoặc giọng nói trên Thinkfy. Xem xét yêu cầu tại: ${consentUrl}. Liên kết hết hạn sau 7 ngày.`
-        : `A student asked for your consent to use Thinkfy practice features that process writing or voice data. Review the request at: ${consentUrl}. This link expires in 7 days.`,
-      html: `<p>${vi ? "Một học sinh đã yêu cầu sự đồng ý của bạn để sử dụng các tính năng luyện tập có xử lý bài viết hoặc giọng nói trên Thinkfy." : "A student asked for your consent to use Thinkfy practice features that process writing or voice data."}</p><p><a href="${consentUrl}">${vi ? "Xem xét yêu cầu" : "Review the request"}</a></p><p>${vi ? "Liên kết hết hạn sau 7 ngày." : "This link expires in 7 days."}</p>`,
+    const subject = vi
+      ? "Xem xét yêu cầu đồng ý sử dụng Thinkfy"
+      : "Review a Thinkfy guardian consent request";
+    const text = vi
+      ? `Một học sinh đã yêu cầu sự đồng ý của bạn để sử dụng các tính năng luyện tập có xử lý bài viết hoặc giọng nói trên Thinkfy. Xem xét yêu cầu tại: ${consentUrl}. Liên kết hết hạn sau 7 ngày.`
+      : `A student asked for your consent to use Thinkfy practice features that process writing or voice data. Review the request at: ${consentUrl}. This link expires in 7 days.`;
+    const html = `<p>${vi ? "Một học sinh đã yêu cầu sự đồng ý của bạn để sử dụng các tính năng luyện tập có xử lý bài viết hoặc giọng nói trên Thinkfy." : "A student asked for your consent to use Thinkfy practice features that process writing or voice data."}</p><p><a href="${consentUrl}">${vi ? "Xem xét yêu cầu" : "Review the request"}</a></p><p>${vi ? "Liên kết hết hạn sau 7 ngày." : "This link expires in 7 days."}</p>`;
+    const response = await sendTransactionalEmail({
+      supabase: admin,
+      userId: user.id,
+      toEmail: guardianEmail,
+      templateKey: "guardian_consent",
+      sendKey: `guardian_consent:${user.id}:${tokenHash(token).slice(0, 16)}`,
+      locale: input.locale,
+      subject,
+      text,
+      html,
+      metadata: {
+        guardianConsentUserId: user.id,
+        expiresAt: expiresAt.toISOString(),
+      },
     });
 
-    if (response.error) {
-      await admin
-        .from("user_age_assurance")
-        .update({
-          consent_status: "guardian_declined",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+    if (response.failed) {
       return { ok: false as const, error: "email_failed" };
     }
   }

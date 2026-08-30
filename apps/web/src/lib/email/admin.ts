@@ -15,6 +15,7 @@ export interface EmailTrendPoint {
   delivered: number;
   opened: number;
   clicked: number;
+  delayed: number;
   failed: number;
 }
 
@@ -88,6 +89,20 @@ export interface EmailAdminDashboardData {
   cronRuns: EmailCronAdminRow[];
   suppressions: EmailSuppressionAdminRow[];
   domain: EmailDomainSummary;
+  domains: EmailDomainSummary[];
+  health: {
+    accepted: number;
+    delivered: number;
+    delayed: number;
+    bounced: number;
+    complained: number;
+    deliveryRate: number;
+    delayedRate: number;
+    bounceRate: number;
+    complaintRate: number;
+    complaintState: "healthy" | "warning" | "critical";
+    bounceState: "healthy" | "warning" | "critical";
+  };
 }
 
 interface EmailMessageRow {
@@ -98,6 +113,8 @@ interface EmailMessageRow {
   locale: string;
   subject: string;
   status: EmailStatus;
+  sent_at: string | null;
+  delayed_at: string | null;
   error_message: string | null;
   skip_reason: string | null;
   metadata: Record<string, unknown> | null;
@@ -124,7 +141,15 @@ function buildTrend(rows: EmailMessageRow[]) {
   const points = new Map<string, EmailTrendPoint>();
   for (let index = 13; index >= 0; index -= 1) {
     const key = dateKey(new Date(Date.now() - index * 86_400_000));
-    points.set(key, { date: key, sent: 0, delivered: 0, opened: 0, clicked: 0, failed: 0 });
+    points.set(key, {
+      date: key,
+      sent: 0,
+      delivered: 0,
+      opened: 0,
+      clicked: 0,
+      delayed: 0,
+      failed: 0,
+    });
   }
 
   for (const row of rows) {
@@ -132,11 +157,17 @@ function buildTrend(rows: EmailMessageRow[]) {
     const point = points.get(key);
     if (!point) continue;
 
-    if (["sent", "delivered", "opened", "clicked"].includes(row.status)) point.sent += 1;
-    if (["delivered", "opened", "clicked"].includes(row.status)) point.delivered += 1;
+    if (row.sent_at) point.sent += 1;
+    if (["delivered", "opened", "clicked"].includes(row.status))
+      point.delivered += 1;
     if (["opened", "clicked"].includes(row.status)) point.opened += 1;
     if (row.status === "clicked") point.clicked += 1;
-    if (["failed", "bounced", "complained", "suppressed"].includes(row.status)) point.failed += 1;
+    if (row.delayed_at) {
+      const delayedPoint = points.get(dateKey(new Date(row.delayed_at)));
+      if (delayedPoint) delayedPoint.delayed += 1;
+    }
+    if (["failed", "bounced", "complained", "suppressed"].includes(row.status))
+      point.failed += 1;
   }
 
   return Array.from(points.values());
@@ -146,43 +177,73 @@ function buildTemplatePerformance(rows: EmailMessageRow[]) {
   const map = new Map<string, EmailTemplatePerformance>();
 
   for (const row of rows) {
-    const current =
-      map.get(row.template_key) ??
-      {
-        templateKey: row.template_key,
-        sent: 0,
-        delivered: 0,
-        opened: 0,
-        clicked: 0,
-        failed: 0,
-      };
+    const current = map.get(row.template_key) ?? {
+      templateKey: row.template_key,
+      sent: 0,
+      delivered: 0,
+      opened: 0,
+      clicked: 0,
+      failed: 0,
+    };
 
-    if (["sent", "delivered", "opened", "clicked"].includes(row.status)) current.sent += 1;
-    if (["delivered", "opened", "clicked"].includes(row.status)) current.delivered += 1;
+    if (row.sent_at) current.sent += 1;
+    if (["delivered", "opened", "clicked"].includes(row.status))
+      current.delivered += 1;
     if (["opened", "clicked"].includes(row.status)) current.opened += 1;
     if (row.status === "clicked") current.clicked += 1;
-    if (["failed", "bounced", "complained", "suppressed"].includes(row.status)) current.failed += 1;
+    if (["failed", "bounced", "complained", "suppressed"].includes(row.status))
+      current.failed += 1;
     map.set(row.template_key, current);
   }
 
   return Array.from(map.values())
-    .sort((a, b) => b.sent - a.sent || a.templateKey.localeCompare(b.templateKey))
+    .sort(
+      (a, b) => b.sent - a.sent || a.templateKey.localeCompare(b.templateKey),
+    )
     .slice(0, 8);
 }
 
-function fallbackDomainSummary(): EmailDomainSummary {
+function fallbackDomainSummary(name = "unavailable"): EmailDomainSummary {
   return {
-    name: "thinkfy.net",
-    status: "verified",
-    sending: "enabled",
-    receiving: "disabled",
+    name,
+    status: "unknown",
+    sending: "unknown",
+    receiving: "unknown",
     openTracking: null,
     clickTracking: null,
   };
 }
 
-async function getDomainSummary() {
-  if (!process.env.RESEND_API_KEY) return fallbackDomainSummary();
+async function loadRecentMessages(supabase: SupabaseClient, since: string) {
+  const rows: EmailMessageRow[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("email_messages")
+      .select(
+        "id, to_email, template_key, category, locale, subject, status, sent_at, delayed_at, error_message, skip_reason, metadata, created_at",
+      )
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as EmailMessageRow[]));
+    if ((data?.length ?? 0) < pageSize) break;
+  }
+  return rows;
+}
+
+function percent(numerator: number, denominator: number) {
+  return denominator > 0
+    ? Math.round((numerator / denominator) * 10_000) / 100
+    : 0;
+}
+
+async function getDomainSummaries() {
+  const expectedDomains = ["notifications.thinkfy.net", "updates.thinkfy.net"];
+  if (!process.env.RESEND_API_KEY) {
+    return expectedDomains.map((name) => fallbackDomainSummary(name));
+  }
 
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -191,89 +252,126 @@ async function getDomainSummary() {
       error?: { message?: string };
     };
 
-    if (response.error) return fallbackDomainSummary();
+    if (response.error) {
+      return expectedDomains.map((name) => fallbackDomainSummary(name));
+    }
 
     const rawData = response.data as
       | Array<Record<string, unknown>>
       | { data?: Array<Record<string, unknown>> }
       | undefined;
-    const domains = Array.isArray(rawData) ? rawData : rawData?.data ?? [];
-    const domain = domains.find((item) => item.name === "thinkfy.net") ?? domains[0];
-
-    if (!domain) return fallbackDomainSummary();
-
-    const capabilities =
-      typeof domain.capabilities === "object" && domain.capabilities !== null
-        ? (domain.capabilities as Record<string, unknown>)
-        : {};
-
-    return {
-      name: String(domain.name ?? "thinkfy.net"),
-      status: String(domain.status ?? "unknown"),
-      sending: String(capabilities.sending ?? domain.sending ?? "unknown"),
-      receiving: String(capabilities.receiving ?? domain.receiving ?? "unknown"),
-      openTracking:
-        typeof domain.open_tracking === "boolean"
-          ? domain.open_tracking
-          : typeof domain.openTracking === "boolean"
-            ? domain.openTracking
-            : null,
-      clickTracking:
-        typeof domain.click_tracking === "boolean"
-          ? domain.click_tracking
-          : typeof domain.clickTracking === "boolean"
-            ? domain.clickTracking
-            : null,
-    };
+    const domains = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
+    return expectedDomains.map((expectedName) => {
+      const domain = domains.find((item) => item.name === expectedName);
+      if (!domain) return fallbackDomainSummary(expectedName);
+      const capabilities =
+        typeof domain.capabilities === "object" && domain.capabilities !== null
+          ? (domain.capabilities as Record<string, unknown>)
+          : {};
+      return {
+        name: String(domain.name ?? expectedName),
+        status: String(domain.status ?? "unknown"),
+        sending: String(capabilities.sending ?? domain.sending ?? "unknown"),
+        receiving: String(
+          capabilities.receiving ?? domain.receiving ?? "unknown",
+        ),
+        openTracking:
+          typeof domain.open_tracking === "boolean"
+            ? domain.open_tracking
+            : typeof domain.openTracking === "boolean"
+              ? domain.openTracking
+              : null,
+        clickTracking:
+          typeof domain.click_tracking === "boolean"
+            ? domain.click_tracking
+            : typeof domain.clickTracking === "boolean"
+              ? domain.clickTracking
+              : null,
+      };
+    });
   } catch {
-    return fallbackDomainSummary();
+    return expectedDomains.map((name) => fallbackDomainSummary(name));
   }
 }
 
 export async function getEmailAdminDashboardData(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<EmailAdminDashboardData> {
   const since = startDate(30).toISOString();
-  const [messagesRes, webhooksRes, cronRes, suppressionsRes, domain] = await Promise.all([
-    supabase
-      .from("email_messages")
-      .select("id, to_email, template_key, category, locale, subject, status, error_message, skip_reason, metadata, created_at")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(500),
-    supabase
-      .from("email_webhook_events")
-      .select("id, event_type, resend_email_id, received_at, error_message")
-      .order("received_at", { ascending: false })
-      .limit(12),
-    supabase
-      .from("email_cron_runs")
-      .select("id, status, started_at, finished_at, candidate_users, sent_count, skipped_count, failed_count, error_message")
-      .order("started_at", { ascending: false })
-      .limit(8),
-    supabase
-      .from("email_suppressions")
-      .select("id, email, category, reason, source, created_at")
-      .eq("active", true)
-      .order("created_at", { ascending: false })
-      .limit(12),
-    getDomainSummary(),
-  ]);
+  const [messages, webhooksRes, cronRes, suppressionsRes, domains] =
+    await Promise.all([
+      loadRecentMessages(supabase, since),
+      supabase
+        .from("email_webhook_events")
+        .select("id, event_type, resend_email_id, received_at, error_message")
+        .order("received_at", { ascending: false })
+        .limit(12),
+      supabase
+        .from("email_cron_runs")
+        .select(
+          "id, status, started_at, finished_at, candidate_users, sent_count, skipped_count, failed_count, error_message",
+        )
+        .order("started_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("email_suppressions")
+        .select("id, email, category, reason, source, created_at")
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+        .limit(12),
+      getDomainSummaries(),
+    ]);
 
-  if (messagesRes.error) throw new Error(messagesRes.error.message);
   if (webhooksRes.error) throw new Error(webhooksRes.error.message);
   if (cronRes.error) throw new Error(cronRes.error.message);
   if (suppressionsRes.error) throw new Error(suppressionsRes.error.message);
 
-  const messages = (messagesRes.data ?? []) as EmailMessageRow[];
+  const accepted = messages.filter((message) => message.sent_at).length;
+  const delivered = countStatus(messages, ["delivered", "opened", "clicked"]);
+  const delayed = messages.filter((message) => message.delayed_at).length;
+  const bounced = countStatus(messages, ["bounced"]);
+  const complained = countStatus(messages, ["complained"]);
+  const bounceRate = percent(bounced, accepted);
+  const complaintRate = percent(complained, accepted);
   const kpis: EmailAdminKpi[] = [
-    { key: "sent", label: "Sent", value: countStatus(messages, ["sent", "delivered", "opened", "clicked"]), tone: "neutral" },
-    { key: "delivered", label: "Delivered", value: countStatus(messages, ["delivered", "opened", "clicked"]), tone: "success" },
-    { key: "opened", label: "Opened", value: countStatus(messages, ["opened", "clicked"]), tone: "neutral" },
-    { key: "clicked", label: "Clicked", value: countStatus(messages, ["clicked"]), tone: "success" },
-    { key: "bounced", label: "Bounced", value: countStatus(messages, ["bounced"]), tone: "warning" },
-    { key: "failed", label: "Failed", value: countStatus(messages, ["failed"]), tone: "error" },
-    { key: "suppressed", label: "Suppressed", value: countStatus(messages, ["suppressed", "complained"]), tone: "warning" },
+    { key: "sent", label: "Accepted", value: accepted, tone: "neutral" },
+    { key: "delivered", label: "Delivered", value: delivered, tone: "success" },
+    {
+      key: "delayed",
+      label: "Delayed",
+      value: delayed,
+      tone: delayed > 0 ? "warning" : "success",
+    },
+    {
+      key: "opened",
+      label: "Opened",
+      value: countStatus(messages, ["opened", "clicked"]),
+      tone: "neutral",
+    },
+    {
+      key: "clicked",
+      label: "Clicked",
+      value: countStatus(messages, ["clicked"]),
+      tone: "success",
+    },
+    {
+      key: "bounced",
+      label: "Bounced",
+      value: countStatus(messages, ["bounced"]),
+      tone: "warning",
+    },
+    {
+      key: "failed",
+      label: "Failed",
+      value: countStatus(messages, ["failed"]),
+      tone: "error",
+    },
+    {
+      key: "suppressed",
+      label: "Suppressed",
+      value: countStatus(messages, ["suppressed", "complained"]),
+      tone: "warning",
+    },
   ];
 
   return {
@@ -319,6 +417,26 @@ export async function getEmailAdminDashboardData(
       source: suppression.source,
       createdAt: suppression.created_at,
     })),
-    domain,
+    domain: domains[0] ?? fallbackDomainSummary(),
+    domains,
+    health: {
+      accepted,
+      delivered,
+      delayed,
+      bounced,
+      complained,
+      deliveryRate: percent(delivered, accepted),
+      delayedRate: percent(delayed, accepted),
+      bounceRate,
+      complaintRate,
+      complaintState:
+        complaintRate >= 0.3
+          ? "critical"
+          : complaintRate >= 0.1
+            ? "warning"
+            : "healthy",
+      bounceState:
+        bounceRate >= 5 ? "critical" : bounceRate >= 2 ? "warning" : "healthy",
+    },
   };
 }
