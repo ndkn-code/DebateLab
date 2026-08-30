@@ -15,13 +15,13 @@ renditions without changing the learner authorization boundary.
 
 The entire server and presentation surface is fail-closed behind
 `SHARED_LMS_MATERIALS_V1` and `NEXT_PUBLIC_SHARED_LMS_MATERIALS_V1`.
-Conversion additionally requires `VERCEL_SANDBOX_API_URL` (HTTPS)
-and `VERCEL_SANDBOX_TOKEN`; the endpoint must implement `POST
-/v1/material-conversions` and return `{ "text": string, "title"?: string }`.
-The application sends a short-lived signed source URL, file metadata, and
-opaque material/version IDs. It does not send or expose a Supabase storage path.
-The deterministic fake adapter is used by local contract tests when Sandbox is
-unavailable; it is not selected by production code.
+Conversion runs in the private `services/lms-material-worker` Cloud Run service.
+Vercel publishes opaque material/version IDs to Pub/Sub using short-lived OIDC
+credentials; no Google service-account key is stored in Vercel. The worker uses
+the Supabase service role to claim a lease, creates its own short-lived source
+URL, and extracts text from TXT, PDF, DOCX, or PPTX. Legacy binary Office files,
+image OCR, and audio transcription are rejected explicitly until dedicated
+converters are added.
 
 The pipeline expects the LMS migration's `lms_materials`,
 `lms_material_versions`, and `lms_material_renditions` tables. Version processing

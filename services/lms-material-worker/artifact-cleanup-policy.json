@@ -1,0 +1,17 @@
+[
+  {
+    "name": "delete-worker-images-after-seven-days",
+    "action": { "type": "Delete" },
+    "condition": {
+      "tagState": "any",
+      "olderThan": "7d"
+    }
+  },
+  {
+    "name": "keep-two-worker-images",
+    "action": { "type": "Keep" },
+    "mostRecentVersions": {
+      "keepCount": 2
+    }
+  }
+]
