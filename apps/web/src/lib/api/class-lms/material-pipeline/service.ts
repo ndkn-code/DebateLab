@@ -67,13 +67,22 @@ export async function createMaterialIngest(client: RequestClient, input: Materia
     clubId: input.clubId, scopeClassId: input.scopeClassId, actorId,
     materialId, versionId, fileName: input.fileName,
   });
-  const version = await insertMaterialAndVersion(client, {
-    materialId, versionId, clubId: input.clubId, scopeClassId: input.scopeClassId ?? null,
-    actorId, title: input.title, description: input.description ?? null,
-    rightsBasis: input.rights.basis, rightsSourceUrl: input.rights.sourceUrl ?? null, rightsHolder: input.rights.rightsHolder ?? null, licenseUrl: input.rights.licenseUrl ?? null, rightsNotes: input.rights.notes ?? null,
-    idempotencyKey, ingestStoragePath: ingestPath, sourceFileName: input.fileName,
-    sourceMimeType: input.mimeType, sourceSizeBytes: input.sizeBytes,
-  });
+  let version;
+  try {
+    version = await insertMaterialAndVersion(client, {
+      materialId, versionId, clubId: input.clubId, scopeClassId: input.scopeClassId ?? null,
+      actorId, title: input.title, description: input.description ?? null,
+      rightsBasis: input.rights.basis, rightsSourceUrl: input.rights.sourceUrl ?? null, rightsHolder: input.rights.rightsHolder ?? null, licenseUrl: input.rights.licenseUrl ?? null, rightsNotes: input.rights.notes ?? null,
+      idempotencyKey, ingestStoragePath: ingestPath, sourceFileName: input.fileName,
+      sourceMimeType: input.mimeType, sourceSizeBytes: input.sizeBytes,
+    });
+  } catch (error) {
+    // The database unique constraint is the concurrency winner. A second
+    // caller re-reads it instead of creating another reservation or charge.
+    const winner = await findVersionByIdempotency(client, idempotencyKey);
+    if (winner) return { materialId: winner.material_id, versionId: winner.id, status: winner.status, upload: null, replay: true };
+    throw error;
+  }
   const { data, error } = await client.storage.from(MATERIAL_BUCKETS.ingest).createSignedUploadUrl(ingestPath);
   if (error) throw new Error(error.message);
   return {
