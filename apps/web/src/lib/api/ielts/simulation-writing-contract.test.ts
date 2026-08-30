@@ -16,6 +16,10 @@ const renderer = readFileSync(
   ),
   "utf8",
 );
+const bandRepository = readFileSync(
+  resolve(process.cwd(), "src/lib/api/ielts/band-scores-repository.ts"),
+  "utf8",
+);
 
 // Final submission locks the attempt before it creates scorer work, and it
 // derives every task from the immutable attempt blueprint.
@@ -26,6 +30,7 @@ assert.match(
 assert.match(action, /from\("ielts_attempt_question_blueprints"\)/);
 assert.match(action, /eq\("skill", "writing"\)/);
 assert.match(action, /parseWritingCaptureValue/);
+assert.match(bandRepository, /\.in\("status", \["submitted", "scoring"\]\)/);
 
 // Simulation does not expose the interactive Practice scoring control.
 assert.match(renderer, /!isSimulation/);

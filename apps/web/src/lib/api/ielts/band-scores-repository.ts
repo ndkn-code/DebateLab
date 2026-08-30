@@ -20,18 +20,37 @@ export async function completeSimulationAttemptIfReady(
   admin: TypedAdminClient,
   attemptId: string,
 ): Promise<boolean> {
-  const [{ data: attempt, error: attemptError }, { data: bands, error: bandError }] =
-    await Promise.all([
-      admin.from("ielts_attempts").select("status").eq("id", attemptId).maybeSingle(),
-      admin
-        .from("attempt_band_scores")
-        .select("listening_band, reading_band, writing_band, speaking_band, overall_band")
-        .eq("attempt_id", attemptId)
-        .maybeSingle(),
-    ]);
-  if (attemptError) throw new Error(`completeSimulationAttemptIfReady(attempt): ${attemptError.message}`);
-  if (bandError) throw new Error(`completeSimulationAttemptIfReady(bands): ${bandError.message}`);
-  if (!attempt || attempt.status !== "submitted") return false;
+  const [
+    { data: attempt, error: attemptError },
+    { data: bands, error: bandError },
+  ] = await Promise.all([
+    admin
+      .from("ielts_attempts")
+      .select("status")
+      .eq("id", attemptId)
+      .maybeSingle(),
+    admin
+      .from("attempt_band_scores")
+      .select(
+        "listening_band, reading_band, writing_band, speaking_band, overall_band",
+      )
+      .eq("attempt_id", attemptId)
+      .maybeSingle(),
+  ]);
+  if (attemptError)
+    throw new Error(
+      `completeSimulationAttemptIfReady(attempt): ${attemptError.message}`,
+    );
+  if (bandError)
+    throw new Error(
+      `completeSimulationAttemptIfReady(bands): ${bandError.message}`,
+    );
+  if (
+    !attempt ||
+    (attempt.status !== "submitted" && attempt.status !== "scoring")
+  ) {
+    return false;
+  }
 
   const decision = evaluateSimulationCompletion({
     listeningBand: bands?.listening_band ?? null,
@@ -48,8 +67,11 @@ export async function completeSimulationAttemptIfReady(
     .from("ielts_attempts")
     .update({ status: "completed", completed_at: now, updated_at: now })
     .eq("id", attemptId)
-    .eq("status", "submitted");
-  if (error) throw new Error(`completeSimulationAttemptIfReady(update): ${error.message}`);
+    .in("status", ["submitted", "scoring"]);
+  if (error)
+    throw new Error(
+      `completeSimulationAttemptIfReady(update): ${error.message}`,
+    );
   return true;
 }
 
@@ -73,17 +95,15 @@ export async function recomputeAttemptWritingBand(
   if (writingBand == null) return null;
 
   const now = new Date().toISOString();
-  const { error } = await admin
-    .from("attempt_band_scores")
-    .upsert(
-      {
-        attempt_id: attemptId,
-        user_id: userId,
-        writing_band: writingBand,
-        updated_at: now,
-      },
-      { onConflict: "attempt_id" },
-    );
+  const { error } = await admin.from("attempt_band_scores").upsert(
+    {
+      attempt_id: attemptId,
+      user_id: userId,
+      writing_band: writingBand,
+      updated_at: now,
+    },
+    { onConflict: "attempt_id" },
+  );
   if (error) {
     throw new Error(`recomputeAttemptWritingBand failed: ${error.message}`);
   }
