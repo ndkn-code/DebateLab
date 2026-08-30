@@ -122,7 +122,28 @@ export function IeltsOnboardingGoalStep({
           </div>
         </fieldset>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label={t("current_band")}>
+            <Select
+              value={String(goal.currentBand ?? "not_sure")}
+              onChange={(event) =>
+                setGoal((current) => ({
+                  ...current,
+                  currentBand:
+                    event.target.value === "not_sure"
+                      ? "not_sure"
+                      : Number(event.target.value),
+                }))
+              }
+            >
+              <option value="not_sure">{t("current_band_not_sure")}</option>
+              {BAND_OPTIONS.filter((band) => band >= 4).map((band) => (
+                <option key={band} value={band}>
+                  {formatBand(band)}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label={t("overall_target")}>
             <Select
               value={String(goal.targetOverallBand)}
