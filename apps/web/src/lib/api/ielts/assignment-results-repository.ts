@@ -9,7 +9,8 @@
 import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
-import { requireClubManager, type IeltsServerClient } from "./assignment-access";
+import type { IeltsServerClient } from "./assignment-access";
+import { requireClassManager } from "@/lib/api/class-manager-access";
 import { getClubIeltsAssignment, type IeltsMockAssignmentRow } from "./assignments-repository";
 import {
   deriveLearnerAssignmentProgress,
@@ -204,7 +205,19 @@ export async function getAssignmentResultsForManager(
   assignmentId: string,
 ): Promise<AssignmentResults | null> {
   const supabase = await createTypedServerClient();
-  await requireClubManager(supabase, clubId);
+
+  // Resolve the assignment first under RLS, then authorize its concrete class.
+  // Club-wide coach membership is intentionally insufficient.
+  const { data: scope, error: scopeError } = await supabase
+    .from("club_assignments")
+    .select("id, club_id, class_id")
+    .eq("id", assignmentId)
+    .eq("club_id", clubId)
+    .maybeSingle();
+  if (scopeError) throw new Error(`assignment results scope: ${scopeError.message}`);
+  if (!scope?.class_id) return null;
+  const manager = await requireClassManager(supabase, scope.class_id);
+  if (manager.clubId !== clubId) throw new Error("Assignment is outside this organisation");
 
   const assignment = await getClubIeltsAssignment(clubId, assignmentId, supabase);
   if (!assignment) return null;
@@ -213,8 +226,7 @@ export async function getAssignmentResultsForManager(
     .from("class_memberships")
     .select("user_id")
     .eq("class_id", assignment.classId)
-    .eq("member_role", "student")
-    .eq("status", "active");
+    .eq("member_role", "student");
   if (rosterError) throw new Error(`assignment results roster: ${rosterError.message}`);
   const studentIds = (roster ?? []).map((row) => row.user_id);
 

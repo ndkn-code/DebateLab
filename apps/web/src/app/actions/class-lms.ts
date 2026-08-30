@@ -24,6 +24,7 @@ import {
   type LmsResource,
   type LmsVocabularySet,
 } from "@/lib/api/class-lms/model";
+import { loadMyStudentLmsWeek } from "@/lib/api/class-lms/student-weekly-repository";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -345,4 +346,15 @@ export async function markLmsNotificationRead(notificationId: string) {
   const { error } = await db.from("lms_notifications").update({ read_at: new Date().toISOString() }).eq("id", notificationId);
   if (error) throw new Error(error.message);
   return { ok: true, id: notificationId };
+}
+
+export async function loadMyIeltsLmsWeek(input: unknown) {
+  const parsed = (() => {
+    try {
+      return z.object({ startDate: z.string(), endDate: z.string() }).strict().parse(input);
+    } catch (error) {
+      return inputError(error);
+    }
+  })();
+  return loadMyStudentLmsWeek(parsed);
 }

@@ -14,6 +14,11 @@ import {
   type AttemptSummary,
   type LearnerAssignmentProgress,
 } from "@/lib/ielts/assignments/status";
+import {
+  projectEffectiveBands,
+  type EffectiveBandProjection,
+} from "./effective-score-contract";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface LearnerAssignedTest {
   assignmentId: string;
@@ -24,6 +29,7 @@ export interface LearnerAssignedTest {
   className: string | null;
   dueAt: string | null;
   progress: LearnerAssignmentProgress;
+  resultScore: EffectiveBandProjection | null;
 }
 
 interface RawLearnerAssignment {
@@ -69,17 +75,33 @@ async function loadTestMeta(
   );
 }
 
-async function loadOwnOverallBands(
+async function loadOwnEffectiveBands(
   supabase: IeltsServerClient,
   attemptIds: string[],
-): Promise<Map<string, number | null>> {
+): Promise<Map<string, EffectiveBandProjection>> {
   if (attemptIds.length === 0) return new Map();
-  const { data, error } = await supabase
-    .from("attempt_band_scores")
-    .select("attempt_id, overall_band")
-    .in("attempt_id", attemptIds);
-  if (error) throw new Error(`listLearnerAssignedTests bands: ${error.message}`);
-  return new Map((data ?? []).map((row) => [row.attempt_id, row.overall_band]));
+  const db = supabase as unknown as SupabaseClient;
+  const [ai, effective] = await Promise.all([
+    supabase.from("attempt_band_scores")
+      .select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band")
+      .in("attempt_id", attemptIds),
+    db.from("ielts_effective_attempt_scores")
+      .select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source")
+      .in("attempt_id", attemptIds),
+  ]);
+  if (ai.error || effective.error) {
+    throw new Error(`listLearnerAssignedTests bands: ${ai.error?.message ?? effective.error?.message}`);
+  }
+  const effectiveByAttempt = new Map(
+    ((effective.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.attempt_id), row]),
+  );
+  return new Map((ai.data ?? []).map((row) => [
+    row.attempt_id,
+    projectEffectiveBands(
+      effectiveByAttempt.get(row.attempt_id),
+      row as unknown as Record<string, unknown>,
+    ),
+  ]));
 }
 
 /** The active IELTS mocks assigned to the learner's classes, with progress. */
@@ -108,7 +130,7 @@ export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]>
   const [classTitles, testMeta, bands] = await Promise.all([
     loadClassTitles(supabase, unique(assignments.map((row) => row.class_id))),
     loadTestMeta(supabase, unique(assignments.map((row) => row.ielts_test_id))),
-    loadOwnOverallBands(supabase, (attempts ?? []).map((attempt) => attempt.id)),
+    loadOwnEffectiveBands(supabase, (attempts ?? []).map((attempt) => attempt.id)),
   ]);
 
   const summariesByAssignment = new Map<string, AttemptSummary[]>();
@@ -119,13 +141,14 @@ export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]>
       id: attempt.id,
       status: attempt.status,
       startedAt: attempt.started_at,
-      overallBand: bands.get(attempt.id) ?? null,
+      overallBand: bands.get(attempt.id)?.overallBand ?? null,
     });
     summariesByAssignment.set(attempt.assignment_id, list);
   }
 
   return assignments.map((row) => {
     const test = row.ielts_test_id ? testMeta.get(row.ielts_test_id) : undefined;
+    const progress = deriveLearnerAssignmentProgress(summariesByAssignment.get(row.id) ?? []);
     return {
       assignmentId: row.id,
       title: row.title,
@@ -134,7 +157,8 @@ export async function listLearnerAssignedTests(): Promise<LearnerAssignedTest[]>
       testModule: test?.module ?? null,
       className: row.class_id ? classTitles.get(row.class_id) ?? null : null,
       dueAt: row.due_at,
-      progress: deriveLearnerAssignmentProgress(summariesByAssignment.get(row.id) ?? []),
+      progress,
+      resultScore: progress.resultAttemptId ? bands.get(progress.resultAttemptId) ?? null : null,
     };
   });
 }
@@ -174,6 +198,7 @@ export async function resolveAssignmentForStart(
     .select("id")
     .eq("class_id", assignment.class_id)
     .eq("user_id", userId)
+    .eq("member_role", "student")
     .eq("status", "active")
     .maybeSingle();
   if (membershipError) throw new Error(`resolveAssignmentForStart: ${membershipError.message}`);

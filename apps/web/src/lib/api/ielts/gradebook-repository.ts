@@ -5,6 +5,7 @@ import { criteriaForReview, IELTS_TEACHER_RUBRIC, type RubricCriterion } from "@
 import type { TeacherReviewRow } from "./teacher-review-repository";
 import { decodeGradebookCursor, encodeGradebookCursor, isCurrentResponseRevision, officialOverallVisibility, reviewRevisionKey } from "./gradebook-contract";
 import { IELTS_SPEAKING_AUDIO_BUCKET } from "@/lib/ielts/speaking-scorer/constants";
+import { currentResponseRows, latestByKey } from "./deterministic-selection";
 
 /** JSON-safe contract consumed by the teacher gradebook UI. */
 export interface IeltsGradebookCriterion {
@@ -172,11 +173,6 @@ type GradebookIndex = {
 function addToMap(map: Map<string, Raw[]>, rows: Raw[], key: string) {
   for (const row of rows) { const id = String(row[key]); map.set(id, [...(map.get(id) ?? []), row]); }
 }
-function latestByKey(rows: Raw[], keyParts: string[]): Map<string, Raw> {
-  const result = new Map<string, Raw>();
-  for (const row of rows) { const key = keyParts.map((part) => String(row[part])).join(":"); if (!result.has(key)) result.set(key, row); }
-  return result;
-}
 function attendanceIndex(rows: Raw[]): Map<string, Attendance> {
   const result = new Map<string, Attendance>();
   for (const row of rows) { const key = String(row.user_id); const value = result.get(key) ?? { present: 0, late: 0, absent: 0 }; const status = String(row.status); if (status === "present") value.present += 1; else if (status === "late") value.late += 1; else value.absent += 1; result.set(key, value); }
@@ -207,19 +203,6 @@ function makeScore(row?: Raw): IeltsGradebookScore {
 }
 function responseRows(attemptId: string | null, map: Map<string, Raw[]>): Raw[] { return attemptId ? map.get(attemptId) ?? [] : []; }
 function currentReview(response: Raw, reviews: Map<string, TeacherReviewRow>) { const revision = n(response.revision) ?? 0; return selectCurrentReview(reviews.get(reviewRevisionKey(String(response.id), revision)), revision); }
-function currentResponseRows(rows: Raw[], key: "task_number" | "part_number") {
-  const selected = new Map<string, Raw>();
-  for (const row of rows) {
-    const logicalKey = String(row[key] ?? row.id);
-    const current = selected.get(logicalKey);
-    const revision = n(row.revision) ?? 0;
-    const currentRevision = current ? n(current.revision) ?? 0 : -1;
-    if (!current || revision > currentRevision || (revision === currentRevision && String(row.updated_at ?? "") > String(current.updated_at ?? ""))) {
-      selected.set(logicalKey, row);
-    }
-  }
-  return [...selected.values()];
-}
 function criteriaRows(writing: Raw[], speaking: Raw[], reviews: Map<string, TeacherReviewRow>) { return [...currentResponseRows(writing, "task_number").flatMap((response) => makeCriteria("writing", n(response.task_number), response, currentReview(response, reviews))), ...currentResponseRows(speaking, "part_number").flatMap((response) => makeCriteria("speaking", null, response, currentReview(response, reviews)))]; }
 function hasUnpublishedReview(writing: Raw[], speaking: Raw[], reviews: Map<string, TeacherReviewRow>) { return [...currentResponseRows(writing, "task_number"), ...currentResponseRows(speaking, "part_number")].some((response) => currentReview(response, reviews)?.status !== "published"); }
 function homeworkValue(homework: Raw | undefined) {
@@ -278,7 +261,7 @@ async function loadIdentity(db: Db, readDb: Db, studentIds: string[], assignment
   return { profiles, attempts };
 }
 async function loadScoring(db: Db, attemptIds: string[], classId: string, clubId: string) {
-  const [effective, writing, speaking, reviews] = await Promise.all([optional(attemptIds.length > 0, db.from("ielts_effective_attempt_scores").select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source").eq("class_id", classId).eq("club_id", clubId).in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("writing_responses").select("id, attempt_id, task_number, revision, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback").in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("speaking_responses").select("id, attempt_id, part_number, revision, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at").in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("ielts_teacher_reviews").select("*").eq("class_id", classId).eq("club_id", clubId).in("attempt_id", attemptIds))]);
+  const [effective, writing, speaking, reviews] = await Promise.all([optional(attemptIds.length > 0, db.from("ielts_effective_attempt_scores").select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source").eq("class_id", classId).eq("club_id", clubId).in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("writing_responses").select("id, attempt_id, task_number, revision, updated_at, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback").in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("speaking_responses").select("id, attempt_id, part_number, revision, updated_at, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at").in("attempt_id", attemptIds)), optional(attemptIds.length > 0, db.from("ielts_teacher_reviews").select("*").eq("class_id", classId).eq("club_id", clubId).in("attempt_id", attemptIds))]);
   return { effective, writing, speaking, reviews };
 }
 async function loadEngagement(db: Db, readDb: Db, studentIds: string[], assignmentIds: string[], attendanceSessionIds: string[], courseIds: string[]) {

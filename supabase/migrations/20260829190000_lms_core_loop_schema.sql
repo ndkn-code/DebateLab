@@ -14,9 +14,9 @@ stable
 security definer
 set search_path = public, private
 as $$
-  select p_user_id is not null and (
-    private.is_admin(p_user_id)
-    or exists (
+  select p_user_id is not null
+    and not private.is_admin(p_user_id)
+    and exists (
       select 1
       from public.class_memberships cm
       join public.classes c on c.id = cm.class_id
@@ -27,10 +27,11 @@ as $$
        and club_member.status = 'active'
       where cm.class_id = p_class_id
         and cm.user_id = p_user_id
+        and c.teacher_user_id = p_user_id
         and cm.member_role = 'teacher'
         and cm.status = 'active'
-    )
-  );
+        and private.can_manage_class(c.id, p_user_id)
+    );
 $$;
 
 create or replace function private.was_class_student_on_date(
@@ -55,6 +56,73 @@ as $$
   );
 $$;
 
+-- Learner reads are exact-class only. Owners, platform admins, and the active
+-- assigned teacher keep manager reads; classless material is owner/admin only.
+drop policy if exists "Club members can view assignments" on public.club_assignments;
+create policy "Exact class members and managers view assignments"
+on public.club_assignments for select to authenticated
+using (
+  (
+    class_id is not null
+    and (
+      private.can_manage_class(class_id, (select auth.uid()))
+      or (status = 'active' and exists (
+        select 1 from public.class_memberships member
+        where member.class_id = club_assignments.class_id
+          and member.user_id = (select auth.uid())
+          and member.member_role = 'student'
+          and member.status = 'active'
+      ))
+    )
+  )
+  or (
+    class_id is null
+    and private.can_manage_new_class(club_id, (select auth.uid()))
+  )
+);
+
+drop policy if exists "Class schedules readable by admins, members, and club members"
+  on public.class_schedules;
+create policy "Exact class members and managers view schedules"
+on public.class_schedules for select to authenticated
+using (
+  private.can_manage_class(class_id, (select auth.uid()))
+  or (status = 'active' and exists (
+    select 1 from public.class_memberships member
+    where member.class_id = class_schedules.class_id
+      and member.user_id = (select auth.uid())
+      and member.member_role = 'student'
+      and member.status = 'active'
+  ))
+);
+
+drop policy if exists "Class managers view IELTS assignment attempts"
+  on public.ielts_attempts;
+create policy "Scoped managers view IELTS assignment attempts"
+on public.ielts_attempts for select to authenticated
+using (
+  (class_id is not null and private.can_manage_class(class_id, (select auth.uid())))
+  or (
+    class_id is null and club_id is not null
+    and private.can_manage_new_class(club_id, (select auth.uid()))
+  )
+);
+
+drop policy if exists "Class managers view IELTS assignment band scores"
+  on public.attempt_band_scores;
+create policy "Scoped managers view IELTS assignment band scores"
+on public.attempt_band_scores for select to authenticated
+using (exists (
+  select 1 from public.ielts_attempts attempt
+  where attempt.id = attempt_band_scores.attempt_id
+    and (
+      (attempt.class_id is not null
+        and private.can_manage_class(attempt.class_id, (select auth.uid())))
+      or (attempt.class_id is null and attempt.club_id is not null
+        and private.can_manage_new_class(attempt.club_id, (select auth.uid())))
+    )
+));
+
 create table if not exists public.lms_lesson_occurrences (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references public.clubs(id) on delete cascade,
@@ -71,6 +139,7 @@ create table if not exists public.lms_lesson_occurrences (
   notes text,
   status text not null default 'scheduled'
     check (status in ('scheduled', 'completed', 'cancelled')),
+  published_at timestamptz,
   created_by uuid not null references public.profiles(id) on delete restrict,
   updated_by uuid references public.profiles(id) on delete set null,
   metadata jsonb not null default '{}'::jsonb,
@@ -362,12 +431,41 @@ as $$
       and private.lms_pilot_enabled(o.club_id, o.class_id)
       and (
         private.can_manage_class(o.class_id, p_user_id)
-        or private.was_class_student_on_date(o.class_id, p_user_id, o.occurrence_date)
-        or exists (
-          select 1 from public.lms_occurrence_roster_snapshots snapshot
-          where snapshot.occurrence_id = o.id and snapshot.user_id = p_user_id
+        or (
+          o.published_at is not null
+          and o.status <> 'cancelled'
+          and (
+            exists (
+              select 1 from public.class_memberships active_student
+              where active_student.class_id = o.class_id
+                and active_student.user_id = p_user_id
+                and active_student.member_role = 'student'
+                and active_student.status = 'active'
+            )
+            or (
+              o.starts_at <= now()
+              and exists (
+                select 1 from public.lms_occurrence_roster_snapshots snapshot
+                where snapshot.occurrence_id = o.id
+                  and snapshot.user_id = p_user_id
+              )
+            )
+          )
         )
       )
+  );
+$$;
+
+create or replace function private.can_manage_lms_occurrence(
+  p_occurrence_id uuid,
+  p_user_id uuid
+)
+returns boolean language sql stable security definer
+set search_path = public, private as $$
+  select exists (
+    select 1 from public.lms_lesson_occurrences occurrence
+    where occurrence.id = p_occurrence_id
+      and private.can_manage_class(occurrence.class_id, p_user_id)
   );
 $$;
 
@@ -387,6 +485,99 @@ as $$
   );
 $$;
 
+create or replace function private.is_published_lms_resource(p_resource_id uuid)
+returns boolean language sql stable security definer
+set search_path = public, private as $$
+  select exists (
+    select 1 from public.lms_resources resource
+    where resource.id = p_resource_id and resource.status = 'published'
+  );
+$$;
+
+create or replace function private.is_active_class_assignment(p_assignment_id uuid)
+returns boolean language sql stable security definer
+set search_path = public, private as $$
+  select exists (
+    select 1 from public.club_assignments assignment
+    where assignment.id = p_assignment_id and assignment.status = 'active'
+  );
+$$;
+
+create or replace function private.has_historical_occurrence_assignment(
+  p_assignment_id uuid,
+  p_user_id uuid
+)
+returns boolean language sql stable security definer
+set search_path = public, private as $$
+  select p_user_id is not null and exists (
+    select 1
+    from public.lms_occurrence_assignments link
+    join public.lms_lesson_occurrences occurrence
+      on occurrence.id = link.occurrence_id
+    join public.lms_occurrence_roster_snapshots snapshot
+      on snapshot.occurrence_id = occurrence.id
+     and snapshot.user_id = p_user_id
+    where link.assignment_id = p_assignment_id
+      and occurrence.published_at is not null
+      and occurrence.status <> 'cancelled'
+      and occurrence.starts_at <= now()
+      and private.is_active_class_assignment(link.assignment_id)
+  );
+$$;
+
+create or replace function private.has_historical_occurrence_resource(
+  p_resource_id uuid,
+  p_user_id uuid
+)
+returns boolean language sql stable security definer
+set search_path = public, private as $$
+  select p_user_id is not null and exists (
+    select 1
+    from public.lms_occurrence_resources link
+    join public.lms_lesson_occurrences occurrence
+      on occurrence.id = link.occurrence_id
+    join public.lms_occurrence_roster_snapshots snapshot
+      on snapshot.occurrence_id = occurrence.id
+     and snapshot.user_id = p_user_id
+    where link.resource_id = p_resource_id
+      and occurrence.published_at is not null
+      and occurrence.status <> 'cancelled'
+      and occurrence.starts_at <= now()
+      and private.is_published_lms_resource(link.resource_id)
+  );
+$$;
+
+drop policy if exists "Exact class members and managers view assignments"
+  on public.club_assignments;
+create policy "Exact class members managers and historical learners view assignments"
+on public.club_assignments for select to authenticated
+using (
+  (
+    class_id is not null
+    and (
+      private.can_manage_class(class_id, (select auth.uid()))
+      or (status = 'active' and exists (
+        select 1 from public.class_memberships member
+        where member.class_id = club_assignments.class_id
+          and member.user_id = (select auth.uid())
+          and member.member_role = 'student'
+          and member.status = 'active'
+      ))
+      or private.has_historical_occurrence_assignment(id, (select auth.uid()))
+    )
+  )
+  or (class_id is null and private.can_manage_new_class(club_id, (select auth.uid())))
+);
+
+drop policy if exists "Historical learners read published occurrence resources"
+  on public.lms_resources;
+create policy "Historical learners read published occurrence resources"
+on public.lms_resources for select to authenticated
+using (
+  status = 'published'
+  and private.has_historical_occurrence_resource(id, (select auth.uid()))
+);
+
 alter table public.lms_lesson_occurrences enable row level security;
 alter table public.lms_occurrence_resources enable row level security;
 alter table public.lms_occurrence_assignments enable row level security;
@@ -401,7 +592,10 @@ using (private.can_manage_class(class_id, (select auth.uid())))
 with check (private.can_manage_class(class_id, (select auth.uid())));
 create policy "LMS occurrence resource scoped reads"
 on public.lms_occurrence_resources for select to authenticated
-using (private.can_view_lms_occurrence(occurrence_id, (select auth.uid())));
+using (
+  private.can_view_lms_occurrence(occurrence_id, (select auth.uid()))
+  and private.is_published_lms_resource(resource_id)
+);
 create policy "LMS occurrence resource manager writes"
 on public.lms_occurrence_resources for all to authenticated
 using (exists (
@@ -414,7 +608,10 @@ with check (exists (
 ));
 create policy "LMS occurrence assignment scoped reads"
 on public.lms_occurrence_assignments for select to authenticated
-using (private.can_view_lms_occurrence(occurrence_id, (select auth.uid())));
+using (
+  private.can_view_lms_occurrence(occurrence_id, (select auth.uid()))
+  and private.is_active_class_assignment(assignment_id)
+);
 create policy "LMS occurrence assignment manager writes"
 on public.lms_occurrence_assignments for all to authenticated
 using (exists (
@@ -429,7 +626,7 @@ create policy "LMS occurrence roster scoped reads"
 on public.lms_occurrence_roster_snapshots for select to authenticated
 using (
   user_id = (select auth.uid())
-  or private.can_view_lms_occurrence(occurrence_id, (select auth.uid()))
+  or private.can_manage_lms_occurrence(occurrence_id, (select auth.uid()))
 );
 
 drop policy if exists "Historical learners read own attendance sessions"
@@ -489,12 +686,17 @@ language plpgsql
 security definer
 set search_path = public, private
 as $$
+declare
+  admin_override boolean := coalesce(
+    current_setting('app.ielts_admin_review_override', true), 'off'
+  ) = 'on' and private.is_admin(auth.uid());
 begin
-  if auth.uid() is not null
+  if not admin_override and auth.uid() is not null
      and not private.is_assigned_class_teacher(new.class_id, auth.uid()) then
     raise exception 'IELTS_REVIEW_REQUIRES_ASSIGNED_CLASS_TEACHER';
   end if;
-  if not private.is_assigned_class_teacher(new.class_id, new.reviewer_id) then
+  if not admin_override
+     and not private.is_assigned_class_teacher(new.class_id, new.reviewer_id) then
     raise exception 'IELTS_REVIEW_REQUIRES_ASSIGNED_CLASS_TEACHER';
   end if;
   if tg_op = 'UPDATE' and new.reviewer_id is distinct from old.reviewer_id then
@@ -565,6 +767,126 @@ revoke all on function public.update_ielts_teacher_review_feedback(uuid, integer
 grant execute on function public.update_ielts_teacher_review_feedback(uuid, integer, jsonb, uuid)
   to authenticated;
 
+create or replace function public.admin_override_publish_ielts_teacher_review(
+  p_review_id uuid,
+  p_reason text,
+  p_actor_id uuid default auth.uid()
+)
+returns setof public.ielts_teacher_reviews
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare review_row public.ielts_teacher_reviews%rowtype;
+begin
+  if p_actor_id is distinct from auth.uid() or not private.is_admin(p_actor_id) then
+    raise exception 'FORBIDDEN';
+  end if;
+  if nullif(btrim(p_reason), '') is null then
+    raise exception 'ADMIN_OVERRIDE_REASON_REQUIRED';
+  end if;
+  select * into review_row from public.ielts_teacher_reviews
+  where id = p_review_id for update;
+  if not found or review_row.status <> 'draft' then
+    raise exception 'IELTS_DRAFT_NOT_PUBLISHABLE';
+  end if;
+  if (review_row.review_kind = 'writing' and review_row.task_band is null)
+     or (review_row.review_kind = 'speaking' and review_row.skill_band is null) then
+    raise exception 'IELTS_REVIEW_INCOMPLETE';
+  end if;
+  perform set_config('app.ielts_admin_review_override', 'on', true);
+  update public.ielts_teacher_reviews
+  set status = 'published', published_at = now(), updated_at = now()
+  where id = review_row.id returning * into review_row;
+  insert into public.ielts_teacher_review_events(
+    review_id, attempt_id, actor_id, event_type, from_status, to_status,
+    revision, payload
+  ) values (
+    review_row.id, review_row.attempt_id, p_actor_id, 'published', 'draft',
+    'published', review_row.revision,
+    jsonb_build_object('reviewKind', review_row.review_kind,
+      'adminEmergencyOverride', true, 'reason', btrim(p_reason))
+  );
+  perform private.recompute_ielts_effective_attempt_scores(review_row.attempt_id);
+  return next review_row;
+end;
+$$;
+
+create or replace function public.admin_override_return_ielts_teacher_review(
+  p_review_id uuid,
+  p_reason text,
+  p_note text default null,
+  p_actor_id uuid default auth.uid()
+)
+returns setof public.ielts_teacher_reviews
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare
+  review_row public.ielts_teacher_reviews%rowtype;
+  source_row record;
+  grant_revision integer;
+begin
+  if p_actor_id is distinct from auth.uid() or not private.is_admin(p_actor_id) then
+    raise exception 'FORBIDDEN';
+  end if;
+  if nullif(btrim(p_reason), '') is null then
+    raise exception 'ADMIN_OVERRIDE_REASON_REQUIRED';
+  end if;
+  select * into review_row from public.ielts_teacher_reviews
+  where id = p_review_id for update;
+  if not found or review_row.status <> 'published' then
+    raise exception 'IELTS_REVIEW_NOT_RETURNABLE';
+  end if;
+  if review_row.review_kind = 'writing' then
+    select id, revision, revision_grant into source_row
+    from public.writing_responses where id = review_row.writing_response_id for update;
+  else
+    select id, revision, revision_grant into source_row
+    from public.speaking_responses where id = review_row.speaking_response_id for update;
+  end if;
+  if source_row.revision <> review_row.revision or source_row.revision_grant is not null then
+    raise exception 'IELTS_REVISION_ALREADY_GRANTED_OR_STALE';
+  end if;
+  grant_revision := source_row.revision + 1;
+  perform set_config('app.ielts_admin_review_override', 'on', true);
+  perform set_config('app.ielts_revision_grant', 'on', true);
+  if review_row.review_kind = 'writing' then
+    update public.writing_responses set revision_grant = grant_revision
+    where id = source_row.id;
+  else
+    update public.speaking_responses set revision_grant = grant_revision
+    where id = source_row.id;
+  end if;
+  update public.ielts_teacher_reviews
+  set status = 'returned', returned_note = nullif(btrim(p_note), ''),
+      returned_at = now(), revision_granted = grant_revision, updated_at = now()
+  where id = review_row.id returning * into review_row;
+  insert into public.ielts_teacher_review_events(
+    review_id, attempt_id, actor_id, event_type, from_status, to_status,
+    revision, payload
+  ) values (
+    review_row.id, review_row.attempt_id, p_actor_id, 'returned', 'published',
+    'returned', review_row.revision,
+    jsonb_build_object('reviewKind', review_row.review_kind,
+      'revisionGranted', grant_revision, 'adminEmergencyOverride', true,
+      'reason', btrim(p_reason))
+  );
+  perform private.recompute_ielts_effective_attempt_scores(review_row.attempt_id);
+  return next review_row;
+end;
+$$;
+
+revoke all on function public.admin_override_publish_ielts_teacher_review(uuid, text, uuid)
+  from public, anon;
+revoke all on function public.admin_override_return_ielts_teacher_review(uuid, text, text, uuid)
+  from public, anon;
+grant execute on function public.admin_override_publish_ielts_teacher_review(uuid, text, uuid)
+  to authenticated;
+grant execute on function public.admin_override_return_ielts_teacher_review(uuid, text, text, uuid)
+  to authenticated;
+
 -- Speaking evidence remains private. The application creates short-lived
 -- signed URLs; these columns record the metadata verified by the server first.
 alter table public.speaking_responses
@@ -586,7 +908,7 @@ using (
     join public.ielts_attempts attempt on attempt.id = response.attempt_id
     where response.audio_storage_path = name
       and attempt.class_id is not null
-      and private.is_assigned_class_teacher(
+      and private.can_manage_class(
         attempt.class_id,
         (select auth.uid())
       )
@@ -606,6 +928,86 @@ alter table public.club_assignment_submissions
 create index if not exists club_assignment_submissions_cleanup_idx
   on public.club_assignment_submissions(cleanup_status, cleanup_updated_at)
   where submission_state = 'failed';
+
+-- A removed learner cannot create or retry work. A class teacher may still
+-- grade/correct a finalized submission when the learner was enrolled at its
+-- immutable submitted_at timestamp.
+create or replace function private.enforce_homework_submission_integrity()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare
+  assignment_club uuid;
+  assignment_class uuid;
+  enrollment_valid boolean;
+begin
+  if tg_op = 'INSERT' and new.source_type <> 'homework' then return new; end if;
+  if tg_op = 'UPDATE' and old.source_type <> 'homework'
+     and new.source_type <> 'homework' then return new; end if;
+  if tg_op = 'INSERT'
+     and coalesce(current_setting('app.homework_reservation', true), 'off') <> 'on' then
+    raise exception 'Homework submissions must be reserved transactionally';
+  end if;
+  if tg_op = 'UPDATE' then
+    if new.submission_state is distinct from old.submission_state
+       and coalesce(current_setting('app.homework_state_transition', true), 'off') <> 'on' then
+      raise exception 'Homework submission state is server controlled';
+    end if;
+    if (
+      new.status is distinct from old.status
+      or new.grade_status is distinct from old.grade_status
+      or new.score is distinct from old.score
+      or new.score_max is distinct from old.score_max
+      or new.rubric_breakdown is distinct from old.rubric_breakdown
+      or new.feedback is distinct from old.feedback
+      or new.graded_by is distinct from old.graded_by
+      or new.graded_at is distinct from old.graded_at
+    ) and coalesce(current_setting('app.homework_grade_transition', true), 'off') <> 'on' then
+      raise exception 'Homework score and grade fields are server controlled';
+    end if;
+  end if;
+
+  select club_id, class_id into assignment_club, assignment_class
+  from public.club_assignments where id = new.assignment_id;
+  if assignment_club is null then raise exception 'Assignment not found'; end if;
+  if new.club_id <> assignment_club or new.class_id is distinct from assignment_class then
+    raise exception 'Homework submission organization does not match assignment';
+  end if;
+
+  if assignment_class is not null then
+    select exists (
+      select 1 from public.class_memberships member
+      where member.class_id = assignment_class
+        and member.user_id = new.user_id
+        and member.member_role = 'student'
+        and member.status = 'active'
+    ) into enrollment_valid;
+    if not enrollment_valid and tg_op = 'UPDATE'
+       and old.submission_state = 'submitted' and old.submitted_at is not null then
+      select exists (
+        select 1 from public.class_memberships member
+        where member.class_id = assignment_class
+          and member.user_id = new.user_id
+          and member.member_role = 'student'
+          and member.joined_at <= old.submitted_at
+          and (member.removed_at is null or member.removed_at >= old.submitted_at)
+      ) into enrollment_valid;
+    end if;
+    if not enrollment_valid then
+      raise exception 'Homework submission requires enrollment at submission time';
+    end if;
+  end if;
+  if new.revision_of is null and new.revision_number <> 0 then
+    raise exception 'Initial homework submission must have revision zero';
+  end if;
+  if new.revision_of is not null and new.revision_number <> 1 then
+    raise exception 'Homework revision must be revision one';
+  end if;
+  return new;
+end;
+$$;
 
 create or replace function public.retry_homework_submission(
   p_submission_id uuid,
@@ -758,14 +1160,25 @@ revoke all on function private.is_assigned_class_teacher(uuid, uuid),
   private.capture_lms_occurrence_roster(),
   private.mark_lms_occurrence_roster_removed(),
   private.can_view_lms_occurrence(uuid, uuid),
+  private.can_manage_lms_occurrence(uuid, uuid),
   private.has_own_attendance_record(uuid, uuid),
+  private.is_published_lms_resource(uuid),
+  private.is_active_class_assignment(uuid),
+  private.has_historical_occurrence_assignment(uuid, uuid),
+  private.has_historical_occurrence_resource(uuid, uuid),
   private.validate_ielts_criterion_feedback(text, jsonb),
-  private.enforce_ielts_review_teacher_authority()
+  private.enforce_ielts_review_teacher_authority(),
+  private.enforce_homework_submission_integrity()
   from public, anon;
 grant execute on function private.is_assigned_class_teacher(uuid, uuid),
   private.was_class_student_on_date(uuid, uuid, date),
   private.can_view_lms_occurrence(uuid, uuid),
-  private.has_own_attendance_record(uuid, uuid)
+  private.can_manage_lms_occurrence(uuid, uuid),
+  private.has_own_attendance_record(uuid, uuid),
+  private.is_published_lms_resource(uuid),
+  private.is_active_class_assignment(uuid),
+  private.has_historical_occurrence_assignment(uuid, uuid),
+  private.has_historical_occurrence_resource(uuid, uuid)
   to authenticated, service_role;
 
 commit;
