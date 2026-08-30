@@ -36,7 +36,10 @@ function resolveConversionKey(metadata: Tables<"ielts_tests">["metadata"]): stri
 }
 
 interface GradingInputs {
-  attempt: Pick<Tables<"ielts_attempts">, "id" | "user_id" | "test_id" | "module">;
+  attempt: Pick<
+    Tables<"ielts_attempts">,
+    "id" | "user_id" | "test_id" | "module" | "status" | "blueprint_frozen_at"
+  >;
   questions: GradableQuestion[];
   responseIdByQuestion: Map<string, string>;
   grade: AttemptGrade;
@@ -48,11 +51,14 @@ async function loadAndGrade(
 ): Promise<GradingInputs> {
   const { data: attempt, error } = await admin
     .from("ielts_attempts")
-    .select("id, user_id, test_id, module")
+    .select("id, user_id, test_id, module, status, blueprint_frozen_at")
     .eq("id", attemptId)
     .maybeSingle();
   if (error) throw new Error(`grade(attempt): ${error.message}`);
   if (!attempt) throw new Error("grade: attempt not found");
+  if (!["submitted", "scoring", "completed"].includes(attempt.status)) {
+    throw new Error("grade: attempt is not ready for grading");
+  }
 
   const { data: test } = await admin
     .from("ielts_tests")
@@ -61,14 +67,15 @@ async function loadAndGrade(
     .maybeSingle();
   const conversionKey = resolveConversionKey(test?.metadata ?? null);
 
-  const [questionRes, responseRes, bandRes] = await Promise.all([
+  const [snapshotRes, responseRes, bandRes] = await Promise.all([
     admin
-      .from("ielts_questions")
+      .from("ielts_attempt_question_blueprints")
       .select(
-        "id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata",
+        "id, question_id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata, question_order, group_key, passage_id, listening_section_id, test_id, source_updated_at",
       )
-      .eq("test_id", attempt.test_id)
-      .in("skill", OBJECTIVE_SKILLS),
+      .eq("attempt_id", attemptId)
+      .in("skill", OBJECTIVE_SKILLS)
+      .order("question_order"),
     admin
       .from("ielts_question_responses")
       .select("id, question_id, response")
@@ -79,11 +86,29 @@ async function loadAndGrade(
       .in("conversion_key", [...new Set(["default", conversionKey])])
       .in("skill", OBJECTIVE_SKILLS),
   ]);
-  if (questionRes.error) throw new Error(`grade(questions): ${questionRes.error.message}`);
+  if (snapshotRes.error) throw new Error(`grade(blueprint): ${snapshotRes.error.message}`);
   if (responseRes.error) throw new Error(`grade(responses): ${responseRes.error.message}`);
   if (bandRes.error) throw new Error(`grade(bands): ${bandRes.error.message}`);
 
-  const questions: GradableQuestion[] = (questionRes.data ?? []).map((q) => {
+  const snapshotRows = snapshotRes.data ?? [];
+  if (attempt.blueprint_frozen_at && snapshotRows.length === 0) {
+    throw new Error("grade: frozen attempt blueprint missing");
+  }
+  // Attempts created before the frozen-blueprint migration retain a bounded
+  // compatibility path. New attempts always have snapshot rows.
+  const questionRows = snapshotRows.length
+    ? snapshotRows.map((row) => ({ ...row, id: row.question_id }))
+    : (
+        await admin
+          .from("ielts_questions")
+          .select(
+            "id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata",
+          )
+          .eq("test_id", attempt.test_id)
+          .in("skill", OBJECTIVE_SKILLS)
+      ).data ?? [];
+
+  const questions: GradableQuestion[] = questionRows.map((q) => {
     const view = parseQuestionView(q);
     return {
       id: q.id,
@@ -100,12 +125,20 @@ async function loadAndGrade(
   const responseRows = responseRes.data ?? [];
   const questionIds = questions.map((q) => q.id);
   const keyRows = questionIds.length
-    ? (
-        await admin
-          .from("ielts_question_keys")
-          .select("question_id, correct_answer, accept_variants")
-          .in("question_id", questionIds)
-      ).data ?? []
+    ? snapshotRows.length
+      ? (
+          await admin
+            .from("ielts_attempt_question_keys")
+            .select("question_id, correct_answer, accept_variants")
+            .eq("attempt_id", attemptId)
+            .in("question_id", questionIds)
+        ).data ?? []
+      : (
+          await admin
+            .from("ielts_question_keys")
+            .select("question_id, correct_answer, accept_variants")
+            .in("question_id", questionIds)
+        ).data ?? []
     : [];
 
   const keys = new Map<string, ObjectiveKey>(
@@ -154,7 +187,11 @@ async function persist(
           updated_at: nowIso,
         })
         .eq("id", rowId)
-        .then(() => undefined);
+        .eq("attempt_id", attempt.id)
+        .eq("question_id", g.questionId)
+        .then(({ error }) => {
+          if (error) throw new Error(`grade(response): ${error.message}`);
+        });
     }),
   );
 
@@ -189,6 +226,27 @@ export async function gradeAttemptObjective(
   attemptId: string,
 ): Promise<AttemptGrade> {
   const admin = createTypedAdminClient();
+  const { data: gradingAttempt, error: gradingError } = await admin
+    .from("ielts_attempts")
+    .update({ status: "scoring", updated_at: new Date().toISOString() })
+    .eq("id", attemptId)
+    .eq("status", "submitted")
+    .select("id")
+    .maybeSingle();
+  if (gradingError) throw new Error(`grade(claim): ${gradingError.message}`);
+  // A completed attempt is safe to re-grade idempotently; an in-progress or
+  // terminal attempt is not. A concurrent worker may already own scoring.
+  if (!gradingAttempt) {
+    const { data: existing, error: existingError } = await admin
+      .from("ielts_attempts")
+      .select("status")
+      .eq("id", attemptId)
+      .maybeSingle();
+    if (existingError) throw new Error(`grade(state): ${existingError.message}`);
+    if (!existing || !["scoring", "completed"].includes(existing.status)) {
+      throw new Error("grade: attempt is not submitted");
+    }
+  }
   const inputs = await loadAndGrade(admin, attemptId);
   await persist(admin, inputs);
   await recordIeltsObjectiveAttemptEvidence({ client: admin, attemptId });

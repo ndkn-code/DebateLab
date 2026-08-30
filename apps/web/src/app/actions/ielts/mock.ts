@@ -10,6 +10,7 @@
 import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/supabase";
+import { IELTS_ASSESSMENT_MODES_V1, IELTS_ENABLED } from "@/lib/features";
 import { buildMockBlueprint } from "@/lib/ielts/mock-blueprint";
 import {
   SaveResponseSchema,
@@ -25,21 +26,19 @@ import {
 } from "@/lib/api/ielts/mock-repository";
 import {
   createAttemptWithSections,
-  markAttemptSubmitted,
 } from "@/lib/api/ielts/attempt-lifecycle";
 import { gradeAttemptObjective } from "@/lib/api/ielts/grade-attempt";
 import type { AttemptGrade } from "@/lib/scoring/ielts/grade-objective";
-import { IELTS_ASSESSMENT_MODES_V1 } from "@/lib/features";
 
 type SessionClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
-async function requireSession(): Promise<{
-  supabase: SessionClient;
-  userId: string;
-}> {
-  if (!IELTS_ASSESSMENT_MODES_V1) {
-    throw new Error("IELTS assessment modes are not available.");
+function requireAttemptMutationsEnabled(): void {
+  if (!IELTS_ENABLED || !IELTS_ASSESSMENT_MODES_V1) {
+    throw new Error("IELTS assessment is not available.");
   }
+}
+
+async function requireSession(): Promise<{ supabase: SessionClient; userId: string }> {
   const supabase = await createTypedServerClient();
   const {
     data: { user },
@@ -55,20 +54,9 @@ async function ownAttemptState(attemptId: string): Promise<AttemptState> {
   return state;
 }
 
-/** Bind a section-scoped mutation to the caller's declared attempt. */
-async function ownSectionState(
-  attemptId: string,
-  sectionId: string,
-): Promise<AttemptState> {
-  const state = await ownAttemptState(attemptId);
-  if (!state.sections.some((section) => section.id === sectionId)) {
-    throw new Error("Section does not belong to this attempt");
-  }
-  return state;
-}
-
 /** Begin a sitting of a test: build the timed-section blueprint and persist it. */
 export async function startMockAttempt(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(StartMockAttemptSchema, raw);
   const { userId } = await requireSession();
 
@@ -80,25 +68,20 @@ export async function startMockAttempt(raw: unknown): Promise<AttemptState> {
     kind: structure.test.kind,
     skill: structure.test.skill,
     skillsWithContent,
-    assessmentMode: structure.test.assessment_mode,
   });
   if (blueprint.length === 0) throw new Error("Test has no sittable content");
 
   const { attempt } = await createAttemptWithSections({
     userId,
-    test: {
-      id: structure.test.id,
-      module: structure.test.module,
-    },
+    test: { id: structure.test.id, module: structure.test.module },
     blueprint,
-    assessmentMode: structure.test.assessment_mode,
-    testVersion: structure.test.version,
   });
   return ownAttemptState(attempt.id);
 }
 
 /** Re-read the caller's own attempt state (used to re-sync after expiry). */
 export async function getAttemptState(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SubmitAttemptSchema, raw);
   await requireSession();
   return ownAttemptState(input.attemptId);
@@ -106,48 +89,50 @@ export async function getAttemptState(raw: unknown): Promise<AttemptState> {
 
 /** Enter (start the server clock for) a section. Idempotent: resume-safe. */
 export async function enterSection(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
-  await ownSectionState(input.attemptId, input.sectionId);
   const { supabase } = await requireSession();
-  const { error } = await supabase.rpc("ielts_start_attempt_section", {
+  const { error } = await supabase.rpc("ielts_start_attempt_section_v2", {
+    p_attempt_id: input.attemptId,
     p_section_id: input.sectionId,
   });
   if (error) throw new Error(error.message);
-  return ownSectionState(input.attemptId, input.sectionId);
+  return ownAttemptState(input.attemptId);
 }
 
 /** Pause the section clock (freeze remaining time). */
 export async function pauseSection(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
-  await ownSectionState(input.attemptId, input.sectionId);
   const { supabase } = await requireSession();
-  const { error } = await supabase.rpc("ielts_pause_attempt_section", {
+  const { error } = await supabase.rpc("ielts_pause_attempt_section_v2", {
+    p_attempt_id: input.attemptId,
     p_section_id: input.sectionId,
   });
   if (error) throw new Error(error.message);
-  return ownSectionState(input.attemptId, input.sectionId);
+  return ownAttemptState(input.attemptId);
 }
 
 /** Resume a paused section (deadline pushed out by the frozen duration). */
 export async function resumeSection(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
-  await ownSectionState(input.attemptId, input.sectionId);
   const { supabase } = await requireSession();
-  const { error } = await supabase.rpc("ielts_resume_attempt_section", {
+  const { error } = await supabase.rpc("ielts_resume_attempt_section_v2", {
+    p_attempt_id: input.attemptId,
     p_section_id: input.sectionId,
   });
   if (error) throw new Error(error.message);
-  return ownSectionState(input.attemptId, input.sectionId);
+  return ownAttemptState(input.attemptId);
 }
 
 /** Persist (upsert) one objective answer — DB rejects writes past the deadline. */
-export async function saveResponse(
-  raw: unknown,
-): Promise<{ responseId: string }> {
+export async function saveResponse(raw: unknown): Promise<{ responseId: string }> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SaveResponseSchema, raw);
-  await ownSectionState(input.attemptId, input.sectionId);
   const { supabase } = await requireSession();
-  const { data, error } = await supabase.rpc("ielts_record_question_response", {
+  const { data, error } = await supabase.rpc("ielts_record_question_response_v2", {
+    p_attempt_id: input.attemptId,
     p_section_id: input.sectionId,
     p_question_id: input.questionId,
     p_response: (input.response ?? {}) as Json,
@@ -158,14 +143,15 @@ export async function saveResponse(
 
 /** Submit (lock) a section. */
 export async function submitSection(raw: unknown): Promise<AttemptState> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SectionActionSchema, raw);
-  await ownSectionState(input.attemptId, input.sectionId);
   const { supabase } = await requireSession();
-  const { error } = await supabase.rpc("ielts_submit_attempt_section", {
+  const { error } = await supabase.rpc("ielts_submit_attempt_section_v2", {
+    p_attempt_id: input.attemptId,
     p_section_id: input.sectionId,
   });
   if (error) throw new Error(error.message);
-  return ownSectionState(input.attemptId, input.sectionId);
+  return ownAttemptState(input.attemptId);
 }
 
 export interface MockSubmitResult {
@@ -178,14 +164,16 @@ export interface MockSubmitResult {
  * responses → band. Ownership is enforced by loading the attempt under the
  * caller's RLS before the service-role grader runs.
  */
-export async function submitMockAttempt(
-  raw: unknown,
-): Promise<MockSubmitResult> {
+export async function submitMockAttempt(raw: unknown): Promise<MockSubmitResult> {
+  requireAttemptMutationsEnabled();
   const input = parseInput(SubmitAttemptSchema, raw);
-  await requireSession();
+  const { supabase } = await requireSession();
   await ownAttemptState(input.attemptId); // RLS ownership gate before service-role write
 
-  await markAttemptSubmitted(input.attemptId);
+  const { error } = await supabase.rpc("ielts_finalize_attempt", {
+    p_attempt_id: input.attemptId,
+  });
+  if (error) throw new Error(error.message);
   const grade = await gradeAttemptObjective(input.attemptId);
   return { grade, state: await ownAttemptState(input.attemptId) };
 }

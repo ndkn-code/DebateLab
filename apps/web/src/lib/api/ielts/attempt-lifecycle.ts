@@ -9,9 +9,8 @@
  */
 import "server-only";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
-import type { Tables } from "@/types/supabase";
+import type { Json, Tables } from "@/types/supabase";
 import type { SectionBlueprint } from "@/lib/ielts/mock-blueprint";
-import type { AssessmentMode } from "@thinkfy/shared";
 
 export interface CreatedAttempt {
   attempt: Tables<"ielts_attempts">;
@@ -33,8 +32,6 @@ export async function createAttemptWithSections(params: {
   userId: string;
   test: Pick<Tables<"ielts_tests">, "id" | "module">;
   blueprint: SectionBlueprint[];
-  assessmentMode?: AssessmentMode;
-  testVersion?: number;
   org?: AttemptOrgContext;
 }): Promise<CreatedAttempt> {
   const admin = createTypedAdminClient();
@@ -46,86 +43,47 @@ export async function createAttemptWithSections(params: {
     .eq("user_id", userId)
     .eq("test_id", test.id);
 
-  const { data: attempt, error } = await admin
-    .from("ielts_attempts")
-    .insert({
-      user_id: userId,
-      test_id: test.id,
-      assessment_mode: params.assessmentMode ?? "practice",
-      test_version: params.testVersion ?? 1,
-      module: test.module,
-      status: "in_progress",
-      attempt_number: (count ?? 0) + 1,
-      club_id: org?.clubId ?? null,
-      class_id: org?.classId ?? null,
-      assignment_id: org?.assignmentId ?? null,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`createAttempt: ${error.message}`);
-
-  if (blueprint.length === 0) {
-    return { attempt, sections: [] };
-  }
-
-  const { data: sections, error: sectionError } = await admin
-    .from("ielts_attempt_sections")
-    .insert(
-      blueprint.map((section) => ({
-        attempt_id: attempt.id,
-        user_id: userId,
+  if (blueprint.length === 0) throw new Error("createAttempt: empty blueprint");
+  const { data: attemptId, error: createError } = await admin.rpc(
+    "ielts_create_attempt_with_blueprint",
+    {
+      p_user_id: userId,
+      p_test_id: test.id,
+      p_module: test.module,
+      p_attempt_number: (count ?? 0) + 1,
+      p_sections: blueprint.map((section) => ({
         skill: section.skill,
         section_order: section.sectionOrder,
         label: section.label,
         time_limit_seconds: section.timeLimitSeconds,
-      })),
-    )
-    .select();
-  if (sectionError)
-    throw new Error(`createAttemptSections: ${sectionError.message}`);
-
-  return {
-    attempt,
-    sections: (sections ?? []).sort(
-      (a, b) => a.section_order - b.section_order,
-    ),
-  };
+      })) as unknown as Json,
+      p_club_id: org?.clubId ?? null,
+      p_class_id: org?.classId ?? null,
+      p_assignment_id: org?.assignmentId ?? null,
+    },
+  );
+  if (createError || !attemptId) {
+    throw new Error(`createAttempt: ${createError?.message ?? "no attempt returned"}`);
+  }
+  const { data: attempt, error: attemptError } = await admin
+    .from("ielts_attempts")
+    .select()
+    .eq("id", attemptId)
+    .single();
+  if (attemptError) throw new Error(`createAttempt(load): ${attemptError.message}`);
+  const { data: sections, error: sectionError } = await admin
+    .from("ielts_attempt_sections")
+    .select()
+    .eq("attempt_id", attemptId)
+    .order("section_order");
+  if (sectionError) throw new Error(`createAttemptSections(load): ${sectionError.message}`);
+  return { attempt, sections: sections ?? [] };
 }
 
 /** Mark an attempt submitted (idempotent-friendly; service-role). */
 export async function markAttemptSubmitted(attemptId: string): Promise<void> {
   const admin = createTypedAdminClient();
   const nowIso = new Date().toISOString();
-  const { data: attempt, error: attemptError } = await admin
-    .from("ielts_attempts")
-    .select("id, assessment_mode, status")
-    .eq("id", attemptId)
-    .maybeSingle();
-  if (attemptError)
-    throw new Error(`markAttemptSubmitted(load): ${attemptError.message}`);
-  if (!attempt) throw new Error("markAttemptSubmitted: attempt not found");
-  if (attempt.status !== "in_progress") return;
-
-  const { data: sections, error: sectionsError } = await admin
-    .from("ielts_attempt_sections")
-    .select("skill, submitted_at")
-    .eq("attempt_id", attemptId);
-  if (sectionsError)
-    throw new Error(`markAttemptSubmitted(sections): ${sectionsError.message}`);
-  const requiredSkills =
-    attempt.assessment_mode === "simulation"
-      ? (["listening", "reading", "writing"] as const)
-      : (sections ?? []).map((section) => section.skill);
-  const submittedSkills = new Set(
-    (sections ?? [])
-      .filter((section) => section.submitted_at !== null)
-      .map((section) => section.skill),
-  );
-  if (requiredSkills.some((skill) => !submittedSkills.has(skill))) {
-    throw new Error(
-      "All required IELTS sections must be submitted before finishing the attempt.",
-    );
-  }
   const { error } = await admin
     .from("ielts_attempts")
     .update({ status: "submitted", submitted_at: nowIso, updated_at: nowIso })

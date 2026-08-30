@@ -59,20 +59,44 @@ export async function createSpeakingResponse(
 
   const { data: attempt } = await admin
     .from("ielts_attempts")
-    .select("id, user_id")
+    .select("id, user_id, test_id, status, blueprint_frozen_at")
     .eq("id", input.attemptId)
     .maybeSingle();
   if (!attempt || attempt.user_id !== userId) {
     throw new SpeakingResponseAccessError("IELTS attempt not found.");
   }
+  if (attempt.status !== "in_progress") {
+    throw new SpeakingResponseAccessError("IELTS attempt is no longer accepting responses.");
+  }
 
   const { data: question } = await admin
     .from("ielts_questions")
-    .select("id, skill, question_type")
+    .select("id, test_id, skill, question_type")
     .eq("id", input.questionId)
     .maybeSingle();
-  if (!question || question.skill !== "speaking") {
+  if (!question || question.test_id !== attempt.test_id || question.skill !== "speaking") {
     throw new SpeakingResponseAccessError("Question is not a speaking task.");
+  }
+
+  if (attempt.blueprint_frozen_at) {
+    const expectedPath = `${userId}/${input.attemptId}/speaking-${input.questionId}.wav`;
+    if (input.audioStoragePath !== expectedPath) {
+      throw new SpeakingResponseAccessError("Audio path is not bound to this IELTS task.");
+    }
+    const { data: blueprint } = await admin
+      .from("ielts_attempt_question_blueprints")
+      .select("question_id")
+      .eq("attempt_id", input.attemptId)
+      .eq("question_id", input.questionId)
+      .eq("skill", "speaking")
+      .maybeSingle();
+    if (!blueprint) {
+      throw new SpeakingResponseAccessError("Speaking task is not part of this attempt.");
+    }
+  } else if (!input.audioStoragePath.startsWith(`${userId}/`)) {
+    // Compatibility for legacy attempts: preserve their broader path format,
+    // but never permit a path outside the authenticated user's folder.
+    throw new SpeakingResponseAccessError("Audio path is not owned by this user.");
   }
 
   const { data, error } = await admin
